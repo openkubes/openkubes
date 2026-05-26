@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rmf-traffic-schedule
+  namespace: rmf
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rmf-traffic-schedule
+  template:
+    metadata:
+      labels:
+        app: rmf-traffic-schedule
+    spec:
+      containers:
+      - name: traffic-schedule
+        image: ghcr.io/open-rmf/rmf_deployment_template/rmf-deployment/rmf-sim:latest
+        imagePullPolicy: IfNotPresent
+        command: ["/bin/bash"]
+        args:
+        - -c
+        - |
+          /ros_entrypoint.sh ros2 run rmf_traffic_ros2 rmf_traffic_schedule
+        env:
+        - name: RMF_USE_SIM_TIME
+          value: "true"
+        - name: CYCLONEDDS_URI
+          value: /etc/cyclonedds/cyclonedds.xml
+        - name: ROS_DOMAIN_ID
+          value: "15"
+        - name: RMW_IMPLEMENTATION
+          value: rmw_cyclonedds_cpp
+        volumeMounts:
+        - mountPath: /etc/cyclonedds
+          name: cyclonedds-configmap
+      
+      # OpenKubes Node-Berechtigung
+      tolerations:
+      - effect: NoSchedule
+        key: reserved
+        operator: Equal
+        value: rmf
+        
+      volumes:
+      - name: cyclonedds-configmap
+        configMap:
+          name: cyclonedds-configmap
