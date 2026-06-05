@@ -193,6 +193,9 @@ main() {
   export CNI_PLUGIN="${CNI_PLUGIN:-calico}"
   export MULTUS_ENABLED="${MULTUS_ENABLED:-false}"
 
+  # Secret namespace is always the cluster namespace
+  export INFRA_CLUSTER_SECRET_NAMESPACE="${NAMESPACE}"
+
   export MGMT_KUBECONFIG="${MGMT_KUBECONFIG:-${KUBECONFIG:-}}"
   export WORKLOAD_KUBECONFIG="${WORKLOAD_KUBECONFIG:-rendered/${CLUSTER_NAME}.kubeconfig}"
 

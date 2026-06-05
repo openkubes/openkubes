@@ -159,6 +159,7 @@ render-cluster-local: validate-vars check-deps
 	export KUBEVIRT_VM_NAMESPACE="$(namespace)"; \
 	export INFRA_CLUSTER_SECRET_BASE_NAME="$${INFRA_CLUSTER_SECRET_BASE_NAME:-external-infra-kubeconfig}"; \
 	export INFRA_CLUSTER_SECRET_NAME="$${INFRA_CLUSTER_SECRET_BASE_NAME}-$(cluster-name)"; \
+	export INFRA_CLUSTER_SECRET_NAMESPACE="$(namespace)"; \
 	export CLUSTER_NAME="$(cluster-name)"; \
 	export NAMESPACE="$(namespace)"; \
 	export KUBERNETES_VERSION="$(kubernetes-version)"; \
@@ -204,6 +205,7 @@ deploy-full-local: validate-vars check-deps
 	export KUBEVIRT_VM_NAMESPACE="$(namespace)"; \
 	export INFRA_CLUSTER_SECRET_BASE_NAME="$${INFRA_CLUSTER_SECRET_BASE_NAME:-external-infra-kubeconfig}"; \
 	export INFRA_CLUSTER_SECRET_NAME="$${INFRA_CLUSTER_SECRET_BASE_NAME}-$(cluster-name)"; \
+	export INFRA_CLUSTER_SECRET_NAMESPACE="$(namespace)"; \
 	export MGMT_KUBECONFIG="$${MGMT_KUBECONFIG:-$${KUBECONFIG:-}}"; \
 	export WORKLOAD_KUBECONFIG="$${WORKLOAD_KUBECONFIG:-$(KUBECONFIG_FILE)}"; \
 	export CLUSTER_NAME="$(cluster-name)"; \
