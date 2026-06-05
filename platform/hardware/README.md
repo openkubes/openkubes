@@ -8,16 +8,18 @@ on the Infra Cluster. These VMs form the nodes of the OpenKubes Management Clust
 ## Overview
 
 ```
-Infra Cluster (RKE2 Bare Metal)
-├── ok1-vm  →  84.200.100.225  (Management Cluster Node 1)
-├── ok2-vm  →  84.200.100.226  (Management Cluster Node 2)
-└── ok3-vm  →  84.200.100.227  (Management Cluster Node 3)
+Infra Cluster (RKE2 or Kubeadm Bare Metal)
+├── ok1-vm  →  <MGMT_VM_1_IP>  (Management Cluster Node 1)
+├── ok2-vm  →  <MGMT_VM_2_IP>  (Management Cluster Node 2)
+└── ok3-vm  →  <MGMT_VM_3_IP>  (Management Cluster Node 3)
 ```
 
 Each VM:
 - Ubuntu 24.04
 - 30Gi disk (DataVolume / PVC)
 - Exposed via MetalLB LoadBalancer on port 22 (SSH) and 6443 (API)
+
+Set your MetalLB IPs in the VM manifests under `ok-vms/` before deploying.
 
 ---
 
@@ -63,9 +65,9 @@ kubectl get vmi -n kubevirt -o wide
 kubectl get svc -n kubevirt
 
 # Expected services:
-# ok1-svc   LoadBalancer   10.43.x.x   84.200.100.225   22:xxxxx/TCP
-# ok2-svc   LoadBalancer   10.43.x.x   84.200.100.226   22:xxxxx/TCP
-# ok3-svc   LoadBalancer   10.43.x.x   84.200.100.227   22:xxxxx/TCP
+# ok1-svc   LoadBalancer   10.43.x.x   <MGMT_VM_1_IP>   22:xxxxx/TCP
+# ok2-svc   LoadBalancer   10.43.x.x   <MGMT_VM_2_IP>   22:xxxxx/TCP
+# ok3-svc   LoadBalancer   10.43.x.x   <MGMT_VM_3_IP>   22:xxxxx/TCP
 
 # PVCs
 kubectl get pvc -n kubevirt
@@ -77,9 +79,9 @@ kubectl get pvc -n kubevirt
 
 ```bash
 # SSH (password set via cloud-init in the VM manifest)
-ssh ubuntu@84.200.100.225
-ssh ubuntu@84.200.100.226
-ssh ubuntu@84.200.100.227
+ssh ubuntu@<MGMT_VM_1_IP>
+ssh ubuntu@<MGMT_VM_2_IP>
+ssh ubuntu@<MGMT_VM_3_IP>
 
 # Console access (no SSH needed)
 kubectl virt console ok1-vm -n kubevirt
