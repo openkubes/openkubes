@@ -1,0 +1,3 @@
+# Put your full Cilium manifest here, or helm-rendered output.
+# Example:
+# helm template cilium cilium/cilium --namespace kube-system > addons/cilium/cilium.yaml
