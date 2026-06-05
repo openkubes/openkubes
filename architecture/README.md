@@ -54,3 +54,4 @@ OpenKubes is built around a clear separation of concerns across four zones:
 
 - [Reference Architecture v1 (English)](reference-architecture-v1-en.md)
 - [Referenzarchitektur v1 (Deutsch)](reference-architecture-v1-de.md)
+- [OpenKubes Bare Metal Whitepaper v2 (Deutsch)](OpenKubes_BM_Whitepaper_v2.docx)
