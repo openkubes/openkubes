@@ -1,0 +1,18 @@
+apiVersion: platform.openkubes.ai/v1alpha1
+kind: KubeVirtClusterClaim
+metadata:
+  name: ok1
+  namespace: openkubes-system
+spec:
+  compositeDeletePolicy: Foreground
+  country: de
+  provider: kubevirt
+  endpointIP: 10.10.10.50
+  cni: calico
+  multus: "false"
+  controlPlane:
+    replicas: 1
+    kubernetesVersion: v1.34.1
+  workers:
+    replicas: 2
+  runnerImage: kubernautslabs/capi-platform-runner:v4.2

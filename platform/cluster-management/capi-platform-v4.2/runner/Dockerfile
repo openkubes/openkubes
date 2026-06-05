@@ -49,7 +49,17 @@ RUN curl -fsSL -o /usr/local/bin/yq \
     && chmod +x /usr/local/bin/yq
 
 WORKDIR /workspace
+
+# Copy the platform code into the image so the runner works standalone
+# (no volume mount needed – used when running as a Kubernetes Job)
+COPY Makefile ./
+COPY scripts/ ./scripts/
+COPY templates/ ./templates/
+COPY config/ ./config/
+COPY addons/ ./addons/
+
 COPY runner/entrypoint.sh /usr/local/bin/entrypoint.sh
-RUN chmod +x /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh \
+    && chmod +x scripts/*.sh
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 CMD ["bash"]

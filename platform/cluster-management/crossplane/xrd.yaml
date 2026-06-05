@@ -1,0 +1,88 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: CompositeResourceDefinition
+metadata:
+  name: kubevirtclusters.platform.openkubes.ai
+spec:
+  group: platform.openkubes.ai
+  names:
+    kind: KubeVirtCluster
+    plural: kubevirtclusters
+  claimNames:
+    kind: KubeVirtClusterClaim
+    plural: kubevirtclusterclaims
+  versions:
+    - name: v1alpha1
+      served: true
+      referenceable: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              required:
+                - country
+                - provider
+                - endpointIP
+              properties:
+                country:
+                  type: string
+                  description: "Country config to use (e.g. de)"
+                  default: de
+                provider:
+                  type: string
+                  description: "Infrastructure provider (e.g. kubevirt)"
+                  default: kubevirt
+                endpointIP:
+                  type: string
+                  description: "Free MetalLB IP for the control-plane LoadBalancer"
+                cni:
+                  type: string
+                  description: "CNI plugin: calico or cilium"
+                  default: calico
+                  enum: [calico, cilium]
+                multus:
+                  type: string
+                  description: "Install Multus: true or false"
+                  default: "false"
+                  enum: ["true", "false"]
+                controlPlane:
+                  type: object
+                  properties:
+                    replicas:
+                      type: integer
+                      default: 1
+                      minimum: 1
+                    kubernetesVersion:
+                      type: string
+                      default: v1.34.1
+                workers:
+                  type: object
+                  properties:
+                    replicas:
+                      type: integer
+                      default: 2
+                      minimum: 1
+                runnerImage:
+                  type: string
+                  description: "Runner container image"
+                  default: kubernautslabs/capi-platform-runner:v4.2
+                mgmtKubeconfigSecret:
+                  type: string
+                  description: >
+                    Name of the Secret in openkubes-system containing the
+                    management cluster kubeconfig under key 'kubeconfig'.
+                    Leave empty to use in-cluster config (default).
+                  default: ""
+            status:
+              type: object
+              properties:
+                phase:
+                  type: string
+                  description: "Current phase: Provisioning, Provisioned, Failed, Deleting"
+                jobName:
+                  type: string
+                  description: "Name of the deploy Job"
+                kubeconfigSecret:
+                  type: string
+                  description: "Name of the Secret containing the workload kubeconfig"

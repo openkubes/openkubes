@@ -1,0 +1,257 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: kubevirtcluster.platform.openkubes.ai
+  labels:
+    provider: kubevirt
+spec:
+  compositeTypeRef:
+    apiVersion: platform.openkubes.ai/v1alpha1
+    kind: KubeVirtCluster
+
+  mode: Pipeline
+  pipeline:
+    - step: create-resources
+      functionRef:
+        name: function-patch-and-transform
+      input:
+        apiVersion: pt.fn.crossplane.io/v1beta1
+        kind: Resources
+        resources:
+
+          # ------------------------------------------------------------------
+          # 1. ConfigMap – deploy arguments
+          # ------------------------------------------------------------------
+          - name: deploy-args-configmap
+            base:
+              apiVersion: kubernetes.crossplane.io/v1alpha2
+              kind: Object
+              spec:
+                providerConfigRef:
+                  name: in-cluster
+                forProvider:
+                  manifest:
+                    apiVersion: v1
+                    kind: ConfigMap
+                    metadata:
+                      namespace: openkubes-system
+                    data: {}
+            patches:
+              - type: FromCompositeFieldPath
+                fromFieldPath: metadata.name
+                toFieldPath: metadata.name
+                transforms:
+                  - type: string
+                    string:
+                      type: Format
+                      fmt: "deploy-args-%s"
+              - type: FromCompositeFieldPath
+                fromFieldPath: metadata.name
+                toFieldPath: spec.forProvider.manifest.metadata.name
+                transforms:
+                  - type: string
+                    string:
+                      type: Format
+                      fmt: "deploy-args-%s"
+              - type: FromCompositeFieldPath
+                fromFieldPath: metadata.name
+                toFieldPath: spec.forProvider.manifest.data.CLUSTER_NAME
+              - type: FromCompositeFieldPath
+                fromFieldPath: spec.country
+                toFieldPath: spec.forProvider.manifest.data.COUNTRY
+              - type: FromCompositeFieldPath
+                fromFieldPath: spec.provider
+                toFieldPath: spec.forProvider.manifest.data.PROVIDER
+              - type: FromCompositeFieldPath
+                fromFieldPath: spec.endpointIP
+                toFieldPath: spec.forProvider.manifest.data.CONTROL_PLANE_ENDPOINT_IP
+              - type: FromCompositeFieldPath
+                fromFieldPath: spec.cni
+                toFieldPath: spec.forProvider.manifest.data.CNI_PLUGIN
+              - type: FromCompositeFieldPath
+                fromFieldPath: spec.multus
+                toFieldPath: spec.forProvider.manifest.data.MULTUS_ENABLED
+              - type: FromCompositeFieldPath
+                fromFieldPath: spec.controlPlane.replicas
+                toFieldPath: spec.forProvider.manifest.data.CONTROL_PLANE_REPLICAS
+                transforms:
+                  - type: convert
+                    convert:
+                      toType: string
+              - type: FromCompositeFieldPath
+                fromFieldPath: spec.workers.replicas
+                toFieldPath: spec.forProvider.manifest.data.WORKER_REPLICAS
+                transforms:
+                  - type: convert
+                    convert:
+                      toType: string
+              - type: FromCompositeFieldPath
+                fromFieldPath: spec.controlPlane.kubernetesVersion
+                toFieldPath: spec.forProvider.manifest.data.KUBERNETES_VERSION
+
+          # ------------------------------------------------------------------
+          # 2. ServiceAccount for the deploy Job
+          # ------------------------------------------------------------------
+          - name: job-serviceaccount
+            base:
+              apiVersion: kubernetes.crossplane.io/v1alpha2
+              kind: Object
+              spec:
+                providerConfigRef:
+                  name: in-cluster
+                forProvider:
+                  manifest:
+                    apiVersion: v1
+                    kind: ServiceAccount
+                    metadata:
+                      name: capi-platform-runner
+                      namespace: openkubes-system
+            patches:
+              - type: FromCompositeFieldPath
+                fromFieldPath: metadata.name
+                toFieldPath: metadata.name
+                transforms:
+                  - type: string
+                    string:
+                      type: Format
+                      fmt: "sa-%s"
+
+          # ------------------------------------------------------------------
+          # 3. ClusterRoleBinding
+          # ------------------------------------------------------------------
+          - name: job-clusterrolebinding
+            base:
+              apiVersion: kubernetes.crossplane.io/v1alpha2
+              kind: Object
+              spec:
+                providerConfigRef:
+                  name: in-cluster
+                forProvider:
+                  manifest:
+                    apiVersion: rbac.authorization.k8s.io/v1
+                    kind: ClusterRoleBinding
+                    metadata:
+                      name: capi-platform-runner
+                    roleRef:
+                      apiGroup: rbac.authorization.k8s.io
+                      kind: ClusterRole
+                      name: cluster-admin
+                    subjects:
+                      - kind: ServiceAccount
+                        name: capi-platform-runner
+                        namespace: openkubes-system
+            patches:
+              - type: FromCompositeFieldPath
+                fromFieldPath: metadata.name
+                toFieldPath: metadata.name
+                transforms:
+                  - type: string
+                    string:
+                      type: Format
+                      fmt: "crb-%s"
+
+          # ------------------------------------------------------------------
+          # 4. Deploy Job
+          # ------------------------------------------------------------------
+          - name: deploy-job
+            base:
+              apiVersion: kubernetes.crossplane.io/v1alpha2
+              kind: Object
+              spec:
+                providerConfigRef:
+                  name: in-cluster
+                forProvider:
+                  manifest:
+                    apiVersion: batch/v1
+                    kind: Job
+                    metadata:
+                      namespace: openkubes-system
+                    spec:
+                      backoffLimit: 2
+                      ttlSecondsAfterFinished: 600
+                      template:
+                        spec:
+                          serviceAccountName: capi-platform-runner
+                          restartPolicy: Never
+                          containers:
+                            - name: runner
+                              image: kubernautslabs/capi-platform-runner:v4.2
+                              imagePullPolicy: Always
+                              command: ["/bin/bash", "-c"]
+                              args:
+                                - |
+                                  set -euo pipefail
+
+                                  # Build kubeconfig from in-cluster ServiceAccount token
+                                  SA_DIR="/var/run/secrets/kubernetes.io/serviceaccount"
+                                  KUBECONFIG_FILE="/tmp/in-cluster.kubeconfig"
+
+                                  kubectl config set-cluster in-cluster \
+                                    --server="https://kubernetes.default.svc" \
+                                    --certificate-authority="${SA_DIR}/ca.crt" \
+                                    --kubeconfig="${KUBECONFIG_FILE}"
+
+                                  kubectl config set-credentials in-cluster-sa \
+                                    --token="$(cat ${SA_DIR}/token)" \
+                                    --kubeconfig="${KUBECONFIG_FILE}"
+
+                                  kubectl config set-context in-cluster \
+                                    --cluster=in-cluster \
+                                    --user=in-cluster-sa \
+                                    --kubeconfig="${KUBECONFIG_FILE}"
+
+                                  kubectl config use-context in-cluster \
+                                    --kubeconfig="${KUBECONFIG_FILE}"
+
+                                  export KUBECONFIG="${KUBECONFIG_FILE}"
+                                  export MGMT_KUBECONFIG="${KUBECONFIG_FILE}"
+                                  export RUNNER_MODE=true
+
+                                  make deploy-full-local \
+                                    country=${COUNTRY} \
+                                    provider=${PROVIDER} \
+                                    cluster-name=${CLUSTER_NAME} \
+                                    cni=${CNI_PLUGIN} \
+                                    multus=${MULTUS_ENABLED} \
+                                    endpoint-ip=${CONTROL_PLANE_ENDPOINT_IP} \
+                                    kubernetes-version=${KUBERNETES_VERSION} \
+                                    control-plane-replicas=${CONTROL_PLANE_REPLICAS} \
+                                    worker-replicas=${WORKER_REPLICAS}
+                              envFrom:
+                                - configMapRef:
+                                    name: deploy-args-placeholder
+                              resources:
+                                requests:
+                                  cpu: 100m
+                                  memory: 128Mi
+                                limits:
+                                  cpu: 500m
+                                  memory: 256Mi
+            patches:
+              - type: FromCompositeFieldPath
+                fromFieldPath: metadata.name
+                toFieldPath: metadata.name
+                transforms:
+                  - type: string
+                    string:
+                      type: Format
+                      fmt: "deploy-%s"
+              - type: FromCompositeFieldPath
+                fromFieldPath: metadata.name
+                toFieldPath: spec.forProvider.manifest.metadata.name
+                transforms:
+                  - type: string
+                    string:
+                      type: Format
+                      fmt: "deploy-%s"
+              - type: FromCompositeFieldPath
+                fromFieldPath: spec.runnerImage
+                toFieldPath: spec.forProvider.manifest.spec.template.spec.containers[0].image
+              - type: FromCompositeFieldPath
+                fromFieldPath: metadata.name
+                toFieldPath: spec.forProvider.manifest.spec.template.spec.containers[0].envFrom[0].configMapRef.name
+                transforms:
+                  - type: string
+                    string:
+                      type: Format
+                      fmt: "deploy-args-%s"

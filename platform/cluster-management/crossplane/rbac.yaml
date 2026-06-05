@@ -1,0 +1,35 @@
+---
+# ClusterRole: allows provider-kubernetes to manage all needed resources
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: crossplane-provider-kubernetes-openkubes
+rules:
+  - apiGroups: [""]
+    resources: ["namespaces", "configmaps", "serviceaccounts", "secrets"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: ["batch"]
+    resources: ["jobs"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: ["rbac.authorization.k8s.io"]
+    resources: ["clusterrolebindings"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+---
+# Bind to the provider-kubernetes ServiceAccount
+# The SA name follows the pattern: provider-kubernetes-<hash>
+# Run: kubectl get sa -n crossplane-system | grep provider-kubernetes
+# and replace the name below if needed.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: crossplane-provider-kubernetes-openkubes
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: crossplane-provider-kubernetes-openkubes
+subjects:
+  - kind: ServiceAccount
+    # Find the exact name with:
+    # kubectl get sa -n crossplane-system | grep provider-kubernetes
+    name: provider-kubernetes
+    namespace: crossplane-system

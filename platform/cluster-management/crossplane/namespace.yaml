@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: openkubes-system
+  labels:
+    app.kubernetes.io/managed-by: openkubes
+    app.kubernetes.io/part-of: openkubes-platform

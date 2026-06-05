@@ -102,7 +102,7 @@ install_multus_if_enabled() {
 # share capi-workload and their LB services collide.
 prepare_infra_secret() {
   local base_secret="${INFRA_CLUSTER_SECRET_BASE_NAME}"
-  local base_ns="${INFRA_CLUSTER_SECRET_NAMESPACE}"
+  local base_ns="${INFRA_CLUSTER_SECRET_BASE_NAMESPACE:-capk-system}"
   local cluster_secret="${INFRA_CLUSTER_SECRET_NAME}"   # = base_secret-<clustername>
   local mgmt_ns="${NAMESPACE}"
   local infra_ns="${KUBEVIRT_VM_NAMESPACE}"
@@ -177,7 +177,6 @@ main() {
   require_env DNS_DOMAIN_SUFFIX
   require_env INFRA_CLUSTER_SECRET_BASE_NAME
   require_env INFRA_CLUSTER_SECRET_NAME
-  require_env INFRA_CLUSTER_SECRET_NAMESPACE
   require_env CONTROL_PLANE_SERVICE_TYPE
   require_env CONTROL_PLANE_ENDPOINT_IP
   require_env CONTROL_PLANE_ENDPOINT_PORT
@@ -192,9 +191,6 @@ main() {
 
   export CNI_PLUGIN="${CNI_PLUGIN:-calico}"
   export MULTUS_ENABLED="${MULTUS_ENABLED:-false}"
-
-  # Secret namespace is always the cluster namespace
-  export INFRA_CLUSTER_SECRET_NAMESPACE="${NAMESPACE}"
 
   export MGMT_KUBECONFIG="${MGMT_KUBECONFIG:-${KUBECONFIG:-}}"
   export WORKLOAD_KUBECONFIG="${WORKLOAD_KUBECONFIG:-rendered/${CLUSTER_NAME}.kubeconfig}"
