@@ -12,16 +12,21 @@ Provider (CAPK) on the Management Cluster, and connecting it to the Infra Cluste
 
 ## 1. Install clusterctl
 
+```bash
 curl -L https://github.com/kubernetes-sigs/cluster-api/releases/latest/download/clusterctl-darwin-amd64 \
   -o clusterctl && chmod +x clusterctl && sudo mv clusterctl /usr/local/bin/
+```
 
 ## 2. Install cert-manager
 
+```bash
 kubectl apply -f https://github.com/cert-manager/cert-manager/releases/latest/download/cert-manager.yaml
 kubectl -n cert-manager wait deployment cert-manager --for=condition=Available --timeout=120s
+```
 
 ## 3. Configure clusterctl for CAPK
 
+```bash
 mkdir -p ~/.cluster-api
 cat > ~/.cluster-api/clusterctl.yaml << YAML
 providers:
@@ -29,18 +34,23 @@ providers:
     url: "https://github.com/kubernetes-sigs/cluster-api-provider-kubevirt/releases/download/v0.11.2/infrastructure-components.yaml"
     type: "InfrastructureProvider"
 YAML
+```
 
 ## 4. Initialize CAPI with CAPK
 
+```bash
 clusterctl init --infrastructure kubevirt:v0.11.2 -v5
 kubectl get pods -n capi-system
 kubectl get pods -n capk-system
+```
 
 ## 5. Create the Infra Cluster Secret
 
+```bash
 kubectl -n capk-system create secret generic external-infra-kubeconfig \
   --from-file=kubeconfig=$HOME/.kube/knautic-bare-metal.yaml \
   --from-literal=namespace=capi-workload
 
 kubectl -n capk-system get secret external-infra-kubeconfig \
   -o jsonpath='{.data}' | jq 'keys'
+```
