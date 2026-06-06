@@ -124,6 +124,21 @@ for kind in kubevirtmachine machine machineset machinedeployment \
 done
 
 kubectl delete ns "${NAMESPACE}" --ignore-not-found
+
+or:
+
+kubectl patch namespace ok1 \
+  --type=merge -p '{"spec":{"finalizers":[]}}'
+
+or:
+
+# Namespace force-delete
+kubectl get namespace ok1 -o json | \
+  python3 -c "import sys,json; d=json.load(sys.stdin); d['spec']['finalizers']=[]; print(json.dumps(d))" | \
+  kubectl replace --raw /api/v1/namespaces/ok1/finalize -f -# Namespace force-delete
+kubectl get namespace ok1 -o json | \
+  python3 -c "import sys,json; d=json.load(sys.stdin); d['spec']['finalizers']=[]; print(json.dumps(d))" | \
+  kubectl replace --raw /api/v1/namespaces/ok1/finalize -f -
 ```
 
 ### Force-delete multiple stuck namespaces

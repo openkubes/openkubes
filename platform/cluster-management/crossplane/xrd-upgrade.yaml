@@ -1,0 +1,54 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: CompositeResourceDefinition
+metadata:
+  name: kubevirtclusterupgrades.platform.openkubes.ai
+spec:
+  defaultCompositeDeletePolicy: Foreground
+  group: platform.openkubes.ai
+  names:
+    kind: KubeVirtClusterUpgrade
+    plural: kubevirtclusterupgrades
+  claimNames:
+    kind: KubeVirtClusterUpgradeClaim
+    plural: kubevirtclusterupgradeclaims
+  versions:
+    - name: v1alpha1
+      served: true
+      referenceable: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              required:
+                - clusterName
+                - targetKubernetesVersion
+              properties:
+                clusterName:
+                  type: string
+                  description: "Name of the cluster to upgrade (e.g. ok1)"
+                targetKubernetesVersion:
+                  type: string
+                  description: "Target Kubernetes version (e.g. v1.35.0)"
+                upgradeStrategy:
+                  type: string
+                  default: RollingUpdate
+                  enum: [RollingUpdate, InPlace]
+                  description: "Upgrade strategy"
+                country:
+                  type: string
+                  default: de
+                provider:
+                  type: string
+                  default: kubevirt
+                runnerImage:
+                  type: string
+                  default: kubernautslabs/capi-platform-runner:v4.2
+            status:
+              type: object
+              properties:
+                phase:
+                  type: string
+                targetVersion:
+                  type: string

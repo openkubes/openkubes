@@ -1,0 +1,132 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: kubevirtclusterupgrade.platform.openkubes.ai
+  labels:
+    provider: kubevirt
+spec:
+  compositeTypeRef:
+    apiVersion: platform.openkubes.ai/v1alpha1
+    kind: KubeVirtClusterUpgrade
+  mode: Pipeline
+  pipeline:
+    - step: create-upgrade-job
+      functionRef:
+        name: function-patch-and-transform
+      input:
+        apiVersion: pt.fn.crossplane.io/v1beta1
+        kind: Resources
+        resources:
+
+          # ConfigMap with upgrade args
+          - name: upgrade-args-configmap
+            base:
+              apiVersion: kubernetes.crossplane.io/v1alpha2
+              kind: Object
+              spec:
+                providerConfigRef:
+                  name: in-cluster
+                forProvider:
+                  manifest:
+                    apiVersion: v1
+                    kind: ConfigMap
+                    metadata:
+                      namespace: openkubes-system
+                    data: {}
+            patches:
+              - type: FromCompositeFieldPath
+                fromFieldPath: metadata.name
+                toFieldPath: metadata.name
+                transforms:
+                  - type: string
+                    string:
+                      type: Format
+                      fmt: "upgrade-args-%s"
+              - type: FromCompositeFieldPath
+                fromFieldPath: metadata.name
+                toFieldPath: spec.forProvider.manifest.metadata.name
+                transforms:
+                  - type: string
+                    string:
+                      type: Format
+                      fmt: "upgrade-args-%s"
+              - type: FromCompositeFieldPath
+                fromFieldPath: spec.clusterName
+                toFieldPath: spec.forProvider.manifest.data.CLUSTER_NAME
+              - type: FromCompositeFieldPath
+                fromFieldPath: spec.targetKubernetesVersion
+                toFieldPath: spec.forProvider.manifest.data.TARGET_KUBERNETES_VERSION
+              - type: FromCompositeFieldPath
+                fromFieldPath: spec.upgradeStrategy
+                toFieldPath: spec.forProvider.manifest.data.UPGRADE_STRATEGY
+              - type: FromCompositeFieldPath
+                fromFieldPath: spec.country
+                toFieldPath: spec.forProvider.manifest.data.COUNTRY
+              - type: FromCompositeFieldPath
+                fromFieldPath: spec.provider
+                toFieldPath: spec.forProvider.manifest.data.PROVIDER
+
+          # Upgrade Job
+          - name: upgrade-job
+            base:
+              apiVersion: kubernetes.crossplane.io/v1alpha2
+              kind: Object
+              spec:
+                providerConfigRef:
+                  name: in-cluster
+                forProvider:
+                  manifest:
+                    apiVersion: batch/v1
+                    kind: Job
+                    metadata:
+                      namespace: openkubes-system
+                    spec:
+                      backoffLimit: 1
+                      ttlSecondsAfterFinished: 600
+                      template:
+                        spec:
+                          serviceAccountName: capi-platform-runner
+                          restartPolicy: Never
+                          containers:
+                            - name: runner
+                              image: kubernautslabs/capi-platform-runner:v4.2
+                              imagePullPolicy: Always
+                              command: ["/bin/bash", "/workspace/scripts/crossplane-upgrade.sh"]
+                              envFrom:
+                                - configMapRef:
+                                    name: upgrade-args-placeholder
+                              resources:
+                                requests:
+                                  cpu: 100m
+                                  memory: 128Mi
+                                limits:
+                                  cpu: 500m
+                                  memory: 256Mi
+            patches:
+              - type: FromCompositeFieldPath
+                fromFieldPath: metadata.name
+                toFieldPath: metadata.name
+                transforms:
+                  - type: string
+                    string:
+                      type: Format
+                      fmt: "upgrade-%s"
+              - type: FromCompositeFieldPath
+                fromFieldPath: metadata.name
+                toFieldPath: spec.forProvider.manifest.metadata.name
+                transforms:
+                  - type: string
+                    string:
+                      type: Format
+                      fmt: "upgrade-%s"
+              - type: FromCompositeFieldPath
+                fromFieldPath: spec.runnerImage
+                toFieldPath: spec.forProvider.manifest.spec.template.spec.containers[0].image
+              - type: FromCompositeFieldPath
+                fromFieldPath: metadata.name
+                toFieldPath: spec.forProvider.manifest.spec.template.spec.containers[0].envFrom[0].configMapRef.name
+                transforms:
+                  - type: string
+                    string:
+                      type: Format
+                      fmt: "upgrade-args-%s"

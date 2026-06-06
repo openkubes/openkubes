@@ -12,7 +12,8 @@ spec:
   multus: "false"
   controlPlane:
     replicas: 1
-    kubernetesVersion: v1.34.1
+    kubernetesVersion: v1.33.5
+    # kubernetesVersion: v1.34.1
   workers:
     replicas: 2
   runnerImage: kubernautslabs/capi-platform-runner:v4.2

@@ -1,0 +1,12 @@
+apiVersion: platform.openkubes.ai/v1alpha1
+kind: KubeVirtClusterUpgradeClaim
+metadata:
+  name: upgrade-ok1
+  namespace: openkubes-system
+spec:
+  clusterName: ok1
+  targetKubernetesVersion: v1.35.0
+  upgradeStrategy: RollingUpdate
+  country: de
+  provider: kubevirt
+  runnerImage: kubernautslabs/capi-platform-runner:v4.2
