@@ -1,72 +1,125 @@
 # Getting Started with OpenKubes
 
-This guide walks you through setting up OpenKubes from scratch on bare metal.
+Step-by-step setup from bare metal to running workload clusters.
 
 ---
 
 ## Prerequisites
 
-- Bare metal servers (3+ nodes recommended)
-- RKE2 or equivalent Kubernetes distribution installed
+- Bare metal servers (3+ nodes recommended), RKE2 installed and running
 - MetalLB configured with an IP pool
-- `kubectl`, `helm`, `clusterctl` installed locally
+- `kubectl`, `helm`, `clusterctl`, `jq`, `docker` installed locally
 
 ---
 
-## Step-by-Step Setup
-
-### Step 1 — Install KubeVirt on the Infra Cluster
+## Step 1 — Install KubeVirt on the Infra Cluster
 
 KubeVirt enables running Virtual Machines as Kubernetes workloads.
 
-→ [`../../platform/virtualization/kubevirt/README.md`](../../platform/virtualization/kubevirt/README.md)
-
-```bash
+```sh
 kubectl apply -f https://github.com/kubevirt/kubevirt/releases/download/v1.8.1/kubevirt-operator.yaml
 kubectl apply -f https://github.com/kubevirt/kubevirt/releases/download/v1.8.1/kubevirt-cr.yaml
+kubectl apply -f https://github.com/kubevirt/containerized-data-importer/releases/latest/download/cdi-operator.yaml
+kubectl apply -f https://github.com/kubevirt/containerized-data-importer/releases/latest/download/cdi-cr.yaml
+
+kubectl -n kubevirt wait kubevirt kubevirt --for=condition=Available --timeout=300s
+kubectl get pods -n kubevirt
+kubectl get pods -n cdi
 ```
+
+→ [`../../platform/virtualization/kubevirt/README.md`](../../platform/virtualization/kubevirt/README.md)
 
 ---
 
-### Step 2 — Deploy Management VMs
+## Step 2 — Deploy Management VMs
 
 Deploy the three VMs (`ok1-vm`, `ok2-vm`, `ok3-vm`) that will form the Management Cluster.
 
-→ [`../../platform/hardware/README.md`](../../platform/hardware/README.md)
-
-```bash
+```sh
 kubectl apply -f ok-vms/
-kubectl get vms -n kubevirt -w
+kubectl get dv -n kubevirt -w    # watch disk import
+kubectl get vms -n kubevirt -w   # watch VMs come up
 ```
+
+Expected output:
+
+```
+NAME     STATUS    READY
+ok1-vm   Running   True
+ok2-vm   Running   True
+ok3-vm   Running   True
+```
+
+→ [`../../platform/hardware/README.md`](../../platform/hardware/README.md)
 
 ---
 
-### Step 3 — Install Cluster API + CAPK
+## Step 3 — Install Cluster API + CAPK
 
-Install CAPI with the KubeVirt Infrastructure Provider on the Management Cluster
-and connect it to the Infra Cluster.
+Bootstrap CAPI with the KubeVirt Infrastructure Provider on the Management Cluster.
 
-→ [`../../platform/cluster-management/cluster-api/README.md`](../../platform/cluster-management/cluster-api/README.md)
+```sh
+# Install cert-manager first
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/latest/download/cert-manager.yaml
+kubectl -n cert-manager wait deployment cert-manager --for=condition=Available --timeout=120s
 
-```bash
-clusterctl init --infrastructure kubevirt:v0.11.2
+# Init CAPI + CAPK
+clusterctl init --infrastructure kubevirt:v0.11.2 -v5
+
+# Connect to Infra Cluster
 kubectl -n capk-system create secret generic external-infra-kubeconfig \
-  --from-file=kubeconfig=$HOME/.kube/infra.yaml \
+  --from-file=kubeconfig=$HOME/.kube/knautic-bare-metal.yaml \
   --from-literal=namespace=capi-workload
 ```
 
+→ [`../../platform/cluster-management/cluster-api/README.md`](../../platform/cluster-management/cluster-api/README.md)
+
 ---
 
-### Step 4 — Deploy Workload Clusters via Crossplane
+## Step 4 — Deploy Crossplane & Provision Workload Clusters
 
-Install Crossplane and use the `KubeVirtClusterClaim` API to provision
-fully isolated workload clusters with a single `kubectl apply`.
+Apply the Crossplane stack (XRDs, Compositions, RBAC):
+
+```sh
+cd platform/cluster-management
+make setup
+```
+
+Provision a workload cluster:
+
+```sh
+make deploy cluster=ok1
+make status cluster=ok1
+make logs   cluster=ok1
+```
+
+Get the kubeconfig:
+
+```sh
+make kubeconfig cluster=ok1
+KUBECONFIG=~/.kube/ok1.kubeconfig kubectl get nodes
+```
 
 → [`../../platform/cluster-management/crossplane/README.md`](../../platform/cluster-management/crossplane/README.md)
 
-```bash
-kubectl apply -f platform/cluster-management/crossplane/examples/ok1.yaml
-kubectl get jobs -n openkubes-system -w
+---
+
+## Cluster Lifecycle (make Targets)
+
+All cluster operations go through `platform/cluster-management/`:
+
+```sh
+cd platform/cluster-management
+make help                                          # show all targets
+make setup                                         # one-time: apply XRDs + Compositions
+make deploy      cluster=ok1                       # deploy a cluster
+make status      cluster=ok1                       # show cluster status
+make logs        cluster=ok1                       # follow deploy job logs
+make kubeconfig  cluster=ok1                       # get workload kubeconfig
+make upgrade     cluster=ok1 kubernetes-version=v1.34.1
+make delete      cluster=ok1                       # clean delete
+make check       cluster=ok1                       # check for leftover resources
+make force-clean cluster=ok1                       # emergency cleanup
 ```
 
 ---
@@ -75,7 +128,7 @@ kubectl get jobs -n openkubes-system -w
 
 After completing all steps:
 
-```
+```sh
 kubectl get cluster -A
 
 NAMESPACE    NAME         AVAILABLE   PHASE         VERSION
@@ -83,15 +136,10 @@ ok1-xxxxx    ok1-xxxxx    True        Provisioned   v1.34.1
 ok2-xxxxx    ok2-xxxxx    True        Provisioned   v1.34.1
 ```
 
-Each cluster has:
-- 1 Control Plane node
-- 2 Worker nodes
-- Calico CNI installed
-- Dedicated namespace on management and infra cluster
-- LoadBalancer service with dedicated MetalLB IP
+Each cluster has 1 control plane node, 2 worker nodes, Calico CNI, and a dedicated MetalLB LoadBalancer IP.
 
 ---
 
 ## Architecture
 
-→ See [`../../architecture/README.md`](../../architecture/README.md) for the full reference architecture.
+→ [`../../architecture/README.md`](../../architecture/README.md)
