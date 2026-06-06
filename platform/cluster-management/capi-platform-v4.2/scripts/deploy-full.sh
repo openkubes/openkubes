@@ -102,7 +102,7 @@ install_multus_if_enabled() {
 # share capi-workload and their LB services collide.
 prepare_infra_secret() {
   local base_secret="${INFRA_CLUSTER_SECRET_BASE_NAME}"
-  local base_ns="${INFRA_CLUSTER_SECRET_NAMESPACE}"
+  local base_ns="${INFRA_CLUSTER_SECRET_BASE_NAMESPACE:-capk-system}"
   local cluster_secret="${INFRA_CLUSTER_SECRET_NAME}"   # = base_secret-<clustername>
   local mgmt_ns="${NAMESPACE}"
   local infra_ns="${KUBEVIRT_VM_NAMESPACE}"
