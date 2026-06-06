@@ -49,10 +49,10 @@ spec:
                       type: Format
                       fmt: "deploy-args-%s"
               - type: FromCompositeFieldPath
-                fromFieldPath: metadata.name
+                fromFieldPath: metadata.labels[crossplane.io/claim-name]
                 toFieldPath: spec.forProvider.manifest.data.CLUSTER_NAME
               - type: FromCompositeFieldPath
-                fromFieldPath: metadata.name
+                fromFieldPath: metadata.labels[crossplane.io/claim-name]
                 toFieldPath: spec.forProvider.manifest.data.INFRA_CLUSTER_SECRET_NAMESPACE
               - type: FromCompositeFieldPath
                 fromFieldPath: spec.country
@@ -160,6 +160,7 @@ spec:
           template: |
             {{- $xr := .observed.composite.resource }}
             {{- $name := $xr.metadata.name }}
+            {{- $claimName := index $xr.metadata.labels "crossplane.io/claim-name" | default $xr.metadata.name }}
             {{- $spec := $xr.spec }}
             {{- $deleting := (ne (default "" $xr.metadata.deletionTimestamp) "") }}
             {{- if $deleting }}
@@ -198,7 +199,7 @@ spec:
                               - name: PROVIDER
                                 value: {{ default "kubevirt" $spec.provider }}
                               - name: CLUSTER_NAME
-                                value: {{ $name }}
+                                value: {{ $claimName }}
                             resources:
                               requests:
                                 cpu: 100m
