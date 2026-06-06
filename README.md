@@ -1,4 +1,4 @@
-# OpenKubes
+# OpenKubes Platform
 
 > **The Unified Platform for Kubernetes, Virtual Machines & Specialized Workloads**
 >
