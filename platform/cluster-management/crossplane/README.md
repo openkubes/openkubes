@@ -1,38 +1,53 @@
 # KubeVirt Cluster Provisioning via Crossplane
 
-This directory provides a Crossplane-based self-service API for provisioning
+Crossplane-based self-service API for provisioning and deleting
 KubeVirt-backed Kubernetes workload clusters on OpenKubes.
-
-> 🇩🇪 [Deutsche Version](README_DE.md)
 
 ---
 
 ## Overview
+
+### Deploy flow
 
 ```
 kubectl apply -f examples/ok1.yaml
        ↓
 KubeVirtClusterClaim (platform.openkubes.ai/v1alpha1)
        ↓
-Crossplane Composition
+Crossplane Composition (function-patch-and-transform)
        ↓
 provider-kubernetes creates:
-  ├── Namespace (openkubes-system)
   ├── ConfigMap  (deploy-args-ok1)
-  ├── ServiceAccount + ClusterRoleBinding
-  └── Job  (deploy-ok1)  ← runs capi-platform-runner
+  └── Job        (deploy-ok1) ← runs capi-platform-runner
        ↓
-deploy-full.sh → CAPI + KubeVirt → Workload Cluster
+crossplane-deploy.sh → deploy-full.sh → CAPI + KubeVirt → Workload Cluster
+```
+
+### Cleanup flow
+
+```
+kubectl apply -f examples/cleanup-ok1.yaml
+       ↓
+KubeVirtClusterCleanupClaim (platform.openkubes.ai/v1alpha1)
+       ↓
+Crossplane Composition (function-patch-and-transform)
+       ↓
+provider-kubernetes creates:
+  ├── ConfigMap  (cleanup-args-cleanup-ok1)
+  └── Job        (cleanup-cleanup-ok1) ← runs capi-platform-runner
+       ↓
+crossplane-cleanup.sh → cleanup.sh → removes CAPI Cluster + VMs + Namespaces
 ```
 
 ---
 
 ## Prerequisites
 
-- Crossplane installed on the management cluster
+- Crossplane v2.2+ installed on the management cluster
 - `provider-kubernetes` v0.17+ with `in-cluster` ProviderConfig
-- `function-patch-and-transform` v0.8+
-- `kubernautslabs/capi-platform-runner:v4.2` image accessible from the cluster
+- `function-patch-and-transform` v0.10.1+ (required for Crossplane v2)
+- `function-go-templating` v0.11.4+
+- `kubernautslabs/capi-platform-runner:v4.2` accessible from the cluster
 - CAPI + CAPK installed on the management cluster
 
 ---
@@ -40,52 +55,80 @@ deploy-full.sh → CAPI + KubeVirt → Workload Cluster
 ## Installation
 
 ```bash
-# 0. Create the openkubes-system namespace (one-time setup)
+# 1. Create openkubes-system namespace, ServiceAccount and ClusterRoleBinding
 kubectl apply -f namespace.yaml
 
-# 1. Apply RBAC for provider-kubernetes
+# 2. Apply RBAC for provider-kubernetes
 kubectl apply -f rbac.yaml
 
 # Find the exact provider-kubernetes ServiceAccount name and update rbac.yaml:
 kubectl get sa -n crossplane-system | grep provider-kubernetes
 
-# 2. Register the XRD
+# 3. Register XRDs
 kubectl apply -f xrd.yaml
+kubectl apply -f xrd-cleanup.yaml
 
-# 3. Apply the Composition
+# 4. Apply Compositions
 kubectl apply -f composition.yaml
+kubectl apply -f composition-cleanup.yaml
 
-# 4. Verify
-kubectl get xrd kubevirtclusters.platform.openkubes.ai
-kubectl get composition kubevirtcluster.platform.openkubes.ai
+# 5. Verify
+kubectl get xrd
+kubectl get composition
+kubectl get functions.pkg.crossplane.io
 ```
 
 ---
 
-## Usage
-
-### Deploy a cluster
+## Deploy a cluster
 
 ```bash
-# Edit the endpointIP first
+# Edit endpointIP in examples/ok1.yaml to a free MetalLB IP
 kubectl apply -f examples/ok1.yaml
 
-# Watch progress
-kubectl get kubevirtclusterclaim ok1 -n openkubes-system -w
+# Watch the deploy Job
+kubectl get jobs -n openkubes-system -w
 
-# Check the deploy Job
-kubectl get jobs -n openkubes-system
-kubectl logs -n openkubes-system job/deploy-ok1 -f
+# Follow logs
+kubectl logs -n openkubes-system job/deploy-ok1-<hash> -f
+
+# Get workload kubeconfig (replace ok1-<hash> with actual XR name)
+clusterctl get kubeconfig ok1-<hash> -n ok1-<hash> \
+  --kubeconfig ~/.kube/ok-capi-kubevirt-on-kbm.yaml \
+  > ~/.kube/ok1.kubeconfig
+
+KUBECONFIG=~/.kube/ok1.kubeconfig kubectl get nodes
 ```
 
-### Delete a cluster
+---
+
+## Delete a cluster
 
 ```bash
+# 1. Find the actual XR name (with hash suffix)
+kubectl get cluster -A
+
+# 2. Edit examples/cleanup-ok1.yaml and set clusterName to the XR name
+#    e.g. clusterName: ok1-gh5ms
+vim platform/cluster-management/crossplane/examples/cleanup-ok1.yaml
+
+# 3. Apply the cleanup claim
+kubectl apply -f examples/cleanup-ok1.yaml
+
+# 4. Watch the cleanup Job
+kubectl get jobs -n openkubes-system -w
+kubectl logs -n openkubes-system job/cleanup-cleanup-ok1-<hash> -f
+
+# 5. After cleanup is complete, delete both claims
 kubectl delete -f examples/ok1.yaml
+kubectl delete -f examples/cleanup-ok1.yaml
 ```
 
-Crossplane will delete all composed resources. The cleanup Job is triggered
-automatically via the Composition's delete pipeline (see Roadmap below).
+The cleanup Job runs `cleanup.sh` which:
+1. Deletes the CAPI Cluster (triggers VM deletion on the infra cluster)
+2. Removes CAPI finalizers from stuck resources
+3. Deletes the per-cluster infra secret
+4. Removes the cluster namespace on both management and infra cluster
 
 ---
 
@@ -93,18 +136,24 @@ automatically via the Composition's delete pipeline (see Roadmap below).
 
 ```
 crossplane/
-├── xrd.yaml              # CompositeResourceDefinition + schema
-├── composition.yaml      # Composition (patch-and-transform pipeline)
-├── rbac.yaml             # RBAC for provider-kubernetes ServiceAccount
+├── namespace.yaml            # openkubes-system NS + SA + CRB (one-time setup)
+├── rbac.yaml                 # RBAC for provider-kubernetes ServiceAccount
+├── xrd.yaml                  # XRD: KubeVirtCluster / KubeVirtClusterClaim
+├── xrd-cleanup.yaml          # XRD: KubeVirtClusterCleanup / KubeVirtClusterCleanupClaim
+├── composition.yaml          # Deploy Composition (P&T pipeline)
+├── composition-cleanup.yaml  # Cleanup Composition (P&T pipeline)
 ├── examples/
-│   ├── ok1.yaml          # KubeVirtClusterClaim example
-│   └── ok2.yaml          # KubeVirtClusterClaim example
+│   ├── ok1.yaml              # KubeVirtClusterClaim example
+│   ├── ok2.yaml              # KubeVirtClusterClaim example
+│   └── cleanup-ok1.yaml      # KubeVirtClusterCleanupClaim example
 └── README.md
 ```
 
 ---
 
 ## API Reference
+
+### KubeVirtClusterClaim
 
 ```yaml
 apiVersion: platform.openkubes.ai/v1alpha1
@@ -126,21 +175,50 @@ spec:
   runnerImage: kubernautslabs/capi-platform-runner:v4.2
 ```
 
+### KubeVirtClusterCleanupClaim
+
+```yaml
+apiVersion: platform.openkubes.ai/v1alpha1
+kind: KubeVirtClusterCleanupClaim
+metadata:
+  name: cleanup-my-cluster
+  namespace: openkubes-system
+spec:
+  clusterName: my-cluster-<hash>       # required – actual XR name with hash
+  country: de
+  provider: kubevirt
+  runnerImage: kubernautslabs/capi-platform-runner:v4.2
+```
+
+---
+
+## Crossplane Components
+
+| Component | Version | Purpose |
+|-----------|---------|---------|
+| Crossplane | v2.2.0 | Platform control plane |
+| provider-kubernetes | v0.17.0 | Creates K8s objects (Jobs, ConfigMaps) |
+| function-patch-and-transform | v0.10.1 | Composition pipeline (P&T) |
+| function-go-templating | v0.11.4 | Delete hook (future use) |
+
+> **Note:** `function-patch-and-transform` v0.10.1 is required for Crossplane v2.
+> v0.8.x is not compatible and will silently drop Composition resources.
+
 ---
 
 ## Roadmap
 
-### Phase 1 – Current (Crossplane P&T)
+### Phase 1 – Current ✅
 - [x] XRD with full cluster spec
-- [x] Composition creates Namespace, ConfigMap, SA, Job
-- [x] Deploy Job runs `capi-platform-runner`
-- [ ] Delete pipeline triggers cleanup Job
-- [ ] Status writeback (phase, jobName, kubeconfigSecret)
+- [x] Deploy Job via `crossplane-deploy.sh`
+- [x] Cleanup Job via `KubeVirtClusterCleanupClaim`
+- [x] Per-cluster namespace isolation
+- [x] Per-cluster infra secret
 
-### Phase 2 – Composition Functions (KCL / Go)
-- [ ] Job status observation → XR status.phase
+### Phase 2 – Composition Functions
+- [ ] Status writeback (phase, jobName, kubeconfigSecret)
 - [ ] Workload kubeconfig stored as Connection Secret
-- [ ] Cluster upgrade via spec.controlPlane.kubernetesVersion change
+- [ ] Cluster name without hash suffix
 
 ### Phase 3 – Native Operator (controller-runtime)
 - [ ] `KubeVirtCluster` controller in Go
@@ -154,6 +232,7 @@ spec:
 
 - The deploy Job uses the `capi-platform-runner` ServiceAccount with
   `cluster-admin`. Scope this down to a custom ClusterRole in production.
-- The runner image must be pre-pulled or available in your registry.
+- `namespace.yaml` creates the SA and CRB permanently — they must exist
+  before any Claim is applied.
 - `compositeDeletePolicy: Foreground` ensures composed resources are deleted
   before the XR is removed.
