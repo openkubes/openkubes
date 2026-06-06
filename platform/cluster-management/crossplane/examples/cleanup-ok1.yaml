@@ -1,0 +1,12 @@
+apiVersion: platform.openkubes.ai/v1alpha1
+kind: KubeVirtClusterCleanupClaim
+metadata:
+  name: cleanup-ok1
+  namespace: openkubes-system
+spec:
+  # Set clusterName to the actual XR name (with hash suffix)
+  # Find it with: kubectl get cluster -A
+  clusterName: ok1-gh5ms   # ← replace with actual XR name
+  country: de
+  provider: kubevirt
+  runnerImage: kubernautslabs/capi-platform-runner:v4.2
