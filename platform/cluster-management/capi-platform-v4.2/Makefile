@@ -19,7 +19,7 @@ multus ?= false
 
 outdir ?= rendered
 
-IMAGE ?= openkubes/capi-platform-runner:v4.2
+IMAGE ?= kubernautslabs/capi-platform-runner:v4.2
 KUBECONFIG ?= $(HOME)/.kube/config
 MGMT_KUBECONFIG ?= $(KUBECONFIG)
 RUNNER_MODE ?= false

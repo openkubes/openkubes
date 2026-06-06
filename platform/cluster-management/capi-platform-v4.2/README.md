@@ -46,11 +46,11 @@ Host (macOS/Linux)
 
 ```bash
 # Build the runner image
-docker build -t openkubes/capi-platform-runner:v4.2 -f runner/Dockerfile .
+docker build -t kubernautslabs/capi-platform-runner:v4.2 -f runner/Dockerfile .
 
 # Deploy a cluster
 make -C runner deploy-full \
-  IMAGE=openkubes/capi-platform-runner:v4.2 \
+  IMAGE=kubernautslabs/capi-platform-runner:v4.2 \
   KUBECONFIG_HOST=$HOME/.kube/ok-capi-kubevirt-on-kbm.yaml \
   ARGS='country=de provider=kubevirt cluster-name=ok1 cni=calico multus=false endpoint-ip=10.10.10.50'
 
@@ -65,13 +65,13 @@ KUBECONFIG=rendered/ok1.kubeconfig kubectl get nodes
 ```bash
 # ok1 → namespace "ok1", LB IP 10.10.10.50
 make -C runner deploy-full \
-  IMAGE=openkubes/capi-platform-runner:v4.2 \
+  IMAGE=kubernautslabs/capi-platform-runner:v4.2 \
   KUBECONFIG_HOST=$HOME/.kube/ok-capi-kubevirt-on-kbm.yaml \
   ARGS='country=de provider=kubevirt cluster-name=ok1 cni=calico multus=false endpoint-ip=10.10.10.50'
 
 # ok2 → namespace "ok2", LB IP 10.10.10.51
 make -C runner deploy-full \
-  IMAGE=openkubes/capi-platform-runner:v4.2 \
+  IMAGE=kubernautslabs/capi-platform-runner:v4.2 \
   KUBECONFIG_HOST=$HOME/.kube/ok-capi-kubevirt-on-kbm.yaml \
   ARGS='country=de provider=kubevirt cluster-name=ok2 cni=calico multus=false endpoint-ip=10.10.10.51'
 
@@ -125,18 +125,18 @@ The runner container avoids Docker-in-Docker and includes all required tools: `k
 ```bash
 # Interactive shell inside the runner
 make -C runner shell \
-  IMAGE=openkubes/capi-platform-runner:v4.2 \
+  IMAGE=kubernautslabs/capi-platform-runner:v4.2 \
   KUBECONFIG_HOST=$HOME/.kube/ok-capi-kubevirt-on-kbm.yaml
 
 # Render only (no deploy)
 make -C runner render-cluster \
-  IMAGE=openkubes/capi-platform-runner:v4.2 \
+  IMAGE=kubernautslabs/capi-platform-runner:v4.2 \
   KUBECONFIG_HOST=$HOME/.kube/ok-capi-kubevirt-on-kbm.yaml \
   ARGS='country=de provider=kubevirt cluster-name=ok1 endpoint-ip=10.10.10.50'
 
 # Full deploy
 make -C runner deploy-full \
-  IMAGE=openkubes/capi-platform-runner:v4.2 \
+  IMAGE=kubernautslabs/capi-platform-runner:v4.2 \
   KUBECONFIG_HOST=$HOME/.kube/ok-capi-kubevirt-on-kbm.yaml \
   ARGS='country=de provider=kubevirt cluster-name=ok1 cni=calico multus=false endpoint-ip=10.10.10.50'
 ```
@@ -147,7 +147,7 @@ make -C runner deploy-full \
 
 ```bash
 make -C runner cleanup \
-  IMAGE=openkubes/capi-platform-runner:v4.2 \
+  IMAGE=kubernautslabs/capi-platform-runner:v4.2 \
   KUBECONFIG_HOST=$HOME/.kube/ok-capi-kubevirt-on-kbm.yaml \
   ARGS='country=de provider=kubevirt cluster-name=ok1'
 ```

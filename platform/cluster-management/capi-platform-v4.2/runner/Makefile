@@ -1,4 +1,4 @@
-IMAGE ?= openkubes/capi-platform-runner:v4.2
+IMAGE ?= kubernautslabs/capi-platform-runner:v4.2
 KUBECONFIG_HOST ?= $(HOME)/.kube/config
 ARGS ?=
 

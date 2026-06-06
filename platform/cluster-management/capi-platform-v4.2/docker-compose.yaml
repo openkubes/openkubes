@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: runner/Dockerfile
-    image: openkubes/capi-platform-runner:v4.2
+    image: kubernautslabs/capi-platform-runner:v4.2
     working_dir: /workspace
     volumes:
       - ./:/workspace

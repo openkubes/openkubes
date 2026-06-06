@@ -5,3 +5,22 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: openkubes
     app.kubernetes.io/part-of: openkubes-platform
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: capi-platform-runner
+  namespace: openkubes-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: capi-platform-runner
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+  - kind: ServiceAccount
+    name: capi-platform-runner
+    namespace: openkubes-system
