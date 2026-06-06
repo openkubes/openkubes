@@ -47,6 +47,41 @@ wait_cluster_deleted() {
   fail "cluster/${CLUSTER_NAME} still exists after waiting"
 }
 
+delete_infra_namespace() {
+  local base_secret="${INFRA_CLUSTER_SECRET_BASE_NAME:-external-infra-kubeconfig}"
+  local base_ns="${INFRA_CLUSTER_SECRET_BASE_NAMESPACE:-capk-system}"
+
+  log "deleting namespace ${NAMESPACE} from infra cluster"
+
+  if ! KUBECONFIG="${MGMT_KUBECONFIG}" kubectl get secret "${base_secret}" \
+    -n "${base_ns}" >/dev/null 2>&1; then
+    log "WARNING: base infra secret ${base_secret} not found in ${base_ns}, skipping infra namespace cleanup"
+    return 0
+  fi
+
+  local tmp_infra_kc
+  tmp_infra_kc="$(mktemp /tmp/infra-kubeconfig-XXXXXX.yaml)"
+
+  KUBECONFIG="${MGMT_KUBECONFIG}" kubectl get secret "${base_secret}" \
+    -n "${base_ns}" \
+    -o jsonpath='{.data.kubeconfig}' | base64 -d > "${tmp_infra_kc}"
+
+  if [ ! -s "${tmp_infra_kc}" ]; then
+    log "WARNING: infra kubeconfig is empty, skipping infra namespace cleanup"
+    rm -f "${tmp_infra_kc}"
+    return 0
+  fi
+
+  if KUBECONFIG="${tmp_infra_kc}" kubectl get namespace "${NAMESPACE}" >/dev/null 2>&1; then
+    KUBECONFIG="${tmp_infra_kc}" kubectl delete namespace "${NAMESPACE}" --ignore-not-found
+    log "infra namespace ${NAMESPACE} deleted"
+  else
+    log "infra namespace ${NAMESPACE} not found on infra cluster, skipping"
+  fi
+
+  rm -f "${tmp_infra_kc}"
+}
+
 main() {
   log "starting"
 
@@ -109,6 +144,8 @@ main() {
   else
     log "namespace ${NAMESPACE} not found, skipping"
   fi
+
+  delete_infra_namespace
 
   if [[ "${CLEAN_RENDERED}" == "true" ]]; then
     log "removing rendered artifacts"
