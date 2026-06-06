@@ -102,6 +102,16 @@ main() {
   log "deleting per-cluster infra secret ${INFRA_CLUSTER_SECRET_NAME} from namespace ${NAMESPACE}"
   delete_if_exists secret "${INFRA_CLUSTER_SECRET_NAME}" "${NAMESPACE}"
 
+  log "removing finalizers from stuck CAPI objects in namespace ${NAMESPACE}"
+  for kind in kubevirtmachine machine machineset machinedeployment \
+              kubeadmcontrolplane kubevirtcluster; do
+    KUBECONFIG="${MGMT_KUBECONFIG}" kubectl get "${kind}" \
+      -n "${NAMESPACE}" -o name 2>/dev/null | \
+      xargs -I {} KUBECONFIG="${MGMT_KUBECONFIG}" kubectl patch {} \
+        -n "${NAMESPACE}" \
+        --type=merge -p '{"metadata":{"finalizers":[]}}' 2>/dev/null || true
+  done
+
   log "deleting namespace ${NAMESPACE} from management cluster"
   if KUBECONFIG="${MGMT_KUBECONFIG}" kubectl get namespace "${NAMESPACE}" >/dev/null 2>&1; then
     KUBECONFIG="${MGMT_KUBECONFIG}" kubectl delete namespace "${NAMESPACE}" --ignore-not-found
