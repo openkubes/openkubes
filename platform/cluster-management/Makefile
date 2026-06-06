@@ -7,25 +7,28 @@ examples_dir   ?= crossplane/examples
 scripts_dir    ?= capi-platform-v4.2/scripts
 crossplane_dir ?= crossplane
 runner_image   ?= kubernautslabs/capi-platform-runner:v4.2
+kubeconfig_dir ?= $(HOME)/.kube
 
-.PHONY: help setup deploy delete check force-clean logs status
+.PHONY: help setup deploy delete status logs check force-clean kubeconfig upgrade
 
 help:
 	@echo ""
 	@echo "OpenKubes Platform – Cluster Operations"
 	@echo ""
 	@echo "Setup (one-time):"
-	@echo "  make setup                          Apply all Crossplane XRDs and Compositions"
+	@echo "  make setup                              Apply all Crossplane XRDs and Compositions"
 	@echo ""
 	@echo "Cluster Lifecycle:"
-	@echo "  make deploy      cluster=ok1        Deploy a workload cluster"
-	@echo "  make delete      cluster=ok1        Clean delete (Cleanup Job + remove claims)"
-	@echo "  make status      cluster=ok1        Show cluster status"
-	@echo "  make logs        cluster=ok1        Follow deploy Job logs"
+	@echo "  make deploy      cluster=ok1            Deploy a workload cluster"
+	@echo "  make delete      cluster=ok1            Clean delete (Cleanup Job + remove claims)"
+	@echo "  make kubeconfig  cluster=ok1            Get workload cluster kubeconfig"
+	@echo "  make upgrade     cluster=ok1 kubernetes-version=v1.34.1  Upgrade cluster"
+	@echo "  make status      cluster=ok1            Show cluster status"
+	@echo "  make logs        cluster=ok1            Follow deploy Job logs"
 	@echo ""
 	@echo "Troubleshooting:"
-	@echo "  make check       cluster=ok1        Check for leftover resources"
-	@echo "  make force-clean cluster=ok1        Force cleanup all resources (emergency)"
+	@echo "  make check       cluster=ok1            Check for leftover resources"
+	@echo "  make force-clean cluster=ok1            Force cleanup all resources (emergency)"
 	@echo ""
 
 # ---------------------------------------------------------------
@@ -37,9 +40,11 @@ setup:
 	kubectl apply -f $(crossplane_dir)/rbac.yaml
 	kubectl apply -f $(crossplane_dir)/xrd.yaml
 	kubectl apply -f $(crossplane_dir)/xrd-cleanup.yaml
+	kubectl apply -f $(crossplane_dir)/xrd-upgrade.yaml
 	kubectl apply -f $(crossplane_dir)/composition.yaml
 	kubectl apply -f $(crossplane_dir)/composition-cleanup.yaml
-	@echo "[setup] done"
+	kubectl apply -f $(crossplane_dir)/composition-upgrade.yaml
+	@echo "[setup] done ✅"
 	@echo ""
 	kubectl get xrd
 	kubectl get composition
@@ -80,6 +85,44 @@ delete:
 	@kubectl delete kubevirtclustercleanupclaim "cleanup-$(cluster)" \
 	  -n $(namespace) --ignore-not-found || true
 	@echo "[delete] cluster '$(cluster)' deleted ✅"
+
+# ---------------------------------------------------------------
+# Kubeconfig – retrieve workload cluster kubeconfig
+# ---------------------------------------------------------------
+kubeconfig:
+	@test -n "$(cluster)" || (echo "ERROR: cluster is required  →  make kubeconfig cluster=ok1"; exit 1)
+	@echo "[kubeconfig] retrieving kubeconfig for cluster '$(cluster)'..."
+	@clusterctl get kubeconfig $(cluster) \
+	  -n $(cluster) \
+	  --kubeconfig $(KUBECONFIG) \
+	  > $(kubeconfig_dir)/$(cluster).kubeconfig
+	@echo "[kubeconfig] saved to $(kubeconfig_dir)/$(cluster).kubeconfig ✅"
+	@echo ""
+	@echo "Use with:"
+	@echo "  KUBECONFIG=$(kubeconfig_dir)/$(cluster).kubeconfig kubectl get nodes"
+	@echo ""
+	@KUBECONFIG=$(kubeconfig_dir)/$(cluster).kubeconfig kubectl get nodes 2>/dev/null || true
+
+# ---------------------------------------------------------------
+# Upgrade – upgrade cluster to new Kubernetes version
+# ---------------------------------------------------------------
+upgrade:
+	@test -n "$(cluster)" || (echo "ERROR: cluster is required  →  make upgrade cluster=ok1 kubernetes-version=v1.34.1"; exit 1)
+	@test -n "$(kubernetes-version)" || (echo "ERROR: kubernetes-version is required  →  make upgrade cluster=ok1 kubernetes-version=v1.34.1"; exit 1)
+	@echo "[upgrade] upgrading cluster '$(cluster)' to $(kubernetes-version)..."
+	@printf 'apiVersion: platform.openkubes.ai/v1alpha1\nkind: KubeVirtClusterUpgradeClaim\nmetadata:\n  name: upgrade-$(cluster)\n  namespace: $(namespace)\nspec:\n  clusterName: $(cluster)\n  targetKubernetesVersion: $(kubernetes-version)\n  upgradeStrategy: RollingUpdate\n  country: de\n  provider: kubevirt\n  runnerImage: $(runner_image)\n' | kubectl apply -f -
+	@echo "[upgrade] watching Job (Ctrl+C to stop watching)..."
+	@sleep 5
+	@JOB=$$(kubectl get jobs -n $(namespace) -o name | grep "upgrade-$(cluster)" | head -1); \
+	if [ -n "$$JOB" ]; then \
+	  kubectl logs -n $(namespace) $$(basename $$JOB) -f 2>/dev/null || true; \
+	  kubectl wait $$JOB -n $(namespace) --for=condition=complete --timeout=600s && \
+	  echo "[upgrade] cluster '$(cluster)' upgraded to $(kubernetes-version) ✅"; \
+	else \
+	  echo "[upgrade] Job not found, check: kubectl get jobs -n $(namespace)"; \
+	fi
+	@kubectl delete kubevirtclusterupgradeclaim "upgrade-$(cluster)" \
+	  -n $(namespace) --ignore-not-found || true
 
 # ---------------------------------------------------------------
 # Status – show cluster status
