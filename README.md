@@ -1,4 +1,4 @@
-# OpenKubes Platform
+# OpenKubes
 
 <!-- SHIELDS -->
 ![Release](https://img.shields.io/github/v/release/openkubes/openkubes)
@@ -25,16 +25,27 @@ OpenKubes is the core runtime distribution for sovereign Kubernetes infrastructu
 ## Quick Start
 
 ```sh
-make help                  # all available targets
-make kubevirt-install      # install KubeVirt on management cluster
-make vms-deploy            # deploy management VMs (ok1/ok2/ok3)
-make capi-init             # bootstrap Cluster API + CAPK
-make crossplane-install    # install Crossplane v2.2.0
-make gitops-bootstrap      # bootstrap Flux GitOps
-make verify                # check overall platform status
+# 1. Install KubeVirt + CDI on the Infra Cluster (manual — no Makefile yet)
+kubectl apply -f https://github.com/kubevirt/kubevirt/releases/download/v1.8.1/kubevirt-operator.yaml
+kubectl apply -f https://github.com/kubevirt/kubevirt/releases/download/v1.8.1/kubevirt-cr.yaml
+kubectl apply -f https://github.com/kubevirt/containerized-data-importer/releases/latest/download/cdi-operator.yaml
+kubectl apply -f https://github.com/kubevirt/containerized-data-importer/releases/latest/download/cdi-cr.yaml
+
+# 2. Deploy Management VMs
+kubectl apply -f ok-vms/
+
+# 3. Bootstrap CAPI + CAPK (manual — no Makefile yet)
+clusterctl init --infrastructure kubevirt:v0.11.2 -v5
+
+# 4. Apply Crossplane stack + manage clusters via make
+cd platform/cluster-management
+make setup                      # one-time: apply XRDs + Compositions
+make deploy cluster=ok1         # deploy a workload cluster
+make status cluster=ok1         # check status
+make kubeconfig cluster=ok1     # get workload kubeconfig
 ```
 
-> All targets are idempotent. Run `make help` first.
+→ Full walkthrough: [`docs/getting-started/README.md`](./docs/getting-started/README.md)
 
 ---
 
@@ -80,40 +91,32 @@ Other supported management cluster options:
 
 ## Installation
 
-### 1. Clone & configure
+### 1. Clone
 
 ```sh
 git clone https://github.com/openkubes/openkubes.git
 cd openkubes
-cp .env.example .env    # adjust versions and namespace defaults
 ```
 
 ### 2. Install KubeVirt
 
 ```sh
-make kubevirt-install
-make kubevirt-verify
-```
-
-<details>
-<summary>What <code>make kubevirt-install</code> does</summary>
-
-```
 kubectl apply -f https://github.com/kubevirt/kubevirt/releases/download/v1.8.1/kubevirt-operator.yaml
 kubectl apply -f https://github.com/kubevirt/kubevirt/releases/download/v1.8.1/kubevirt-cr.yaml
 kubectl apply -f https://github.com/kubevirt/containerized-data-importer/releases/latest/download/cdi-operator.yaml
 kubectl apply -f https://github.com/kubevirt/containerized-data-importer/releases/latest/download/cdi-cr.yaml
-# Optional: KubeVirt Manager UI
-kubectl apply -f https://github.com/kubevirt-manager/kubevirt-manager/releases/download/v1.5.4/bundled-v1.5.4.yaml
+
+kubectl -n kubevirt wait kubevirt kubevirt --for=condition=Available --timeout=300s
+kubectl get pods -n kubevirt && kubectl get pods -n cdi
 ```
 
-</details>
+→ [`platform/virtualization/kubevirt/README.md`](./platform/virtualization/kubevirt/README.md)
 
 ### 3. Deploy Management VMs
 
 ```sh
-make vms-deploy
-make vms-verify
+kubectl apply -f ok-vms/
+kubectl get vms -n kubevirt -w
 ```
 
 Expected output:
@@ -125,49 +128,69 @@ ok2-vm   Running   True
 ok3-vm   Running   True
 ```
 
+→ [`platform/hardware/README.md`](./platform/hardware/README.md)
+
 ### 4. Bootstrap Cluster API + CAPK
 
 ```sh
-make capi-init
-make capi-verify
+clusterctl init --infrastructure kubevirt:v0.11.2 -v5
+
+kubectl -n capk-system create secret generic external-infra-kubeconfig \
+  --from-file=kubeconfig=$HOME/.kube/knautic-bare-metal.yaml \
+  --from-literal=namespace=capi-workload
 ```
 
-→ See [`platform/cluster-management/cluster-api/README.md`](./platform/cluster-management/cluster-api/README.md)
+→ [`platform/cluster-management/cluster-api/README.md`](./platform/cluster-management/cluster-api/README.md)
 
-### 5. Deploy Crossplane & GitOps
+### 5. Apply Crossplane Stack & Deploy Clusters
 
 ```sh
-make crossplane-install    # Crossplane v2.2.0
-make gitops-bootstrap      # Flux
+cd platform/cluster-management
+make setup              # one-time: XRDs, Compositions, RBAC
+make deploy cluster=ok1
+make status cluster=ok1
 ```
 
-→ See [`platform/gitops/fluxcd/README.md`](./platform/gitops/fluxcd/README.md)
+→ [`platform/cluster-management/crossplane/README.md`](./platform/cluster-management/crossplane/README.md)
 
 ---
 
 ## make Targets
 
+Cluster operations live in `platform/cluster-management/`:
+
 ```sh
+cd platform/cluster-management
 make help
 ```
 
 | Target | Description |
 |---|---|
-| `make kubevirt-install` | Install KubeVirt operator + CDI |
-| `make kubevirt-verify` | Check KubeVirt and CDI pod status |
-| `make vms-deploy` | Deploy ok1/ok2/ok3 management VMs |
-| `make vms-verify` | Check VM status via kubectl virt |
-| `make capi-init` | Bootstrap CAPI + CAPK provider |
-| `make capi-verify` | Check capi-system / capk-system pods |
-| `make capi-secret` | Create external-infra-kubeconfig secret |
-| `make crossplane-install` | Install Crossplane v2.2.0 |
-| `make crossplane-upgrade` | Upgrade Crossplane (uses jq, no Python) |
-| `make gitops-bootstrap` | Bootstrap Flux on management cluster |
-| `make verify` | Full platform status check |
-| `make lint` | Lint all manifests (yamllint) |
-| `make diff` | Dry-run diff against current cluster state |
-| `make clean` | Teardown all platform components |
-| `make debug` | Collect diagnostic info for troubleshooting |
+| `make setup` | One-time: apply all XRDs, Compositions and RBAC |
+| `make deploy cluster=ok1` | Deploy a workload cluster |
+| `make status cluster=ok1` | Show cluster status (machines, jobs, claims) |
+| `make logs cluster=ok1` | Follow deploy Job logs |
+| `make kubeconfig cluster=ok1` | Retrieve workload cluster kubeconfig |
+| `make upgrade cluster=ok1 kubernetes-version=v1.34.1` | Upgrade cluster |
+| `make delete cluster=ok1` | Clean delete via Cleanup Job |
+| `make check cluster=ok1` | Check for leftover resources |
+| `make force-clean cluster=ok1` | Emergency cleanup |
+
+Runner image management in `platform/cluster-management/capi-platform-v4.2/runner/`:
+
+```sh
+cd platform/cluster-management/capi-platform-v4.2/runner
+make help
+```
+
+| Target | Description |
+|---|---|
+| `make build-image` | Build runner image |
+| `make release-image` | Build (no-cache) + push to Docker Hub |
+| `make clear-image-cache` | Clear image cache on management VMs |
+| `make deploy-full ARGS='...'` | Full cluster deploy via runner container |
+| `make cleanup ARGS='...'` | Cluster cleanup via runner container |
+| `make shell` | Interactive shell inside the runner |
 
 ---
 
@@ -190,10 +213,10 @@ CAPK_NAMESPACE=capk-system
 RUNNER_IMAGE=kubernautslabs/capi-platform-runner:v4.2
 ```
 
-Override at runtime without editing `.env`:
+Override at runtime:
 
 ```sh
-CROSSPLANE_VERSION=v2.3.0 make crossplane-upgrade
+kubernetes-version=v1.34.1 make upgrade cluster=ok1
 ```
 
 ---
@@ -287,8 +310,8 @@ CROSSPLANE_VERSION=v2.3.0 make crossplane-upgrade
 
 ```sh
 # Edit version in .env, then:
-make crossplane-upgrade
-make verify
+make upgrade cluster=ok1
+make status cluster=ok1
 ```
 
 For breaking changes see [`CHANGELOG.md`](./CHANGELOG.md).
@@ -299,24 +322,22 @@ For breaking changes see [`CHANGELOG.md`](./CHANGELOG.md).
 
 | Symptom | Likely Cause | Fix |
 |---|---|---|
-| Pods in `CrashLoopBackOff` | Missing secret or config | Check `make verify` output |
-| `make capi-init` fails | cert-manager not ready | Wait and retry — cert-manager needs ~60s |
-| `make crossplane-upgrade` fails | Legacy python3 dependency | Update to v1.0.3 — uses jq |
-| CRDs not registered | Previous install incomplete | `make clean && make install` |
+| Pods in `CrashLoopBackOff` | Missing secret or config | `make status cluster=ok1` |
+| cert-manager not ready | clusterctl init fails | Wait ~60s and retry |
+| `make upgrade cluster=ok1` fails | Legacy python3 dependency | Update to v1.0.3 — uses jq |
+| CRDs not registered | Previous install incomplete | `make force-clean cluster=ok1` |
 
 ```sh
-make debug    # collect full diagnostic snapshot
+make check cluster=ok1    # check for leftover resources
 ```
 
 ---
 
 ## Contributing
 
-See [`CONTRIBUTING.md`](./CONTRIBUTING.md). In short:
+See [`CONTRIBUTING.md`](./CONTRIBUTING.md).
 
 ```sh
-make lint     # before committing
-make diff     # review cluster impact
 ```
 
 Branches: `main` (stable) · `dev` (active development) · `release/vX.Y.Z` (release prep)
