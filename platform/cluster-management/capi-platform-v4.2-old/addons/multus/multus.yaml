@@ -1,0 +1,3 @@
+# Put your full Multus manifest here.
+# Example:
+# kubectl kustomize <your source> > addons/multus/multus.yaml
