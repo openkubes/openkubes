@@ -1,7 +1,0 @@
-.git
-.github
-__MACOSX
-rendered
-*.kubeconfig
-*.swp
-.DS_Store
