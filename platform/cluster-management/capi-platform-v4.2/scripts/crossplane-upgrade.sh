@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # crossplane-upgrade.sh
 # Called by the Crossplane upgrade Job.
-# CAPK v0.11.2: upgrade by patching version only - no template changes needed.
+# Uses clusterctl upgrade apply for reliable CAPI upgrades.
 set -euo pipefail
 
 SA_DIR="/var/run/secrets/kubernetes.io/serviceaccount"
@@ -83,38 +83,71 @@ if [ "${CURRENT_VERSION}" = "${TARGET_VERSION}" ]; then
 fi
 
 # ---------------------------------------------------------------
-# Step 3: Upgrade Control Plane (version only - CAPK v0.11.2)
+# Step 3: Create new MachineTemplates with target VM image
 # ---------------------------------------------------------------
-log "upgrading KubeadmControlPlane to ${TARGET_VERSION}..."
-log "NOTE: CAPK v0.11.2 handles VM image update automatically via version patch"
+CP_TEMPLATE_NEW="${CLUSTER_NAME}-control-plane-${TARGET_VERSION//./}"
+MD_TEMPLATE_NEW="${CLUSTER_NAME}-md-0-${TARGET_VERSION//./}"
 
-kubectl patch kubeadmcontrolplane "${CLUSTER_NAME}-control-plane" \
-  -n "${NAMESPACE}" --type=merge \
-  -p "{\"spec\":{\"version\":\"${TARGET_VERSION}\"}}"
+log "creating new KubevirtMachineTemplates with image ${TARGET_IMAGE}..."
 
-log "waiting for control plane upgrade (up to 10min)..."
+for SUFFIX in "control-plane" "md-0"; do
+  OLD_TEMPLATE="${CLUSTER_NAME}-${SUFFIX}"
+  NEW_TEMPLATE="${CLUSTER_NAME}-${SUFFIX}-${TARGET_VERSION//./}"
+
+  if kubectl get kubevirtmachinetemplate "${NEW_TEMPLATE}" \
+    -n "${NAMESPACE}" >/dev/null 2>&1; then
+    log "template ${NEW_TEMPLATE} already exists, skipping"
+    continue
+  fi
+
+  kubectl get kubevirtmachinetemplate "${OLD_TEMPLATE}" \
+    -n "${NAMESPACE}" -o json | \
+    jq --arg name "${NEW_TEMPLATE}" \
+       --arg image "${TARGET_IMAGE}" \
+    '
+    .metadata.name = $name |
+    del(.metadata.resourceVersion) |
+    del(.metadata.uid) |
+    del(.metadata.creationTimestamp) |
+    del(.metadata.annotations["kubectl.kubernetes.io/last-applied-configuration"]) |
+    (.spec.template.spec.virtualMachineTemplate.spec.template.spec.volumes[]
+      | select(.containerDisk != null)
+      | .containerDisk.image) = $image
+    ' | kubectl apply -f -
+
+  log "template ${NEW_TEMPLATE} created ✅"
+done
+
+# ---------------------------------------------------------------
+# Step 4: Use clusterctl upgrade apply
+# ---------------------------------------------------------------
+log "running clusterctl upgrade apply..."
+
+clusterctl upgrade apply \
+  --kubeconfig "${KUBECONFIG_FILE}" \
+  --namespace "${NAMESPACE}" \
+  --control-plane "${NAMESPACE}/${CLUSTER_NAME}-control-plane:${TARGET_VERSION}" \
+  --worker "${NAMESPACE}/${CLUSTER_NAME}-md-0:${TARGET_VERSION}" \
+  -v 5 || true
+
+log "clusterctl upgrade apply completed"
+
+# ---------------------------------------------------------------
+# Step 5: Wait for control plane upgrade
+# ---------------------------------------------------------------
+log "waiting for control plane upgrade (up to 15min)..."
 kubectl wait kubeadmcontrolplane "${CLUSTER_NAME}-control-plane" \
   -n "${NAMESPACE}" \
   --for=condition=Available \
-  --timeout=600s
+  --timeout=900s
 
-# Verify CP version
-CP_VERSION=$(kubectl get kubeadmcontrolplane \
-  "${CLUSTER_NAME}-control-plane" -n "${NAMESPACE}" \
-  -o jsonpath='{.spec.version}' 2>/dev/null || echo "unknown")
-log "KubeadmControlPlane version: ${CP_VERSION} ✅"
+log "control plane upgraded ✅"
 
 # ---------------------------------------------------------------
-# Step 4: Upgrade Workers
+# Step 6: Wait for worker rollout
 # ---------------------------------------------------------------
-log "upgrading MachineDeployment workers to ${TARGET_VERSION}..."
-
-kubectl patch machinedeployment "${CLUSTER_NAME}-md-0" \
-  -n "${NAMESPACE}" --type=merge \
-  -p "{\"spec\":{\"template\":{\"spec\":{\"version\":\"${TARGET_VERSION}\"}}}}"
-
-log "waiting for worker rollout (up to 10min)..."
-for i in $(seq 1 60); do
+log "waiting for worker rollout (up to 15min)..."
+for i in $(seq 1 90); do
   DESIRED=$(kubectl get machinedeployment "${CLUSTER_NAME}-md-0" \
     -n "${NAMESPACE}" -o jsonpath='{.spec.replicas}' 2>/dev/null || echo "0")
   READY=$(kubectl get machinedeployment "${CLUSTER_NAME}-md-0" \
@@ -122,7 +155,7 @@ for i in $(seq 1 60); do
   UPDATED=$(kubectl get machinedeployment "${CLUSTER_NAME}-md-0" \
     -n "${NAMESPACE}" -o jsonpath='{.status.updatedReplicas}' 2>/dev/null || echo "0")
 
-  log "workers: desired=${DESIRED} ready=${READY} updated=${UPDATED} (${i}/60)"
+  log "workers: desired=${DESIRED} ready=${READY} updated=${UPDATED} (${i}/90)"
 
   if [ "${READY}" = "${DESIRED}" ] && \
      [ "${UPDATED}" = "${DESIRED}" ] && \
@@ -130,12 +163,12 @@ for i in $(seq 1 60); do
     log "all workers upgraded ✅"
     break
   fi
-  [ "${i}" = "60" ] && fail "worker upgrade timed out after 600s"
+  [ "${i}" = "90" ] && fail "worker upgrade timed out after 900s"
   sleep 10
 done
 
 # ---------------------------------------------------------------
-# Step 5: Final status
+# Step 7: Final status
 # ---------------------------------------------------------------
 log "final cluster status:"
 kubectl get cluster "${CLUSTER_NAME}" -n "${NAMESPACE}"
