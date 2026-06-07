@@ -28,34 +28,30 @@ export MGMT_KUBECONFIG="${KUBECONFIG_FILE}"
 
 NAMESPACE="${CLUSTER_NAME}"
 TARGET_VERSION="${TARGET_KUBERNETES_VERSION}"
-STRATEGY="${UPGRADE_STRATEGY:-RollingUpdate}"
+TARGET_IMAGE="quay.io/capk/ubuntu-2404-container-disk:${TARGET_VERSION}"
 
 log "starting upgrade of cluster '${CLUSTER_NAME}' to ${TARGET_VERSION}"
 
 # ---------------------------------------------------------------
 # Step 1: Check if target VM image exists on quay.io/capk
 # ---------------------------------------------------------------
-TARGET_IMAGE="quay.io/capk/ubuntu-2404-container-disk:${TARGET_VERSION}"
 log "checking if VM image ${TARGET_IMAGE} exists..."
 
 AVAILABLE=$(curl -s \
   "https://quay.io/api/v1/repository/capk/ubuntu-2404-container-disk/tag/?limit=50" \
   2>/dev/null | \
-  python3 -c "
-import sys, json
-d = json.load(sys.stdin)
-for t in d.get('tags', []):
-    print(t['name'])
-" 2>/dev/null || echo "")
+  jq -r '.tags[]?.name' 2>/dev/null || echo "")
 
 if [ -n "${AVAILABLE}" ]; then
   log "available VM images:"
-  echo "${AVAILABLE}" | while read v; do log "  quay.io/capk/ubuntu-2404-container-disk:${v}"; done
+  echo "${AVAILABLE}" | while read -r v; do
+    log "  quay.io/capk/ubuntu-2404-container-disk:${v}"
+  done
 
   if ! echo "${AVAILABLE}" | grep -qx "${TARGET_VERSION}"; then
     fail "VM image for ${TARGET_VERSION} not found on quay.io/capk!
-Available versions: $(echo ${AVAILABLE} | tr '\n' ' ')
-Note: only upgrade to available versions, e.g. v1.33.5 → v1.34.1"
+Available versions: $(echo "${AVAILABLE}" | tr '\n' ' ')
+Only upgrade to available versions, e.g. v1.33.5 → v1.34.1"
   fi
   log "VM image ${TARGET_IMAGE} is available ✅"
 else
@@ -69,53 +65,60 @@ log "verifying cluster status..."
 PHASE=$(kubectl get cluster "${CLUSTER_NAME}" -n "${NAMESPACE}" \
   -o jsonpath='{.status.phase}' 2>/dev/null || true)
 
-[ -z "${PHASE}" ] && fail "cluster '${CLUSTER_NAME}' not found in namespace '${NAMESPACE}'"
+[ -z "${PHASE}" ] && \
+  fail "cluster '${CLUSTER_NAME}' not found in namespace '${NAMESPACE}'"
 [ "${PHASE}" != "Provisioned" ] && \
   fail "cluster is in phase '${PHASE}', expected 'Provisioned'"
-log "cluster is Provisioned ✅"
 
-# Get current version
 CURRENT_VERSION=$(kubectl get kubeadmcontrolplane \
   "${CLUSTER_NAME}-control-plane" -n "${NAMESPACE}" \
   -o jsonpath='{.spec.version}' 2>/dev/null || echo "unknown")
+
+log "cluster is Provisioned ✅"
 log "current version: ${CURRENT_VERSION}"
 log "target version:  ${TARGET_VERSION}"
 
 # ---------------------------------------------------------------
 # Step 3: Update KubevirtMachineTemplates with new VM image
 # ---------------------------------------------------------------
-log "updating VM image in KubevirtMachineTemplates to ${TARGET_IMAGE}..."
+log "creating new KubevirtMachineTemplates with image ${TARGET_IMAGE}..."
 
-# Create new MachineTemplates (CAPI requires new templates for upgrades)
-for TEMPLATE in "${CLUSTER_NAME}-control-plane" "${CLUSTER_NAME}-md-0"; do
-  NEW_TEMPLATE="${TEMPLATE}-${TARGET_VERSION//./}"
+for SUFFIX in "control-plane" "md-0"; do
+  OLD_TEMPLATE="${CLUSTER_NAME}-${SUFFIX}"
+  NEW_TEMPLATE="${CLUSTER_NAME}-${SUFFIX}-${TARGET_VERSION//./}"
 
-  # Get existing template and update image
-  kubectl get kubevirtmachinetemplate "${TEMPLATE}" \
+  # Check if new template already exists
+  if kubectl get kubevirtmachinetemplate "${NEW_TEMPLATE}" \
+    -n "${NAMESPACE}" >/dev/null 2>&1; then
+    log "template ${NEW_TEMPLATE} already exists, skipping"
+    continue
+  fi
+
+  # Get existing template, update image, create new one using jq
+  kubectl get kubevirtmachinetemplate "${OLD_TEMPLATE}" \
     -n "${NAMESPACE}" -o json | \
-    python3 -c "
-import sys, json
-d = json.load(sys.stdin)
-d['metadata']['name'] = '${NEW_TEMPLATE}'
-# Remove resource version and uid for creation
-d['metadata'].pop('resourceVersion', None)
-d['metadata'].pop('uid', None)
-d['metadata'].pop('creationTimestamp', None)
-# Update image
-vols = d['spec']['template']['spec']['virtualMachineTemplate']['spec']['template']['spec']['volumes']
-for v in vols:
-    if 'containerDisk' in v:
-        v['containerDisk']['image'] = '${TARGET_IMAGE}'
-print(json.dumps(d))
-" | kubectl apply -f - || log "WARNING: could not create template ${NEW_TEMPLATE}"
-done
+    jq --arg name "${NEW_TEMPLATE}" \
+       --arg image "${TARGET_IMAGE}" \
+    '
+    .metadata.name = $name |
+    del(.metadata.resourceVersion) |
+    del(.metadata.uid) |
+    del(.metadata.creationTimestamp) |
+    del(.metadata.annotations["kubectl.kubernetes.io/last-applied-configuration"]) |
+    (.spec.template.spec.virtualMachineTemplate.spec.template.spec.volumes[]
+      | select(.containerDisk != null)
+      | .containerDisk.image) = $image
+    ' | kubectl apply -f -
 
-log "VM image templates updated ✅"
+  log "template ${NEW_TEMPLATE} created ✅"
+done
 
 # ---------------------------------------------------------------
 # Step 4: Upgrade Control Plane
 # ---------------------------------------------------------------
 log "upgrading KubeadmControlPlane to ${TARGET_VERSION}..."
+
+NEW_CP_TEMPLATE="${CLUSTER_NAME}-control-plane-${TARGET_VERSION//./}"
 
 kubectl patch kubeadmcontrolplane "${CLUSTER_NAME}-control-plane" \
   -n "${NAMESPACE}" --type=merge \
@@ -124,7 +127,7 @@ kubectl patch kubeadmcontrolplane "${CLUSTER_NAME}-control-plane" \
       \"version\": \"${TARGET_VERSION}\",
       \"machineTemplate\": {
         \"infrastructureRef\": {
-          \"name\": \"${CLUSTER_NAME}-control-plane-${TARGET_VERSION//./}\"
+          \"name\": \"${NEW_CP_TEMPLATE}\"
         }
       }
     }
@@ -143,6 +146,8 @@ log "control plane upgraded to ${TARGET_VERSION} ✅"
 # ---------------------------------------------------------------
 log "upgrading MachineDeployment workers to ${TARGET_VERSION}..."
 
+NEW_MD_TEMPLATE="${CLUSTER_NAME}-md-0-${TARGET_VERSION//./}"
+
 kubectl patch machinedeployment "${CLUSTER_NAME}-md-0" \
   -n "${NAMESPACE}" --type=merge \
   -p "{
@@ -151,7 +156,7 @@ kubectl patch machinedeployment "${CLUSTER_NAME}-md-0" \
         \"spec\": {
           \"version\": \"${TARGET_VERSION}\",
           \"infrastructureRef\": {
-            \"name\": \"${CLUSTER_NAME}-md-0-${TARGET_VERSION//./}\"
+            \"name\": \"${NEW_MD_TEMPLATE}\"
           }
         }
       }
@@ -169,12 +174,13 @@ for i in $(seq 1 60); do
 
   log "workers: desired=${DESIRED} ready=${READY} updated=${UPDATED} (${i}/60)"
 
-  if [ "${READY}" = "${DESIRED}" ] && [ "${UPDATED}" = "${DESIRED}" ] && \
+  if [ "${READY}" = "${DESIRED}" ] && \
+     [ "${UPDATED}" = "${DESIRED}" ] && \
      [ "${DESIRED}" != "0" ]; then
     log "all workers upgraded ✅"
     break
   fi
-  [ "${i}" = "60" ] && fail "worker upgrade timed out"
+  [ "${i}" = "60" ] && fail "worker upgrade timed out after 600s"
   sleep 10
 done
 
@@ -185,7 +191,8 @@ log "final cluster status:"
 kubectl get cluster "${CLUSTER_NAME}" -n "${NAMESPACE}"
 kubectl get machines -n "${NAMESPACE}"
 
+log ""
 log "cluster '${CLUSTER_NAME}' successfully upgraded to ${TARGET_VERSION} 🎉"
 log ""
-log "Update kubevirt.env:"
+log "Don't forget to update kubevirt.env:"
 log "  VM_IMAGE_URL=${TARGET_IMAGE}"
