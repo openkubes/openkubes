@@ -17,6 +17,10 @@ spec:
         apiVersion: pt.fn.crossplane.io/v1beta1
         kind: Resources
         resources:
+
+          # ConfigMap with deploy args — updated by Crossplane on every reconcile.
+          # crossplane-deploy.sh reads KUBERNETES_VERSION from here and decides
+          # whether to deploy a new cluster or delegate to crossplane-upgrade.sh.
           - name: deploy-args-configmap
             base:
               apiVersion: kubernetes.crossplane.io/v1alpha2
@@ -86,6 +90,10 @@ spec:
               - type: FromCompositeFieldPath
                 fromFieldPath: spec.controlPlane.kubernetesVersion
                 toFieldPath: spec.forProvider.manifest.data.KUBERNETES_VERSION
+
+          # Deploy Job — the name includes the Kubernetes version so that
+          # Crossplane creates a NEW Job whenever kubernetesVersion changes.
+          # (Kubernetes Jobs are immutable; a name change forces a new object.)
           - name: deploy-job
             base:
               apiVersion: kubernetes.crossplane.io/v1alpha2
@@ -122,25 +130,31 @@ spec:
                                   cpu: 500m
                                   memory: 256Mi
             patches:
-              - type: FromCompositeFieldPath
-                fromFieldPath: metadata.name
+              # Object name (Crossplane resource) — includes version to force new object
+              - type: CombineFromComposite
+                combine:
+                  variables:
+                    - fromFieldPath: metadata.name
+                    - fromFieldPath: spec.controlPlane.kubernetesVersion
+                  strategy: string
+                  string:
+                    fmt: "deploy-%s-%s"
                 toFieldPath: metadata.name
-                transforms:
-                  - type: string
-                    string:
-                      type: Format
-                      fmt: "deploy-%s"
-              - type: FromCompositeFieldPath
-                fromFieldPath: metadata.name
+              # Job metadata.name — same combined value
+              - type: CombineFromComposite
+                combine:
+                  variables:
+                    - fromFieldPath: metadata.name
+                    - fromFieldPath: spec.controlPlane.kubernetesVersion
+                  strategy: string
+                  string:
+                    fmt: "deploy-%s-%s"
                 toFieldPath: spec.forProvider.manifest.metadata.name
-                transforms:
-                  - type: string
-                    string:
-                      type: Format
-                      fmt: "deploy-%s"
+              # Runner image
               - type: FromCompositeFieldPath
                 fromFieldPath: spec.runnerImage
                 toFieldPath: spec.forProvider.manifest.spec.template.spec.containers[0].image
+              # ConfigMap reference — always points to the (version-independent) args ConfigMap
               - type: FromCompositeFieldPath
                 fromFieldPath: metadata.name
                 toFieldPath: spec.forProvider.manifest.spec.template.spec.containers[0].envFrom[0].configMapRef.name
@@ -149,6 +163,7 @@ spec:
                     string:
                       type: Format
                       fmt: "deploy-args-%s"
+
     - step: cleanup-on-delete
       functionRef:
         name: function-go-templating

@@ -67,6 +67,11 @@ deploy:
 # ---------------------------------------------------------------
 delete:
 	@test -n "$(cluster)" || (echo "ERROR: cluster is required  →  make delete cluster=ok1"; exit 1)
+	@echo "[delete] cleaning up any stale claims..."
+	@kubectl delete kubevirtclusterupgradeclaim "upgrade-$(cluster)" \
+	  -n $(namespace) --ignore-not-found 2>/dev/null || true
+	@kubectl delete kubevirtclustercleanupclaim "cleanup-$(cluster)" \
+	  -n $(namespace) --ignore-not-found 2>/dev/null || true
 	@echo "[delete] step 1: deleting claim '$(cluster)'..."
 	@kubectl delete -f "$(examples_dir)/$(cluster).yaml" --ignore-not-found || true
 	@echo "[delete] step 2: applying cleanup claim..."
@@ -109,6 +114,9 @@ kubeconfig:
 upgrade:
 	@test -n "$(cluster)" || (echo "ERROR: cluster is required  →  make upgrade cluster=ok1 kubernetes-version=v1.34.1"; exit 1)
 	@test -n "$(kubernetes-version)" || (echo "ERROR: kubernetes-version is required  →  make upgrade cluster=ok1 kubernetes-version=v1.34.1"; exit 1)
+	@echo "[upgrade] cleaning up any stale upgrade claims..."
+	@kubectl delete kubevirtclusterupgradeclaim "upgrade-$(cluster)" \
+	  -n $(namespace) --ignore-not-found 2>/dev/null || true
 	@echo "[upgrade] upgrading cluster '$(cluster)' to $(kubernetes-version)..."
 	@printf 'apiVersion: platform.openkubes.ai/v1alpha1\nkind: KubeVirtClusterUpgradeClaim\nmetadata:\n  name: upgrade-$(cluster)\n  namespace: $(namespace)\nspec:\n  clusterName: $(cluster)\n  targetKubernetesVersion: $(kubernetes-version)\n  upgradeStrategy: RollingUpdate\n  country: de\n  provider: kubevirt\n  runnerImage: $(runner_image)\n' | kubectl apply -f -
 	@echo "[upgrade] watching Job (Ctrl+C to stop watching)..."
@@ -170,4 +178,11 @@ check:
 force-clean:
 	@test -n "$(cluster)" || (echo "ERROR: cluster is required  →  make force-clean cluster=ok1"; exit 1)
 	@echo "⚠️  Force cleaning cluster '$(cluster)'..."
+	@echo "[force-clean] removing stale claims..."
+	@kubectl delete kubevirtclusterupgradeclaim "upgrade-$(cluster)" \
+	  -n $(namespace) --ignore-not-found 2>/dev/null || true
+	@kubectl delete kubevirtclustercleanupclaim "cleanup-$(cluster)" \
+	  -n $(namespace) --ignore-not-found 2>/dev/null || true
+	@kubectl delete kubevirtclusterclaim "$(cluster)" \
+	  -n $(namespace) --ignore-not-found 2>/dev/null || true
 	@bash "$(scripts_dir)/force-clean-leftovers.sh" "$(cluster)" "$(cluster)" "$(namespace)"

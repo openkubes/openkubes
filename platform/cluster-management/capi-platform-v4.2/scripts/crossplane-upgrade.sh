@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # crossplane-upgrade.sh
-# Called by the Crossplane upgrade Job.
+# Called either:
+#   a) by the Crossplane upgrade Job (KubeVirtClusterUpgradeClaim) — uses TARGET_KUBERNETES_VERSION
+#   b) by crossplane-deploy.sh when version drift is detected      — uses KUBERNETES_VERSION
 # Uses clusterctl upgrade apply for reliable CAPI upgrades.
 set -euo pipefail
 
@@ -10,7 +12,12 @@ KUBECONFIG_FILE="/tmp/in-cluster.kubeconfig"
 log()  { echo "[upgrade] $*"; }
 fail() { echo "[upgrade] ERROR: $*" >&2; exit 1; }
 
-# Build in-cluster kubeconfig
+# ── Normalise: accept TARGET_KUBERNETES_VERSION or KUBERNETES_VERSION ──────────
+TARGET_KUBERNETES_VERSION="${TARGET_KUBERNETES_VERSION:-${KUBERNETES_VERSION:-}}"
+[ -n "${TARGET_KUBERNETES_VERSION}" ] || \
+  fail "no target version set — set TARGET_KUBERNETES_VERSION or KUBERNETES_VERSION"
+
+# ── Build in-cluster kubeconfig ────────────────────────────────────────────────
 kubectl config set-cluster in-cluster \
   --server="https://kubernetes.default.svc" \
   --certificate-authority="${SA_DIR}/ca.crt" \
@@ -33,9 +40,7 @@ TARGET_IMAGE="quay.io/capk/ubuntu-2404-container-disk:${TARGET_VERSION}"
 
 log "starting upgrade of cluster '${CLUSTER_NAME}' to ${TARGET_VERSION}"
 
-# ---------------------------------------------------------------
-# Step 1: Check if target VM image exists on quay.io/capk
-# ---------------------------------------------------------------
+# ── Step 1: Check if target VM image exists on quay.io/capk ───────────────────
 log "checking if VM image ${TARGET_IMAGE} exists..."
 
 AVAILABLE=$(curl -s \
@@ -57,9 +62,7 @@ else
   log "WARNING: could not check quay.io, proceeding anyway..."
 fi
 
-# ---------------------------------------------------------------
-# Step 2: Verify cluster exists and is Provisioned
-# ---------------------------------------------------------------
+# ── Step 2: Verify cluster exists and is Provisioned ──────────────────────────
 log "verifying cluster status..."
 PHASE=$(kubectl get cluster "${CLUSTER_NAME}" -n "${NAMESPACE}" \
   -o jsonpath='{.status.phase}' 2>/dev/null || true)
@@ -82,12 +85,7 @@ if [ "${CURRENT_VERSION}" = "${TARGET_VERSION}" ]; then
   exit 0
 fi
 
-# ---------------------------------------------------------------
-# Step 3: Create new MachineTemplates with target VM image
-# ---------------------------------------------------------------
-CP_TEMPLATE_NEW="${CLUSTER_NAME}-control-plane-${TARGET_VERSION//./}"
-MD_TEMPLATE_NEW="${CLUSTER_NAME}-md-0-${TARGET_VERSION//./}"
-
+# ── Step 3: Create new MachineTemplates with target VM image ───────────────────
 log "creating new KubevirtMachineTemplates with image ${TARGET_IMAGE}..."
 
 for SUFFIX in "control-plane" "md-0"; do
@@ -118,9 +116,7 @@ for SUFFIX in "control-plane" "md-0"; do
   log "template ${NEW_TEMPLATE} created ✅"
 done
 
-# ---------------------------------------------------------------
-# Step 4: Use clusterctl upgrade apply
-# ---------------------------------------------------------------
+# ── Step 4: clusterctl upgrade apply ──────────────────────────────────────────
 log "running clusterctl upgrade apply..."
 
 clusterctl upgrade apply \
@@ -132,9 +128,7 @@ clusterctl upgrade apply \
 
 log "clusterctl upgrade apply completed"
 
-# ---------------------------------------------------------------
-# Step 5: Wait for control plane upgrade
-# ---------------------------------------------------------------
+# ── Step 5: Wait for control plane upgrade ────────────────────────────────────
 log "waiting for control plane upgrade (up to 15min)..."
 kubectl wait kubeadmcontrolplane "${CLUSTER_NAME}-control-plane" \
   -n "${NAMESPACE}" \
@@ -143,9 +137,7 @@ kubectl wait kubeadmcontrolplane "${CLUSTER_NAME}-control-plane" \
 
 log "control plane upgraded ✅"
 
-# ---------------------------------------------------------------
-# Step 6: Wait for worker rollout
-# ---------------------------------------------------------------
+# ── Step 6: Wait for worker rollout ───────────────────────────────────────────
 log "waiting for worker rollout (up to 15min)..."
 for i in $(seq 1 90); do
   DESIRED=$(kubectl get machinedeployment "${CLUSTER_NAME}-md-0" \
@@ -167,9 +159,7 @@ for i in $(seq 1 90); do
   sleep 10
 done
 
-# ---------------------------------------------------------------
-# Step 7: Final status
-# ---------------------------------------------------------------
+# ── Step 7: Final status ───────────────────────────────────────────────────────
 log "final cluster status:"
 kubectl get cluster "${CLUSTER_NAME}" -n "${NAMESPACE}"
 kubectl get machines -n "${NAMESPACE}"
