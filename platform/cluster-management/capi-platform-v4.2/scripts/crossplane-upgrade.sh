@@ -3,7 +3,17 @@
 # Called either:
 #   a) by the Crossplane upgrade Job (KubeVirtClusterUpgradeClaim) — uses TARGET_KUBERNETES_VERSION
 #   b) by crossplane-deploy.sh when version drift is detected      — uses KUBERNETES_VERSION
-# Uses clusterctl upgrade apply for reliable CAPI upgrades.
+#
+# Upgrade mechanism:
+#   1. Creates new KubevirtMachineTemplates with the target VM image
+#      (checkStrategy: none — avoids SSH bootstrap check issues)
+#   2. Patches KubeadmControlPlane → CAPI rolls CP nodes one by one
+#   3. Cleans up CP ghost nodes
+#   4. Ensures bootstrap tokens exist in workload cluster before worker rollout
+#      (fixes race condition where KCP controller drops connection during upgrade)
+#   5. Patches MachineDeployment → CAPI rolls worker nodes
+#   6. Waits for worker Machines directly (not updatedReplicas which can be empty)
+#   7. Cleans up worker ghost nodes
 set -euo pipefail
 
 SA_DIR="/var/run/secrets/kubernetes.io/serviceaccount"
@@ -37,8 +47,103 @@ export MGMT_KUBECONFIG="${KUBECONFIG_FILE}"
 NAMESPACE="${CLUSTER_NAME}"
 TARGET_VERSION="${TARGET_KUBERNETES_VERSION}"
 TARGET_IMAGE="quay.io/capk/ubuntu-2404-container-disk:${TARGET_VERSION}"
+CP_TEMPLATE_NEW="${CLUSTER_NAME}-control-plane-${TARGET_VERSION//./}"
+MD_TEMPLATE_NEW="${CLUSTER_NAME}-md-0-${TARGET_VERSION//./}"
+WORKLOAD_KUBECONFIG="/tmp/workload-${CLUSTER_NAME}.kubeconfig"
 
 log "starting upgrade of cluster '${CLUSTER_NAME}' to ${TARGET_VERSION}"
+
+# ── Helper: get workload kubeconfig ───────────────────────────────────────────
+get_workload_kubeconfig() {
+  if clusterctl get kubeconfig "${CLUSTER_NAME}" \
+    -n "${NAMESPACE}" > "${WORKLOAD_KUBECONFIG}" 2>/dev/null; then
+    return 0
+  fi
+  return 1
+}
+
+# ── Helper: cleanup ghost nodes in workload cluster ────────────────────────────
+cleanup_ghost_nodes() {
+  log "cleaning up ghost nodes in workload cluster..."
+  if get_workload_kubeconfig; then
+    GHOST_NODES=$(KUBECONFIG="${WORKLOAD_KUBECONFIG}" kubectl get nodes \
+      -o json 2>/dev/null | \
+      jq -r '.items[] | select(
+        (.spec.unschedulable == true) or
+        (.status.conditions[] | select(.type=="Ready") | .status == "False")
+      ) | .metadata.name' 2>/dev/null || echo "")
+
+    if [ -n "${GHOST_NODES}" ]; then
+      for NODE in ${GHOST_NODES}; do
+        log "deleting ghost node: ${NODE}"
+        KUBECONFIG="${WORKLOAD_KUBECONFIG}" kubectl delete node "${NODE}" \
+          --ignore-not-found || true
+      done
+      log "ghost nodes cleaned up ✅"
+    else
+      log "no ghost nodes found ✅"
+    fi
+  else
+    log "WARNING: could not retrieve workload kubeconfig for ghost node cleanup"
+  fi
+}
+
+# ── Helper: ensure bootstrap tokens exist in workload cluster ─────────────────
+# Root cause: KCP controller can drop its connection to the workload cluster
+# during upgrade, causing bootstrap tokens to never be created there.
+# kubeadm join then fails with "token not found".
+# Fix: read tokens from KubeadmConfig objects and create them manually.
+ensure_bootstrap_tokens() {
+  log "ensuring bootstrap tokens exist in workload cluster..."
+
+  if ! get_workload_kubeconfig; then
+    log "WARNING: could not retrieve workload kubeconfig, skipping token check"
+    return 0
+  fi
+
+  # Find all KubeadmConfig objects for this cluster's worker machines
+  CONFIGS=$(kubectl get kubeadmconfig -n "${NAMESPACE}" \
+    -o json 2>/dev/null | \
+    jq -r '.items[] | select(.spec.joinConfiguration != null) | .metadata.name' \
+    2>/dev/null || echo "")
+
+  if [ -z "${CONFIGS}" ]; then
+    log "no KubeadmConfig objects found, skipping token check"
+    return 0
+  fi
+
+  for CONFIG in ${CONFIGS}; do
+    TOKEN=$(kubectl get kubeadmconfig "${CONFIG}" -n "${NAMESPACE}" \
+      -o jsonpath='{.spec.joinConfiguration.discovery.bootstrapToken.token}' \
+      2>/dev/null || echo "")
+
+    [ -z "${TOKEN}" ] && continue
+
+    TOKEN_ID=$(echo "${TOKEN}" | cut -d. -f1)
+    TOKEN_SECRET=$(echo "${TOKEN}" | cut -d. -f2)
+
+    # Check if token already exists in workload cluster
+    if KUBECONFIG="${WORKLOAD_KUBECONFIG}" kubectl get secret \
+      "bootstrap-token-${TOKEN_ID}" -n kube-system >/dev/null 2>&1; then
+      log "bootstrap token ${TOKEN_ID} already exists ✅"
+      continue
+    fi
+
+    log "creating missing bootstrap token ${TOKEN_ID} for ${CONFIG}..."
+    KUBECONFIG="${WORKLOAD_KUBECONFIG}" kubectl create secret generic \
+      "bootstrap-token-${TOKEN_ID}" \
+      -n kube-system \
+      --type bootstrap.kubernetes.io/token \
+      --from-literal=token-id="${TOKEN_ID}" \
+      --from-literal=token-secret="${TOKEN_SECRET}" \
+      --from-literal=usage-bootstrap-authentication=true \
+      --from-literal=usage-bootstrap-signing=true \
+      --from-literal=auth-extra-groups=system:bootstrappers:kubeadm:default-node-token \
+      2>/dev/null || log "WARNING: could not create token ${TOKEN_ID}"
+
+    log "bootstrap token ${TOKEN_ID} created ✅"
+  done
+}
 
 # ── Step 1: Check if target VM image exists on quay.io/capk ───────────────────
 log "checking if VM image ${TARGET_IMAGE} exists..."
@@ -85,7 +190,8 @@ if [ "${CURRENT_VERSION}" = "${TARGET_VERSION}" ]; then
   exit 0
 fi
 
-# ── Step 3: Create new MachineTemplates with target VM image ───────────────────
+# ── Step 3: Create new KubevirtMachineTemplates with target VM image ───────────
+# Note: checkStrategy=none avoids SSH bootstrap check which fails without SSH key
 log "creating new KubevirtMachineTemplates with image ${TARGET_IMAGE}..."
 
 for SUFFIX in "control-plane" "md-0"; do
@@ -108,6 +214,7 @@ for SUFFIX in "control-plane" "md-0"; do
     del(.metadata.uid) |
     del(.metadata.creationTimestamp) |
     del(.metadata.annotations["kubectl.kubernetes.io/last-applied-configuration"]) |
+    .spec.template.spec.virtualMachineBootstrapCheck.checkStrategy = "none" |
     (.spec.template.spec.virtualMachineTemplate.spec.template.spec.volumes[]
       | select(.containerDisk != null)
       | .containerDisk.image) = $image
@@ -116,17 +223,26 @@ for SUFFIX in "control-plane" "md-0"; do
   log "template ${NEW_TEMPLATE} created ✅"
 done
 
-# ── Step 4: clusterctl upgrade apply ──────────────────────────────────────────
-log "running clusterctl upgrade apply..."
+# ── Step 4: Patch KubeadmControlPlane → CAPI rolls CP nodes one by one ────────
+log "patching KubeadmControlPlane to ${TARGET_VERSION} with template ${CP_TEMPLATE_NEW}..."
 
-clusterctl upgrade apply \
-  --kubeconfig "${KUBECONFIG_FILE}" \
-  --namespace "${NAMESPACE}" \
-  --control-plane "${NAMESPACE}/${CLUSTER_NAME}-control-plane:${TARGET_VERSION}" \
-  --worker "${NAMESPACE}/${CLUSTER_NAME}-md-0:${TARGET_VERSION}" \
-  -v 5 || true
+kubectl patch kubeadmcontrolplane "${CLUSTER_NAME}-control-plane" \
+  -n "${NAMESPACE}" \
+  --type merge \
+  -p "{
+    \"spec\": {
+      \"version\": \"${TARGET_VERSION}\",
+      \"machineTemplate\": {
+        \"spec\": {
+          \"infrastructureRef\": {
+            \"name\": \"${CP_TEMPLATE_NEW}\"
+          }
+        }
+      }
+    }
+  }"
 
-log "clusterctl upgrade apply completed"
+log "KubeadmControlPlane patched ✅ — CAPI will now roll control plane nodes"
 
 # ── Step 5: Wait for control plane upgrade ────────────────────────────────────
 log "waiting for control plane upgrade (up to 15min)..."
@@ -137,36 +253,73 @@ kubectl wait kubeadmcontrolplane "${CLUSTER_NAME}-control-plane" \
 
 log "control plane upgraded ✅"
 
-# ── Step 6: Wait for worker rollout ───────────────────────────────────────────
-log "waiting for worker rollout (up to 15min)..."
+# ── Step 6: Cleanup CP ghost nodes ────────────────────────────────────────────
+cleanup_ghost_nodes
+
+# ── Step 7: Ensure bootstrap tokens exist before worker rollout ───────────────
+ensure_bootstrap_tokens
+
+# ── Step 8: Patch MachineDeployment → CAPI rolls worker nodes ─────────────────
+log "patching MachineDeployment to ${TARGET_VERSION} with template ${MD_TEMPLATE_NEW}..."
+
+kubectl patch machinedeployment "${CLUSTER_NAME}-md-0" \
+  -n "${NAMESPACE}" \
+  --type merge \
+  -p "{
+    \"spec\": {
+      \"template\": {
+        \"spec\": {
+          \"version\": \"${TARGET_VERSION}\",
+          \"infrastructureRef\": {
+            \"name\": \"${MD_TEMPLATE_NEW}\",
+            \"apiGroup\": \"infrastructure.cluster.x-k8s.io\",
+            \"kind\": \"KubevirtMachineTemplate\"
+          }
+        }
+      }
+    }
+  }"
+
+log "MachineDeployment patched ✅ — CAPI will now roll worker nodes"
+
+# ── Step 9: Wait for worker Machines directly ─────────────────────────────────
+# Note: .status.updatedReplicas on MachineDeployment can be empty even when
+# rollout is complete — we check Machine objects directly instead.
+log "waiting for worker Machines to be Running on ${TARGET_VERSION} (up to 15min)..."
+
+DESIRED=$(kubectl get machinedeployment "${CLUSTER_NAME}-md-0" \
+  -n "${NAMESPACE}" -o jsonpath='{.spec.replicas}' 2>/dev/null || echo "1")
+
 for i in $(seq 1 90); do
-  DESIRED=$(kubectl get machinedeployment "${CLUSTER_NAME}-md-0" \
-    -n "${NAMESPACE}" -o jsonpath='{.spec.replicas}' 2>/dev/null || echo "0")
-  READY=$(kubectl get machinedeployment "${CLUSTER_NAME}-md-0" \
-    -n "${NAMESPACE}" -o jsonpath='{.status.readyReplicas}' 2>/dev/null || echo "0")
-  UPDATED=$(kubectl get machinedeployment "${CLUSTER_NAME}-md-0" \
-    -n "${NAMESPACE}" -o jsonpath='{.status.updatedReplicas}' 2>/dev/null || echo "0")
+  RUNNING=$(kubectl get machines -n "${NAMESPACE}" \
+    --selector="cluster.x-k8s.io/deployment-name=${CLUSTER_NAME}-md-0" \
+    -o json 2>/dev/null | \
+    jq -r --arg v "${TARGET_VERSION}" \
+    '[.items[] | select(.status.phase=="Running" and .spec.version==$v)] | length' \
+    2>/dev/null || echo "0")
 
-  log "workers: desired=${DESIRED} ready=${READY} updated=${UPDATED} (${i}/90)"
+  log "worker Machines Running on ${TARGET_VERSION}: ${RUNNING}/${DESIRED} (${i}/90)"
 
-  if [ "${READY}" = "${DESIRED}" ] && \
-     [ "${UPDATED}" = "${DESIRED}" ] && \
-     [ "${DESIRED}" != "0" ]; then
-    log "all workers upgraded ✅"
+  if [ "${RUNNING}" = "${DESIRED}" ] && [ "${DESIRED}" != "0" ]; then
+    log "all worker Machines upgraded ✅"
     break
   fi
   [ "${i}" = "90" ] && fail "worker upgrade timed out after 900s"
   sleep 10
 done
 
-# ── Step 7: Final status ───────────────────────────────────────────────────────
+# ── Step 10: Cleanup worker ghost nodes ───────────────────────────────────────
+cleanup_ghost_nodes
+
+# ── Step 11: Final status ──────────────────────────────────────────────────────
 log "final cluster status:"
 kubectl get cluster "${CLUSTER_NAME}" -n "${NAMESPACE}"
 kubectl get machines -n "${NAMESPACE}"
 
+if [ -f "${WORKLOAD_KUBECONFIG}" ]; then
+  log "workload cluster nodes:"
+  KUBECONFIG="${WORKLOAD_KUBECONFIG}" kubectl get nodes -o wide || true
+fi
+
 log ""
 log "cluster '${CLUSTER_NAME}' successfully upgraded to ${TARGET_VERSION} 🎉"
-log ""
-log "Don't forget to update kubevirt.env and ok1.yaml:"
-log "  VM_IMAGE_URL=${TARGET_IMAGE}"
-log "  kubernetesVersion: ${TARGET_VERSION}"

@@ -139,6 +139,14 @@ kubectl get namespace ok1 -o json | \
 kubectl get namespace ok1 -o json | \
   python3 -c "import sys,json; d=json.load(sys.stdin); d['spec']['finalizers']=[]; print(json.dumps(d))" | \
   kubectl replace --raw /api/v1/namespaces/ok1/finalize -f -
+
+# Finalizer von allen CAPI-Objekten in ok1 entfernen
+for kind in kubevirtmachine machine machineset machinedeployment \
+            kubeadmcontrolplane kubevirtcluster; do
+  kubectl get "${kind}" -n ok1 -o name 2>/dev/null | \
+    xargs -I {} kubectl patch {} -n ok1 \
+      --type=merge -p '{"metadata":{"finalizers":[]}}' 2>/dev/null || true
+done
 ```
 
 ### Force-delete multiple stuck namespaces
