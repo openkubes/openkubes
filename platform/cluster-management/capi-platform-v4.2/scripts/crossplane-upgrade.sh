@@ -294,15 +294,21 @@ kubectl patch machinedeployment "${CLUSTER_NAME}-md-0" \
 
 log "MachineDeployment patched ✅ — CAPI will now roll worker nodes"
 
-# ── Step 9: Wait for worker Machines directly ─────────────────────────────────
+# ── Step 9: Wait for worker Machines via CAPI status ─────────────────────────
 # Note: .status.updatedReplicas on MachineDeployment can be empty even when
 # rollout is complete — we check Machine objects directly instead.
-log "waiting for worker Machines to be Running on ${TARGET_VERSION} (up to 15min)..."
+# Note: CAPI Machine Running does NOT guarantee the real node has joined.
+#       The real kubelet version check happens in Step 9b.
+#       Auto-restart for stuck VMs is also in Step 9b.
+log "waiting for worker Machines to be Running on ${TARGET_VERSION} (up to 20min)..."
 
 DESIRED=$(kubectl get machinedeployment "${CLUSTER_NAME}-md-0" \
   -n "${NAMESPACE}" -o jsonpath='{.spec.replicas}' 2>/dev/null || echo "1")
 
-for i in $(seq 1 90); do
+# Track VMs we already restarted to avoid restart loops
+RESTARTED_VMS=""
+
+for i in $(seq 1 120); do
   RUNNING=$(kubectl get machines -n "${NAMESPACE}" \
     --selector="cluster.x-k8s.io/deployment-name=${CLUSTER_NAME}-md-0" \
     -o json 2>/dev/null | \
@@ -310,15 +316,85 @@ for i in $(seq 1 90); do
     '[.items[] | select(.status.phase=="Running" and .spec.version==$v)] | length' \
     2>/dev/null || echo "0")
 
-  log "worker Machines Running on ${TARGET_VERSION}: ${RUNNING}/${DESIRED} (${i}/90)"
+  log "worker Machines Running on ${TARGET_VERSION}: ${RUNNING}/${DESIRED} (${i}/120)"
 
   if [ "${RUNNING}" = "${DESIRED}" ] && [ "${DESIRED}" != "0" ]; then
     log "all worker Machines upgraded ✅"
     break
   fi
-  [ "${i}" = "90" ] && fail "worker upgrade timed out after 900s"
+
+  [ "${i}" = "120" ] && fail "worker upgrade timed out after 1200s"
   sleep 10
 done
+
+# ── Step 9b: Wait for workload worker nodes to report TARGET_VERSION ──────────
+# This is the real check — CAPI Machine status alone is not sufficient.
+# Auto-restart VMs if nodes don't appear after 5min (kubeadm join race condition).
+log "waiting for workload worker nodes to report kubelet ${TARGET_VERSION}..."
+
+# Load infra kubeconfig for VM restarts
+kubectl get secret "external-infra-kubeconfig-${CLUSTER_NAME}" \
+  -n "${NAMESPACE}" -o jsonpath='{.data.kubeconfig}' | \
+  base64 -d > /tmp/infra-upgrade.kubeconfig 2>/dev/null || true
+
+RESTARTED_VMS=""
+
+if get_workload_kubeconfig; then
+  for i in $(seq 1 90); do
+    READY_NEW=$(KUBECONFIG="${WORKLOAD_KUBECONFIG}" kubectl get nodes -o json 2>/dev/null | \
+      jq -r --arg v "${TARGET_VERSION}" \
+      '[.items[]
+        | select((.metadata.labels["node-role.kubernetes.io/control-plane"] // "") == "")
+        | select(.status.nodeInfo.kubeletVersion == $v)
+        | select(.status.conditions[] | select(.type=="Ready" and .status=="True"))
+      ] | length' 2>/dev/null || echo "0")
+
+    OLD_WORKERS=$(KUBECONFIG="${WORKLOAD_KUBECONFIG}" kubectl get nodes -o json 2>/dev/null | \
+      jq -r --arg v "${TARGET_VERSION}" \
+      '[.items[]
+        | select((.metadata.labels["node-role.kubernetes.io/control-plane"] // "") == "")
+        | select(.status.nodeInfo.kubeletVersion != $v)
+      ] | length' 2>/dev/null || echo "99")
+
+    log "workload worker nodes Ready on ${TARGET_VERSION}: ${READY_NEW}/${DESIRED}, old workers still present: ${OLD_WORKERS} (${i}/90)"
+
+    if [ "${READY_NEW}" = "${DESIRED}" ] && [ "${OLD_WORKERS}" = "0" ]; then
+      log "workload worker nodes upgraded ✅"
+      break
+    fi
+
+    # Auto-restart VMs stuck after 5min (30 iterations × 10s)
+    if [ "${i}" -ge 30 ] && [ -f "/tmp/infra-upgrade.kubeconfig" ]; then
+      STUCK_MACHINES=$(kubectl get machines -n "${NAMESPACE}" \
+        --selector="cluster.x-k8s.io/deployment-name=${CLUSTER_NAME}-md-0" \
+        -o json 2>/dev/null | \
+        jq -r --arg v "${TARGET_VERSION}" \
+        '.items[] | select(.spec.version==$v and .status.phase=="Running") | .metadata.name' \
+        2>/dev/null || echo "")
+
+      for MACHINE in ${STUCK_MACHINES}; do
+        if echo "${RESTARTED_VMS}" | grep -q "${MACHINE}"; then
+          continue
+        fi
+        log "worker ${MACHINE} not yet in workload cluster after 5min — restarting VM..."
+        kubectl patch virtualmachine "${MACHINE}" -n "${NAMESPACE}" \
+          --kubeconfig /tmp/infra-upgrade.kubeconfig \
+          --type merge -p '{"spec":{"runStrategy":"Halted"}}' 2>/dev/null || true
+        sleep 5
+        kubectl patch virtualmachine "${MACHINE}" -n "${NAMESPACE}" \
+          --kubeconfig /tmp/infra-upgrade.kubeconfig \
+          --type merge -p '{"spec":{"runStrategy":"Always"}}' 2>/dev/null || true
+        RESTARTED_VMS="${RESTARTED_VMS} ${MACHINE}"
+        log "VM ${MACHINE} restarted ✅"
+      done
+    fi
+
+    [ "${i}" = "90" ] && fail "worker nodes did not reach kubelet ${TARGET_VERSION} after 900s — upgrade incomplete!"
+    sleep 10
+  done
+else
+  fail "could not retrieve workload kubeconfig — cannot verify worker node versions"
+fi
 
 # ── Step 10: Cleanup worker ghost nodes ───────────────────────────────────────
 cleanup_ghost_nodes

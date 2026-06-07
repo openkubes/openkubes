@@ -61,19 +61,25 @@ deploy:
 	@echo "[deploy] applying claim for cluster '$(cluster)'..."
 	kubectl apply -f "$(examples_dir)/$(cluster).yaml"
 	@echo "[deploy] waiting for Job to complete..."
-	@sleep 5
-	@JOB=$$(kubectl get jobs -n $(namespace) \
-	  --sort-by=.metadata.creationTimestamp \
-	  -o jsonpath='{.items[-1:][0].metadata.name}' 2>/dev/null || echo ""); \
+	@echo "[deploy] waiting for Crossplane to create Job..."; \
+	JOB=""; \
+	for i in $$(seq 1 24); do \
+	  JOB=$$(kubectl get jobs -n $(namespace) \
+	    --sort-by=.metadata.creationTimestamp \
+	    -o jsonpath='{.items[*].metadata.name}' 2>/dev/null | \
+	    tr ' ' '\n' | grep "^deploy-$(cluster)-" | tail -1 || echo ""); \
+	  if [ -n "$$JOB" ]; then break; fi; \
+	  echo "[deploy] waiting for Job... ($$i/24)"; \
+	  sleep 5; \
+	done; \
 	if [ -n "$$JOB" ]; then \
 	  echo "[deploy] watching Job $$JOB..."; \
-	  kubectl get jobs -n $(namespace) "$$JOB"; \
 	  kubectl wait job/"$$JOB" -n $(namespace) \
 	    --for=condition=complete \
 	    --timeout=600s 2>/dev/null && \
 	  echo "[deploy] cluster '$(cluster)' deployed ✅"; \
 	else \
-	  echo "[deploy] WARNING: no job found, check: kubectl get jobs -n $(namespace)"; \
+	  echo "[deploy] WARNING: no job found after 120s, check: kubectl get jobs -n $(namespace)"; \
 	fi
 
 # ---------------------------------------------------------------
