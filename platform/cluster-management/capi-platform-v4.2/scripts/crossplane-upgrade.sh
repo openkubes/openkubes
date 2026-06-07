@@ -177,16 +177,22 @@ PHASE=$(kubectl get cluster "${CLUSTER_NAME}" -n "${NAMESPACE}" \
 [ "${PHASE}" != "Provisioned" ] && \
   fail "cluster is in phase '${PHASE}', expected 'Provisioned'"
 
-CURRENT_VERSION=$(kubectl get kubeadmcontrolplane \
+CURRENT_CP_VERSION=$(kubectl get kubeadmcontrolplane \
   "${CLUSTER_NAME}-control-plane" -n "${NAMESPACE}" \
   -o jsonpath='{.spec.version}' 2>/dev/null || echo "unknown")
 
-log "cluster is Provisioned ✅"
-log "current version: ${CURRENT_VERSION}"
-log "target version:  ${TARGET_VERSION}"
+CURRENT_MD_VERSION=$(kubectl get machinedeployment \
+  "${CLUSTER_NAME}-md-0" -n "${NAMESPACE}" \
+  -o jsonpath='{.spec.template.spec.version}' 2>/dev/null || echo "unknown")
 
-if [ "${CURRENT_VERSION}" = "${TARGET_VERSION}" ]; then
-  log "cluster is already on ${TARGET_VERSION}, nothing to do ✅"
+log "cluster is Provisioned ✅"
+log "current control plane version: ${CURRENT_CP_VERSION}"
+log "current worker version:        ${CURRENT_MD_VERSION}"
+log "target version:                ${TARGET_VERSION}"
+
+if [ "${CURRENT_CP_VERSION}" = "${TARGET_VERSION}" ] && \
+   [ "${CURRENT_MD_VERSION}" = "${TARGET_VERSION}" ]; then
+  log "control plane and workers are already on ${TARGET_VERSION}, nothing to do ✅"
   exit 0
 fi
 
@@ -268,6 +274,12 @@ kubectl patch machinedeployment "${CLUSTER_NAME}-md-0" \
   -p "{
     \"spec\": {
       \"template\": {
+        \"metadata\": {
+          \"annotations\": {
+            \"openkubes.ai/upgrade-version\": \"${TARGET_VERSION}\",
+            \"openkubes.ai/upgrade-timestamp\": \"$(date -u +%Y%m%d%H%M%S)\"
+          }
+        },
         \"spec\": {
           \"version\": \"${TARGET_VERSION}\",
           \"infrastructureRef\": {
