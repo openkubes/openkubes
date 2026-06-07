@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # crossplane-upgrade.sh
 # Called by the Crossplane upgrade Job.
+# CAPK v0.11.2: upgrade by patching version only - no template changes needed.
 set -euo pipefail
 
 SA_DIR="/var/run/secrets/kubernetes.io/serviceaccount"
@@ -39,15 +40,13 @@ log "checking if VM image ${TARGET_IMAGE} exists..."
 
 AVAILABLE=$(curl -s \
   "https://quay.io/api/v1/repository/capk/ubuntu-2404-container-disk/tag/?limit=50" \
-  2>/dev/null | \
-  jq -r '.tags[]?.name' 2>/dev/null || echo "")
+  2>/dev/null | jq -r '.tags[]?.name' 2>/dev/null || echo "")
 
 if [ -n "${AVAILABLE}" ]; then
   log "available VM images:"
   echo "${AVAILABLE}" | while read -r v; do
     log "  quay.io/capk/ubuntu-2404-container-disk:${v}"
   done
-
   if ! echo "${AVAILABLE}" | grep -qx "${TARGET_VERSION}"; then
     fail "VM image for ${TARGET_VERSION} not found on quay.io/capk!
 Available versions: $(echo "${AVAILABLE}" | tr '\n' ' ')
@@ -78,60 +77,20 @@ log "cluster is Provisioned ✅"
 log "current version: ${CURRENT_VERSION}"
 log "target version:  ${TARGET_VERSION}"
 
-# ---------------------------------------------------------------
-# Step 3: Update KubevirtMachineTemplates with new VM image
-# ---------------------------------------------------------------
-log "creating new KubevirtMachineTemplates with image ${TARGET_IMAGE}..."
-
-for SUFFIX in "control-plane" "md-0"; do
-  OLD_TEMPLATE="${CLUSTER_NAME}-${SUFFIX}"
-  NEW_TEMPLATE="${CLUSTER_NAME}-${SUFFIX}-${TARGET_VERSION//./}"
-
-  # Check if new template already exists
-  if kubectl get kubevirtmachinetemplate "${NEW_TEMPLATE}" \
-    -n "${NAMESPACE}" >/dev/null 2>&1; then
-    log "template ${NEW_TEMPLATE} already exists, skipping"
-    continue
-  fi
-
-  # Get existing template, update image, create new one using jq
-  kubectl get kubevirtmachinetemplate "${OLD_TEMPLATE}" \
-    -n "${NAMESPACE}" -o json | \
-    jq --arg name "${NEW_TEMPLATE}" \
-       --arg image "${TARGET_IMAGE}" \
-    '
-    .metadata.name = $name |
-    del(.metadata.resourceVersion) |
-    del(.metadata.uid) |
-    del(.metadata.creationTimestamp) |
-    del(.metadata.annotations["kubectl.kubernetes.io/last-applied-configuration"]) |
-    (.spec.template.spec.virtualMachineTemplate.spec.template.spec.volumes[]
-      | select(.containerDisk != null)
-      | .containerDisk.image) = $image
-    ' | kubectl apply -f -
-
-  log "template ${NEW_TEMPLATE} created ✅"
-done
+if [ "${CURRENT_VERSION}" = "${TARGET_VERSION}" ]; then
+  log "cluster is already on ${TARGET_VERSION}, nothing to do ✅"
+  exit 0
+fi
 
 # ---------------------------------------------------------------
-# Step 4: Upgrade Control Plane
+# Step 3: Upgrade Control Plane (version only - CAPK v0.11.2)
 # ---------------------------------------------------------------
 log "upgrading KubeadmControlPlane to ${TARGET_VERSION}..."
-
-NEW_CP_TEMPLATE="${CLUSTER_NAME}-control-plane-${TARGET_VERSION//./}"
+log "NOTE: CAPK v0.11.2 handles VM image update automatically via version patch"
 
 kubectl patch kubeadmcontrolplane "${CLUSTER_NAME}-control-plane" \
   -n "${NAMESPACE}" --type=merge \
-  -p "{
-    \"spec\": {
-      \"version\": \"${TARGET_VERSION}\",
-      \"machineTemplate\": {
-        \"infrastructureRef\": {
-          \"name\": \"${NEW_CP_TEMPLATE}\"
-        }
-      }
-    }
-  }"
+  -p "{\"spec\":{\"version\":\"${TARGET_VERSION}\"}}"
 
 log "waiting for control plane upgrade (up to 10min)..."
 kubectl wait kubeadmcontrolplane "${CLUSTER_NAME}-control-plane" \
@@ -139,29 +98,20 @@ kubectl wait kubeadmcontrolplane "${CLUSTER_NAME}-control-plane" \
   --for=condition=Available \
   --timeout=600s
 
-log "control plane upgraded to ${TARGET_VERSION} ✅"
+# Verify CP version
+CP_VERSION=$(kubectl get kubeadmcontrolplane \
+  "${CLUSTER_NAME}-control-plane" -n "${NAMESPACE}" \
+  -o jsonpath='{.spec.version}' 2>/dev/null || echo "unknown")
+log "KubeadmControlPlane version: ${CP_VERSION} ✅"
 
 # ---------------------------------------------------------------
-# Step 5: Upgrade Workers
+# Step 4: Upgrade Workers
 # ---------------------------------------------------------------
 log "upgrading MachineDeployment workers to ${TARGET_VERSION}..."
 
-NEW_MD_TEMPLATE="${CLUSTER_NAME}-md-0-${TARGET_VERSION//./}"
-
 kubectl patch machinedeployment "${CLUSTER_NAME}-md-0" \
   -n "${NAMESPACE}" --type=merge \
-  -p "{
-    \"spec\": {
-      \"template\": {
-        \"spec\": {
-          \"version\": \"${TARGET_VERSION}\",
-          \"infrastructureRef\": {
-            \"name\": \"${NEW_MD_TEMPLATE}\"
-          }
-        }
-      }
-    }
-  }"
+  -p "{\"spec\":{\"template\":{\"spec\":{\"version\":\"${TARGET_VERSION}\"}}}}"
 
 log "waiting for worker rollout (up to 10min)..."
 for i in $(seq 1 60); do
@@ -185,7 +135,7 @@ for i in $(seq 1 60); do
 done
 
 # ---------------------------------------------------------------
-# Step 6: Final status
+# Step 5: Final status
 # ---------------------------------------------------------------
 log "final cluster status:"
 kubectl get cluster "${CLUSTER_NAME}" -n "${NAMESPACE}"
@@ -194,5 +144,6 @@ kubectl get machines -n "${NAMESPACE}"
 log ""
 log "cluster '${CLUSTER_NAME}' successfully upgraded to ${TARGET_VERSION} 🎉"
 log ""
-log "Don't forget to update kubevirt.env:"
+log "Don't forget to update kubevirt.env and ok1.yaml:"
 log "  VM_IMAGE_URL=${TARGET_IMAGE}"
+log "  kubernetesVersion: ${TARGET_VERSION}"
