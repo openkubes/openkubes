@@ -33,8 +33,13 @@ kubectl get providerconfig infra-cluster
 
 ## Option 1: Direct KubeVirt (fast, no Crossplane)
 
-Apply directly on the infra cluster:
+### Via Make
+```bash
+make vm-apply  vm=ok4
+make vm-remove vm=ok4
+```
 
+### Via kubectl
 ```bash
 kubectl apply -f platform/virtualization/openkubesvm/kubevirt/ok4-vm.yaml
 
@@ -44,12 +49,16 @@ kubectl apply -k platform/virtualization/openkubesvm/examples/direct
 
 Check status:
 ```bash
+make vm-status vm=ok4
+# or
 kubectl get vm -n kubevirt
 kubectl get dv -n kubevirt    # DataVolume import takes ~90s
 ```
 
 SSH access (after VM is ready):
 ```bash
+make vm-ssh vm=ok4
+# or
 ssh ubuntu@84.200.100.228   # ok4
 ssh ubuntu@84.200.100.229   # ok5
 ssh ubuntu@84.200.100.230   # ok6
@@ -61,6 +70,8 @@ ssh ubuntu@84.200.100.230   # ok6
 
 ### Setup (one-time)
 ```bash
+make setup
+# or
 kubectl apply -k platform/virtualization/openkubesvm/crossplane
 ```
 
@@ -72,25 +83,31 @@ kubectl get composition | grep openkubesvm
 
 ### Create VMs
 ```bash
-# Single VM
+make vm-create vm=ok4
+# or
 kubectl apply -f platform/virtualization/openkubesvm/examples/claims/ok4-openkubesvmclaim.yaml
 
 # All at once
 kubectl apply -k platform/virtualization/openkubesvm/examples/claims
 ```
 
-Watch progress (on management cluster):
+### Watch progress
 ```bash
-kubectl get openkubesvmclaim -A -w
+make vm-status vm=ok4
+# or
+kubectl get openkubesvmclaim -A -w    # management cluster
+kubectl get vm -n kubevirt -w         # infra cluster
 ```
 
-Watch VM on infra cluster:
+### List all VMs
 ```bash
-kubectl get vm -n kubevirt -w
+make vm-list
 ```
 
 ### Delete VMs
 ```bash
+make vm-delete vm=ok4
+# or
 kubectl delete -k platform/virtualization/openkubesvm/examples/claims
 ```
 
