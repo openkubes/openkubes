@@ -1,0 +1,134 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: CompositeResourceDefinition
+metadata:
+  name: openkubesvms.platform.openkubes.ai
+spec:
+  group: platform.openkubes.ai
+  names:
+    kind: OpenKubesVM
+    plural: openkubesvms
+  claimNames:
+    kind: OpenKubesVMClaim
+    plural: openkubesvmclaims
+  versions:
+    - name: v1alpha1
+      served: true
+      referenceable: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              required:
+                - clusterIP
+              properties:
+                namespace:
+                  type: string
+                  description: Target namespace for KubeVirt resources.
+                  default: kubevirt
+                runStrategy:
+                  type: string
+                  description: KubeVirt VM run strategy.
+                  default: Always
+                  enum: [Always, Manual, Halted, RerunOnFailure, Once]
+                image:
+                  type: object
+                  properties:
+                    url:
+                      type: string
+                      description: HTTP source image for CDI DataVolume.
+                      default: https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img
+                compute:
+                  type: object
+                  properties:
+                    cores:
+                      type: integer
+                      description: Number of vCPU cores.
+                      default: 4
+                      minimum: 1
+                    memory:
+                      type: string
+                      description: Requested VM memory.
+                      default: 4Gi
+                storage:
+                  type: object
+                  properties:
+                    size:
+                      type: string
+                      description: Root disk size for the CDI DataVolume.
+                      default: 30Gi
+                    storageClassName:
+                      type: string
+                      description: Optional StorageClass for the DataVolume PVC.
+                      default: ""
+                network:
+                  type: object
+                  properties:
+                    podNetwork:
+                      type: boolean
+                      description: Enable default pod network with masquerade.
+                      default: true
+                    clusterNetworkName:
+                      type: string
+                      description: Multus NetworkAttachmentDefinition for the cluster NIC.
+                      default: kubevirt/cluster-net
+                    clusterCIDR:
+                      type: string
+                      description: CIDR suffix for the static cluster interface.
+                      default: "24"
+                    macAddress:
+                      type: string
+                      description: MAC address for the cluster interface.
+                      default: ""
+                clusterIP:
+                  type: string
+                  description: Static IP address for the cluster interface, without CIDR suffix.
+                service:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                      description: Create a LoadBalancer Service for the VM.
+                      default: true
+                    type:
+                      type: string
+                      default: LoadBalancer
+                      enum: [LoadBalancer, ClusterIP, NodePort]
+                    loadBalancerIP:
+                      type: string
+                      description: Optional MetalLB LoadBalancer IP.
+                      default: ""
+                    addressPool:
+                      type: string
+                      description: Optional MetalLB address pool annotation.
+                      default: first-pool
+                    exposeKubernetesAPI:
+                      type: boolean
+                      description: Expose TCP/6443 in addition to SSH.
+                      default: false
+                cloudInit:
+                  type: object
+                  properties:
+                    user:
+                      type: string
+                      default: ubuntu
+                    sshPublicKey:
+                      type: string
+                      description: SSH public key injected into the VM.
+                      default: ""
+                    password:
+                      type: string
+                      description: Optional password for the cloud-init user. Prefer SSH keys for production.
+                      default: ""
+            status:
+              type: object
+              properties:
+                phase:
+                  type: string
+                vmName:
+                  type: string
+                dataVolumeName:
+                  type: string
+                serviceName:
+                  type: string

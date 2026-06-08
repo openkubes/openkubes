@@ -1,0 +1,19 @@
+apiVersion: kubernetes.crossplane.io/v1alpha1
+kind: ProviderConfig
+metadata:
+  name: infra-cluster
+  annotations:
+    openkubes.ai/note: |
+      Before applying this, create the kubeconfig secret:
+        kubectl get secret external-infra-kubeconfig -n capk-system \
+          -o jsonpath='{.data.kubeconfig}' | base64 -d > /tmp/infra-kubeconfig.yaml
+        kubectl create secret generic infra-cluster-kubeconfig \
+          -n crossplane-system \
+          --from-file=kubeconfig=/tmp/infra-kubeconfig.yaml
+spec:
+  credentials:
+    source: Secret
+    secretRef:
+      namespace: crossplane-system
+      name: infra-cluster-kubeconfig
+      key: kubeconfig

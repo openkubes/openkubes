@@ -1,0 +1,235 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: openkubesvm.platform.openkubes.ai
+  labels:
+    provider: kubevirt
+spec:
+  compositeTypeRef:
+    apiVersion: platform.openkubes.ai/v1alpha1
+    kind: OpenKubesVM
+  mode: Pipeline
+  pipeline:
+    - step: render-kubevirt-resources
+      functionRef:
+        name: function-go-templating
+      input:
+        apiVersion: gotemplating.fn.crossplane.io/v1beta1
+        kind: GoTemplate
+        source: Inline
+        inline:
+          template: |
+            {{- $xr := .observed.composite.resource }}
+            {{- $claimName := index $xr.metadata.labels "crossplane.io/claim-name" | default $xr.metadata.name }}
+            {{- $spec := $xr.spec }}
+            {{- $ns := default "kubevirt" $spec.namespace }}
+            {{- $vmName := printf "%s-vm" $claimName }}
+            {{- $dvName := printf "%s-dv" $claimName }}
+            {{- $svcName := printf "%s-svc" $claimName }}
+            {{- $appLabel := printf "%s-vm" $claimName }}
+            {{- $imageUrl := default "https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img" $spec.image.url }}
+            {{- $diskSize := default "30Gi" $spec.storage.size }}
+            {{- $storageClass := default "" $spec.storage.storageClassName }}
+            {{- $cores := default 4 $spec.compute.cores }}
+            {{- $memory := default "4Gi" $spec.compute.memory }}
+            {{- $runStrategy := default "Always" $spec.runStrategy }}
+            {{- $clusterNetwork := default "kubevirt/cluster-net" $spec.network.clusterNetworkName }}
+            {{- $clusterCIDR := default "24" $spec.network.clusterCIDR }}
+            {{- $clusterIP := $spec.clusterIP }}
+            {{- $mac := default "" $spec.network.macAddress }}
+            {{- $serviceEnabled := default true $spec.service.enabled }}
+            {{- $serviceType := default "LoadBalancer" $spec.service.type }}
+            {{- $lbIP := default "" $spec.service.loadBalancerIP }}
+            {{- $addressPool := default "first-pool" $spec.service.addressPool }}
+            {{- $exposeAPI := default false $spec.service.exposeKubernetesAPI }}
+            {{- $user := default "ubuntu" $spec.cloudInit.user }}
+            {{- $sshKey := default "" $spec.cloudInit.sshPublicKey }}
+            {{- $password := default "" $spec.cloudInit.password }}
+            ---
+            apiVersion: kubernetes.crossplane.io/v1alpha2
+            kind: Object
+            metadata:
+              name: openkubesvm-{{ $claimName }}-datavolume
+              annotations:
+                gotemplating.fn.crossplane.io/composition-resource-name: datavolume
+            spec:
+              providerConfigRef:
+                name: infra-cluster
+              forProvider:
+                manifest:
+                  apiVersion: cdi.kubevirt.io/v1beta1
+                  kind: DataVolume
+                  metadata:
+                    name: {{ $dvName }}
+                    namespace: {{ $ns }}
+                    labels:
+                      app.kubernetes.io/name: openkubesvm
+                      app.kubernetes.io/instance: {{ $claimName }}
+                  spec:
+                    source:
+                      http:
+                        url: {{ $imageUrl | quote }}
+                    pvc:
+                      accessModes:
+                        - ReadWriteOnce
+                      volumeMode: Filesystem
+                      {{- if ne $storageClass "" }}
+                      storageClassName: {{ $storageClass | quote }}
+                      {{- end }}
+                      resources:
+                        requests:
+                          storage: {{ $diskSize }}
+            {{- if $serviceEnabled }}
+            ---
+            apiVersion: kubernetes.crossplane.io/v1alpha2
+            kind: Object
+            metadata:
+              name: openkubesvm-{{ $claimName }}-service
+              annotations:
+                gotemplating.fn.crossplane.io/composition-resource-name: service
+            spec:
+              providerConfigRef:
+                name: infra-cluster
+              forProvider:
+                manifest:
+                  apiVersion: v1
+                  kind: Service
+                  metadata:
+                    name: {{ $svcName }}
+                    namespace: {{ $ns }}
+                    labels:
+                      app.kubernetes.io/name: openkubesvm
+                      app.kubernetes.io/instance: {{ $claimName }}
+                    annotations:
+                      {{- if ne $addressPool "" }}
+                      metallb.io/address-pool: {{ $addressPool | quote }}
+                      {{- end }}
+                      {{- if ne $lbIP "" }}
+                      metallb.io/loadBalancerIPs: {{ $lbIP | quote }}
+                      {{- end }}
+                  spec:
+                    type: {{ $serviceType }}
+                    selector:
+                      app: {{ $appLabel }}
+                    ports:
+                      - name: ssh
+                        protocol: TCP
+                        port: 22
+                        targetPort: 22
+                      {{- if $exposeAPI }}
+                      - name: k8s-api
+                        protocol: TCP
+                        port: 6443
+                        targetPort: 6443
+                      {{- end }}
+            {{- end }}
+            ---
+            apiVersion: kubernetes.crossplane.io/v1alpha2
+            kind: Object
+            metadata:
+              name: openkubesvm-{{ $claimName }}-vm
+              annotations:
+                gotemplating.fn.crossplane.io/composition-resource-name: virtualmachine
+            spec:
+              providerConfigRef:
+                name: infra-cluster
+              forProvider:
+                manifest:
+                  apiVersion: kubevirt.io/v1
+                  kind: VirtualMachine
+                  metadata:
+                    name: {{ $vmName }}
+                    namespace: {{ $ns }}
+                    labels:
+                      app.kubernetes.io/name: openkubesvm
+                      app.kubernetes.io/instance: {{ $claimName }}
+                  spec:
+                    runStrategy: {{ $runStrategy }}
+                    template:
+                      metadata:
+                        labels:
+                          kubevirt.io/domain: {{ $vmName }}
+                          app: {{ $appLabel }}
+                      spec:
+                        domain:
+                          cpu:
+                            cores: {{ $cores }}
+                          resources:
+                            requests:
+                              memory: {{ $memory }}
+                          devices:
+                            disks:
+                              - name: rootdisk
+                                disk:
+                                  bus: virtio
+                              - name: cloudinitdisk
+                                disk:
+                                  bus: virtio
+                            interfaces:
+                              - name: default
+                                masquerade: {}
+                                ports:
+                                  - name: ssh
+                                    port: 22
+                                  {{- if $exposeAPI }}
+                                  - name: k8s-api
+                                    port: 6443
+                                  {{- end }}
+                              - name: cluster
+                                bridge: {}
+                                {{- if ne $mac "" }}
+                                macAddress: {{ $mac | quote }}
+                                {{- end }}
+                        networks:
+                          - name: default
+                            pod: {}
+                          - name: cluster
+                            multus:
+                              networkName: {{ $clusterNetwork }}
+                        volumes:
+                          - name: rootdisk
+                            dataVolume:
+                              name: {{ $dvName }}
+                          - name: cloudinitdisk
+                            cloudInitNoCloud:
+                              userData: |
+                                #cloud-config
+                                growpart:
+                                  mode: auto
+                                  devices: ["/"]
+                                resize_rootfs: true
+                                users:
+                                  - name: {{ $user }}
+                                    sudo: ALL=(ALL) NOPASSWD:ALL
+                                    groups: sudo
+                                    shell: /bin/bash
+                                    lock_passwd: false
+                                    {{- if ne $sshKey "" }}
+                                    ssh_authorized_keys:
+                                      - {{ $sshKey }}
+                                    {{- end }}
+                                ssh_pwauth: true
+                                {{- if ne $password "" }}
+                                chpasswd:
+                                  expire: false
+                                  list: |
+                                    {{ $user }}:{{ $password }}
+                                {{- end }}
+                              networkData: |
+                                version: 2
+                                ethernets:
+                                  default0:
+                                    match:
+                                      name: enp1s0
+                                    set-name: enp1s0
+                                    dhcp4: true
+
+                                  cluster0:
+                                    {{- if ne $mac "" }}
+                                    match:
+                                      macaddress: {{ $mac | quote }}
+                                    {{- end }}
+                                    set-name: cluster0
+                                    dhcp4: false
+                                    addresses:
+                                      - {{ $clusterIP }}/{{ $clusterCIDR }}
