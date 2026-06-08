@@ -211,6 +211,7 @@ deploy-full-local: validate-vars check-deps
 	export CLUSTER_NAME="$(cluster-name)"; \
 	export NAMESPACE="$(namespace)"; \
 	export KUBERNETES_VERSION="$(kubernetes-version)"; \
+	export VM_IMAGE_URL="$${VM_IMAGE_URL_OVERRIDE:-quay.io/capk/ubuntu-2404-container-disk:$(kubernetes-version)}"; \
 	export CONTROL_PLANE_REPLICAS="$(control-plane-replicas)"; \
 	export WORKER_REPLICAS="$(worker-replicas)"; \
 	export CNI_PLUGIN="$(cni)"; \

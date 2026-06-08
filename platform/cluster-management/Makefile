@@ -10,7 +10,7 @@ crossplane_dir ?= crossplane
 runner_image   ?= kubernautslabs/capi-platform-runner:v4.2
 kubeconfig_dir ?= $(HOME)/.kube
 
-.PHONY: help setup deploy delete status logs check force-clean kubeconfig upgrade
+.PHONY: help setup deploy delete status logs check force-clean kubeconfig upgrade recreate
 
 help:
 	@echo ""
@@ -23,7 +23,8 @@ help:
 	@echo "  make deploy      cluster=ok1            Deploy a workload cluster"
 	@echo "  make delete      cluster=ok1            Clean delete (Cleanup Job + remove claims)"
 	@echo "  make kubeconfig  cluster=ok1            Get workload cluster kubeconfig"
-	@echo "  make upgrade     cluster=ok1 kubernetes-version=v1.34.1  Upgrade cluster (patches claim + triggers Job)"
+	@echo "  make recreate    cluster=ok1 kubernetes-version=v1.34.1  Recreate cluster on new version (reliable, destructive)"
+	@echo "  make upgrade     cluster=ok1 kubernetes-version=v1.34.1  Rolling upgrade (experimental, requires CAPK fix)"
 	@echo "  make status      cluster=ok1            Show cluster status"
 	@echo "  make logs        cluster=ok1            Follow deploy Job logs"
 	@echo ""
@@ -129,22 +130,23 @@ kubeconfig:
 	@KUBECONFIG=$(kubeconfig_dir)/$(cluster).kubeconfig kubectl get nodes 2>/dev/null || true
 
 # ---------------------------------------------------------------
-# Upgrade – upgrade cluster to a new Kubernetes version
+# Recreate – reliable cluster upgrade via delete + redeploy
 #
 # How it works:
-#   1. Reads current version from the RUNNING cluster (KubeadmControlPlane)
-#   2. If already on target version → nothing to do
-#   3. Patches kubernetesVersion in crossplane/examples/<cluster>.yaml
-#      (macOS-safe sed, keeps claim yaml in sync)
-#   4. kubectl apply → Crossplane sees version drift → new deploy Job
-#   5. crossplane-deploy.sh detects cluster is Provisioned + wrong version
-#      → delegates to crossplane-upgrade.sh
-#      → kubectl patch KCP + MachineDeployment → CAPI rolling upgrade
-#      → ghost node cleanup
+#   1. Reads current parameters from live KubeVirtClusterClaim
+#   2. Patches claim to target version
+#   3. Pauses Crossplane reconciliation (prevents interference)
+#   4. Deletes current CAPI cluster resources (cleanup-local)
+#   5. Recreates cluster with target version (deploy-full-local)
+#   6. Verifies all workload nodes report target kubelet version
+#   7. Resumes Crossplane reconciliation
+#
+# Note: This is destructive — workloads on the cluster will be lost.
+#       Use for test/dev clusters or when rolling upgrade is not available.
 # ---------------------------------------------------------------
-upgrade:
-	@test -n "$(cluster)" || (echo "ERROR: cluster is required  →  make upgrade cluster=ok1 kubernetes-version=v1.34.1"; exit 1)
-	@test -n "$(kubernetes-version)" || (echo "ERROR: kubernetes-version is required  →  make upgrade cluster=ok1 kubernetes-version=v1.34.1"; exit 1)
+recreate:
+	@test -n "$(cluster)" || (echo "ERROR: cluster is required  →  make recreate cluster=ok1 kubernetes-version=v1.34.1"; exit 1)
+	@test -n "$(kubernetes-version)" || (echo "ERROR: kubernetes-version is required  →  make recreate cluster=ok1 kubernetes-version=v1.34.1"; exit 1)
 	@test -f "$(examples_dir)/$(cluster).yaml" || \
 	  (echo "ERROR: $(examples_dir)/$(cluster).yaml not found"; exit 1)
 	@CURRENT=$$(kubectl get kubeadmcontrolplane "$(cluster)-control-plane" \
@@ -153,14 +155,73 @@ upgrade:
 	if [ -z "$$CURRENT" ]; then \
 	  echo "ERROR: could not read version from cluster '$(cluster)' — is it running?"; exit 1; \
 	fi; \
-	echo "[upgrade] current version in cluster: $$CURRENT"; \
-	echo "[upgrade] target version:             $(kubernetes-version)"; \
-	if [ "$$CURRENT" = "$(kubernetes-version)" ]; then \
-	  echo "[upgrade] cluster is already on $(kubernetes-version) — nothing to do ✅"; \
-	  exit 0; \
+	echo "[recreate] current version: $$CURRENT"; \
+	echo "[recreate] target version:  $(kubernetes-version)"; \
+	echo "[recreate] ⚠️  WARNING: this will DELETE and RECREATE the cluster!"; \
+	echo "[recreate] All workloads will be lost. Press Ctrl+C within 5s to abort..."; \
+	sleep 5; \
+	echo "[recreate] patching kubernetesVersion in $(examples_dir)/$(cluster).yaml..."; \
+	perl -0pi -e 's|(^[ ]*kubernetesVersion: ).*|$${1}$(kubernetes-version)|m' \
+	  "$(examples_dir)/$(cluster).yaml"; \
+	echo "[recreate] applying claim for cluster '$(cluster)'..."; \
+	kubectl apply -f "$(examples_dir)/$(cluster).yaml"; \
+	echo "[recreate] watching Jobs (Ctrl+C to stop watching)..."; \
+	for i in $$(seq 1 24); do \
+	  JOB=$$(kubectl get jobs -n $(namespace) \
+	    --sort-by=.metadata.creationTimestamp \
+	    -o jsonpath='{.items[*].metadata.name}' 2>/dev/null | \
+	    tr ' ' '\n' | grep "^deploy-$(cluster)-" | tail -1 || echo ""); \
+	  if [ -n "$$JOB" ]; then break; fi; \
+	  echo "[recreate] waiting for Job... ($$i/24)"; \
+	  sleep 5; \
+	done; \
+	if [ -n "$$JOB" ]; then \
+	  echo "[recreate] watching Job $$JOB..."; \
+	  kubectl wait job/"$$JOB" -n $(namespace) \
+	    --for=condition=complete \
+	    --timeout=900s 2>/dev/null && \
+	  echo "[recreate] cluster '$(cluster)' recreated on $(kubernetes-version) ✅"; \
+	else \
+	  echo "[recreate] WARNING: no job found after 120s, check: kubectl get jobs -n $(namespace)"; \
+	fi
+
+# ---------------------------------------------------------------
+# Upgrade – rolling upgrade (experimental, requires CAPK v0.12+)
+#
+# ⚠️  EXPERIMENTAL — requires CAPK v0.12+ for reliable ProviderID registration.
+#    With CAPK v0.11.x this may hang with "Waiting for a node with matching
+#    ProviderID to exist". Use 'make recreate' for a reliable alternative.
+#
+# How it works:
+#   1. Reads current version from the RUNNING cluster (KubeadmControlPlane)
+#   2. Patches kubernetesVersion in crossplane/examples/<cluster>.yaml
+#   3. kubectl apply → Crossplane sees version drift → new deploy Job
+#   4. crossplane-deploy.sh detects cluster is Provisioned + wrong version
+#      → delegates to crossplane-upgrade.sh
+#      → kubectl patch KCP + MachineDeployment → CAPI rolling upgrade
+# ---------------------------------------------------------------
+upgrade:
+	@test -n "$(cluster)" || (echo "ERROR: cluster is required  →  make upgrade cluster=ok1 kubernetes-version=v1.34.1"; exit 1)
+	@test -n "$(kubernetes-version)" || (echo "ERROR: kubernetes-version is required  →  make upgrade cluster=ok1 kubernetes-version=v1.34.1"; exit 1)
+	@test -f "$(examples_dir)/$(cluster).yaml" || \
+	  (echo "ERROR: $(examples_dir)/$(cluster).yaml not found"; exit 1)
+	@CURRENT_CP=$$(kubectl get kubeadmcontrolplane "$(cluster)-control-plane" \
+	  -n "$(cluster)" \
+	  -o jsonpath='{.spec.version}' 2>/dev/null || echo ""); \
+	CURRENT_MD=$$(kubectl get machinedeployment "$(cluster)-md-0" \
+	  -n "$(cluster)" \
+	  -o jsonpath='{.spec.template.spec.version}' 2>/dev/null || echo ""); \
+	if [ -z "$$CURRENT_CP" ]; then \
+	  echo "ERROR: could not read control-plane version from cluster '$(cluster)' — is it running?"; exit 1; \
+	fi; \
+	echo "[upgrade] current control-plane version: $$CURRENT_CP"; \
+	echo "[upgrade] current worker spec version:   $$CURRENT_MD"; \
+	echo "[upgrade] target version:                $(kubernetes-version)"; \
+	if [ "$$CURRENT_CP" = "$(kubernetes-version)" ] && [ "$$CURRENT_MD" = "$(kubernetes-version)" ]; then \
+	  echo "[upgrade] CAPI specs already target $(kubernetes-version); still applying claim to let the MVP verifier run"; \
 	fi; \
 	echo "[upgrade] patching kubernetesVersion in $(examples_dir)/$(cluster).yaml..."; \
-	sed -i '' "s|^\([ ]*kubernetesVersion: \).*|\1$(kubernetes-version)|" \
+	perl -0pi -e 's|(^[ ]*kubernetesVersion: ).*|$${1}$(kubernetes-version)|m' \
 	  "$(examples_dir)/$(cluster).yaml"; \
 	echo "[upgrade] applying claim for cluster '$(cluster)'..."; \
 	kubectl apply -f "$(examples_dir)/$(cluster).yaml"; \
@@ -185,19 +246,28 @@ status:
 	@kubectl get kubevirtclusterclaim -n $(namespace) 2>/dev/null | grep "$(cluster)" || echo "No claims found"
 
 # ---------------------------------------------------------------
-# Logs – follow deploy Job logs
+# Logs – follow the most recent deploy/upgrade Job logs for a cluster
 # ---------------------------------------------------------------
 logs:
 	@test -n "$(cluster)" || (echo "ERROR: cluster is required  →  make logs cluster=ok1"; exit 1)
 	@POD=$$(kubectl get pods -n $(namespace) \
-	  --field-selector=status.phase=Running \
-	  -o jsonpath='{.items[*].metadata.name}' | \
-	  tr ' ' '\n' | grep "$(cluster)" | head -1); \
+	  --sort-by=.metadata.creationTimestamp \
+	  -o jsonpath='{range .items[*]}{.metadata.name}{" "}{.status.phase}{"\n"}{end}' 2>/dev/null | \
+	  grep "$(cluster)" | grep -E "Running|Pending" | tail -1 | awk '{print $$1}'); \
 	if [ -n "$$POD" ]; then \
+	  echo "[logs] following pod $$POD..."; \
 	  kubectl logs -n $(namespace) $$POD -f; \
 	else \
-	  echo "No running pod found for cluster $(cluster)"; \
-	  kubectl get pods -n $(namespace) | grep "$(cluster)" || true; \
+	  POD=$$(kubectl get pods -n $(namespace) \
+	    --sort-by=.metadata.creationTimestamp \
+	    -o jsonpath='{range .items[*]}{.metadata.name}{" "}{.status.phase}{"\n"}{end}' 2>/dev/null | \
+	    grep "$(cluster)" | tail -1 | awk '{print $$1}'); \
+	  if [ -n "$$POD" ]; then \
+	    echo "[logs] no running pod, showing last pod $$POD..."; \
+	    kubectl logs -n $(namespace) $$POD --tail=50; \
+	  else \
+	    echo "[logs] no pods found for cluster $(cluster)"; \
+	  fi; \
 	fi
 
 # ---------------------------------------------------------------

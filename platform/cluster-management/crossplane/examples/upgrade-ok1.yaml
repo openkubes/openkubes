@@ -6,7 +6,7 @@ metadata:
 spec:
   clusterName: ok1
   targetKubernetesVersion: v1.35.0
-  upgradeStrategy: RollingUpdate
+  upgradeStrategy: Recreate
   country: de
   provider: kubevirt
   runnerImage: kubernautslabs/capi-platform-runner:v4.2

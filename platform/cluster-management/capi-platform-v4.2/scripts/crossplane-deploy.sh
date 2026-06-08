@@ -42,15 +42,11 @@ if [ "${PHASE}" = "Provisioned" ]; then
     "${CLUSTER_NAME}-control-plane" -n "${CLUSTER_NAME}" \
     -o jsonpath='{.spec.version}' 2>/dev/null || echo "")
 
-  if [ "${CURRENT_VERSION}" = "${KUBERNETES_VERSION}" ]; then
-    log "cluster '${CLUSTER_NAME}' already exists and is on ${KUBERNETES_VERSION} — nothing to do ✅"
-    exit 0
-  fi
-
   log "cluster '${CLUSTER_NAME}' is Provisioned on ${CURRENT_VERSION}, target is ${KUBERNETES_VERSION}"
-  log "delegating to crossplane-upgrade.sh..."
+  log "delegating to crossplane-upgrade.sh for idempotent verification/upgrade..."
 
-  # crossplane-upgrade.sh uses TARGET_KUBERNETES_VERSION
+  # crossplane-upgrade.sh verifies the real workload node kubelet versions.
+  # It exits without changes when the cluster is already fully on target.
   export TARGET_KUBERNETES_VERSION="${KUBERNETES_VERSION}"
   exec /bin/bash /workspace/scripts/crossplane-upgrade.sh
 fi

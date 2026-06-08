@@ -33,9 +33,9 @@ spec:
                   description: "Target Kubernetes version (e.g. v1.35.0)"
                 upgradeStrategy:
                   type: string
-                  default: RollingUpdate
-                  enum: [RollingUpdate, InPlace]
-                  description: "Upgrade strategy"
+                  default: Recreate
+                  enum: [Recreate, RollingUpdate, InPlace]
+                  description: "Upgrade strategy. Recreate is the supported MVP path; RollingUpdate is experimental for CAPK v0.11.x."
                 country:
                   type: string
                   default: de
