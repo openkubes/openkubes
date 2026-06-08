@@ -1,4 +1,4 @@
-# OpenKubes Platform
+# OpenKubes
 
 <!-- SHIELDS -->
 ![Release](https://img.shields.io/github/v/release/openkubes/openkubes)
@@ -43,6 +43,12 @@ make kubeconfig cluster=ok1                             # get workload kubeconfi
 make delete     cluster=ok1                             # clean delete
 make status     cluster=ok1                             # show status
 make logs       cluster=ok1                             # follow job logs
+
+# Cluster Manager (Headlamp)
+make manager-deploy  cluster=ok1   # install Headlamp UI on workload cluster
+make manager-token   cluster=ok1   # generate admin token
+make manager-open    cluster=ok1   # port-forward + open browser
+make manager-delete  cluster=ok1   # remove Headlamp
 ```
 
 > **Run VMs. Run Clusters. Run Anything.**
@@ -74,6 +80,11 @@ make setup
 make deploy cluster=ok1
 make status cluster=ok1
 make kubeconfig cluster=ok1
+
+# 5. Install Cluster Manager (Headlamp)
+make manager-deploy cluster=ok1
+make manager-token  cluster=ok1   # copy token
+make manager-open   cluster=ok1   # opens http://localhost:8080
 ```
 
 → Full walkthrough: [`docs/getting-started/README.md`](./docs/getting-started/README.md)
@@ -158,6 +169,11 @@ make help
 | `make delete     cluster=ok1` | Clean delete via Cleanup Job |
 | `make check      cluster=ok1` | Check for leftover resources |
 | `make force-clean cluster=ok1` | Emergency cleanup |
+| `make manager-deploy cluster=ok1` | Install Headlamp UI on workload cluster |
+| `make manager-token  cluster=ok1` | Generate Headlamp admin token |
+| `make manager-open   cluster=ok1` | Port-forward + open browser |
+| `make manager-status cluster=ok1` | Show Headlamp status |
+| `make manager-delete cluster=ok1` | Remove Headlamp |
 
 → [`platform/cluster-management/README.md`](./platform/cluster-management/README.md)
 
@@ -196,6 +212,7 @@ make help
 ## Roadmap
 
 ### v1.1.0
+- [ ] OpenKubesClusterManager — Headlamp multi-cluster UI via Crossplane
 - [ ] OpenKubesStorage — self-service PVC + StorageClass management
 - [ ] OpenKubesNetworking — Network policies + LoadBalancer management
 - [ ] Status writeback for OpenKubesVM (phase, IP)
