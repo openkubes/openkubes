@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>OpenKubes Platform v1.0.3</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:"Segoe UI",Arial,sans-serif;background:#e8f4fd;color:#1a2b4a;overflow:hidden;height:100vh;width:100vw}
+.slides{width:100vw;height:100vh;position:relative}
+.slide{width:100%;height:100%;position:absolute;top:0;left:0;display:none;flex-direction:column;justify-content:center;padding:48px 72px}
+.slide.active{display:flex}
+
+/* NAV BUTTONS */
+.nav-btn{position:fixed;top:50%;transform:translateY(-50%);background:rgba(26,111,196,.15);border:2px solid rgba(26,111,196,.3);color:#1a6fc4;width:48px;height:48px;border-radius:50%;font-size:26px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:999;transition:all .2s}
+.nav-btn:hover{background:rgba(26,111,196,.3)}
+.nav-prev{left:14px}.nav-next{right:14px}
+.dots{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);display:flex;gap:8px;z-index:999}
+.dot{width:9px;height:9px;border-radius:50%;background:#b0ccec;cursor:pointer;transition:background .2s}
+.dot.active{background:#1a6fc4}
+.snum{position:absolute;bottom:18px;right:72px;font-size:11px;color:#9ab8d8}
+.sfooter{position:absolute;bottom:18px;left:72px;font-size:11px;color:#9ab8d8}
+
+/* === SLIDE 1 TITLE === */
+.s1{background:linear-gradient(150deg,#f0f8ff 0%,#daeeff 50%,#cce7ff 100%);align-items:center;text-align:center}
+.s1 img{height:180px;margin-bottom:24px}
+.s1 .ver{font-size:14px;color:#1a6fc4;font-weight:700;letter-spacing:3px;text-transform:uppercase;margin-bottom:14px}
+.s1 .tag{font-size:18px;color:#4a6fa5;max-width:640px;line-height:1.55;margin-bottom:28px}
+.s1 .tag strong{color:#1a2b4a}
+.badges{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.badge{background:white;border:1.5px solid #1a6fc4;color:#1a6fc4;padding:7px 20px;border-radius:20px;font-size:13px;font-weight:600;box-shadow:0 2px 8px rgba(26,111,196,.12)}
+
+/* === SLIDE 2 PROBLEM === */
+.s2{background:#f5faff}
+h2{font-size:36px;font-weight:800;color:#1a2b4a;margin-bottom:28px}
+h2 .hl{color:#1a6fc4}
+.pg{display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:820px}
+.pc{background:white;border:1.5px solid #dce8f5;border-radius:12px;padding:20px;box-shadow:0 2px 10px rgba(26,111,196,.07)}
+.pc .ico{font-size:24px;margin-bottom:8px}
+.pc h3{font-size:14px;font-weight:700;color:#d63031;margin-bottom:5px}
+.pc p{font-size:13px;color:#6b8ab0;line-height:1.5}
+.arrow{display:flex;align-items:center;justify-content:center;font-size:28px;color:#1a6fc4;grid-column:1/-1}
+.sc{background:linear-gradient(135deg,#e8f8f1,#d4f1e4);border:1.5px solid #2eb87a;border-radius:12px;padding:20px;grid-column:1/-1}
+.sc h3{font-size:16px;font-weight:700;color:#1a7a50;margin-bottom:5px}
+.sc p{font-size:13px;color:#2d6a4f}
+.sc code{color:#1a6fc4;font-weight:600}
+
+/* === SLIDE 3 HOW === */
+.s3{background:#f0f8ff}
+.flow{display:flex;align-items:stretch;gap:0;width:100%;margin-bottom:24px}
+.fs{flex:1;background:white;border:1.5px solid #dce8f5;border-radius:12px;padding:18px 12px;text-align:center;box-shadow:0 2px 8px rgba(26,111,196,.06)}
+.fs .sn{width:30px;height:30px;background:#1a6fc4;color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;margin:0 auto 9px}
+.fs h3{font-size:13px;font-weight:700;color:#1a2b4a;margin-bottom:4px}
+.fs p{font-size:11px;color:#6b8ab0;line-height:1.4}
+.fa{font-size:20px;color:#1a6fc4;padding:0 5px;display:flex;align-items:center;flex-shrink:0}
+.cb{background:#1a2b4a;border-radius:12px;padding:18px 26px;font-family:Consolas,monospace;font-size:14px;width:100%;box-shadow:0 4px 16px rgba(26,43,74,.15)}
+.cb .co{color:#6b8ab0}.cb .cm{color:#38bdf8}.cb .re{color:#2eb87a}
+
+/* === SLIDE 4 ARCH === */
+.s4{background:#f5faff}
+.ag{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;width:100%}
+.al{border-radius:12px;padding:18px 14px;background:white;text-align:center;box-shadow:0 2px 10px rgba(26,111,196,.07)}
+.al h3{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:10px}
+.al ul{list-style:none}
+.al ul li{font-size:12px;color:#4a6fa5;padding:3px 0;border-bottom:1px solid #eef4fb}
+.al ul li:last-child{border-bottom:none}
+.lb{border-top:4px solid #1a6fc4}.lb h3{color:#1a6fc4}
+.lg{border-top:4px solid #2eb87a}.lg h3{color:#2eb87a}
+.lo{border-top:4px solid #f5a623}.lo h3{color:#e09000}
+.lp{border-top:4px solid #8b5cf6}.lp h3{color:#8b5cf6}
+.anote{margin-top:14px;font-size:12px;color:#6b8ab0;text-align:center}
+
+/* === SLIDE 5 DEMO === */
+.s5{background:#f0f8ff}
+.s5 .sub{font-size:14px;color:#6b8ab0;margin-bottom:24px;margin-top:-22px}
+.dg{display:grid;grid-template-columns:1.1fr .9fr;gap:22px;width:100%}
+.term{background:#1a2b4a;border-radius:12px;overflow:hidden;box-shadow:0 4px 18px rgba(26,43,74,.2)}
+.tb{background:#243554;padding:9px 14px;display:flex;align-items:center;gap:7px}
+.dot2{width:10px;height:10px;border-radius:50%}
+.dr{background:#ef4444}.dy{background:#f59e0b}.dg2{background:#22c55e}
+.tt{font-size:11px;color:#4a6fa5;margin-left:6px;font-family:monospace}
+.tbody{padding:14px 16px;font-family:Consolas,monospace;font-size:12px;line-height:1.85;color:#c8d8f0}
+.tp{color:#4a6fa5}.tc{color:#38bdf8}.tok{color:#2eb87a}.ti{color:#6b8ab0}.tdn{color:#2eb87a;font-weight:700}
+.dr2{display:flex;flex-direction:column;gap:10px;justify-content:center}
+.rc{background:white;border:1.5px solid #dce8f5;border-radius:10px;padding:12px 15px;display:flex;align-items:center;gap:11px;box-shadow:0 2px 8px rgba(26,111,196,.06)}
+.rc .ck{font-size:17px}
+.rc h3{font-size:13px;font-weight:700;color:#1a2b4a}
+.rc p{font-size:11px;color:#6b8ab0;margin-top:1px}
+
+/* === SLIDE 6 ROADMAP === */
+.s6{background:#f5faff}
+.rg{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;width:100%}
+.rm{border-radius:12px;padding:22px;background:white;box-shadow:0 2px 10px rgba(26,111,196,.07)}
+.rm.done{border-top:4px solid #2eb87a}
+.rm.next{border-top:4px solid #1a6fc4}
+.rm.fut{border-top:4px solid #8b5cf6}
+.rm .rv{font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:5px}
+.done .rv{color:#2eb87a}.next .rv{color:#1a6fc4}.fut .rv{color:#8b5cf6}
+.rm h3{font-size:15px;font-weight:700;color:#1a2b4a;margin-bottom:11px}
+.rm ul{list-style:none}
+.rm ul li{font-size:12px;color:#4a6fa5;padding:3px 0;display:flex;align-items:flex-start;gap:7px}
+.rm ul li::before{content:"→";color:#aac4e0;flex-shrink:0}
+.done ul li::before{content:"✓";color:#2eb87a}
+
+/* === SLIDE 7 CTA === */
+.s7{background:linear-gradient(155deg,#0f1f3d 0%,#1a4a7a 55%,#122d5a 100%);align-items:center;text-align:center;justify-content:center;color:white}
+.s7 img{height:120px;margin-bottom:20px}
+.s7 h2{font-size:44px;font-weight:800;color:white;margin-bottom:8px}
+.s7 h2 span{color:#2eb87a}
+.s7 .sub2{font-size:15px;color:#7aa8d0;margin-bottom:28px}
+.cmds{display:flex;flex-direction:column;gap:9px;margin-bottom:28px}
+.cmd{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:10px 24px;font-family:Consolas,monospace;font-size:14px;color:#38bdf8;text-align:left;width:520px}
+.cmd .cc{color:#4a6fa5;display:block;font-size:11px;margin-bottom:1px}
+.ghlink{font-size:16px;color:#0f1f3d;font-weight:700;text-decoration:none;background:#2eb87a;padding:12px 32px;border-radius:8px;display:inline-block;box-shadow:0 4px 14px rgba(46,184,122,.4)}
+.built{margin-top:18px;font-size:13px;color:#4a6fa5}
+</style>
+</head>
+<body>
+<div class="slides">
+
+<div class="slide s1 active" data-slide="1">
+  <img src="openkubes-logo.png" alt="OpenKubes" onerror="this.style.display='none';document.getElementById('logo-text').style.display='block'">
+  <div id="logo-text" style="display:none;font-size:52px;font-weight:900;color:#1a6fc4;margin-bottom:24px">⎈ OpenKubes</div>
+  <div class="ver">Platform v1.0.3 — Generally Available</div>
+  <div class="tag"><strong>The Unified Platform for Kubernetes, Virtual Machines &amp; Specialized Workloads</strong><br>Run Everything. Deliver Anything.</div>
+  <div class="badges">
+    <span class="badge">KubeVirt</span><span class="badge">Cluster API</span><span class="badge">Crossplane</span>
+    <span class="badge">Bare Metal</span><span class="badge">Self-Service</span><span class="badge">AI / GPU</span>
+  </div>
+  <div class="sfooter">github.com/openkubes/openkubes</div>
+  <div class="snum">1 / 7</div>
+</div>
+
+<div class="slide s2" data-slide="2">
+  <h2>The Problem with <span class="hl">Bare Metal Kubernetes</span></h2>
+  <div class="pg">
+    <div class="pc"><div class="ico">⏱️</div><h3>Days to provision</h3><p>Manual steps, scripts, tribal knowledge. Cluster setup takes days and is error-prone.</p></div>
+    <div class="pc"><div class="ico">🔒</div><h3>No self-service</h3><p>Teams wait for ops to provision infrastructure. No API, no automation, no guardrails.</p></div>
+    <div class="pc"><div class="ico">🧩</div><h3>VMs and K8s silos</h3><p>Virtual machines and Kubernetes clusters managed separately with different tools.</p></div>
+    <div class="pc"><div class="ico">🔥</div><h3>Cleanup is painful</h3><p>Stuck finalizers, orphaned VMs, leftover namespaces. Manual cleanup takes hours.</p></div>
+    <div class="arrow">↓</div>
+    <div class="sc"><h3>✅ OpenKubes: kubectl apply → cluster ready in 90 seconds</h3><p>Full cluster lifecycle as a Kubernetes API. Just <code>make deploy cluster=ok1</code>.</p></div>
+  </div>
+  <div class="snum">2 / 7</div>
+</div>
+
+<div class="slide s3" data-slide="3">
+  <h2>How It <span class="hl">Works</span></h2>
+  <div class="flow">
+    <div class="fs"><div class="sn">1</div><h3>make deploy</h3><p>OpenKubesCluster claim submitted</p></div>
+    <div class="fa">→</div>
+    <div class="fs"><div class="sn">2</div><h3>Crossplane</h3><p>Composition creates deploy Job</p></div>
+    <div class="fa">→</div>
+    <div class="fs"><div class="sn">3</div><h3>CAPI + CAPK</h3><p>Cluster API provisions VMs</p></div>
+    <div class="fa">→</div>
+    <div class="fs"><div class="sn">4</div><h3>3 VMs boot</h3><p>1 CP + 2 Workers on bare metal</p></div>
+    <div class="fa">→</div>
+    <div class="fs"><div class="sn">5</div><h3>Cluster Ready ✅</h3><p>Calico, MetalLB, kubeconfig</p></div>
+  </div>
+  <div class="cb">
+    <span class="co"># Deploy</span><br>
+    <span class="cm">make deploy cluster=ok1</span> &nbsp; <span class="re">→ Complete in 98s ✅</span><br><br>
+    <span class="co"># Delete</span><br>
+    <span class="cm">make delete cluster=ok1</span> &nbsp; <span class="re">→ cluster 'ok1' deleted ✅</span>
+  </div>
+  <div class="snum">3 / 7</div>
+</div>
+
+<div class="slide s4" data-slide="4">
+  <h2>Platform <span class="hl">Architecture</span></h2>
+  <div class="ag">
+    <div class="al lb"><h3>🧠 Management Zone</h3><ul><li>Crossplane v2.2</li><li>Cluster API v1.12</li><li>CAPK v0.11.2</li><li>Flux (GitOps)</li><li>cert-manager</li></ul></div>
+    <div class="al lg"><h3>⚙️ Infrastructure Zone</h3><ul><li>RKE2 Bare Metal</li><li>KubeVirt v1.8.1</li><li>CDI (disk mgmt)</li><li>MetalLB</li><li>local-path storage</li></ul></div>
+    <div class="al lo"><h3>☸️ Workload Zone</h3><ul><li>K8s v1.34 clusters</li><li>Calico CNI</li><li>VM Pools</li><li>AI / GPU workloads</li><li>DBaaS (roadmap)</li></ul></div>
+    <div class="al lp"><h3>🛡️ Platform APIs</h3><ul><li>OpenKubesVM</li><li>OpenKubesCluster</li><li>OpenKubesAI (soon)</li><li>OpenKubesDB (soon)</li><li>OpenKubesTenant (soon)</li></ul></div>
+  </div>
+  <div class="anote">Management Cluster: 3× kubeadm VMs (ok1-vm / ok2-vm / ok3-vm) on RKE2 Infra Cluster</div>
+  <div class="snum">4 / 7</div>
+</div>
+
+<div class="slide s5" data-slide="5">
+  <h2>Live <span class="hl">Demo</span></h2>
+  <div class="sub">From zero to running cluster in under 2 minutes</div>
+  <div class="dg">
+    <div class="term">
+      <div class="tb"><div class="dot2 dr"></div><div class="dot2 dy"></div><div class="dot2 dg2"></div><span class="tt">platform/cluster-management/</span></div>
+      <div class="tbody">
+        <div><span class="tp">❯ </span><span class="tc">make vm-create vm=ok4</span></div>
+        <div class="ti">[vm-create] creating VM 'ok4' via Crossplane...</div>
+        <div class="tok">ok4-vm &nbsp;Running &nbsp;True ✓ &nbsp;(88s)</div>
+        <br>
+        <div><span class="tp">❯ </span><span class="tc">make deploy cluster=ok1</span></div>
+        <div class="ti">[deploy] applying claim for cluster 'ok1'...</div>
+        <div class="tok">deploy-ok1 &nbsp;Complete 1/1 &nbsp;98s ✓</div>
+        <br>
+        <div><span class="tp">❯ </span><span class="tc">make recreate cluster=ok1 kubernetes-version=v1.34.1</span></div>
+        <div class="tdn">[recreate] cluster 'ok1' recreated ✅</div>
+      </div>
+    </div>
+    <div class="dr2">
+      <div class="rc"><div class="ck">✅</div><div><h3>1 CP + 2 Workers Ready</h3><p>Kubernetes v1.34.1</p></div></div>
+      <div class="rc"><div class="ck">✅</div><div><h3>MetalLB LoadBalancer</h3><p>Dedicated IP per cluster</p></div></div>
+      <div class="rc"><div class="ck">✅</div><div><h3>Calico CNI installed</h3><p>Automatically, zero manual steps</p></div></div>
+      <div class="rc"><div class="ck">✅</div><div><h3>Namespace isolation</h3><p>cluster name = namespace, no hash</p></div></div>
+      <div class="rc"><div class="ck">✅</div><div><h3>Clean delete in 26s</h3><p>VMs, namespaces, secrets all gone</p></div></div>
+    </div>
+  </div>
+  <div class="snum">5 / 7</div>
+</div>
+
+<div class="slide s6" data-slide="6">
+  <h2>What's <span class="hl">Next</span></h2>
+  <div class="rg">
+    <div class="rm done"><div class="rv">v1.0.3 — Now ✅</div><h3>Foundation</h3><ul><li>OpenKubesCluster API</li><li>OpenKubesVM API</li><li>Crossplane Go-Template Compositions</li><li>make deploy / delete / recreate</li><li>make vm-create / vm-ssh / vm-list</li><li>Auto Calico + MetalLB</li><li>Cluster upgrade via recreate</li></ul></div>
+    <div class="rm next"><div class="rv">v1.1 — Next</div><h3>Platform Maturity</h3><ul><li>Rolling upgrade (CAPK v0.12.x)</li><li>OpenKubesStorage API</li><li>OpenKubesNetworking API</li><li>GitOps with Flux</li><li>Observability stack</li><li>Multi-cluster dashboard</li></ul></div>
+    <div class="rm fut"><div class="rv">v2.0 — Future</div><h3>Native Operator</h3><ul><li>Go operator</li><li>No Crossplane dependency</li><li>OpenKubesAI — GPU Workspace</li><li>OpenKubesDB — DBaaS API</li><li>OpenKubesTenant — Multi-tenancy</li><li>OperatorHub publication</li></ul></div>
+  </div>
+  <div class="snum">6 / 7</div>
+</div>
+
+<div class="slide s7" data-slide="7">
+  <img src="openkubes-logo.png" alt="OpenKubes" onerror="this.style.display='none'">
+  <h2>Get <span>Started</span></h2>
+  <div class="sub2">Open Source · Apache 2.0 · Production Ready · v1.0.3</div>
+  <div class="cmds">
+    <div class="cmd"><span class="cc"># Create a VM</span>make vm-create vm=ok4</div>
+    <div class="cmd"><span class="cc"># Deploy a cluster</span>make deploy cluster=ok1</div>
+    <div class="cmd"><span class="cc"># Upgrade a cluster</span>make recreate cluster=ok1 kubernetes-version=v1.34.1</div>
+  </div>
+  <a class="ghlink" href="https://github.com/openkubes/openkubes">⭐ github.com/openkubes/openkubes</a>
+  <div class="built">Built with ❤️ by Kubernauts · kubernauts.de</div>
+</div>
+
+</div>
+
+<button class="nav-btn nav-prev" onclick="go(-1)">&#8249;</button>
+<button class="nav-btn nav-next" onclick="go(1)">&#8250;</button>
+<div class="dots" id="dots"></div>
+
+<script>
+let c=1,t=7;
+const d=document.getElementById('dots');
+for(let i=1;i<=t;i++){const x=document.createElement('div');x.className='dot'+(i===1?' active':'');x.onclick=()=>goTo(i);d.appendChild(x);}
+function goTo(n){document.querySelector('.slide.active').classList.remove('active');document.querySelector('[data-slide="'+n+'"]').classList.add('active');document.querySelectorAll('.dot').forEach((x,i)=>x.classList.toggle('active',i+1===n));c=n;}
+function go(dir){let n=c+dir;if(n<1)n=t;if(n>t)n=1;goTo(n);}
+document.addEventListener('keydown',e=>{if(e.key==='ArrowRight'||e.key==='ArrowDown')go(1);if(e.key==='ArrowLeft'||e.key==='ArrowUp')go(-1);});
+</script>
+</body>
+</html>
