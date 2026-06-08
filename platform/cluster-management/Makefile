@@ -33,6 +33,7 @@ help:
 	@echo ""
 	@echo "Cluster Manager (Headlamp):"
 	@echo "  make manager-deploy  cluster=ok1        Deploy Headlamp on workload cluster"
+	@echo "  make manager-token   cluster=ok1        Generate Headlamp admin token"
 	@echo "  make manager-delete  cluster=ok1        Remove Headlamp from workload cluster"
 	@echo "  make manager-status  cluster=ok1        Show Headlamp status + URL"
 	@echo "  make manager-open    cluster=ok1        Port-forward + open browser"
