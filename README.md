@@ -22,27 +22,58 @@ OpenKubes is the core runtime distribution for sovereign Kubernetes infrastructu
 
 ---
 
+## The Make Philosophy
+
+OpenKubes is operated entirely via `make`. No scripts to remember, no long kubectl commands — just:
+
+```bash
+# VMs
+cd platform/virtualization/openkubesvm
+make vm-create  vm=ok4          # create a VM via Crossplane
+make vm-ssh     vm=ok4          # SSH into a VM
+make vm-delete  vm=ok4          # delete a VM
+make vm-list                    # list all VMs
+
+# Clusters
+cd platform/cluster-management
+make deploy     cluster=ok1                              # deploy a workload cluster
+make upgrade    cluster=ok1 kubernetes-version=v1.34.1  # rolling upgrade (experimental)
+make recreate   cluster=ok1 kubernetes-version=v1.34.1  # reliable upgrade via recreate
+make kubeconfig cluster=ok1                             # get workload kubeconfig
+make delete     cluster=ok1                             # clean delete
+make status     cluster=ok1                             # show status
+make logs       cluster=ok1                             # follow job logs
+```
+
+> **Run VMs. Run Clusters. Run Anything.**
+
+---
+
 ## Quick Start
 
 ```sh
-# 1. Install KubeVirt + CDI on the Infra Cluster (manual — no Makefile yet)
+# 1. Install KubeVirt + CDI on the Infra Cluster
 kubectl apply -f https://github.com/kubevirt/kubevirt/releases/download/v1.8.1/kubevirt-operator.yaml
 kubectl apply -f https://github.com/kubevirt/kubevirt/releases/download/v1.8.1/kubevirt-cr.yaml
 kubectl apply -f https://github.com/kubevirt/containerized-data-importer/releases/latest/download/cdi-operator.yaml
 kubectl apply -f https://github.com/kubevirt/containerized-data-importer/releases/latest/download/cdi-cr.yaml
 
 # 2. Deploy Management VMs
-kubectl apply -f ok-vms/
+cd platform/virtualization/openkubesvm
+make setup
+make vm-create vm=ok1
+make vm-create vm=ok2
+make vm-create vm=ok3
 
-# 3. Bootstrap CAPI + CAPK (manual — no Makefile yet)
+# 3. Bootstrap CAPI + CAPK on Management Cluster
 clusterctl init --infrastructure kubevirt:v0.11.2 -v5
 
-# 4. Apply Crossplane stack + manage clusters via make
+# 4. Deploy Workload Clusters
 cd platform/cluster-management
-make setup                      # one-time: apply XRDs + Compositions
-make deploy cluster=ok1         # deploy a workload cluster
-make status cluster=ok1         # check status
-make kubeconfig cluster=ok1     # get workload kubeconfig
+make setup
+make deploy cluster=ok1
+make status cluster=ok1
+make kubeconfig cluster=ok1
 ```
 
 → Full walkthrough: [`docs/getting-started/README.md`](./docs/getting-started/README.md)
@@ -78,168 +109,76 @@ Most Kubernetes platforms force a choice: cloud flexibility *or* on-prem control
 Management cluster provisioning is out of scope — OpenKubes assumes you bring your own.
 → See [`platform/hardware/README.md`](./platform/hardware/README.md) for guidance.
 
-Other supported management cluster options:
+---
 
-| Option | Use Case |
+## Platform Components
+
+### `platform/virtualization/openkubesvm/` — OpenKubesVM
+
+Self-service KubeVirt VM management via Crossplane or direct kubectl.
+
+```bash
+cd platform/virtualization/openkubesvm
+make help
+```
+
+| Target | Description |
 |---|---|
-| RKE2 on bare metal | Production (recommended) |
-| k3s on Multipass VMs | Local development |
-| KubeVirt VMs on existing cluster | Nested / lab environments |
-| kind | Minimal local testing |
+| `make setup` | One-time: apply XRD + Composition |
+| `make vm-create vm=ok4` | Create VM via Crossplane Claim |
+| `make vm-delete vm=ok4` | Delete VM via Crossplane Claim |
+| `make vm-status vm=ok4` | Show VM claim + infra status |
+| `make vm-ssh    vm=ok4` | SSH into VM |
+| `make vm-list` | List all OpenKubesVMs |
+| `make vm-apply  vm=ok4` | Apply VM directly (no Crossplane) |
+| `make vm-remove vm=ok4` | Remove VM directly (no Crossplane) |
+
+→ [`platform/virtualization/openkubesvm/README.md`](./platform/virtualization/openkubesvm/README.md)
 
 ---
 
-## Installation
+### `platform/cluster-management/` — OpenKubesCluster
 
-### 1. Clone
+Full Kubernetes cluster lifecycle via Crossplane + Cluster API.
 
-```sh
-git clone https://github.com/openkubes/openkubes.git
-cd openkubes
-```
-
-### 2. Install KubeVirt
-
-```sh
-kubectl apply -f https://github.com/kubevirt/kubevirt/releases/download/v1.8.1/kubevirt-operator.yaml
-kubectl apply -f https://github.com/kubevirt/kubevirt/releases/download/v1.8.1/kubevirt-cr.yaml
-kubectl apply -f https://github.com/kubevirt/containerized-data-importer/releases/latest/download/cdi-operator.yaml
-kubectl apply -f https://github.com/kubevirt/containerized-data-importer/releases/latest/download/cdi-cr.yaml
-
-kubectl -n kubevirt wait kubevirt kubevirt --for=condition=Available --timeout=300s
-kubectl get pods -n kubevirt && kubectl get pods -n cdi
-```
-
-→ [`platform/virtualization/kubevirt/README.md`](./platform/virtualization/kubevirt/README.md)
-
-### 3. Deploy Management VMs
-
-```sh
-kubectl apply -f ok-vms/
-kubectl get vms -n kubevirt -w
-```
-
-Expected output:
-
-```
-NAME     STATUS    READY
-ok1-vm   Running   True
-ok2-vm   Running   True
-ok3-vm   Running   True
-```
-
-→ [`platform/hardware/README.md`](./platform/hardware/README.md)
-
-### 4. Bootstrap Cluster API + CAPK
-
-```sh
-clusterctl init --infrastructure kubevirt:v0.11.2 -v5
-
-kubectl -n capk-system create secret generic external-infra-kubeconfig \
-  --from-file=kubeconfig=$HOME/.kube/knautic-bare-metal.yaml \
-  --from-literal=namespace=capi-workload
-```
-
-→ [`platform/cluster-management/cluster-api/README.md`](./platform/cluster-management/cluster-api/README.md)
-
-### 5. Apply Crossplane Stack & Deploy Clusters
-
-```sh
-cd platform/cluster-management
-make setup              # one-time: XRDs, Compositions, RBAC
-make deploy cluster=ok1
-make status cluster=ok1
-```
-
-→ [`platform/cluster-management/crossplane/README.md`](./platform/cluster-management/crossplane/README.md)
-
----
-
-## make Targets
-
-Cluster operations live in `platform/cluster-management/`:
-
-```sh
+```bash
 cd platform/cluster-management
 make help
 ```
 
 | Target | Description |
 |---|---|
-| `make setup` | One-time: apply all XRDs, Compositions and RBAC |
-| `make deploy cluster=ok1` | Deploy a workload cluster |
-| `make status cluster=ok1` | Show cluster status (machines, jobs, claims) |
-| `make logs cluster=ok1` | Follow deploy Job logs |
+| `make setup` | One-time: apply XRDs, Compositions, RBAC |
+| `make deploy     cluster=ok1` | Deploy a workload cluster |
+| `make recreate   cluster=ok1 kubernetes-version=v1.34.1` | Reliable upgrade via recreate |
+| `make upgrade    cluster=ok1 kubernetes-version=v1.34.1` | Rolling upgrade (experimental) |
 | `make kubeconfig cluster=ok1` | Retrieve workload cluster kubeconfig |
-| `make upgrade cluster=ok1 kubernetes-version=v1.34.1` | Upgrade cluster |
-| `make delete cluster=ok1` | Clean delete via Cleanup Job |
-| `make check cluster=ok1` | Check for leftover resources |
+| `make status     cluster=ok1` | Show cluster status |
+| `make logs       cluster=ok1` | Follow deploy Job logs |
+| `make delete     cluster=ok1` | Clean delete via Cleanup Job |
+| `make check      cluster=ok1` | Check for leftover resources |
 | `make force-clean cluster=ok1` | Emergency cleanup |
 
-Runner image management in `platform/cluster-management/capi-platform-v4.2/runner/`:
-
-```sh
-cd platform/cluster-management/capi-platform-v4.2/runner
-make help
-```
-
-| Target | Description |
-|---|---|
-| `make build-image` | Build runner image |
-| `make release-image` | Build (no-cache) + push to Docker Hub |
-| `make clear-image-cache` | Clear image cache on management VMs |
-| `make deploy-full ARGS='...'` | Full cluster deploy via runner container |
-| `make cleanup ARGS='...'` | Cluster cleanup via runner container |
-| `make shell` | Interactive shell inside the runner |
-
----
-
-## Configuration
-
-All versions and namespace defaults are managed via `.env`:
-
-```sh
-# Core versions
-KUBEVIRT_VERSION=v1.8.1
-CROSSPLANE_VERSION=v2.2.0
-CAPK_VERSION=v0.11.2
-
-# Namespaces
-CROSSPLANE_NAMESPACE=crossplane-system
-CAPI_NAMESPACE=capi-system
-CAPK_NAMESPACE=capk-system
-
-# Docker image
-RUNNER_IMAGE=kubernautslabs/capi-platform-runner:v4.2
-```
-
-Override at runtime:
-
-```sh
-kubernetes-version=v1.34.1 make upgrade cluster=ok1
-```
+→ [`platform/cluster-management/README.md`](./platform/cluster-management/README.md)
 
 ---
 
 ## Architecture
 
 ```
-[ Self-Service / API / GitOps / CI/CD / Service Catalog ]
-                        │
-                        ▼
-         [ Management Zone ]
-  Crossplane v2.2.0 • Cluster API • Flux • Kyverno
-  External Secrets • OIDC/Keycloak • Observability
-                        │
-                        ▼
-        [ Infrastructure Zone ]
-  Bare Metal • KubeVirt VMs • GPU Nodes
-  Storage (Longhorn / Ceph) • Networking (Cilium)
-                        │
-                        ▼
-       [ Tenant / Workload Zone ]
-  Workload Clusters • VMs • AI/GPU
-  Robotics • HPC • Platform Services
+[ Self-Service API ]
+  make vm-create vm=ok4          make deploy cluster=ok1
+        │                                │
+        ▼                                ▼
+[ Crossplane Compositions ]    [ Crossplane + Cluster API ]
+  OpenKubesVMClaim               KubeVirtClusterClaim
+        │                                │
+        ▼                                ▼
+[ KubeVirt Infra Cluster ]     [ CAPI + CAPK ]
+  DataVolume + VM + Service      Machines + KCP + MachineDeployment
+        │                                │
+        ▼                                ▼
+[ Bare Metal Nodes ]           [ Workload Cluster Nodes ]
 ```
 
 | Component | Role |
@@ -250,97 +189,26 @@ kubernetes-version=v1.34.1 make upgrade cluster=ok1
 | Crossplane v2.2.0 | Platform API & self-service compositions |
 | Flux | GitOps engine |
 
-→ Full architecture deep dives: [`architecture/`](./architecture/)
+→ Full architecture: [`architecture/`](./architecture/)
 
 ---
 
-## Platform Components
+## Roadmap
 
-### Cluster Management
-- [`platform/cluster-management/cluster-api/`](./platform/cluster-management/cluster-api) — CAPI + CAPK providers, cluster templates
+### v1.1.0
+- [ ] OpenKubesStorage — self-service PVC + StorageClass management
+- [ ] OpenKubesNetworking — Network policies + LoadBalancer management
+- [ ] Status writeback for OpenKubesVM (phase, IP)
 
-### GitOps
-- [`platform/gitops/fluxcd/`](./platform/gitops/fluxcd) — Flux (recommended)
-- [`platform/gitops/argocd/`](./platform/gitops/argocd) — ArgoCD
+### v1.2.0
+- [ ] Rolling upgrade via CAPK v0.12.x evaluation
+- [ ] Observability stack (Prometheus + Grafana)
+- [ ] Multi-cluster dashboard
 
-### Networking
-- [`platform/networking/cilium/`](./platform/networking/cilium) — Cilium CNI (default)
-- [`platform/networking/calico/`](./platform/networking/calico) — Calico CNI
-- [`platform/networking/multus/`](./platform/networking/multus) — Multi-network for Robotics / industrial
-
-### Robotics
-- [`platform/robotics/ros2/`](./platform/robotics/ros2) — ROS 2 on Kubernetes
-- [`platform/robotics/open-rmf/`](./platform/robotics/open-rmf) — Open-RMF fleet management
-- [`platform/robotics/dds/`](./platform/robotics/dds) — DDS networking
-
-### Observability
-- [`platform/observability/`](./platform/observability) — Metrics, logging, tracing, alerting
-
-### Virtualization
-- [`platform/virtualization/kubevirt/`](./platform/virtualization/kubevirt) — KubeVirt configuration and VM blueprints
-
----
-
-## Blueprints
-
-| Blueprint | Description |
-|---|---|
-| [`bare-metal`](./blueprints/bare-metal) | Production bare metal cluster |
-| [`capi-kubevirt`](./blueprints/capi-kubevirt) | CAPI + KubeVirt workload cluster |
-| [`sovereign-edge`](./blueprints/sovereign-edge) | Air-gapped sovereign edge deployment |
-| [`robotops-edge-site`](./blueprints/robotops-edge-site) | Edge site for robotics operations |
-| [`ros2-dds-industrial-networking`](./blueprints/ros2-dds-industrial-networking) | ROS 2 with industrial DDS networking |
-| [`open-rmf-fleet-management`](./blueprints/open-rmf-fleet-management) | Open-RMF autonomous fleet management |
-
----
-
-## Architecture Deep Dives
-
-- [`AIRGAPPED-OPERATIONS.md`](./architecture/AIRGAPPED-OPERATIONS.md)
-- [`CLUSTERAPI-EDGE-SCALING.md`](./architecture/CLUSTERAPI-EDGE-SCALING.md)
-- [`DDS-NETWORKING.md`](./architecture/DDS-NETWORKING.md)
-- [`GITOPS-EDGE-LIFECYCLE.md`](./architecture/GITOPS-EDGE-LIFECYCLE.md)
-- [`GPU-ISOLATION.md`](./architecture/GPU-ISOLATION.md)
-- [`KUBEVIRT-LEGACY-INTEGRATION.md`](./architecture/KUBEVIRT-LEGACY-INTEGRATION.md)
-- [`SOVEREIGN-EDGE-RUNTIME.md`](./architecture/SOVEREIGN-EDGE-RUNTIME.md)
-
----
-
-## Upgrading
-
-```sh
-# Edit version in .env, then:
-make upgrade cluster=ok1
-make status cluster=ok1
-```
-
-For breaking changes see [`CHANGELOG.md`](./CHANGELOG.md).
-
----
-
-## Troubleshooting
-
-| Symptom | Likely Cause | Fix |
-|---|---|---|
-| Pods in `CrashLoopBackOff` | Missing secret or config | `make status cluster=ok1` |
-| cert-manager not ready | clusterctl init fails | Wait ~60s and retry |
-| `make upgrade cluster=ok1` fails | Legacy python3 dependency | Update to v1.0.3 — uses jq |
-| CRDs not registered | Previous install incomplete | `make force-clean cluster=ok1` |
-
-```sh
-make check cluster=ok1    # check for leftover resources
-```
-
----
-
-## Contributing
-
-See [`CONTRIBUTING.md`](./CONTRIBUTING.md).
-
-```sh
-```
-
-Branches: `main` (stable) · `dev` (active development) · `release/vX.Y.Z` (release prep)
+### v2.0.0
+- [ ] Native Go operator (`openkubes-operator`)
+- [ ] Full reconcile loop with Events and Conditions
+- [ ] OperatorHub publication
 
 ---
 
