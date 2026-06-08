@@ -1,4 +1,4 @@
-# OpenKubes
+# OpenKubes Platform
 
 <!-- SHIELDS -->
 ![Release](https://img.shields.io/github/v/release/openkubes/openkubes)
