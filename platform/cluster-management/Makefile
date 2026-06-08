@@ -10,7 +10,7 @@ crossplane_dir ?= crossplane
 runner_image   ?= kubernautslabs/capi-platform-runner:v4.2
 kubeconfig_dir ?= $(HOME)/.kube
 
-.PHONY: help setup deploy delete status logs check force-clean kubeconfig upgrade recreate
+.PHONY: help setup deploy delete status logs check force-clean kubeconfig upgrade recreate manager-deploy manager-delete manager-status manager-open
 
 help:
 	@echo ""
@@ -23,14 +23,19 @@ help:
 	@echo "  make deploy      cluster=ok1            Deploy a workload cluster"
 	@echo "  make delete      cluster=ok1            Clean delete (Cleanup Job + remove claims)"
 	@echo "  make kubeconfig  cluster=ok1            Get workload cluster kubeconfig"
-	@echo "  make recreate    cluster=ok1 kubernetes-version=v1.34.1  Recreate cluster on new version (reliable, destructive)"
-	@echo "  make upgrade     cluster=ok1 kubernetes-version=v1.34.1  Rolling upgrade (experimental, requires CAPK fix)"
+	@echo "  make upgrade     cluster=ok1 kubernetes-version=v1.34.1  Upgrade cluster (patches claim + triggers Job)"
 	@echo "  make status      cluster=ok1            Show cluster status"
 	@echo "  make logs        cluster=ok1            Follow deploy Job logs"
 	@echo ""
 	@echo "Troubleshooting:"
 	@echo "  make check       cluster=ok1            Check for leftover resources"
 	@echo "  make force-clean cluster=ok1            Force cleanup all resources (emergency)"
+	@echo ""
+	@echo "Cluster Manager (Headlamp):"
+	@echo "  make manager-deploy  cluster=ok1        Deploy Headlamp on workload cluster"
+	@echo "  make manager-delete  cluster=ok1        Remove Headlamp from workload cluster"
+	@echo "  make manager-status  cluster=ok1        Show Headlamp status + URL"
+	@echo "  make manager-open    cluster=ok1        Port-forward + open browser"
 	@echo ""
 
 # ---------------------------------------------------------------
@@ -130,23 +135,22 @@ kubeconfig:
 	@KUBECONFIG=$(kubeconfig_dir)/$(cluster).kubeconfig kubectl get nodes 2>/dev/null || true
 
 # ---------------------------------------------------------------
-# Recreate – reliable cluster upgrade via delete + redeploy
+# Upgrade – upgrade cluster to a new Kubernetes version
 #
 # How it works:
-#   1. Reads current parameters from live KubeVirtClusterClaim
-#   2. Patches claim to target version
-#   3. Pauses Crossplane reconciliation (prevents interference)
-#   4. Deletes current CAPI cluster resources (cleanup-local)
-#   5. Recreates cluster with target version (deploy-full-local)
-#   6. Verifies all workload nodes report target kubelet version
-#   7. Resumes Crossplane reconciliation
-#
-# Note: This is destructive — workloads on the cluster will be lost.
-#       Use for test/dev clusters or when rolling upgrade is not available.
+#   1. Reads current version from the RUNNING cluster (KubeadmControlPlane)
+#   2. If already on target version → nothing to do
+#   3. Patches kubernetesVersion in crossplane/examples/<cluster>.yaml
+#      (macOS-safe sed, keeps claim yaml in sync)
+#   4. kubectl apply → Crossplane sees version drift → new deploy Job
+#   5. crossplane-deploy.sh detects cluster is Provisioned + wrong version
+#      → delegates to crossplane-upgrade.sh
+#      → kubectl patch KCP + MachineDeployment → CAPI rolling upgrade
+#      → ghost node cleanup
 # ---------------------------------------------------------------
-recreate:
-	@test -n "$(cluster)" || (echo "ERROR: cluster is required  →  make recreate cluster=ok1 kubernetes-version=v1.34.1"; exit 1)
-	@test -n "$(kubernetes-version)" || (echo "ERROR: kubernetes-version is required  →  make recreate cluster=ok1 kubernetes-version=v1.34.1"; exit 1)
+upgrade:
+	@test -n "$(cluster)" || (echo "ERROR: cluster is required  →  make upgrade cluster=ok1 kubernetes-version=v1.34.1"; exit 1)
+	@test -n "$(kubernetes-version)" || (echo "ERROR: kubernetes-version is required  →  make upgrade cluster=ok1 kubernetes-version=v1.34.1"; exit 1)
 	@test -f "$(examples_dir)/$(cluster).yaml" || \
 	  (echo "ERROR: $(examples_dir)/$(cluster).yaml not found"; exit 1)
 	@CURRENT=$$(kubectl get kubeadmcontrolplane "$(cluster)-control-plane" \
@@ -155,73 +159,14 @@ recreate:
 	if [ -z "$$CURRENT" ]; then \
 	  echo "ERROR: could not read version from cluster '$(cluster)' — is it running?"; exit 1; \
 	fi; \
-	echo "[recreate] current version: $$CURRENT"; \
-	echo "[recreate] target version:  $(kubernetes-version)"; \
-	echo "[recreate] ⚠️  WARNING: this will DELETE and RECREATE the cluster!"; \
-	echo "[recreate] All workloads will be lost. Press Ctrl+C within 5s to abort..."; \
-	sleep 5; \
-	echo "[recreate] patching kubernetesVersion in $(examples_dir)/$(cluster).yaml..."; \
-	perl -0pi -e 's|(^[ ]*kubernetesVersion: ).*|$${1}$(kubernetes-version)|m' \
-	  "$(examples_dir)/$(cluster).yaml"; \
-	echo "[recreate] applying claim for cluster '$(cluster)'..."; \
-	kubectl apply -f "$(examples_dir)/$(cluster).yaml"; \
-	echo "[recreate] watching Jobs (Ctrl+C to stop watching)..."; \
-	for i in $$(seq 1 24); do \
-	  JOB=$$(kubectl get jobs -n $(namespace) \
-	    --sort-by=.metadata.creationTimestamp \
-	    -o jsonpath='{.items[*].metadata.name}' 2>/dev/null | \
-	    tr ' ' '\n' | grep "^deploy-$(cluster)-" | tail -1 || echo ""); \
-	  if [ -n "$$JOB" ]; then break; fi; \
-	  echo "[recreate] waiting for Job... ($$i/24)"; \
-	  sleep 5; \
-	done; \
-	if [ -n "$$JOB" ]; then \
-	  echo "[recreate] watching Job $$JOB..."; \
-	  kubectl wait job/"$$JOB" -n $(namespace) \
-	    --for=condition=complete \
-	    --timeout=900s 2>/dev/null && \
-	  echo "[recreate] cluster '$(cluster)' recreated on $(kubernetes-version) ✅"; \
-	else \
-	  echo "[recreate] WARNING: no job found after 120s, check: kubectl get jobs -n $(namespace)"; \
-	fi
-
-# ---------------------------------------------------------------
-# Upgrade – rolling upgrade (experimental, requires CAPK v0.12+)
-#
-# ⚠️  EXPERIMENTAL — requires CAPK v0.12+ for reliable ProviderID registration.
-#    With CAPK v0.11.x this may hang with "Waiting for a node with matching
-#    ProviderID to exist". Use 'make recreate' for a reliable alternative.
-#
-# How it works:
-#   1. Reads current version from the RUNNING cluster (KubeadmControlPlane)
-#   2. Patches kubernetesVersion in crossplane/examples/<cluster>.yaml
-#   3. kubectl apply → Crossplane sees version drift → new deploy Job
-#   4. crossplane-deploy.sh detects cluster is Provisioned + wrong version
-#      → delegates to crossplane-upgrade.sh
-#      → kubectl patch KCP + MachineDeployment → CAPI rolling upgrade
-# ---------------------------------------------------------------
-upgrade:
-	@test -n "$(cluster)" || (echo "ERROR: cluster is required  →  make upgrade cluster=ok1 kubernetes-version=v1.34.1"; exit 1)
-	@test -n "$(kubernetes-version)" || (echo "ERROR: kubernetes-version is required  →  make upgrade cluster=ok1 kubernetes-version=v1.34.1"; exit 1)
-	@test -f "$(examples_dir)/$(cluster).yaml" || \
-	  (echo "ERROR: $(examples_dir)/$(cluster).yaml not found"; exit 1)
-	@CURRENT_CP=$$(kubectl get kubeadmcontrolplane "$(cluster)-control-plane" \
-	  -n "$(cluster)" \
-	  -o jsonpath='{.spec.version}' 2>/dev/null || echo ""); \
-	CURRENT_MD=$$(kubectl get machinedeployment "$(cluster)-md-0" \
-	  -n "$(cluster)" \
-	  -o jsonpath='{.spec.template.spec.version}' 2>/dev/null || echo ""); \
-	if [ -z "$$CURRENT_CP" ]; then \
-	  echo "ERROR: could not read control-plane version from cluster '$(cluster)' — is it running?"; exit 1; \
-	fi; \
-	echo "[upgrade] current control-plane version: $$CURRENT_CP"; \
-	echo "[upgrade] current worker spec version:   $$CURRENT_MD"; \
-	echo "[upgrade] target version:                $(kubernetes-version)"; \
-	if [ "$$CURRENT_CP" = "$(kubernetes-version)" ] && [ "$$CURRENT_MD" = "$(kubernetes-version)" ]; then \
-	  echo "[upgrade] CAPI specs already target $(kubernetes-version); still applying claim to let the MVP verifier run"; \
+	echo "[upgrade] current version in cluster: $$CURRENT"; \
+	echo "[upgrade] target version:             $(kubernetes-version)"; \
+	if [ "$$CURRENT" = "$(kubernetes-version)" ]; then \
+	  echo "[upgrade] cluster is already on $(kubernetes-version) — nothing to do ✅"; \
+	  exit 0; \
 	fi; \
 	echo "[upgrade] patching kubernetesVersion in $(examples_dir)/$(cluster).yaml..."; \
-	perl -0pi -e 's|(^[ ]*kubernetesVersion: ).*|$${1}$(kubernetes-version)|m' \
+	sed -i '' "s|^\([ ]*kubernetesVersion: \).*|\1$(kubernetes-version)|" \
 	  "$(examples_dir)/$(cluster).yaml"; \
 	echo "[upgrade] applying claim for cluster '$(cluster)'..."; \
 	kubectl apply -f "$(examples_dir)/$(cluster).yaml"; \
@@ -291,3 +236,85 @@ force-clean:
 	@kubectl delete kubevirtclusterclaim "$(cluster)" \
 	  -n $(namespace) --ignore-not-found 2>/dev/null || true
 	@bash "$(scripts_dir)/force-clean-leftovers.sh" "$(cluster)" "$(cluster)" "$(namespace)"
+
+# ---------------------------------------------------------------
+# Manager Deploy – install Headlamp on workload cluster
+# ---------------------------------------------------------------
+manager-deploy:
+	@test -n "$(cluster)" || (echo "ERROR: cluster is required  →  make manager-deploy cluster=ok1"; exit 1)
+	@test -f "$(kubeconfig_dir)/$(cluster).kubeconfig" || \
+	  (echo "ERROR: kubeconfig not found — run: make kubeconfig cluster=$(cluster)"; exit 1)
+	@echo "[manager] installing Headlamp on cluster '$(cluster)'..."
+	@helm repo add headlamp https://kubernetes-sigs.github.io/headlamp/ 2>/dev/null || true
+	@helm repo update headlamp 2>/dev/null || true
+	@KUBECONFIG=$(kubeconfig_dir)/$(cluster).kubeconfig \
+	  helm upgrade --install headlamp headlamp/headlamp \
+	  --namespace headlamp --create-namespace \
+	  --wait --timeout 120s
+	@echo "[manager] Headlamp installed on cluster '$(cluster)' ✅"
+	@echo ""
+	@echo "Generate token:"
+	@echo "  make manager-token cluster=$(cluster)"
+	@echo ""
+	@echo "Open UI:"
+	@echo "  make manager-open cluster=$(cluster)"
+
+# ---------------------------------------------------------------
+# Manager Token – generate admin token for Headlamp
+# ---------------------------------------------------------------
+manager-token:
+	@test -n "$(cluster)" || (echo "ERROR: cluster is required  →  make manager-token cluster=ok1"; exit 1)
+	@test -f "$(kubeconfig_dir)/$(cluster).kubeconfig" || \
+	  (echo "ERROR: kubeconfig not found — run: make kubeconfig cluster=$(cluster)"; exit 1)
+	@echo "[manager] generating admin token for Headlamp on '$(cluster)'..."
+	@KUBECONFIG=$(kubeconfig_dir)/$(cluster).kubeconfig \
+	  kubectl create token headlamp -n headlamp --duration 24h
+
+# ---------------------------------------------------------------
+# Manager Delete – remove Headlamp from workload cluster
+# ---------------------------------------------------------------
+manager-delete:
+	@test -n "$(cluster)" || (echo "ERROR: cluster is required  →  make manager-delete cluster=ok1"; exit 1)
+	@test -f "$(kubeconfig_dir)/$(cluster).kubeconfig" || \
+	  (echo "ERROR: kubeconfig not found — run: make kubeconfig cluster=$(cluster)"; exit 1)
+	@echo "[manager] removing Headlamp from cluster '$(cluster)'..."
+	@KUBECONFIG=$(kubeconfig_dir)/$(cluster).kubeconfig \
+	  helm uninstall headlamp --namespace headlamp 2>/dev/null || true
+	@KUBECONFIG=$(kubeconfig_dir)/$(cluster).kubeconfig \
+	  kubectl delete namespace headlamp --ignore-not-found 2>/dev/null || true
+	@echo "[manager] Headlamp removed from cluster '$(cluster)' ✅"
+
+# ---------------------------------------------------------------
+# Manager Status – show Headlamp status
+# ---------------------------------------------------------------
+manager-status:
+	@test -n "$(cluster)" || (echo "ERROR: cluster is required  →  make manager-status cluster=ok1"; exit 1)
+	@test -f "$(kubeconfig_dir)/$(cluster).kubeconfig" || \
+	  (echo "ERROR: kubeconfig not found — run: make kubeconfig cluster=$(cluster)"; exit 1)
+	@echo "=== Headlamp on cluster '$(cluster)' ==="
+	@KUBECONFIG=$(kubeconfig_dir)/$(cluster).kubeconfig \
+	  kubectl get pods -n headlamp 2>/dev/null || echo "Headlamp not installed"
+	@echo ""
+	@echo "=== Service ==="
+	@KUBECONFIG=$(kubeconfig_dir)/$(cluster).kubeconfig \
+	  kubectl get svc -n headlamp 2>/dev/null || true
+	@echo ""
+	@echo "Access via: make manager-open cluster=$(cluster)"
+
+# ---------------------------------------------------------------
+# Manager Open – port-forward and open browser
+# ---------------------------------------------------------------
+manager-open:
+	@test -n "$(cluster)" || (echo "ERROR: cluster is required  →  make manager-open cluster=ok1"; exit 1)
+	@test -f "$(kubeconfig_dir)/$(cluster).kubeconfig" || \
+	  (echo "ERROR: kubeconfig not found — run: make kubeconfig cluster=$(cluster)"; exit 1)
+	@echo "[manager] starting port-forward for Headlamp on '$(cluster)'..."
+	@echo "[manager] opening http://localhost:8080"
+	@echo "[manager] press Ctrl+C to stop"
+	@echo ""
+	@echo "Get token with: make manager-token cluster=$(cluster)"
+	@echo ""
+	@(sleep 2 && open http://localhost:8080 2>/dev/null || \
+	  xdg-open http://localhost:8080 2>/dev/null || true) &
+	@KUBECONFIG=$(kubeconfig_dir)/$(cluster).kubeconfig \
+	  kubectl port-forward svc/headlamp -n headlamp 8080:80
