@@ -52,13 +52,18 @@ vm-create:
 	kubectl apply -f "$(examples_dir)/claims/$(vm)-openkubesvmclaim.yaml"
 	@echo "[vm-create] waiting for VM to become Ready..."
 	@for i in $$(seq 1 60); do \
-	  READY=$$(kubectl get openkubesvmclaim "$(vm)" -n $(namespace) \
+	  VM_READY=$$(kubectl get objects.kubernetes.crossplane.io \
+	    "openkubesvm-$(vm)-vm" \
 	    -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null || echo ""); \
-	  SYNCED=$$(kubectl get openkubesvmclaim "$(vm)" -n $(namespace) \
-	    -o jsonpath='{.status.conditions[?(@.type=="Synced")].status}' 2>/dev/null || echo ""); \
-	  echo "[vm-create] SYNCED=$$SYNCED READY=$$READY ($$i/60)"; \
-	  if [ "$$READY" = "True" ]; then \
-	    echo "[vm-create] VM '$(vm)' is Ready ✅"; \
+	  DV_READY=$$(kubectl get objects.kubernetes.crossplane.io \
+	    "openkubesvm-$(vm)-datavolume" \
+	    -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null || echo ""); \
+	  SVC_READY=$$(kubectl get objects.kubernetes.crossplane.io \
+	    "openkubesvm-$(vm)-service" \
+	    -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null || echo ""); \
+	  echo "[vm-create] DataVolume=$$DV_READY Service=$$SVC_READY VM=$$VM_READY ($$i/60)"; \
+	  if [ "$$VM_READY" = "True" ] && [ "$$DV_READY" = "True" ] && [ "$$SVC_READY" = "True" ]; then \
+	    echo "[vm-create] VM '$(vm)-vm' is Ready ✅"; \
 	    break; \
 	  fi; \
 	  [ "$$i" = "60" ] && echo "[vm-create] WARNING: timeout — check: make vm-status vm=$(vm)"; \
@@ -136,4 +141,5 @@ vm-list:
 	@kubectl get openkubesvmclaim -n $(namespace) 2>/dev/null || echo "No claims found"
 	@echo ""
 	@echo "=== VMs on Infra Cluster ==="
-	@kubectl get vm -n $(kubevirt_ns) 2>/dev/null || echo "No VMs found"
+	@kubectl get objects.kubernetes.crossplane.io 2>/dev/null | \
+	  grep "openkubesvm-" || echo "No objects found"
