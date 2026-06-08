@@ -146,7 +146,7 @@ h2 .hl{color:#1a6fc4}
 <div class="slide s3" data-slide="3">
   <h2>How It <span class="hl">Works</span></h2>
   <div class="flow">
-    <div class="fs"><div class="sn">1</div><h3>make deploy</h3><p>OpenKubesCluster claim submitted</p></div>
+    <div class="fs"><div class="sn">1</div><h3>make deploy</h3><p>OpenKubesCluster claim (KubeVirt, EKS, AKS, GKE)</p></div>
     <div class="fa">→</div>
     <div class="fs"><div class="sn">2</div><h3>Crossplane</h3><p>Composition creates deploy Job</p></div>
     <div class="fa">→</div>
@@ -170,7 +170,7 @@ h2 .hl{color:#1a6fc4}
 <div class="slide s4" data-slide="4">
   <h2>Platform <span class="hl">Architecture</span></h2>
   <div class="ag">
-    <div class="al lb"><h3>🧠 Management Zone</h3><ul><li>Crossplane v2.2</li><li>Cluster API v1.12</li><li>CAPK v0.11.2</li><li>Flux (GitOps)</li><li>cert-manager</li></ul></div>
+    <div class="al lb"><h3>🧠 Management Zone</h3><ul><li>Crossplane v2.2</li><li>Cluster API v1.12</li><li>CAPK v0.11.2</li><li>CAPA/CAPZ/CAPG</li><li>Flux (GitOps)</li><li>cert-manager</li></ul></div>
     <div class="al lg"><h3>⚙️ Infrastructure Zone</h3><ul><li>RKE2 Bare Metal</li><li>KubeVirt v1.8.1</li><li>CDI (disk mgmt)</li><li>MetalLB</li><li>local-path storage</li></ul></div>
     <div class="al lo"><h3>☸️ Workload Zone</h3><ul><li>K8s v1.34 clusters</li><li>Calico CNI</li><li>VM Pools</li><li>AI / GPU workloads</li><li>DBaaS (roadmap)</li></ul></div>
     <div class="al lp"><h3>🛡️ Platform APIs</h3><ul><li>OpenKubesVM</li><li>OpenKubesCluster</li><li>OpenKubesAI (soon)</li><li>OpenKubesDB (soon)</li><li>OpenKubesTenant (soon)</li></ul></div>
@@ -218,8 +218,8 @@ h2 .hl{color:#1a6fc4}
   <h2>What's <span class="hl">Next</span></h2>
   <div class="rg">
     <div class="rm done"><div class="rv">v1.0.3 — Now ✅</div><h3>Foundation</h3><ul><li>OpenKubesCluster API</li><li>OpenKubesVM API</li><li>Crossplane Go-Template Compositions</li><li>make deploy / delete / recreate</li><li>make vm-create / vm-ssh / vm-list</li><li>Auto Calico + MetalLB</li><li>Cluster upgrade via recreate</li></ul></div>
-    <div class="rm next"><div class="rv">v1.1 — Next</div><h3>Platform Maturity</h3><ul><li>Rolling upgrade (CAPK v0.12.x)</li><li>OpenKubesStorage API</li><li>OpenKubesNetworking API</li><li>GitOps with Flux</li><li>Observability stack</li><li>Multi-cluster dashboard</li></ul></div>
-    <div class="rm fut"><div class="rv">v2.0 — Future</div><h3>Native Operator</h3><ul><li>Go operator</li><li>No Crossplane dependency</li><li>OpenKubesAI — GPU Workspace</li><li>OpenKubesDB — DBaaS API</li><li>OpenKubesTenant — Multi-tenancy</li><li>OperatorHub publication</li></ul></div>
+    <div class="rm next"><div class="rv">v1.1 — Next</div><h3>Platform Maturity</h3><ul><li>OpenKubes Anywhere (EKS/AKS/GKE)</li><li>Unified OpenKubesCluster API</li><li>OpenKubesClusterManager (Headlamp)</li><li>Rolling upgrade (CAPK v0.12.x)</li><li>OpenKubesStorage API</li><li>GitOps with Flux</li></ul></div>
+    <div class="rm fut"><div class="rv">v2.0 — Future</div><h3>Native Operator</h3><ul><li>OpenKubes Fleet (multi-cluster GitOps)</li><li>OpenKubesMetal (Metal3)</li><li>OpenKubesAI — GPU Workspace</li><li>OpenKubesDB — DBaaS API</li><li>Go operator / OperatorHub</li><li>OpenKubesTenant — Multi-tenancy</li></ul></div>
   </div>
   <div class="snum">6 / 7</div>
 </div>
