@@ -120,7 +120,7 @@ h2 .hl{color:#1a6fc4}
 <div class="slide s1 active" data-slide="1">
   <img src="openkubes-logo.png" alt="OpenKubes" onerror="this.style.display='none';document.getElementById('logo-text').style.display='block'">
   <div id="logo-text" style="display:none;font-size:52px;font-weight:900;color:#1a6fc4;margin-bottom:24px">⎈ OpenKubes</div>
-  <div class="ver">Platform v1.0.3 — Generally Available</div>
+  <div class="ver">Platform v1.0.3 — Community Preview</div>
   <div class="tag"><strong>The Unified Platform for Kubernetes, Virtual Machines &amp; Specialized Workloads</strong><br>Run Everything. Deliver Anything.</div>
   <div class="badges">
     <span class="badge">KubeVirt</span><span class="badge">Cluster API</span><span class="badge">Crossplane</span>
@@ -214,20 +214,34 @@ h2 .hl{color:#1a6fc4}
   <div class="snum">5 / 7</div>
 </div>
 
+
 <div class="slide s6" data-slide="6">
+  <h2>OpenKubes <span class="hl">Anywhere</span></h2>
+  <div class="sub">One Platform. Every Environment.</div>
+  <div class="ag">
+    <div class="al lb"><h3>🏭 On-Premises</h3><ul><li>Bare Metal (Metal3)</li><li>KubeVirt VMs</li><li>Air-gapped</li><li>Sovereign Cloud</li><li>make deploy cluster=factory-a</li></ul></div>
+    <div class="al lg"><h3>☁️ Public Cloud</h3><ul><li>AWS EKS</li><li>Azure AKS</li><li>Google GKE</li><li>Same API</li><li>make deploy cluster=prod-aws</li></ul></div>
+    <div class="al lo"><h3>🤖 Industrial Edge</h3><ul><li>Factory Sites</li><li>k3s Edge Clusters</li><li>Open-RMF / ROS2</li><li>AI / GPU Nodes</li><li>make deploy cluster=site-b</li></ul></div>
+    <div class="al lp"><h3>🔧 Unified Operations</h3><ul><li>Same make interface</li><li>Same GitOps workflow</li><li>Same Platform APIs</li><li>Same Day 2 operations</li><li>OpenKubesCluster XRD</li></ul></div>
+  </div>
+  <div class="anote">OpenKubes Anywhere — Hybrid &amp; Multi-Cloud Platform Operations (OK-24)</div>
+  <div class="snum">6 / 8</div>
+</div>
+
+<div class="slide s7b" data-slide="7">
   <h2>What's <span class="hl">Next</span></h2>
   <div class="rg">
     <div class="rm done"><div class="rv">v1.0.3 — Now ✅</div><h3>Foundation</h3><ul><li>OpenKubesCluster API</li><li>OpenKubesVM API</li><li>Crossplane Go-Template Compositions</li><li>make deploy / delete / recreate</li><li>make vm-create / vm-ssh / vm-list</li><li>Auto Calico + MetalLB</li><li>Cluster upgrade via recreate</li></ul></div>
     <div class="rm next"><div class="rv">v1.1 — Next</div><h3>Platform Maturity</h3><ul><li>OpenKubes Anywhere (EKS/AKS/GKE)</li><li>Unified OpenKubesCluster API</li><li>OpenKubesClusterManager (Headlamp)</li><li>Rolling upgrade (CAPK v0.12.x)</li><li>OpenKubesStorage API</li><li>GitOps with Flux</li></ul></div>
-    <div class="rm fut"><div class="rv">v2.0 — Future</div><h3>Native Operator</h3><ul><li>OpenKubes Fleet (multi-cluster GitOps)</li><li>OpenKubesMetal (Metal3)</li><li>OpenKubesAI — GPU Workspace</li><li>OpenKubesDB — DBaaS API</li><li>Go operator / OperatorHub</li><li>OpenKubesTenant — Multi-tenancy</li></ul></div>
+    <div class="rm fut"><div class="rv">v2.0 — Future</div><h3>Native Operator</h3><ul><li>OpenKubes Fleet (multi-cluster GitOps)</li><li>OpenKubesMetal (Metal3)</li><li>OpenKubes Robotics (Open-RMF / ROS2)</li><li>OpenKubesAI — GPU Workspace</li><li>Go operator / OperatorHub</li><li>OpenKubesTenant — Multi-tenancy</li></ul></div>
   </div>
-  <div class="snum">6 / 7</div>
+  <div class="snum">7 / 8</div>
 </div>
 
-<div class="slide s7" data-slide="7">
+<div class="slide s7" data-slide="8">
   <img src="openkubes-logo.png" alt="OpenKubes" onerror="this.style.display='none'">
   <h2>Get <span>Started</span></h2>
-  <div class="sub2">Open Source · Apache 2.0 · Production Ready · v1.0.3</div>
+  <div class="sub2">Open Source · Apache 2.0 · Community Preview · v1.0.3</div>
   <div class="cmds">
     <div class="cmd"><span class="cc"># Create a VM</span>make vm-create vm=ok4</div>
     <div class="cmd"><span class="cc"># Deploy a cluster</span>make deploy cluster=ok1</div>
@@ -244,7 +258,7 @@ h2 .hl{color:#1a6fc4}
 <div class="dots" id="dots"></div>
 
 <script>
-let c=1,t=7;
+let c=1,t=8;
 const d=document.getElementById('dots');
 for(let i=1;i<=t;i++){const x=document.createElement('div');x.className='dot'+(i===1?' active':'');x.onclick=()=>goTo(i);d.appendChild(x);}
 function goTo(n){document.querySelector('.slide.active').classList.remove('active');document.querySelector('[data-slide="'+n+'"]').classList.add('active');document.querySelectorAll('.dot').forEach((x,i)=>x.classList.toggle('active',i+1===n));c=n;}

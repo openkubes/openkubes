@@ -3,28 +3,38 @@
 <!-- SHIELDS -->
 ![Release](https://img.shields.io/github/v/release/openkubes/openkubes)
 ![License](https://img.shields.io/github/license/openkubes/openkubes)
-![Status](https://img.shields.io/badge/status-early--alpha-orange)
+![Status](https://img.shields.io/badge/status-community--preview-blue)
 ![Docker](https://img.shields.io/badge/docker-kubernautslabs%2Fcapi--platform--runner%3Av4.2-blue)
 
-> **AI-Native Runtime Infrastructure for Sovereign Edge, Industrial Systems and Next-Generation Compute.**
+<div align="center">
 
-OpenKubes is the core runtime distribution for sovereign Kubernetes infrastructure — engineered for mission-critical, air-gapped, and intelligent workloads at any scale.
+### **Kubernetes Anywhere. Make it.**
+
+*On-Premises · Bare Metal · Edge · EKS · AKS · GKE*
+
+</div>
+
+---
+
+> **The Open Platform for Sovereign Kubernetes Infrastructure — On-Premises, Edge, and Multi-Cloud.**
+
+OpenKubes is a platform engineering toolkit that runs Kubernetes clusters, virtual machines, and workloads **anywhere** — bare metal, KubeVirt, EKS, AKS, GKE — through a unified `make` interface and self-service Crossplane APIs.
 
 | Repository | Purpose | Status |
 |---|---|---|
-| [`openkubes/openkubes`](https://github.com/openkubes/openkubes) | Core Runtime Distribution (this repo) | ✅ live |
-| `openkubes/openkubes-robotics` | Fleet Orchestration & Industrial Automation | 🚧 coming soon |
+| [`openkubes/openkubes`](https://github.com/openkubes/openkubes) | Core Platform (this repo) | ✅ live |
+| `openkubes/openkubes-robotics` | Industrial Fleet & Autonomous Systems | 🚧 coming soon |
 | `openkubes/openkubes-ai` | AI Inference & Model Runtime | 🚧 coming soon |
-| `openkubes/openkubes-quantum` | Hybrid Quantum-Classical Runtime | 🚧 coming soon |
+| `openkubes/openkubes-anywhere` | Multi-Cloud & Hybrid Operations | 🚧 coming soon |
 
-> ⚠️ **Project Status: Early Alpha** — Core runtime is undergoing structural sanitization and public blueprint extraction.
+> 🚀 **Community Preview v1.0.3** — VMs, Clusters, Headlamp UI — all via `make`.
 > Live demo: [rmf.openkubes.ai](https://rmf.openkubes.ai/dashboard/login) · Docs: [docs.openkubes.ai](https://docs.openkubes.ai) *(coming soon)*
 
 ---
 
-## The Make Philosophy
+## Kubernetes Anywhere. Make it.
 
-OpenKubes is operated entirely via `make`. No scripts to remember, no long kubectl commands — just:
+OpenKubes is operated entirely via `make` — on bare metal, KubeVirt, EKS, AKS, or GKE. No scripts to remember, no long kubectl commands — just:
 
 ```bash
 # VMs
@@ -34,24 +44,23 @@ make vm-ssh     vm=ok4          # SSH into a VM
 make vm-delete  vm=ok4          # delete a VM
 make vm-list                    # list all VMs
 
-# Clusters
+# Clusters — same command, any provider
 cd platform/cluster-management
-make deploy     cluster=ok1                              # deploy a workload cluster
-make upgrade    cluster=ok1 kubernetes-version=v1.34.1  # rolling upgrade (experimental)
-make recreate   cluster=ok1 kubernetes-version=v1.34.1  # reliable upgrade via recreate
-make kubeconfig cluster=ok1                             # get workload kubeconfig
-make delete     cluster=ok1                             # clean delete
-make status     cluster=ok1                             # show status
-make logs       cluster=ok1                             # follow job logs
+make deploy     cluster=factory-a                        # KubeVirt on-prem
+make deploy     cluster=prod-aws                         # EKS (coming soon)
+make deploy     cluster=prod-azure                       # AKS (coming soon)
+make recreate   cluster=ok1 kubernetes-version=v1.34.1  # reliable upgrade
+make kubeconfig cluster=ok1                              # get kubeconfig
+make delete     cluster=ok1                              # clean delete
+make status     cluster=ok1                              # show status
 
 # Cluster Manager (Headlamp)
 make manager-deploy  cluster=ok1   # install Headlamp UI on workload cluster
 make manager-token   cluster=ok1   # generate admin token
 make manager-open    cluster=ok1   # port-forward + open browser
-make manager-delete  cluster=ok1   # remove Headlamp
 ```
 
-> **Run VMs. Run Clusters. Run Anything.**
+> **Kubernetes Anywhere. Make it.**
 
 ---
 
