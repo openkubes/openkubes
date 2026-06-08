@@ -155,6 +155,8 @@ h2 .hl{color:#1a6fc4}
     <div class="fs"><div class="sn">4</div><h3>3 VMs boot</h3><p>1 CP + 2 Workers on bare metal</p></div>
     <div class="fa">→</div>
     <div class="fs"><div class="sn">5</div><h3>Cluster Ready ✅</h3><p>Calico, MetalLB, kubeconfig</p></div>
+    <div class="fa">→</div>
+    <div class="fs"><div class="sn">6</div><h3>Headlamp UI ✅</h3><p>make manager-deploy</p></div>
   </div>
   <div class="cb">
     <span class="co"># Deploy</span><br>
@@ -194,6 +196,10 @@ h2 .hl{color:#1a6fc4}
         <br>
         <div><span class="tp">❯ </span><span class="tc">make recreate cluster=ok1 kubernetes-version=v1.34.1</span></div>
         <div class="tdn">[recreate] cluster 'ok1' recreated ✅</div>
+        <br>
+        <div><span class="tp">❯ </span><span class="tc">make manager-deploy cluster=ok1</span></div>
+        <div class="ti">[manager] installing Headlamp on cluster 'ok1'...</div>
+        <div class="tdn">[manager] Headlamp installed ✅  → localhost:8080</div>
       </div>
     </div>
     <div class="dr2">
@@ -202,6 +208,7 @@ h2 .hl{color:#1a6fc4}
       <div class="rc"><div class="ck">✅</div><div><h3>Calico CNI installed</h3><p>Automatically, zero manual steps</p></div></div>
       <div class="rc"><div class="ck">✅</div><div><h3>Namespace isolation</h3><p>cluster name = namespace, no hash</p></div></div>
       <div class="rc"><div class="ck">✅</div><div><h3>Clean delete in 26s</h3><p>VMs, namespaces, secrets all gone</p></div></div>
+      <div class="rc"><div class="ck">✅</div><div><h3>Headlamp UI in 60s</h3><p>make manager-deploy → browser ready</p></div></div>
     </div>
   </div>
   <div class="snum">5 / 7</div>
@@ -224,7 +231,7 @@ h2 .hl{color:#1a6fc4}
   <div class="cmds">
     <div class="cmd"><span class="cc"># Create a VM</span>make vm-create vm=ok4</div>
     <div class="cmd"><span class="cc"># Deploy a cluster</span>make deploy cluster=ok1</div>
-    <div class="cmd"><span class="cc"># Upgrade a cluster</span>make recreate cluster=ok1 kubernetes-version=v1.34.1</div>
+    <div class="cmd"><span class="cc"># Open Cluster UI</span>make manager-deploy cluster=ok1 &amp;&amp; make manager-open cluster=ok1</div>
   </div>
   <a class="ghlink" href="https://github.com/openkubes/openkubes">⭐ github.com/openkubes/openkubes</a>
   <div class="built">Built with ❤️ by Kubernauts · kubernauts.de</div>
