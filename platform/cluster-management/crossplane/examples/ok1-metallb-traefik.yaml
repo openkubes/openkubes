@@ -1,0 +1,148 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# OpenKubes – MetalLB + Traefik on ok1 Workload Cluster via Crossplane
+#
+# Prerequisites:
+#   kubectl create secret generic ok1-kubeconfig \
+#     -n crossplane-system \
+#     --from-file=kubeconfig=~/.kube/ok1.kubeconfig
+#
+# provider-helm ProviderConfig ok1-helm must exist (already done)
+#
+# Apply:
+#   kubectl apply -f ok1-metallb-traefik.yaml
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# ── 1. provider-kubernetes ProviderConfig for ok1 ─────────────────────────────
+# Needed to create MetalLB CRs (IPAddressPool, L2Advertisement) on ok1
+apiVersion: kubernetes.crossplane.io/v1alpha1
+kind: ProviderConfig
+metadata:
+  name: ok1-kubernetes
+spec:
+  credentials:
+    source: Secret
+    secretRef:
+      namespace: crossplane-system
+      name: ok1-kubeconfig
+      key: kubeconfig
+---
+# ── 2a. Namespaces on ok1 ─────────────────────────────────────────────────────
+apiVersion: kubernetes.crossplane.io/v1alpha2
+kind: Object
+metadata:
+  name: ok1-ns-metallb
+spec:
+  providerConfigRef:
+    name: ok1-kubernetes
+  forProvider:
+    manifest:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: metallb-system
+---
+apiVersion: kubernetes.crossplane.io/v1alpha2
+kind: Object
+metadata:
+  name: ok1-ns-traefik
+spec:
+  providerConfigRef:
+    name: ok1-kubernetes
+  forProvider:
+    manifest:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: traefik
+---
+# ── 2. MetalLB Helm Release on ok1 ────────────────────────────────────────────
+apiVersion: helm.crossplane.io/v1beta1
+kind: Release
+metadata:
+  name: metallb-ok1
+spec:
+  providerConfigRef:
+    name: ok1-helm
+  forProvider:
+    chart:
+      name: metallb
+      repository: https://metallb.github.io/metallb
+      version: "0.14.9"
+    namespace: metallb-system
+    wait: true
+    waitTimeout: 300s
+---
+# ── 3. MetalLB IPAddressPool on ok1 ───────────────────────────────────────────
+# Apply AFTER MetalLB is Running (CRDs must exist first)
+apiVersion: kubernetes.crossplane.io/v1alpha2
+kind: Object
+metadata:
+  name: ok1-metallb-pool
+spec:
+  providerConfigRef:
+    name: ok1-kubernetes
+  forProvider:
+    manifest:
+      apiVersion: metallb.io/v1beta1
+      kind: IPAddressPool
+      metadata:
+        name: ok1-pool
+        namespace: metallb-system
+      spec:
+        addresses:
+          - 84.200.100.241-84.200.100.242
+---
+# ── 4. MetalLB L2Advertisement on ok1 ─────────────────────────────────────────
+apiVersion: kubernetes.crossplane.io/v1alpha2
+kind: Object
+metadata:
+  name: ok1-metallb-l2
+spec:
+  providerConfigRef:
+    name: ok1-kubernetes
+  forProvider:
+    manifest:
+      apiVersion: metallb.io/v1beta1
+      kind: L2Advertisement
+      metadata:
+        name: ok1-l2
+        namespace: metallb-system
+      spec:
+        ipAddressPools:
+          - ok1-pool
+---
+# ── 5. Traefik Helm Release on ok1 ────────────────────────────────────────────
+apiVersion: helm.crossplane.io/v1beta1
+kind: Release
+metadata:
+  name: traefik-ok1
+spec:
+  providerConfigRef:
+    name: ok1-helm
+  forProvider:
+    chart:
+      name: traefik
+      repository: https://helm.traefik.io/traefik
+      version: "34.4.1"
+    namespace: traefik
+    wait: true
+    waitTimeout: 300s
+    values:
+      service:
+        type: LoadBalancer
+        annotations:
+          metallb.universe.tf/address-pool: ok1-pool
+      ingressClass:
+        enabled: true
+        isDefaultClass: true
+      ports:
+        web:
+          port: 8000
+          exposedPort: 80
+          expose:
+            default: true
+        websecure:
+          port: 8443
+          exposedPort: 443
+          expose:
+            default: true
