@@ -102,17 +102,57 @@ h2 .hl{color:#1a6fc4}
 .done ul li::before{content:"✓";color:#2eb87a}
 
 /* === SLIDE 7 CTA === */
-.s7{background:linear-gradient(150deg,#f0f8ff 0%,#daeeff 50%,#cce7ff 100%);align-items:center;text-align:center;justify-content:center;color:#1a2b4a}
+.s7{background:linear-gradient(155deg,#0f1f3d 0%,#1a4a7a 55%,#122d5a 100%);align-items:center;text-align:center;justify-content:center;color:white}
 .s7 img{height:120px;margin-bottom:20px}
-.s7 h2{font-size:44px;font-weight:800;color:#1a2b4a;margin-bottom:8px}
-.s7 h2 span{color:#1a6fc4}
-.s7 .sub2{font-size:15px;color:#4a6fa5;margin-bottom:28px}
+.s7 h2{font-size:44px;font-weight:800;color:white;margin-bottom:8px}
+.s7 h2 span{color:#2eb87a}
+.s7 .sub2{font-size:15px;color:#7aa8d0;margin-bottom:28px}
 .cmds{display:flex;flex-direction:column;gap:9px;margin-bottom:28px}
-.cmd{background:rgba(26,43,74,.08);border:1px solid rgba(26,43,74,.2);border-radius:8px;padding:10px 24px;font-family:Consolas,monospace;font-size:14px;color:#1a6fc4;text-align:left;width:520px}
-.cmd .cc{color:#6b8ab0;display:block;font-size:11px;margin-bottom:1px}
+.cmd{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:10px 24px;font-family:Consolas,monospace;font-size:14px;color:#38bdf8;text-align:left;width:520px}
+.cmd .cc{color:#4a6fa5;display:block;font-size:11px;margin-bottom:1px}
 .ghlink{font-size:16px;color:#0f1f3d;font-weight:700;text-decoration:none;background:#2eb87a;padding:12px 32px;border-radius:8px;display:inline-block;box-shadow:0 4px 14px rgba(46,184,122,.4)}
-.built{margin-top:18px;font-size:13px;color:#6b8ab0}
-</style>
+.built{margin-top:18px;font-size:13px;color:#4a6fa5}
+
+    .s-immortal{background:linear-gradient(150deg,#0f1f3d 0%,#1a3a6a 50%,#0f1f3d 100%);color:white;padding:40px}
+    .immortal-quote{text-align:center;margin:28px 0 0}
+    .iq-line{font-size:28px;font-weight:800;letter-spacing:-0.5px;line-height:1.3}
+    .iq-line:first-child{color:#38bdf8}
+    .iq-line:last-child{color:#2eb87a}
+    .s-immortal h2{color:white}
+    .s-immortal .sub{color:#94b8d4}
+    .s-immortal .hl{color:#38bdf8}
+    .s-immortal .al{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.15)}
+    .s-immortal .al h3{color:white}
+    .s-immortal .al li{color:#94b8d4}
+
+  
+    .s-immortal{background:linear-gradient(150deg,#0f1f3d 0%,#1a3a6a 50%,#0f1f3d 100%);color:white;padding:40px}
+    .immortal-quote{text-align:center;margin:28px 0 0}
+    .iq-line{font-size:28px;font-weight:800;letter-spacing:-0.5px;line-height:1.3}
+    .iq-line:first-child{color:#38bdf8}
+    .iq-line:last-child{color:#2eb87a}
+    .s-immortal h2{color:white}
+    .s-immortal .sub{color:#94b8d4}
+    .s-immortal .hl{color:#38bdf8}
+    .s-immortal .al{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.15)}
+    .s-immortal .al h3{color:white}
+    .s-immortal .al li{color:#94b8d4}
+
+  
+    .s-anywhere{background:linear-gradient(155deg,#0f1f3d 0%,#1a4a7a 55%,#122d5a 100%);color:white}
+    .s-anywhere h2{color:white}
+    .s-anywhere .sub{color:#94b8d4}
+    .s-anywhere .hl{color:#2eb87a}
+    .s-anywhere .al{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.15)}
+    .s-anywhere .al h3{color:white}
+    .s-anywhere .al li{color:#94b8d4}
+    .s-anywhere .anote{color:#4a6fa5;font-size:11px;text-align:center;margin-top:16px}
+
+  
+    .s-anywhere,.s-immortal{width:100%;height:100%;position:absolute;top:0;left:0;display:none;flex-direction:column;justify-content:flex-start;padding:48px 72px}
+    .s-anywhere.active,.s-immortal.active{display:flex}
+
+  </style>
 </head>
 <body>
 <div class="slides">
@@ -120,14 +160,14 @@ h2 .hl{color:#1a6fc4}
 <div class="slide s1 active" data-slide="1">
   <img src="openkubes-logo.png" alt="OpenKubes" onerror="this.style.display='none';document.getElementById('logo-text').style.display='block'">
   <div id="logo-text" style="display:none;font-size:52px;font-weight:900;color:#1a6fc4;margin-bottom:24px">⎈ OpenKubes</div>
-  <div class="ver">Platform v1.0.3 — Community Preview</div>
-  <div class="tag"><strong>Kubernetes Anywhere. Make it.</strong><br>On-Premises · Bare Metal · Edge · EKS · AKS · GKE</div>
+  <div class="ver">Platform v1.0.3 — Generally Available</div>
+  <div class="tag"><strong>The Unified Platform for Kubernetes, Virtual Machines &amp; Specialized Workloads</strong><br>Run Everything. Deliver Anything.</div>
   <div class="badges">
     <span class="badge">KubeVirt</span><span class="badge">Cluster API</span><span class="badge">Crossplane</span>
-    <span class="badge">Develop Anywhere</span><span class="badge">Operate Anywhere</span><span class="badge">Automate Anywhere</span>
+    <span class="badge">Bare Metal</span><span class="badge">Self-Service</span><span class="badge">AI / GPU</span>
   </div>
   <div class="sfooter">github.com/openkubes/openkubes</div>
-  <div class="snum">1 / 7</div>
+  <div class="snum">1 / 9</div>
 </div>
 
 <div class="slide s2" data-slide="2">
@@ -140,13 +180,13 @@ h2 .hl{color:#1a6fc4}
     <div class="arrow">↓</div>
     <div class="sc"><h3>✅ OpenKubes: kubectl apply → cluster ready in 90 seconds</h3><p>Full cluster lifecycle as a Kubernetes API. Just <code>make deploy cluster=ok1</code>.</p></div>
   </div>
-  <div class="snum">2 / 7</div>
+  <div class="snum">2 / 9</div>
 </div>
 
 <div class="slide s3" data-slide="3">
   <h2>How It <span class="hl">Works</span></h2>
   <div class="flow">
-    <div class="fs"><div class="sn">1</div><h3>make deploy</h3><p>OpenKubesCluster claim (KubeVirt, EKS, AKS, GKE)</p></div>
+    <div class="fs"><div class="sn">1</div><h3>make deploy</h3><p>OpenKubesCluster claim submitted</p></div>
     <div class="fa">→</div>
     <div class="fs"><div class="sn">2</div><h3>Crossplane</h3><p>Composition creates deploy Job</p></div>
     <div class="fa">→</div>
@@ -164,19 +204,19 @@ h2 .hl{color:#1a6fc4}
     <span class="co"># Delete</span><br>
     <span class="cm">make delete cluster=ok1</span> &nbsp; <span class="re">→ cluster 'ok1' deleted ✅</span>
   </div>
-  <div class="snum">3 / 7</div>
+  <div class="snum">3 / 9</div>
 </div>
 
 <div class="slide s4" data-slide="4">
   <h2>Platform <span class="hl">Architecture</span></h2>
   <div class="ag">
-    <div class="al lb"><h3>🧠 Management Zone</h3><ul><li>Crossplane v2.2</li><li>Cluster API v1.12</li><li>CAPK v0.11.2</li><li>CAPA/CAPZ/CAPG</li><li>Flux (GitOps)</li><li>cert-manager</li></ul></div>
+    <div class="al lb"><h3>🧠 Management Zone</h3><ul><li>Crossplane v2.2</li><li>Cluster API v1.12</li><li>CAPK v0.11.2</li><li>Flux (GitOps)</li><li>cert-manager</li></ul></div>
     <div class="al lg"><h3>⚙️ Infrastructure Zone</h3><ul><li>RKE2 Bare Metal</li><li>KubeVirt v1.8.1</li><li>CDI (disk mgmt)</li><li>MetalLB</li><li>local-path storage</li></ul></div>
     <div class="al lo"><h3>☸️ Workload Zone</h3><ul><li>K8s v1.34 clusters</li><li>Calico CNI</li><li>VM Pools</li><li>AI / GPU workloads</li><li>DBaaS (roadmap)</li></ul></div>
     <div class="al lp"><h3>🛡️ Platform APIs</h3><ul><li>OpenKubesVM</li><li>OpenKubesCluster</li><li>OpenKubesAI (soon)</li><li>OpenKubesDB (soon)</li><li>OpenKubesTenant (soon)</li></ul></div>
   </div>
   <div class="anote">Management Cluster: 3× kubeadm VMs (ok1-vm / ok2-vm / ok3-vm) on RKE2 Infra Cluster</div>
-  <div class="snum">4 / 7</div>
+  <div class="snum">4 / 9</div>
 </div>
 
 <div class="slide s5" data-slide="5">
@@ -211,46 +251,85 @@ h2 .hl{color:#1a6fc4}
       <div class="rc"><div class="ck">✅</div><div><h3>Headlamp UI in 60s</h3><p>make manager-deploy → browser ready</p></div></div>
     </div>
   </div>
-  <div class="snum">5 / 7</div>
+  <div class="snum">5 / 9</div>
+</div>
+
+<div class="slide s6" data-slide="6">
+  <h2>What's <span class="hl">Next</span></h2>
+  <div class="rg">
+    <div class="rm done"><div class="rv">v1.0.3 — Now ✅</div><h3>Foundation</h3><ul><li>OpenKubesCluster API</li><li>OpenKubesVM API</li><li>Crossplane Go-Template Compositions</li><li>make deploy / delete / recreate</li><li>make vm-create / vm-ssh / vm-list</li><li>Auto Calico + MetalLB</li><li>Cluster upgrade via recreate</li></ul></div>
+    <div class="rm next"><div class="rv">v1.1 — Next</div><h3>Platform Maturity</h3><ul><li>Rolling upgrade (CAPK v0.12.x)</li><li>OpenKubesStorage API</li><li>OpenKubesNetworking API</li><li>GitOps with Flux</li><li>Observability stack</li><li>Multi-cluster dashboard</li></ul></div>
+    <div class="rm fut"><div class="rv">v2.0 — Future</div><h3>Native Operator</h3><ul><li>Go operator</li><li>No Crossplane dependency</li><li>OpenKubesAI — GPU Workspace</li><li>OpenKubesDB — DBaaS API</li><li>OpenKubesTenant — Multi-tenancy</li><li>OperatorHub publication</li></ul></div>
+  </div>
+  <div class="snum">6 / 9</div>
 </div>
 
 
-<div class="slide s6" data-slide="6">
+<div class="slide s-anywhere" data-slide="7">
   <h2>OpenKubes <span class="hl">Anywhere</span></h2>
-  <div class="sub">One Platform. Every Environment.</div>
+  <div class="sub">One Platform. Any Environment.</div>
   <div class="ag">
     <div class="al lb"><h3>🏭 On-Premises</h3><ul><li>Bare Metal (Metal3)</li><li>KubeVirt VMs</li><li>Air-gapped</li><li>Sovereign Cloud</li><li>make deploy cluster=factory-a</li></ul></div>
     <div class="al lg"><h3>☁️ Public Cloud</h3><ul><li>AWS EKS</li><li>Azure AKS</li><li>Google GKE</li><li>Same API</li><li>make deploy cluster=prod-aws</li></ul></div>
     <div class="al lo"><h3>🤖 Industrial Edge</h3><ul><li>Factory Sites</li><li>k3s Edge Clusters</li><li>Open-RMF / ROS2</li><li>AI / GPU Nodes</li><li>make deploy cluster=site-b</li></ul></div>
-    <div class="al lp"><h3>🔧 Unified Operations</h3><ul><li>Same make interface</li><li>Same GitOps workflow</li><li>Same Platform APIs</li><li>Same Day 2 operations</li><li>OpenKubesCluster XRD</li></ul></div>
+    <div class="al lp"><h3>🔧 Unified Ops</h3><ul><li>Same make interface</li><li>Same GitOps workflow</li><li>Same Platform APIs</li><li>Same Day 2 ops</li><li>OpenKubesCluster XRD</li></ul></div>
   </div>
   <div class="anote">OpenKubes Anywhere — Hybrid &amp; Multi-Cloud Platform Operations (OK-24)</div>
-  <div class="snum">6 / 8</div>
+  <div class="snum">7 / 9</div>
 </div>
 
-<div class="slide s7b" data-slide="7">
-  <h2>What's <span class="hl">Next</span></h2>
-  <div class="rg">
-    <div class="rm done"><div class="rv">v1.0.3 — Now ✅</div><h3>Foundation</h3><ul><li>OpenKubesCluster API</li><li>OpenKubesVM API</li><li>Crossplane Go-Template Compositions</li><li>make deploy / delete / recreate</li><li>make vm-create / vm-ssh / vm-list</li><li>Auto Calico + MetalLB</li><li>Cluster upgrade via recreate</li></ul></div>
-    <div class="rm next"><div class="rv">v1.1 — Next</div><h3>Platform Maturity</h3><ul><li>OpenKubes Anywhere (EKS/AKS/GKE)</li><li>Unified OpenKubesCluster API</li><li>OpenKubesClusterManager (Headlamp)</li><li>Rolling upgrade (CAPK v0.12.x)</li><li>OpenKubesStorage API</li><li>GitOps with Flux</li></ul></div>
-    <div class="rm fut"><div class="rv">v2.0 — Future</div><h3>Native Operator</h3><ul><li>OpenKubes Fleet (multi-cluster GitOps)</li><li>OpenKubesMetal (Metal3)</li><li>OpenKubes Robotics (Open-RMF / ROS2)</li><li>OpenKubesAI — GPU Workspace</li><li>Go operator / OperatorHub</li><li>OpenKubesTenant — Multi-tenancy</li></ul></div>
+<div class="slide s-immortal" data-slide="8">
+  <h2>The <span class="hl">Immortal</span> Platform</h2>
+  <div class="sub">Infrastructure that can disappear and come back on its own.</div>
+
+  <div class="immortal-quote">
+    <div class="iq-line">Git is the contract.</div>
+    <div class="iq-line">Kubernetes is the enforcer.</div>
   </div>
-  <div class="snum">7 / 8</div>
+
+  <div class="ag" style="margin-top:32px">
+    <div class="al lb">
+      <h3>🏭 Metal3 path</h3>
+      <ul>
+        <li>Bare metal node fails</li>
+        <li>BMC/Redfish detects</li>
+        <li>PXE → OS → CAPI</li>
+        <li>Target RTO &lt; 10 min</li>
+        <li>No human intervention</li>
+      </ul>
+    </div>
+    <div class="al lg">
+      <h3>☁️ Shadow MGMT path</h3>
+      <ul>
+        <li>Primary MGMT fails</li>
+        <li>Cloud shadow takes over</li>
+        <li>ArgoCD reconciles all</li>
+        <li>Target RTO &lt; 60 sec</li>
+        <li>Workloads uninterrupted</li>
+      </ul>
+    </div>
+    <div class="al lo">
+      <h3>🗺️ Roadmap</h3>
+      <ul>
+        <li>OK-19 OpenKubesMetal</li>
+        <li>OK-24 OpenKubes Anywhere</li>
+        <li>OK-30 Immortal Platform</li>
+        <li>RPO = 0 (Git)</li>
+        <li>Open · Sovereign · Upstream</li>
+      </ul>
+    </div>
+  </div>
+  <div class="snum">8 / 9</div>
 </div>
 
-<div class="slide s7" data-slide="8">
+<div class="slide s7" data-slide="9">
   <img src="openkubes-logo.png" alt="OpenKubes" onerror="this.style.display='none'">
-  <h2>Kubernetes <span>Anywhere</span>. Make it.</h2>
-  <div class="sub2">Open Source · Apache 2.0 · Community Preview · v1.0.3</div>
+  <h2>Get <span>Started</span></h2>
+  <div class="sub2">Open Source · Apache 2.0 · Production Ready · v1.0.3</div>
   <div class="cmds">
     <div class="cmd"><span class="cc"># Create a VM</span>make vm-create vm=ok4</div>
     <div class="cmd"><span class="cc"># Deploy a cluster</span>make deploy cluster=ok1</div>
     <div class="cmd"><span class="cc"># Open Cluster UI</span>make manager-deploy cluster=ok1 &amp;&amp; make manager-open cluster=ok1</div>
-  </div>
-  <div style="display:flex;gap:20px;margin-bottom:20px;justify-content:center">
-    <div style="background:white;border:1.5px solid #dce8f5;border-radius:8px;box-shadow:0 2px 8px rgba(26,111,196,.08);padding:12px 20px;text-align:center"><div style="color:#38bdf8;font-size:11px;text-transform:uppercase;letter-spacing:2px;margin-bottom:4px">OpenKubes Local</div><div style="color:#4a6fa5;font-size:12px">Develop Anywhere</div></div>
-    <div style="background:white;border:1.5px solid #dce8f5;border-radius:8px;box-shadow:0 2px 8px rgba(26,111,196,.08);padding:12px 20px;text-align:center"><div style="color:#2eb87a;font-size:11px;text-transform:uppercase;letter-spacing:2px;margin-bottom:4px">OpenKubes Anywhere</div><div style="color:#4a6fa5;font-size:12px">Operate Anywhere</div></div>
-    <div style="background:white;border:1.5px solid #dce8f5;border-radius:8px;box-shadow:0 2px 8px rgba(26,111,196,.08);padding:12px 20px;text-align:center"><div style="color:#f5a623;font-size:11px;text-transform:uppercase;letter-spacing:2px;margin-bottom:4px">OpenKubes Robotics</div><div style="color:#4a6fa5;font-size:12px">Automate Anywhere</div></div>
   </div>
   <a class="ghlink" href="https://github.com/openkubes/openkubes">⭐ github.com/openkubes/openkubes</a>
   <div class="built">Built with ❤️ by Kubernauts · kubernauts.de</div>
@@ -263,7 +342,7 @@ h2 .hl{color:#1a6fc4}
 <div class="dots" id="dots"></div>
 
 <script>
-let c=1,t=8;
+let c=1,t=9;
 const d=document.getElementById('dots');
 for(let i=1;i<=t;i++){const x=document.createElement('div');x.className='dot'+(i===1?' active':'');x.onclick=()=>goTo(i);d.appendChild(x);}
 function goTo(n){document.querySelector('.slide.active').classList.remove('active');document.querySelector('[data-slide="'+n+'"]').classList.add('active');document.querySelectorAll('.dot').forEach((x,i)=>x.classList.toggle('active',i+1===n));c=n;}
