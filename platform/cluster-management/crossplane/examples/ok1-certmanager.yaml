@@ -1,0 +1,174 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# OpenKubes – cert-manager + Let's Encrypt on ok1 Workload Cluster
+#
+# Prerequisites:
+#   - Traefik running on ok1 (make ingress-setup cluster=ok1)
+#   - DNS A-Record: headlamp.openkubes.ai → 84.200.100.228
+#   - ok1-kubeconfig secret in crossplane-system
+#   - ok1-helm ProviderConfig exists
+#   - ok1-kubernetes ProviderConfig exists
+#
+# Apply:
+#   kubectl apply -f ok1-certmanager.yaml
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# ── 1. cert-manager Namespace ─────────────────────────────────────────────────
+apiVersion: kubernetes.crossplane.io/v1alpha2
+kind: Object
+metadata:
+  name: ok1-ns-certmanager
+spec:
+  providerConfigRef:
+    name: ok1-kubernetes
+  forProvider:
+    manifest:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: cert-manager
+---
+# ── 2. cert-manager Helm Release ──────────────────────────────────────────────
+apiVersion: helm.crossplane.io/v1beta1
+kind: Release
+metadata:
+  name: certmanager-ok1
+spec:
+  providerConfigRef:
+    name: ok1-helm
+  forProvider:
+    chart:
+      name: cert-manager
+      repository: https://charts.jetstack.io
+      version: "v1.17.2"
+    namespace: cert-manager
+    wait: true
+    waitTimeout: 300s
+    values:
+      crds:
+        enabled: true
+      nodeSelector:
+        node-role.kubernetes.io/control-plane: ""
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+      webhook:
+        nodeSelector:
+          node-role.kubernetes.io/control-plane: ""
+        tolerations:
+          - key: node-role.kubernetes.io/control-plane
+            operator: Exists
+            effect: NoSchedule
+      cainjector:
+        nodeSelector:
+          node-role.kubernetes.io/control-plane: ""
+        tolerations:
+          - key: node-role.kubernetes.io/control-plane
+            operator: Exists
+            effect: NoSchedule
+---
+# ── 3. Let's Encrypt ClusterIssuer (staging — safe for testing) ───────────────
+# Apply AFTER cert-manager is Running (CRDs must exist first)
+# Switch to letsencrypt-prod after successful staging test
+apiVersion: kubernetes.crossplane.io/v1alpha2
+kind: Object
+metadata:
+  name: ok1-clusterissuer-staging
+spec:
+  providerConfigRef:
+    name: ok1-kubernetes
+  forProvider:
+    manifest:
+      apiVersion: cert-manager.io/v1
+      kind: ClusterIssuer
+      metadata:
+        name: letsencrypt-staging
+      spec:
+        acme:
+          server: https://acme-staging-v02.api.letsencrypt.org/directory
+          email: arash@kubernauts.io
+          privateKeySecretRef:
+            name: letsencrypt-staging-key
+          solvers:
+            - http01:
+                ingress:
+                  ingressClassName: traefik
+                  podTemplate:
+                    spec:
+                      nodeSelector:
+                        node-role.kubernetes.io/control-plane: ""
+                      tolerations:
+                        - key: node-role.kubernetes.io/control-plane
+                          operator: Exists
+                          effect: NoSchedule
+---
+# ── 4. Let's Encrypt ClusterIssuer (production) ───────────────────────────────
+apiVersion: kubernetes.crossplane.io/v1alpha2
+kind: Object
+metadata:
+  name: ok1-clusterissuer-prod
+spec:
+  providerConfigRef:
+    name: ok1-kubernetes
+  forProvider:
+    manifest:
+      apiVersion: cert-manager.io/v1
+      kind: ClusterIssuer
+      metadata:
+        name: letsencrypt-prod
+      spec:
+        acme:
+          server: https://acme-v02.api.letsencrypt.org/directory
+          email: arash@kubernauts.io
+          privateKeySecretRef:
+            name: letsencrypt-prod-key
+          solvers:
+            - http01:
+                ingress:
+                  ingressClassName: traefik
+                  podTemplate:
+                    spec:
+                      nodeSelector:
+                        node-role.kubernetes.io/control-plane: ""
+                      tolerations:
+                        - key: node-role.kubernetes.io/control-plane
+                          operator: Exists
+                          effect: NoSchedule
+---
+# ── 5. Headlamp Ingress with TLS ──────────────────────────────────────────────
+# Uses letsencrypt-prod — switch to letsencrypt-staging for testing first
+apiVersion: kubernetes.crossplane.io/v1alpha2
+kind: Object
+metadata:
+  name: ok1-ingress-headlamp
+spec:
+  providerConfigRef:
+    name: ok1-kubernetes
+  forProvider:
+    manifest:
+      apiVersion: networking.k8s.io/v1
+      kind: Ingress
+      metadata:
+        name: headlamp
+        namespace: headlamp
+        annotations:
+          cert-manager.io/cluster-issuer: letsencrypt-prod
+          traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
+          traefik.ingress.kubernetes.io/router.tls: "true"
+      spec:
+        ingressClassName: traefik
+        tls:
+          - hosts:
+              - headlamp.openkubes.ai
+            secretName: headlamp-tls
+        rules:
+          - host: headlamp.openkubes.ai
+            http:
+              paths:
+                - path: /
+                  pathType: Prefix
+                  backend:
+                    service:
+                      name: headlamp
+                      port:
+                        number: 80
