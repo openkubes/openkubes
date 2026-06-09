@@ -2,6 +2,113 @@
 
 ---
 
+## v1.0.4 — Ingress + TLS + 5-Command Stack
+
+> **Kubernetes Anywhere. Make it.**
+
+### Zero to Production in 5 Commands
+
+```bash
+make deploy         cluster=ok1   # ~2 min  → Kubernetes cluster
+make kubeconfig     cluster=ok1   # ~5 sec  → kubeconfig saved
+make manager-deploy cluster=ok1   # ~30 sec → Headlamp UI on CP node
+make ingress-setup  cluster=ok1   # ~30 sec → Traefik + INFRA LB
+make cert-setup     cluster=ok1   # ~90 sec → cert-manager + Let's Encrypt
+# → https://headlamp.openkubes.ai  HTTP/2 200 ✅
+```
+
+**Total time: ~4 minutes from zero to production HTTPS.** 🚀
+
+### What's New
+
+#### Ingress Stack (`make ingress-setup`)
+
+Traefik deployed as NodePort on control-plane node — no MetalLB needed on workload clusters.
+INFRA MetalLB acts as proxy via `ok1-lb` Service.
+
+```bash
+make ingress-setup   cluster=ok1             # deploy Traefik + patch INFRA LB
+make ingress-delete  cluster=ok1             # remove Traefik
+make ingress-delete  cluster=ok1 cert=true   # remove Traefik + cert-manager
+make ingress-status  cluster=ok1             # show status
+```
+
+- Auto-reads INFRA kubeconfig from `external-infra-kubeconfig` secret in `capk-system`
+- Auto-detects Traefik NodePorts (with fallback for fresh clusters without named ports)
+- Auto-patches `ok1-lb` INFRA Service to expose 80/443
+- ProviderConfigs (`ok1-helm`, `ok1-kubernetes`) created automatically
+
+#### TLS / cert-manager (`make cert-setup`)
+
+cert-manager v1.17.2 with Let's Encrypt HTTP-01 challenge — fully automated.
+
+```bash
+make cert-setup   cluster=ok1   # deploy cert-manager + ClusterIssuers + Ingress + wait
+make cert-delete  cluster=ok1   # remove cert-manager
+make cert-status  cluster=ok1   # show certificate status
+```
+
+- cert-manager + webhook + cainjector on control-plane node (nodeSelector)
+- `letsencrypt-staging` + `letsencrypt-prod` ClusterIssuers
+- ACME solver pod runs on control-plane node via `podTemplate` (required for INFRA LB routing)
+- Waits for cert-manager `Ready` then waits for certificate `Ready=True`
+
+#### Cluster Manager: Headlamp auto-CP-node (`make manager-deploy`)
+
+Headlamp now automatically deploys on the control-plane node — no manual `kubectl patch` needed.
+
+```bash
+make manager-deploy cluster=ok1   # auto nodeSelector: control-plane ✅
+```
+
+#### Ingress Delete: Ordered Cleanup + cert flag
+
+```bash
+make ingress-delete cluster=ok1             # Traefik only
+make ingress-delete cluster=ok1 cert=true   # Traefik + cert-manager
+```
+
+- Deletes releases and objects first, waits for pod removal
+- Auto-removes finalizer from `ok1-kubernetes` ProviderConfig (no more manual intervention)
+- Resets INFRA LB to 6443-only
+
+#### Full Lifecycle Test
+
+Validated end-to-end: complete delete + recreate cycle tested and documented.
+
+```bash
+make ingress-delete cluster=ok1 cert=true
+make delete         cluster=ok1
+make deploy         cluster=ok1
+make kubeconfig     cluster=ok1
+make manager-deploy cluster=ok1
+make ingress-setup  cluster=ok1
+make cert-setup     cluster=ok1
+curl -I https://headlamp.openkubes.ai
+# → HTTP/2 200 ✅
+```
+
+#### Architecture: Why No MetalLB on Workload Cluster
+
+MetalLB L2 does not work on nested KubeVirt VMs — ARP broadcasts cannot reach
+the physical network. The INFRA MetalLB acts as proxy instead:
+
+```
+Internet → 84.200.100.228 (INFRA MetalLB)
+         → ok1-lb (NodePort → CP node)
+         → Traefik → Headlamp / other services
+```
+
+### New Files
+
+| File | Description |
+|---|---|
+| `crossplane/examples/ok1-providerconfigs.yaml` | Helm + Kubernetes ProviderConfigs for ok1 |
+| `crossplane/examples/ok1-traefik.yaml` | Traefik NodePort, CP node, ingressClass traefik |
+| `crossplane/examples/ok1-certmanager.yaml` | cert-manager + ClusterIssuers + Headlamp Ingress |
+
+---
+
 ## v1.0.3 — OpenKubesVM + Make Everything
 
 > **Run VMs. Run Clusters. Run Anything.**

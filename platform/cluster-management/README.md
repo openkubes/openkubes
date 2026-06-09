@@ -4,24 +4,19 @@ Self-service Kubernetes cluster lifecycle management via Crossplane + Cluster AP
 
 ---
 
-## Quick Start
+## Quick Start — Zero to Production in 5 Commands
 
 ```bash
 cd platform/cluster-management
 
-# One-time setup
-make setup
-
-# Deploy a cluster
-make deploy cluster=ok1
-
-# Get kubeconfig
-make kubeconfig cluster=ok1
-
-# Install Headlamp UI
-make manager-deploy cluster=ok1
-make manager-open   cluster=ok1
+make deploy         cluster=ok1   # ~2 min  → Kubernetes cluster
+make kubeconfig     cluster=ok1   # ~5 sec  → kubeconfig saved
+make manager-deploy cluster=ok1   # ~30 sec → Headlamp UI on CP node
+make ingress-setup  cluster=ok1   # ~30 sec → Traefik + INFRA LB
+make cert-setup     cluster=ok1   # ~90 sec → cert-manager + Let's Encrypt
 ```
+
+Result: `https://headlamp.openkubes.ai` → **HTTP/2 200 OK** with valid TLS certificate 🎉
 
 ---
 
@@ -34,6 +29,7 @@ make manager-open   cluster=ok1
 | clusterctl | for kubeconfig retrieval |
 | Crossplane | installed on management cluster |
 | CAPI + CAPK | installed on management cluster |
+| DNS A-Record | e.g. `headlamp.openkubes.ai → <LB_IP>` for TLS |
 
 ---
 
@@ -45,7 +41,7 @@ make manager-open   cluster=ok1
 make deploy cluster=ok1
 ```
 
-Applies `crossplane/examples/ok1.yaml` and waits for the deploy Job to complete.
+Applies `crossplane/examples/ok1.yaml` and waits for the deploy Job to complete (~2 min).
 
 ### Delete
 
@@ -60,6 +56,7 @@ Cleanly removes the cluster via a Cleanup Job — VMs, namespaces, secrets.
 ```bash
 make kubeconfig cluster=ok1
 # Saved to ~/.kube/ok1.kubeconfig
+
 KUBECONFIG=~/.kube/ok1.kubeconfig kubectl get nodes
 ```
 
@@ -69,15 +66,11 @@ KUBECONFIG=~/.kube/ok1.kubeconfig kubectl get nodes
 make status cluster=ok1
 ```
 
-Shows cluster, machines, jobs and claims.
-
 ### Logs
 
 ```bash
 make logs cluster=ok1
 ```
-
-Follows the most recent deploy/upgrade Job logs.
 
 ---
 
@@ -106,59 +99,100 @@ See [`capi-platform-v4.2/UPGRADE_MVP.md`](./capi-platform-v4.2/UPGRADE_MVP.md) f
 
 ## Cluster Manager (Headlamp)
 
-[Headlamp](https://headlamp.dev) is the official Kubernetes Dashboard successor —
-CNCF Sandbox, part of Kubernetes SIG UI since 2025.
-
-### Install Headlamp on a workload cluster
+[Headlamp](https://headlamp.dev) — CNCF Sandbox, official Kubernetes Dashboard successor.
+Automatically deployed on the control-plane node for INFRA LB compatibility.
 
 ```bash
-make manager-deploy cluster=ok1
-```
-
-### Generate access token
-
-```bash
-make manager-token cluster=ok1
-```
-
-Copy the token and paste it into the Headlamp login screen.
-
-### Open Headlamp in browser
-
-```bash
-make manager-open cluster=ok1
-# Opens http://localhost:8080 automatically
-```
-
-### Show status
-
-```bash
-make manager-status cluster=ok1
-```
-
-### Remove Headlamp
-
-```bash
-make manager-delete cluster=ok1
+make manager-deploy  cluster=ok1   # install (auto nodeSelector: control-plane)
+make manager-token   cluster=ok1   # generate admin token (valid 24h)
+make manager-open    cluster=ok1   # port-forward + open http://localhost:8080
+make manager-status  cluster=ok1   # show pod + service status
+make manager-delete  cluster=ok1   # remove Headlamp
 ```
 
 ---
 
-## Troubleshooting
+## Ingress (Traefik)
 
-### Check for leftover resources
+Traefik is deployed as a NodePort service on the control-plane node.
+Traffic is routed via the INFRA MetalLB LoadBalancer (`cluster-lb`) — no MetalLB needed on the workload cluster.
 
-```bash
-make check cluster=ok1
+```
+Internet → INFRA MetalLB (84.200.100.228)
+         → ok1-lb Service (NodePort)
+         → Traefik (control-plane node)
+         → Headlamp / other services
 ```
 
-### Force cleanup (emergency)
-
 ```bash
-make force-clean cluster=ok1
+make ingress-setup   cluster=ok1   # deploy Traefik + patch INFRA LB
+make ingress-status  cluster=ok1   # show Traefik + LB status
+make ingress-delete  cluster=ok1   # remove Traefik only
+make ingress-delete  cluster=ok1 cert=true   # remove Traefik + cert-manager
 ```
 
-Removes all CAPI/Crossplane resources for the cluster without waiting for graceful deletion.
+### How ingress-setup works
+
+1. Creates `ok1-kubeconfig` Secret in `crossplane-system`
+2. Creates `ok1-helm` + `ok1-kubernetes` ProviderConfigs
+3. Deploys Traefik via Crossplane Helm Release (NodePort, CP node)
+4. Waits for Traefik `Ready`
+5. Reads INFRA kubeconfig from `external-infra-kubeconfig` secret in `capk-system`
+6. Patches `ok1-lb` INFRA Service to expose ports 80/443
+
+---
+
+## TLS / cert-manager
+
+cert-manager with Let's Encrypt HTTP-01 challenge.
+The ACME solver pod runs on the control-plane node (via `podTemplate`) for INFRA LB routing.
+
+```bash
+make cert-setup   cluster=ok1   # deploy cert-manager + ClusterIssuers + Ingress
+make cert-status  cluster=ok1   # show certificate status
+make cert-delete  cluster=ok1   # remove cert-manager
+```
+
+### Prerequisites for TLS
+
+1. DNS A-Record pointing to the INFRA LB IP:
+   ```
+   headlamp.openkubes.ai → 84.200.100.228
+   ```
+2. `crossplane/examples/ok1-certmanager.yaml` with correct email + domain
+
+### How cert-setup works
+
+1. Deploys cert-manager v1.17.2 via Crossplane Helm Release
+2. Creates `letsencrypt-staging` and `letsencrypt-prod` ClusterIssuers
+3. Creates Headlamp Ingress with TLS annotation
+4. Waits for cert-manager `Ready`
+5. Waits for certificate `Ready=True`
+
+---
+
+## Full Lifecycle Test (Delete + Recreate)
+
+Tested end-to-end — complete stack from zero to production:
+
+```bash
+# 1. Delete everything
+make ingress-delete cluster=ok1 cert=true   # remove Traefik + cert-manager
+make delete         cluster=ok1             # delete workload cluster
+
+# 2. Recreate
+make deploy         cluster=ok1             # ~2 min
+make kubeconfig     cluster=ok1             # ~5 sec
+make manager-deploy cluster=ok1             # ~30 sec (auto CP node)
+make ingress-setup  cluster=ok1             # ~30 sec
+make cert-setup     cluster=ok1             # ~90 sec
+
+# 3. Verify
+curl -I https://headlamp.openkubes.ai
+# → HTTP/2 200 ✅
+```
+
+Total time from zero to `https://headlamp.openkubes.ai`: **~4 minutes** 🚀
 
 ---
 
@@ -201,11 +235,38 @@ spec:
 | `make logs cluster=ok1` | Follow deploy Job logs |
 | `make check cluster=ok1` | Check for leftover resources |
 | `make force-clean cluster=ok1` | Emergency cleanup |
-| `make manager-deploy cluster=ok1` | Install Headlamp on workload cluster |
-| `make manager-token cluster=ok1` | Generate Headlamp admin token |
+| `make manager-deploy cluster=ok1` | Install Headlamp on CP node |
+| `make manager-token cluster=ok1` | Generate Headlamp admin token (24h) |
 | `make manager-open cluster=ok1` | Port-forward + open browser |
 | `make manager-status cluster=ok1` | Show Headlamp status |
 | `make manager-delete cluster=ok1` | Remove Headlamp |
+| `make ingress-setup cluster=ok1` | Deploy Traefik + patch INFRA LB |
+| `make ingress-delete cluster=ok1` | Remove Traefik |
+| `make ingress-delete cluster=ok1 cert=true` | Remove Traefik + cert-manager |
+| `make ingress-status cluster=ok1` | Show Traefik + LB status |
+| `make cert-setup cluster=ok1` | Deploy cert-manager + Let's Encrypt |
+| `make cert-delete cluster=ok1` | Remove cert-manager |
+| `make cert-status cluster=ok1` | Show certificate status |
+
+---
+
+## Architecture Notes
+
+### Why no MetalLB on workload cluster?
+
+MetalLB L2 does not work reliably on nested KubeVirt VMs because ARP broadcasts
+cannot reach the physical network. Instead, the INFRA MetalLB acts as a proxy:
+
+```
+INFRA MetalLB Pool: 84.200.100.224-84.200.100.240
+ok1-lb Service:     84.200.100.228 → CP Node NodePorts
+```
+
+### Why control-plane node for Traefik and Headlamp?
+
+The `ok1-lb` INFRA Service selector targets only `role: control-plane` nodes.
+All workload-facing services (Traefik, Headlamp, ACME solver) must run on the
+CP node to receive traffic from the INFRA LB.
 
 ---
 
@@ -215,4 +276,6 @@ spec:
 - [Cluster API](https://cluster-api.sigs.k8s.io)
 - [CAPK (KubeVirt Provider)](https://github.com/kubernetes-sigs/cluster-api-provider-kubevirt)
 - [Headlamp](https://headlamp.dev)
+- [Traefik](https://traefik.io)
+- [cert-manager](https://cert-manager.io)
 - Related: [`platform/virtualization/openkubesvm/`](../virtualization/openkubesvm/README.md)
