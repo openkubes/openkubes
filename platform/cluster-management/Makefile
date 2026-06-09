@@ -374,6 +374,11 @@ ingress-setup:
 	API_NP=$$(KUBECONFIG=/tmp/infra-$(cluster).kubeconfig \
 	  kubectl get svc $(cluster)-lb -n $(cluster) \
 	  -o jsonpath='{.spec.ports[?(@.name=="k8s-api")].nodePort}' 2>/dev/null); \
+	if [ -z "$$API_NP" ]; then \
+	  API_NP=$$(KUBECONFIG=/tmp/infra-$(cluster).kubeconfig \
+	    kubectl get svc $(cluster)-lb -n $(cluster) \
+	    -o jsonpath='{.spec.ports[0].nodePort}' 2>/dev/null); \
+	fi; \
 	echo "[ingress] NodePorts: http=$$HTTP_NP https=$$HTTPS_NP api=$$API_NP"; \
 	KUBECONFIG=/tmp/infra-$(cluster).kubeconfig \
 	  kubectl patch svc $(cluster)-lb -n $(cluster) --type merge -p \
@@ -445,6 +450,11 @@ ingress-delete:
 	@API_NP=$$(KUBECONFIG=/tmp/infra-$(cluster).kubeconfig \
 	  kubectl get svc $(cluster)-lb -n $(cluster) \
 	  -o jsonpath='{.spec.ports[?(@.name=="k8s-api")].nodePort}' 2>/dev/null); \
+	if [ -z "$$API_NP" ]; then \
+	  API_NP=$$(KUBECONFIG=/tmp/infra-$(cluster).kubeconfig \
+	    kubectl get svc $(cluster)-lb -n $(cluster) \
+	    -o jsonpath='{.spec.ports[0].nodePort}' 2>/dev/null); \
+	fi; \
 	KUBECONFIG=/tmp/infra-$(cluster).kubeconfig \
 	  kubectl patch svc $(cluster)-lb -n $(cluster) --type merge -p \
 	  "{\"spec\":{\"ports\":[{\"name\":\"k8s-api\",\"nodePort\":$$API_NP,\"port\":6443,\"protocol\":\"TCP\",\"targetPort\":6443}]}}"; \
