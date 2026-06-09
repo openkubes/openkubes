@@ -1,4 +1,4 @@
-# OpenKubes Platform
+# OpenKubes
 
 <!-- SHIELDS -->
 ![Release](https://img.shields.io/github/v/release/openkubes/openkubes)
@@ -27,7 +27,7 @@ OpenKubes is a platform engineering toolkit that runs Kubernetes clusters, virtu
 | `openkubes/openkubes-ai` | AI Inference & Model Runtime | 🚧 coming soon |
 | `openkubes/openkubes-anywhere` | Multi-Cloud & Hybrid Operations | 🚧 coming soon |
 
-> 🚀 **Community Preview v1.0.3** — VMs, Clusters, Headlamp UI — all via `make`.
+> 🚀 **Community Preview v1.0.4** — VMs, Clusters, Ingress, TLS — all via `make`.
 > Live demo: [rmf.openkubes.ai](https://rmf.openkubes.ai/dashboard/login) · Docs: [docs.openkubes.ai](https://docs.openkubes.ai) *(coming soon)*
 
 ---
@@ -58,6 +58,16 @@ make status     cluster=ok1                              # show status
 make manager-deploy  cluster=ok1   # install Headlamp UI on workload cluster
 make manager-token   cluster=ok1   # generate admin token
 make manager-open    cluster=ok1   # port-forward + open browser
+
+# Ingress (Traefik via INFRA LB proxy)
+make ingress-setup   cluster=ok1   # deploy Traefik + patch INFRA LB
+make ingress-delete  cluster=ok1   # remove Traefik
+make ingress-delete  cluster=ok1 cert=true  # remove Traefik + cert-manager
+
+# TLS / cert-manager
+make cert-setup      cluster=ok1   # cert-manager + Let's Encrypt
+make cert-delete     cluster=ok1   # remove cert-manager
+make cert-status     cluster=ok1   # show certificate status
 ```
 
 > **Kubernetes Anywhere. Make it.**
@@ -94,6 +104,11 @@ make kubeconfig cluster=ok1
 make manager-deploy cluster=ok1
 make manager-token  cluster=ok1   # copy token
 make manager-open   cluster=ok1   # opens http://localhost:8080
+
+# 6. Ingress + TLS
+make ingress-setup  cluster=ok1   # Traefik + INFRA LB
+make cert-setup     cluster=ok1   # cert-manager + Let's Encrypt
+# → https://headlamp.openkubes.ai  HTTP/2 200 ✅
 ```
 
 → Full walkthrough: [`docs/getting-started/README.md`](./docs/getting-started/README.md)
@@ -183,6 +198,13 @@ make help
 | `make manager-open   cluster=ok1` | Port-forward + open browser |
 | `make manager-status cluster=ok1` | Show Headlamp status |
 | `make manager-delete cluster=ok1` | Remove Headlamp |
+| `make ingress-setup  cluster=ok1` | Deploy Traefik + patch INFRA LB |
+| `make ingress-delete cluster=ok1` | Remove Traefik |
+| `make ingress-delete cluster=ok1 cert=true` | Remove Traefik + cert-manager |
+| `make ingress-status cluster=ok1` | Show Traefik + LB status |
+| `make cert-setup     cluster=ok1` | Deploy cert-manager + Let's Encrypt |
+| `make cert-delete    cluster=ok1` | Remove cert-manager |
+| `make cert-status    cluster=ok1` | Show certificate status |
 
 → [`platform/cluster-management/README.md`](./platform/cluster-management/README.md)
 
@@ -220,20 +242,28 @@ make help
 
 ## Roadmap
 
+### v1.0.4 — Done ✅
+- [x] Traefik Ingress via INFRA LB proxy (no MetalLB on workload cluster)
+- [x] cert-manager + Let's Encrypt TLS (`make cert-setup`)
+- [x] Headlamp auto-deployed on CP node (`make manager-deploy`)
+- [x] Ordered ingress cleanup with `cert=true` flag
+- [x] Full lifecycle test documented (delete + recreate → 4 min)
+
 ### v1.1.0
-- [ ] OpenKubesClusterManager — Headlamp multi-cluster UI via Crossplane
+- [ ] OpenKubes Anywhere — EKS, AKS, GKE via unified OpenKubesCluster API
+- [ ] OpenKubesClusterManager — Headlamp multi-cluster via Crossplane
 - [ ] OpenKubesStorage — self-service PVC + StorageClass management
-- [ ] OpenKubesNetworking — Network policies + LoadBalancer management
-- [ ] Status writeback for OpenKubesVM (phase, IP)
+- [ ] Rolling upgrade via CAPK v0.12.x evaluation
 
 ### v1.2.0
-- [ ] Rolling upgrade via CAPK v0.12.x evaluation
+- [ ] OpenKubesMetal — Bare Metal via Metal3
 - [ ] Observability stack (Prometheus + Grafana)
 - [ ] Multi-cluster dashboard
 
 ### v2.0.0
+- [ ] OpenKubes Fleet — multi-cluster GitOps
+- [ ] OpenKubes Robotics — Open-RMF + ROS2
 - [ ] Native Go operator (`openkubes-operator`)
-- [ ] Full reconcile loop with Events and Conditions
 - [ ] OperatorHub publication
 
 ---
