@@ -18,20 +18,7 @@
 #   kubectl apply -f ok1-traefik.yaml
 # ═══════════════════════════════════════════════════════════════════════════════
 
-# ── 1. provider-kubernetes ProviderConfig for ok1 ─────────────────────────────
-apiVersion: kubernetes.crossplane.io/v1alpha1
-kind: ProviderConfig
-metadata:
-  name: ok1-kubernetes
-spec:
-  credentials:
-    source: Secret
-    secretRef:
-      namespace: crossplane-system
-      name: ok1-kubeconfig
-      key: kubeconfig
----
-# ── 2. traefik namespace on ok1 ───────────────────────────────────────────────
+# ── 1. traefik namespace on ok1 ───────────────────────────────────────────────
 apiVersion: kubernetes.crossplane.io/v1alpha2
 kind: Object
 metadata:

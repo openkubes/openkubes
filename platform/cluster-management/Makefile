@@ -10,7 +10,7 @@ crossplane_dir ?= crossplane
 runner_image   ?= kubernautslabs/capi-platform-runner:v4.2
 kubeconfig_dir ?= $(HOME)/.kube
 
-.PHONY: help setup deploy delete status logs check force-clean kubeconfig upgrade recreate manager-deploy manager-delete manager-status manager-open ingress-setup ingress-delete ingress-status
+.PHONY: help setup deploy delete status logs check force-clean kubeconfig upgrade recreate manager-deploy manager-delete manager-status manager-open ingress-setup ingress-delete ingress-status cert-setup cert-delete cert-status
 
 help:
 	@echo ""
@@ -20,12 +20,13 @@ help:
 	@echo "  make setup                              Apply all Crossplane XRDs and Compositions"
 	@echo ""
 	@echo "Cluster Lifecycle:"
-	@echo "  make deploy      cluster=ok1            Deploy a workload cluster"
-	@echo "  make delete      cluster=ok1            Clean delete (Cleanup Job + remove claims)"
-	@echo "  make kubeconfig  cluster=ok1            Get workload cluster kubeconfig"
-	@echo "  make upgrade     cluster=ok1 kubernetes-version=v1.34.1  Upgrade cluster (patches claim + triggers Job)"
-	@echo "  make status      cluster=ok1            Show cluster status"
-	@echo "  make logs        cluster=ok1            Follow deploy Job logs"
+	@echo "  make deploy      cluster=ok1                              Deploy a workload cluster"
+	@echo "  make delete      cluster=ok1                              Clean delete (Cleanup Job + remove claims)"
+	@echo "  make kubeconfig  cluster=ok1                              Get workload cluster kubeconfig"
+	@echo "  make recreate    cluster=ok1 kubernetes-version=v1.34.1  Recreate cluster on new version (reliable)"
+	@echo "  make upgrade     cluster=ok1 kubernetes-version=v1.34.1  Rolling upgrade (experimental, CAPK v0.12+)"
+	@echo "  make status      cluster=ok1                              Show cluster status"
+	@echo "  make logs        cluster=ok1                              Follow deploy Job logs"
 	@echo ""
 	@echo "Troubleshooting:"
 	@echo "  make check       cluster=ok1            Check for leftover resources"
@@ -43,6 +44,11 @@ help:
 	@echo "  make ingress-delete  cluster=ok1             Remove Traefik"
 	@echo "  make ingress-delete  cluster=ok1 cert=true   Remove Traefik + cert-manager"
 	@echo "  make ingress-status  cluster=ok1             Show Traefik + LB status"
+	@echo ""
+	@echo "TLS / cert-manager:"
+	@echo "  make cert-setup  cluster=ok1            Deploy cert-manager + Let's Encrypt ClusterIssuers"
+	@echo "  make cert-delete cluster=ok1            Remove cert-manager"
+	@echo "  make cert-status cluster=ok1            Show certificate status"
 	@echo ""
 
 # ---------------------------------------------------------------
@@ -257,6 +263,10 @@ manager-deploy:
 	@KUBECONFIG=$(kubeconfig_dir)/$(cluster).kubeconfig \
 	  helm upgrade --install headlamp headlamp/headlamp \
 	  --namespace headlamp --create-namespace \
+	  --set nodeSelector."node-role\.kubernetes\.io/control-plane"="" \
+	  --set tolerations[0].key="node-role.kubernetes.io/control-plane" \
+	  --set tolerations[0].operator="Exists" \
+	  --set tolerations[0].effect="NoSchedule" \
 	  --wait --timeout 120s
 	@echo "[manager] Headlamp installed on cluster '$(cluster)' ✅"
 	@echo ""
@@ -484,3 +494,70 @@ ingress-status:
 	  -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null); \
 	echo ""; \
 	echo "Access: http://$$LB_IP  https://$$LB_IP"
+
+# ---------------------------------------------------------------
+# Cert Setup – deploy cert-manager + Let's Encrypt ClusterIssuers
+# ---------------------------------------------------------------
+cert-setup:
+	@test -n "$(cluster)" || (echo "ERROR: cluster is required  →  make cert-setup cluster=ok1"; exit 1)
+	@test -f "$(examples_dir)/$(cluster)-certmanager.yaml" || \
+	  (echo "ERROR: $(examples_dir)/$(cluster)-certmanager.yaml not found"; exit 1)
+	@echo "[cert] deploying cert-manager on cluster '$(cluster)'..."
+	@kubectl apply -f "$(examples_dir)/$(cluster)-certmanager.yaml"
+	@echo "[cert] waiting for cert-manager to be ready (up to 5min)..."
+	@for i in $$(seq 1 30); do \
+	  READY=$$(kubectl get release.helm.crossplane.io certmanager-$(cluster) \
+	    -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null || echo ""); \
+	  echo "[cert] cert-manager READY=$$READY ($$i/30)"; \
+	  if [ "$$READY" = "True" ]; then break; fi; \
+	  [ "$$i" = "30" ] && echo "[cert] WARNING: cert-manager timeout"; \
+	  /bin/sleep 10; \
+	done
+	@echo "[cert] waiting for certificate to be issued..."
+	@for i in $$(seq 1 30); do \
+	  READY=$$(KUBECONFIG=$(kubeconfig_dir)/$(cluster).kubeconfig \
+	    kubectl get certificate -A \
+	    -o jsonpath='{.items[0].status.conditions[?(@.type=="Ready")].status}' 2>/dev/null || echo ""); \
+	  echo "[cert] certificate READY=$$READY ($$i/30)"; \
+	  if [ "$$READY" = "True" ]; then \
+	    echo "[cert] ✅ Certificate issued!"; \
+	    break; \
+	  fi; \
+	  [ "$$i" = "30" ] && echo "[cert] WARNING: certificate timeout — check: make cert-status cluster=$(cluster)"; \
+	  /bin/sleep 10; \
+	done
+
+# ---------------------------------------------------------------
+# Cert Delete – remove cert-manager
+# ---------------------------------------------------------------
+cert-delete:
+	@test -n "$(cluster)" || (echo "ERROR: cluster is required  →  make cert-delete cluster=ok1"; exit 1)
+	@echo "[cert] removing cert-manager from cluster '$(cluster)'..."
+	@kubectl delete release.helm.crossplane.io certmanager-$(cluster) --ignore-not-found 2>/dev/null || true
+	@kubectl delete object.kubernetes.crossplane.io \
+	  $(cluster)-ns-certmanager \
+	  $(cluster)-clusterissuer-staging \
+	  $(cluster)-clusterissuer-prod \
+	  $(cluster)-ingress-headlamp \
+	  --ignore-not-found 2>/dev/null || true
+	@echo "[cert] cert-manager removed ✅"
+
+# ---------------------------------------------------------------
+# Cert Status – show certificate status
+# ---------------------------------------------------------------
+cert-status:
+	@test -n "$(cluster)" || (echo "ERROR: cluster is required  →  make cert-status cluster=ok1"; exit 1)
+	@echo "=== cert-manager Release ==="
+	@kubectl get release.helm.crossplane.io certmanager-$(cluster) 2>/dev/null || echo "cert-manager not installed"
+	@echo ""
+	@echo "=== ClusterIssuers ==="
+	@KUBECONFIG=$(kubeconfig_dir)/$(cluster).kubeconfig \
+	  kubectl get clusterissuer 2>/dev/null || echo "No ClusterIssuers found"
+	@echo ""
+	@echo "=== Certificates ==="
+	@KUBECONFIG=$(kubeconfig_dir)/$(cluster).kubeconfig \
+	  kubectl get certificate -A 2>/dev/null || echo "No certificates found"
+	@echo ""
+	@echo "=== Ingresses ==="
+	@KUBECONFIG=$(kubeconfig_dir)/$(cluster).kubeconfig \
+	  kubectl get ingress -A 2>/dev/null || echo "No ingresses found"
