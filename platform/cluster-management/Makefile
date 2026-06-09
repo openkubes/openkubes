@@ -10,7 +10,7 @@ crossplane_dir ?= crossplane
 runner_image   ?= kubernautslabs/capi-platform-runner:v4.2
 kubeconfig_dir ?= $(HOME)/.kube
 
-.PHONY: help setup deploy delete status logs check force-clean kubeconfig upgrade recreate manager-deploy manager-delete manager-status manager-open
+.PHONY: help setup deploy delete status logs check force-clean kubeconfig upgrade recreate manager-deploy manager-delete manager-status manager-open ingress-setup ingress-delete ingress-status
 
 help:
 	@echo ""
@@ -37,6 +37,11 @@ help:
 	@echo "  make manager-delete  cluster=ok1        Remove Headlamp from workload cluster"
 	@echo "  make manager-status  cluster=ok1        Show Headlamp status + URL"
 	@echo "  make manager-open    cluster=ok1        Port-forward + open browser"
+	@echo ""
+	@echo "Ingress (Traefik via INFRA LB proxy):"
+	@echo "  make ingress-setup   cluster=ok1        Deploy Traefik via Crossplane (no MetalLB)"
+	@echo "  make ingress-delete  cluster=ok1        Remove Traefik"
+	@echo "  make ingress-status  cluster=ok1        Show Traefik + LB status"
 	@echo ""
 
 # ---------------------------------------------------------------
@@ -319,3 +324,110 @@ manager-open:
 	  xdg-open http://localhost:8080 2>/dev/null || true) &
 	@KUBECONFIG=$(kubeconfig_dir)/$(cluster).kubeconfig \
 	  kubectl port-forward svc/headlamp -n headlamp 8080:80
+
+# ---------------------------------------------------------------
+# Ingress Setup – deploy Traefik via Crossplane (no MetalLB needed)
+#
+# How it works:
+#   1. Creates Crossplane ProviderConfigs for workload cluster
+#   2. Deploys Traefik as NodePort on control-plane node
+#   3. Auto-detects Traefik NodePorts
+#   4. Patches INFRA LoadBalancer (cluster-lb) to expose 80/443
+#
+# Note: No MetalLB needed — INFRA MetalLB acts as proxy via cluster-lb.
+#       Traefik runs on control-plane node (required for INFRA LB routing).
+# ---------------------------------------------------------------
+ingress-setup:
+	@test -n "$(cluster)" || (echo "ERROR: cluster is required  →  make ingress-setup cluster=ok1"; exit 1)
+	@test -f "$(kubeconfig_dir)/$(cluster).kubeconfig" || \
+	  (echo "ERROR: kubeconfig not found — run: make kubeconfig cluster=$(cluster)"; exit 1)
+	@echo "[ingress] setting up Traefik on cluster '$(cluster)'..."
+	@echo ""
+	@echo "[ingress] step 1: creating Crossplane ProviderConfigs..."
+	@kubectl create secret generic $(cluster)-kubeconfig \
+	  -n crossplane-system \
+	  --from-file=kubeconfig=$(kubeconfig_dir)/$(cluster).kubeconfig \
+	  --dry-run=client -o yaml | kubectl apply -f -
+	@kubectl apply -f "$(examples_dir)/$(cluster)-traefik.yaml"
+	@echo "[ingress] step 2: waiting for Traefik to be ready (up to 5min)..."
+	@for i in $$(seq 1 30); do \
+	  READY=$$(KUBECONFIG=$(kubeconfig_dir)/$(cluster).kubeconfig \
+	    kubectl get pods -n traefik \
+	    -o jsonpath='{.items[0].status.conditions[?(@.type=="Ready")].status}' 2>/dev/null || echo ""); \
+	  echo "[ingress] Traefik READY=$$READY ($$i/30)"; \
+	  if [ "$$READY" = "True" ]; then break; fi; \
+	  [ "$$i" = "30" ] && echo "[ingress] WARNING: Traefik timeout — check: kubectl get release traefik-$(cluster)"; \
+	  /bin/sleep 10; \
+	done
+	@echo "[ingress] step 3: patching INFRA LoadBalancer to expose 80/443..."
+	@echo "[ingress] reading INFRA kubeconfig from CAPK secret..."
+	@kubectl get secret external-infra-kubeconfig -n capk-system \
+	  -o jsonpath='{.data.kubeconfig}' | base64 -d > /tmp/infra-$(cluster).kubeconfig
+	@HTTP_NP=$$(KUBECONFIG=$(kubeconfig_dir)/$(cluster).kubeconfig \
+	  kubectl get svc traefik-$(cluster) -n traefik \
+	  -o jsonpath='{.spec.ports[?(@.name=="web")].nodePort}' 2>/dev/null); \
+	HTTPS_NP=$$(KUBECONFIG=$(kubeconfig_dir)/$(cluster).kubeconfig \
+	  kubectl get svc traefik-$(cluster) -n traefik \
+	  -o jsonpath='{.spec.ports[?(@.name=="websecure")].nodePort}' 2>/dev/null); \
+	API_NP=$$(KUBECONFIG=/tmp/infra-$(cluster).kubeconfig \
+	  kubectl get svc $(cluster)-lb -n $(cluster) \
+	  -o jsonpath='{.spec.ports[?(@.name=="k8s-api")].nodePort}' 2>/dev/null); \
+	echo "[ingress] NodePorts: http=$$HTTP_NP https=$$HTTPS_NP api=$$API_NP"; \
+	KUBECONFIG=/tmp/infra-$(cluster).kubeconfig \
+	  kubectl patch svc $(cluster)-lb -n $(cluster) --type merge -p \
+	  "{\"spec\":{\"ports\":[{\"name\":\"k8s-api\",\"nodePort\":$$API_NP,\"port\":6443,\"protocol\":\"TCP\",\"targetPort\":6443},{\"name\":\"http\",\"nodePort\":$$HTTP_NP,\"port\":80,\"protocol\":\"TCP\",\"targetPort\":$$HTTP_NP},{\"name\":\"https\",\"nodePort\":$$HTTPS_NP,\"port\":443,\"protocol\":\"TCP\",\"targetPort\":$$HTTPS_NP}]}}"; \
+	LB_IP=$$(KUBECONFIG=/tmp/infra-$(cluster).kubeconfig \
+	  kubectl get svc $(cluster)-lb -n $(cluster) \
+	  -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null); \
+	rm -f /tmp/infra-$(cluster).kubeconfig; \
+	echo ""; \
+	echo "[ingress] ✅ Traefik is ready!"; \
+	echo "[ingress] HTTP:  http://$$LB_IP"; \
+	echo "[ingress] HTTPS: https://$$LB_IP"; \
+	echo "[ingress] Example: curl -I http://myapp.$$LB_IP.nip.io"
+
+# ---------------------------------------------------------------
+# Ingress Delete – remove Traefik
+# ---------------------------------------------------------------
+ingress-delete:
+	@test -n "$(cluster)" || (echo "ERROR: cluster is required  →  make ingress-delete cluster=ok1"; exit 1)
+	@echo "[ingress] removing Traefik from cluster '$(cluster)'..."
+	@kubectl delete release.helm.crossplane.io traefik-$(cluster) --ignore-not-found 2>/dev/null || true
+	@kubectl delete object.kubernetes.crossplane.io \
+	  $(cluster)-ns-traefik --ignore-not-found 2>/dev/null || true
+	@kubectl delete providerconfig.kubernetes.crossplane.io \
+	  $(cluster)-kubernetes --ignore-not-found 2>/dev/null || true
+	@echo "[ingress] removing 80/443 from INFRA LoadBalancer..."
+	@kubectl get secret external-infra-kubeconfig -n capk-system \
+	  -o jsonpath='{.data.kubeconfig}' | base64 -d > /tmp/infra-$(cluster).kubeconfig
+	@API_NP=$$(KUBECONFIG=/tmp/infra-$(cluster).kubeconfig \
+	  kubectl get svc $(cluster)-lb -n $(cluster) \
+	  -o jsonpath='{.spec.ports[?(@.name=="k8s-api")].nodePort}' 2>/dev/null); \
+	KUBECONFIG=/tmp/infra-$(cluster).kubeconfig \
+	  kubectl patch svc $(cluster)-lb -n $(cluster) --type merge -p \
+	  "{\"spec\":{\"ports\":[{\"name\":\"k8s-api\",\"nodePort\":$$API_NP,\"port\":6443,\"protocol\":\"TCP\",\"targetPort\":6443}]}}"; \
+	rm -f /tmp/infra-$(cluster).kubeconfig
+	@echo "[ingress] Traefik removed ✅"
+
+# ---------------------------------------------------------------
+# Ingress Status – show Traefik + LoadBalancer status
+# ---------------------------------------------------------------
+ingress-status:
+	@test -n "$(cluster)" || (echo "ERROR: cluster is required  →  make ingress-status cluster=ok1"; exit 1)
+	@echo "=== Crossplane Releases ==="
+	@kubectl get release.helm.crossplane.io 2>/dev/null | grep -E "metallb|traefik" || echo "No releases found"
+	@echo ""
+	@echo "=== Traefik Pod on $(cluster) ==="
+	@KUBECONFIG=$(kubeconfig_dir)/$(cluster).kubeconfig \
+	  kubectl get pods -n traefik 2>/dev/null || echo "Traefik not found"
+	@echo ""
+	@echo "=== Traefik Service on $(cluster) ==="
+	@KUBECONFIG=$(kubeconfig_dir)/$(cluster).kubeconfig \
+	  kubectl get svc -n traefik 2>/dev/null || echo "No service found"
+	@echo ""
+	@echo "=== INFRA LoadBalancer ==="
+	@kubectl get svc $(cluster)-lb -n $(cluster) 2>/dev/null || echo "No LB found"
+	@LB_IP=$$(kubectl get svc $(cluster)-lb -n $(cluster) \
+	  -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null); \
+	echo ""; \
+	echo "Access: http://$$LB_IP  https://$$LB_IP"

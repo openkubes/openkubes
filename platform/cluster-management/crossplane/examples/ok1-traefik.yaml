@@ -1,0 +1,91 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# OpenKubes – Traefik on ok1 Workload Cluster via Crossplane
+#
+# No MetalLB needed! Traffic is routed via INFRA LoadBalancer (ok1-lb).
+#
+# Architecture:
+#   Internet → 84.200.100.228 (INFRA MetalLB)
+#            → ok1-lb Service (NodePort)
+#            → CP Node → Traefik (NodePort)
+#            → Headlamp / other Services
+#
+# Prerequisites:
+#   kubectl create secret generic ok1-kubeconfig \
+#     -n crossplane-system \
+#     --from-file=kubeconfig=~/.kube/ok1.kubeconfig
+#
+# Apply:
+#   kubectl apply -f ok1-traefik.yaml
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# ── 1. provider-kubernetes ProviderConfig for ok1 ─────────────────────────────
+apiVersion: kubernetes.crossplane.io/v1alpha1
+kind: ProviderConfig
+metadata:
+  name: ok1-kubernetes
+spec:
+  credentials:
+    source: Secret
+    secretRef:
+      namespace: crossplane-system
+      name: ok1-kubeconfig
+      key: kubeconfig
+---
+# ── 2. traefik namespace on ok1 ───────────────────────────────────────────────
+apiVersion: kubernetes.crossplane.io/v1alpha2
+kind: Object
+metadata:
+  name: ok1-ns-traefik
+spec:
+  providerConfigRef:
+    name: ok1-kubernetes
+  forProvider:
+    manifest:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: traefik
+---
+# ── 3. Traefik Helm Release on ok1 ────────────────────────────────────────────
+# NodePort service — no MetalLB needed
+# nodeSelector: control-plane — required for INFRA LB proxy to work
+# ingressClass.name: traefik — explicit name to avoid random suffix
+apiVersion: helm.crossplane.io/v1beta1
+kind: Release
+metadata:
+  name: traefik-ok1
+spec:
+  providerConfigRef:
+    name: ok1-helm
+  forProvider:
+    chart:
+      name: traefik
+      repository: https://helm.traefik.io/traefik
+      version: "34.4.1"
+    namespace: traefik
+    wait: true
+    waitTimeout: 300s
+    values:
+      service:
+        type: NodePort
+      ingressClass:
+        enabled: true
+        isDefaultClass: true
+        name: traefik
+      nodeSelector:
+        node-role.kubernetes.io/control-plane: ""
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+      ports:
+        web:
+          port: 8000
+          exposedPort: 80
+          expose:
+            default: true
+        websecure:
+          port: 8443
+          exposedPort: 443
+          expose:
+            default: true
