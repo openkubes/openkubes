@@ -39,9 +39,10 @@ help:
 	@echo "  make manager-open    cluster=ok1        Port-forward + open browser"
 	@echo ""
 	@echo "Ingress (Traefik via INFRA LB proxy):"
-	@echo "  make ingress-setup   cluster=ok1        Deploy Traefik via Crossplane (no MetalLB)"
-	@echo "  make ingress-delete  cluster=ok1        Remove Traefik"
-	@echo "  make ingress-status  cluster=ok1        Show Traefik + LB status"
+	@echo "  make ingress-setup   cluster=ok1             Deploy Traefik via Crossplane (no MetalLB)"
+	@echo "  make ingress-delete  cluster=ok1             Remove Traefik"
+	@echo "  make ingress-delete  cluster=ok1 cert=true   Remove Traefik + cert-manager"
+	@echo "  make ingress-status  cluster=ok1             Show Traefik + LB status"
 	@echo ""
 
 # ---------------------------------------------------------------
@@ -348,6 +349,7 @@ ingress-setup:
 	  -n crossplane-system \
 	  --from-file=kubeconfig=$(kubeconfig_dir)/$(cluster).kubeconfig \
 	  --dry-run=client -o yaml | kubectl apply -f -
+	@kubectl apply -f "$(examples_dir)/$(cluster)-providerconfigs.yaml"
 	@kubectl apply -f "$(examples_dir)/$(cluster)-traefik.yaml"
 	@echo "[ingress] step 2: waiting for Traefik to be ready (up to 5min)..."
 	@for i in $$(seq 1 30); do \
@@ -387,17 +389,57 @@ ingress-setup:
 	echo "[ingress] Example: curl -I http://myapp.$$LB_IP.nip.io"
 
 # ---------------------------------------------------------------
-# Ingress Delete – remove Traefik
+# Ingress Delete – remove Traefik (and optionally cert-manager)
+#
+# Usage:
+#   make ingress-delete cluster=ok1           # Traefik only
+#   make ingress-delete cluster=ok1 cert=true # Traefik + cert-manager
 # ---------------------------------------------------------------
+cert ?=
 ingress-delete:
 	@test -n "$(cluster)" || (echo "ERROR: cluster is required  →  make ingress-delete cluster=ok1"; exit 1)
-	@echo "[ingress] removing Traefik from cluster '$(cluster)'..."
-	@kubectl delete release.helm.crossplane.io traefik-$(cluster) --ignore-not-found 2>/dev/null || true
+	@echo "[ingress] removing ingress stack from cluster '$(cluster)'..."
+	@echo ""
+	@# Step 1: delete cert-manager if requested
+	@if [ "$(cert)" = "true" ]; then \
+	  echo "[ingress] removing cert-manager..."; \
+	  kubectl delete release.helm.crossplane.io certmanager-$(cluster) --ignore-not-found 2>/dev/null || true; \
+	  kubectl delete object.kubernetes.crossplane.io \
+	    $(cluster)-ns-certmanager \
+	    $(cluster)-clusterissuer-staging \
+	    $(cluster)-clusterissuer-prod \
+	    $(cluster)-ingress-headlamp \
+	    --ignore-not-found 2>/dev/null || true; \
+	  echo "[ingress] waiting for cert-manager removal..."; \
+	  for i in $$(seq 1 20); do \
+	    COUNT=$$(KUBECONFIG=$(kubeconfig_dir)/$(cluster).kubeconfig \
+	      kubectl get pods -n cert-manager --no-headers 2>/dev/null | wc -l | tr -d ' '); \
+	    echo "[ingress] cert-manager pods remaining: $$COUNT ($$i/20)"; \
+	    [ "$$COUNT" = "0" ] && break; \
+	    /bin/sleep 5; \
+	  done; \
+	fi
+	@echo "[ingress] step 1: removing Traefik release + objects..."
+	@kubectl delete release.helm.crossplane.io traefik-$(cluster) \
+	  --ignore-not-found 2>/dev/null || true
 	@kubectl delete object.kubernetes.crossplane.io \
 	  $(cluster)-ns-traefik --ignore-not-found 2>/dev/null || true
+	@echo "[ingress] step 2: waiting for Traefik to be removed from workload cluster..."
+	@for i in $$(seq 1 20); do \
+	  COUNT=$$(KUBECONFIG=$(kubeconfig_dir)/$(cluster).kubeconfig \
+	    kubectl get pods -n traefik --no-headers 2>/dev/null | wc -l | tr -d ' '); \
+	  echo "[ingress] Traefik pods remaining: $$COUNT ($$i/20)"; \
+	  [ "$$COUNT" = "0" ] && break; \
+	  /bin/sleep 5; \
+	done
+	@echo "[ingress] step 3: removing ProviderConfigs..."
+	@kubectl patch providerconfig.kubernetes.crossplane.io $(cluster)-kubernetes \
+	  --type merge -p '{"metadata":{"finalizers":[]}}' 2>/dev/null || true
+	@kubectl delete providerconfig.helm.crossplane.io \
+	  $(cluster)-helm --ignore-not-found 2>/dev/null || true
 	@kubectl delete providerconfig.kubernetes.crossplane.io \
 	  $(cluster)-kubernetes --ignore-not-found 2>/dev/null || true
-	@echo "[ingress] removing 80/443 from INFRA LoadBalancer..."
+	@echo "[ingress] step 4: removing 80/443 from INFRA LoadBalancer..."
 	@kubectl get secret external-infra-kubeconfig -n capk-system \
 	  -o jsonpath='{.data.kubeconfig}' | base64 -d > /tmp/infra-$(cluster).kubeconfig
 	@API_NP=$$(KUBECONFIG=/tmp/infra-$(cluster).kubeconfig \
@@ -407,7 +449,8 @@ ingress-delete:
 	  kubectl patch svc $(cluster)-lb -n $(cluster) --type merge -p \
 	  "{\"spec\":{\"ports\":[{\"name\":\"k8s-api\",\"nodePort\":$$API_NP,\"port\":6443,\"protocol\":\"TCP\",\"targetPort\":6443}]}}"; \
 	rm -f /tmp/infra-$(cluster).kubeconfig
-	@echo "[ingress] Traefik removed ✅"
+	@echo ""
+	@echo "[ingress] ✅ ingress stack removed!"
 
 # ---------------------------------------------------------------
 # Ingress Status – show Traefik + LoadBalancer status
