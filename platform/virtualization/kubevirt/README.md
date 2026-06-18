@@ -116,3 +116,45 @@ kubevirt   5m    Deployed  True
 ## Next Step
 
 → [`../../hardware/README.md`](../../hardware/README.md) — Deploy Management VMs
+
+---
+
+## ok-rke2 — Air-Gap Installation (kein Internet auf den Nodes)
+
+`ok-infra` und `ok-gpu` haben keinen direkten IPv4-Internet-Zugang — `ghcr.io` ist
+nicht erreichbar. Images müssen manuell über `ok-vpn` (167.233.52.138) transferiert werden.
+
+### KubeVirt + CDI air-gap
+
+```sh
+# 1. Manifeste auf ok-vpn herunterladen
+ssh root@167.233.52.138 << 'CMDS'
+  KUBEVIRT_VERSION=v1.8.1
+  CDI_VERSION=v1.60.0
+
+  # Manifeste holen (ok-vpn hat Internet)
+  curl -sLO https://github.com/kubevirt/kubevirt/releases/download/${KUBEVIRT_VERSION}/kubevirt-operator.yaml
+  curl -sLO https://github.com/kubevirt/kubevirt/releases/download/${KUBEVIRT_VERSION}/kubevirt-cr.yaml
+  curl -sLO https://github.com/kubevirt/containerized-data-importer/releases/download/${CDI_VERSION}/cdi-operator.yaml
+  curl -sLO https://github.com/kubevirt/containerized-data-importer/releases/download/${CDI_VERSION}/cdi-cr.yaml
+CMDS
+
+# 2. Manifeste auf ok-infra kopieren
+scp root@167.233.52.138:~/kubevirt-*.yaml root@192.168.100.2:/tmp/
+scp root@167.233.52.138:~/cdi-*.yaml      root@192.168.100.2:/tmp/
+
+# 3. Images aus den Manifesten extrahieren und transferieren
+# (analog zu ok-rke2/multus/airgap-images.sh — Images via docker pull auf
+#  ok-vpn, ctr import auf ok-infra/ok-gpu)
+
+# 4. Auf ok-infra deployen
+ssh root@192.168.100.2 'kubectl apply -f /tmp/kubevirt-operator.yaml'
+ssh root@192.168.100.2 'kubectl apply -f /tmp/kubevirt-cr.yaml'
+ssh root@192.168.100.2 'kubectl apply -f /tmp/cdi-operator.yaml'
+ssh root@192.168.100.2 'kubectl apply -f /tmp/cdi-cr.yaml'
+```
+
+> **Wichtig für alle air-gap-Deployments:** `imagePullPolicy: IfNotPresent` setzen
+> oder als Patch anwenden — sonst versucht containerd den Pull trotz lokalem Image.
+
+→ Vollständige Multus air-gap Installation: [`../../../ok-rke2/multus/README.md`](../../../ok-rke2/multus/README.md)
