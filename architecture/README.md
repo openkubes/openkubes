@@ -50,6 +50,38 @@ OpenKubes is built around a clear separation of concerns across four zones:
 
 ---
 
+## CAPI + Crossplane Architecture
+
+The full automation pipeline from user API down to workload clusters — Crossplane compositions trigger CAPI and KubeVirt to provision clusters on demand.
+
+![CAPI + Crossplane Architecture](diagrams/openkubes_capi_crossplane.svg)
+
+---
+
+## Bare-Metal Stack
+
+The host cluster runs on bare-metal nodes. KubeVirt, MetalLB and CDI are deployed on top of RKE2 + Cilium to enable the management cluster VMs.
+
+![Bare-Metal Stack](diagrams/openkubes_baremetal_stack.svg)
+
+---
+
+## Management Cluster
+
+Three KubeVirt VMs form the k3s management cluster. This cluster hosts Crossplane and CAPI and is the control point for all workload cluster automation.
+
+![Management Cluster](diagrams/openkubes_mgmt_cluster.svg)
+
+---
+
+## Network Topology
+
+End-to-end network path from developer workstation through WireGuard VPN to the management cluster API and workload VMs.
+
+![Network Topology](diagrams/openkubes_network_topology.svg)
+
+---
+
 ## Deep Dives
 
 - [Reference Architecture v1 (English)](reference-architecture-v1-en.md)
