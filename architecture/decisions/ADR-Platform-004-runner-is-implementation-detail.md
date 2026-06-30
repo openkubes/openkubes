@@ -51,7 +51,7 @@ The open question: where does the *runner itself* — as opposed to the contract
 
 **Negative / trade-offs:**
 - Until the runner is refactored to wrap `ok-cluster`, two implementations of overlapping logic continue to exist temporarily
-- Introduces an open question this ADR does not resolve: does the runner get its own repository (`ok-runner`?), or does it live inside `ok-cluster` as an optional in-cluster execution mode? This requires a follow-up decision.
+- `ok-cluster` must reach operational parity with `capi-platform-v4.2` (notably the upgrade race-condition handling) before the runner migration can begin
 
 **Neutral:**
 - The runner's Dockerfile, entrypoint, and operationally-hardened scripts remain fully readable in `openkubes/openkubes/platform/cluster-management/capi-platform-v4.2/` until migration — same archival approach as ok-linux's `archive/` (ADR-007)
