@@ -15,7 +15,17 @@ The open question: where does the *runner itself* — as opposed to the contract
 
 ## Decision
 
-> The runner container (image, Dockerfile, entrypoint, and the scripts it executes) is an implementation detail of how the Cluster Lifecycle contract gets fulfilled inside a Kubernetes-native, self-service execution path. It is not itself the contract, and it does not belong in `openkubes/openkubes`. It is treated as a "Platform Execution Environment" — a way of running `ok-cluster`-equivalent logic in-cluster rather than from an operator's terminal.
+> The runner container (image, Dockerfile, entrypoint, and the scripts it executes) is an implementation detail of how the Cluster Lifecycle contract gets fulfilled inside a Kubernetes-native, self-service execution path. It is not itself the contract, and it does not belong in `openkubes/openkubes`.
+>
+> **The runner will initially live inside `ok-cluster` as an optional in-cluster execution mode** — not as a separate repository. `ok-cluster` exposes two interfaces to the same Cluster Lifecycle Contract:
+>
+> ```
+> ok-cluster
+> ├── CLI mode      — make render/install/status/upgrade, run by an operator locally
+> └── runner mode   — container image wrapping the same logic, run as a Kubernetes Job
+> ```
+>
+> A separate `ok-runner` repository may be reconsidered only if the execution environment grows responsibilities unrelated to cluster lifecycle — e.g. if it starts also executing `ok-linux`, `ok-gitops`, and `ok-apps` operations and becomes a genuinely generic Platform Execution Environment rather than an `ok-cluster`-specific runner.
 
 ## Rationale
 
@@ -46,9 +56,9 @@ The open question: where does the *runner itself* — as opposed to the contract
 **Neutral:**
 - The runner's Dockerfile, entrypoint, and operationally-hardened scripts remain fully readable in `openkubes/openkubes/platform/cluster-management/capi-platform-v4.2/` until migration — same archival approach as ok-linux's `archive/` (ADR-007)
 
-## Open follow-up — resolved
+## Decision recorded — no repo-sprawl
 
-GPT's review (2026-07-01) recommends resolving this in favour of option 2: **`ok-cluster` becomes the shared backend executor for both the CLI interface and the Crossplane self-service interface.** No new `ok-runner` repository.
+This ADR deliberately avoids creating a new repository prematurely. The runner is not yet a generic execution environment — it only executes cluster-lifecycle logic, which is `ok-cluster`'s exact responsibility. Giving it its own repository today would create two repositories owning overlapping logic, which is precisely the duplication this entire archaeology session exists to resolve.
 
 Target state:
 
@@ -64,3 +74,5 @@ Target:
 This is evolutionary, not a deprecation: `capi-platform-v4.2` is not deleted, its responsibility migrates underneath `ok-cluster` step by step. The Composition's contract (the XRD) does not change — only what it invokes changes.
 
 **Prerequisite before this migration starts:** `ok-cluster`'s CLI surface must reach parity with what the runner already does reliably (notably: the upgrade race-condition handling in `crossplane-upgrade.sh`, and clean Job-based execution semantics). Until then, `capi-platform-v4.2`'s runner remains the production path for Crossplane-triggered clusters, and `ok-cluster` remains the CLI path for locally-operated clusters — both honouring the same underlying Cluster Lifecycle Contract.
+
+**Re-evaluation trigger for a future `ok-runner` repository:** revisit this decision only if the execution environment needs to run logic belonging to multiple ok-* repositories (e.g. `ok-linux`, `ok-gitops`, `ok-apps` operations) rather than cluster-lifecycle logic alone. At that point it would be a genuinely generic Platform Execution Environment, not an `ok-cluster`-specific runner — a different responsibility that would justify its own repository.
