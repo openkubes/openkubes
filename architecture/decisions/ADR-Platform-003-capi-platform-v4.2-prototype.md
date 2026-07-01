@@ -2,8 +2,6 @@
 
 **Date:** 2026-07-01  
 **Status:** Accepted  
-**Deciders:** Arash Kaffamanesh, GPT and Claude architectural review  
-**Related:** ADR-Platform-001, ADR-Platform-002, ADR-Platform-004
 
 ---
 

@@ -2,8 +2,6 @@
 
 **Date:** 2026-07-01  
 **Status:** Accepted  
-**Deciders:** Arash Kaffamanesh, GPT and Claude architectural review  
-**Related:** [ok-linux ADR-008](https://github.com/openkubes/ok-linux/blob/main/docs/adr/ADR-008-distribution-layer-not-fork.md), capi-platform-v4.2 archaeology
 
 ---
 
