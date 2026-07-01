@@ -1,0 +1,11 @@
+# Marketing and binary assets — use Google Drive instead
+docs/*.pdf
+docs/*.pptx
+docs/*.webp
+docs/*.png
+docs/*.html
+docs/*.webp
+
+# Local experiments
+docs/*-linkedin.png
+docs/*-whitepaper*.pdf
