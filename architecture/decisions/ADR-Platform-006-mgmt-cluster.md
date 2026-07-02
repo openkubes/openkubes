@@ -22,12 +22,12 @@ The question is: where should the platform's runtime contracts live, and how sho
 Concretely:
 
 ```
-ok-infra (AX42-U, 188.40.110.28)
+ok-infra (AX42-U, <ok-infra-ip>)
 └── KubeVirt VMs
     ├── ok-mgmt-cp        (Control Plane)
     └── ok-mgmt-worker-*  (2 Workers)
 
-ok-gpu (GEX44, 5.9.116.80)
+ok-gpu (GEX44, <ok-gpu-ip>)
 └── KubeVirt VMs
     ├── ok1-talos   (Workload Cluster — provisioned by ok-mgmt)
     ├── ok2-talos   (Workload Cluster — provisioned by ok-mgmt)
