@@ -1,0 +1,22 @@
+# Open WebUI Helm Values — OpenKubes AI Platform
+# Provider-specific overrides (Ollama IP, GPU node) go in your private
+# infrastructure repo values file, not here.
+
+ollama:
+  enabled: false
+
+pipelines:
+  enabled: false
+
+# Ollama endpoint — override with your actual Ollama LoadBalancer IP
+# in your infrastructure-specific values file
+extraEnvVars:
+  - name: OLLAMA_BASE_URL
+    value: "http://OLLAMA_IP:11434"
+  - name: ENABLE_OLLAMA_API
+    value: "true"
+
+persistence:
+  enabled: true
+  storageClass: "local-path"
+  size: 2Gi
