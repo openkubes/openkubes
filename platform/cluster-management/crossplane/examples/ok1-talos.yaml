@@ -1,0 +1,18 @@
+apiVersion: platform.openkubes.ai/v1alpha1
+kind: KubeVirtClusterClaim
+metadata:
+  name: ok1-talos
+  namespace: openkubes-system
+spec:
+  compositeDeletePolicy: Foreground
+  country: de
+  provider: kubevirt
+  endpointIP: <metallb-ip>
+  cni: cilium
+  multus: "false"
+  controlPlane:
+    replicas: 1
+    kubernetesVersion: v1.34.1
+  workers:
+    replicas: 1
+  runnerImage: kubernautslabs/capi-platform-runner:v4.2
