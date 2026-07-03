@@ -63,7 +63,7 @@ Workload cluster PVC (local-path inside the VM)
 
 Rationale: nested distributed storage (Longhorn-in-Longhorn) multiplies write amplification, doubles replication, snapshots, CSI stacks, and failure modes, and would force iscsi system extensions into every ok-linux profile. Workload clusters inherit durability through their VM disks.
 
-Consequence: provisioning VM disks on `ok-storage-shared` (RWX) satisfies the **storage prerequisite** for KubeVirt live migration. Storage alone does not guarantee successful live migration — CPU compatibility, eviction strategy, migration network, and workload behaviour also apply. Live migration support must be validated by integration testing.
+Consequence: provisioning VM disks on `ok-storage-shared` provides the shared storage required by KubeVirt live migration. Storage alone does not guarantee successful live migration — CPU compatibility, eviction strategy, migration network, and workload behaviour also apply. Live migration support must be validated by integration testing.
 
 ### 4. Snapshot semantics
 
@@ -71,7 +71,7 @@ Platform snapshots (Longhorn volume snapshots) provide **crash-consistent** reco
 
 ### 5. Repository: `ok-storage`
 
-Storage is a platform capability, not cluster lifecycle logic. The implementation lives in a dedicated repository `github.com/openkubes/ok-storage` (provider-agnostic), alongside ok-linux, ok-cluster, ok-gitops. Structure:
+Storage is a platform capability, not cluster lifecycle logic. The repository owns the storage contract as well as its implementation profiles; cluster lifecycle repositories consume the contract but do not redefine it. The implementation lives in a dedicated repository `github.com/openkubes/ok-storage` (provider-agnostic), alongside ok-linux, ok-cluster, ok-gitops. Structure:
 
 ```
 ok-storage/
@@ -87,7 +87,7 @@ Provider-specific values remain in the private infrastructure repository.
 
 **Positive**
 - Stateful workloads survive single node failure; application PVCs become redundant
-- Storage prerequisite for KubeVirt live migration fulfilled (RWX VM disks)
+- Shared storage required by KubeVirt live migration is provided (RWX VM disks)
 - Snapshot/restore and volume expansion available platform-wide
 - Implementation is swappable (Ceph at 3+ nodes) without touching any consumer
 
