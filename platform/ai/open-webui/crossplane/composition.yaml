@@ -1,0 +1,91 @@
+# OpenWebUI Composition
+# Deploys Open WebUI via Helm on the target workload cluster
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: openwebui.platform.openkubes.ai
+  labels:
+    provider: helm
+spec:
+  compositeTypeRef:
+    apiVersion: platform.openkubes.ai/v1alpha1
+    kind: OpenWebUIInstance
+  mode: Pipeline
+  pipeline:
+    - step: deploy-open-webui
+      functionRef:
+        name: function-patch-and-transform
+      input:
+        apiVersion: pt.fn.crossplane.io/v1beta1
+        kind: Resources
+        resources:
+          - name: open-webui-namespace
+            base:
+              apiVersion: kubernetes.crossplane.io/v1alpha2
+              kind: Object
+              spec:
+                providerConfigRef:
+                  name: in-cluster
+                forProvider:
+                  manifest:
+                    apiVersion: v1
+                    kind: Namespace
+                    metadata:
+                      labels:
+                        pod-security.kubernetes.io/enforce: privileged
+            patches:
+              - type: FromCompositeFieldPath
+                fromFieldPath: spec.clusterRef
+                toFieldPath: spec.providerConfigRef.name
+              - type: FromCompositeFieldPath
+                fromFieldPath: spec.namespace
+                toFieldPath: spec.forProvider.manifest.metadata.name
+
+          - name: open-webui-helm-release
+            base:
+              apiVersion: helm.crossplane.io/v1beta1
+              kind: Release
+              spec:
+                forProvider:
+                  chart:
+                    name: open-webui
+                    repository: https://helm.openwebui.com/
+                  values:
+                    ollama:
+                      enabled: false
+                    pipelines:
+                      enabled: false
+                rollbackLimit: 3
+            patches:
+              - type: FromCompositeFieldPath
+                fromFieldPath: spec.clusterRef
+                toFieldPath: spec.providerConfigRef.name
+              - type: FromCompositeFieldPath
+                fromFieldPath: spec.namespace
+                toFieldPath: spec.forProvider.namespace
+              - type: FromCompositeFieldPath
+                fromFieldPath: metadata.labels[crossplane.io/claim-name]
+                toFieldPath: metadata.name
+                transforms:
+                  - type: string
+                    string:
+                      type: Format
+                      fmt: "open-webui-%s"
+              - type: FromCompositeFieldPath
+                fromFieldPath: spec.version
+                toFieldPath: spec.forProvider.chart.version
+              - type: FromCompositeFieldPath
+                fromFieldPath: spec.ollamaEndpoint
+                toFieldPath: spec.forProvider.values.extraEnvVars[0].value
+              - type: FromCompositeFieldPath
+                fromFieldPath: spec.namespace
+                toFieldPath: spec.forProvider.values.extraEnvVars
+                transforms:
+                  - type: string
+                    string:
+                      type: Format
+                      fmt: |
+                        - name: OLLAMA_BASE_URL
+                          value: "%s"
+                        - name: ENABLE_OLLAMA_API
+                          value: "true"
