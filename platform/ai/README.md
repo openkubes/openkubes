@@ -1,55 +1,92 @@
 # OpenKubes AI Platform
 
-The AI layer of the OpenKubes platform. Provides private, sovereign AI services
-for all workload clusters — no data leaves your infrastructure.
+**Private GPT. On-Prem. Sovereign.**
 
-> **OpenKubes AI = AI On-Prem, done right.**
-> LLM inference, private chat, MCP connectors for Jira/Confluence, and more.
+Run your own AI — no cloud, no data leakage, no vendor lock-in.
+OpenKubes AI gives every team their own Open WebUI, powered by a shared GPU backend, deployed with a single `kubectl apply`.
 
 ---
 
-## Vision
+## What it does
 
-OpenKubes AI is a curated, self-hosted AI platform built on top of OpenKubes.
-It enables teams to run LLMs locally, connect them to their knowledge base
-(Confluence, Jira, Git), and build AI-powered workflows — all within their
-own infrastructure.
+```bash
+kubectl apply -f openwebuiclaim.yaml
+# Open WebUI running on your Kubernetes cluster in ~90 seconds
+```
+
+Behind the scenes:
 
 ```
-OpenKubes AI
-├── Ollama          — LLM runtime with GPU acceleration
-├── Open WebUI      — Private chat interface (like ChatGPT, but yours)
-├── MCP Connectors  — Connect LLMs to Jira, Confluence, Git, ...
-└── (planned) RAG   — Retrieval Augmented Generation over your docs
+ok-mgmt (Management Cluster)
+└── Crossplane + OpenWebUIClaim
+    └── Helm Release → Open WebUI on ok1-talos
+
+ok-gpu (RTX 4000 Ada, 20GB VRAM)
+└── Ollama → mistral, llama3, codellama
 ```
+
+One GPU. Many teams. Each team gets their own chat UI.
 
 ---
 
 ## Architecture
 
 ```
-Infrastructure Layer (ok-gpu, RKE2)
-└── Ollama + GPU  →  central LLM endpoint (internal only)
+ok-mgmt (Management Cluster, Talos, ok-infra)
+└── Crossplane
+    └── OpenWebUIClaim → Helm Release → Open WebUI
 
-Workload Clusters (ok1-talos, ok2-talos, ...)
-└── Open WebUI    →  connects to central Ollama
-└── MCP Server    →  connects LLM to Jira, Confluence, ...
+ok1-talos (Workload Cluster, Talos, ok-gpu)
+└── Open WebUI → Ollama API (internal)
+
+ok-gpu (RKE2, RTX 4000 Ada)
+└── Ollama → mistral / llama3 / codellama
 ```
 
-The central Ollama instance serves all workload clusters — one GPU, many teams.
-See [ADR-Platform-005](../../architecture/decisions/ADR-Platform-005-shared-ai-services.md)
-for the architecture decision.
+**OpenKubes owns the contracts. The ecosystem provides the implementations.**
+Swap Open WebUI for another frontend. Swap Ollama for vLLM. The `OpenWebUIClaim` stays the same.
 
 ---
 
-## Components
+## Getting started
 
-| Component | Description | Status |
-|---|---|---|
-| [ollama/](ollama/) | LLM inference server with GPU | ✅ deployed |
-| [open-webui/](open-webui/) | Private chat UI | ✅ deployed |
-| mcp/ | MCP connectors (Jira, Confluence) | 📋 planned |
-| rag/ | Retrieval Augmented Generation | 📋 planned |
+### Prerequisites
+
+- ok-mgmt with Crossplane + OpenWebUI XRD — run `bootstrap-mgmt.sh.tpl` (8 steps, ~2 min)
+- Workload cluster with local-path StorageClass: `make install-storage CLUSTER=ok1-talos`
+- Ollama with GPU: `make -C ok-rke2/ai-services install && make pull`
+
+### Deploy Open WebUI
+
+```bash
+# Add your cluster to ok-mgmt
+kubectl --kubeconfig ~/.kube/ok-mgmt.yaml \
+  create secret generic ok1-talos-kubeconfig \
+  -n crossplane-system \
+  --from-file=kubeconfig=~/.kube/ok1-talos.yaml
+
+# Submit the claim — that's all
+kubectl --kubeconfig ~/.kube/ok-mgmt.yaml \
+  apply -f open-webui/crossplane/examples/ok1-talos.yaml
+
+# Watch it deploy (~90 seconds)
+kubectl --kubeconfig ~/.kube/ok-mgmt.yaml \
+  get openwebuiclaim -n openkubes-system -w
+```
+
+### The claim
+
+```yaml
+apiVersion: platform.openkubes.ai/v1alpha1
+kind: OpenWebUIClaim
+metadata:
+  name: my-team
+  namespace: openkubes-system
+spec:
+  clusterRef: ok1-talos
+  ollamaEndpoint: http://192.168.100.202:11434
+  namespace: open-webui
+```
 
 ---
 
@@ -57,32 +94,43 @@ for the architecture decision.
 
 | Model | Size | Use Case |
 |---|---|---|
-| `mistral` | 7.2B, 4.1GB | General purpose, fast responses |
-| `llama3` | 8B, ~4.7GB | Strong reasoning (planned) |
-| `codellama` | 7B, ~3.8GB | Code generation (planned) |
-
----
-
-## Quick Start
+| mistral | 7.2B, 4.1GB | General purpose, fast |
+| llama3 | 8B, ~4.7GB | Strong reasoning |
+| codellama | 7B, ~3.8GB | Code generation |
 
 ```bash
-# Deploy Ollama with GPU (on RKE2 host cluster)
-# See: ollama/README.md
-
-# Deploy Open WebUI (on any workload cluster)
-helm repo add open-webui https://helm.openwebui.com/
-helm install open-webui open-webui/open-webui \
-  --namespace open-webui \
-  --create-namespace \
-  -f open-webui/values.yaml
+make -C ok-rke2/ai-services pull MODELS="mistral llama3 codellama"
 ```
-
-Provider-specific overrides (GPU node IP, LoadBalancer pool) go into your
-private infrastructure repo — see `open-webui/values.yaml` for the defaults.
 
 ---
 
-## Related
+## Roadmap
 
-- [ADR-Platform-005](../../architecture/decisions/ADR-Platform-005-shared-ai-services.md) — Shared AI Services architecture decision
-- [Kubernauts OpenKubes AI](https://kubernauts.de/de/openkubes/openkubes-ai/) — product page
+| Feature | Status |
+|---|---|
+| Ollama with GPU on RKE2 | done |
+| Open WebUI via Crossplane Claim | done |
+| MCP Connectors (Jira, Confluence) | planned |
+| RAG over internal docs | planned |
+| OllamaModelClaim self-service | planned |
+
+---
+
+## Why OpenKubes AI?
+
+Most private AI setups are scripts. OpenKubes AI is a platform:
+
+- **Declarative** — kubectl apply creates everything, kubectl delete tears it down
+- **Self-service** — teams claim their own AI without involving ops
+- **Sovereign** — runs entirely on your hardware, your network, your rules
+- **Extensible** — swap models, frontends, or backends without changing the contract
+
+> OpenKubes owns the contracts, not the components.
+
+---
+
+## Links
+
+- [ADR-Platform-005: Shared AI Services](../../architecture/decisions/ADR-Platform-005-shared-ai-services.md)
+- [Kubernauts OpenKubes AI](https://kubernauts.de/de/openkubes/openkubes-ai/)
+- [OpenKubes Platform](https://github.com/openkubes/openkubes)
