@@ -19,28 +19,6 @@ spec:
         apiVersion: pt.fn.crossplane.io/v1beta1
         kind: Resources
         resources:
-          - name: open-webui-namespace
-            base:
-              apiVersion: kubernetes.crossplane.io/v1alpha2
-              kind: Object
-              spec:
-                providerConfigRef:
-                  name: in-cluster
-                forProvider:
-                  manifest:
-                    apiVersion: v1
-                    kind: Namespace
-                    metadata:
-                      labels:
-                        pod-security.kubernetes.io/enforce: privileged
-            patches:
-              - type: FromCompositeFieldPath
-                fromFieldPath: spec.clusterRef
-                toFieldPath: spec.providerConfigRef.name
-              - type: FromCompositeFieldPath
-                fromFieldPath: spec.namespace
-                toFieldPath: spec.forProvider.manifest.metadata.name
-
           - name: open-webui-helm-release
             base:
               apiVersion: helm.crossplane.io/v1beta1
@@ -50,11 +28,17 @@ spec:
                   chart:
                     name: open-webui
                     repository: https://helm.openwebui.com/
+                  namespace: open-webui
                   values:
                     ollama:
                       enabled: false
                     pipelines:
                       enabled: false
+                    extraEnvVars:
+                      - name: OLLAMA_BASE_URL
+                        value: "http://192.168.100.202:11434"
+                      - name: ENABLE_OLLAMA_API
+                        value: "true"
                 rollbackLimit: 3
             patches:
               - type: FromCompositeFieldPath
@@ -77,15 +61,3 @@ spec:
               - type: FromCompositeFieldPath
                 fromFieldPath: spec.ollamaEndpoint
                 toFieldPath: spec.forProvider.values.extraEnvVars[0].value
-              - type: FromCompositeFieldPath
-                fromFieldPath: spec.namespace
-                toFieldPath: spec.forProvider.values.extraEnvVars
-                transforms:
-                  - type: string
-                    string:
-                      type: Format
-                      fmt: |
-                        - name: OLLAMA_BASE_URL
-                          value: "%s"
-                        - name: ENABLE_OLLAMA_API
-                          value: "true"
