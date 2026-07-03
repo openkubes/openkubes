@@ -1,0 +1,108 @@
+# platform/ai/open-webui/crossplane/Makefile
+# Manages OpenWebUI deployments via Crossplane from ok-mgmt
+#
+# Usage:
+#   make setup                        # Apply XRD + Composition to ok-mgmt
+#   make deploy CLUSTER=ok1-talos     # Deploy Open WebUI on a cluster
+#   make status CLUSTER=ok1-talos     # Show deployment status
+#   make undeploy CLUSTER=ok1-talos   # Remove Open WebUI from a cluster
+#   make list                         # List all Open WebUI deployments
+
+MGMT_KUBECONFIG  ?= $(HOME)/.kube/ok-mgmt.yaml
+KUBECTL          := kubectl --kubeconfig $(MGMT_KUBECONFIG)
+CLAIM_NAMESPACE  := openkubes-system
+CLUSTER          ?= ok1-talos
+OLLAMA_ENDPOINT  ?= http://192.168.100.202:11434
+
+.PHONY: help setup deploy status undeploy list
+
+help: ## Show this help
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
+		awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}'
+
+# ── Setup ──────────────────────────────────────────────────────────────────────
+
+setup: ## Apply XRD + Composition to ok-mgmt (run once after bootstrap)
+	@echo "[open-webui] Applying XRD and Composition to ok-mgmt..."
+	$(KUBECTL) apply -f xrd.yaml
+	$(KUBECTL) apply -f composition.yaml
+	@echo ""
+	@echo "[open-webui] Waiting for XRD to be established..."
+	$(KUBECTL) wait xrd/openwebuiinstances.platform.openkubes.ai \
+		--for=condition=Established --timeout=60s
+	@echo "✅ OpenWebUI Composition ready on ok-mgmt"
+	@echo "   Next: make deploy CLUSTER=ok1-talos"
+
+# ── Deploy ─────────────────────────────────────────────────────────────────────
+
+deploy: ## Deploy Open WebUI on a cluster (CLUSTER=ok1-talos)
+	@echo "[open-webui] Deploying Open WebUI on cluster '$(CLUSTER)'..."
+	@echo "  Ollama endpoint: $(OLLAMA_ENDPOINT)"
+	@if [ -f "examples/$(CLUSTER).yaml" ]; then \
+		$(KUBECTL) apply -f examples/$(CLUSTER).yaml; \
+	else \
+		$(KUBECTL) apply -f - <<YAML; \
+apiVersion: platform.openkubes.ai/v1alpha1\n\
+kind: OpenWebUIClaim\n\
+metadata:\n\
+  name: $(CLUSTER)\n\
+  namespace: $(CLAIM_NAMESPACE)\n\
+spec:\n\
+  clusterRef: $(CLUSTER)\n\
+  ollamaEndpoint: $(OLLAMA_ENDPOINT)\n\
+  namespace: open-webui\n\
+YAML \
+	fi
+	@echo ""
+	@echo "[open-webui] Waiting for Helm release to be ready..."
+	@for i in $$(seq 1 24); do \
+		STATE=$$($(KUBECTL) get release.helm.crossplane.io open-webui-$(CLUSTER) \
+			-o jsonpath='{.status.atProvider.state}' 2>/dev/null || echo ""); \
+		if [ "$$STATE" = "deployed" ]; then \
+			echo "✅ Open WebUI deployed on $(CLUSTER)"; \
+			break; \
+		fi; \
+		echo "  ⏳ waiting for release... ($$i/24) state=$$STATE"; \
+		sleep 10; \
+	done
+	@echo ""
+	@$(MAKE) status CLUSTER=$(CLUSTER)
+
+# ── Status ─────────────────────────────────────────────────────────────────────
+
+status: ## Show Open WebUI deployment status (CLUSTER=ok1-talos)
+	@echo "=== Claim ==="
+	$(KUBECTL) get openwebuiclaim $(CLUSTER) -n $(CLAIM_NAMESPACE) 2>/dev/null || \
+		echo "  No claim found for cluster '$(CLUSTER)'"
+	@echo ""
+	@echo "=== Helm Release ==="
+	$(KUBECTL) get release.helm.crossplane.io open-webui-$(CLUSTER) 2>/dev/null || \
+		echo "  No release found"
+	@echo ""
+	@echo "=== Pods on $(CLUSTER) ==="
+	@CLUSTER_KUBECONFIG=$(HOME)/.kube/$(CLUSTER).yaml; \
+	if [ -f "$$CLUSTER_KUBECONFIG" ]; then \
+		kubectl --kubeconfig $$CLUSTER_KUBECONFIG get pods -n open-webui 2>/dev/null || \
+			echo "  No pods found in open-webui namespace"; \
+	else \
+		echo "  Kubeconfig not found: $$CLUSTER_KUBECONFIG"; \
+	fi
+
+# ── Undeploy ───────────────────────────────────────────────────────────────────
+
+undeploy: ## Remove Open WebUI from a cluster (CLUSTER=ok1-talos)
+	@echo "[open-webui] Removing Open WebUI from cluster '$(CLUSTER)'..."
+	$(KUBECTL) delete openwebuiclaim $(CLUSTER) -n $(CLAIM_NAMESPACE) --ignore-not-found
+	@echo "✅ OpenWebUIClaim deleted — Crossplane will remove the Helm release"
+
+# ── List ───────────────────────────────────────────────────────────────────────
+
+list: ## List all Open WebUI deployments
+	@echo "=== OpenWebUI Claims ==="
+	$(KUBECTL) get openwebuiclaim -A
+	@echo ""
+	@echo "=== Helm Releases ==="
+	$(KUBECTL) get release.helm.crossplane.io -A | grep open-webui || \
+		echo "  No Open WebUI releases found"
+
+.DEFAULT_GOAL := help
