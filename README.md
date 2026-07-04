@@ -4,267 +4,172 @@
 ![Release](https://img.shields.io/github/v/release/openkubes/openkubes)
 ![License](https://img.shields.io/github/license/openkubes/openkubes)
 ![Status](https://img.shields.io/badge/status-community--preview-blue)
-![Docker](https://img.shields.io/badge/docker-kubernautslabs%2Fcapi--platform--runner%3Av4.2-blue)
 
 <div align="center">
 
-### **Kubernetes Anywhere. Make it.**
+### **Kubernetes is a Platform to build Platforms.**
+### **OpenKubes builds Kubernetes PlatformS.**
 
-*On-Premises · Bare Metal · Edge · EKS · AKS · GKE*
+*Private AI · Bare Metal · Edge · On-Premises · Multi-Cloud*
 
 </div>
 
 ---
 
-> **The Open Platform for Sovereign Kubernetes Infrastructure — On-Premises, Edge, and Multi-Cloud.**
+> **OpenKubes is a Platform Distribution for Sovereign Kubernetes Infrastructure.**
+> It defines stable contracts between platform layers — and lets the ecosystem provide the implementations.
 
-OpenKubes is a platform engineering toolkit that runs Kubernetes clusters, virtual machines, and workloads **anywhere** — bare metal, KubeVirt, EKS, AKS, GKE — through a unified `make` interface and self-service Crossplane APIs.
-
-| Repository | Purpose | Status |
-|---|---|---|
-| [`openkubes/openkubes`](https://github.com/openkubes/openkubes) | Core Platform (this repo) | ✅ live |
-| `openkubes/openkubes-robotics` | Industrial Fleet & Autonomous Systems | 🚧 coming soon |
-| `openkubes/openkubes-ai` | AI Inference & Model Runtime | 🚧 coming soon |
-| `openkubes/openkubes-anywhere` | Multi-Cloud & Hybrid Operations | 🚧 coming soon |
-
-> 🚀 **Community Preview v1.0.4** — VMs, Clusters, Ingress, TLS — all via `make`.
-> Live demo: [rmf.openkubes.ai](https://rmf.openkubes.ai/dashboard/login) · Docs: [docs.openkubes.ai](https://docs.openkubes.ai) *(coming soon)*
+> *OpenKubes owns the contracts, not the components.*
 
 ---
 
-## Kubernetes Anywhere. Make it.
+## Platform Architecture
 
-OpenKubes is operated entirely via `make` — on bare metal, KubeVirt, EKS, AKS, or GKE. No scripts to remember, no long kubectl commands — just:
+![OpenKubes Platform Architecture](./docs/openkubes_platform_architecture.svg)
+
+---
+
+## What OpenKubes ships today
 
 ```bash
-# VMs
-cd platform/virtualization/openkubesvm
-make vm-create  vm=ok4          # create a VM via Crossplane
-make vm-ssh     vm=ok4          # SSH into a VM
-make vm-delete  vm=ok4          # delete a VM
-make vm-list                    # list all VMs
+# Provision a Management Cluster
+make new CLUSTER=ok-mgmt TYPE=talos NODE_SELECTOR=ok-infra WORKERS=2
+make bootstrap CLUSTER=ok-mgmt
+bash bootstrap-mgmt.sh   # Crossplane + CAPI + AI Platform XRDs — ~2 min
 
-# Clusters — same command, any provider
-cd platform/cluster-management
-make deploy     cluster=factory-a                        # KubeVirt on-prem
-make deploy     cluster=prod-aws                         # EKS (coming soon)
-make deploy     cluster=prod-azure                       # AKS (coming soon)
-make recreate   cluster=ok1 kubernetes-version=v1.34.1  # reliable upgrade
-make kubeconfig cluster=ok1                              # get kubeconfig
-make delete     cluster=ok1                              # clean delete
-make status     cluster=ok1                              # show status
+# Provision a Workload Cluster
+make new CLUSTER=ok1-talos TYPE=talos WORKERS=1
+make bootstrap CLUSTER=ok1-talos
+make install-storage CLUSTER=ok1-talos
 
-# Cluster Manager (Headlamp)
-make manager-deploy  cluster=ok1   # install Headlamp UI on workload cluster
-make manager-token   cluster=ok1   # generate admin token
-make manager-open    cluster=ok1   # port-forward + open browser
-
-# Ingress (Traefik via INFRA LB proxy)
-make ingress-setup   cluster=ok1   # deploy Traefik + patch INFRA LB
-make ingress-delete  cluster=ok1   # remove Traefik
-make ingress-delete  cluster=ok1 cert=true  # remove Traefik + cert-manager
-
-# TLS / cert-manager
-make cert-setup      cluster=ok1   # cert-manager + Let's Encrypt
-make cert-delete     cluster=ok1   # remove cert-manager
-make cert-status     cluster=ok1   # show certificate status
+# Deploy Private AI on the workload cluster — from the management cluster
+make deploy CLUSTER=ok1-talos   # → Open WebUI + Ollama in ~90 seconds
 ```
 
-> **Kubernetes Anywhere. Make it.**
-
----
-
-## Quick Start
-
-```sh
-# 1. Install KubeVirt + CDI on the Infra Cluster
-kubectl apply -f https://github.com/kubevirt/kubevirt/releases/download/v1.8.1/kubevirt-operator.yaml
-kubectl apply -f https://github.com/kubevirt/kubevirt/releases/download/v1.8.1/kubevirt-cr.yaml
-kubectl apply -f https://github.com/kubevirt/containerized-data-importer/releases/latest/download/cdi-operator.yaml
-kubectl apply -f https://github.com/kubevirt/containerized-data-importer/releases/latest/download/cdi-cr.yaml
-
-# 2. Deploy Management VMs
-cd platform/virtualization/openkubesvm
-make setup
-make vm-create vm=ok1
-make vm-create vm=ok2
-make vm-create vm=ok3
-
-# 3. Bootstrap CAPI + CAPK on Management Cluster
-clusterctl init --infrastructure kubevirt:v0.11.2 -v5
-
-# 4. Deploy Workload Clusters
-cd platform/cluster-management
-make setup
-make deploy cluster=ok1
-make status cluster=ok1
-make kubeconfig cluster=ok1
-
-# 5. Install Cluster Manager (Headlamp)
-make manager-deploy cluster=ok1
-make manager-token  cluster=ok1   # copy token
-make manager-open   cluster=ok1   # opens http://localhost:8080
-
-# 6. Ingress + TLS
-make ingress-setup  cluster=ok1   # Traefik + INFRA LB
-make cert-setup     cluster=ok1   # cert-manager + Let's Encrypt
-# → https://headlamp.openkubes.ai  HTTP/2 200 ✅
-```
-
-→ Full walkthrough: [`docs/getting-started/README.md`](./docs/getting-started/README.md)
-
----
-
-## Why OpenKubes?
-
-Most Kubernetes platforms force a choice: cloud flexibility *or* on-prem control. OpenKubes gives you both — with a unified operational model that runs identically on hyperscale clouds, on-premises datacenters, or completely isolated factory floors.
-
-- **Anywhere deployment** — bare metal, KubeVirt VMs, edge (k3s), or cloud via Cluster API
-- **Unified Platform API** — Crossplane compositions expose clusters, VMs, and databases as self-service products
-- **No vendor lock-in** — built entirely on open standards: Kubernetes, Flux, Cilium, Crossplane, Cluster API
-- **Production-proven** — 50+ clusters in production across automotive, industrial, financial, and healthcare environments
-- **Enterprise-grade from day one** — GitOps, Zero Trust, RBAC, compliance-ready (DSGVO, TISAX, ISO 27001)
-
-> **This is a platform architecture — not a demo setup.**
-
----
-
-## Prerequisites
-
-| Requirement | Version | Notes |
-|---|---|---|
-| Kubernetes (RKE2) | ≥ 1.29 | Management cluster must be running |
-| kubectl | latest | configured with cluster access |
-| make | ≥ 3.81 | GNU make |
-| jq | ≥ 1.6 | used in all platform scripts |
-| clusterctl | latest | for CAPI bootstrap |
-| helm | ≥ 3.14 | for Crossplane + addons |
-| flux | ≥ 2.x | for GitOps bootstrap |
-
-Management cluster provisioning is out of scope — OpenKubes assumes you bring your own.
-→ See [`platform/hardware/README.md`](./platform/hardware/README.md) for guidance.
+That last command submits a `OpenWebUIClaim` to Crossplane on `ok-mgmt`.
+The platform handles the rest. No Helm expertise needed. No manual configuration.
 
 ---
 
 ## Platform Components
 
-### `platform/virtualization/openkubesvm/` — OpenKubesVM
+| Repository | Contract | Status |
+|---|---|---|
+| [`openkubes/openkubes`](https://github.com/openkubes/openkubes) | Platform Distribution, ADRs, XRDs, AI Platform | ✅ v0.2.0 |
+| [`openkubes/ok-cluster`](https://github.com/openkubes/ok-cluster) | Cluster Lifecycle Contract | ✅ v0.7.0 |
+| [`openkubes/ok-linux`](https://github.com/openkubes/ok-linux) | OS Profile Contract (Talos) | ✅ v0.1.1 |
+| `openkubes/ok-storage` | Persistent Storage Contract | 📋 planned |
+| `openkubes/ok-gitops` | GitOps Contract | 📋 planned |
+| `openkubes/ok-apps` | Application Contract | 📋 planned |
 
-Self-service KubeVirt VM management via Crossplane or direct kubectl.
+---
+
+## OpenKubes AI — Private GPT, On-Prem, Sovereign
+
+Every workload cluster can receive its own private AI workspace through the same declarative platform that provisions Kubernetes itself.
+
+```yaml
+apiVersion: platform.openkubes.ai/v1alpha1
+kind: OpenWebUIClaim
+metadata:
+  name: my-team
+  namespace: openkubes-system
+spec:
+  clusterRef: ok1-talos
+  ollamaEndpoint: http://<ollama-ip>:11434
+  namespace: open-webui
+```
 
 ```bash
-cd platform/virtualization/openkubesvm
-make help
+kubectl apply -f claim.yaml
+# → Open WebUI running in ~90 seconds, connected to GPU-accelerated Ollama
 ```
 
-| Target | Description |
-|---|---|
-| `make setup` | One-time: apply XRD + Composition |
-| `make vm-create vm=ok4` | Create VM via Crossplane Claim |
-| `make vm-delete vm=ok4` | Delete VM via Crossplane Claim |
-| `make vm-status vm=ok4` | Show VM claim + infra status |
-| `make vm-ssh    vm=ok4` | SSH into VM |
-| `make vm-list` | List all OpenKubesVMs |
-| `make vm-apply  vm=ok4` | Apply VM directly (no Crossplane) |
-| `make vm-remove vm=ok4` | Remove VM directly (no Crossplane) |
+- Central Ollama with GPU (RTX 4000 Ada, 20GB VRAM) — one GPU, shared across all teams
+- mistral, llama3, codellama — fully on your own infrastructure
+- MCP Connectors for Jira + Confluence — coming next
 
-→ [`platform/virtualization/openkubesvm/README.md`](./platform/virtualization/openkubesvm/README.md)
+→ [`platform/ai/README.md`](./platform/ai/README.md)
 
 ---
 
-### `platform/cluster-management/` — OpenKubesCluster
+## Architecture Decisions
 
-Full Kubernetes cluster lifecycle via Crossplane + Cluster API.
+OpenKubes is built on 8 documented platform-level decisions:
+
+| ADR | Decision |
+|---|---|
+| [ADR-Platform-001](./architecture/decisions/ADR-Platform-001-contracts-not-components.md) | OpenKubes owns the contracts, not the components |
+| [ADR-Platform-002](./architecture/decisions/ADR-Platform-002-distribution-layer.md) | openkubes/openkubes is the Distribution and Integration Layer |
+| [ADR-Platform-003](./architecture/decisions/ADR-Platform-003-capi-platform-v4.2-prototype.md) | capi-platform-v4.2 is the historical Platform Orchestrator prototype |
+| [ADR-Platform-004](./architecture/decisions/ADR-Platform-004-runner-is-implementation-detail.md) | Runner is an implementation detail — ok-cluster as shared backend |
+| [ADR-Platform-005](./architecture/decisions/ADR-Platform-005-shared-ai-services.md) | Shared AI Services Layer |
+| [ADR-Platform-006](./architecture/decisions/ADR-Platform-006-mgmt-cluster.md) | ok-mgmt as the OpenKubes Management Cluster |
+| [ADR-Platform-007](./architecture/decisions/ADR-Platform-007-capi-responsibility-split.md) | CAPI responsibility split: ok-infra bootstraps, ok-mgmt operates |
+| [ADR-Platform-008](./architecture/decisions/ADR-Platform-008-mgmt-cluster-type.md) | TYPE=talos-mgmt as dedicated cluster type in ok-cluster |
+
+→ [`architecture/decisions/`](./architecture/decisions/)
+
+---
+
+## Why OpenKubes?
+
+Most Kubernetes platforms force a choice: cloud flexibility *or* on-prem control.
+OpenKubes gives you both — through a contract-based architecture that runs identically on bare metal, KubeVirt, or cloud.
+
+- **Declarative everything** — clusters, AI workspaces, storage via `kubectl apply`
+- **Self-service** — teams claim their own resources without involving ops
+- **Sovereign** — runs entirely on your hardware, your network, your rules
+- **Extensible** — swap implementations without changing the contract
+- **Production-proven** — 50+ clusters across automotive, industrial, financial environments
+
+> The architecture was developed in a three-way review between Arash Kaffamanesh, Claude (Anthropic) and GPT-4 — two days of ADRs, archaeology of old prototypes, and deliberate design decisions.
+
+---
+
+## Quick Start
+
+### Prerequisites
+
+| Tool | Version |
+|---|---|
+| kubectl | latest |
+| clusterctl | latest |
+| helm | ≥ 3.14 |
+| make | ≥ 3.81 |
+| talosctl | latest |
+
+### Bootstrap a full stack
 
 ```bash
-cd platform/cluster-management
-make help
+# 1. Clone the repos as siblings
+git clone https://github.com/openkubes/openkubes
+git clone https://github.com/openkubes/ok-cluster
+git clone https://github.com/openkubes/ok-linux
+
+# 2. Provision Management Cluster (on your host cluster)
+cd ok-cluster
+NODE_SELECTOR=<infra-node> make new CLUSTER=ok-mgmt TYPE=talos WORKERS=2
+make bootstrap CLUSTER=ok-mgmt
+make kubeconfig CLUSTER=ok-mgmt
+
+# 3. Install management stack
+KUBECONFIG=~/.kube/ok-mgmt.yaml \
+INFRA_KUBECONFIG_PATH=~/.kube/<host-cluster>.yaml \
+OPENKUBES_PATH=../openkubes \
+bash templates/talos-mgmt/bootstrap-mgmt.sh.tpl
+
+# 4. Provision Workload Cluster
+make new CLUSTER=ok1-talos TYPE=talos WORKERS=1
+make bootstrap CLUSTER=ok1-talos
+make install-storage CLUSTER=ok1-talos
+
+# 5. Deploy Open WebUI from management cluster
+export KUBECONFIG=~/.kube/ok-mgmt.yaml
+kubectl apply -f ../openkubes/platform/ai/open-webui/crossplane/examples/ok1-talos.yaml
 ```
 
-| Target | Description |
-|---|---|
-| `make setup` | One-time: apply XRDs, Compositions, RBAC |
-| `make deploy     cluster=ok1` | Deploy a workload cluster |
-| `make recreate   cluster=ok1 kubernetes-version=v1.34.1` | Reliable upgrade via recreate |
-| `make upgrade    cluster=ok1 kubernetes-version=v1.34.1` | Rolling upgrade (experimental) |
-| `make kubeconfig cluster=ok1` | Retrieve workload cluster kubeconfig |
-| `make status     cluster=ok1` | Show cluster status |
-| `make logs       cluster=ok1` | Follow deploy Job logs |
-| `make delete     cluster=ok1` | Clean delete via Cleanup Job |
-| `make check      cluster=ok1` | Check for leftover resources |
-| `make force-clean cluster=ok1` | Emergency cleanup |
-| `make manager-deploy cluster=ok1` | Install Headlamp UI on workload cluster |
-| `make manager-token  cluster=ok1` | Generate Headlamp admin token |
-| `make manager-open   cluster=ok1` | Port-forward + open browser |
-| `make manager-status cluster=ok1` | Show Headlamp status |
-| `make manager-delete cluster=ok1` | Remove Headlamp |
-| `make ingress-setup  cluster=ok1` | Deploy Traefik + patch INFRA LB |
-| `make ingress-delete cluster=ok1` | Remove Traefik |
-| `make ingress-delete cluster=ok1 cert=true` | Remove Traefik + cert-manager |
-| `make ingress-status cluster=ok1` | Show Traefik + LB status |
-| `make cert-setup     cluster=ok1` | Deploy cert-manager + Let's Encrypt |
-| `make cert-delete    cluster=ok1` | Remove cert-manager |
-| `make cert-status    cluster=ok1` | Show certificate status |
-
-→ [`platform/cluster-management/README.md`](./platform/cluster-management/README.md)
-
----
-
-## Architecture
-
-```
-[ Self-Service API ]
-  make vm-create vm=ok4          make deploy cluster=ok1
-        │                                │
-        ▼                                ▼
-[ Crossplane Compositions ]    [ Crossplane + Cluster API ]
-  OpenKubesVMClaim               KubeVirtClusterClaim
-        │                                │
-        ▼                                ▼
-[ KubeVirt Infra Cluster ]     [ CAPI + CAPK ]
-  DataVolume + VM + Service      Machines + KCP + MachineDeployment
-        │                                │
-        ▼                                ▼
-[ Bare Metal Nodes ]           [ Workload Cluster Nodes ]
-```
-
-| Component | Role |
-|---|---|
-| Kubernetes (RKE2) | Control plane for everything |
-| Cluster API + CAPK | Cluster lifecycle management |
-| KubeVirt | VM layer on Kubernetes |
-| Crossplane v2.2.0 | Platform API & self-service compositions |
-| Flux | GitOps engine |
-
-→ Full architecture: [`architecture/`](./architecture/)
-
----
-
-## Roadmap
-
-### v1.0.4 — Done ✅
-- [x] Traefik Ingress via INFRA LB proxy (no MetalLB on workload cluster)
-- [x] cert-manager + Let's Encrypt TLS (`make cert-setup`)
-- [x] Headlamp auto-deployed on CP node (`make manager-deploy`)
-- [x] Ordered ingress cleanup with `cert=true` flag
-- [x] Full lifecycle test documented (delete + recreate → 4 min)
-
-### v1.1.0
-- [ ] OpenKubes Anywhere — EKS, AKS, GKE via unified OpenKubesCluster API
-- [ ] OpenKubesClusterManager — Headlamp multi-cluster via Crossplane
-- [ ] OpenKubesStorage — self-service PVC + StorageClass management
-- [ ] Rolling upgrade via CAPK v0.12.x evaluation
-
-### v1.2.0
-- [ ] OpenKubesMetal — Bare Metal via Metal3
-- [ ] Observability stack (Prometheus + Grafana)
-- [ ] Multi-cluster dashboard
-
-### v2.0.0
-- [ ] OpenKubes Fleet — multi-cluster GitOps
-- [ ] OpenKubes Robotics — Open-RMF + ROS2
-- [ ] Native Go operator (`openkubes-operator`)
-- [ ] OperatorHub publication
+→ Full guide: [`docs/getting-started/README.md`](./docs/getting-started/README.md)
 
 ---
 
@@ -272,15 +177,13 @@ make help
 
 | | |
 |---|---|
-| 🌍 Worldwide Meetup | [meetup.com/kubernauts](https://www.meetup.com/kubernauts/) |
+| 🌐 Website | [kubernauts.de](https://kubernauts.de) |
+| 🤖 OpenKubes AI | [kubernauts.de/openkubes-ai](https://kubernauts.de/de/openkubes/openkubes-ai/) |
+| 🌍 Meetup | [meetup.com/kubernauts](https://www.meetup.com/kubernauts/) |
 | 📺 YouTube | [youtube.com/c/kubernautsio](https://www.youtube.com/c/kubernautsio) |
-| 🤖 Live Demo | [rmf.openkubes.ai](https://rmf.openkubes.ai/dashboard/login) |
-| 🌐 Docs | [docs.openkubes.ai](https://docs.openkubes.ai) *(coming soon)* |
-| 💬 Enterprise | [kubernauts.de](https://kubernauts.de) |
 
 ---
 
 ## License
 
 [Apache 2.0](./LICENSE) · Built by [Kubernauts GmbH](https://kubernauts.de) · Cologne, Germany
-> 10+ years of Kubernetes expertise · 50+ production clusters
