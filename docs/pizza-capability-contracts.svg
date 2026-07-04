@@ -1,0 +1,129 @@
+<svg width="100%" viewBox="0 0 680 780" role="img" xmlns="http://www.w3.org/2000/svg">
+<title>OpenKubes Capability Contracts — The Pizza Analogy</title>
+<desc>Side-by-side comparison of the Pizza analogy and OpenKubes platform contracts, showing four layers: Capability, Contract, Composition, and Implementation.</desc>
+<defs>
+  <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+    <path d="M2 1L8 5L2 9" fill="none" stroke="#888780" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </marker>
+  <style>
+    text { font-family: sans-serif; fill: #3d3d3a; }
+    .th { font-size: 14px; font-weight: 500; }
+    .ts { font-size: 12px; font-weight: 400; }
+    .cap { fill: #E1F5EE; stroke: #0F6E56; }
+    .cap text { fill: #085041; }
+    .con { fill: #EEEDFE; stroke: #534AB7; }
+    .con text { fill: #3C3489; }
+    .com { fill: #FAEEDA; stroke: #854F0B; }
+    .com text { fill: #633806; }
+    .imp-a { fill: #FAECE7; stroke: #993C1D; }
+    .imp-a text { fill: #712B13; }
+    .imp-b { fill: #F1EFE8; stroke: #5F5E5A; }
+    .imp-b text { fill: #444441; }
+    .band { fill: #E6F1FB; stroke: #185FA5; }
+    .band text { fill: #0C447C; }
+    .insight { fill: #F1EFE8; stroke: #B4B2A9; }
+    .arr { stroke: #888780; stroke-width: 1.5; fill: none; }
+    .leader { stroke: #B4B2A9; stroke-width: 0.5; stroke-dasharray: 4 3; fill: none; }
+  </style>
+</defs>
+
+<!-- Title -->
+<text class="th" x="340" y="30" text-anchor="middle" style="font-size:15px;fill:#3d3d3a">Capability Contracts — The Pizza Analogy</text>
+
+<!-- Column headers -->
+<rect class="imp-b" x="40" y="48" width="280" height="36" rx="8" stroke-width="0.5"/>
+<text class="th" x="180" y="72" text-anchor="middle">🍕  Pizza analogy</text>
+<rect class="imp-b" x="360" y="48" width="280" height="36" rx="8" stroke-width="0.5"/>
+<text class="th" x="500" y="72" text-anchor="middle">☸️  OpenKubes</text>
+
+<!-- CAPABILITY band -->
+<rect class="band" x="40" y="100" width="600" height="24" rx="4" stroke-width="0.5"/>
+<text class="ts" x="340" y="116" text-anchor="middle" style="fill:#0C447C">CAPABILITY — stable for years — "what the user actually needs"</text>
+
+<!-- CAPABILITY boxes -->
+<rect class="cap" x="40" y="130" width="280" height="64" rx="8" stroke-width="0.5"/>
+<text class="th" x="180" y="154" text-anchor="middle" style="fill:#085041">I want pizza</text>
+<text class="ts" x="180" y="174" text-anchor="middle" style="fill:#085041">delivered to my door, hot and tasty</text>
+
+<rect class="cap" x="360" y="130" width="280" height="64" rx="8" stroke-width="0.5"/>
+<text class="th" x="500" y="154" text-anchor="middle" style="fill:#085041">My team needs AI</text>
+<text class="ts" x="500" y="174" text-anchor="middle" style="fill:#085041">a private chat interface, connected to LLMs</text>
+
+<!-- Arrows -->
+<line x1="180" y1="196" x2="180" y2="220" class="arr" marker-end="url(#arrow)"/>
+<line x1="500" y1="196" x2="500" y2="220" class="arr" marker-end="url(#arrow)"/>
+
+<!-- CONTRACT band -->
+<rect class="band" x="40" y="224" width="600" height="24" rx="4" stroke-width="0.5"/>
+<text class="ts" x="340" y="240" text-anchor="middle" style="fill:#0C447C">CONTRACT — stable for months — "what you write as a user"</text>
+
+<!-- CONTRACT boxes -->
+<rect class="con" x="40" y="254" width="280" height="120" rx="8" stroke-width="0.5"/>
+<text class="th" x="180" y="276" text-anchor="middle" style="fill:#3C3489">PizzaClaim</text>
+<text class="ts" x="60" y="298" style="fill:#3C3489;font-family:monospace">kind: PizzaClaim</text>
+<text class="ts" x="60" y="316" style="fill:#3C3489;font-family:monospace">spec:</text>
+<text class="ts" x="76" y="334" style="fill:#3C3489;font-family:monospace">  size: large</text>
+<text class="ts" x="76" y="352" style="fill:#3C3489;font-family:monospace">  topping: margherita</text>
+<text class="ts" x="76" y="370" style="fill:#3C3489;font-family:monospace">  delivery: true</text>
+
+<rect class="con" x="360" y="254" width="280" height="120" rx="8" stroke-width="0.5"/>
+<text class="th" x="500" y="276" text-anchor="middle" style="fill:#3C3489">OpenWebUIClaim</text>
+<text class="ts" x="380" y="298" style="fill:#3C3489;font-family:monospace">kind: OpenWebUIClaim</text>
+<text class="ts" x="380" y="316" style="fill:#3C3489;font-family:monospace">spec:</text>
+<text class="ts" x="396" y="334" style="fill:#3C3489;font-family:monospace">  clusterRef: ok1-talos</text>
+<text class="ts" x="396" y="352" style="fill:#3C3489;font-family:monospace">  ollamaEndpoint: http://...</text>
+<text class="ts" x="396" y="370" style="fill:#3C3489;font-family:monospace">  namespace: open-webui</text>
+
+<!-- Arrows -->
+<line x1="180" y1="376" x2="180" y2="400" class="arr" marker-end="url(#arrow)"/>
+<line x1="500" y1="376" x2="500" y2="400" class="arr" marker-end="url(#arrow)"/>
+
+<!-- COMPOSITION band -->
+<rect class="band" x="40" y="404" width="600" height="24" rx="4" stroke-width="0.5"/>
+<text class="ts" x="340" y="420" text-anchor="middle" style="fill:#0C447C">COMPOSITION — changes with implementations — "platform wiring"</text>
+
+<!-- COMPOSITION boxes -->
+<rect class="com" x="40" y="434" width="280" height="80" rx="8" stroke-width="0.5"/>
+<text class="th" x="180" y="456" text-anchor="middle" style="fill:#633806">Restaurant kitchen</text>
+<text class="ts" x="180" y="476" text-anchor="middle" style="fill:#633806">routes order to chef,</text>
+<text class="ts" x="180" y="494" text-anchor="middle" style="fill:#633806">oven, delivery driver</text>
+
+<rect class="com" x="360" y="434" width="280" height="80" rx="8" stroke-width="0.5"/>
+<text class="th" x="500" y="456" text-anchor="middle" style="fill:#633806">Crossplane Composition</text>
+<text class="ts" x="500" y="476" text-anchor="middle" style="fill:#633806">routes claim to provider-helm,</text>
+<text class="ts" x="500" y="494" text-anchor="middle" style="fill:#633806">Kubernetes, target cluster</text>
+
+<!-- Arrows -->
+<line x1="180" y1="516" x2="180" y2="540" class="arr" marker-end="url(#arrow)"/>
+<line x1="500" y1="516" x2="500" y2="540" class="arr" marker-end="url(#arrow)"/>
+
+<!-- IMPLEMENTATION band -->
+<rect class="band" x="40" y="544" width="600" height="24" rx="4" stroke-width="0.5"/>
+<text class="ts" x="340" y="560" text-anchor="middle" style="fill:#0C447C">IMPLEMENTATION — swappable anytime — "the user never sees this"</text>
+
+<!-- IMPLEMENTATION boxes -->
+<rect class="imp-a" x="40" y="574" width="130" height="64" rx="8" stroke-width="0.5"/>
+<text class="th" x="105" y="596" text-anchor="middle" style="fill:#712B13">Wood oven</text>
+<text class="ts" x="105" y="614" text-anchor="middle" style="fill:#712B13">today</text>
+
+<rect class="imp-b" x="190" y="574" width="130" height="64" rx="8" stroke-width="0.5"/>
+<text class="th" x="255" y="596" text-anchor="middle" style="fill:#444441">Electric oven</text>
+<text class="ts" x="255" y="614" text-anchor="middle" style="fill:#444441">tomorrow</text>
+
+<rect class="imp-a" x="360" y="574" width="130" height="64" rx="8" stroke-width="0.5"/>
+<text class="th" x="425" y="590" text-anchor="middle" style="fill:#712B13">Open WebUI</text>
+<text class="ts" x="425" y="608" text-anchor="middle" style="fill:#712B13">v0.10.2</text>
+<text class="ts" x="425" y="624" text-anchor="middle" style="fill:#712B13">today</text>
+
+<rect class="imp-b" x="510" y="574" width="130" height="64" rx="8" stroke-width="0.5"/>
+<text class="th" x="575" y="590" text-anchor="middle" style="fill:#444441">BetterUI</text>
+<text class="ts" x="575" y="608" text-anchor="middle" style="fill:#444441">v2.0</text>
+<text class="ts" x="575" y="624" text-anchor="middle" style="fill:#444441">tomorrow</text>
+
+<!-- Key insight -->
+<rect class="insight" x="40" y="658" width="600" height="100" rx="12" stroke-width="0.5"/>
+<text class="th" x="340" y="682" text-anchor="middle" style="fill:#2C2C2A">The key insight</text>
+<text class="ts" x="340" y="704" text-anchor="middle" style="fill:#444441">The oven changes → the pizza order stays the same.</text>
+<text class="ts" x="340" y="722" text-anchor="middle" style="fill:#444441">The AI tool changes → the OpenWebUIClaim stays the same.</text>
+<text class="th" x="340" y="744" text-anchor="middle" style="fill:#185FA5">OpenKubes owns the contracts, not the components.</text>
+</svg>
