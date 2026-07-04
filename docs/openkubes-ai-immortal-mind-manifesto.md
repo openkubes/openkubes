@@ -10,10 +10,7 @@ For centuries, humanity has asked a single question:
 
 **How do we preserve knowledge?**
 
-We built libraries.
-We built archives.
-We built databases.
-We built clouds.
+We built libraries. We built archives. We built databases. We built clouds.
 
 And yet knowledge continues to disappear.
 
@@ -62,27 +59,12 @@ Who remembers the three failed approaches before the solution that worked?
 
 Who remembers the lessons from the production incident that took down the factory floor for six hours?
 
-Who remembers the context behind ten years of evolution — the tradeoffs, the constraints, the reasoning?
-
 Most organizations have no answer.
 
 Their infrastructure is documented.
 Their intelligence is not.
 
-And every time a key person walks out the door, a little piece of the organization's memory walks out with them — permanently.
-
----
-
-## The Real Cost of Forgotten Knowledge
-
-We have spent ten years building and operating Kubernetes platforms across automotive plants, financial institutions, industrial facilities, and government agencies.
-
-In that time, we have seen the same pattern repeat itself dozens of times:
-
-A new team inherits a platform built by people who are no longer there. They spend months — sometimes years — reverse-engineering decisions that took the original team weeks to make. They repeat mistakes that were already made and documented somewhere no one can find. They abandon patterns that worked because nobody explained why they were there.
-
-The infrastructure survived.
-The intelligence did not.
+We have spent ten years building and operating Kubernetes platforms across automotive plants, financial institutions, industrial facilities, and government agencies. We have seen the same pattern repeat itself dozens of times: a new team inherits a platform built by people who are no longer there. They spend months — sometimes years — reverse-engineering decisions that took the original team weeks to make. They repeat mistakes that were already made and documented somewhere no one can find. They abandon patterns that worked because nobody explained why they were there.
 
 The cost is not just time. It is confidence. Every inherited system that lacks its original context becomes a system nobody fully trusts, nobody fully understands, and nobody wants to touch.
 
@@ -96,6 +78,8 @@ This is a memory problem.
 OpenKubes AI begins with a simple idea:
 
 **Knowledge should be as durable as infrastructure.**
+
+The founding principle of OpenKubes is that the platform owns contracts, not components. Infrastructure components come and go — the contracts they fulfill persist. The Immortal Mind extends that same principle to knowledge: decisions, context, and lessons are contracts too. Individual people, teams, and documents come and go — the organizational intelligence they carry must persist.
 
 If we can build infrastructure that heals itself — that reads a desired state from Git, reconciles toward it, and recovers from failure without human intervention — then we can build intelligence systems that do the same.
 
@@ -112,6 +96,8 @@ Git is the contract.
 Kubernetes is the enforcer.
 AI is the memory.
 ```
+
+To be precise about what we mean: the memory itself does not live inside a model. It lives in Git, in architecture decision records, in the knowledge graph, and in the context that evolves with the platform. AI is what connects, understands, and makes that memory accessible. Models will come and go. The organizational memory must endure.
 
 ---
 
@@ -139,6 +125,8 @@ Not documentation as an afterthought. Documentation as infrastructure — with t
 
 When you `git blame` a Kubernetes manifest, you can trace it back to the incident that caused it. When you ask why a system is designed the way it is, the answer is a git log away.
 
+This is not theory. It is how OpenKubes is already built: every architectural decision lives as a versioned ADR in the platform repository, and every deviation from upstream in our deployment guides is recorded with its reason and its operational impact. The Context Store simply makes that discipline queryable — and permanent.
+
 ### Layer 3: Model Runtime
 
 Open AI runtimes deployed anywhere — on the same infrastructure that runs your workloads.
@@ -155,7 +143,7 @@ The platform heals itself.
 The intelligence remembers itself.
 The system continuously rebuilds both.
 
-When a cluster fails and Metal3 reprovisioned the bare metal nodes, the AI layer knows the history of that cluster — every deployment, every incident, every change. The infrastructure is new. The memory is intact.
+When a cluster fails and is reprovisioned on fresh bare metal, the AI layer knows the history of that cluster — every deployment, every incident, every change. The infrastructure is new. The memory is intact.
 
 ---
 
@@ -175,8 +163,6 @@ A future where critical knowledge no longer disappears when individuals leave.
 
 A future where the organization remembers — not just what it built, but why it built it.
 
-A future where every decision, every failure, every hard-won insight contributes to a continuously evolving collective memory that outlasts any individual, any team, any reorganization.
-
 The engineer retires. The knowledge stays.
 
 The team disbands. The context remains.
@@ -193,7 +179,7 @@ They are measured in production downtime, patient safety, grid stability, and na
 
 We have seen what happens when a factory floor loses the engineer who understood the control system. We have seen what happens when a hospital's IT team inherits infrastructure nobody documented. We have seen what happens when a critical system needs to be rebuilt and nobody remembers the original architecture rationale.
 
-**The infrastructure survived. The intelligence did not. People were hurt.**
+**The infrastructure survived. The intelligence did not. The consequences were real.**
 
 This is why OpenKubes AI is not a feature.
 
@@ -209,12 +195,13 @@ When we look at where OpenKubes is going, we see a platform designed not merely 
 OpenKubes IMP        → Infrastructure survives
 OpenKubes AI         → Knowledge survives
 OpenKubes Robotics   → Actions survive
-OpenKubes Quantum    → Optimization survives
 ```
 
-Together they form something that has never existed before:
+The Robotics layer is not hypothetical. Open-RMF — the open robotics middleware framework for fleet management, traffic coordination, task dispatching, and simulation — runs today as a reference robotics workload on the OpenKubes platform, deployed through the same GitOps-based operational model as everything else, consistently across local, edge, bare-metal, and public cloud environments.
 
-**A platform where systems, knowledge, actions, and optimization persist — regardless of hardware failures, software updates, team changes, or the passage of time.**
+Together these layers form something that has never existed before:
+
+**A platform where systems, knowledge, and actions persist — regardless of hardware failures, software updates, team changes, or the passage of time.**
 
 Infrastructure that heals itself.
 Intelligence that remembers itself.
@@ -228,7 +215,7 @@ This manifesto is not a product announcement.
 
 It is a direction.
 
-OpenKubes AI does not exist yet as a shipping product. But the architectural foundation does — in the Git repositories, the Crossplane compositions, the Cluster API providers, and the knowledge accumulated across ten years of building and operating critical Kubernetes infrastructure.
+OpenKubes AI does not exist yet as a shipping product. But the architectural foundation does — in the Git repositories, the Crossplane compositions, the Cluster API providers, the running robotics reference workload, and the knowledge accumulated across ten years of building and operating critical Kubernetes infrastructure.
 
 The Immortal Mind is where that foundation leads.
 
