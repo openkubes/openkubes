@@ -9,3 +9,4 @@ spec:
   clusterRef: ok1-talos
   ollamaEndpoint: http://192.168.100.202:11434
   namespace: open-webui
+  ingress: true  # → open-webui.ok1-talos.internal via ok-ingress (ADR-Platform-010)

@@ -34,6 +34,10 @@ spec:
                       enabled: false
                     pipelines:
                       enabled: false
+                    ingress:
+                      enabled: false
+                      class: ok-ingress
+                      host: ""
                     extraEnvVars:
                       - name: OLLAMA_BASE_URL
                         value: "http://192.168.100.202:11434"
@@ -61,3 +65,16 @@ spec:
               - type: FromCompositeFieldPath
                 fromFieldPath: spec.ollamaEndpoint
                 toFieldPath: spec.forProvider.values.extraEnvVars[0].value
+              # Ingress contract (ADR-Platform-010): opt-in, class ok-ingress,
+              # hostname open-webui.<clusterRef>.internal
+              - type: FromCompositeFieldPath
+                fromFieldPath: spec.ingress
+                toFieldPath: spec.forProvider.values.ingress.enabled
+              - type: FromCompositeFieldPath
+                fromFieldPath: spec.clusterRef
+                toFieldPath: spec.forProvider.values.ingress.host
+                transforms:
+                  - type: string
+                    string:
+                      type: Format
+                      fmt: "open-webui.%s.internal"

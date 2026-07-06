@@ -42,3 +42,7 @@ spec:
                   type: string
                   description: "Open WebUI Helm chart version"
                   default: "15.2.0"
+                ingress:
+                  type: boolean
+                  description: "Expose via cluster ingress (ADR-Platform-010): ingressClassName ok-ingress, hostname open-webui.<clusterRef>.internal. Requires make install-ingress on the target cluster."
+                  default: false
