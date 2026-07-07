@@ -38,24 +38,41 @@ Constraints:
 5. `ok-ingress` is **not** the default IngressClass: applications must set
    `ingressClassName: ok-ingress` explicitly. Contract binding is visible,
    never implicit.
-6. LB-IP allocation: the host MetalLB pool `ok-pool` is shrunk to
-   `.200–.209`; each guest cluster owns a disjoint 5-IP block from `.210`
-   upward (`lbPool` in cluster-config.yaml — ok1-talos `.210–.214`,
-   ok-mgmt `.215–.219`). The guest-cluster LB implementation (v1: Cilium
-   LB-IPAM + L2 announcements) assigns Service IPs exclusively from its
-   block — no MetalLB inside guest clusters.
+6. LB-IP allocation: the host MetalLB pool `ok-pool` (`.200–.209`) is the
+   sole LB mechanism. Each guest cluster gets one IP from this pool via a
+   **host-cluster proxy Service** — no MetalLB or LB implementation inside
+   guest clusters required.
 
-### Implementation Profile v1: Traefik
+### Implementation Profile v1: Traefik + Host-Cluster Proxy
 
-- Installed via Helm through `make install-ingress CLUSTER=<name>`
-  (opt-in, analogous to `make install-storage` — **not** part of
-  `make bootstrap`; ingress is an application-layer capability, not a
-  cluster-lifecycle requirement).
-- IngressClass `ok-ingress` → Traefik controller; Traefik values proven in
-  capi-platform-v4.2 are the baseline.
-- Namespace `ingress`, one `LoadBalancer` Service, MetalLB assigns the IP.
-- TLS v1: Traefik default self-signed certificate; cert-manager with a
-  cluster-local CA is a follow-up (profile change, no ADR amendment).
+Traffic path (discovered 2026-07-07, validated on ok1-talos):
+
+```
+client → <host-lb-ip>:80  (MetalLB on RKE2 host cluster)
+       → virt-launcher pod:<nodePort>  (KubeVirt VM pod on RKE2)
+       → Traefik NodePort in guest cluster
+       → Ingress routing → app pod
+```
+
+- **Traefik** installed via Helm in guest cluster, `service.type=NodePort`
+  (ports 30080/30443). IngressClass `ok-ingress`, not default.
+  Namespace `ingress`.
+- **Host proxy Service** (`<cluster>-ingress`) created in the cluster
+  namespace on RKE2, `type: LoadBalancer`, selector
+  `cluster.x-k8s.io/role=worker` — MetalLB assigns one IP from `ok-pool`.
+  Routes `:80→30080`, `:443→30443` into the KubeVirt virt-launcher pods.
+- Both steps automated via `make install-ingress CLUSTER=<name>` (opt-in,
+  not part of `make bootstrap`).
+- TLS v1: Traefik default self-signed certificate; cert-manager follow-up
+  is a profile change, no ADR amendment.
+
+**Why not Cilium LB-IPAM + L2 Announcements?** CAPK-deployed VMs have a
+single `eth0` in the Cilium overlay — no direct vSwitch interface. Cilium
+cannot ARP-announce an IP that has no L2 presence on the host network.
+The host-proxy pattern reuses the same mechanism as the CAPI-managed
+control-plane LB (`<cluster>-lb`) and requires no changes to VM networking.
+This is the correct v1 approach; Cilium Gateway API (v2) remains the
+migration path once Multus NADs are added to CAPK templates (OK-57).
 
 ### Migration Path: Cilium Gateway API (v2, deferred)
 
