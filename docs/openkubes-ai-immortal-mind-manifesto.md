@@ -171,6 +171,43 @@ The company is acquired. The intelligence survives.
 
 ---
 
+## The Human Owns the Contracts
+
+If models are disposable, one question remains: who holds the authority?
+
+OpenKubes treats AI as a first-class engineering collaborator — but not as
+the owner of architectural decisions.
+
+AI can propose designs, challenge assumptions, review implementations,
+identify inconsistencies, and connect knowledge across the project.
+Different models may disagree, correct one another, and collectively
+improve the quality of a decision. In practice, OpenKubes decisions pass
+through a three-way review — human, and two independent models — before
+they are committed.
+
+Authority, however, remains with humans — and the mechanism is deliberately
+mundane: nothing becomes an ADR, a commit, or published documentation until
+a human accepts it. AI may argue; only humans merge.
+
+This is not a new rule. It is the core OpenKubes principle applied to
+intelligence itself:
+
+> Own the contracts, not the components.
+
+Applied to AI: **Humans own the contracts. AI implements, reviews, connects,
+and amplifies — but remains replaceable. Every node in the Knowledge Graph
+ultimately traces back to a human decision.**
+
+The value of AI does not lie in replacing human judgment. It lies in making
+human knowledge easier to discover, validate, and evolve. Models will
+improve, be replaced, or disappear. The ADRs, the Git history, the Knowledge
+Graph — the decisions and their reasons — remain.
+
+The human is not the only thinker in the system. The human is the final
+authority.
+
+---
+
 ## Why This Matters for Industrial Systems
 
 In a factory, a hospital, a power grid, or a government agency — the stakes of lost knowledge are not measured in developer productivity.
