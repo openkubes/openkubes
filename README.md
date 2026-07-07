@@ -106,7 +106,7 @@ kubectl apply -f claim.yaml
 
 ## Architecture Decisions
 
-OpenKubes is built on 8 documented platform-level decisions:
+OpenKubes is built on 11 documented platform-level decisions:
 
 | ADR | Decision |
 |---|---|
@@ -118,6 +118,9 @@ OpenKubes is built on 8 documented platform-level decisions:
 | [ADR-Platform-006](./architecture/decisions/ADR-Platform-006-mgmt-cluster.md) | ok-mgmt as the OpenKubes Management Cluster |
 | [ADR-Platform-007](./architecture/decisions/ADR-Platform-007-capi-responsibility-split.md) | CAPI responsibility split: ok-infra bootstraps, ok-mgmt operates |
 | [ADR-Platform-008](./architecture/decisions/ADR-Platform-008-mgmt-cluster-type.md) | TYPE=talos-mgmt as dedicated cluster type in ok-cluster |
+| [ADR-Platform-009](./architecture/decisions/ADR-Platform-009-storage-contract.md) | Storage contract — Longhorn as v1 implementation, three storage classes |
+| [ADR-Platform-010](./architecture/decisions/ADR-Platform-010-ingress-contract.md) | Ingress contract — ok-ingress class, Traefik as v1 implementation |
+| [ADR-Platform-011](./architecture/decisions/ADR-Platform-011-gitops.md) | GitOps platform capability *(proposed)* |
 
 → [`architecture/decisions/`](./architecture/decisions/)
 
