@@ -29,6 +29,17 @@
 
 ---
 
+## The OpenKubes Family
+
+> The mother owns the contracts, not the components. The children do the work.
+
+[![The OpenKubes Family](./docs/openkubes-family.svg)](./docs/openkubes-family.md)
+
+Each repository owns exactly one capability contract — `ok-linux` (Host OS), `ok-cluster` (Cluster Lifecycle), `ok-storage`, `ok-gitops`, `ok-apps` — while this repository holds the contracts, the decisions (ADRs), and the [knowledge graph](https://kubernauts.de/en/openkubes/openkubes_knowledge_graph_force_layout.html) that connects them.
+→ Full story: [The OpenKubes Family](./docs/openkubes-family.md)
+
+---
+
 ## What OpenKubes ships today
 
 ```bash
