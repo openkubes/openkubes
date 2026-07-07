@@ -18,8 +18,16 @@ graph: graph-json graph-html ## Rebuild the knowledge graph (JSON + standalone H
 	@echo "   Preview : make graph-serve"
 	@echo "   Publish : commit $(JSON) + $(STANDALONE), upload standalone HTML to kubernauts.de"
 
-graph-json: ## Extract graph from Git (ADRs, commits, issues) → knowledge-graph.json
-	@cd $(DOCS) && python3 okgraph.py build ..
+VENV   := .venv
+PYTHON := $(VENV)/bin/python3
+
+$(VENV): ## Create local venv with graph dependencies
+	@python3 -m venv $(VENV)
+	@$(PYTHON) -m pip install -q networkx
+	@echo "  ✔ venv ready ($(VENV))"
+
+graph-json: $(VENV) ## Extract graph from Git (ADRs, commits, issues) → knowledge-graph.json
+	@cd $(DOCS) && ../$(PYTHON) okgraph.py build ..
 
 graph-html: ## Embed JSON into the D3 template → standalone viewer HTML
 	@python3 -c "\

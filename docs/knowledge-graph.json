@@ -277,6 +277,12 @@
   },
   {
    "type": "issue",
+   "label": "OK-56",
+   "url": "https://kubernauts.atlassian.net/browse/OK-56",
+   "id": "OK-56"
+  },
+  {
+   "type": "issue",
    "label": "OK-55",
    "url": "https://kubernauts.atlassian.net/browse/OK-55",
    "id": "OK-55"
@@ -289,15 +295,23 @@
   },
   {
    "type": "issue",
-   "label": "OK-56",
-   "url": "https://kubernauts.atlassian.net/browse/OK-56",
-   "id": "OK-56"
-  },
-  {
-   "type": "issue",
    "label": "OK-58",
    "url": "https://kubernauts.atlassian.net/browse/OK-58",
    "id": "OK-58"
+  },
+  {
+   "type": "commit",
+   "label": "1a073c9",
+   "message": "docs: README ADR table \u2014 add ADR-Platform-009/010/011",
+   "date": "2026-07-07",
+   "id": "commit:1a073c9"
+  },
+  {
+   "type": "commit",
+   "label": "83eeb18",
+   "message": "docs: ingress on KubeVirt workload clusters \u2014 why Cilium L2 Announcements can't work (OK-56 learning, three-way reviewed)",
+   "date": "2026-07-07",
+   "id": "commit:83eeb18"
   },
   {
    "type": "commit",
@@ -587,12 +601,6 @@
   {
    "rel": "references",
    "source": "ADR-Platform-003",
-   "target": "ADR-Platform-002",
-   "key": 0
-  },
-  {
-   "rel": "references",
-   "source": "ADR-Platform-003",
    "target": "ADR-Platform-001",
    "key": 0
   },
@@ -606,6 +614,12 @@
    "rel": "references",
    "source": "ADR-Platform-003",
    "target": "ADR-001",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-003",
+   "target": "ADR-Platform-002",
    "key": 0
   },
   {
@@ -659,13 +673,13 @@
   {
    "rel": "references",
    "source": "ADR-Platform-004",
-   "target": "ADR-Platform-003",
+   "target": "ADR-Platform-002",
    "key": 0
   },
   {
    "rel": "references",
    "source": "ADR-Platform-004",
-   "target": "ADR-Platform-002",
+   "target": "ADR-Platform-003",
    "key": 0
   },
   {
@@ -815,13 +829,13 @@
   {
    "rel": "references",
    "source": "ADR-Platform-006",
-   "target": "ADR-001",
+   "target": "ADR-Platform-003",
    "key": 0
   },
   {
    "rel": "references",
    "source": "ADR-Platform-006",
-   "target": "ADR-Platform-003",
+   "target": "ADR-001",
    "key": 0
   },
   {
@@ -887,13 +901,13 @@
   {
    "rel": "references",
    "source": "ADR-Platform-007",
-   "target": "ADR-Platform-001",
+   "target": "ADR-Platform-006",
    "key": 0
   },
   {
    "rel": "references",
    "source": "ADR-Platform-007",
-   "target": "ADR-Platform-006",
+   "target": "ADR-Platform-001",
    "key": 0
   },
   {
@@ -1115,6 +1129,12 @@
   {
    "rel": "tracked-by",
    "source": "ADR-Platform-010",
+   "target": "OK-56",
+   "key": 0
+  },
+  {
+   "rel": "tracked-by",
+   "source": "ADR-Platform-010",
    "target": "OK-55",
    "key": 0
   },
@@ -1122,12 +1142,6 @@
    "rel": "tracked-by",
    "source": "ADR-Platform-010",
    "target": "OK-57",
-   "key": 0
-  },
-  {
-   "rel": "tracked-by",
-   "source": "ADR-Platform-010",
-   "target": "OK-56",
    "key": 0
   },
   {
@@ -1198,14 +1212,26 @@
   },
   {
    "rel": "implements",
-   "source": "commit:f8115c7",
-   "target": "OK-58",
+   "source": "commit:1a073c9",
+   "target": "ADR-Platform-009",
+   "key": 0
+  },
+  {
+   "rel": "implements",
+   "source": "commit:83eeb18",
+   "target": "OK-56",
    "key": 0
   },
   {
    "rel": "implements",
    "source": "commit:f8115c7",
    "target": "ADR-Platform-011",
+   "key": 0
+  },
+  {
+   "rel": "implements",
+   "source": "commit:f8115c7",
+   "target": "OK-58",
    "key": 0
   },
   {
@@ -1217,13 +1243,13 @@
   {
    "rel": "implements",
    "source": "commit:dba77a4",
-   "target": "ADR-Platform-010",
+   "target": "OK-56",
    "key": 0
   },
   {
    "rel": "implements",
    "source": "commit:dba77a4",
-   "target": "OK-56",
+   "target": "ADR-Platform-010",
    "key": 0
   },
   {
