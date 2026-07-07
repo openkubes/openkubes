@@ -1,0 +1,1290 @@
+{
+ "directed": true,
+ "multigraph": true,
+ "graph": {},
+ "nodes": [
+  {
+   "type": "capability",
+   "label": "ok-linux (Host OS)",
+   "id": "ok-linux"
+  },
+  {
+   "type": "capability",
+   "label": "ok-cluster (Cluster Lifecycle)",
+   "id": "ok-cluster"
+  },
+  {
+   "type": "capability",
+   "label": "ok-storage (Storage)",
+   "id": "ok-storage"
+  },
+  {
+   "type": "capability",
+   "label": "ok-gitops (GitOps)",
+   "id": "ok-gitops"
+  },
+  {
+   "type": "capability",
+   "label": "ok-apps (Applications)",
+   "id": "ok-apps"
+  },
+  {
+   "type": "adr",
+   "label": "ADR-001",
+   "title": "Architecture Decision Record (ADR-001): Hosted Control Plane (Pod-based) as Optional Cluster Mode",
+   "file": "architecture/decisions/ADR-001-hosted-control-plane.md",
+   "status": "Proposed",
+   "date": "2026-06-06",
+   "id": "ADR-001"
+  },
+  {
+   "type": "adr",
+   "label": "ADR-Platform-001",
+   "title": "ADR-Platform-001: OpenKubes owns the contracts, not the components",
+   "file": "architecture/decisions/ADR-Platform-001-contracts-not-components.md",
+   "status": "Accepted",
+   "date": "2026-07-01",
+   "id": "ADR-Platform-001"
+  },
+  {
+   "type": "adr",
+   "label": "ADR-Platform-002",
+   "title": "ADR-Platform-002: openkubes/openkubes is the Platform Distribution and Integration Layer",
+   "file": "architecture/decisions/ADR-Platform-002-distribution-layer.md",
+   "status": "Accepted",
+   "date": "2026-07-01",
+   "id": "ADR-Platform-002"
+  },
+  {
+   "type": "adr",
+   "label": "ADR-Platform-003",
+   "title": "ADR-Platform-003: capi-platform-v4.2 is the historical Platform Orchestrator prototype",
+   "file": "architecture/decisions/ADR-Platform-003-capi-platform-v4.2-prototype.md",
+   "status": "Accepted",
+   "date": "2026-07-01",
+   "id": "ADR-Platform-003"
+  },
+  {
+   "type": "adr",
+   "label": "ADR-Platform-004",
+   "title": "ADR-Platform-004: Runner-based orchestration is an implementation detail, not the platform contract",
+   "file": "architecture/decisions/ADR-Platform-004-runner-is-implementation-detail.md",
+   "status": "Accepted",
+   "date": "2026-07-01",
+   "id": "ADR-Platform-004"
+  },
+  {
+   "type": "adr",
+   "label": "ADR-Platform-005",
+   "title": "ADR-Platform-005: Shared AI Services Layer \u2014 Centralized GPU Backend for all Workload Clusters",
+   "file": "architecture/decisions/ADR-Platform-005-shared-ai-services.md",
+   "status": "Accepted",
+   "date": "2026-07-01",
+   "id": "ADR-Platform-005"
+  },
+  {
+   "type": "adr",
+   "label": "ADR-Platform-006",
+   "title": "ADR-Platform-006: ok-mgmt as the OpenKubes Management Cluster",
+   "file": "architecture/decisions/ADR-Platform-006-mgmt-cluster.md",
+   "status": "Accepted",
+   "date": "2026-07-02",
+   "id": "ADR-Platform-006"
+  },
+  {
+   "type": "adr",
+   "label": "ADR-Platform-007",
+   "title": "ADR-Platform-007: CAPI Responsibility Split \u2014 ok-infra bootstraps, ok-mgmt operates",
+   "file": "architecture/decisions/ADR-Platform-007-capi-responsibility-split.md",
+   "status": "Accepted",
+   "date": "2026-07-02",
+   "id": "ADR-Platform-007"
+  },
+  {
+   "type": "adr",
+   "label": "ADR-Platform-008",
+   "title": "ADR-Platform-008: Management Cluster as a dedicated cluster type in ok-cluster",
+   "file": "architecture/decisions/ADR-Platform-008-mgmt-cluster-type.md",
+   "status": "Accepted",
+   "date": "2026-07-02",
+   "id": "ADR-Platform-008"
+  },
+  {
+   "type": "adr",
+   "label": "ADR-Platform-009",
+   "title": "ADR-Platform-009: Persistent Storage Contract and Implementation",
+   "file": "architecture/decisions/ADR-Platform-009-storage-contract.md",
+   "status": "Accepted",
+   "date": "2026-07-03",
+   "id": "ADR-Platform-009"
+  },
+  {
+   "type": "adr",
+   "label": "ADR-Platform-010",
+   "title": "ADR-Platform-010: Ingress for OpenKubes Workload Clusters",
+   "file": "architecture/decisions/ADR-Platform-010-ingress-contract.md",
+   "status": "Accepted (Arash / Claude; GPT review deferred to repo-level review of ok-cluster + openkubes)",
+   "date": "2026-07-06",
+   "id": "ADR-Platform-010"
+  },
+  {
+   "type": "adr",
+   "label": "ADR-Platform-011",
+   "title": "ADR-Platform-011: GitOps for OpenKubes Cluster Lifecycle",
+   "file": "architecture/decisions/ADR-Platform-011-gitops.md",
+   "status": "Proposed",
+   "date": "2026-07-07",
+   "id": "ADR-Platform-011"
+  },
+  {
+   "type": "component",
+   "label": "KubeVirt",
+   "id": "KubeVirt"
+  },
+  {
+   "type": "component",
+   "label": "Cilium",
+   "id": "Cilium"
+  },
+  {
+   "type": "component",
+   "label": "Crossplane",
+   "id": "Crossplane"
+  },
+  {
+   "type": "component",
+   "label": "CAPI",
+   "id": "CAPI"
+  },
+  {
+   "type": "component",
+   "label": "CAPK",
+   "id": "CAPK"
+  },
+  {
+   "type": "component",
+   "label": "Kamaji",
+   "id": "Kamaji"
+  },
+  {
+   "type": "component",
+   "label": "Kubernetes",
+   "id": "Kubernetes"
+  },
+  {
+   "type": "issue",
+   "label": "OK-16",
+   "url": "https://kubernauts.atlassian.net/browse/OK-16",
+   "id": "OK-16"
+  },
+  {
+   "type": "component",
+   "label": "Talos",
+   "id": "Talos"
+  },
+  {
+   "type": "component",
+   "label": "Ceph",
+   "id": "Ceph"
+  },
+  {
+   "type": "component",
+   "label": "Argo CD",
+   "id": "Argo CD"
+  },
+  {
+   "type": "component",
+   "label": "containerd",
+   "id": "containerd"
+  },
+  {
+   "type": "component",
+   "label": "RKE2",
+   "id": "RKE2"
+  },
+  {
+   "type": "component",
+   "label": "MetalLB",
+   "id": "MetalLB"
+  },
+  {
+   "type": "component",
+   "label": "Ollama",
+   "id": "Ollama"
+  },
+  {
+   "type": "component",
+   "label": "Open WebUI",
+   "id": "Open WebUI"
+  },
+  {
+   "type": "component",
+   "label": "Hetzner",
+   "id": "Hetzner"
+  },
+  {
+   "type": "issue",
+   "label": "OK-54",
+   "url": "https://kubernauts.atlassian.net/browse/OK-54",
+   "id": "OK-54"
+  },
+  {
+   "type": "issue",
+   "label": "OK-52",
+   "url": "https://kubernauts.atlassian.net/browse/OK-52",
+   "id": "OK-52"
+  },
+  {
+   "type": "issue",
+   "label": "OK-53",
+   "url": "https://kubernauts.atlassian.net/browse/OK-53",
+   "id": "OK-53"
+  },
+  {
+   "type": "component",
+   "label": "CDI",
+   "id": "CDI"
+  },
+  {
+   "type": "component",
+   "label": "Longhorn",
+   "id": "Longhorn"
+  },
+  {
+   "type": "component",
+   "label": "NFS",
+   "id": "NFS"
+  },
+  {
+   "type": "component",
+   "label": "Traefik",
+   "id": "Traefik"
+  },
+  {
+   "type": "component",
+   "label": "Multus",
+   "id": "Multus"
+  },
+  {
+   "type": "component",
+   "label": "WireGuard",
+   "id": "WireGuard"
+  },
+  {
+   "type": "component",
+   "label": "ingress-nginx",
+   "id": "ingress-nginx"
+  },
+  {
+   "type": "issue",
+   "label": "OK-55",
+   "url": "https://kubernauts.atlassian.net/browse/OK-55",
+   "id": "OK-55"
+  },
+  {
+   "type": "issue",
+   "label": "OK-57",
+   "url": "https://kubernauts.atlassian.net/browse/OK-57",
+   "id": "OK-57"
+  },
+  {
+   "type": "issue",
+   "label": "OK-56",
+   "url": "https://kubernauts.atlassian.net/browse/OK-56",
+   "id": "OK-56"
+  },
+  {
+   "type": "issue",
+   "label": "OK-58",
+   "url": "https://kubernauts.atlassian.net/browse/OK-58",
+   "id": "OK-58"
+  },
+  {
+   "type": "commit",
+   "label": "f8115c7",
+   "message": "draft: ADR-Platform-011 GitOps platform capability (OK-58)",
+   "date": "2026-07-07",
+   "id": "commit:f8115c7"
+  },
+  {
+   "type": "commit",
+   "label": "c08eb6a",
+   "message": "fix: ADR-Platform-010 \u2014 correct ingress implementation profile (host-proxy, not Cilium L2)",
+   "date": "2026-07-07",
+   "id": "commit:c08eb6a"
+  },
+  {
+   "type": "commit",
+   "label": "dba77a4",
+   "message": "feat: ADR-Platform-010 ingress contract + Open WebUI ingress opt-in (OK-56)",
+   "date": "2026-07-06",
+   "id": "commit:dba77a4"
+  },
+  {
+   "type": "commit",
+   "label": "17c9288",
+   "message": "ADR-Platform-009: Accepted (10/10 three-way review)",
+   "date": "2026-07-03",
+   "id": "commit:17c9288"
+  },
+  {
+   "type": "commit",
+   "label": "30d880f",
+   "message": "ADR-Platform-009: Accepted after three-way review",
+   "date": "2026-07-03",
+   "id": "commit:30d880f"
+  },
+  {
+   "type": "commit",
+   "label": "8ad2c9c",
+   "message": "ADR-Platform-009: Persistent storage contract and implementation",
+   "date": "2026-07-03",
+   "id": "commit:8ad2c9c"
+  },
+  {
+   "type": "commit",
+   "label": "68b7bfe",
+   "message": "docs(adr): ADR-Platform-008 \u2014 TYPE=talos-mgmt as dedicated cluster type",
+   "date": "2026-07-02",
+   "id": "commit:68b7bfe"
+  },
+  {
+   "type": "commit",
+   "label": "1a5ec14",
+   "message": "docs(adr): ADR-Platform-007 \u2014 CAPI responsibility split",
+   "date": "2026-07-02",
+   "id": "commit:1a5ec14"
+  },
+  {
+   "type": "commit",
+   "label": "eb6e874",
+   "message": "docs(adr): remove public IPs from ADR-Platform-006",
+   "date": "2026-07-02",
+   "id": "commit:eb6e874"
+  },
+  {
+   "type": "commit",
+   "label": "b86d09c",
+   "message": "docs(adr): ADR-Platform-006 \u2014 ok-mgmt as the OpenKubes Management Cluster",
+   "date": "2026-07-02",
+   "id": "commit:b86d09c"
+  },
+  {
+   "type": "commit",
+   "label": "0f09401",
+   "message": "docs(adr): fix internal inconsistency in ADR-Platform-004",
+   "date": "2026-06-30",
+   "id": "commit:0f09401"
+  },
+  {
+   "type": "commit",
+   "label": "d9e9409",
+   "message": "docs(adr): sharpen ADR-Platform-004 \u2014 runner stays in ok-cluster",
+   "date": "2026-06-30",
+   "id": "commit:d9e9409"
+  },
+  {
+   "type": "commit",
+   "label": "8f82195",
+   "message": "docs: add ADR-001 hosted control plane pod-based mode",
+   "date": "2026-06-06",
+   "id": "commit:8f82195"
+  }
+ ],
+ "links": [
+  {
+   "rel": "governs",
+   "source": "ADR-001",
+   "target": "KubeVirt",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-001",
+   "target": "Cilium",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-001",
+   "target": "Crossplane",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-001",
+   "target": "CAPI",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-001",
+   "target": "CAPK",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-001",
+   "target": "Kamaji",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-001",
+   "target": "Kubernetes",
+   "key": 0
+  },
+  {
+   "rel": "tracked-by",
+   "source": "ADR-001",
+   "target": "OK-16",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-001",
+   "target": "Talos",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-001",
+   "target": "KubeVirt",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-001",
+   "target": "Crossplane",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-001",
+   "target": "CAPI",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-001",
+   "target": "CAPK",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-001",
+   "target": "Ceph",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-001",
+   "target": "Argo CD",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-001",
+   "target": "containerd",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-001",
+   "target": "Kubernetes",
+   "key": 0
+  },
+  {
+   "rel": "defines",
+   "source": "ADR-Platform-001",
+   "target": "ok-linux",
+   "key": 0
+  },
+  {
+   "rel": "defines",
+   "source": "ADR-Platform-001",
+   "target": "ok-cluster",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-001",
+   "target": "ADR-Platform-003",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-001",
+   "target": "ADR-Platform-004",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-002",
+   "target": "Crossplane",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-002",
+   "target": "CAPI",
+   "key": 0
+  },
+  {
+   "rel": "defines",
+   "source": "ADR-Platform-002",
+   "target": "ok-linux",
+   "key": 0
+  },
+  {
+   "rel": "defines",
+   "source": "ADR-Platform-002",
+   "target": "ok-cluster",
+   "key": 0
+  },
+  {
+   "rel": "defines",
+   "source": "ADR-Platform-002",
+   "target": "ok-gitops",
+   "key": 0
+  },
+  {
+   "rel": "defines",
+   "source": "ADR-Platform-002",
+   "target": "ok-apps",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-002",
+   "target": "ADR-Platform-003",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-002",
+   "target": "ADR-Platform-004",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-003",
+   "target": "Kubernetes",
+   "key": 0
+  },
+  {
+   "rel": "defines",
+   "source": "ADR-Platform-003",
+   "target": "ok-linux",
+   "key": 0
+  },
+  {
+   "rel": "defines",
+   "source": "ADR-Platform-003",
+   "target": "ok-cluster",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-003",
+   "target": "ADR-Platform-002",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-003",
+   "target": "ADR-Platform-001",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-003",
+   "target": "ADR-Platform-004",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-003",
+   "target": "ADR-001",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-004",
+   "target": "Crossplane",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-004",
+   "target": "CAPI",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-004",
+   "target": "CAPK",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-004",
+   "target": "Kubernetes",
+   "key": 0
+  },
+  {
+   "rel": "defines",
+   "source": "ADR-Platform-004",
+   "target": "ok-linux",
+   "key": 0
+  },
+  {
+   "rel": "defines",
+   "source": "ADR-Platform-004",
+   "target": "ok-cluster",
+   "key": 0
+  },
+  {
+   "rel": "defines",
+   "source": "ADR-Platform-004",
+   "target": "ok-gitops",
+   "key": 0
+  },
+  {
+   "rel": "defines",
+   "source": "ADR-Platform-004",
+   "target": "ok-apps",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-004",
+   "target": "ADR-Platform-003",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-004",
+   "target": "ADR-Platform-002",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-005",
+   "target": "RKE2",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-005",
+   "target": "KubeVirt",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-005",
+   "target": "MetalLB",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-005",
+   "target": "Crossplane",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-005",
+   "target": "Ollama",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-005",
+   "target": "Open WebUI",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-005",
+   "target": "Hetzner",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-005",
+   "target": "Kubernetes",
+   "key": 0
+  },
+  {
+   "rel": "defines",
+   "source": "ADR-Platform-005",
+   "target": "ok-linux",
+   "key": 0
+  },
+  {
+   "rel": "defines",
+   "source": "ADR-Platform-005",
+   "target": "ok-cluster",
+   "key": 0
+  },
+  {
+   "rel": "tracked-by",
+   "source": "ADR-Platform-005",
+   "target": "OK-54",
+   "key": 0
+  },
+  {
+   "rel": "tracked-by",
+   "source": "ADR-Platform-005",
+   "target": "OK-52",
+   "key": 0
+  },
+  {
+   "rel": "tracked-by",
+   "source": "ADR-Platform-005",
+   "target": "OK-53",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-005",
+   "target": "ADR-Platform-001",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-006",
+   "target": "Talos",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-006",
+   "target": "RKE2",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-006",
+   "target": "KubeVirt",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-006",
+   "target": "Crossplane",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-006",
+   "target": "CAPI",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-006",
+   "target": "CAPK",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-006",
+   "target": "Hetzner",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-006",
+   "target": "Kubernetes",
+   "key": 0
+  },
+  {
+   "rel": "defines",
+   "source": "ADR-Platform-006",
+   "target": "ok-linux",
+   "key": 0
+  },
+  {
+   "rel": "defines",
+   "source": "ADR-Platform-006",
+   "target": "ok-cluster",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-006",
+   "target": "ADR-001",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-006",
+   "target": "ADR-Platform-003",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-007",
+   "target": "Talos",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-007",
+   "target": "RKE2",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-007",
+   "target": "KubeVirt",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-007",
+   "target": "CDI",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-007",
+   "target": "MetalLB",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-007",
+   "target": "Crossplane",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-007",
+   "target": "CAPI",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-007",
+   "target": "CAPK",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-007",
+   "target": "Hetzner",
+   "key": 0
+  },
+  {
+   "rel": "defines",
+   "source": "ADR-Platform-007",
+   "target": "ok-cluster",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-007",
+   "target": "ADR-Platform-001",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-007",
+   "target": "ADR-Platform-006",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-008",
+   "target": "Talos",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-008",
+   "target": "KubeVirt",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-008",
+   "target": "Crossplane",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-008",
+   "target": "CAPI",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-008",
+   "target": "CAPK",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-008",
+   "target": "Kubernetes",
+   "key": 0
+  },
+  {
+   "rel": "defines",
+   "source": "ADR-Platform-008",
+   "target": "ok-linux",
+   "key": 0
+  },
+  {
+   "rel": "defines",
+   "source": "ADR-Platform-008",
+   "target": "ok-cluster",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-008",
+   "target": "ADR-Platform-007",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-009",
+   "target": "Talos",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-009",
+   "target": "RKE2",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-009",
+   "target": "KubeVirt",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-009",
+   "target": "Crossplane",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-009",
+   "target": "Longhorn",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-009",
+   "target": "Ceph",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-009",
+   "target": "NFS",
+   "key": 0
+  },
+  {
+   "rel": "defines",
+   "source": "ADR-Platform-009",
+   "target": "ok-linux",
+   "key": 0
+  },
+  {
+   "rel": "defines",
+   "source": "ADR-Platform-009",
+   "target": "ok-cluster",
+   "key": 0
+  },
+  {
+   "rel": "defines",
+   "source": "ADR-Platform-009",
+   "target": "ok-storage",
+   "key": 0
+  },
+  {
+   "rel": "defines",
+   "source": "ADR-Platform-009",
+   "target": "ok-gitops",
+   "key": 0
+  },
+  {
+   "rel": "defines",
+   "source": "ADR-Platform-009",
+   "target": "ok-apps",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-010",
+   "target": "Talos",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-010",
+   "target": "RKE2",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-010",
+   "target": "KubeVirt",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-010",
+   "target": "MetalLB",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-010",
+   "target": "Cilium",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-010",
+   "target": "Traefik",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-010",
+   "target": "CAPI",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-010",
+   "target": "CAPK",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-010",
+   "target": "Multus",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-010",
+   "target": "WireGuard",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-010",
+   "target": "Ollama",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-010",
+   "target": "Open WebUI",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-010",
+   "target": "ingress-nginx",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-010",
+   "target": "Kubernetes",
+   "key": 0
+  },
+  {
+   "rel": "defines",
+   "source": "ADR-Platform-010",
+   "target": "ok-cluster",
+   "key": 0
+  },
+  {
+   "rel": "tracked-by",
+   "source": "ADR-Platform-010",
+   "target": "OK-55",
+   "key": 0
+  },
+  {
+   "rel": "tracked-by",
+   "source": "ADR-Platform-010",
+   "target": "OK-57",
+   "key": 0
+  },
+  {
+   "rel": "tracked-by",
+   "source": "ADR-Platform-010",
+   "target": "OK-56",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-010",
+   "target": "ADR-Platform-011",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-010",
+   "target": "ADR-Platform-009",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-011",
+   "target": "Crossplane",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-011",
+   "target": "CAPI",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-011",
+   "target": "CAPK",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-011",
+   "target": "Hetzner",
+   "key": 0
+  },
+  {
+   "rel": "defines",
+   "source": "ADR-Platform-011",
+   "target": "ok-cluster",
+   "key": 0
+  },
+  {
+   "rel": "defines",
+   "source": "ADR-Platform-011",
+   "target": "ok-gitops",
+   "key": 0
+  },
+  {
+   "rel": "tracked-by",
+   "source": "ADR-Platform-011",
+   "target": "OK-58",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-011",
+   "target": "ADR-Platform-001",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-011",
+   "target": "ADR-Platform-010",
+   "key": 0
+  },
+  {
+   "rel": "implements",
+   "source": "commit:f8115c7",
+   "target": "OK-58",
+   "key": 0
+  },
+  {
+   "rel": "implements",
+   "source": "commit:f8115c7",
+   "target": "ADR-Platform-011",
+   "key": 0
+  },
+  {
+   "rel": "implements",
+   "source": "commit:c08eb6a",
+   "target": "ADR-Platform-010",
+   "key": 0
+  },
+  {
+   "rel": "implements",
+   "source": "commit:dba77a4",
+   "target": "ADR-Platform-010",
+   "key": 0
+  },
+  {
+   "rel": "implements",
+   "source": "commit:dba77a4",
+   "target": "OK-56",
+   "key": 0
+  },
+  {
+   "rel": "implements",
+   "source": "commit:17c9288",
+   "target": "ADR-Platform-009",
+   "key": 0
+  },
+  {
+   "rel": "implements",
+   "source": "commit:30d880f",
+   "target": "ADR-Platform-009",
+   "key": 0
+  },
+  {
+   "rel": "implements",
+   "source": "commit:8ad2c9c",
+   "target": "ADR-Platform-009",
+   "key": 0
+  },
+  {
+   "rel": "implements",
+   "source": "commit:68b7bfe",
+   "target": "ADR-Platform-008",
+   "key": 0
+  },
+  {
+   "rel": "implements",
+   "source": "commit:1a5ec14",
+   "target": "ADR-Platform-007",
+   "key": 0
+  },
+  {
+   "rel": "implements",
+   "source": "commit:eb6e874",
+   "target": "ADR-Platform-006",
+   "key": 0
+  },
+  {
+   "rel": "implements",
+   "source": "commit:b86d09c",
+   "target": "ADR-Platform-006",
+   "key": 0
+  },
+  {
+   "rel": "implements",
+   "source": "commit:0f09401",
+   "target": "ADR-Platform-004",
+   "key": 0
+  },
+  {
+   "rel": "implements",
+   "source": "commit:d9e9409",
+   "target": "ADR-Platform-004",
+   "key": 0
+  },
+  {
+   "rel": "implements",
+   "source": "commit:8f82195",
+   "target": "ADR-001",
+   "key": 0
+  }
+ ]
+}
