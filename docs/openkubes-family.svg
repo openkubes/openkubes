@@ -1,0 +1,124 @@
+<svg width="100%" viewBox="0 0 1000 760" role="img" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system, 'Segoe UI', Roboto, Helvetica, sans-serif">
+<title>The OpenKubes Family — the mother owns the contracts, the children do the work</title>
+<defs>
+  <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <path d="M 0 0 L 10 5 L 0 10 z" fill="#57606a"/>
+  </marker>
+  <marker id="arrowGold" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <path d="M 0 0 L 10 5 L 0 10 z" fill="#b08800"/>
+  </marker>
+</defs>
+
+<!-- background -->
+<rect x="0" y="0" width="1000" height="760" fill="#ffffff"/>
+<text x="500" y="46" text-anchor="middle" font-size="26" font-weight="700" fill="#24292f">The OpenKubes Family</text>
+<text x="500" y="72" text-anchor="middle" font-size="14" fill="#57606a">The mother owns the contracts, not the components. The children do the work.</text>
+
+<!-- ===== Mother: openkubes/openkubes ===== -->
+<g>
+  <rect x="60" y="120" width="300" height="560" rx="16" fill="#fff8e6" stroke="#d4a72c" stroke-width="2.5"/>
+  <text x="210" y="156" text-anchor="middle" font-size="19" font-weight="700" fill="#24292f">openkubes/openkubes</text>
+  <text x="210" y="178" text-anchor="middle" font-size="13" font-style="italic" fill="#7d6608">the mother — implements nothing,</text>
+  <text x="210" y="196" text-anchor="middle" font-size="13" font-style="italic" fill="#7d6608">holds the family together</text>
+
+  <line x1="90" y1="214" x2="330" y2="214" stroke="#e6d9a8" stroke-width="1.5"/>
+
+  <g font-size="13.5" fill="#24292f">
+    <text x="92" y="244" font-weight="700">Contracts &amp; constitution</text>
+    <text x="102" y="266">• ADRs — every decision, versioned</text>
+    <text x="102" y="286">• Capability contracts between layers</text>
+    <text x="102" y="306">• Crossplane XRDs &amp; Compositions</text>
+
+    <text x="92" y="342" font-weight="700">Memory  (Immortal Mind, Layer 1)</text>
+    <text x="102" y="364">• Knowledge graph — derived from Git</text>
+    <text x="102" y="384">• Architecture docs &amp; archaeology</text>
+
+    <text x="92" y="420" font-weight="700">Bootstrap</text>
+    <text x="102" y="442">• bootstrap-mgmt.sh — 8 steps</text>
+    <text x="102" y="462">• Platform reference implementation</text>
+  </g>
+
+  <rect x="90" y="500" width="240" height="150" rx="10" fill="#fffdf5" stroke="#e6d9a8" stroke-width="1.5"/>
+  <text x="210" y="527" text-anchor="middle" font-size="13" font-weight="700" fill="#7d6608">The family rule (ADR-Platform-001)</text>
+  <text x="210" y="552" text-anchor="middle" font-size="12.5" fill="#24292f">Every child owns one capability</text>
+  <text x="210" y="570" text-anchor="middle" font-size="12.5" fill="#24292f">contract. Implementations (Talos,</text>
+  <text x="210" y="588" text-anchor="middle" font-size="12.5" fill="#24292f">CAPI, Longhorn, Argo CD, …) are</text>
+  <text x="210" y="606" text-anchor="middle" font-size="12.5" fill="#24292f">swappable; contracts are stable.</text>
+  <text x="210" y="632" text-anchor="middle" font-size="12" font-style="italic" fill="#57606a">Memory lives in Git.</text>
+</g>
+
+<!-- ===== Children: capability layers (top = apps, bottom = OS) ===== -->
+
+<!-- ok-apps -->
+<g>
+  <rect x="480" y="120" width="440" height="88" rx="12" fill="#f3ebff" stroke="#8250df" stroke-width="2"/>
+  <text x="504" y="152" font-size="17" font-weight="700" fill="#24292f">ok-apps</text>
+  <text x="504" y="174" font-size="13" fill="#57606a">Applications — what the platform is for</text>
+  <text x="504" y="193" font-size="12" fill="#8250df">Open WebUI · Ollama · your workloads</text>
+</g>
+
+<!-- ok-storage + ok-gitops -->
+<g>
+  <rect x="480" y="248" width="212" height="88" rx="12" fill="#e7f6ec" stroke="#2da44e" stroke-width="2"/>
+  <text x="504" y="280" font-size="17" font-weight="700" fill="#24292f">ok-storage</text>
+  <text x="504" y="302" font-size="13" fill="#57606a">Storage capability</text>
+  <text x="504" y="321" font-size="12" fill="#1a7f37">Longhorn · 3 storage classes</text>
+
+  <rect x="708" y="248" width="212" height="88" rx="12" fill="#e7f6ec" stroke="#2da44e" stroke-width="2"/>
+  <text x="732" y="280" font-size="17" font-weight="700" fill="#24292f">ok-gitops</text>
+  <text x="732" y="302" font-size="13" fill="#57606a">GitOps capability</text>
+  <text x="732" y="321" font-size="12" fill="#1a7f37">Argo CD · reconciliation</text>
+</g>
+
+<!-- ok-cluster -->
+<g>
+  <rect x="480" y="376" width="440" height="88" rx="12" fill="#e7f0fe" stroke="#0969da" stroke-width="2"/>
+  <text x="504" y="408" font-size="17" font-weight="700" fill="#24292f">ok-cluster</text>
+  <text x="504" y="430" font-size="13" fill="#57606a">Cluster Lifecycle — creates and operates clusters</text>
+  <text x="504" y="449" font-size="12" fill="#0969da">CAPI · CAPK · Crossplane · Cilium · Traefik</text>
+</g>
+
+<!-- ok-linux -->
+<g>
+  <rect x="480" y="504" width="440" height="88" rx="12" fill="#fdeef4" stroke="#bf3989" stroke-width="2"/>
+  <text x="504" y="536" font-size="17" font-weight="700" fill="#24292f">ok-linux</text>
+  <text x="504" y="558" font-size="13" fill="#57606a">Host OS — tells every node which OS it runs</text>
+  <text x="504" y="577" font-size="12" fill="#bf3989">Talos version · schematic ID · machineconfig.yaml</text>
+</g>
+
+<!-- hardware baseline -->
+<g>
+  <rect x="480" y="632" width="440" height="48" rx="12" fill="#f6f8fa" stroke="#d0d7de" stroke-width="1.5" stroke-dasharray="6 4"/>
+  <text x="700" y="662" text-anchor="middle" font-size="13" fill="#57606a">Bare metal — outside the family, hosts it</text>
+</g>
+
+<!-- ===== consumption arrows between children (upper consumes lower's contract) ===== -->
+<g stroke="#57606a" stroke-width="1.8" fill="none">
+  <line x1="700" y1="208" x2="700" y2="244" marker-start="url(#arrow)"/>
+  <line x1="586" y1="336" x2="586" y2="372" marker-start="url(#arrow)"/>
+  <line x1="814" y1="336" x2="814" y2="372" marker-start="url(#arrow)"/>
+  <line x1="700" y1="464" x2="700" y2="500" marker-start="url(#arrow)"/>
+  <line x1="700" y1="592" x2="700" y2="628" marker-start="url(#arrow)"/>
+</g>
+<g font-size="11" fill="#57606a">
+  <text x="712" y="230">consumes contract</text>
+  <text x="712" y="486">reads Talos version + schematic from ok-linux</text>
+</g>
+
+<!-- ===== mother -> children contract lines ===== -->
+<g stroke="#b08800" stroke-width="1.8" fill="none" stroke-dasharray="7 5">
+  <line x1="360" y1="164" x2="476" y2="164" marker-end="url(#arrowGold)"/>
+  <line x1="360" y1="292" x2="476" y2="292" marker-end="url(#arrowGold)"/>
+  <line x1="360" y1="420" x2="476" y2="420" marker-end="url(#arrowGold)"/>
+  <line x1="360" y1="548" x2="476" y2="548" marker-end="url(#arrowGold)"/>
+</g>
+<g font-size="10.5" fill="#b08800" font-style="italic" text-anchor="middle">
+  <text x="418" y="156">contract</text>
+  <text x="418" y="284">contract</text>
+  <text x="418" y="412">contract</text>
+  <text x="418" y="540">contract</text>
+</g>
+
+<!-- footer -->
+<text x="500" y="726" text-anchor="middle" font-size="12" fill="#8b949e">OpenKubes — a modular Kubernetes Platform Distribution · github.com/openkubes · Each layer consumes only the contract of the layer below.</text>
+</svg>
