@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OpenKubes Knowledge Graph — Immortal Mind, Layer 1</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<style>
+  :root{--bg:#0e1116;--panel:#161b22;--fg:#e6edf3;--muted:#8b949e;--line:#30363d}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);
+    font:14px/1.5 -apple-system,"Segoe UI",Roboto,sans-serif;overflow:hidden}
+  svg{width:100vw;height:100vh;display:block}
+  #hud{position:fixed;top:16px;left:16px;background:var(--panel);border:1px solid var(--line);
+    border-radius:10px;padding:14px 18px;max-width:340px}
+  #hud h1{font-size:16px;margin:0 0 2px}
+  #hud p{margin:4px 0;color:var(--muted);font-size:12px}
+  .legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+  .legend span{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--muted)}
+  .dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+  #info{position:fixed;right:16px;top:16px;width:320px;max-height:70vh;overflow:auto;
+    background:var(--panel);border:1px solid var(--line);border-radius:10px;
+    padding:14px 18px;display:none}
+  #info h2{font-size:14px;margin:0 0 6px}
+  #info .rel{font-size:12px;color:var(--muted);margin:2px 0}
+  #info .rel b{color:var(--fg);font-weight:600}
+  text{fill:var(--fg);font-size:11px;pointer-events:none}
+  .link{stroke:var(--line);stroke-opacity:.6}
+  .node circle{cursor:pointer;stroke:#0e1116;stroke-width:1.5}
+  .faded{opacity:.12}
+  #foot{position:fixed;bottom:12px;left:16px;color:var(--muted);font-size:11px}
+  #foot a{color:#58a6ff;text-decoration:none}
+</style>
+</head>
+<body>
+<div id="hud">
+  <h1>OpenKubes Knowledge Graph</h1>
+  <p>A derived projection of Git — ADRs, components, capabilities, Jira issues, commits. Rebuild anytime: <code>okgraph.py build</code></p>
+  <p id="stats"></p>
+  <div class="legend" id="legend"></div>
+  <p style="margin-top:8px">Drag nodes · scroll to zoom · click for details · hover to isolate</p>
+</div>
+<div id="info"></div>
+<div id="foot">Immortal Mind, Layer 1 · <a href="https://github.com/openkubes/openkubes">openkubes/openkubes</a> · Memory lives in Git.</div>
+<svg></svg>
+<script>
+const data = /*__GRAPH_DATA__*/;
+const COLORS = {adr:"#58a6ff",component:"#3fb950",capability:"#d29922",
+                issue:"#f778ba",commit:"#8b949e","cluster-state":"#a371f7"};
+const R = {adr:11,capability:13,component:7,issue:8,commit:5,"cluster-state":6};
+
+const nodes = data.nodes, links = data.links.map(d=>({...d}));
+document.getElementById("stats").textContent =
+  `${nodes.length} nodes · ${links.length} edges`;
+const legend = document.getElementById("legend");
+Object.entries(COLORS).forEach(([t,c])=>{
+  legend.insertAdjacentHTML("beforeend",
+    `<span><i class="dot" style="background:${c}"></i>${t}</span>`);});
+
+const svg = d3.select("svg"),
+      W = innerWidth, H = innerHeight,
+      g = svg.append("g");
+svg.call(d3.zoom().scaleExtent([.2,4]).on("zoom",e=>g.attr("transform",e.transform)));
+
+const sim = d3.forceSimulation(nodes)
+  .force("link", d3.forceLink(links).id(d=>d.id).distance(70).strength(.4))
+  .force("charge", d3.forceManyBody().strength(-220))
+  .force("center", d3.forceCenter(W/2, H/2))
+  .force("collide", d3.forceCollide().radius(d=>R[d.type]+8));
+
+const link = g.append("g").selectAll("line").data(links).join("line")
+  .attr("class","link");
+
+const node = g.append("g").selectAll("g").data(nodes).join("g")
+  .attr("class","node")
+  .call(d3.drag()
+    .on("start",(e,d)=>{if(!e.active)sim.alphaTarget(.3).restart();d.fx=d.x;d.fy=d.y;})
+    .on("drag",(e,d)=>{d.fx=e.x;d.fy=e.y;})
+    .on("end",(e,d)=>{if(!e.active)sim.alphaTarget(0);d.fx=null;d.fy=null;}));
+
+node.append("circle")
+  .attr("r",d=>R[d.type]||6)
+  .attr("fill",d=>COLORS[d.type]||"#999");
+node.append("text").attr("dx",d=>(R[d.type]||6)+4).attr("dy",4)
+  .text(d=>d.label||d.id);
+
+const adj = new Map(nodes.map(n=>[n.id,new Set([n.id])]));
+links.forEach(l=>{adj.get(l.source.id).add(l.target.id);
+                  adj.get(l.target.id).add(l.source.id);});
+
+node.on("mouseover",(e,d)=>{
+    const keep = adj.get(d.id);
+    node.classed("faded",n=>!keep.has(n.id));
+    link.classed("faded",l=>l.source.id!==d.id && l.target.id!==d.id);
+  }).on("mouseout",()=>{node.classed("faded",false);link.classed("faded",false);})
+  .on("click",(e,d)=>{
+    const box = document.getElementById("info");
+    let html = `<h2>${d.label||d.id}</h2>`;
+    if(d.title) html += `<p class="rel">${d.title}</p>`;
+    if(d.status) html += `<p class="rel">Status: <b>${d.status}</b> · ${d.date||""}</p>`;
+    if(d.message) html += `<p class="rel">${d.date||""} — ${d.message}</p>`;
+    if(d.url) html += `<p class="rel"><a href="${d.url}" style="color:#58a6ff">${d.url}</a></p>`;
+    html += "<hr style='border-color:#30363d'>";
+    links.filter(l=>l.source.id===d.id||l.target.id===d.id).forEach(l=>{
+      const other = l.source.id===d.id ? l.target : l.source;
+      html += `<p class="rel"><b>${l.rel}</b> ${other.label||other.id}</p>`;});
+    box.innerHTML = html; box.style.display = "block";
+  });
+svg.on("click",e=>{if(e.target.tagName==="svg")
+  document.getElementById("info").style.display="none";});
+
+sim.on("tick",()=>{
+  link.attr("x1",d=>d.source.x).attr("y1",d=>d.source.y)
+      .attr("x2",d=>d.target.x).attr("y2",d=>d.target.y);
+  node.attr("transform",d=>`translate(${d.x},${d.y})`);
+});
+</script>
+</body>
+</html>
