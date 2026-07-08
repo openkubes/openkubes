@@ -106,7 +106,7 @@ kubectl apply -f claim.yaml
 
 ## Architecture Decisions
 
-OpenKubes is built on 11 documented platform-level decisions:
+OpenKubes is built on 12 documented platform-level decisions:
 
 | ADR | Decision |
 |---|---|
@@ -121,6 +121,7 @@ OpenKubes is built on 11 documented platform-level decisions:
 | [ADR-Platform-009](./architecture/decisions/ADR-Platform-009-storage-contract.md) | Storage contract — Longhorn as v1 implementation, three storage classes |
 | [ADR-Platform-010](./architecture/decisions/ADR-Platform-010-ingress-contract.md) | Ingress contract — ok-ingress class, Traefik as v1 implementation |
 | [ADR-Platform-011](./architecture/decisions/ADR-Platform-011-gitops.md) | GitOps platform capability *(proposed)* |
+| [ADR-Platform-012](./architecture/decisions/ADR-Platform-012-air-gapped-image-mirroring.md) | Air-gapped image mirroring — ok-linux golden images, no runtime Factory dependency *(proposed)* |
 
 → [`architecture/decisions/`](./architecture/decisions/)
 
