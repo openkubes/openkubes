@@ -69,7 +69,7 @@ The platform handles the rest. No Helm expertise needed. No manual configuration
 | [`openkubes/openkubes`](https://github.com/openkubes/openkubes) | Platform Distribution, ADRs, XRDs, AI Platform | ✅ v0.2.0 |
 | [`openkubes/ok-cluster`](https://github.com/openkubes/ok-cluster) | Cluster Lifecycle Contract | ✅ v0.7.0 |
 | [`openkubes/ok-linux`](https://github.com/openkubes/ok-linux) | OS Profile Contract (Talos) | ✅ v0.1.1 |
-| `openkubes/ok-storage` | Persistent Storage Contract | 📋 planned |
+| [`openkubes/ok-storage`](https://github.com/openkubes/ok-storage) | Persistent Storage Contract | ✅ v0.1.0 |
 | `openkubes/ok-gitops` | GitOps Contract | 📋 planned |
 | `openkubes/ok-apps` | Application Contract | 📋 planned |
 
@@ -160,6 +160,7 @@ OpenKubes gives you both — through a contract-based architecture that runs ide
 git clone https://github.com/openkubes/openkubes
 git clone https://github.com/openkubes/ok-cluster
 git clone https://github.com/openkubes/ok-linux
+git clone https://github.com/openkubes/ok-storage
 
 # 2. Provision Management Cluster (on your host cluster)
 cd ok-cluster
