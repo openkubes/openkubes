@@ -202,4 +202,4 @@ kubectl apply -f ../openkubes/platform/ai/open-webui/crossplane/examples/ok1-tal
 
 ## License
 
-[Apache 2.0](./LICENSE) · Built by [Kubernauts GmbH](https://kubernauts.de) · Cologne, Germany
+[Apache 2.0](./LICENSE) · Built for the Kommunity · Cologne, Germany
