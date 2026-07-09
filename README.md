@@ -52,6 +52,7 @@ bash bootstrap-mgmt.sh   # Crossplane + CAPI + AI Platform XRDs — ~2 min
 make new CLUSTER=ok1-talos TYPE=talos WORKERS=1
 make bootstrap CLUSTER=ok1-talos
 make install-storage CLUSTER=ok1-talos
+make register-cluster CLUSTER=ok1-talos   # wire it into the management plane (ADR-013)
 
 # Deploy Private AI on the workload cluster — from the management cluster
 make deploy CLUSTER=ok1-talos   # → Open WebUI + Ollama in ~90 seconds
@@ -106,7 +107,7 @@ kubectl apply -f claim.yaml
 
 ## Architecture Decisions
 
-OpenKubes is built on 12 documented platform-level decisions:
+OpenKubes is built on 13 documented platform-level decisions:
 
 | ADR | Decision |
 |---|---|
@@ -122,6 +123,7 @@ OpenKubes is built on 12 documented platform-level decisions:
 | [ADR-Platform-010](./architecture/decisions/ADR-Platform-010-ingress-contract.md) | Ingress contract — ok-ingress class, Traefik as v1 implementation |
 | [ADR-Platform-011](./architecture/decisions/ADR-Platform-011-gitops.md) | GitOps platform capability *(proposed)* |
 | [ADR-Platform-012](./architecture/decisions/ADR-Platform-012-air-gapped-image-mirroring.md) | Air-gapped image mirroring — ok-linux golden images, no runtime Factory dependency *(proposed)* |
+| [ADR-Platform-013](./architecture/decisions/ADR-Platform-013-workload-cluster-registration.md) | Workload cluster registration contract — one cluster, one name, one credential source |
 
 → [`architecture/decisions/`](./architecture/decisions/)
 
@@ -180,7 +182,10 @@ make new CLUSTER=ok1-talos TYPE=talos WORKERS=1
 make bootstrap CLUSTER=ok1-talos
 make install-storage CLUSTER=ok1-talos
 
-# 5. Deploy Open WebUI from management cluster
+# 5. Register the workload cluster with the management plane (ADR-013)
+make register-cluster CLUSTER=ok1-talos
+
+# 6. Deploy Open WebUI from management cluster
 export KUBECONFIG=~/.kube/ok-mgmt.yaml
 kubectl apply -f ../openkubes/platform/ai/open-webui/crossplane/examples/ok1-talos.yaml
 ```
