@@ -62,8 +62,17 @@ Any implementation of `ok-edge-constrained` MUST provide:
 - **Offline-capable image strategy** — golden device images with preloaded workload
   images; delta sync over the link, never full pulls (extends ADR-012).
 - **Single-node local storage** satisfying the `ok-storage-block` (RWO) contract.
+  The `ok-storage-block` contract guarantees block storage semantics (RWO
+  provisioning, lifecycle and scheduling integration). It intentionally does **not**
+  guarantee replication or durability. Durability characteristics are profile-specific
+  and, at the constrained edge, are compensated at the fleet level rather than the
+  node level (see §5, *Redundancy lives in the fleet layer, not the node*).
 - **Fleet registration** into ok-mgmt per ADR-Platform-013; edge-specific device
   identity and bootstrap hardening are a follow-up ADR.
+- **Minimal telemetry** — the platform SHALL provide sufficient telemetry for the
+  fleet layer to distinguish between *healthy*, *partitioned*, and *unreachable/dead*
+  nodes without requiring physical site access. The telemetry mechanism itself is
+  spike-gated (see Open Decisions); the requirement is not.
 
 ### 2. Candidate implementations (to be validated by spike)
 
@@ -75,6 +84,11 @@ Any implementation of `ok-edge-constrained` MUST provide:
 | Image strategy | Preloaded image tarballs; embedded registry mirror (e.g. Spegel/Zot) | Delta-sync capability, storage overhead on SD/eMMC |
 | Local storage | local-path-provisioner; openebs-local | RWO contract conformance, behavior on SD wear |
 | Ingress | Traefik hostPort; klipper-lb | No L2-announcement dependency |
+
+> Current implementation maturity differs between candidates (e.g. Talos SBC/ARM64
+> support and Image Factory reliability vs. K3s ecosystem maturity) and will be
+> evaluated empirically during the validation spike. This ADR intentionally makes
+> no recommendation until spike results are available.
 
 ### 3. Capability → Contract mapping
 
@@ -143,7 +157,9 @@ Any implementation of `ok-edge-constrained` MUST provide:
 2. OS/runtime selection: Talos ARM64/SBC maturity vs. K3s-on-minimal-OS — hardware
    test on a real Pi 5 / CM5 required.
 3. Device identity & trust bootstrap (TPM? token-based? SPIFFE?).
-4. Observability contract under metered links (metrics downsampling, store-and-forward).
+4. Observability implementation under metered links (metrics downsampling,
+   store-and-forward) — the *minimal telemetry* requirement itself is fixed in §1;
+   only the mechanism is open.
 
 ## Validation plan
 
