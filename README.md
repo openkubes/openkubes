@@ -7,10 +7,13 @@
 
 <div align="center">
 
-### **Kubernetes is a Platform to build Platforms.**
-### **OpenKubes builds Kubernetes PlatformS.**
+### Kubernetes is a platform for building platforms.
+
+### OpenKubes builds Kubernetes Platform*S*.
 
 *Private AI · Bare Metal · Edge · On-Premises · Multi-Cloud*
+
+<sub>The capital S is intentional.</sub>
 
 </div>
 
