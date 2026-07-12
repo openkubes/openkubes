@@ -2,6 +2,7 @@
 
 **Status:** Proposed (pending Go/No-Go from OK-14 PoC)
 **Date:** 2026-07-10
+**Updated:** 2026-07-12 (Accepted Risks AR-1/AR-2 added)
 **Deciders:** Arash Kaffamanesh
 **Reviewed:** Multi-model review (Arash / Claude / GPT / Gemini), 2026-07-10
 **Related:** ADR-Platform-001 (Contracts, not Components), ADR-Platform-005 (Shared AI Services), ADR-Platform-011 (GitOps), OK-14, OK-15
@@ -135,11 +136,13 @@ The capability is intended to support the following use cases. Only UC-1 is in s
 - Skill Contracts generalize beyond the agent layer: Cluster Inspection, Log Query, and Knowledge Graph interfaces are reusable platform abstractions.
 - The read-only default keeps the agentic layer consistent with the governance manifesto and the blast-radius principle.
 
-**Negative / Accepted Risks:**
+**Negative:**
 - OpenClaw is a community project without enterprise support; the single-replica deployment is a deliberate PoC-grade compromise.
 - Skill sprawl risk: each new Skill Contract widens the effective API surface an agent can reach. Mitigation: Skill Contracts are declared per instance (XRD `spec.parameters.skills`), reviewed like any other platform change.
 - A read-only Cluster Inspection implementation still exposes cluster-internal information to the LLM path; Secrets access must be explicitly excluded from the implementation's RBAC.
 - Shared instance identity: all users of an agent instance operate under that instance's ServiceAccount scope — no per-user authorization at the skill layer. Accepted under the read-only default; revisit if user-scoped access becomes a requirement (contract v2 consideration).
+
+Detailed accepted risks with containment positions: see [Accepted Risks](#accepted-risks) (AR-1, AR-2).
 
 **Revisit triggers:**
 - OK-14 PoC produces a No-Go → status moves to Rejected (documented outcome).
@@ -147,10 +150,67 @@ The capability is intended to support the following use cases. Only UC-1 is in s
 - A use case requires write access → new ADR required.
 - Agent Interface Contract v1 becomes limiting (MCP-native, A2A) → contract version bump, documented as contract evolution.
 
+## Accepted Risks
+
+### AR-1: Prompt injection through platform-managed content
+
+Agentic AI components consume content that the platform does not author:
+cluster state, Git commit messages, ADR text, Jira issues, external documents.
+Any of these can carry adversarial instructions. An agent that presents its
+results to operators can therefore be steered by injected content rather than
+by its operator.
+
+**Position.** Prompt injection is not solvable at the model layer today. The
+platform treats it as a containment problem, not a filtering problem:
+
+- Agents act through the same contracts as human operators — never through
+  privileged side channels. RBAC boundaries apply unchanged.
+- Agents have no mutating actions by design (Decision 5); injected
+  instructions cannot escalate beyond the read-only Skill Contracts.
+  Content retrieved by the agent (documents, tickets, cluster state)
+  is data, never an instruction source.
+- "AI may argue; only humans merge" remains the enforcement line: no agent
+  merges to protected branches or transitions an ADR to Accepted.
+
+Any future write-capable agent ADR (see Revisit triggers) must re-assess this
+risk from scratch — the read-only default is the primary containment measure.
+
+**Residual risk accepted.** An injected instruction may still degrade the
+*quality* of agent output (bad suggestions, wasted compute, misleading
+diagnoses presented to operators). This is accepted; it is bounded by the
+human-merge invariant.
+
+### AR-2: GPU budget exhaustion and missing rate limiting
+
+The AI runtime shares a single GPU (RTX 4000 Ada, 20 GB VRAM) with no
+hardware-level multi-tenancy. Agentic workloads are bursty and recursive;
+an unbounded agent loop can exhaust VRAM or starve interactive inference
+(Open WebUI, Ollama) for all consumers.
+
+**Position.** Fair scheduling of a single GPU across competing agentic
+consumers is out of scope for this ADR. Interim containment:
+
+- Namespace-level ResourceQuota and PriorityClass separate interactive
+  inference from batch/agentic workloads.
+- Agent frameworks must run with bounded iteration counts and timeouts;
+  unbounded self-invocation is prohibited by convention until enforced by
+  tooling.
+
+**Residual risk accepted.** Under concurrent load, agentic tasks may be
+delayed or evicted. Proper GPU budgeting (time-slicing, MIG-class isolation,
+per-consumer token/rate limits) is deferred to a follow-up ticket once the
+NVIDIA extension lands on ok-gpu (blocked: OK-49).
+
+Both risks are envelope-relevant: in a datacenter envelope the GPU-budget
+risk is a scheduling concern; in a constrained edge envelope it becomes a
+hard capacity boundary. The envelope-specific qualification of these
+guarantees is deferred to the Constraint Envelope decision (OK-74).
+
 ## References
 
 - OK-14 — PoC: OpenClaw + Open WebUI Tandem Architecture (incl. kagent evaluation questions)
 - OK-15 — Deploy OpenClaw on OpenKubes: Makefile + Helm (Phase 1), Crossplane (Phase 2)
+- OK-74 — Constraint Envelope ADR (envelope-specific qualification of AR-1/AR-2)
 - ADR-Platform-001 — Contracts, not Components
 - ADR-Platform-005 — Shared AI Services
 - ADR-Platform-011 — GitOps
