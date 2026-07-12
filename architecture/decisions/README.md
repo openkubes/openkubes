@@ -45,5 +45,6 @@ The original decision text is preserved as historical context.
 
 ## Relationships and the architecture graph
 
-Relationships are part of the architecture graph and should be expressed in
-ADR metadata using the exact keywords defined above.
+Relationship keywords are part of the platform architecture vocabulary and
+the architecture graph. They MUST be used consistently across all platform
+ADRs and expressed in ADR metadata using the exact keywords defined above.
