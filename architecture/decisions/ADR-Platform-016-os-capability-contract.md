@@ -1,6 +1,6 @@
 # ADR-Platform-016: OS Capability Contract
 
-**Status:** Proposed — three-way review in progress (Arash / Claude / GPT, 2026-07-10)
+**Status:** Accepted — three-way review completed (Arash / Claude / GPT, 2026-07-10)
 **Date:** 2026-07-10
 **Deciders:** Arash Kaffamanesh
 **Related:** ADR-Platform-001 (Contracts, not Components), ADR-Platform-012 (Air-gapped Image Mirroring), ADR-Platform-014 (Constrained Edge Profile), ok-linux ADR-001 ff.
