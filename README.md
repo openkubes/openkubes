@@ -11,9 +11,9 @@
 
 ### OpenKubes builds Kubernetes Platform*S*.
 
-*Private AI · Bare Metal · Edge · On-Premises · Multi-Cloud*
-
 <sub>The capital S is intentional.</sub>
+
+*Bare Metal · Edge · On-Premises · Multi-Cloud*
 
 </div>
 
