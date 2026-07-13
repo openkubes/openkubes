@@ -38,7 +38,7 @@
 
 [![The OpenKubes Family](./docs/openkubes-family.svg)](./docs/openkubes-family.md)
 
-Each repository owns exactly one capability contract — `ok-linux` (Host OS), `ok-cluster` (Cluster Lifecycle), `ok-storage`, `ok-gitops`, `ok-apps` — while this repository holds the contracts, the decisions (ADRs), and the [knowledge graph](https://kubernauts.de/en/openkubes/openkubes_knowledge_graph_force_layout.html) that connects them.
+Each repository owns exactly one capability contract — `ok-linux` (Host OS), `ok-cluster` (Cluster Lifecycle), `ok-storage`, `ok-observability`, `ok-gitops`, `ok-apps` — while this repository holds the contracts, the decisions (ADRs), and the [knowledge graph](https://kubernauts.de/en/openkubes/openkubes_knowledge_graph_force_layout.html) that connects them.
 → Full story: [The OpenKubes Family](./docs/openkubes-family.md)
 
 ---
@@ -74,6 +74,7 @@ The platform handles the rest. No Helm expertise needed. No manual configuration
 | [`openkubes/ok-cluster`](https://github.com/openkubes/ok-cluster) | Cluster Lifecycle Contract | ✅ v0.10.0 |
 | [`openkubes/ok-linux`](https://github.com/openkubes/ok-linux) | OS Profile Contract (Talos) | ✅ v0.1.1 |
 | [`openkubes/ok-storage`](https://github.com/openkubes/ok-storage) | Persistent Storage Contract | ✅ v0.1.0 |
+| [`openkubes/ok-observability`](https://github.com/openkubes/ok-observability) | Observability Capability Contract | 🚧 scaffold (ADR-Platform-018) |
 | `openkubes/ok-gitops` | GitOps Contract | 📋 planned |
 | `openkubes/ok-apps` | Application Contract | 📋 planned |
 
@@ -110,7 +111,7 @@ kubectl apply -f claim.yaml
 
 ## Architecture Decisions
 
-OpenKubes is built on 13 documented platform-level decisions:
+OpenKubes is built on 18 documented platform-level decisions:
 
 | ADR | Decision |
 |---|---|
@@ -127,6 +128,11 @@ OpenKubes is built on 13 documented platform-level decisions:
 | [ADR-Platform-011](./architecture/decisions/ADR-Platform-011-gitops.md) | GitOps platform capability *(proposed)* |
 | [ADR-Platform-012](./architecture/decisions/ADR-Platform-012-air-gapped-image-mirroring.md) | Air-gapped image mirroring — ok-linux golden images, no runtime Factory dependency *(proposed)* |
 | [ADR-Platform-013](./architecture/decisions/ADR-Platform-013-workload-cluster-registration.md) | Workload cluster registration contract — one cluster, one name, one credential source |
+| [ADR-Platform-014](./architecture/decisions/ADR-Platform-014-constrained-edge-profile.md) | Constrained edge implementation profile — Constraint Envelope concept *(draft, spike required)* |
+| [ADR-Platform-015](./architecture/decisions/ADR-Platform-015-agentic-ai.md) | Agentic AI capability — Agent Interface Contract, read-only boundary *(proposed)* |
+| [ADR-Platform-016](./architecture/decisions/ADR-Platform-016-os-capability-contract.md) | OS Capability Contract |
+| [ADR-Platform-017](./architecture/decisions/ADR-Platform-017-constraint-envelopes.md) | Constraint Envelopes — envelope-scoped guarantees |
+| [ADR-Platform-018](./architecture/decisions/ADR-Platform-018-observability-capability.md) | Observability capability — per-cluster stack with provisioning readiness gate |
 
 → [`architecture/decisions/`](./architecture/decisions/)
 

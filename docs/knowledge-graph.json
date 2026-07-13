@@ -191,6 +191,15 @@
    "id": "ADR-Platform-017"
   },
   {
+   "type": "adr",
+   "label": "ADR-Platform-018",
+   "title": "ADR-Platform-018: Observability Capability \u2014 Per-Cluster Stack",
+   "file": "architecture/decisions/ADR-Platform-018-observability-capability.md",
+   "status": "Accepted",
+   "date": "2026-07-13",
+   "id": "ADR-Platform-018"
+  },
+  {
    "type": "component",
    "label": "KubeVirt",
    "id": "KubeVirt"
@@ -361,21 +370,21 @@
   },
   {
    "type": "issue",
-   "label": "OK-60",
-   "url": "https://kubernauts.atlassian.net/browse/OK-60",
-   "id": "OK-60"
-  },
-  {
-   "type": "issue",
    "label": "OK-61",
    "url": "https://kubernauts.atlassian.net/browse/OK-61",
    "id": "OK-61"
   },
   {
    "type": "issue",
-   "label": "OK-15",
-   "url": "https://kubernauts.atlassian.net/browse/OK-15",
-   "id": "OK-15"
+   "label": "OK-60",
+   "url": "https://kubernauts.atlassian.net/browse/OK-60",
+   "id": "OK-60"
+  },
+  {
+   "type": "issue",
+   "label": "OK-74",
+   "url": "https://kubernauts.atlassian.net/browse/OK-74",
+   "id": "OK-74"
   },
   {
    "type": "issue",
@@ -385,9 +394,9 @@
   },
   {
    "type": "issue",
-   "label": "OK-74",
-   "url": "https://kubernauts.atlassian.net/browse/OK-74",
-   "id": "OK-74"
+   "label": "OK-15",
+   "url": "https://kubernauts.atlassian.net/browse/OK-15",
+   "id": "OK-15"
   },
   {
    "type": "issue",
@@ -403,15 +412,22 @@
   },
   {
    "type": "issue",
+   "label": "OK-63",
+   "url": "https://kubernauts.atlassian.net/browse/OK-63",
+   "id": "OK-63"
+  },
+  {
+   "type": "issue",
    "label": "OK-73",
    "url": "https://kubernauts.atlassian.net/browse/OK-73",
    "id": "OK-73"
   },
   {
-   "type": "issue",
-   "label": "OK-63",
-   "url": "https://kubernauts.atlassian.net/browse/OK-63",
-   "id": "OK-63"
+   "type": "commit",
+   "label": "28f88e5",
+   "message": "ADR-Platform-018: Observability Capability \u2014 per-cluster stack (OK-77)",
+   "date": "2026-07-13",
+   "id": "commit:28f88e5"
   },
   {
    "type": "commit",
@@ -792,13 +808,7 @@
   {
    "rel": "references",
    "source": "ADR-Platform-003",
-   "target": "ADR-001",
-   "key": 0
-  },
-  {
-   "rel": "references",
-   "source": "ADR-Platform-003",
-   "target": "ADR-Platform-004",
+   "target": "ADR-Platform-001",
    "key": 0
   },
   {
@@ -810,7 +820,13 @@
   {
    "rel": "references",
    "source": "ADR-Platform-003",
-   "target": "ADR-Platform-001",
+   "target": "ADR-001",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-003",
+   "target": "ADR-Platform-004",
    "key": 0
   },
   {
@@ -864,13 +880,13 @@
   {
    "rel": "references",
    "source": "ADR-Platform-004",
-   "target": "ADR-Platform-003",
+   "target": "ADR-Platform-002",
    "key": 0
   },
   {
    "rel": "references",
    "source": "ADR-Platform-004",
-   "target": "ADR-Platform-002",
+   "target": "ADR-Platform-003",
    "key": 0
   },
   {
@@ -1020,13 +1036,13 @@
   {
    "rel": "references",
    "source": "ADR-Platform-006",
-   "target": "ADR-Platform-003",
+   "target": "ADR-001",
    "key": 0
   },
   {
    "rel": "references",
    "source": "ADR-Platform-006",
-   "target": "ADR-001",
+   "target": "ADR-Platform-003",
    "key": 0
   },
   {
@@ -1338,13 +1354,13 @@
   {
    "rel": "references",
    "source": "ADR-Platform-010",
-   "target": "ADR-Platform-011",
+   "target": "ADR-Platform-009",
    "key": 0
   },
   {
    "rel": "references",
    "source": "ADR-Platform-010",
-   "target": "ADR-Platform-009",
+   "target": "ADR-Platform-011",
    "key": 0
   },
   {
@@ -1392,13 +1408,13 @@
   {
    "rel": "references",
    "source": "ADR-Platform-011",
-   "target": "ADR-Platform-010",
+   "target": "ADR-Platform-001",
    "key": 0
   },
   {
    "rel": "references",
    "source": "ADR-Platform-011",
-   "target": "ADR-Platform-001",
+   "target": "ADR-Platform-010",
    "key": 0
   },
   {
@@ -1452,25 +1468,25 @@
   {
    "rel": "tracked-by",
    "source": "ADR-Platform-012",
-   "target": "OK-59",
+   "target": "OK-55",
    "key": 0
   },
   {
    "rel": "tracked-by",
    "source": "ADR-Platform-012",
-   "target": "OK-55",
-   "key": 0
-  },
-  {
-   "rel": "references",
-   "source": "ADR-Platform-012",
-   "target": "ADR-Platform-009",
+   "target": "OK-59",
    "key": 0
   },
   {
    "rel": "references",
    "source": "ADR-Platform-012",
    "target": "ADR-Platform-001",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-012",
+   "target": "ADR-Platform-009",
    "key": 0
   },
   {
@@ -1488,7 +1504,7 @@
   {
    "rel": "tracked-by",
    "source": "ADR-Platform-013",
-   "target": "OK-60",
+   "target": "OK-61",
    "key": 0
   },
   {
@@ -1500,7 +1516,7 @@
   {
    "rel": "tracked-by",
    "source": "ADR-Platform-013",
-   "target": "OK-61",
+   "target": "OK-60",
    "key": 0
   },
   {
@@ -1584,7 +1600,7 @@
   {
    "rel": "references",
    "source": "ADR-Platform-014",
-   "target": "ADR-Platform-012",
+   "target": "ADR-Platform-001",
    "key": 0
   },
   {
@@ -1596,13 +1612,13 @@
   {
    "rel": "references",
    "source": "ADR-Platform-014",
-   "target": "ADR-Platform-013",
+   "target": "ADR-Platform-012",
    "key": 0
   },
   {
    "rel": "references",
    "source": "ADR-Platform-014",
-   "target": "ADR-Platform-001",
+   "target": "ADR-Platform-013",
    "key": 0
   },
   {
@@ -1668,13 +1684,7 @@
   {
    "rel": "tracked-by",
    "source": "ADR-Platform-015",
-   "target": "OK-15",
-   "key": 0
-  },
-  {
-   "rel": "tracked-by",
-   "source": "ADR-Platform-015",
-   "target": "OK-58",
+   "target": "OK-74",
    "key": 0
   },
   {
@@ -1686,13 +1696,25 @@
   {
    "rel": "tracked-by",
    "source": "ADR-Platform-015",
-   "target": "OK-74",
+   "target": "OK-15",
    "key": 0
   },
   {
    "rel": "tracked-by",
    "source": "ADR-Platform-015",
    "target": "OK-14",
+   "key": 0
+  },
+  {
+   "rel": "tracked-by",
+   "source": "ADR-Platform-015",
+   "target": "OK-58",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-015",
+   "target": "ADR-Platform-001",
    "key": 0
   },
   {
@@ -1704,19 +1726,13 @@
   {
    "rel": "references",
    "source": "ADR-Platform-015",
-   "target": "ADR-Platform-005",
-   "key": 0
-  },
-  {
-   "rel": "references",
-   "source": "ADR-Platform-015",
    "target": "ADR-Platform-011",
    "key": 0
   },
   {
    "rel": "references",
    "source": "ADR-Platform-015",
-   "target": "ADR-Platform-001",
+   "target": "ADR-Platform-005",
    "key": 0
   },
   {
@@ -1776,19 +1792,13 @@
   {
    "rel": "references",
    "source": "ADR-Platform-016",
+   "target": "ADR-Platform-001",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-016",
    "target": "ADR-Platform-009",
-   "key": 0
-  },
-  {
-   "rel": "references",
-   "source": "ADR-Platform-016",
-   "target": "ADR-Platform-014",
-   "key": 0
-  },
-  {
-   "rel": "references",
-   "source": "ADR-Platform-016",
-   "target": "ADR-Platform-012",
    "key": 0
   },
   {
@@ -1806,19 +1816,13 @@
   {
    "rel": "references",
    "source": "ADR-Platform-016",
-   "target": "ADR-Platform-001",
+   "target": "ADR-Platform-014",
    "key": 0
   },
   {
-   "rel": "tracked-by",
-   "source": "ADR-Platform-017",
-   "target": "OK-64",
-   "key": 0
-  },
-  {
-   "rel": "tracked-by",
-   "source": "ADR-Platform-017",
-   "target": "OK-73",
+   "rel": "references",
+   "source": "ADR-Platform-016",
+   "target": "ADR-Platform-012",
    "key": 0
   },
   {
@@ -1836,31 +1840,25 @@
   {
    "rel": "tracked-by",
    "source": "ADR-Platform-017",
+   "target": "OK-64",
+   "key": 0
+  },
+  {
+   "rel": "tracked-by",
+   "source": "ADR-Platform-017",
    "target": "OK-59",
    "key": 0
   },
   {
-   "rel": "references",
+   "rel": "tracked-by",
    "source": "ADR-Platform-017",
-   "target": "ADR-Platform-009",
+   "target": "OK-73",
    "key": 0
   },
   {
    "rel": "references",
    "source": "ADR-Platform-017",
-   "target": "ADR-Platform-016",
-   "key": 0
-  },
-  {
-   "rel": "references",
-   "source": "ADR-Platform-017",
-   "target": "ADR-Platform-014",
-   "key": 0
-  },
-  {
-   "rel": "references",
-   "source": "ADR-Platform-017",
-   "target": "ADR-Platform-012",
+   "target": "ADR-Platform-001",
    "key": 0
   },
   {
@@ -1872,19 +1870,103 @@
   {
    "rel": "references",
    "source": "ADR-Platform-017",
+   "target": "ADR-Platform-009",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-017",
+   "target": "ADR-Platform-012",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-017",
+   "target": "ADR-Platform-014",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-017",
    "target": "ADR-Platform-013",
    "key": 0
   },
   {
    "rel": "references",
    "source": "ADR-Platform-017",
+   "target": "ADR-Platform-016",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-018",
+   "target": "Kubernetes",
+   "key": 0
+  },
+  {
+   "rel": "defines",
+   "source": "ADR-Platform-018",
+   "target": "ok-cluster",
+   "key": 0
+  },
+  {
+   "rel": "defines",
+   "source": "ADR-Platform-018",
+   "target": "ok-storage",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-018",
+   "target": "ADR-Platform-009",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-018",
+   "target": "ADR-Platform-011",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-018",
+   "target": "ADR-Platform-017",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-018",
+   "target": "ADR-Platform-012",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-018",
+   "target": "ADR-Platform-010",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-018",
    "target": "ADR-Platform-001",
    "key": 0
   },
   {
+   "rel": "references",
+   "source": "ADR-Platform-018",
+   "target": "ADR-Platform-014",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-018",
+   "target": "ADR-Platform-013",
+   "key": 0
+  },
+  {
    "rel": "implements",
-   "source": "commit:facdd7c",
-   "target": "OK-15",
+   "source": "commit:28f88e5",
+   "target": "ADR-Platform-018",
    "key": 0
   },
   {
@@ -1895,14 +1977,20 @@
   },
   {
    "rel": "implements",
-   "source": "commit:8e61412",
-   "target": "OK-74",
+   "source": "commit:facdd7c",
+   "target": "OK-15",
    "key": 0
   },
   {
    "rel": "implements",
    "source": "commit:8e61412",
    "target": "ADR-Platform-017",
+   "key": 0
+  },
+  {
+   "rel": "implements",
+   "source": "commit:8e61412",
+   "target": "OK-74",
    "key": 0
   },
   {
