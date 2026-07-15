@@ -1,0 +1,14 @@
+OpenClaw deployed (OK-15 Phase 1, implementation profile per ADR-Platform-015).
+
+In-cluster endpoint (Agent Interface Contract v1):
+
+  http://{{ .Release.Name }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.gateway.port }}/v1
+
+Connect Open WebUI:
+  1. Admin Settings -> Connections -> OpenAI -> Add Connection
+  2. URL:     http://{{ .Release.Name }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.gateway.port }}/v1
+              (the /v1 suffix is REQUIRED for model discovery)
+  3. API Key: the gateway token  (make token-show)
+  4. Verify + Save -> model "openclaw/default" appears in the dropdown
+
+Validate first from inside the cluster:  make validate
