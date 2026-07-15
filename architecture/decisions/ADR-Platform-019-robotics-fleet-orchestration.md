@@ -2,7 +2,7 @@
 
 **Status:** Proposed — RKE2 profile deployed; production acceptance gates remain open
 **Date:** 2026-07-14
-**Deciders:** Arash Kaffamanesh (pending review)
+**Deciders:** Author: Suchit · Review: three-way (Arash / Claude / GPT) · Merge: Arash. Suchit is additionally decider for §3 (Implementation Profile) as owner of `ok2-rmf`; §1–2 (Capability, Contract) remain platform decisions.
 **Relates:** ADR-Platform-001 (Contracts, not Components), ADR-Platform-009 (Storage), ADR-Platform-010 (Ingress), ADR-Platform-011 (GitOps), ADR-Platform-013 (Workload Cluster Registration), ADR-Platform-017 (Constraint Envelopes), ADR-Platform-018 (Observability)
 **Related work:** OK-60 (OpenRMF XRD), `rmf_deployment_template` (sibling repo)
 
@@ -25,8 +25,9 @@ OpenKubes installation:
   handover to a platform operations team.
 
 The `rmf_deployment_template` fork (a sibling repository, not a subdirectory
-of `openkubes`) has been adapted to run on the existing RKE2 cluster used for
-`ok2-rmf`. It reuses cluster capabilities rather
+of `openkubes`) has been adapted to run on RKE2 and deployed on a prior RKE2
+cluster; the target cluster `ok2-rmf` is Talos-based and its rollout is
+pending (see §5, ADR-013 row). It reuses cluster capabilities rather
 than installing competing ones:
 
 - Traefik routes `/dashboard`, `/auth`, `/rmf/api/v1`, and `/trajectory`;
@@ -119,7 +120,13 @@ verified.
     policy. Dashboards are useful operational views, not the source of metric
     truth.
 14. Restore procedures cover both identity and RMF application state. A
-    successful PVC bind is not evidence of recoverability.
+    successful PVC bind is not evidence of recoverability. Backups are taken
+    at the application level (`pg_dump` for both PostgreSQL data sets), not
+    assumed from volume snapshots. Independent restore of the Keycloak and
+    RMF data sets is accepted even though it can leave the two temporarily
+    inconsistent (e.g. a user present in one but not the other). The accepted
+    recovery point is the last successful backup; continuous replication is
+    not required for v1.
 
 The contract deliberately does **not** select:
 
@@ -142,7 +149,7 @@ The first profile is the deployed RKE2 adaptation in `rmf_deployment_template`.
 | Kubernetes | Existing RKE2 cluster registered with OpenKubes |
 | Packaging | `openrmf-deployment` Helm chart |
 | Robotics runtime | Open-RMF core or `rmf_demos_gz` simulation, selected by values |
-| ROS 2 transport | CycloneDDS; `ROS_DOMAIN_ID`/`RMW_IMPLEMENTATION` are Provider Values, but the mounted CycloneDDS discovery/network XML is currently a fixed chart-template ConfigMap, not yet parameterized |
+| ROS 2 transport | CycloneDDS over UDP with multicast discovery (`AllowMulticast: default`, auto `ParticipantIndex`); `ROS_DOMAIN_ID`/`RMW_IMPLEMENTATION` are Provider Values, but the mounted CycloneDDS discovery/network XML — including the discovery mode itself — is currently a fixed chart-template ConfigMap, not yet parameterized |
 | Web/API | RMF Web dashboard and API server |
 | Identity | Keycloak with a PostgreSQL database and bootstrap Job |
 | Application state | PostgreSQL on RWO PVCs |
@@ -204,8 +211,8 @@ defaults.
 | ADR-009 Storage | Both PostgreSQL data sets consume persistent storage. The profile must document durability and restore behavior; RWO alone does not imply either. |
 | ADR-010 Ingress | A managed OpenKubes workload binds through the standard `Ingress` contract and `ok-ingress` class. Controller-specific routing must remain profile-local. |
 | ADR-011 GitOps | Helm is packaging, not the desired-state authority. Production delivery moves behind GitOps when ADR-011 is implemented. |
-| ADR-013 Registration | `ok2-rmf` is registered under one canonical cluster name and credential source before management-plane delivery is enabled. |
-| ADR-018 Observability | RMF publishes/discovers telemetry; it reuses the per-cluster stack and must not install a competing monitoring system. |
+| ADR-013 Registration | `ok2-rmf` is registered under one canonical cluster name and credential source before management-plane delivery is enabled. This ADR's deployed evidence comes from a prior RKE2 cluster; the target cluster `ok2-rmf` is Talos-based and its rollout is pending — this condition is open, not yet satisfied. |
+| ADR-018 Observability | RMF publishes/discovers telemetry; it reuses the per-cluster stack and must not install a competing monitoring system. ADR-018 is Accepted, so this dependency does not rest on a Proposed document. |
 
 The current RKE2 chart uses Traefik `IngressRoute` resources directly and the
 class name `traefik`. This is functional but does **not** satisfy ADR-010's
@@ -217,6 +224,12 @@ for OpenKubes-managed production, it must either:
    exclusion; or
 2. be covered by a separate ADR that deliberately evolves the ingress
    contract.
+
+Option 2 has genuine substance here: prefix rewriting, the trajectory
+WebSocket, and the `_internal` exclusion are exactly the case where standard
+`Ingress` annotations get awkward and a Gateway API `HTTPRoute` (native
+URLRewrite) is clean — this profile may be the consumer that forces the
+ADR-010 v2 evolution rather than one contorted into `Ingress` annotations.
 
 ### 6. Constraint Envelope Clause
 
@@ -254,7 +267,7 @@ evidence for every gate below.
 | Supply chain | Images are pinned to reviewed immutable digests or release tags; `latest` and unconditional pulls are removed from production values. |
 | Workload security | Non-root/read-only settings where supported, least-privilege ServiceAccounts/RBAC, NetworkPolicies, and a documented Pod Security posture. |
 | Availability | Resource requests/limits, probes, disruption behavior, and replica/topology choices are defined from an SLO. Single-replica stateful services are explicitly accepted or replaced. |
-| Data protection | Automated backup and a timed restore test for both PostgreSQL data sets; storage failure behavior documented. |
+| Data protection | Automated `pg_dump`-based backup and a timed, independent restore test for both PostgreSQL data sets; accepted RPO is the last successful backup; storage failure behavior documented. |
 | Lifecycle | `helm lint`/render checks, upgrade and rollback rehearsal, and ownership of CRDs/cross-namespace dashboard objects are verified. |
 | Contract test | Automated verification of routes, TLS, login/token validation, `_internal` denial, metrics discovery, persistence, and the selected RMF mode. |
 
@@ -275,7 +288,10 @@ The profile acceptance test must, at minimum:
 6. Prove that `/rmf/api/v1/_internal` is unreachable through the external
    entry point while the cluster-local RMF server can use it.
 7. Verify the trajectory WebSocket through ingress.
-8. Publish or observe a known ROS 2/DDS event across the API/runtime boundary.
+8. Publish or observe a known ROS 2/DDS event across the API/runtime
+    boundary, with the event crossing at least two nodes — single-node DDS
+    traffic does not exercise multicast/unicast discovery behavior on the
+    overlay CNI.
 9. Confirm Prometheus has the RMF API target and a synthetic metric, and that
    application logs are searchable under the cluster policy.
 10. Restart the API, identity service, and database pods and verify state is
@@ -329,7 +345,19 @@ The profile acceptance test must, at minimum:
   services create availability and recovery obligations not solved by Helm.
 - Cross-namespace Grafana ConfigMaps and controller-specific route resources
   complicate release ownership and least-privilege delivery.
-- Maintaining the fork creates an upstream-rebase and security-patch burden.
+- Maintaining the fork creates an upstream-rebase and security-patch burden
+  (see Fork Maintenance below).
+
+**Fork maintenance.** `openkubes/rmf_deployment_template` follows an
+upstream-first policy: changes not specific to the OpenKubes profile are
+submitted to `open-rmf/rmf_deployment_template`; only profile-specific
+adaptations remain fork delta. The fork is rebased against upstream at least
+once per upstream release. Image digest updates and CVE response for the
+profile's pinned images are owned by the profile owner (§3 decider). The fork
+repository applies the same branch protection as the mother repo (PRs
+required, no force-push); merge authority for the fork lies with the profile
+owner, since it carries implementation-profile code, not contracts —
+contract-level decisions are made via ADR in `openkubes/openkubes`.
 
 ## Revisit Triggers
 
@@ -355,6 +383,9 @@ The profile acceptance test must, at minimum:
 - Cross-site traffic coordination and active/active RMF state
 - A constrained-edge Open-RMF profile
 - Final OpenRMF XRD schema and composition implementation (OK-60)
+- DDS reachability between RMF and physical robots across the pod network ↔
+  site network boundary; v1 is simulation-only for this concern (see Revisit
+  Triggers)
 - SLO values, capacity numbers, and site-specific runbooks
 
 ## References
