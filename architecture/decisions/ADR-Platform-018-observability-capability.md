@@ -10,7 +10,7 @@ Every OpenKubes cluster needs to be observable: metrics, dashboards, and log sea
 
 Two paths were considered:
 
-1. **Centralized observability** — a single stack on ok-mgmt, with workload clusters shipping metrics via remote-write and logs via forwarders.
+1. **Centralized observability** — a single stack on ok-shared, with workload clusters shipping metrics via remote-write and logs via forwarders.
 2. **Per-cluster observability** — every cluster carries its own stack.
 
 The forcing consumers exist today: ok-mgmt, ok1-talos, and the external cluster ok2-rmf all require observability. Per the platform precedent, a second consumer forces the contract.
