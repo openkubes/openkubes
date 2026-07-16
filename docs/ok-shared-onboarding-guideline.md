@@ -38,7 +38,7 @@ Execute in this order: **provision the cluster first**, then **bootstrap**, then
 |---|---|---|
 | Cluster name | `ok-shared` | Fixed by ADR-020 naming decision |
 | Host node | `ok-infra` | CPU-only node, sufficient headroom |
-| API Server IP | `192.168.100.208` | Verify against current MetalLB allocations — see pitfalls |
+| API Server IP | assigned automatically | `make new` queries live MetalLB allocations and picks the next free IP (OK-83, fixed); override with `START_IP=` if needed |
 | Ingress IP | assigned by MetalLB automatically | MetalLB finds the next free IP; no manual configuration needed |
 | vSwitch | VLAN 4000, `192.168.100.0/24` | Active vSwitch |
 | KUBECONFIG (ok-infra) | `~/.kube/ok-infra.yaml` | Use `export KUBECONFIG=~/.kube/ok-infra.yaml` or the `okb` alias (note: `okb` exports KUBECONFIG AND runs `kubectl get nodes` — do not pipe arguments into it) |
@@ -50,34 +50,23 @@ Execute in this order: **provision the cluster first**, then **bootstrap**, then
 
 ### Step 1 — Provision the cluster
 
-**Known issue (OK-82, OK-83):** `make new` does not honour `NODE=ok-infra` and assigns the next IP from an internal counter without checking existing MetalLB allocations. Both must be patched manually before bootstrapping.
+> **Note:** The two manual patches formerly required here (nodeSelector and endpoint IP) are obsolete. OK-82 and OK-83 are fixed (ok-cluster commits `89d3001`, `606f35b`, 2026-07-16): `make new` honours `NODE=` and queries live MetalLB allocations on ok-infra for the next free IP.
 
 ```bash
 export KUBECONFIG=~/.kube/ok-infra.yaml
 cd ~/temp/kubernauts/ok/ok-cluster
 
-make new CLUSTER=ok-shared TYPE=talos HA=false WORKERS=3
+make new CLUSTER=ok-shared TYPE=talos HA=false WORKERS=3 NODE=ok-infra
 ```
 
-**Before bootstrapping — mandatory manual patch:**
+**Verify before bootstrapping:**
 
 ```bash
-# 1. Check current MetalLB allocations
-kubectl get svc -A | grep LoadBalancer
-
-# 2. Patch nodeSelector (make new defaults to ok-gpu)
-sed -i '' 's/nodeSelector: ok-gpu/nodeSelector: ok-infra/' ok-shared/cluster-config.yaml
-
-# 3. Patch endpoint IP to the next free IP (verify from step 1)
-sed -i '' 's/endpoint: 192.168.100.203/endpoint: 192.168.100.208/' ok-shared/cluster-config.yaml
-
-# 4. Re-render manifests with corrected values
-make render CLUSTER=ok-shared
-
-# 5. Verify
 grep -E "endpoint|nodeSelector" ok-shared/cluster-config.yaml
-# expected: endpoint: 192.168.100.208 / nodeSelector: ok-infra
+# expected: nodeSelector: ok-infra, endpoint = next free IP in the MetalLB pool
 ```
+
+If ok-infra is unreachable at scaffold time, `make new` prints a WARNING and falls back to local state — in that case verify allocations manually (`kubectl get svc -A | grep LoadBalancer`) or pass `START_IP=<ip>` explicitly. An explicitly configured endpoint that collides with an existing allocation now aborts with an error naming the owning service.
 
 Then bootstrap:
 
@@ -173,8 +162,8 @@ kubectl --kubeconfig ~/.kube/ok-mgmt.yaml delete secret ok-shared-kubeconfig -n 
 
 ### Known pitfalls
 
-- **nodeSelector defaults to ok-gpu (OK-82):** `make new` ignores `NODE=ok-infra` — always patch `cluster-config.yaml` and re-run `make render` before bootstrapping. The mandatory patch is in Step 1 above.
-- **IP collision (OK-83):** `make new` assigns IPs from an internal counter without checking MetalLB. Always verify current allocations with `kubectl get svc -A | grep LoadBalancer` before bootstrapping. The ingress IP is assigned correctly by MetalLB automatically — only the API server endpoint needs manual verification.
+- **nodeSelector (OK-82, fixed 2026-07-16):** `make new` now honours `NODE=ok-infra` (alias for `NODE_SELECTOR=`). No manual patch needed. Without `NODE=`, Talos clusters still default to ok-gpu — pass it explicitly for ok-shared.
+- **IP allocation (OK-83, fixed 2026-07-16):** `make new` queries live MetalLB allocations on ok-infra and assigns the next truly free IP; collisions abort with an error. Manual verification is only needed if the WARNING about an unreachable management cluster appears (fallback to local state).
 - **zsh history expansion:** Single-quote the `adminPassword` value if it contains `!`. Double quotes cause `zsh: no such file or directory`.
 - **Grafana chart deprecation warning:** Expected, non-blocking. Note it and move on.
 - **Traefik EXTERNAL-IP `<pending>`:** Expected inside the Talos cluster — traffic reaches Traefik via the RKE2-side `ok-shared-ingress` MetalLB service, not via a cluster-internal LoadBalancer.
