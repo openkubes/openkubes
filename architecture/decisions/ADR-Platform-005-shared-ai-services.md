@@ -107,5 +107,3 @@ Revisit this ADR if:
 - A second GPU node is added — redundancy and isolation become viable
 - A team requires GPU isolation (e.g. compliance, model confidentiality)
 - Self-service model management (OllamaModelClaim) is implemented — may change the ownership model
-EOF
-echo "ADR-Platform-005 done"

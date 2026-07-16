@@ -153,5 +153,3 @@ The manual path is acceptable today while `TYPE=talos-mgmt` is being implemented
 - ArgoCD added to ok-mgmt → add to `bootstrap-mgmt.sh` installation sequence
 - ok-mgmt-shadow implemented → consider `TYPE=talos-mgmt-shadow` or a `ROLE=shadow` flag
 - Crossplane version upgrade → update `bootstrap-mgmt.sh` template
-EOF
-echo "ADR-Platform-008 done"

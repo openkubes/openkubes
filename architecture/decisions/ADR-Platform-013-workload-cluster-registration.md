@@ -121,7 +121,8 @@ for `<cluster>`. The target must be safe to run repeatedly (§2).
 - **Out of scope, deliberately:** ClusterClass (reproducible cluster
   *creation*) and a registration operator (automated
   rotation/status/deregistration) are the next maturity levels and belong in
-  a future ADR-014 (Workload Cluster Lifecycle Contract). ADR-013 stays small:
+  a future ADR (Workload Cluster Lifecycle Contract; ADR-014 has since been
+  assigned to the Constrained Edge Profile). ADR-013 stays small:
   it answers only "how does a cluster register with the platform."
 
 ## Alternatives considered
