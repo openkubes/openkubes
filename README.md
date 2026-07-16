@@ -19,7 +19,7 @@
 
 ---
 
-> **OpenKubes is a Platform Distribution for Sovereign Kubernetes Infrastructure.**
+> **OpenKubes is a framework for building sovereign Kubernetes platform distributions.**
 > It defines stable contracts between platform layers — and lets the ecosystem provide the implementations.
 
 > *OpenKubes owns the contracts, not the components.*
@@ -111,7 +111,7 @@ kubectl apply -f claim.yaml
 
 ## Architecture Decisions
 
-OpenKubes is built on 18 documented platform-level decisions:
+OpenKubes is built on 20 documented platform-level decisions:
 
 | ADR | Decision |
 |---|---|
@@ -133,8 +133,19 @@ OpenKubes is built on 18 documented platform-level decisions:
 | [ADR-Platform-016](./architecture/decisions/ADR-Platform-016-os-capability-contract.md) | OS Capability Contract |
 | [ADR-Platform-017](./architecture/decisions/ADR-Platform-017-constraint-envelopes.md) | Constraint Envelopes — envelope-scoped guarantees |
 | [ADR-Platform-018](./architecture/decisions/ADR-Platform-018-observability-capability.md) | Observability capability — per-cluster stack with provisioning readiness gate |
+| [ADR-Platform-019](./architecture/decisions/ADR-Platform-019-robotics-fleet-orchestration.md) | Robotics Fleet Orchestration — Open-RMF profile on OpenKubes contracts |
+| [ADR-Platform-020](./architecture/decisions/ADR-Platform-020-shared-platform-services.md) | Shared Platform Services capability (ok-shared) — accepted via forcing consumer |
 
 → [`architecture/decisions/`](./architecture/decisions/)
+
+---
+
+## Built with OpenKubes
+
+A framework is only real once someone else builds on it. The contracts already have consumers beyond the core team:
+
+- **Robotics Fleet Orchestration (Open-RMF)** — [ADR-Platform-019](./architecture/decisions/ADR-Platform-019-robotics-fleet-orchestration.md), authored by an external contributor. Open-RMF runs against OpenKubes capability contracts (storage, ingress, observability, cluster registration) instead of its upstream k3s reference stack.
+- **`ok2-rmf`** — an externally owned cluster registered with the platform. Its arrival with a central identity requirement was the forcing consumer that turned [ADR-Platform-020](./architecture/decisions/ADR-Platform-020-shared-platform-services.md) from Draft to Accepted — the contract-first process working as designed.
 
 ---
 
