@@ -163,6 +163,10 @@ RKE2 is selected because it is the existing supported cluster substrate for
 this installation and already supplies the required operational integrations.
 It is not a Robotics Fleet Orchestration contract requirement.
 
+Keycloak remains profile-local in the current deployment; once `ok-shared` is
+provisioned under ADR-Platform-020 (tracked by OK-81), this profile may migrate
+identity there without changing the capability contract.
+
 The profile has this runtime boundary:
 
 ```text
