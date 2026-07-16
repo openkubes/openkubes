@@ -1,6 +1,6 @@
 # ADR-Platform-019: Robotics Fleet Orchestration — Open-RMF RKE2 Profile
 
-**Status:** Proposed — RKE2 profile deployed; production acceptance gates remain open
+**Status:** Accepted — RKE2 profile deployed; production acceptance gates remain open
 **Date:** 2026-07-14
 **Deciders:** Author: Suchit · Review: three-way (Arash / Claude / GPT) · Merge: Arash. Suchit is additionally decider for §3 (Implementation Profile) as owner of `ok2-rmf`; §1–2 (Capability, Contract) remain platform decisions.
 **Relates:** ADR-Platform-001 (Contracts, not Components), ADR-Platform-009 (Storage), ADR-Platform-010 (Ingress), ADR-Platform-011 (GitOps), ADR-Platform-013 (Workload Cluster Registration), ADR-Platform-017 (Constraint Envelopes), ADR-Platform-018 (Observability)
