@@ -149,16 +149,17 @@ Grafana will start without any datasource configured — that is expected. The T
 ### Teardown (for re-provisioning or testing)
 
 ```bash
-# 1. Delete PVCs inside the cluster
-kubectl --kubeconfig ~/.kube/ok-shared.yaml delete pvc --all -n monitoring
+# 1. Delete the cluster (cleans up VM-disk PVs on ok-infra Longhorn)
+make teardown CLUSTER=ok-shared
 
-# 2. Delete the cluster
-make delete CLUSTER=ok-shared
+# 2. Deregister from ok-mgmt (OK-62): removes kubeconfig secret + ProviderConfig
+make unregister-cluster CLUSTER=ok-shared
 
-# 3. Clean up local kubeconfig and ok-mgmt registration
+# 3. Clean up local kubeconfig
 rm ~/.kube/ok-shared.yaml
-kubectl --kubeconfig ~/.kube/ok-mgmt.yaml delete secret ok-shared-kubeconfig -n crossplane-system
 ```
+
+`make unregister-cluster` refuses if Releases still reference the cluster's ProviderConfig — delete the claims first, or override with `FORCE=true`.
 
 ### Known pitfalls
 
