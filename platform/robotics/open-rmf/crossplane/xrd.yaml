@@ -1,0 +1,93 @@
+# OpenRMF XRD — Robotics Fleet Orchestration contract
+#
+# v1alpha1 deliberately exposes only the simulation profile already validated
+# on ok2-rmf. Real/core RMF is added only after its ADR-Platform-019 gates pass.
+apiVersion: apiextensions.crossplane.io/v1
+kind: CompositeResourceDefinition
+metadata:
+  name: openrmfinstances.platform.openkubes.ai
+spec:
+  group: platform.openkubes.ai
+  names:
+    kind: OpenRMFInstance
+    plural: openrmfinstances
+  claimNames:
+    kind: OpenRMFClaim
+    plural: openrmfclaims
+  defaultCompositionRef:
+    name: openrmf.platform.openkubes.ai
+  versions:
+    - name: v1alpha1
+      served: true
+      referenceable: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              required:
+                - clusterRef
+                - hostname
+                - credentialsSecretRef
+              properties:
+                clusterRef:
+                  type: string
+                  minLength: 1
+                  maxLength: 63
+                  pattern: "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+                  description: >-
+                    Canonical workload-cluster name and provider-helm
+                    ProviderConfig name, for example ok2-rmf.
+                namespace:
+                  type: string
+                  default: rmf
+                  minLength: 1
+                  maxLength: 63
+                  pattern: "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+                  description: Namespace where the Helm release is installed.
+                mode:
+                  type: string
+                  default: simulation
+                  enum:
+                    - simulation
+                  description: >-
+                    Exactly one trajectory-producing mode. v1alpha1 supports
+                    only the validated simulation profile.
+                hostname:
+                  type: string
+                  minLength: 1
+                  maxLength: 253
+                  pattern: "^[a-z0-9]([-.a-z0-9]*[a-z0-9])?$"
+                  description: >-
+                    External hostname shared by ingress, dashboard, Keycloak,
+                    and JWT validation. Supply a hostname, not a URL.
+                credentialsSecretRef:
+                  type: object
+                  required:
+                    - name
+                  description: >-
+                    Reference to a Secret readable by provider-helm on the
+                    management plane. Password values are never Claim fields.
+                  properties:
+                    name:
+                      type: string
+                      minLength: 1
+                      maxLength: 253
+                      description: Name of the Secret containing RMF credentials.
+                    namespace:
+                      type: string
+                      default: crossplane-system
+                      minLength: 1
+                      maxLength: 63
+                      pattern: "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+                      description: Namespace containing the credentials Secret.
+            status:
+              type: object
+              properties:
+                releaseState:
+                  type: string
+                  description: State reported by the composed Helm Release.
+                revision:
+                  type: integer
+                  description: Helm revision reported by provider-helm.

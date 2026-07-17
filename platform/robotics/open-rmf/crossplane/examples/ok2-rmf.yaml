@@ -1,0 +1,17 @@
+# OpenRMF simulation Claim for ok2-rmf.
+#
+# Local scaffold only: do not apply until the chart source, credential Secret,
+# and ownership handoff for the existing Helm release rmf are approved.
+apiVersion: platform.openkubes.ai/v1alpha1
+kind: OpenRMFClaim
+metadata:
+  name: ok2-rmf
+  namespace: openkubes-system
+spec:
+  clusterRef: ok2-rmf
+  namespace: rmf
+  mode: simulation
+  hostname: rmf.openkubes.local
+  credentialsSecretRef:
+    name: rmf-credentials
+    namespace: crossplane-system
