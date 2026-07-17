@@ -6,9 +6,15 @@ by ADR-Platform-019. It converts a namespaced Claim into one provider-helm
 
 ## Status
 
-**Local scaffold — do not apply yet.** The Composition deliberately references
-`https://charts.openkubes.invalid`. `make ready-check` fails until that guard is
-replaced with a published, immutable chart source.
+The Composition pins the published `openrmf-deployment` chart version `1.0.0`:
+
+```text
+https://github.com/openkubes/rmf_deployment_template/releases/download/openrmf-deployment-v1.0.0/openrmf-deployment-1.0.0.tgz
+```
+
+**Do not apply the Claim to the live release yet.** Crossplane function
+compatibility and the existing direct-Helm ownership handoff still require
+validation and approval.
 
 No command in this directory applies resources to `ok-mgmt` or `ok2-rmf`.
 
@@ -101,8 +107,8 @@ make ready-check
   using the Composition's non-secret simulation profile. It also rejects
   rendered cert-manager/monitoring CRs and ingress-class annotations on
   `IngressRoute`. It does not contact a cluster.
-- `ready-check` intentionally fails while the chart repository placeholder is
-  present.
+- `ready-check` verifies that the published chart URL is reachable and reports
+  chart name `openrmf-deployment`, version `1.0.0`.
 
 Override the chart location if the repositories are not siblings:
 
@@ -112,14 +118,15 @@ make chart-check RMF_CHART=/path/to/rmf_deployment_template/charts/rmf-deploymen
 
 ## Before any apply
 
-1. Publish and pin the `openrmf-deployment` chart.
-2. Replace the `.invalid` repository and pass `make ready-check`.
-3. Approve and create the credential Secret through the selected Secret
-   workflow.
-4. Validate the Composition with the supported Crossplane function version.
-5. Rehearse adoption of a release named `rmf` outside the live namespace.
-6. Review the rendered provider-helm Release and Helm manifests.
-7. Only then plan an explicit management-plane apply and ownership handoff.
+The chart is published and pinned, and the current credential Secret contract
+has been populated outside Git. The remaining sequence is:
+
+1. Pass `make validate`, `make chart-check`, and `make ready-check`.
+2. Validate the Composition with the supported Crossplane function version.
+3. Rehearse adoption of a release named `rmf` outside the live namespace.
+4. Review the rendered provider-helm Release and Helm manifests for secret
+   leakage and unintended changes.
+5. Only then plan an explicit management-plane apply and ownership handoff.
 
 ## References
 

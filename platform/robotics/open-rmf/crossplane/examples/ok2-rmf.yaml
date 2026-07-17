@@ -1,7 +1,7 @@
 # OpenRMF simulation Claim for ok2-rmf.
 #
-# Local scaffold only: do not apply until the chart source, credential Secret,
-# and ownership handoff for the existing Helm release rmf are approved.
+# Do not apply until Crossplane function compatibility and the ownership
+# handoff for the existing Helm release rmf are validated and approved.
 apiVersion: platform.openkubes.ai/v1alpha1
 kind: OpenRMFClaim
 metadata:

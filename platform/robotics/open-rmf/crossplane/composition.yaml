@@ -1,7 +1,7 @@
 # OpenRMF Composition — simulation profile for ok2-rmf-class clusters
 #
-# SCAFFOLD GUARD: charts.openkubes.invalid must be replaced by a published,
-# immutable chart source before this Composition is applied anywhere.
+# The chart is pinned to the versioned release asset published from
+# rmf_deployment_template tag openrmf-deployment-v1.0.0.
 apiVersion: apiextensions.crossplane.io/v1
 kind: Composition
 metadata:
@@ -38,9 +38,7 @@ spec:
                 deletionPolicy: Orphan
                 forProvider:
                   chart:
-                    name: openrmf-deployment
-                    repository: https://charts.openkubes.invalid
-                    version: "1.0.0"
+                    url: https://github.com/openkubes/rmf_deployment_template/releases/download/openrmf-deployment-v1.0.0/openrmf-deployment-1.0.0.tgz
                   namespace: rmf
                   wait: true
                   waitTimeout: 10m
