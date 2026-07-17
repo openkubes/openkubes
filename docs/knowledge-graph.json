@@ -338,27 +338,27 @@
   },
   {
    "type": "issue",
-   "label": "OK-55",
-   "url": "https://kubernauts.atlassian.net/browse/OK-55",
-   "id": "OK-55"
-  },
-  {
-   "type": "issue",
-   "label": "OK-57",
-   "url": "https://kubernauts.atlassian.net/browse/OK-57",
-   "id": "OK-57"
-  },
-  {
-   "type": "issue",
    "label": "OK-70",
    "url": "https://kubernauts.atlassian.net/browse/OK-70",
    "id": "OK-70"
   },
   {
    "type": "issue",
+   "label": "OK-55",
+   "url": "https://kubernauts.atlassian.net/browse/OK-55",
+   "id": "OK-55"
+  },
+  {
+   "type": "issue",
    "label": "OK-56",
    "url": "https://kubernauts.atlassian.net/browse/OK-56",
    "id": "OK-56"
+  },
+  {
+   "type": "issue",
+   "label": "OK-57",
+   "url": "https://kubernauts.atlassian.net/browse/OK-57",
+   "id": "OK-57"
   },
   {
    "type": "issue",
@@ -392,6 +392,12 @@
   },
   {
    "type": "issue",
+   "label": "OK-14",
+   "url": "https://kubernauts.atlassian.net/browse/OK-14",
+   "id": "OK-14"
+  },
+  {
+   "type": "issue",
    "label": "OK-15",
    "url": "https://kubernauts.atlassian.net/browse/OK-15",
    "id": "OK-15"
@@ -404,21 +410,9 @@
   },
   {
    "type": "issue",
-   "label": "OK-14",
-   "url": "https://kubernauts.atlassian.net/browse/OK-14",
-   "id": "OK-14"
-  },
-  {
-   "type": "issue",
    "label": "OK-64",
    "url": "https://kubernauts.atlassian.net/browse/OK-64",
    "id": "OK-64"
-  },
-  {
-   "type": "issue",
-   "label": "OK-73",
-   "url": "https://kubernauts.atlassian.net/browse/OK-73",
-   "id": "OK-73"
   },
   {
    "type": "issue",
@@ -428,9 +422,36 @@
   },
   {
    "type": "issue",
+   "label": "OK-73",
+   "url": "https://kubernauts.atlassian.net/browse/OK-73",
+   "id": "OK-73"
+  },
+  {
+   "type": "issue",
    "label": "OK-81",
    "url": "https://kubernauts.atlassian.net/browse/OK-81",
    "id": "OK-81"
+  },
+  {
+   "type": "commit",
+   "label": "319ecd4",
+   "message": "feat(platform/robotics): pin published OpenRMF 1.0.0 chart in Composition (OK-60)",
+   "date": "2026-07-17",
+   "id": "commit:319ecd4"
+  },
+  {
+   "type": "commit",
+   "label": "20b678d",
+   "message": "feat(platform/robotics): OpenRMF Crossplane capability scaffold \u2014 XRD, Composition, example Claim (OK-60)",
+   "date": "2026-07-17",
+   "id": "commit:20b678d"
+  },
+  {
+   "type": "commit",
+   "label": "8c8b217",
+   "message": "chore(docs): rebuild knowledge graph (20 ADRs, legacy ADR-001 removed)",
+   "date": "2026-07-16",
+   "id": "commit:8c8b217"
   },
   {
    "type": "commit",
@@ -741,13 +762,13 @@
   {
    "rel": "references",
    "source": "ADR-Platform-001",
-   "target": "ADR-Platform-004",
+   "target": "ADR-Platform-003",
    "key": 0
   },
   {
    "rel": "references",
    "source": "ADR-Platform-001",
-   "target": "ADR-Platform-003",
+   "target": "ADR-Platform-004",
    "key": 0
   },
   {
@@ -789,13 +810,13 @@
   {
    "rel": "references",
    "source": "ADR-Platform-002",
-   "target": "ADR-Platform-004",
+   "target": "ADR-Platform-003",
    "key": 0
   },
   {
    "rel": "references",
    "source": "ADR-Platform-002",
-   "target": "ADR-Platform-003",
+   "target": "ADR-Platform-004",
    "key": 0
   },
   {
@@ -819,12 +840,6 @@
   {
    "rel": "references",
    "source": "ADR-Platform-003",
-   "target": "ADR-Platform-002",
-   "key": 0
-  },
-  {
-   "rel": "references",
-   "source": "ADR-Platform-003",
    "target": "ADR-Platform-004",
    "key": 0
   },
@@ -832,6 +847,12 @@
    "rel": "references",
    "source": "ADR-Platform-003",
    "target": "ADR-Platform-001",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-003",
+   "target": "ADR-Platform-002",
    "key": 0
   },
   {
@@ -1329,19 +1350,13 @@
   {
    "rel": "tracked-by",
    "source": "ADR-Platform-010",
-   "target": "OK-55",
-   "key": 0
-  },
-  {
-   "rel": "tracked-by",
-   "source": "ADR-Platform-010",
-   "target": "OK-57",
-   "key": 0
-  },
-  {
-   "rel": "tracked-by",
-   "source": "ADR-Platform-010",
    "target": "OK-70",
+   "key": 0
+  },
+  {
+   "rel": "tracked-by",
+   "source": "ADR-Platform-010",
+   "target": "OK-55",
    "key": 0
   },
   {
@@ -1351,15 +1366,21 @@
    "key": 0
   },
   {
-   "rel": "references",
+   "rel": "tracked-by",
    "source": "ADR-Platform-010",
-   "target": "ADR-Platform-009",
+   "target": "OK-57",
    "key": 0
   },
   {
    "rel": "references",
    "source": "ADR-Platform-010",
    "target": "ADR-Platform-001",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-010",
+   "target": "ADR-Platform-009",
    "key": 0
   },
   {
@@ -1407,13 +1428,13 @@
   {
    "rel": "references",
    "source": "ADR-Platform-011",
-   "target": "ADR-Platform-001",
+   "target": "ADR-Platform-010",
    "key": 0
   },
   {
    "rel": "references",
    "source": "ADR-Platform-011",
-   "target": "ADR-Platform-010",
+   "target": "ADR-Platform-001",
    "key": 0
   },
   {
@@ -1479,13 +1500,13 @@
   {
    "rel": "references",
    "source": "ADR-Platform-012",
-   "target": "ADR-Platform-009",
+   "target": "ADR-Platform-001",
    "key": 0
   },
   {
    "rel": "references",
    "source": "ADR-Platform-012",
-   "target": "ADR-Platform-001",
+   "target": "ADR-Platform-009",
    "key": 0
   },
   {
@@ -1503,13 +1524,13 @@
   {
    "rel": "tracked-by",
    "source": "ADR-Platform-013",
-   "target": "OK-58",
+   "target": "OK-60",
    "key": 0
   },
   {
    "rel": "tracked-by",
    "source": "ADR-Platform-013",
-   "target": "OK-60",
+   "target": "OK-58",
    "key": 0
   },
   {
@@ -1605,7 +1626,7 @@
   {
    "rel": "references",
    "source": "ADR-Platform-014",
-   "target": "ADR-Platform-012",
+   "target": "ADR-Platform-011",
    "key": 0
   },
   {
@@ -1617,7 +1638,7 @@
   {
    "rel": "references",
    "source": "ADR-Platform-014",
-   "target": "ADR-Platform-011",
+   "target": "ADR-Platform-012",
    "key": 0
   },
   {
@@ -1689,6 +1710,12 @@
   {
    "rel": "tracked-by",
    "source": "ADR-Platform-015",
+   "target": "OK-14",
+   "key": 0
+  },
+  {
+   "rel": "tracked-by",
+   "source": "ADR-Platform-015",
    "target": "OK-15",
    "key": 0
   },
@@ -1702,18 +1729,6 @@
    "rel": "tracked-by",
    "source": "ADR-Platform-015",
    "target": "OK-58",
-   "key": 0
-  },
-  {
-   "rel": "tracked-by",
-   "source": "ADR-Platform-015",
-   "target": "OK-14",
-   "key": 0
-  },
-  {
-   "rel": "references",
-   "source": "ADR-Platform-015",
-   "target": "ADR-Platform-001",
    "key": 0
   },
   {
@@ -1732,6 +1747,12 @@
    "rel": "references",
    "source": "ADR-Platform-015",
    "target": "ADR-Platform-009",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-015",
+   "target": "ADR-Platform-001",
    "key": 0
   },
   {
@@ -1791,13 +1812,7 @@
   {
    "rel": "references",
    "source": "ADR-Platform-016",
-   "target": "ADR-Platform-002",
-   "key": 0
-  },
-  {
-   "rel": "references",
-   "source": "ADR-Platform-016",
-   "target": "ADR-Platform-012",
+   "target": "ADR-Platform-009",
    "key": 0
   },
   {
@@ -1815,7 +1830,13 @@
   {
    "rel": "references",
    "source": "ADR-Platform-016",
-   "target": "ADR-Platform-009",
+   "target": "ADR-Platform-002",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-016",
+   "target": "ADR-Platform-012",
    "key": 0
   },
   {
@@ -1827,7 +1848,7 @@
   {
    "rel": "tracked-by",
    "source": "ADR-Platform-017",
-   "target": "OK-59",
+   "target": "OK-63",
    "key": 0
   },
   {
@@ -1839,7 +1860,7 @@
   {
    "rel": "tracked-by",
    "source": "ADR-Platform-017",
-   "target": "OK-63",
+   "target": "OK-59",
    "key": 0
   },
   {
@@ -1857,13 +1878,19 @@
   {
    "rel": "references",
    "source": "ADR-Platform-017",
-   "target": "ADR-Platform-016",
+   "target": "ADR-Platform-011",
    "key": 0
   },
   {
    "rel": "references",
    "source": "ADR-Platform-017",
-   "target": "ADR-Platform-012",
+   "target": "ADR-Platform-009",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-017",
+   "target": "ADR-Platform-016",
    "key": 0
   },
   {
@@ -1881,13 +1908,7 @@
   {
    "rel": "references",
    "source": "ADR-Platform-017",
-   "target": "ADR-Platform-011",
-   "key": 0
-  },
-  {
-   "rel": "references",
-   "source": "ADR-Platform-017",
-   "target": "ADR-Platform-009",
+   "target": "ADR-Platform-012",
    "key": 0
   },
   {
@@ -1911,19 +1932,7 @@
   {
    "rel": "references",
    "source": "ADR-Platform-018",
-   "target": "ADR-Platform-013",
-   "key": 0
-  },
-  {
-   "rel": "references",
-   "source": "ADR-Platform-018",
-   "target": "ADR-Platform-010",
-   "key": 0
-  },
-  {
-   "rel": "references",
-   "source": "ADR-Platform-018",
-   "target": "ADR-Platform-014",
+   "target": "ADR-Platform-009",
    "key": 0
   },
   {
@@ -1935,19 +1944,31 @@
   {
    "rel": "references",
    "source": "ADR-Platform-018",
+   "target": "ADR-Platform-014",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-018",
+   "target": "ADR-Platform-013",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-018",
    "target": "ADR-Platform-011",
    "key": 0
   },
   {
    "rel": "references",
    "source": "ADR-Platform-018",
-   "target": "ADR-Platform-009",
+   "target": "ADR-Platform-017",
    "key": 0
   },
   {
    "rel": "references",
    "source": "ADR-Platform-018",
-   "target": "ADR-Platform-017",
+   "target": "ADR-Platform-010",
    "key": 0
   },
   {
@@ -1989,19 +2010,31 @@
   {
    "rel": "tracked-by",
    "source": "ADR-Platform-019",
-   "target": "OK-81",
+   "target": "OK-60",
    "key": 0
   },
   {
    "rel": "tracked-by",
    "source": "ADR-Platform-019",
-   "target": "OK-60",
+   "target": "OK-81",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-019",
+   "target": "ADR-Platform-018",
    "key": 0
   },
   {
    "rel": "references",
    "source": "ADR-Platform-019",
    "target": "ADR-Platform-013",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-019",
+   "target": "ADR-Platform-011",
    "key": 0
   },
   {
@@ -2019,7 +2052,7 @@
   {
    "rel": "references",
    "source": "ADR-Platform-019",
-   "target": "ADR-Platform-020",
+   "target": "ADR-Platform-009",
    "key": 0
   },
   {
@@ -2031,19 +2064,7 @@
   {
    "rel": "references",
    "source": "ADR-Platform-019",
-   "target": "ADR-Platform-018",
-   "key": 0
-  },
-  {
-   "rel": "references",
-   "source": "ADR-Platform-019",
-   "target": "ADR-Platform-011",
-   "key": 0
-  },
-  {
-   "rel": "references",
-   "source": "ADR-Platform-019",
-   "target": "ADR-Platform-009",
+   "target": "ADR-Platform-020",
    "key": 0
   },
   {
@@ -2091,13 +2112,25 @@
   {
    "rel": "references",
    "source": "ADR-Platform-020",
-   "target": "ADR-Platform-013",
+   "target": "ADR-Platform-005",
    "key": 0
   },
   {
    "rel": "references",
    "source": "ADR-Platform-020",
-   "target": "ADR-Platform-005",
+   "target": "ADR-Platform-008",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-020",
+   "target": "ADR-Platform-018",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-020",
+   "target": "ADR-Platform-013",
    "key": 0
   },
   {
@@ -2119,15 +2152,15 @@
    "key": 0
   },
   {
-   "rel": "references",
-   "source": "ADR-Platform-020",
-   "target": "ADR-Platform-008",
+   "rel": "implements",
+   "source": "commit:319ecd4",
+   "target": "OK-60",
    "key": 0
   },
   {
-   "rel": "references",
-   "source": "ADR-Platform-020",
-   "target": "ADR-Platform-018",
+   "rel": "implements",
+   "source": "commit:20b678d",
+   "target": "OK-60",
    "key": 0
   },
   {
@@ -2145,13 +2178,13 @@
   {
    "rel": "implements",
    "source": "commit:7e343af",
-   "target": "ADR-Platform-019",
+   "target": "OK-60",
    "key": 0
   },
   {
    "rel": "implements",
    "source": "commit:7e343af",
-   "target": "OK-60",
+   "target": "ADR-Platform-019",
    "key": 0
   },
   {
@@ -2253,13 +2286,13 @@
   {
    "rel": "implements",
    "source": "commit:f8115c7",
-   "target": "OK-58",
+   "target": "ADR-Platform-011",
    "key": 0
   },
   {
    "rel": "implements",
    "source": "commit:f8115c7",
-   "target": "ADR-Platform-011",
+   "target": "OK-58",
    "key": 0
   },
   {
