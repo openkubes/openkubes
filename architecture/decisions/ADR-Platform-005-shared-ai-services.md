@@ -2,6 +2,7 @@
 
 **Date:** 2026-07-01  
 **Status:** Accepted  
+**Amended:** 2026-07-19 (see Amendment note below; decision unchanged)  
 
 ---
 
@@ -96,7 +97,7 @@ A `OllamaModelClaim` Crossplane XRD would allow teams to request models without 
 | 2 | [OK-53](https://kubernauts.atlassian.net/browse/OK-53) | Deploy Open WebUI on ok1-talos, connect to central Ollama endpoint |
 | 3 | [OK-54](https://kubernauts.atlassian.net/browse/OK-54) | Define model management strategy, plan future OllamaModelClaim |
 
-**Repository for manifests:** `gitlab.com/kubernauts/hetzner` → `ok-rke2/ai-services/`
+**Repository for manifests:** ~~`gitlab.com/kubernauts/hetzner` → `ok-rke2/ai-services/`~~ *(historical; operational manifests and Provider Values now live in `openkubes/ok-cluster`, private — see Amendment note)*
 
 ---
 
@@ -107,3 +108,14 @@ Revisit this ADR if:
 - A second GPU node is added — redundancy and isolation become viable
 - A team requires GPU isolation (e.g. compliance, model confidentiality)
 - Self-service model management (OllamaModelClaim) is implemented — may change the ownership model
+- Ollama is adopted as a shared platform service in `ok-shared` (ADR-Platform-020 service table) — ownership would move from ok-infra to ok-shared *(added 2026-07-19)*
+
+---
+
+## Amendment note (2026-07-19)
+
+The decision stands; the architecture runs as decided (central Ollama on ok-infra, Open WebUI per workload cluster — the latter now provisioned self-service via the `OpenWebUIClaim` XRD, fulfilling the deferred direction in Rationale 5). This amendment records three factual updates, no new decisions:
+
+1. **New re-evaluation trigger (ADR-Platform-020):** the ADR-020 service table lists Ollama as a candidate shared platform service. Its adoption into `ok-shared` would move ownership from the ok-infra host cluster and must trigger a revisit — added to the trigger list above.
+2. **Re-reading under ADR-Platform-022:** Rationale 3 calls "give me LLM inference at this endpoint" the AI contract. Under the framework reading, the endpoint IP is **Provider Values**, not a contract artifact; a formal LLM Inference Capability Contract does not (yet) exist and is deliberately absent from the contracts inventory. Formalization awaits a forcing consumer ("no structure without a forcing consumer").
+3. **Manifest repository pointer updated:** the original GitLab pointer is retained as historical record; the operational home for manifests and Provider Values is `openkubes/ok-cluster` (permanently private, per ADR-022's Provider-Values reading).
