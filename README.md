@@ -72,7 +72,7 @@ The platform handles the rest. No Helm expertise needed. No manual configuration
 |---|---|---|
 | [`openkubes/openkubes`](https://github.com/openkubes/openkubes) | Platform Distribution, ADRs, XRDs, AI Platform | ✅ v0.3.0 |
 | [`openkubes/ok-cluster`](https://github.com/openkubes/ok-cluster) | Cluster Lifecycle Contract | ✅ v0.10.0 |
-| [`openkubes/ok-linux`](https://github.com/openkubes/ok-linux) | OS Profile Contract (Talos) | ✅ v0.1.1 |
+| [`openkubes/ok-linux`](https://github.com/openkubes/ok-linux) | OS Capability Contract (Talos) | ✅ v0.1.1 |
 | [`openkubes/ok-storage`](https://github.com/openkubes/ok-storage) | Persistent Storage Contract | ✅ v0.1.0 |
 | [`openkubes/ok-observability`](https://github.com/openkubes/ok-observability) | Observability Capability Contract | 🚧 scaffold (ADR-Platform-018) |
 | `openkubes/ok-gitops` | GitOps Contract | 📋 planned |
