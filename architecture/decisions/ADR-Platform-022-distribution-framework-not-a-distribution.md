@@ -40,7 +40,7 @@ The word "framework" raises code expectations (an SDK, generators, a runtime). T
 | Capability | What the platform can do | The framework's vocabulary — what a distribution *may* contain |
 | Contract | Interface between platform layers | The framework's API towards distribution builders |
 | Implementation Profile | Tool choice (Talos, Longhorn, …) | The act of building a distribution — authoring or selecting profiles *is* distribution work |
-| Provider Values | Site-specific configuration | A distribution *instance* — never a framework artifact (this retroactively explains why `ok-cluster` must remain private) |
+| Provider Values | Site-specific configuration | A distribution *instance* — never a framework artifact (`ok-cluster`'s rendered instance directories are published deliberately: they contain only non-sensitive private IPs; secret material is generated at runtime and never enters Git; the cluster instances themselves are VPN-only) |
 | Contract Tests | Provisioning gate (ADR-018) | The framework's conformance suite in embryo |
 
 ### Boundary clarification (re-reading, not contradiction)
@@ -84,7 +84,7 @@ Until the condition is met, the public claim is a **thesis with a defined falsif
 
 - The public claim and the decision record are reconciled; the doctrine breach of 2026-07-16 is closed
 - Every chain element gains a second, sharper reading (table above) without any artifact changing
-- The privacy of `ok-cluster` Provider Values is now explained by the architecture instead of by policy
+- The Provider-Values boundary of `ok-cluster` is now explained by the architecture instead of by policy: instance directories may be public when they carry no secret material — sensitivity lives in reachability (VPN-only clusters), not in the repository
 - A future conformance programme has a defined seed: contract tests certify a distribution's claimed capabilities ("Built with OpenKubes" becomes verifiable). **Trigger:** the same first external distribution; no conformance work before then
 - The naming question for the reference distribution is explicitly deferred with a defined trigger
 

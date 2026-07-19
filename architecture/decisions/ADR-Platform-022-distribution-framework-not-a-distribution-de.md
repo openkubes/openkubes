@@ -40,7 +40,7 @@ Das Wort „Framework" weckt Code-Erwartungen (ein SDK, Generatoren, eine Runtim
 | Capability | Was die Plattform kann | Das Vokabular des Frameworks — was eine Distribution enthalten *darf* |
 | Contract | Schnittstelle zwischen Plattformschichten | Die API des Frameworks gegenüber Distributionsbauern |
 | Implementation Profile | Werkzeugwahl (Talos, Longhorn, …) | Der Akt des Distributionsbaus — Profile zu verfassen oder auszuwählen *ist* Distributionsarbeit |
-| Provider Values | Standortspezifische Konfiguration | Eine Distributions-*Instanz* — niemals ein Framework-Artefakt (das erklärt rückwirkend, warum `ok-cluster` privat bleiben muss) |
+| Provider Values | Standortspezifische Konfiguration | Eine Distributions-*Instanz* — niemals ein Framework-Artefakt (die gerenderten Instanz-Verzeichnisse in `ok-cluster` sind bewusst veröffentlicht: Sie enthalten nur unkritische private IPs; Geheimmaterial entsteht zur Laufzeit und gelangt nie in Git; die Cluster-Instanzen selbst sind nur per VPN erreichbar) |
 | Contract Tests | Provisionierungs-Gate (ADR-018) | Die Konformitäts-Suite des Frameworks im Keim |
 
 ### Grenzklärung (Neulesung, kein Widerspruch)
@@ -84,7 +84,7 @@ Bis die Bedingung erfüllt ist, ist die öffentliche Aussage eine **These mit de
 
 - Die öffentliche Aussage und der Decision Record sind versöhnt; der Doktrinbruch vom 16.07.2026 ist geschlossen
 - Jedes Kettenelement erhält eine zweite, schärfere Lesart (Tabelle oben), ohne dass sich ein Artefakt ändert
-- Die Privatheit der `ok-cluster` Provider Values wird nun durch die Architektur erklärt statt durch Policy
+- Die Provider-Values-Grenze von `ok-cluster` wird nun durch die Architektur erklärt statt durch Policy: Instanz-Verzeichnisse dürfen public sein, wenn sie kein Geheimmaterial tragen — die Sensitivität liegt in der Erreichbarkeit (VPN-only-Cluster), nicht im Repository
 - Ein künftiges Konformitätsprogramm hat einen definierten Keim: Contract Tests zertifizieren die behaupteten Capabilities einer Distribution („Built with OpenKubes" wird verifizierbar). **Trigger:** dieselbe erste externe Distribution; keine Konformitätsarbeit vorher
 - Die Namensfrage für die Referenzdistribution ist explizit zurückgestellt, mit definiertem Trigger
 
