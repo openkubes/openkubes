@@ -10,7 +10,7 @@
 
 .PHONY: help preflight install upgrade uninstall status validate logs \
         token-show connect-info connect-openwebui fix-openwebui-ollama \
-        image-build image-push image-release verify-kubectl
+        image-build image-push image-release verify-kubectl chart-release
 .DEFAULT_GOAL := help
 
 CLUSTER     ?= ok1-talos
@@ -151,6 +151,13 @@ image-push:
 	docker push $(IMG):$(IMG_TAG)
 
 image-release: image-build image-push
+
+# Publish the chart as OCI to GHCR — required once before the Crossplane
+# Composition (crossplane/composition.yaml) can fetch it.
+CHART_OCI ?= oci://ghcr.io/openkubes/charts
+chart-release:
+	helm package $(CHART) -d /tmp
+	helm push /tmp/openclaw-$$(helm show chart $(CHART) | awk '/^version:/{print $$2}').tgz $(CHART_OCI)
 
 verify-kubectl:
 	@echo "== kubectl present in the pod =="

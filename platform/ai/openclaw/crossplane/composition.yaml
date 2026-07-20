@@ -1,0 +1,84 @@
+# OpenClaw Composition (OK-15)
+# Deploys the OpenClaw chart via Helm on the target workload cluster —
+# same pipeline pattern as platform/ai/open-webui/crossplane/composition.yaml.
+#
+# Chart source: OCI on GHCR (primary registry, OK-15 decision). Publish with
+# `make chart-release` in the component Makefile before first use.
+# Requires provider-helm with OCI registry support (>= v0.15).
+#
+# The gateway token is never a value in this file: it is read at deploy time
+# from a Secret on ok-mgmt (see xrd.yaml tokenSecretName / `make token-secret`).
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: openclaw.platform.openkubes.ai
+  labels:
+    provider: helm
+spec:
+  compositeTypeRef:
+    apiVersion: platform.openkubes.ai/v1alpha1
+    kind: OpenClawInstance
+  mode: Pipeline
+  pipeline:
+    - step: deploy-openclaw
+      functionRef:
+        name: function-patch-and-transform
+      input:
+        apiVersion: pt.fn.crossplane.io/v1beta1
+        kind: Resources
+        resources:
+          - name: openclaw-helm-release
+            base:
+              apiVersion: helm.crossplane.io/v1beta1
+              kind: Release
+              spec:
+                forProvider:
+                  chart:
+                    name: openclaw
+                    repository: oci://ghcr.io/openkubes/charts
+                    version: "0.1.0"
+                  namespace: openclaw
+                  values:
+                    ollama:
+                      baseUrl: ""
+                      model: "gpt-oss:20b"
+                      numCtx: 65536
+                  # gateway.token from the mgmt-cluster Secret — never in git
+                  set:
+                    - name: gateway.token
+                      valueFrom:
+                        secretKeyRef:
+                          name: openclaw-gateway-token
+                          namespace: openkubes-system
+                          key: gateway-token
+                rollbackLimit: 3
+            patches:
+              - type: FromCompositeFieldPath
+                fromFieldPath: spec.clusterRef
+                toFieldPath: spec.providerConfigRef.name
+              - type: FromCompositeFieldPath
+                fromFieldPath: spec.namespace
+                toFieldPath: spec.forProvider.namespace
+              - type: FromCompositeFieldPath
+                fromFieldPath: metadata.labels[crossplane.io/claim-name]
+                toFieldPath: metadata.name
+                transforms:
+                  - type: string
+                    string:
+                      type: Format
+                      fmt: "openclaw-%s"
+              - type: FromCompositeFieldPath
+                fromFieldPath: spec.chartVersion
+                toFieldPath: spec.forProvider.chart.version
+              - type: FromCompositeFieldPath
+                fromFieldPath: spec.ollamaEndpoint
+                toFieldPath: spec.forProvider.values.ollama.baseUrl
+              - type: FromCompositeFieldPath
+                fromFieldPath: spec.model
+                toFieldPath: spec.forProvider.values.ollama.model
+              - type: FromCompositeFieldPath
+                fromFieldPath: spec.numCtx
+                toFieldPath: spec.forProvider.values.ollama.numCtx
+              - type: FromCompositeFieldPath
+                fromFieldPath: spec.tokenSecretName
+                toFieldPath: spec.forProvider.set[0].valueFrom.secretKeyRef.name

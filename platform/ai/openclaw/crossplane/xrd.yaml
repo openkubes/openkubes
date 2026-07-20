@@ -1,0 +1,59 @@
+# OpenClaw XRD — Platform Contract for OpenClaw deployments (OK-15)
+# Allows teams to deploy the OpenClaw agent backend on any workload cluster
+# via a simple Claim, without knowing Helm internals — same pattern as
+# platform/ai/open-webui/crossplane/xrd.yaml.
+#
+# Endpoint-free by convention: real provider values (Ollama endpoint) live in
+# the private infrastructure repo; the Claim carries them at apply time.
+apiVersion: apiextensions.crossplane.io/v1
+kind: CompositeResourceDefinition
+metadata:
+  name: openclawinstances.platform.openkubes.ai
+spec:
+  group: platform.openkubes.ai
+  names:
+    kind: OpenClawInstance
+    plural: openclawinstances
+  claimNames:
+    kind: OpenClawClaim
+    plural: openclaw
+  versions:
+    - name: v1alpha1
+      served: true
+      referenceable: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              required:
+                - clusterRef
+                - ollamaEndpoint
+              properties:
+                clusterRef:
+                  type: string
+                  description: "Name of the target cluster ProviderConfig (e.g. ok-ai)"
+                ollamaEndpoint:
+                  type: string
+                  description: "Ollama API endpoint URL (e.g. http://<ollama-ip>:11434). Provider Value — no default here by convention."
+                namespace:
+                  type: string
+                  description: "Namespace to deploy OpenClaw into"
+                  default: "openclaw"
+                model:
+                  type: string
+                  description: "Ollama model (must be pulled on the Ollama host first)"
+                  default: "gpt-oss:20b"
+                numCtx:
+                  type: integer
+                  description: "Ollama context window. See values.yaml VRAM ceiling note before raising."
+                  default: 65536
+                chartVersion:
+                  type: string
+                  description: "openclaw chart version (OCI: ghcr.io/openkubes/charts/openclaw)"
+                  default: "0.1.0"
+                tokenSecretName:
+                  type: string
+                  description: "Name of the Secret on ok-mgmt (namespace openkubes-system, key gateway-token) holding the gateway token. Create via `make token-secret`."
+                  default: "openclaw-gateway-token"

@@ -30,11 +30,11 @@ ollama:
   model: "gpt-oss:20b"
   # CRITICAL: without num_ctx Ollama defaults to a small context (often 4096)
   # and silently truncates OpenClaw's large system prompt -> nonsense replies.
-  # CEILING (shared 20GB RTX 4000 Ada): gpt-oss:20b weights (~13GB) + KV cache
-  # at 64k may exceed VRAM and silently spill to CPU offloading. 32k is the
-  # verified-safe default; raise to 65536 only after confirming on-GPU under
-  # load (`ollama ps` must show 100% GPU while a long agent turn runs).
-  numCtx: 32768
+  # CEILING NOTE (shared 20GB RTX 4000 Ada): gpt-oss:20b weights (~13GB) +
+  # KV cache at 64k can exceed VRAM and silently spill to CPU offloading.
+  # Verify on-GPU under load: `ollama ps` must show 100% GPU during a long
+  # agent turn. Fallback if it spills: 32768.
+  numCtx: 65536
   maxTokens: 16384
   # keep the model loaded between agent turns (first-load latency vs.
   # hogging shared VRAM — lower on contention, AR-2)

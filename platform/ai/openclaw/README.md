@@ -19,9 +19,27 @@ after a Go from the OK-14 PoC** — see the implementation order in
 platform/ai/openclaw/
 ├── Makefile                     # deploy/operate targets (see `make help`)
 ├── charts/openclaw/             # minimal hand-rolled chart (no official chart upstream)
+├── crossplane/                  # XRD + Composition + Claim examples (platform path)
 ├── images/openclaw-kubectl/     # official image + pinned kubectl (Cluster Inspection skill)
 └── .gitignore                   # keeps the generated gateway token out of git
 ```
+
+## Crossplane (platform path)
+
+Same pattern as `platform/ai/open-webui/crossplane`: deploy via Claim from
+ok-mgmt instead of running Helm by hand. The chart is fetched as OCI from
+GHCR — publish it once with `make chart-release` (and after chart changes).
+
+```bash
+cd crossplane
+make token-secret       # once: gateway token as Secret on ok-mgmt (never in git)
+make setup              # once: XRD + Composition on ok-mgmt
+make deploy CLUSTER=ok-ai OLLAMA_ENDPOINT=http://<ollama-ip>:11434
+make status CLUSTER=ok-ai
+```
+
+The direct-Helm Makefile targets in this directory remain the debug/dev
+path; Crossplane is how the platform installs the component.
 
 CI: `.github/workflows/build-openclaw-kubectl.yaml` builds and pushes the
 image to `ghcr.io/<owner>/openclaw-kubectl` on changes under `images/`
