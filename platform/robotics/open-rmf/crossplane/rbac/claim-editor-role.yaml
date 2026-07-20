@@ -1,0 +1,23 @@
+# Namespaced self-service permissions for OpenRMF consumers.
+#
+# Bind this Role to an approved user or group with a site-specific RoleBinding.
+# It intentionally grants no access to Secrets, XRDs, Compositions, managed
+# Releases, ProviderConfigs, Functions, or other Crossplane internals.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: openrmf-claim-editor
+  namespace: openkubes-system
+rules:
+  - apiGroups:
+      - platform.openkubes.ai
+    resources:
+      - openrmfclaims
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
