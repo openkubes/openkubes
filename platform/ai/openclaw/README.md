@@ -25,9 +25,11 @@ platform/ai/openclaw/
 
 CI: `.github/workflows/build-openclaw-kubectl.yaml` builds and pushes the
 image to `ghcr.io/<owner>/openclaw-kubectl` on changes under `images/`
-(same pattern as the capi-platform-runner workflow). Until the first CI
-push lands, `charts/openclaw/values.yaml` points at the manually pushed
-`kubernautslabs/openclaw-kubectl`; flip `image.repository` to GHCR after.
+(same pattern as the capi-platform-runner workflow). GHCR is the primary
+registry (OK-15 decision; Harbor deferred) and is the default in
+`charts/openclaw/values.yaml`. Until the first CI push lands, the manually
+pushed Docker Hub `kubernautslabs/openclaw-kubectl` serves as bootstrap:
+`--set image.repository=kubernautslabs/openclaw-kubectl`.
 
 ## Provider Values (private — not in this repo)
 

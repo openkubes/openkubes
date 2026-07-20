@@ -1,4 +1,6 @@
 # OK-15 Phase 1 — OpenClaw on ok1-talos (Makefile + Helm)
+# OWNER: this Makefile is the canonical one; ok-cluster/openclaw/Makefile is a
+# deliberate PoC copy carrying private provider values — sync changes here first.
 # Run the steps in order:
 #   make preflight   -> make install   -> make status   -> make validate
 #   -> make connect-info  (then wire up Open WebUI in the Admin UI)
@@ -129,14 +131,13 @@ validate: $(TOKEN_FILE)
 	@echo "OK: contract endpoint works — proceed with 'make connect-info'"
 
 # ── custom image: OpenClaw + kubectl (Cluster Inspection skill) ──────────────
-# Registry is a Provider Value. No Harbor exists yet (documented in OK-15 as
-# target, but absent from both repos — flagged to Arash). Default follows the
-# platform's manual-push convention (capi-platform-runner -> Docker Hub
-# kubernautslabs). Override for GHCR: make image-release IMG=ghcr.io/openkubes/openclaw-kubectl
+# Registry decision (OK-15): GHCR is primary, Harbor is deferred. The Docker
+# Hub image (kubernautslabs/openclaw-kubectl) is bootstrap-only until the
+# first CI push lands on GHCR. Override: make image-release IMG=...
 OPENCLAW_VERSION ?= 2026.7.1
 # kubectl: match cluster minor (ok1-talos: v1.34.x)
 KUBECTL_VERSION  ?= v1.34.1
-IMG              ?= kubernautslabs/openclaw-kubectl
+IMG              ?= ghcr.io/openkubes/openclaw-kubectl
 IMG_TAG          ?= $(OPENCLAW_VERSION)
 IMAGE_DIR        := $(dir $(lastword $(MAKEFILE_LIST)))images/openclaw-kubectl
 

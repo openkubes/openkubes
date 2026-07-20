@@ -1,10 +1,10 @@
 # OK-15 Phase 1 — Provider Values (adjust freely per guideline Part C)
 
 image:
-  # Official upstream image (GHCR primary registry).
-  # Later Harbor derivative (with kubectl for the Cluster Inspection skill):
-  # switch repository/tag here — nothing else changes.
-  repository: kubernautslabs/openclaw-kubectl
+  # GHCR is the primary registry (decision on OK-15; Harbor deferred).
+  # kubernautslabs/openclaw-kubectl (Docker Hub) is bootstrap-only until the
+  # first CI push lands on GHCR — switch back via --set image.repository=...
+  repository: ghcr.io/openkubes/openclaw-kubectl
   tag: "2026.7.1"
   pullPolicy: IfNotPresent
 
@@ -30,7 +30,11 @@ ollama:
   model: "gpt-oss:20b"
   # CRITICAL: without num_ctx Ollama defaults to a small context (often 4096)
   # and silently truncates OpenClaw's large system prompt -> nonsense replies.
-  numCtx: 65536
+  # CEILING (shared 20GB RTX 4000 Ada): gpt-oss:20b weights (~13GB) + KV cache
+  # at 64k may exceed VRAM and silently spill to CPU offloading. 32k is the
+  # verified-safe default; raise to 65536 only after confirming on-GPU under
+  # load (`ollama ps` must show 100% GPU while a long agent turn runs).
+  numCtx: 32768
   maxTokens: 16384
   # keep the model loaded between agent turns (first-load latency vs.
   # hogging shared VRAM — lower on contention, AR-2)
