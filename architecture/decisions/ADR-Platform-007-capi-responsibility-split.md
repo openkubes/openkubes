@@ -109,5 +109,3 @@ These rules follow directly from this decision and must be respected by all oper
 - ok-mgmt-shadow implemented → update bootstrap sequence (ok-infra may need to bootstrap both)
 - Hetzner bare-metal provider added → ok-infra CAPI may gain a second responsibility (bare-metal node provisioning)
 - ok-mgmt reaches HA (3 CP) → re-evaluate whether ok-infra CAPI is still needed for re-create
-EOF
-echo "ADR-Platform-007 done"

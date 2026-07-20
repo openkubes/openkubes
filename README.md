@@ -7,16 +7,19 @@
 
 <div align="center">
 
-### **Kubernetes is a Platform to build Platforms.**
-### **OpenKubes builds Kubernetes PlatformS.**
+### Kubernetes is a platform for building platforms.
 
-*Private AI · Bare Metal · Edge · On-Premises · Multi-Cloud*
+### OpenKubes builds Kubernetes Platform*S*.
+
+<sub>The capital S is intentional.</sub>
+
+*Bare Metal · Edge · On-Premises · Multi-Cloud*
 
 </div>
 
 ---
 
-> **OpenKubes is a Platform Distribution for Sovereign Kubernetes Infrastructure.**
+> **OpenKubes is a framework for building sovereign Kubernetes platform distributions.**
 > It defines stable contracts between platform layers — and lets the ecosystem provide the implementations.
 
 > *OpenKubes owns the contracts, not the components.*
@@ -26,6 +29,17 @@
 ## Platform Architecture
 
 ![OpenKubes Platform Architecture](./docs/openkubes_platform_architecture.svg)
+
+---
+
+## The OpenKubes Family
+
+> The mother owns the contracts, not the components. The children do the work.
+
+[![The OpenKubes Family](./docs/openkubes-family.svg)](./docs/openkubes-family.md)
+
+Each repository owns exactly one capability contract — `ok-linux` (Host OS), `ok-cluster` (Cluster Lifecycle), `ok-storage`, `ok-observability`, `ok-gitops`, `ok-apps` — while this repository holds the contracts, the decisions (ADRs), and the [knowledge graph](https://kubernauts.de/en/openkubes/openkubes_knowledge_graph_force_layout.html) that connects them.
+→ Full story: [The OpenKubes Family](./docs/openkubes-family.md)
 
 ---
 
@@ -41,6 +55,7 @@ bash bootstrap-mgmt.sh   # Crossplane + CAPI + AI Platform XRDs — ~2 min
 make new CLUSTER=ok-ai TYPE=talos WORKERS=1
 make bootstrap CLUSTER=ok-ai
 make install-storage CLUSTER=ok-ai
+make register-cluster CLUSTER=ok-ai   # wire it into the management plane (ADR-013)
 
 # Deploy Private AI on the workload cluster — from the management cluster
 make deploy CLUSTER=ok-ai   # → Open WebUI + Ollama in ~90 seconds
@@ -55,10 +70,11 @@ The platform handles the rest. No Helm expertise needed. No manual configuration
 
 | Repository | Contract | Status |
 |---|---|---|
-| [`openkubes/openkubes`](https://github.com/openkubes/openkubes) | Platform Distribution, ADRs, XRDs, AI Platform | ✅ v0.2.0 |
-| [`openkubes/ok-cluster`](https://github.com/openkubes/ok-cluster) | Cluster Lifecycle Contract | ✅ v0.7.0 |
-| [`openkubes/ok-linux`](https://github.com/openkubes/ok-linux) | OS Profile Contract (Talos) | ✅ v0.1.1 |
-| `openkubes/ok-storage` | Persistent Storage Contract | 📋 planned |
+| [`openkubes/openkubes`](https://github.com/openkubes/openkubes) | Platform Distribution, ADRs, XRDs, AI Platform | ✅ v0.3.0 |
+| [`openkubes/ok-cluster`](https://github.com/openkubes/ok-cluster) | Cluster Lifecycle Contract | ✅ v0.10.0 |
+| [`openkubes/ok-linux`](https://github.com/openkubes/ok-linux) | OS Capability Contract (Talos) | ✅ v0.1.1 |
+| [`openkubes/ok-storage`](https://github.com/openkubes/ok-storage) | Persistent Storage Contract | ✅ v0.1.0 |
+| [`openkubes/ok-observability`](https://github.com/openkubes/ok-observability) | Observability Capability Contract | 🚧 scaffold (ADR-Platform-018) |
 | `openkubes/ok-gitops` | GitOps Contract | 📋 planned |
 | `openkubes/ok-apps` | Application Contract | 📋 planned |
 
@@ -95,7 +111,7 @@ kubectl apply -f claim.yaml
 
 ## Architecture Decisions
 
-OpenKubes is built on 8 documented platform-level decisions:
+OpenKubes is built on 20 documented platform-level decisions:
 
 | ADR | Decision |
 |---|---|
@@ -107,8 +123,29 @@ OpenKubes is built on 8 documented platform-level decisions:
 | [ADR-Platform-006](./architecture/decisions/ADR-Platform-006-mgmt-cluster.md) | ok-mgmt as the OpenKubes Management Cluster |
 | [ADR-Platform-007](./architecture/decisions/ADR-Platform-007-capi-responsibility-split.md) | CAPI responsibility split: ok-infra bootstraps, ok-mgmt operates |
 | [ADR-Platform-008](./architecture/decisions/ADR-Platform-008-mgmt-cluster-type.md) | TYPE=talos-mgmt as dedicated cluster type in ok-cluster |
+| [ADR-Platform-009](./architecture/decisions/ADR-Platform-009-storage-contract.md) | Storage contract — Longhorn as v1 implementation, three storage classes |
+| [ADR-Platform-010](./architecture/decisions/ADR-Platform-010-ingress-contract.md) | Ingress contract — ok-ingress class, Traefik as v1 implementation |
+| [ADR-Platform-011](./architecture/decisions/ADR-Platform-011-gitops.md) | GitOps platform capability *(proposed)* |
+| [ADR-Platform-012](./architecture/decisions/ADR-Platform-012-air-gapped-image-mirroring.md) | Air-gapped image mirroring — ok-linux golden images, no runtime Factory dependency *(proposed)* |
+| [ADR-Platform-013](./architecture/decisions/ADR-Platform-013-workload-cluster-registration.md) | Workload cluster registration contract — one cluster, one name, one credential source |
+| [ADR-Platform-014](./architecture/decisions/ADR-Platform-014-constrained-edge-profile.md) | Constrained edge implementation profile — Constraint Envelope concept *(draft, spike required)* |
+| [ADR-Platform-015](./architecture/decisions/ADR-Platform-015-agentic-ai.md) | Agentic AI capability — Agent Interface Contract, read-only boundary *(proposed)* |
+| [ADR-Platform-016](./architecture/decisions/ADR-Platform-016-os-capability-contract.md) | OS Capability Contract |
+| [ADR-Platform-017](./architecture/decisions/ADR-Platform-017-constraint-envelopes.md) | Constraint Envelopes — envelope-scoped guarantees |
+| [ADR-Platform-018](./architecture/decisions/ADR-Platform-018-observability-capability.md) | Observability capability — per-cluster stack with provisioning readiness gate |
+| [ADR-Platform-019](./architecture/decisions/ADR-Platform-019-robotics-fleet-orchestration.md) | Robotics Fleet Orchestration — Open-RMF profile on OpenKubes contracts |
+| [ADR-Platform-020](./architecture/decisions/ADR-Platform-020-shared-platform-services.md) | Shared Platform Services capability (ok-shared) — accepted via forcing consumer |
 
 → [`architecture/decisions/`](./architecture/decisions/)
+
+---
+
+## Built with OpenKubes
+
+A framework is only real once someone else builds on it. The contracts already have consumers beyond the core team:
+
+- **Robotics Fleet Orchestration (Open-RMF)** — [ADR-Platform-019](./architecture/decisions/ADR-Platform-019-robotics-fleet-orchestration.md), authored by an external contributor. Open-RMF runs against OpenKubes capability contracts (storage, ingress, observability, cluster registration) instead of its upstream k3s reference stack.
+- **`ok2-rmf`** — an externally owned cluster registered with the platform. Its arrival with a central identity requirement was the forcing consumer that turned [ADR-Platform-020](./architecture/decisions/ADR-Platform-020-shared-platform-services.md) from Draft to Accepted — the contract-first process working as designed.
 
 ---
 
@@ -146,6 +183,7 @@ OpenKubes gives you both — through a contract-based architecture that runs ide
 git clone https://github.com/openkubes/openkubes
 git clone https://github.com/openkubes/ok-cluster
 git clone https://github.com/openkubes/ok-linux
+git clone https://github.com/openkubes/ok-storage
 
 # 2. Provision Management Cluster (on your host cluster)
 cd ok-cluster
@@ -164,7 +202,10 @@ make new CLUSTER=ok-ai TYPE=talos WORKERS=1
 make bootstrap CLUSTER=ok-ai
 make install-storage CLUSTER=ok-ai
 
-# 5. Deploy Open WebUI from management cluster
+# 5. Register the workload cluster with the management plane (ADR-013)
+make register-cluster CLUSTER=ok1-talos
+
+# 6. Deploy Open WebUI from management cluster
 export KUBECONFIG=~/.kube/ok-mgmt.yaml
 kubectl apply -f ../openkubes/platform/ai/open-webui/crossplane/examples/ok-ai.yaml
 ```
@@ -186,4 +227,4 @@ kubectl apply -f ../openkubes/platform/ai/open-webui/crossplane/examples/ok-ai.y
 
 ## License
 
-[Apache 2.0](./LICENSE) · Built by [Kubernauts GmbH](https://kubernauts.de) · Cologne, Germany
+[Apache 2.0](./LICENSE) · Built for the Kommunity · Cologne, Germany

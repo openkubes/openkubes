@@ -1,0 +1,149 @@
+# OpenRMF Composition — simulation profile for ok2-rmf-class clusters
+#
+# The chart is pinned to the versioned release asset published from
+# rmf_deployment_template tag openrmf-deployment-v1.0.0.
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: openrmf.platform.openkubes.ai
+  labels:
+    provider: helm
+    capability: robotics-fleet-orchestration
+    profile: openrmf-simulation
+spec:
+  compositeTypeRef:
+    apiVersion: platform.openkubes.ai/v1alpha1
+    kind: OpenRMFInstance
+  mode: Pipeline
+  pipeline:
+    - step: deploy-openrmf
+      functionRef:
+        name: function-patch-and-transform
+      input:
+        apiVersion: pt.fn.crossplane.io/v1beta1
+        kind: Resources
+        resources:
+          - name: openrmf-helm-release
+            base:
+              apiVersion: helm.crossplane.io/v1beta1
+              kind: Release
+              metadata:
+                annotations:
+                  # Preserve the identity of the manually validated release.
+                  # Adoption must still be rehearsed before applying a Claim.
+                  crossplane.io/external-name: rmf
+              spec:
+                # Stateful safety default: deleting the Claim must not
+                # automatically uninstall RMF or remove its data path.
+                deletionPolicy: Orphan
+                forProvider:
+                  chart:
+                    url: https://github.com/openkubes/rmf_deployment_template/releases/download/openrmf-deployment-v1.0.0/openrmf-deployment-1.0.0.tgz
+                  namespace: rmf
+                  wait: true
+                  waitTimeout: 10m
+                  values:
+                    hostName: ""
+                    baseUrl: ""
+                    ENABLE_RMF_SIM: true
+                    ENABLE_RMF: false
+                    ingress:
+                      provider: traefik
+                      className: ok-ingress
+                    tls:
+                      enabled: true
+                      useTraefikDefaultCertificate: true
+                    monitoring:
+                      enabled: false
+                  set:
+                    - name: rmf_web.API_SERVER_DB_PASSWD
+                      valueFrom:
+                        secretKeyRef:
+                          name: rmf-credentials
+                          namespace: crossplane-system
+                          key: rmfWebDatabasePassword
+                    - name: rmf_web.ADMIN_PASSWD
+                      valueFrom:
+                        secretKeyRef:
+                          name: rmf-credentials
+                          namespace: crossplane-system
+                          key: rmfWebAdminPassword
+                    - name: keycloak.KEYCLOAK_ADMIN_PASSWD
+                      valueFrom:
+                        secretKeyRef:
+                          name: rmf-credentials
+                          namespace: crossplane-system
+                          key: keycloakAdminPassword
+                    - name: keycloak.KEYCLOAK_DB_PASSWD
+                      valueFrom:
+                        secretKeyRef:
+                          name: rmf-credentials
+                          namespace: crossplane-system
+                          key: keycloakDatabasePassword
+                rollbackLimit: 3
+            patches:
+              - type: FromCompositeFieldPath
+                fromFieldPath: spec.clusterRef
+                toFieldPath: spec.providerConfigRef.name
+              - type: FromCompositeFieldPath
+                fromFieldPath: spec.namespace
+                toFieldPath: spec.forProvider.namespace
+              - type: FromCompositeFieldPath
+                fromFieldPath: metadata.labels[crossplane.io/claim-name]
+                toFieldPath: metadata.name
+                transforms:
+                  - type: string
+                    string:
+                      type: Format
+                      fmt: "openrmf-%s"
+              - type: FromCompositeFieldPath
+                fromFieldPath: spec.hostname
+                toFieldPath: spec.forProvider.values.hostName
+              - type: FromCompositeFieldPath
+                fromFieldPath: spec.hostname
+                toFieldPath: spec.forProvider.values.baseUrl
+                transforms:
+                  - type: string
+                    string:
+                      type: Format
+                      fmt: "https://%s"
+              # provider-helm reads these Secret values from the management
+              # cluster and passes them to Helm without Claim password fields.
+              - type: FromCompositeFieldPath
+                fromFieldPath: spec.credentialsSecretRef.name
+                toFieldPath: spec.forProvider.set[0].valueFrom.secretKeyRef.name
+              - type: FromCompositeFieldPath
+                fromFieldPath: spec.credentialsSecretRef.namespace
+                toFieldPath: spec.forProvider.set[0].valueFrom.secretKeyRef.namespace
+              - type: FromCompositeFieldPath
+                fromFieldPath: spec.credentialsSecretRef.name
+                toFieldPath: spec.forProvider.set[1].valueFrom.secretKeyRef.name
+              - type: FromCompositeFieldPath
+                fromFieldPath: spec.credentialsSecretRef.namespace
+                toFieldPath: spec.forProvider.set[1].valueFrom.secretKeyRef.namespace
+              - type: FromCompositeFieldPath
+                fromFieldPath: spec.credentialsSecretRef.name
+                toFieldPath: spec.forProvider.set[2].valueFrom.secretKeyRef.name
+              - type: FromCompositeFieldPath
+                fromFieldPath: spec.credentialsSecretRef.namespace
+                toFieldPath: spec.forProvider.set[2].valueFrom.secretKeyRef.namespace
+              - type: FromCompositeFieldPath
+                fromFieldPath: spec.credentialsSecretRef.name
+                toFieldPath: spec.forProvider.set[3].valueFrom.secretKeyRef.name
+              - type: FromCompositeFieldPath
+                fromFieldPath: spec.credentialsSecretRef.namespace
+                toFieldPath: spec.forProvider.set[3].valueFrom.secretKeyRef.namespace
+              - type: ToCompositeFieldPath
+                fromFieldPath: status.atProvider.state
+                toFieldPath: status.releaseState
+                policy:
+                  fromFieldPath: Optional
+              - type: ToCompositeFieldPath
+                fromFieldPath: status.atProvider.revision
+                toFieldPath: status.revision
+                policy:
+                  fromFieldPath: Optional
+            readinessChecks:
+              - type: MatchString
+                fieldPath: status.atProvider.state
+                matchString: deployed

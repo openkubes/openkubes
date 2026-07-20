@@ -114,5 +114,3 @@ Crossplane on ok-mgmt replaces the local `make new` / `make bootstrap` workflow 
 - ok-mgmt-shadow implemented → update this ADR with active-passive topology
 - ArgoCD installed on ok-mgmt → add GitOps bootstrap to the responsibility list
 - Crossplane provider for non-KubeVirt infrastructure (Hetzner, AWS) → update the cluster topology diagram
-EOF
-echo "ADR-Platform-006 done"

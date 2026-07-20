@@ -1,8 +1,8 @@
 # ADR-Platform-010: Ingress for OpenKubes Workload Clusters
 
-**Status:** Accepted (Arash / Claude; GPT review deferred to repo-level review of ok-cluster + openkubes)
+**Status:** Accepted (three-way review closed via OK-70: Arash / Claude, 2026-07-16; GPT review waived)
 **Date:** 2026-07-06
-**Related:** OK-56 (Step 2), ADR-Platform-009 (storage contract, OK-55), ADR-Platform-011 candidate (Capability → Contract → Implementation Profile → Provider Values)
+**Related:** OK-56 (Step 2), ADR-Platform-009 (storage contract, OK-55), ADR-Platform-001 (Capability → Contract → Implementation Profile → Provider Values)
 
 ## Context
 
@@ -38,7 +38,7 @@ Constraints:
 5. `ok-ingress` is **not** the default IngressClass: applications must set
    `ingressClassName: ok-ingress` explicitly. Contract binding is visible,
    never implicit.
-6. LB-IP allocation: the host MetalLB pool `ok-pool` (`.200–.209`) is the
+6. LB-IP allocation: the host MetalLB pool `ok-pool` (`.200–.254`) is the
    sole LB mechanism. Each guest cluster gets one IP from this pool via a
    **host-cluster proxy Service** — no MetalLB or LB implementation inside
    guest clusters required.
@@ -88,8 +88,9 @@ migration path once Multus NADs are added to CAPK templates (OK-57).
 
 - **ingress-nginx** — rejected. Upstream entered maintenance mode
   (announced Nov 2025) with retirement planned for March 2026; adopting a
-  retiring component contradicts the swappability principle. *(Verify
-  current upstream status before final acceptance — post knowledge cutoff.)*
+  retiring component contradicts the swappability principle. *(Verified
+  2026-07-16 against the upstream README: retired as planned — no further
+  releases, bugfixes, or security updates after March 2026.)*
 - **Cilium Gateway API now** — rejected for v1. Technically attractive
   (zero additional components), but Traefik is already proven in
   capi-platform-v4.2; Gateway API adds a new resource model to debug during
@@ -108,6 +109,6 @@ migration path once Multus NADs are added to CAPK templates (OK-57).
   network — operational follow-up (dnsmasq on ok-vpn or /etc/hosts interim);
   out of scope for this ADR.
 - `make install-ingress` becomes the third opt-in capability target
-  (cni, storage, ingress) — reinforcing the ADR-Platform-011 candidate
+  (cni, storage, ingress) — reinforcing the ADR-Platform-001
   pattern (Capability → Contract → Implementation Profile → Provider
   Values).

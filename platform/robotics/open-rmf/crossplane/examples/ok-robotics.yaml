@@ -1,0 +1,19 @@
+# OpenRMF simulation Claim for ok-robotics.
+#
+# Local scaffold only: do not apply until OK-79 observability passes on
+# ok-robotics and the claim-only RoleBinding subject is confirmed. This is
+# the intended first managed-deployment target (OK-88/OK-99) — ok2-rmf
+# remains the manually-deployed reference until parity is verified here.
+apiVersion: platform.openkubes.ai/v1alpha1
+kind: OpenRMFClaim
+metadata:
+  name: ok-robotics
+  namespace: openkubes-system
+spec:
+  clusterRef: ok-robotics
+  namespace: rmf
+  mode: simulation
+  hostname: robotics.openkubes.local
+  credentialsSecretRef:
+    name: rmf-credentials
+    namespace: crossplane-system

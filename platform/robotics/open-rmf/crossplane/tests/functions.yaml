@@ -1,0 +1,10 @@
+# Local-render function package matching the version currently installed on
+# ok-mgmt. This file is input to the Crossplane CLI; it is not applied.
+apiVersion: pkg.crossplane.io/v1
+kind: Function
+metadata:
+  name: function-patch-and-transform
+  annotations:
+    render.crossplane.io/runtime-docker-pull-policy: IfNotPresent
+spec:
+  package: xpkg.upbound.io/crossplane-contrib/function-patch-and-transform:v0.9.0

@@ -14,4 +14,5 @@ docs/*-whitepaper*.pdf
 !docs/openkubes-family.svg
 
 # macOS
+.venv/
 .DS_Store

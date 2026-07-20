@@ -30,15 +30,6 @@
   },
   {
    "type": "adr",
-   "label": "ADR-001",
-   "title": "Architecture Decision Record (ADR-001): Hosted Control Plane (Pod-based) as Optional Cluster Mode",
-   "file": "architecture/decisions/ADR-001-hosted-control-plane.md",
-   "status": "Proposed",
-   "date": "2026-06-06",
-   "id": "ADR-001"
-  },
-  {
-   "type": "adr",
    "label": "ADR-Platform-001",
    "title": "ADR-Platform-001: OpenKubes owns the contracts, not the components",
    "file": "architecture/decisions/ADR-Platform-001-contracts-not-components.md",
@@ -123,7 +114,7 @@
    "label": "ADR-Platform-010",
    "title": "ADR-Platform-010: Ingress for OpenKubes Workload Clusters",
    "file": "architecture/decisions/ADR-Platform-010-ingress-contract.md",
-   "status": "Accepted (Arash / Claude; GPT review deferred to repo-level review of ok-cluster + openkubes)",
+   "status": "Accepted (three-way review closed via OK-70: Arash / Claude, 2026-07-16; GPT review waived)",
    "date": "2026-07-06",
    "id": "ADR-Platform-010"
   },
@@ -137,14 +128,113 @@
    "id": "ADR-Platform-011"
   },
   {
-   "type": "component",
-   "label": "KubeVirt",
-   "id": "KubeVirt"
+   "type": "adr",
+   "label": "ADR-Platform-012",
+   "title": "ADR-Platform-012: Air-Gapped Image Mirroring for Talos Boot Images",
+   "file": "architecture/decisions/ADR-Platform-012-air-gapped-image-mirroring.md",
+   "status": "Proposed \u2014 pending three-way review (Arash / Claude / GPT)",
+   "date": "2026-07-09",
+   "id": "ADR-Platform-012"
+  },
+  {
+   "type": "adr",
+   "label": "ADR-Platform-013",
+   "title": "ADR-Platform-013: Workload Cluster Registration Contract",
+   "file": "architecture/decisions/ADR-Platform-013-workload-cluster-registration.md",
+   "status": "?",
+   "date": "?",
+   "id": "ADR-Platform-013"
+  },
+  {
+   "type": "adr",
+   "label": "ADR-Platform-014",
+   "title": "ADR-Platform-014: Constrained Edge Implementation Profile",
+   "file": "architecture/decisions/ADR-Platform-014-constrained-edge-profile.md",
+   "status": "Draft / Spike Required",
+   "date": "2026-07-09",
+   "id": "ADR-Platform-014"
+  },
+  {
+   "type": "adr",
+   "label": "ADR-Platform-015",
+   "title": "ADR-Platform-015: Agentic AI",
+   "file": "architecture/decisions/ADR-Platform-015-agentic-ai.md",
+   "status": "Proposed (pending Go/No-Go from OK-14 PoC)",
+   "date": "2026-07-10",
+   "id": "ADR-Platform-015"
+  },
+  {
+   "type": "adr",
+   "label": "ADR-Platform-016",
+   "title": "ADR-Platform-016: OS Capability Contract",
+   "file": "architecture/decisions/ADR-Platform-016-os-capability-contract.md",
+   "status": "Accepted \u2014 three-way review completed (Arash / Claude / GPT, 2026-07-10)",
+   "date": "2026-07-10",
+   "id": "ADR-Platform-016"
+  },
+  {
+   "type": "adr",
+   "label": "ADR-Platform-017",
+   "title": "ADR-Platform-017: Constraint Envelopes",
+   "file": "architecture/decisions/ADR-Platform-017-constraint-envelopes.md",
+   "status": "Accepted \u2014 three-way review completed (Arash / Claude / GPT, 2026-07-12)",
+   "date": "2026-07-12",
+   "id": "ADR-Platform-017"
+  },
+  {
+   "type": "adr",
+   "label": "ADR-Platform-018",
+   "title": "ADR-Platform-018: Observability Capability \u2014 Per-Cluster Stack",
+   "file": "architecture/decisions/ADR-Platform-018-observability-capability.md",
+   "status": "Accepted",
+   "date": "2026-07-13",
+   "id": "ADR-Platform-018"
+  },
+  {
+   "type": "adr",
+   "label": "ADR-Platform-019",
+   "title": "ADR-Platform-019: Robotics Fleet Orchestration \u2014 Open-RMF RKE2 Profile",
+   "file": "architecture/decisions/ADR-Platform-019-robotics-fleet-orchestration.md",
+   "status": "Accepted \u2014 RKE2 profile deployed; production acceptance gates remain open",
+   "date": "2026-07-14",
+   "id": "ADR-Platform-019"
+  },
+  {
+   "type": "adr",
+   "label": "ADR-Platform-020",
+   "title": "ADR-Platform-020: Shared Platform Services Capability (ok-shared)",
+   "file": "architecture/decisions/ADR-Platform-020-shared-platform-services.md",
+   "status": "Accepted",
+   "date": "2026-07-14",
+   "id": "ADR-Platform-020"
+  },
+  {
+   "type": "adr",
+   "label": "ADR-Platform-021",
+   "title": "ADR-Platform-021: Read-Only Platform Diagnostics Contract",
+   "file": "architecture/decisions/ADR-Platform-021-read-only-platform-diagnostics-contract.md",
+   "status": "Draft, revision 3 \u2014 three-way review resolutions of 2026-07-17 incorporated; Go for Jira issued",
+   "date": "2026-07-17",
+   "id": "ADR-Platform-021"
+  },
+  {
+   "type": "adr",
+   "label": "ADR-Platform-022",
+   "title": "ADR-Platform-022: OpenKubes is a distribution framework, not a distribution",
+   "file": "architecture/decisions/ADR-Platform-022-distribution-framework-not-a-distribution.md",
+   "status": "Draft \u2014 pending Acceptance Condition (see below)",
+   "date": "2026-07-17",
+   "id": "ADR-Platform-022"
   },
   {
    "type": "component",
-   "label": "Cilium",
-   "id": "Cilium"
+   "label": "Talos",
+   "id": "Talos"
+  },
+  {
+   "type": "component",
+   "label": "KubeVirt",
+   "id": "KubeVirt"
   },
   {
    "type": "component",
@@ -163,27 +253,6 @@
   },
   {
    "type": "component",
-   "label": "Kamaji",
-   "id": "Kamaji"
-  },
-  {
-   "type": "component",
-   "label": "Kubernetes",
-   "id": "Kubernetes"
-  },
-  {
-   "type": "issue",
-   "label": "OK-16",
-   "url": "https://kubernauts.atlassian.net/browse/OK-16",
-   "id": "OK-16"
-  },
-  {
-   "type": "component",
-   "label": "Talos",
-   "id": "Talos"
-  },
-  {
-   "type": "component",
    "label": "Ceph",
    "id": "Ceph"
   },
@@ -196,6 +265,11 @@
    "type": "component",
    "label": "containerd",
    "id": "containerd"
+  },
+  {
+   "type": "component",
+   "label": "Kubernetes",
+   "id": "Kubernetes"
   },
   {
    "type": "component",
@@ -224,15 +298,15 @@
   },
   {
    "type": "issue",
-   "label": "OK-54",
-   "url": "https://kubernauts.atlassian.net/browse/OK-54",
-   "id": "OK-54"
-  },
-  {
-   "type": "issue",
    "label": "OK-52",
    "url": "https://kubernauts.atlassian.net/browse/OK-52",
    "id": "OK-52"
+  },
+  {
+   "type": "issue",
+   "label": "OK-54",
+   "url": "https://kubernauts.atlassian.net/browse/OK-54",
+   "id": "OK-54"
   },
   {
    "type": "issue",
@@ -257,6 +331,11 @@
   },
   {
    "type": "component",
+   "label": "Cilium",
+   "id": "Cilium"
+  },
+  {
+   "type": "component",
    "label": "Traefik",
    "id": "Traefik"
   },
@@ -277,15 +356,21 @@
   },
   {
    "type": "issue",
-   "label": "OK-55",
-   "url": "https://kubernauts.atlassian.net/browse/OK-55",
-   "id": "OK-55"
-  },
-  {
-   "type": "issue",
    "label": "OK-57",
    "url": "https://kubernauts.atlassian.net/browse/OK-57",
    "id": "OK-57"
+  },
+  {
+   "type": "issue",
+   "label": "OK-70",
+   "url": "https://kubernauts.atlassian.net/browse/OK-70",
+   "id": "OK-70"
+  },
+  {
+   "type": "issue",
+   "label": "OK-55",
+   "url": "https://kubernauts.atlassian.net/browse/OK-55",
+   "id": "OK-55"
   },
   {
    "type": "issue",
@@ -298,6 +383,302 @@
    "label": "OK-58",
    "url": "https://kubernauts.atlassian.net/browse/OK-58",
    "id": "OK-58"
+  },
+  {
+   "type": "issue",
+   "label": "OK-59",
+   "url": "https://kubernauts.atlassian.net/browse/OK-59",
+   "id": "OK-59"
+  },
+  {
+   "type": "issue",
+   "label": "OK-60",
+   "url": "https://kubernauts.atlassian.net/browse/OK-60",
+   "id": "OK-60"
+  },
+  {
+   "type": "issue",
+   "label": "OK-61",
+   "url": "https://kubernauts.atlassian.net/browse/OK-61",
+   "id": "OK-61"
+  },
+  {
+   "type": "issue",
+   "label": "OK-15",
+   "url": "https://kubernauts.atlassian.net/browse/OK-15",
+   "id": "OK-15"
+  },
+  {
+   "type": "issue",
+   "label": "OK-14",
+   "url": "https://kubernauts.atlassian.net/browse/OK-14",
+   "id": "OK-14"
+  },
+  {
+   "type": "issue",
+   "label": "OK-49",
+   "url": "https://kubernauts.atlassian.net/browse/OK-49",
+   "id": "OK-49"
+  },
+  {
+   "type": "issue",
+   "label": "OK-74",
+   "url": "https://kubernauts.atlassian.net/browse/OK-74",
+   "id": "OK-74"
+  },
+  {
+   "type": "issue",
+   "label": "OK-64",
+   "url": "https://kubernauts.atlassian.net/browse/OK-64",
+   "id": "OK-64"
+  },
+  {
+   "type": "issue",
+   "label": "OK-63",
+   "url": "https://kubernauts.atlassian.net/browse/OK-63",
+   "id": "OK-63"
+  },
+  {
+   "type": "issue",
+   "label": "OK-73",
+   "url": "https://kubernauts.atlassian.net/browse/OK-73",
+   "id": "OK-73"
+  },
+  {
+   "type": "issue",
+   "label": "OK-81",
+   "url": "https://kubernauts.atlassian.net/browse/OK-81",
+   "id": "OK-81"
+  },
+  {
+   "type": "issue",
+   "label": "OK-76",
+   "url": "https://kubernauts.atlassian.net/browse/OK-76",
+   "id": "OK-76"
+  },
+  {
+   "type": "commit",
+   "label": "d00ac05",
+   "message": "feat(platform/robotics): OpenRMF claim-only RBAC scaffold + local Crossplane render tests (OK-60)",
+   "date": "2026-07-20",
+   "id": "commit:d00ac05"
+  },
+  {
+   "type": "commit",
+   "label": "1bf9939",
+   "message": "docs(adr): correct ADR-Platform-022 \u2014 ok-cluster is public, Provider Values carry no secrets",
+   "date": "2026-07-19",
+   "id": "commit:1bf9939"
+  },
+  {
+   "type": "commit",
+   "label": "44e22cc",
+   "message": "docs(adr): fix ADR-Platform-005 amendment \u2014 Ollama manifests stay in private hetzner repo",
+   "date": "2026-07-19",
+   "id": "commit:44e22cc"
+  },
+  {
+   "type": "commit",
+   "label": "ebab1cc",
+   "message": "docs(adr): amend ADR-Platform-005 \u2014 ok-shared trigger, ADR-022 re-reading, manifest pointer",
+   "date": "2026-07-19",
+   "id": "commit:ebab1cc"
+  },
+  {
+   "type": "commit",
+   "label": "1d764ff",
+   "message": "docs(architecture): add contracts inventory, align README contract naming with ADR-016",
+   "date": "2026-07-18",
+   "id": "commit:1d764ff"
+  },
+  {
+   "type": "commit",
+   "label": "a478b62",
+   "message": "docs(adr): add ADR-Platform-022 \u2014 distribution framework, not a distribution (EN + DE)",
+   "date": "2026-07-18",
+   "id": "commit:a478b62"
+  },
+  {
+   "type": "commit",
+   "label": "58bf08f",
+   "message": "ADR-021 draft: Read-Only Platform Diagnostics Contract (three-way review rev 3, OK-89)",
+   "date": "2026-07-17",
+   "id": "commit:58bf08f"
+  },
+  {
+   "type": "commit",
+   "label": "6a33efe",
+   "message": "chore(graph): rebuild after PR #4 and PR #5 merge (OK-60)",
+   "date": "2026-07-17",
+   "id": "commit:6a33efe"
+  },
+  {
+   "type": "commit",
+   "label": "319ecd4",
+   "message": "feat(platform/robotics): pin published OpenRMF 1.0.0 chart in Composition (OK-60)",
+   "date": "2026-07-17",
+   "id": "commit:319ecd4"
+  },
+  {
+   "type": "commit",
+   "label": "20b678d",
+   "message": "feat(platform/robotics): OpenRMF Crossplane capability scaffold \u2014 XRD, Composition, example Claim (OK-60)",
+   "date": "2026-07-17",
+   "id": "commit:20b678d"
+  },
+  {
+   "type": "commit",
+   "label": "8c8b217",
+   "message": "chore(docs): rebuild knowledge graph (20 ADRs, legacy ADR-001 removed)",
+   "date": "2026-07-16",
+   "id": "commit:8c8b217"
+  },
+  {
+   "type": "commit",
+   "label": "492f2a8",
+   "message": "docs(adr): hygiene cleanup per OK-70 review findings",
+   "date": "2026-07-16",
+   "id": "commit:492f2a8"
+  },
+  {
+   "type": "commit",
+   "label": "de89cea",
+   "message": "chore(graph): rebuild after ADR-019 merge (OK-60)",
+   "date": "2026-07-16",
+   "id": "commit:de89cea"
+  },
+  {
+   "type": "commit",
+   "label": "7e343af",
+   "message": "docs(adr): ADR-Platform-019 Robotics Fleet Orchestration \u2014 Accepted (OK-60)",
+   "date": "2026-07-16",
+   "id": "commit:7e343af"
+  },
+  {
+   "type": "commit",
+   "label": "55e6b93",
+   "message": "chore(graph): rebuild after ADR-020 accepted, ADR-018 fix (20 ADRs, 97 nodes, 269 edges)",
+   "date": "2026-07-15",
+   "id": "commit:55e6b93"
+  },
+  {
+   "type": "commit",
+   "label": "4a7ed02",
+   "message": "fix(adr): correct ok-mgmt \u2192 ok-shared in ADR-018 alternatives",
+   "date": "2026-07-15",
+   "id": "commit:4a7ed02"
+  },
+  {
+   "type": "commit",
+   "label": "83d438d",
+   "message": "feat(adr): accept ADR-020 Shared Platform Services (ok-shared)",
+   "date": "2026-07-15",
+   "id": "commit:83d438d"
+  },
+  {
+   "type": "commit",
+   "label": "6952669",
+   "message": "Update README: ADR-014\u2013018, ok-observability; normalize ADR-018 filename (OK-77)",
+   "date": "2026-07-13",
+   "id": "commit:6952669"
+  },
+  {
+   "type": "commit",
+   "label": "28f88e5",
+   "message": "ADR-Platform-018: Observability Capability \u2014 per-cluster stack (OK-77)",
+   "date": "2026-07-13",
+   "id": "commit:28f88e5"
+  },
+  {
+   "type": "commit",
+   "label": "facdd7c",
+   "message": "docs: add Agentic AI PoC implementation guideline (OK-14, OK-15)",
+   "date": "2026-07-12",
+   "id": "commit:facdd7c"
+  },
+  {
+   "type": "commit",
+   "label": "8e61412",
+   "message": "docs(adr): add ADR-Platform-017 Constraint Envelopes (OK-74)",
+   "date": "2026-07-12",
+   "id": "commit:8e61412"
+  },
+  {
+   "type": "commit",
+   "label": "3626194",
+   "message": "docs(adr): set ADR-Platform-016 status to Accepted",
+   "date": "2026-07-12",
+   "id": "commit:3626194"
+  },
+  {
+   "type": "commit",
+   "label": "2820165",
+   "message": "docs(adr): add accepted risks AR-1/AR-2 to ADR-Platform-015 (OK-72)",
+   "date": "2026-07-12",
+   "id": "commit:2820165"
+  },
+  {
+   "type": "commit",
+   "label": "768f518",
+   "message": "docs(adr): add ADR-Platform-016 OS Capability Contract",
+   "date": "2026-07-11",
+   "id": "commit:768f518"
+  },
+  {
+   "type": "commit",
+   "label": "3bc5537",
+   "message": "ADR-Platform-015: Agentic AI capability (Proposed)",
+   "date": "2026-07-10",
+   "id": "commit:3bc5537"
+  },
+  {
+   "type": "commit",
+   "label": "262437b",
+   "message": "docs(adr): ADR-014 review amendments \u2014 storage contract semantics, telemetry requirement, neutral candidate framing",
+   "date": "2026-07-09",
+   "id": "commit:262437b"
+  },
+  {
+   "type": "commit",
+   "label": "25dcbcf",
+   "message": "docs(adr): add ADR-Platform-014 constrained edge profile",
+   "date": "2026-07-09",
+   "id": "commit:25dcbcf"
+  },
+  {
+   "type": "commit",
+   "label": "e293907",
+   "message": "docs: ADR-013 in ADR table + registration step in bootstrap guide (OK-61)",
+   "date": "2026-07-09",
+   "id": "commit:e293907"
+  },
+  {
+   "type": "commit",
+   "label": "6780c9f",
+   "message": "ADR-Platform-013: workload cluster registration contract (OK-61)",
+   "date": "2026-07-09",
+   "id": "commit:6780c9f"
+  },
+  {
+   "type": "commit",
+   "label": "aef75be",
+   "message": "docs: add ADR-Platform-012 (proposed) to architecture decisions table",
+   "date": "2026-07-09",
+   "id": "commit:aef75be"
+  },
+  {
+   "type": "commit",
+   "label": "1a073c9",
+   "message": "docs: README ADR table \u2014 add ADR-Platform-009/010/011",
+   "date": "2026-07-07",
+   "id": "commit:1a073c9"
+  },
+  {
+   "type": "commit",
+   "label": "83eeb18",
+   "message": "docs: ingress on KubeVirt workload clusters \u2014 why Cilium L2 Announcements can't work (OK-56 learning, three-way reviewed)",
+   "date": "2026-07-07",
+   "id": "commit:83eeb18"
   },
   {
    "type": "commit",
@@ -394,54 +775,6 @@
  "links": [
   {
    "rel": "governs",
-   "source": "ADR-001",
-   "target": "KubeVirt",
-   "key": 0
-  },
-  {
-   "rel": "governs",
-   "source": "ADR-001",
-   "target": "Cilium",
-   "key": 0
-  },
-  {
-   "rel": "governs",
-   "source": "ADR-001",
-   "target": "Crossplane",
-   "key": 0
-  },
-  {
-   "rel": "governs",
-   "source": "ADR-001",
-   "target": "CAPI",
-   "key": 0
-  },
-  {
-   "rel": "governs",
-   "source": "ADR-001",
-   "target": "CAPK",
-   "key": 0
-  },
-  {
-   "rel": "governs",
-   "source": "ADR-001",
-   "target": "Kamaji",
-   "key": 0
-  },
-  {
-   "rel": "governs",
-   "source": "ADR-001",
-   "target": "Kubernetes",
-   "key": 0
-  },
-  {
-   "rel": "tracked-by",
-   "source": "ADR-001",
-   "target": "OK-16",
-   "key": 0
-  },
-  {
-   "rel": "governs",
    "source": "ADR-Platform-001",
    "target": "Talos",
    "key": 0
@@ -509,13 +842,13 @@
   {
    "rel": "references",
    "source": "ADR-Platform-001",
-   "target": "ADR-Platform-003",
+   "target": "ADR-Platform-004",
    "key": 0
   },
   {
    "rel": "references",
    "source": "ADR-Platform-001",
-   "target": "ADR-Platform-004",
+   "target": "ADR-Platform-003",
    "key": 0
   },
   {
@@ -557,13 +890,13 @@
   {
    "rel": "references",
    "source": "ADR-Platform-002",
-   "target": "ADR-Platform-003",
+   "target": "ADR-Platform-004",
    "key": 0
   },
   {
    "rel": "references",
    "source": "ADR-Platform-002",
-   "target": "ADR-Platform-004",
+   "target": "ADR-Platform-003",
    "key": 0
   },
   {
@@ -600,12 +933,6 @@
    "rel": "references",
    "source": "ADR-Platform-003",
    "target": "ADR-Platform-004",
-   "key": 0
-  },
-  {
-   "rel": "references",
-   "source": "ADR-Platform-003",
-   "target": "ADR-001",
    "key": 0
   },
   {
@@ -731,13 +1058,13 @@
   {
    "rel": "tracked-by",
    "source": "ADR-Platform-005",
-   "target": "OK-54",
+   "target": "OK-52",
    "key": 0
   },
   {
    "rel": "tracked-by",
    "source": "ADR-Platform-005",
-   "target": "OK-52",
+   "target": "OK-54",
    "key": 0
   },
   {
@@ -750,6 +1077,18 @@
    "rel": "references",
    "source": "ADR-Platform-005",
    "target": "ADR-Platform-001",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-005",
+   "target": "ADR-Platform-022",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-005",
+   "target": "ADR-Platform-020",
    "key": 0
   },
   {
@@ -810,12 +1149,6 @@
    "rel": "defines",
    "source": "ADR-Platform-006",
    "target": "ok-cluster",
-   "key": 0
-  },
-  {
-   "rel": "references",
-   "source": "ADR-Platform-006",
-   "target": "ADR-001",
    "key": 0
   },
   {
@@ -1107,9 +1440,15 @@
    "key": 0
   },
   {
-   "rel": "defines",
+   "rel": "tracked-by",
    "source": "ADR-Platform-010",
-   "target": "ok-cluster",
+   "target": "OK-57",
+   "key": 0
+  },
+  {
+   "rel": "tracked-by",
+   "source": "ADR-Platform-010",
+   "target": "OK-70",
    "key": 0
   },
   {
@@ -1121,25 +1460,19 @@
   {
    "rel": "tracked-by",
    "source": "ADR-Platform-010",
-   "target": "OK-57",
-   "key": 0
-  },
-  {
-   "rel": "tracked-by",
-   "source": "ADR-Platform-010",
    "target": "OK-56",
    "key": 0
   },
   {
    "rel": "references",
    "source": "ADR-Platform-010",
-   "target": "ADR-Platform-011",
+   "target": "ADR-Platform-009",
    "key": 0
   },
   {
    "rel": "references",
    "source": "ADR-Platform-010",
-   "target": "ADR-Platform-009",
+   "target": "ADR-Platform-001",
    "key": 0
   },
   {
@@ -1197,15 +1530,993 @@
    "key": 0
   },
   {
-   "rel": "implements",
-   "source": "commit:f8115c7",
+   "rel": "governs",
+   "source": "ADR-Platform-012",
+   "target": "Talos",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-012",
+   "target": "RKE2",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-012",
+   "target": "CDI",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-012",
+   "target": "Longhorn",
+   "key": 0
+  },
+  {
+   "rel": "defines",
+   "source": "ADR-Platform-012",
+   "target": "ok-linux",
+   "key": 0
+  },
+  {
+   "rel": "defines",
+   "source": "ADR-Platform-012",
+   "target": "ok-cluster",
+   "key": 0
+  },
+  {
+   "rel": "defines",
+   "source": "ADR-Platform-012",
+   "target": "ok-storage",
+   "key": 0
+  },
+  {
+   "rel": "defines",
+   "source": "ADR-Platform-012",
+   "target": "ok-apps",
+   "key": 0
+  },
+  {
+   "rel": "tracked-by",
+   "source": "ADR-Platform-012",
+   "target": "OK-55",
+   "key": 0
+  },
+  {
+   "rel": "tracked-by",
+   "source": "ADR-Platform-012",
+   "target": "OK-59",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-012",
+   "target": "ADR-Platform-009",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-012",
+   "target": "ADR-Platform-001",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-013",
+   "target": "Crossplane",
+   "key": 0
+  },
+  {
+   "rel": "defines",
+   "source": "ADR-Platform-013",
+   "target": "ok-cluster",
+   "key": 0
+  },
+  {
+   "rel": "tracked-by",
+   "source": "ADR-Platform-013",
+   "target": "OK-60",
+   "key": 0
+  },
+  {
+   "rel": "tracked-by",
+   "source": "ADR-Platform-013",
    "target": "OK-58",
+   "key": 0
+  },
+  {
+   "rel": "tracked-by",
+   "source": "ADR-Platform-013",
+   "target": "OK-61",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-013",
+   "target": "ADR-Platform-001",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-014",
+   "target": "Talos",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-014",
+   "target": "RKE2",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-014",
+   "target": "KubeVirt",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-014",
+   "target": "CDI",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-014",
+   "target": "MetalLB",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-014",
+   "target": "Traefik",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-014",
+   "target": "Crossplane",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-014",
+   "target": "CAPI",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-014",
+   "target": "Longhorn",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-014",
+   "target": "Kubernetes",
+   "key": 0
+  },
+  {
+   "rel": "defines",
+   "source": "ADR-Platform-014",
+   "target": "ok-linux",
+   "key": 0
+  },
+  {
+   "rel": "defines",
+   "source": "ADR-Platform-014",
+   "target": "ok-storage",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-014",
+   "target": "ADR-Platform-011",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-014",
+   "target": "ADR-Platform-012",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-014",
+   "target": "ADR-Platform-001",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-014",
+   "target": "ADR-Platform-013",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-015",
+   "target": "Talos",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-015",
+   "target": "CDI",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-015",
+   "target": "MetalLB",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-015",
+   "target": "Cilium",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-015",
+   "target": "Crossplane",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-015",
+   "target": "CAPI",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-015",
+   "target": "Longhorn",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-015",
+   "target": "Ollama",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-015",
+   "target": "Open WebUI",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-015",
+   "target": "Kubernetes",
+   "key": 0
+  },
+  {
+   "rel": "tracked-by",
+   "source": "ADR-Platform-015",
+   "target": "OK-58",
+   "key": 0
+  },
+  {
+   "rel": "tracked-by",
+   "source": "ADR-Platform-015",
+   "target": "OK-15",
+   "key": 0
+  },
+  {
+   "rel": "tracked-by",
+   "source": "ADR-Platform-015",
+   "target": "OK-14",
+   "key": 0
+  },
+  {
+   "rel": "tracked-by",
+   "source": "ADR-Platform-015",
+   "target": "OK-49",
+   "key": 0
+  },
+  {
+   "rel": "tracked-by",
+   "source": "ADR-Platform-015",
+   "target": "OK-74",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-015",
+   "target": "ADR-Platform-011",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-015",
+   "target": "ADR-Platform-001",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-015",
+   "target": "ADR-Platform-009",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-015",
+   "target": "ADR-Platform-005",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-016",
+   "target": "Talos",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-016",
+   "target": "KubeVirt",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-016",
+   "target": "Crossplane",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-016",
+   "target": "CAPI",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-016",
+   "target": "Kubernetes",
+   "key": 0
+  },
+  {
+   "rel": "defines",
+   "source": "ADR-Platform-016",
+   "target": "ok-linux",
+   "key": 0
+  },
+  {
+   "rel": "defines",
+   "source": "ADR-Platform-016",
+   "target": "ok-cluster",
+   "key": 0
+  },
+  {
+   "rel": "defines",
+   "source": "ADR-Platform-016",
+   "target": "ok-storage",
+   "key": 0
+  },
+  {
+   "rel": "tracked-by",
+   "source": "ADR-Platform-016",
+   "target": "OK-64",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-016",
+   "target": "ADR-Platform-014",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-016",
+   "target": "ADR-Platform-012",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-016",
+   "target": "ADR-Platform-001",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-016",
+   "target": "ADR-Platform-002",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-016",
+   "target": "ADR-Platform-009",
+   "key": 0
+  },
+  {
+   "rel": "tracked-by",
+   "source": "ADR-Platform-017",
+   "target": "OK-63",
+   "key": 0
+  },
+  {
+   "rel": "tracked-by",
+   "source": "ADR-Platform-017",
+   "target": "OK-64",
+   "key": 0
+  },
+  {
+   "rel": "tracked-by",
+   "source": "ADR-Platform-017",
+   "target": "OK-59",
+   "key": 0
+  },
+  {
+   "rel": "tracked-by",
+   "source": "ADR-Platform-017",
+   "target": "OK-73",
+   "key": 0
+  },
+  {
+   "rel": "tracked-by",
+   "source": "ADR-Platform-017",
+   "target": "OK-74",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-017",
+   "target": "ADR-Platform-014",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-017",
+   "target": "ADR-Platform-011",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-017",
+   "target": "ADR-Platform-016",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-017",
+   "target": "ADR-Platform-012",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-017",
+   "target": "ADR-Platform-001",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-017",
+   "target": "ADR-Platform-009",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-017",
+   "target": "ADR-Platform-013",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-018",
+   "target": "Kubernetes",
+   "key": 0
+  },
+  {
+   "rel": "defines",
+   "source": "ADR-Platform-018",
+   "target": "ok-cluster",
+   "key": 0
+  },
+  {
+   "rel": "defines",
+   "source": "ADR-Platform-018",
+   "target": "ok-storage",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-018",
+   "target": "ADR-Platform-011",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-018",
+   "target": "ADR-Platform-017",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-018",
+   "target": "ADR-Platform-009",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-018",
+   "target": "ADR-Platform-013",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-018",
+   "target": "ADR-Platform-010",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-018",
+   "target": "ADR-Platform-014",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-018",
+   "target": "ADR-Platform-012",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-018",
+   "target": "ADR-Platform-001",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-019",
+   "target": "Talos",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-019",
+   "target": "RKE2",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-019",
+   "target": "Traefik",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-019",
+   "target": "Crossplane",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-019",
+   "target": "Kubernetes",
+   "key": 0
+  },
+  {
+   "rel": "tracked-by",
+   "source": "ADR-Platform-019",
+   "target": "OK-60",
+   "key": 0
+  },
+  {
+   "rel": "tracked-by",
+   "source": "ADR-Platform-019",
+   "target": "OK-81",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-019",
+   "target": "ADR-Platform-011",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-019",
+   "target": "ADR-Platform-017",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-019",
+   "target": "ADR-Platform-001",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-019",
+   "target": "ADR-Platform-018",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-019",
+   "target": "ADR-Platform-009",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-019",
+   "target": "ADR-Platform-013",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-019",
+   "target": "ADR-Platform-020",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-019",
+   "target": "ADR-Platform-010",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-020",
+   "target": "Crossplane",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-020",
+   "target": "CAPI",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-020",
+   "target": "Longhorn",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-020",
+   "target": "NFS",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-020",
+   "target": "Ollama",
+   "key": 0
+  },
+  {
+   "rel": "defines",
+   "source": "ADR-Platform-020",
+   "target": "ok-cluster",
+   "key": 0
+  },
+  {
+   "rel": "tracked-by",
+   "source": "ADR-Platform-020",
+   "target": "OK-81",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-020",
+   "target": "ADR-Platform-011",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-020",
+   "target": "ADR-Platform-017",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-020",
+   "target": "ADR-Platform-013",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-020",
+   "target": "ADR-Platform-019",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-020",
+   "target": "ADR-Platform-005",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-020",
+   "target": "ADR-Platform-018",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-020",
+   "target": "ADR-Platform-008",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-021",
+   "target": "Talos",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-021",
+   "target": "RKE2",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-021",
+   "target": "Cilium",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-021",
+   "target": "Kubernetes",
+   "key": 0
+  },
+  {
+   "rel": "defines",
+   "source": "ADR-Platform-021",
+   "target": "ok-cluster",
+   "key": 0
+  },
+  {
+   "rel": "tracked-by",
+   "source": "ADR-Platform-021",
+   "target": "OK-14",
+   "key": 0
+  },
+  {
+   "rel": "tracked-by",
+   "source": "ADR-Platform-021",
+   "target": "OK-76",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-021",
+   "target": "ADR-Platform-015",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-022",
+   "target": "Talos",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-022",
+   "target": "Longhorn",
+   "key": 0
+  },
+  {
+   "rel": "governs",
+   "source": "ADR-Platform-022",
+   "target": "Kubernetes",
+   "key": 0
+  },
+  {
+   "rel": "defines",
+   "source": "ADR-Platform-022",
+   "target": "ok-linux",
+   "key": 0
+  },
+  {
+   "rel": "defines",
+   "source": "ADR-Platform-022",
+   "target": "ok-cluster",
+   "key": 0
+  },
+  {
+   "rel": "defines",
+   "source": "ADR-Platform-022",
+   "target": "ok-storage",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-022",
+   "target": "ADR-Platform-002",
+   "key": 0
+  },
+  {
+   "rel": "references",
+   "source": "ADR-Platform-022",
+   "target": "ADR-Platform-001",
+   "key": 0
+  },
+  {
+   "rel": "implements",
+   "source": "commit:d00ac05",
+   "target": "OK-60",
+   "key": 0
+  },
+  {
+   "rel": "implements",
+   "source": "commit:1bf9939",
+   "target": "ADR-Platform-022",
+   "key": 0
+  },
+  {
+   "rel": "implements",
+   "source": "commit:44e22cc",
+   "target": "ADR-Platform-005",
+   "key": 0
+  },
+  {
+   "rel": "implements",
+   "source": "commit:ebab1cc",
+   "target": "ADR-Platform-005",
+   "key": 0
+  },
+  {
+   "rel": "implements",
+   "source": "commit:a478b62",
+   "target": "ADR-Platform-022",
+   "key": 0
+  },
+  {
+   "rel": "implements",
+   "source": "commit:6a33efe",
+   "target": "OK-60",
+   "key": 0
+  },
+  {
+   "rel": "implements",
+   "source": "commit:319ecd4",
+   "target": "OK-60",
+   "key": 0
+  },
+  {
+   "rel": "implements",
+   "source": "commit:20b678d",
+   "target": "OK-60",
+   "key": 0
+  },
+  {
+   "rel": "implements",
+   "source": "commit:492f2a8",
+   "target": "OK-70",
+   "key": 0
+  },
+  {
+   "rel": "implements",
+   "source": "commit:de89cea",
+   "target": "OK-60",
+   "key": 0
+  },
+  {
+   "rel": "implements",
+   "source": "commit:7e343af",
+   "target": "ADR-Platform-019",
+   "key": 0
+  },
+  {
+   "rel": "implements",
+   "source": "commit:7e343af",
+   "target": "OK-60",
+   "key": 0
+  },
+  {
+   "rel": "implements",
+   "source": "commit:28f88e5",
+   "target": "ADR-Platform-018",
+   "key": 0
+  },
+  {
+   "rel": "implements",
+   "source": "commit:facdd7c",
+   "target": "OK-14",
+   "key": 0
+  },
+  {
+   "rel": "implements",
+   "source": "commit:facdd7c",
+   "target": "OK-15",
+   "key": 0
+  },
+  {
+   "rel": "implements",
+   "source": "commit:8e61412",
+   "target": "OK-74",
+   "key": 0
+  },
+  {
+   "rel": "implements",
+   "source": "commit:8e61412",
+   "target": "ADR-Platform-017",
+   "key": 0
+  },
+  {
+   "rel": "implements",
+   "source": "commit:3626194",
+   "target": "ADR-Platform-016",
+   "key": 0
+  },
+  {
+   "rel": "implements",
+   "source": "commit:2820165",
+   "target": "ADR-Platform-015",
+   "key": 0
+  },
+  {
+   "rel": "implements",
+   "source": "commit:768f518",
+   "target": "ADR-Platform-016",
+   "key": 0
+  },
+  {
+   "rel": "implements",
+   "source": "commit:3bc5537",
+   "target": "ADR-Platform-015",
+   "key": 0
+  },
+  {
+   "rel": "implements",
+   "source": "commit:25dcbcf",
+   "target": "ADR-Platform-014",
+   "key": 0
+  },
+  {
+   "rel": "implements",
+   "source": "commit:e293907",
+   "target": "OK-61",
+   "key": 0
+  },
+  {
+   "rel": "implements",
+   "source": "commit:6780c9f",
+   "target": "ADR-Platform-013",
+   "key": 0
+  },
+  {
+   "rel": "implements",
+   "source": "commit:6780c9f",
+   "target": "OK-61",
+   "key": 0
+  },
+  {
+   "rel": "implements",
+   "source": "commit:aef75be",
+   "target": "ADR-Platform-012",
+   "key": 0
+  },
+  {
+   "rel": "implements",
+   "source": "commit:1a073c9",
+   "target": "ADR-Platform-009",
+   "key": 0
+  },
+  {
+   "rel": "implements",
+   "source": "commit:83eeb18",
+   "target": "OK-56",
    "key": 0
   },
   {
    "rel": "implements",
    "source": "commit:f8115c7",
    "target": "ADR-Platform-011",
+   "key": 0
+  },
+  {
+   "rel": "implements",
+   "source": "commit:f8115c7",
+   "target": "OK-58",
    "key": 0
   },
   {
@@ -1217,13 +2528,13 @@
   {
    "rel": "implements",
    "source": "commit:dba77a4",
-   "target": "ADR-Platform-010",
+   "target": "OK-56",
    "key": 0
   },
   {
    "rel": "implements",
    "source": "commit:dba77a4",
-   "target": "OK-56",
+   "target": "ADR-Platform-010",
    "key": 0
   },
   {
@@ -1278,12 +2589,6 @@
    "rel": "implements",
    "source": "commit:d9e9409",
    "target": "ADR-Platform-004",
-   "key": 0
-  },
-  {
-   "rel": "implements",
-   "source": "commit:8f82195",
-   "target": "ADR-001",
    "key": 0
   }
  ]
