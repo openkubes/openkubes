@@ -16,7 +16,8 @@ https://github.com/openkubes/rmf_deployment_template/releases/download/openrmf-d
 compatibility and the existing direct-Helm ownership handoff still require
 validation and approval.
 
-No command in this directory applies resources to `ok-mgmt` or `ok2-rmf`.
+No command in this directory applies resources to `ok-mgmt`, `ok2-rmf`, or
+`ok-robotics`.
 
 ## Files
 
@@ -24,8 +25,13 @@ No command in this directory applies resources to `ok-mgmt` or `ok2-rmf`.
 |---|---|
 | `xrd.yaml` | `OpenRMFInstance` XRD and namespaced `OpenRMFClaim` |
 | `composition.yaml` | Simulation-profile provider-helm Release |
-| `examples/ok2-rmf.yaml` | Non-secret example Claim for the registered cluster |
-| `Makefile` | Local parsing, guard, and Helm chart checks only |
+| `examples/ok2-rmf.yaml` | Non-secret example Claim for the manually-deployed reference cluster |
+| `examples/ok-robotics.yaml` | Non-secret example Claim for the intended first managed-deployment target (OK-88/OK-99) |
+| `rbac/claim-editor-role.yaml` | Claim-only namespaced Role; no Secret or Crossplane-internal access |
+| `tests/xr-ok2-rmf.yaml` | Representative XR fixture for local rendering against `ok2-rmf` |
+| `tests/xr-ok-robotics.yaml` | Representative XR fixture for local rendering against `ok-robotics` |
+| `tests/functions.yaml` | Local-render function package matching `ok-mgmt` |
+| `Makefile` | Local parsing, safety, Helm chart, and Composition-render checks |
 
 The Helm implementation remains in the sibling `rmf_deployment_template`
 repository. This directory owns the platform API and the translation to Helm
@@ -80,6 +86,17 @@ The Secret creation and vault/reconciliation workflow is intentionally not
 part of this scaffold. Do not commit a Secret manifest containing usable
 values.
 
+## Claim-only RBAC
+
+`rbac/claim-editor-role.yaml` grants create/read/update/delete/watch access
+only to namespaced `openrmfclaims` in `openkubes-system`. It does not grant
+access to Secrets, XRDs, Compositions, provider-helm Releases,
+ProviderConfigs, Functions, or other Crossplane internals.
+
+No RoleBinding is included because the Kubernetes user or group identity for
+user must be supplied by the `ok-mgmt` authentication owner. Bind the Role
+only after that subject is confirmed.
+
 ## Stateful lifecycle policy
 
 The composed Release uses `deletionPolicy: Orphan`. Deleting a Claim therefore
@@ -88,9 +105,15 @@ default while the two PostgreSQL data sets lack a proven automated backup and
 restore path.
 
 The existing `ok2-rmf` Helm release is named `rmf`. The Composition preserves
-that external name, but this does not prove safe adoption. Before the first
-Claim is applied, rehearse provider-helm behavior away from the live namespace
-and approve the direct-Helm-to-Crossplane ownership handoff.
+that external name, but this does not prove safe adoption. Before a Claim
+targets `ok2-rmf`, rehearse provider-helm behavior away from the live
+namespace and approve the direct-Helm-to-Crossplane ownership handoff.
+
+The intended first managed deployment (`ok-robotics`, OK-88/OK-99) has no
+pre-existing Helm release to adopt — it is a clean install, so the ownership
+handoff above does not apply there. `ok2-rmf` remains the manually-deployed
+reference until functional parity is verified on `ok-robotics`, after which
+it is decommissioned under a separately approved teardown.
 
 ## Local validation
 
@@ -100,6 +123,7 @@ From this directory:
 make validate
 make chart-check
 make ready-check
+make render-check
 ```
 
 - `validate` parses all scaffold YAML and checks required safety invariants.
@@ -109,6 +133,25 @@ make ready-check
   `IngressRoute`. It does not contact a cluster.
 - `ready-check` verifies that the published chart URL is reachable and reports
   chart name `openrmf-deployment`, version `1.0.0`.
+- `render-check` uses Crossplane CLI `v2.3.3` and Docker to execute
+  `function-patch-and-transform:v0.9.0` against the representative XR. It then
+  verifies that exactly one Helm Release is produced with the expected chart,
+  ProviderConfig, external release name, orphan policy, and four Secret
+  references.
+
+`render` and `render-check` default to the `ok2-rmf` fixture. Override
+`CLUSTER` to render/verify the `ok-robotics` fixture instead (this also
+selects `tests/xr-$(CLUSTER).yaml` and the expected `ProviderConfig`/release
+name):
+
+```bash
+make render-check CLUSTER=ok-robotics
+```
+
+Crossplane CLI rendering uses Docker by default. If Docker is unavailable,
+`render-prerequisites` fails explicitly and no render result should be
+claimed. See the official
+[Crossplane composition render reference](https://docs.crossplane.io/cli/latest/command-reference/#crossplane-composition-render).
 
 Override the chart location if the repositories are not siblings:
 
@@ -122,11 +165,12 @@ The chart is published and pinned, and the current credential Secret contract
 has been populated outside Git. The remaining sequence is:
 
 1. Pass `make validate`, `make chart-check`, and `make ready-check`.
-2. Validate the Composition with the supported Crossplane function version.
-3. Rehearse adoption of a release named `rmf` outside the live namespace.
-4. Review the rendered provider-helm Release and Helm manifests for secret
+2. Pass `make render-check` with the function version used by `ok-mgmt`.
+3. Confirm the RoleBinding subject for the claim-only Role.
+4. Rehearse adoption of a release named `rmf` outside the live namespace.
+5. Review the rendered provider-helm Release and Helm manifests for secret
    leakage and unintended changes.
-5. Only then plan an explicit management-plane apply and ownership handoff.
+6. Only then plan an explicit management-plane apply and ownership handoff.
 
 ## References
 

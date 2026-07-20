@@ -1,0 +1,19 @@
+# Composite resource fixture for local rendering against the ok-robotics
+# target. Crossplane render consumes an XR rather than the namespaced Claim.
+# The claim labels reproduce the metadata Crossplane adds when a Claim
+# creates an XR.
+apiVersion: platform.openkubes.ai/v1alpha1
+kind: OpenRMFInstance
+metadata:
+  name: ok-robotics-render
+  labels:
+    crossplane.io/claim-name: ok-robotics
+    crossplane.io/claim-namespace: openkubes-system
+spec:
+  clusterRef: ok-robotics
+  namespace: rmf
+  mode: simulation
+  hostname: robotics.openkubes.local
+  credentialsSecretRef:
+    name: rmf-credentials
+    namespace: crossplane-system
