@@ -32,8 +32,9 @@ ollama:
   # and silently truncates OpenClaw's large system prompt -> nonsense replies.
   # CEILING NOTE (shared 20GB RTX 4000 Ada): gpt-oss:20b weights (~13GB) +
   # KV cache at 64k can exceed VRAM and silently spill to CPU offloading.
-  # Verify on-GPU under load: `ollama ps` must show 100% GPU during a long
-  # agent turn. Fallback if it spills: 32768.
+  # VERIFIED under load (review condition on PR #3): 64k stays on-GPU
+  # (`ollama ps` 100% GPU during a long agent turn). 32k is too small for
+  # the agent system prompt + tool traffic; re-verify before raising past 64k.
   numCtx: 65536
   maxTokens: 16384
   # keep the model loaded between agent turns (first-load latency vs.
