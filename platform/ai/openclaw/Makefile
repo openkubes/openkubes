@@ -1,4 +1,4 @@
-# OK-15 Phase 1 — OpenClaw on ok1-talos (Makefile + Helm)
+# OK-15 Phase 1 — OpenClaw on ok-ai (Makefile + Helm)
 # OWNER: this Makefile is the canonical one; ok-cluster/openclaw/Makefile is a
 # deliberate PoC copy carrying private provider values — sync changes here first.
 # Run the steps in order:
@@ -13,7 +13,7 @@
         image-build image-push image-release verify-kubectl chart-release
 .DEFAULT_GOAL := help
 
-CLUSTER     ?= ok1-talos
+CLUSTER     ?= ok-ai
 KUBECONFIG  ?= $(HOME)/.kube/$(CLUSTER).yaml
 KUBECTL     := kubectl --kubeconfig $(KUBECONFIG)
 NS          ?= openclaw
@@ -135,7 +135,7 @@ validate: $(TOKEN_FILE)
 # Hub image (kubernautslabs/openclaw-kubectl) is bootstrap-only until the
 # first CI push lands on GHCR. Override: make image-release IMG=...
 OPENCLAW_VERSION ?= 2026.7.1
-# kubectl: match cluster minor (ok1-talos: v1.34.x)
+# kubectl: match cluster minor (ok-ai: v1.34.x)
 KUBECTL_VERSION  ?= v1.34.1
 IMG              ?= ghcr.io/openkubes/openclaw-kubectl
 IMG_TAG          ?= $(OPENCLAW_VERSION)

@@ -1,7 +1,7 @@
 apiVersion: platform.openkubes.ai/v1alpha1
 kind: KubeVirtClusterClaim
 metadata:
-  name: ok1-talos
+  name: ok-ai
   namespace: openkubes-system
 spec:
   compositeDeletePolicy: Foreground

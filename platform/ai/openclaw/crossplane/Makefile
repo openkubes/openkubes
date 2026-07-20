@@ -7,7 +7,7 @@
 MGMT_KUBECONFIG  ?= $(HOME)/.kube/ok-mgmt.yaml
 KUBECTL          := kubectl --kubeconfig $(MGMT_KUBECONFIG)
 CLAIM_NAMESPACE  := openkubes-system
-CLUSTER          ?= ok1-talos
+CLUSTER          ?= ok-ai
 # Provider Value — no default by convention (real endpoint: private infra repo)
 OLLAMA_ENDPOINT  ?=
 TOKEN_SECRET     ?= openclaw-gateway-token
