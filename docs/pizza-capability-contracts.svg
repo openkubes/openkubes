@@ -70,7 +70,7 @@
 <text class="th" x="500" y="276" text-anchor="middle" style="fill:#3C3489">OpenWebUIClaim</text>
 <text class="ts" x="380" y="298" style="fill:#3C3489;font-family:monospace">kind: OpenWebUIClaim</text>
 <text class="ts" x="380" y="316" style="fill:#3C3489;font-family:monospace">spec:</text>
-<text class="ts" x="396" y="334" style="fill:#3C3489;font-family:monospace">  clusterRef: ok1-talos</text>
+<text class="ts" x="396" y="334" style="fill:#3C3489;font-family:monospace">  clusterRef: ok-ai</text>
 <text class="ts" x="396" y="352" style="fill:#3C3489;font-family:monospace">  ollamaEndpoint: http://...</text>
 <text class="ts" x="396" y="370" style="fill:#3C3489;font-family:monospace">  namespace: open-webui</text>
 

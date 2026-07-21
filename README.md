@@ -52,13 +52,13 @@ make bootstrap CLUSTER=ok-mgmt
 bash bootstrap-mgmt.sh   # Crossplane + CAPI + AI Platform XRDs — ~2 min
 
 # Provision a Workload Cluster
-make new CLUSTER=ok1-talos TYPE=talos WORKERS=1
-make bootstrap CLUSTER=ok1-talos
-make install-storage CLUSTER=ok1-talos
-make register-cluster CLUSTER=ok1-talos   # wire it into the management plane (ADR-013)
+make new CLUSTER=ok-ai TYPE=talos WORKERS=1
+make bootstrap CLUSTER=ok-ai
+make install-storage CLUSTER=ok-ai
+make register-cluster CLUSTER=ok-ai   # wire it into the management plane (ADR-013)
 
 # Deploy Private AI on the workload cluster — from the management cluster
-make deploy CLUSTER=ok1-talos   # → Open WebUI + Ollama in ~90 seconds
+make deploy CLUSTER=ok-ai   # → Open WebUI + Ollama in ~90 seconds
 ```
 
 That last command submits a `OpenWebUIClaim` to Crossplane on `ok-mgmt`.
@@ -91,7 +91,7 @@ metadata:
   name: my-team
   namespace: openkubes-system
 spec:
-  clusterRef: ok1-talos
+  clusterRef: ok-ai
   ollamaEndpoint: http://<ollama-ip>:11434
   namespace: open-webui
 ```
@@ -198,16 +198,16 @@ OPENKUBES_PATH=../openkubes \
 bash templates/talos-mgmt/bootstrap-mgmt.sh.tpl
 
 # 4. Provision Workload Cluster
-make new CLUSTER=ok1-talos TYPE=talos WORKERS=1
-make bootstrap CLUSTER=ok1-talos
-make install-storage CLUSTER=ok1-talos
+make new CLUSTER=ok-ai TYPE=talos WORKERS=1
+make bootstrap CLUSTER=ok-ai
+make install-storage CLUSTER=ok-ai
 
 # 5. Register the workload cluster with the management plane (ADR-013)
 make register-cluster CLUSTER=ok1-talos
 
 # 6. Deploy Open WebUI from management cluster
 export KUBECONFIG=~/.kube/ok-mgmt.yaml
-kubectl apply -f ../openkubes/platform/ai/open-webui/crossplane/examples/ok1-talos.yaml
+kubectl apply -f ../openkubes/platform/ai/open-webui/crossplane/examples/ok-ai.yaml
 ```
 
 → Full guide: [`docs/getting-started/README.md`](./docs/getting-started/README.md)

@@ -10,7 +10,7 @@ instance and provides a ChatGPT-like experience within your infrastructure.
 
 ## Prerequisites
 
-- Workload cluster running (ok1-talos or similar)
+- Workload cluster running (ok-ai or similar)
 - `local-path` StorageClass installed and set as default
 - Central Ollama endpoint reachable from the cluster (e.g. `http://192.168.100.202:11434`)
 - `open-webui` namespace with `pod-security.kubernetes.io/enforce=privileged`

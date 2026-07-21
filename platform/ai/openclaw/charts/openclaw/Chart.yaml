@@ -1,0 +1,10 @@
+apiVersion: v2
+name: openclaw
+description: >-
+  OpenClaw agent backend behind the Agent Interface Contract v1
+  (OpenAI Chat Completions + Tool Calling). Implementation profile per
+  ADR-Platform-015 — single replica, token-authenticated, stateless,
+  read-only RBAC (Secrets excluded). PoC-grade (OK-15 Phase 1).
+type: application
+version: 0.1.0
+appVersion: "2026.7.1"

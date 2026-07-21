@@ -1,0 +1,105 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}
+  labels:
+    app.kubernetes.io/name: openclaw
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  # Single replica is a guideline constraint (ADR-015 Decision 4: OpenClaw is
+  # a single process, no HA; Open WebUI owns persistence). Not a value.
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: openclaw
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: openclaw
+        app.kubernetes.io/instance: {{ .Release.Name }}
+      annotations:
+        # restart on config change
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+    spec:
+      serviceAccountName: {{ .Values.serviceAccount.name }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000        # image user "node"
+        runAsGroup: 1000
+        fsGroup: 1000
+      initContainers:
+        # openclaw.json must live in the writable state dir; ConfigMap mounts
+        # are read-only, so copy it over once at pod start.
+        - name: init-config
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          command: ["sh", "-c", "cp /config-src/openclaw.json /home/node/.openclaw/openclaw.json"]
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: ["ALL"] }
+          volumeMounts:
+            - name: state
+              mountPath: /home/node/.openclaw
+            - name: config-src
+              mountPath: /config-src
+      containers:
+        - name: openclaw
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["node", "dist/index.js", "gateway"]
+          ports:
+            - name: http
+              containerPort: {{ .Values.gateway.port }}
+          env:
+            - name: OPENCLAW_GATEWAY_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-gateway
+                  key: gateway-token
+            # Ollama endpoint for provider auto-detection (belt & suspenders
+            # to the models.providers config in openclaw.json)
+            - name: OLLAMA_HOST
+              value: {{ .Values.ollama.baseUrl | quote }}
+            - name: HOME
+              value: /home/node
+          livenessProbe:
+            httpGet: { path: /healthz, port: http }
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          readinessProbe:
+            httpGet: { path: /readyz, port: http }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: ["ALL"] }
+          volumeMounts:
+            - name: state
+              mountPath: /home/node/.openclaw
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        # NO PVC by design: OpenClaw is treated as stateless (ADR-015);
+        # pod restart may lose all local state — Open WebUI owns chat
+        # persistence. Verified via pod-kill in OK-14.
+        - name: state
+          emptyDir: {}
+        - name: tmp
+          emptyDir: {}
+        - name: config-src
+          configMap:
+            name: {{ .Release.Name }}-config
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

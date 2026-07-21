@@ -52,7 +52,7 @@ metadata:
   name: my-team
   namespace: openkubes-system
 spec:
-  clusterRef: ok1-talos        # which cluster should get it
+  clusterRef: ok-ai        # which cluster should get it
   ollamaEndpoint: http://...   # where the AI model runs
   namespace: open-webui
 ```

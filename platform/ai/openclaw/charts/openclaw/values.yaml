@@ -1,0 +1,74 @@
+# OK-15 Phase 1 — Provider Values (adjust freely per guideline Part C)
+
+image:
+  # GHCR is the primary registry (decision on OK-15; Harbor deferred).
+  # kubernautslabs/openclaw-kubectl (Docker Hub) is bootstrap-only until the
+  # first CI push lands on GHCR — switch back via --set image.repository=...
+  repository: ghcr.io/openkubes/openclaw-kubectl
+  tag: "2026.7.1"
+  pullPolicy: IfNotPresent
+
+gateway:
+  port: 18789
+  # Bind MODE, not an address ("lan" | "loopback" | ...). "lan" is required so
+  # the ClusterIP Service and the probes can reach the process (guideline Part B).
+  bind: lan
+  # Token is injected via Secret -> env OPENCLAW_GATEWAY_TOKEN.
+  # Set via --set gateway.token=... (Makefile handles this). Never commit.
+  token: ""
+
+ollama:
+  # Shared platform Ollama (ADR-Platform-005). Provider-specific value —
+  # the real endpoint lives in the private infrastructure repo (or is
+  # passed via `make install OLLAMA_URL=...`), not here. Same convention
+  # as platform/ai/open-webui/values.yaml.
+  baseUrl: "http://OLLAMA_IP:11434"
+  # Provider Value: must be pulled on the Ollama host first
+  # (ssh to the host / exec: `ollama pull gpt-oss:20b`).
+  # mistral 7B produces nonsense with OpenClaw's agent tool surface.
+  # ~13GB VRAM on the shared 20GB RTX 4000 Ada; lighter alternative: qwen3.5:9b
+  model: "gpt-oss:20b"
+  # CRITICAL: without num_ctx Ollama defaults to a small context (often 4096)
+  # and silently truncates OpenClaw's large system prompt -> nonsense replies.
+  # CEILING NOTE (shared 20GB RTX 4000 Ada): gpt-oss:20b weights (~13GB) +
+  # KV cache at 64k can exceed VRAM and silently spill to CPU offloading.
+  # VERIFIED under load (review condition on PR #3): 64k stays on-GPU
+  # (`ollama ps` 100% GPU during a long agent turn). 32k is too small for
+  # the agent system prompt + tool traffic; re-verify before raising past 64k.
+  numCtx: 65536
+  maxTokens: 16384
+  # keep the model loaded between agent turns (first-load latency vs.
+  # hogging shared VRAM — lower on contention, AR-2)
+  keepAlive: "15m"
+  # HTTP budget for cold model loads on the shared GPU
+  timeoutSeconds: 300
+
+# Bound agent runtime on the shared GPU (ADR-015 AR-2). OpenClaw validates
+# agents.defaults strictly, so only schema-supported keys belong here.
+limits:
+  timeoutSeconds: 120
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 512Mi
+  limits:
+    cpu: "1"
+    memory: 2Gi
+
+# replicas is intentionally NOT a value: single replica is a guideline
+# constraint (ADR-015 Decision 4), hardcoded in the Deployment.
+
+serviceAccount:
+  name: openclaw
+
+rbac:
+  # Hand-rolled read-only RBAC for the Cluster Inspection Contract (Phase 1).
+  # get/list/watch only. Secrets are NEVER included — guideline Part B/C.
+  create: true
+  # ConfigMaps are useful for troubleshooting but expose cluster-internal
+  # information to the LLM path (ADR-015 negative consequence). Default off.
+  includeConfigMaps: false
+
+nodeSelector: {}
+tolerations: []

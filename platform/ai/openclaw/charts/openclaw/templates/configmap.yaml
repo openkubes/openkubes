@@ -1,0 +1,59 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-config
+  labels:
+    app.kubernetes.io/name: openclaw
+    app.kubernetes.io/instance: {{ .Release.Name }}
+data:
+  # Copied into the writable state dir (/home/node/.openclaw) by the init
+  # container. Key facts (upstream docs, 2026-07):
+  # - gateway.bind takes MODE values ("lan"), not addresses
+  # - the OpenAI-compatible chatCompletions endpoint is DISABLED by default —
+  #   without enabling it, OpenClaw never appears as a model in Open WebUI
+  # - the gateway token is read from env OPENCLAW_GATEWAY_TOKEN
+  openclaw.json: |
+    {
+      "gateway": {
+        "mode": "local",
+        "bind": {{ .Values.gateway.bind | quote }},
+        "auth": {
+          "mode": "token"
+        },
+        "http": {
+          "endpoints": {
+            "chatCompletions": {
+              "enabled": true
+            }
+          }
+        }
+      },
+      "models": {
+        "providers": {
+          "ollama": {
+            "baseUrl": {{ .Values.ollama.baseUrl | quote }},
+            "api": "ollama",
+            "apiKey": "ollama-local",
+            "timeoutSeconds": {{ .Values.ollama.timeoutSeconds }},
+            "contextWindow": {{ .Values.ollama.numCtx }},
+            "maxTokens": {{ .Values.ollama.maxTokens }},
+            "models": [
+              {
+                "id": {{ .Values.ollama.model | quote }},
+                "name": {{ .Values.ollama.model | quote }},
+                "params": {
+                  "num_ctx": {{ .Values.ollama.numCtx }},
+                  "keep_alive": {{ .Values.ollama.keepAlive | quote }}
+                }
+              }
+            ]
+          }
+        }
+      },
+      "agents": {
+        "defaults": {
+          "model": {{ printf "ollama/%s" .Values.ollama.model | quote }},
+          "timeoutSeconds": {{ .Values.limits.timeoutSeconds }}
+        }
+      }
+    }

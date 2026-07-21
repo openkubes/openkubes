@@ -4,7 +4,7 @@
 MGMT_KUBECONFIG  ?= $(HOME)/.kube/ok-mgmt.yaml
 KUBECTL          := kubectl --kubeconfig $(MGMT_KUBECONFIG)
 CLAIM_NAMESPACE  := openkubes-system
-CLUSTER          ?= ok1-talos
+CLUSTER          ?= ok-ai
 OLLAMA_ENDPOINT  ?= http://192.168.100.202:11434
 
 .PHONY: help setup deploy status undeploy list
@@ -21,7 +21,7 @@ setup: ## Apply XRD + Composition to ok-mgmt (run once after bootstrap)
 		--for=condition=Established --timeout=60s
 	@echo "✅ OpenWebUI Composition ready on ok-mgmt"
 
-deploy: ## Deploy Open WebUI on a cluster (CLUSTER=ok1-talos)
+deploy: ## Deploy Open WebUI on a cluster (CLUSTER=ok-ai)
 	@echo "[open-webui] Deploying Open WebUI on cluster '$(CLUSTER)'..."
 	@echo "  Ollama endpoint: $(OLLAMA_ENDPOINT)"
 	@if [ -f "examples/$(CLUSTER).yaml" ]; then \
@@ -51,7 +51,7 @@ deploy: ## Deploy Open WebUI on a cluster (CLUSTER=ok1-talos)
 	done
 	@$(MAKE) status CLUSTER=$(CLUSTER)
 
-status: ## Show Open WebUI deployment status (CLUSTER=ok1-talos)
+status: ## Show Open WebUI deployment status (CLUSTER=ok-ai)
 	@echo "=== Claim ==="
 	$(KUBECTL) get openwebuiclaim $(CLUSTER) -n $(CLAIM_NAMESPACE) 2>/dev/null || \
 		echo "  No claim found for '$(CLUSTER)'"
@@ -68,7 +68,7 @@ status: ## Show Open WebUI deployment status (CLUSTER=ok1-talos)
 		echo "  Kubeconfig not found: ~/.kube/$(CLUSTER).yaml"; \
 	fi
 
-undeploy: ## Remove Open WebUI from a cluster (CLUSTER=ok1-talos)
+undeploy: ## Remove Open WebUI from a cluster (CLUSTER=ok-ai)
 	@echo "[open-webui] Removing Open WebUI from cluster '$(CLUSTER)'..."
 	$(KUBECTL) delete openwebuiclaim $(CLUSTER) -n $(CLAIM_NAMESPACE) --ignore-not-found
 	@echo "✅ OpenWebUIClaim deleted"

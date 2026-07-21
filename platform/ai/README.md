@@ -19,7 +19,7 @@ Behind the scenes:
 ```
 ok-mgmt (Management Cluster)
 └── Crossplane + OpenWebUIClaim
-    └── Helm Release → Open WebUI on ok1-talos
+    └── Helm Release → Open WebUI on ok-ai
 
 ok-gpu (RTX 4000 Ada, 20GB VRAM)
 └── Ollama → mistral, llama3, codellama
@@ -36,7 +36,7 @@ ok-mgmt (Management Cluster, Talos, ok-infra)
 └── Crossplane
     └── OpenWebUIClaim → Helm Release → Open WebUI
 
-ok1-talos (Workload Cluster, Talos, ok-gpu)
+ok-ai (Workload Cluster, Talos, ok-gpu)
 └── Open WebUI → Ollama API (internal)
 
 ok-gpu (RKE2, RTX 4000 Ada)
@@ -53,7 +53,7 @@ Swap Open WebUI for another frontend. Swap Ollama for vLLM. The `OpenWebUIClaim`
 ### Prerequisites
 
 - ok-mgmt with Crossplane + OpenWebUI XRD — run `bootstrap-mgmt.sh.tpl` (8 steps, ~2 min)
-- Workload cluster with local-path StorageClass: `make install-storage CLUSTER=ok1-talos`
+- Workload cluster with local-path StorageClass: `make install-storage CLUSTER=ok-ai`
 - Ollama with GPU: `make -C ok-rke2/ai-services install && make pull`
 
 ### Deploy Open WebUI
@@ -61,13 +61,13 @@ Swap Open WebUI for another frontend. Swap Ollama for vLLM. The `OpenWebUIClaim`
 ```bash
 # Add your cluster to ok-mgmt
 kubectl --kubeconfig ~/.kube/ok-mgmt.yaml \
-  create secret generic ok1-talos-kubeconfig \
+  create secret generic ok-ai-kubeconfig \
   -n crossplane-system \
-  --from-file=kubeconfig=~/.kube/ok1-talos.yaml
+  --from-file=kubeconfig=~/.kube/ok-ai.yaml
 
 # Submit the claim — that's all
 kubectl --kubeconfig ~/.kube/ok-mgmt.yaml \
-  apply -f open-webui/crossplane/examples/ok1-talos.yaml
+  apply -f open-webui/crossplane/examples/ok-ai.yaml
 
 # Watch it deploy (~90 seconds)
 kubectl --kubeconfig ~/.kube/ok-mgmt.yaml \
@@ -83,7 +83,7 @@ metadata:
   name: my-team
   namespace: openkubes-system
 spec:
-  clusterRef: ok1-talos
+  clusterRef: ok-ai
   ollamaEndpoint: http://192.168.100.202:11434
   namespace: open-webui
 ```

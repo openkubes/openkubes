@@ -1,0 +1,12 @@
+# OpenWebUI Claim for ok-ai
+# Submit to ok-mgmt to deploy Open WebUI on ok-ai
+apiVersion: platform.openkubes.ai/v1alpha1
+kind: OpenWebUIClaim
+metadata:
+  name: ok-ai
+  namespace: openkubes-system
+spec:
+  clusterRef: ok-ai
+  ollamaEndpoint: http://192.168.100.202:11434
+  namespace: open-webui
+  ingress: true  # → open-webui.ok-ai.internal via ok-ingress (ADR-Platform-010)
