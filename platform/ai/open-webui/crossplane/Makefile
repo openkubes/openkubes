@@ -5,7 +5,8 @@ MGMT_KUBECONFIG  ?= $(HOME)/.kube/ok-mgmt.yaml
 KUBECTL          := kubectl --kubeconfig $(MGMT_KUBECONFIG)
 CLAIM_NAMESPACE  := openkubes-system
 CLUSTER          ?= ok-ai
-OLLAMA_ENDPOINT  ?= http://192.168.100.202:11434
+# Provider Value — no default by convention (real endpoint: ok-cluster/open-webui/)
+OLLAMA_ENDPOINT  ?=
 
 .PHONY: help setup deploy status undeploy list
 
@@ -21,12 +22,13 @@ setup: ## Apply XRD + Composition to ok-mgmt (run once after bootstrap)
 		--for=condition=Established --timeout=60s
 	@echo "✅ OpenWebUI Composition ready on ok-mgmt"
 
-deploy: ## Deploy Open WebUI on a cluster (CLUSTER=ok-ai)
+deploy: ## Deploy Open WebUI on a cluster (CLUSTER=ok-ai OLLAMA_ENDPOINT=...)
 	@echo "[open-webui] Deploying Open WebUI on cluster '$(CLUSTER)'..."
-	@echo "  Ollama endpoint: $(OLLAMA_ENDPOINT)"
-	@if [ -f "examples/$(CLUSTER).yaml" ]; then \
+	@if [ -f "examples/$(CLUSTER).yaml" ] && ! grep -q OLLAMA_IP "examples/$(CLUSTER).yaml"; then \
 		$(KUBECTL) apply -f examples/$(CLUSTER).yaml; \
 	else \
+		test -n "$(OLLAMA_ENDPOINT)" || { echo "ERROR: OLLAMA_ENDPOINT required, e.g. make deploy OLLAMA_ENDPOINT=http://<ip>:11434 (or apply ok-cluster/open-webui/claim-$(CLUSTER).yaml directly)"; exit 1; }; \
+		echo "  Ollama endpoint: $(OLLAMA_ENDPOINT)"; \
 		$(KUBECTL) apply -f - < <(printf '%s\n' \
 			'apiVersion: platform.openkubes.ai/v1alpha1' \
 			'kind: OpenWebUIClaim' \

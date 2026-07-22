@@ -3,7 +3,10 @@
 **Private GPT. On-Prem. Sovereign.**
 
 Run your own AI — no cloud, no data leakage, no vendor lock-in.
-OpenKubes AI gives every team their own Open WebUI, powered by a shared GPU backend, deployed with a single `kubectl apply`.
+OpenKubes AI lets teams claim a dedicated Open WebUI instance when they need
+one, powered by a shared GPU backend, deployed with a single `kubectl apply`.
+Agent backends may also register with a shared Open WebUI instance instead of
+claiming their own (see ADR-Platform-015 Addendum).
 
 ---
 
@@ -25,7 +28,8 @@ ok-gpu (RTX 4000 Ada, 20GB VRAM)
 └── Ollama → mistral, llama3, codellama
 ```
 
-One GPU. Many teams. Each team gets their own chat UI.
+One GPU. Many teams. Claim your own chat UI, or register your agent backend
+into a shared one.
 
 ---
 
@@ -44,7 +48,10 @@ ok-gpu (RKE2, RTX 4000 Ada)
 ```
 
 **OpenKubes owns the contracts. The ecosystem provides the implementations.**
-Swap Open WebUI for another frontend. Swap Ollama for vLLM. The `OpenWebUIClaim` stays the same.
+Swap Ollama for vLLM without touching the `OpenWebUIClaim`. Agent backends
+remain replaceable behind the Agent Interface Contract (ADR-015). Open WebUI
+is currently the selected frontend; frontend substitutability has not yet
+been formalized as a platform contract.
 
 ---
 
@@ -84,7 +91,7 @@ metadata:
   namespace: openkubes-system
 spec:
   clusterRef: ok-ai
-  ollamaEndpoint: http://192.168.100.202:11434
+  ollamaEndpoint: http://OLLAMA_IP:11434   # Provider Value — replace
   namespace: open-webui
 ```
 
@@ -123,7 +130,7 @@ Most private AI setups are scripts. OpenKubes AI is a platform:
 - **Declarative** — kubectl apply creates everything, kubectl delete tears it down
 - **Self-service** — teams claim their own AI without involving ops
 - **Sovereign** — runs entirely on your hardware, your network, your rules
-- **Extensible** — swap models, frontends, or backends without changing the contract
+- **Extensible** — swap models or agent backends without changing the contract
 
 > OpenKubes owns the contracts, not the components.
 

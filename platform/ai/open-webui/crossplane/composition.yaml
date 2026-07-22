@@ -40,7 +40,7 @@ spec:
                       host: ""
                     extraEnvVars:
                       - name: OLLAMA_BASE_URL
-                        value: "http://192.168.100.202:11434"
+                        value: "http://OLLAMA_IP:11434"  # always overridden by the patch below (spec.ollamaEndpoint is required)
                       - name: ENABLE_OLLAMA_API
                         value: "true"
                 rollbackLimit: 3

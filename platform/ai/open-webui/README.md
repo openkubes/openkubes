@@ -12,7 +12,8 @@ instance and provides a ChatGPT-like experience within your infrastructure.
 
 - Workload cluster running (ok-ai or similar)
 - `local-path` StorageClass installed and set as default
-- Central Ollama endpoint reachable from the cluster (e.g. `http://192.168.100.202:11434`)
+- Central Ollama endpoint reachable from the cluster (e.g. `http://<ollama-ip>:11434`) —
+  Provider Value; real endpoint lives in `ok-cluster/open-webui/claim-<cluster>.yaml`
 - `open-webui` namespace with `pod-security.kubernetes.io/enforce=privileged`
 
 ### Install local-path StorageClass (Talos clusters)

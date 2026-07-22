@@ -54,6 +54,27 @@ operational summary — when in doubt, ADR-015 is authoritative.
    are contained behind the contract, and any framework speaking Contract v1
    (e.g. kagent) can substitute it.
 
+   **Multi-cluster clarification (ADR-015 Addendum, 2026-07-21; amends
+   ADR-005's documented default topology, core decisions unchanged):** Open
+   WebUI remains ADR-005's self-service capability (any team/cluster may
+   still claim its own instance) — a dedicated instance per workload cluster
+   is no longer the *only* supported topology. Today only ok-ai has an
+   instance and is deployed; ok-shared and ok-robotics are intended to run a
+   kagent-backed ops agent instead of a per-team chat UI, registering into
+   the ok-ai instance as a model rather than claiming their own — tracked as
+   in-progress work (OK-87, OK-92), not yet a committed deployment. Open
+   WebUI stays the frontend half of the initial tandem Implementation
+   Profile; the **Agent Backend is the half being generalized** across
+   clusters: OpenClaw + Ollama on ok-ai (deployed), OpenClaw with a
+   kagent-based Skill Contract backend intended for ok-shared and
+   ok-robotics. Agent Interface Contract v1 governs the runtime wire between
+   every backend instance and Open WebUI once deployed. It does **not** yet
+   cover backend *registration* (identity, endpoint, credentials, idempotent
+   apply, de-registration) —
+   `make connect-openwebui`'s env-var mechanism is today's informal adapter
+   for a small **Agent Backend Registration Contract** that this addendum
+   flags as a gap, not yet formalized.
+
 If a step you are about to take conflicts with one of these four points, stop
 and read Part C.
 
@@ -80,8 +101,8 @@ the platform-local knowledge the tickets assume you have.
 | Shared LLM backend | Ollama, `http://192.168.100.202:11434` | MetalLB IP on the infra cluster, `ai-services` namespace (ADR-Platform-005) |
 | Loaded model | `mistral:latest` | The `ollama/llama3` in OK-15's example config is illustrative — a Provider Value, not a requirement. Use what is loaded, or load what you need. |
 | GPU | Single RTX 4000 Ada, 20 GB VRAM, shared | See ADR-015 AR-2: bound your agent's iteration count and timeouts; unbounded loops starve every other consumer. |
-| Open WebUI | Exists as a Crossplane XRD (self-service claim) | Deploying a fresh instance takes ~90 s on a bootstrapped workload cluster. |
-| Image registry | Harbor (internal) | Push the custom OpenClaw image here (OK-15 Phase 1). |
+| Open WebUI | Exists as a Crossplane XRD (self-service claim); single fixed instance (ok-ai), not per-cluster | Deploying a fresh instance takes ~90 s on a bootstrapped workload cluster. See ADR-015 Addendum (2026-07-21). |
+| Image registry | GHCR (`ghcr.io/openkubes/...`) | Harbor was evaluated but is not being implemented; the team standardized on GHCR instead (OK-15 closure, 2026-07-21). Push the custom OpenClaw image here (OK-15 Phase 1). |
 
 ### Known pitfalls
 

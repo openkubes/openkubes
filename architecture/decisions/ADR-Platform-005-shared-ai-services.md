@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-01  
 **Status:** Accepted  
-**Amended:** 2026-07-19 (see Amendment note below; decision unchanged)  
+**Amended:** 2026-07-19; 2026-07-21 — core centralized-inference and self-service decisions unchanged; documented Open WebUI default topology amended (see Amendment notes below)  
 
 ---
 
@@ -119,3 +119,7 @@ The decision stands; the architecture runs as decided (central Ollama on ok-infr
 1. **New re-evaluation trigger (ADR-Platform-020):** the ADR-020 service table lists Ollama as a candidate shared platform service. Its adoption into `ok-shared` would move ownership from the ok-infra host cluster and must trigger a revisit — added to the trigger list above.
 2. **Re-reading under ADR-Platform-022:** Rationale 3 calls "give me LLM inference at this endpoint" the AI contract. Under the framework reading, the endpoint IP is **Provider Values**, not a contract artifact; a formal LLM Inference Capability Contract does not (yet) exist and is deliberately absent from the contracts inventory. Formalization awaits a forcing consumer ("no structure without a forcing consumer").
 3. **Manifest repository status confirmed:** the Ollama manifests remain in the private `hetzner` repository (`ok-rke2/ai-services/ollama`). This is consistent with ADR-022's Provider-Values reading (site-specific manifests are never framework artifacts) and stays as-is until a public-capable `ok-rke2` repository exists.
+
+## Amendment note (2026-07-21)
+
+[ADR-Platform-015's Addendum](ADR-Platform-015-agentic-ai.md#addendum-2026-07-21-multi-cluster-deployment-scope) amends the default Open WebUI deployment topology documented above ("Open WebUI per cluster/team") without changing this ADR's core decisions on centralized inference and self-service provisioning. A dedicated instance per workload cluster is no longer the *only* supported topology: a shared Open WebUI instance (currently ok-ai) may serve Agent Backends registered from other clusters (ok-shared, ok-robotics — intended, tracked via OK-87/OK-92, not yet deployed) that don't otherwise need a per-team chat UI, while the dedicated-instance path via `OpenWebUIClaim` remains available unchanged for any team/cluster that does.

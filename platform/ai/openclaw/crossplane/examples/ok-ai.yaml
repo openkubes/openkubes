@@ -1,6 +1,7 @@
 # OpenClaw Claim — example (endpoint-free, per the component's convention)
-# Real claims with the actual Ollama endpoint live in the private
-# infrastructure repo (ok-cluster/openclaw/). Submit to ok-mgmt.
+# Real claims with the actual Ollama endpoint live in ok-cluster/openclaw/
+# (concrete deployment values, not a component split — ok-cluster is public
+# too). Submit to ok-mgmt.
 apiVersion: platform.openkubes.ai/v1alpha1
 kind: OpenClawClaim
 metadata:

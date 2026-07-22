@@ -2,7 +2,7 @@
 
 **Status:** Proposed (pending Go/No-Go from OK-14 PoC)
 **Date:** 2026-07-10
-**Updated:** 2026-07-12 (Accepted Risks AR-1/AR-2 added)
+**Updated:** 2026-07-12 (Accepted Risks AR-1/AR-2 added); 2026-07-22 (Multi-cluster deployment scope Addendum, 2026-07-21, approved after three-way review — Arash / Claude / GPT)
 **Deciders:** Arash Kaffamanesh
 **Reviewed:** Multi-model review (Arash / Claude / GPT / Gemini), 2026-07-10
 **Related:** ADR-Platform-001 (Contracts, not Components), ADR-Platform-005 (Shared AI Services), ADR-Platform-011 (GitOps), OK-14, OK-15
@@ -205,6 +205,115 @@ Both risks are envelope-relevant: in a datacenter envelope the GPU-budget
 risk is a scheduling concern; in a constrained edge envelope it becomes a
 hard capacity boundary. The envelope-specific qualification of these
 guarantees is deferred to the Constraint Envelope decision (OK-74).
+
+## Addendum (2026-07-21): Multi-cluster deployment scope
+
+**Review status:** Approved by Arash / Claude / GPT, 2026-07-22.
+
+Clarifies Decision 4 now that the deployment model covers Agent Backends
+across ok-ai, ok-shared, and ok-robotics, which was not yet concrete when
+this ADR was written. Revised after three GPT review rounds: round 1
+identified a documentary conflict with ADR-005 and an overreach on Open
+WebUI's Implementation Profile status; round 2 found the ADR-005 relationship
+still framed too defensively and flagged stale contract language surviving in
+`platform/ai/README.md`; round 3 found that `make connect-openwebui` was
+overclaimed as an informal contract adapter when it does not actually meet
+the invariants this addendum proposes. All three are addressed below.
+
+- **Amends ADR-Platform-005's documented default deployment topology, while
+  preserving its core decisions:** centralized LLM inference and the
+  `OpenWebUIClaim` self-service path remain unchanged. ADR-005 (Rationale,
+  Amendment 2026-07-19) previously documented "Open WebUI per cluster/team"
+  as the *only* topology — each team getting its own instance. That is no
+  longer the only supported topology: a shared instance may serve Agent
+  Backends from multiple clusters (ok-shared and ok-robotics registering into
+  the ok-ai instance, because their use case is a kagent-backed ops agent,
+  not a per-team chat UI), while dedicated per-team instances remain
+  available through the existing claim path, unchanged. This is a genuine
+  amendment to a previously documented default — not merely a refinement —
+  even though the core capability decision is untouched. ADR-005 carries a
+  short cross-reference to this addendum accordingly (see amendment note
+  added there).
+- **Open WebUI remains the frontend component of the initial tandem
+  Implementation Profile** (Decision 4: "the Open WebUI + OpenClaw tandem").
+  This addendum does not revoke that. What it clarifies is narrower: for the
+  multi-cluster backend concern addressed here, the *replaceable* half of
+  that tandem is the Agent Backend, not the frontend. No general
+  `ChatFrontendContract` is introduced, because no consumer today requires
+  Open WebUI itself to be swappable for a different frontend — consistent
+  with the platform's forcing-consumer principle (ADR-Platform-018, -020,
+  -022; Platform Engineering Method, Principle 6: "a second consumer forces
+  the contract"), not because instance count is the deciding factor.
+- **The Agent Backend is the multi-cluster variation point within the
+  Implementation Profile** (the concrete profiles remain OpenClaw + Ollama,
+  and OpenClaw + kagent — not a new abstract layer). OpenClaw + Ollama serves
+  ok-ai today (deployed; see `ok-cluster/openclaw/`). OpenClaw
+  with a kagent-based Skill Contract backend is the intended profile for
+  ok-shared and ok-robotics — tracked as in-progress work (OK-87, OK-92), not
+  yet reflected as committed provider values in either repo as of this
+  addendum. Agent Interface Contract v1 is the forcing, cross-cluster
+  contract governing the runtime data plane between every backend instance
+  and Open WebUI (chat completions + tool calling) once deployed — it must
+  hold uniformly regardless of which cluster or Skill Contract implementation
+  backs a given instance.
+- **A second, distinct gap: the registration control plane has no contract
+  yet, and probably should.** Agent Interface Contract v1 covers the runtime
+  wire (requests/responses between Open WebUI and a backend). It does not
+  cover how a backend gets *registered* into Open WebUI in the first place:
+  backend identity, endpoint, credential reference, display/model naming,
+  idempotent (re-)registration, and de-registration behavior. With multiple
+  cluster-scoped backends expected to register into one Open WebUI instance
+  (ok-ai today, ok-shared/ok-robotics as OK-87/OK-92 land), this repeated,
+  independently-triggered, cross-cluster interaction is itself a forcing
+  consumer for a small **Agent Backend Registration Contract**, scoped only
+  to invariants such as:
+  - a stable backend ID per registration;
+  - a declared Agent Interface Contract version;
+  - credentials referenced, never stored in Git;
+  - idempotent apply and defined de-registration behavior;
+  - **a backend endpoint routable from the consuming Open WebUI instance**;
+  - **authenticated transport and clear trust ownership for cross-cluster
+    access**;
+  - **support for multiple independently managed registrations, without one
+    replacing or colliding with another.**
+
+  **`make connect-openwebui` is not yet an implementation of this contract —
+  it is today's single-backend, co-located registration workaround.** It
+  demonstrates that the registration boundary exists, but does not meet the
+  invariants above: it sets exactly one `OPENAI_API_BASE_URL`/`OPENAI_API_KEY`
+  pair on the Open WebUI StatefulSet; the URL is a cluster-local Kubernetes
+  Service DNS name (`openclaw.openclaw.svc.cluster.local`), unreachable from
+  a different cluster; it writes no stable backend ID; it has no
+  de-registration path; and on an instance whose config is already
+  persisted, the seed env vars are silently overridden by Open WebUI's
+  database, so convergence is not reliable even within one cluster. The
+  current OpenClaw XRD also has no field for a cross-cluster-routable
+  backend endpoint, and its Composition does not expose one. Formalizing the
+  Agent Backend Registration Contract must therefore also define endpoint
+  reachability and transport authentication between clusters — it is
+  follow-up work, not decided or pre-empted by this addendum. The
+  architectural point this addendum does establish — a shared Open WebUI
+  instance may serve Agent Backends from multiple clusters — stands
+  regardless; today's `connect-openwebui` target simply does not yet
+  implement that topology end-to-end.
+- This confirms the Capability → Contract → Implementation Profile →
+  Provider Values split applies to the **Agent Backend layer**: chart/XRD
+  generic in `openkubes/platform/ai/openclaw`, real per-cluster provider
+  values in `ok-cluster/<cluster>/`. No additional multi-cluster Open WebUI
+  provider-value set is needed today because only the ok-ai instance is
+  deployed; its existing claim (`ok-cluster/open-webui/claim-ok-ai.yaml`)
+  already follows the same generic-definition-vs.-instance-values split.
+
+Requested Changes from GPT rounds 1–3 incorporated above — ADR-005
+relationship corrected from "refines" to an honest **amendment to a
+documented default topology** (core decisions unchanged), Open WebUI's
+Implementation Profile membership restored, forcing-consumer attribution
+corrected, deployment-fact claims for ok-shared/ok-robotics walked back to
+"intended/in-progress (OK-87, OK-92)", and `make connect-openwebui`
+correctly downgraded from "informal contract adapter" to "single-backend,
+co-located registration workaround that does not yet meet the proposed
+invariants." Pending final three-way sign-off (Arash / Claude / GPT) before
+this section is treated as Accepted (see Review status above).
 
 ## References
 
