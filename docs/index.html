@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OpenKubes Kubernetes Platform Distribution Framework</title>
+<meta name="description" content="OpenKubes is a framework for building sovereign Kubernetes platform distributions. OpenKubes owns the contracts — components are swappable.">
+<style>
+  :root{
+    --bg:#ffffff;
+    --bg-alt:#f6f8fa;
+    --card:#f6f8fa;
+    --border:#d0d7de;
+    --text:#1f2328;
+    --muted:#57606a;
+    --accent:#0969da;
+    --accent2:#1a7f37;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    line-height:1.6;
+  }
+  a{color:var(--accent);text-decoration:none;}
+  a:hover{text-decoration:underline;}
+  header{
+    padding:4.5rem 1.5rem 3.5rem;
+    text-align:center;
+    background:var(--bg-alt);
+    border-bottom:1px solid var(--border);
+  }
+  .logo{
+    font-size:0.9rem;
+    letter-spacing:0.25em;
+    text-transform:uppercase;
+    color:var(--muted);
+    margin-bottom:1.2rem;
+    font-weight:600;
+  }
+  h1{
+    font-size:2rem;
+    margin:0 0 1rem;
+    color:var(--text);
+    font-weight:700;
+    letter-spacing:-0.01em;
+    max-width:700px;
+    margin-left:auto;
+    margin-right:auto;
+  }
+  .tagline{
+    font-size:1.15rem;
+    color:var(--muted);
+    max-width:620px;
+    margin:0 auto 2rem;
+  }
+  .cta{
+    display:flex;
+    gap:0.8rem;
+    justify-content:center;
+    flex-wrap:wrap;
+  }
+  .btn{
+    padding:0.6rem 1.3rem;
+    border-radius:6px;
+    font-weight:600;
+    font-size:0.95rem;
+    border:1px solid var(--border);
+  }
+  .btn.primary{
+    background:var(--accent);
+    color:#ffffff;
+    border:1px solid var(--accent);
+  }
+  .btn.primary:hover{text-decoration:none;opacity:0.88;}
+  .btn.secondary{
+    color:var(--text);
+    background:#ffffff;
+  }
+  .btn.secondary:hover{text-decoration:none;background:var(--card);}
+  main{
+    max-width:920px;
+    margin:0 auto;
+    padding:0 1.5rem;
+  }
+  section{
+    padding:3rem 0;
+    border-bottom:1px solid var(--border);
+  }
+  section:last-of-type{border-bottom:none;}
+  h2{
+    font-size:1.45rem;
+    margin-bottom:0.4rem;
+    letter-spacing:-0.01em;
+  }
+  .eyebrow{
+    color:var(--accent);
+    font-size:0.8rem;
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+    font-weight:600;
+    margin-bottom:0.5rem;
+  }
+  .chain{
+    display:flex;
+    flex-wrap:wrap;
+    gap:0.5rem;
+    align-items:center;
+    margin:1.5rem 0;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+    font-size:0.9rem;
+  }
+  .chain span.step{
+    background:var(--card);
+    border:1px solid var(--border);
+    padding:0.45rem 0.85rem;
+    border-radius:6px;
+    color:var(--text);
+  }
+  .chain span.arrow{color:var(--muted);}
+  .principle{
+    font-style:italic;
+    color:var(--muted);
+    border-left:3px solid var(--accent);
+    padding-left:1rem;
+    margin:1.2rem 0;
+  }
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+    gap:1rem;
+    margin-top:1.5rem;
+  }
+  .card{
+    background:var(--bg);
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:1.3rem;
+  }
+  .card h3{
+    margin:0 0 0.5rem;
+    font-size:1rem;
+    color:var(--text);
+  }
+  .card p{
+    color:var(--muted);
+    font-size:0.9rem;
+    margin:0;
+  }
+  .repo-list{
+    list-style:none;
+    padding:0;
+    margin:1.5rem 0 0;
+  }
+  .repo-list li{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:1rem;
+    padding:0.9rem 1rem;
+    background:var(--bg);
+    border:1px solid var(--border);
+    border-radius:6px;
+    margin-bottom:0.6rem;
+  }
+  .repo-list .name{font-weight:600;font-family:ui-monospace,monospace;color:var(--text);}
+  .repo-list .desc{color:var(--muted);font-size:0.88rem;}
+  .badge{
+    font-size:0.72rem;
+    padding:0.2rem 0.55rem;
+    border-radius:999px;
+    background:var(--bg-alt);
+    color:var(--muted);
+    border:1px solid var(--border);
+    white-space:nowrap;
+  }
+  .badge.public{color:var(--accent2);border-color:var(--accent2);background:#f0fff4;}
+  ol.steps{
+    padding-left:1.2rem;
+  }
+  ol.steps li{
+    margin-bottom:0.9rem;
+    color:var(--muted);
+  }
+  ol.steps li strong{color:var(--text);}
+  footer{
+    text-align:center;
+    padding:2.5rem 1.5rem;
+    color:var(--muted);
+    font-size:0.88rem;
+    background:var(--bg-alt);
+    border-top:1px solid var(--border);
+  }
+  .links-row{
+    display:flex;
+    gap:1.4rem;
+    justify-content:center;
+    flex-wrap:wrap;
+    margin-top:1rem;
+  }
+  code{
+    background:var(--bg-alt);
+    border:1px solid var(--border);
+    border-radius:4px;
+    padding:0.1rem 0.35rem;
+    font-size:0.9em;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">OpenKubes</div>
+  <h1>OpenKubes Kubernetes Platform Distribution Framework</h1>
+  <p class="tagline">OpenKubes is a framework for building sovereign Kubernetes platform distributions — built ADR-first, reviewed three ways, run on infrastructure you control.</p>
+  <div class="cta">
+    <a class="btn primary" href="https://github.com/openkubes/openkubes">View on GitHub</a>
+    <a class="btn secondary" href="#contribute">Contribute</a>
+  </div>
+</header>
+
+<main>
+
+  <section id="about">
+    <div class="eyebrow">What it is</div>
+    <h2>A contract-first platform engineering framework</h2>
+    <p>OpenKubes formalizes how Kubernetes capabilities get built, provisioned, and verified — without locking teams into a single vendor, cloud, or component. Every capability follows the same chain from idea to running cluster:</p>
+
+    <div class="chain">
+      <span class="step">Capability</span>
+      <span class="arrow">→</span>
+      <span class="step">Contract</span>
+      <span class="arrow">→</span>
+      <span class="step">Implementation Profile</span>
+      <span class="arrow">→</span>
+      <span class="step">Provider Values</span>
+      <span class="arrow">→</span>
+      <span class="step">Contract Tests</span>
+    </div>
+
+    <p class="principle">"A cluster is not considered fully provisioned until the contract test passes." — ADR-018</p>
+    <p class="principle">"No structure without a forcing consumer." A contract is only formalized once a second real consumer needs it.</p>
+
+    <p>Decisions are recorded as Architecture Decision Records (ADRs) and never skipped — there is no implementation without a committed ADR. The project's knowledge graph (<code>okgraph.py</code>) maps every ADR, commit, and issue into a single traversable structure, so the reasoning behind the platform is never lost.</p>
+  </section>
+
+  <section id="governance">
+    <div class="eyebrow">How decisions get made</div>
+    <h2>Three-way review, human merge</h2>
+    <p>Every ADR passes through a structured review before it can be merged:</p>
+    <div class="grid">
+      <div class="card">
+        <h3>Author</h3>
+        <p>Anyone — maintainer or external contributor — can author an ADR or propose a change on a branch. No direct write access to <code>main</code>.</p>
+      </div>
+      <div class="card">
+        <h3>Claude &amp; GPT review</h3>
+        <p>Claude checks internal consistency and missing counter-arguments. GPT checks governance language and cross-ADR consistency. AI may argue — it does not merge.</p>
+      </div>
+      <div class="card">
+        <h3>Human merge</h3>
+        <p>The maintainer holds project context and makes the final call. "AI may argue; only humans merge."</p>
+      </div>
+    </div>
+    <p style="margin-top:1.5rem;color:var(--muted);">Branch protection is enforced on the mother repo: pull requests required, no force-push, linear history. The three-way review is a process discipline, not a technical gate.</p>
+  </section>
+
+  <section id="repos">
+    <div class="eyebrow">Where the code lives</div>
+    <h2>Repositories</h2>
+    <ul class="repo-list">
+      <li>
+        <div>
+          <div class="name">openkubes/openkubes</div>
+          <div class="desc">Mother repo — architecture, ADRs, platform-engineering-method.md, knowledge graph.</div>
+        </div>
+        <span class="badge public">public</span>
+      </li>
+      <li>
+        <div>
+          <div class="name">openkubes/ok-cluster</div>
+          <div class="desc">Cluster lifecycle capability — provisioning, bootstrap, teardown, kubeconfig contracts. Live cluster access is VPN-only.</div>
+        </div>
+        <span class="badge public">public</span>
+      </li>
+      <li>
+        <div>
+          <div class="name">openkubes/ok-storage</div>
+          <div class="desc">Storage capability contracts and provider implementations.</div>
+        </div>
+        <span class="badge public">public</span>
+      </li>
+      <li>
+        <div>
+          <div class="name">openkubes/ok-observability</div>
+          <div class="desc">Per-cluster Prometheus, Grafana, and OpenSearch stack (ADR-018).</div>
+        </div>
+        <span class="badge public">public</span>
+      </li>
+      <li>
+        <div>
+          <div class="name">openkubes/ok-linux</div>
+          <div class="desc">Base OS layer for constrained and edge deployment profiles.</div>
+        </div>
+        <span class="badge public">public</span>
+      </li>
+    </ul>
+    <p style="margin-top:1.2rem;color:var(--muted);font-size:0.9rem;">All repos are public — code, contracts, and ADRs are open. Real provider values and cluster credentials never live in the repos; reaching a live cluster itself requires VPN access.</p>
+  </section>
+
+  <section id="contribute">
+    <div class="eyebrow">Get involved</div>
+    <h2>How to contribute</h2>
+    <ol class="steps">
+      <li><strong>Read the method first.</strong> Start with <code>docs/platform-engineering-method.md</code> in <a href="https://github.com/openkubes/openkubes">openkubes/openkubes</a> and browse the ADR series to understand what's already decided.</li>
+      <li><strong>Find a forcing consumer.</strong> OpenKubes doesn't build structure speculatively — proposals land better when tied to a real second use case, not a hypothetical one.</li>
+      <li><strong>Open a branch, not a direct commit.</strong> <code>main</code> is protected. Author your ADR or change on a branch and open a pull request.</li>
+      <li><strong>Go through three-way review.</strong> Expect feedback from both AI reviewers before a maintainer makes the merge decision.</li>
+      <li><strong>Small, scoped changes.</strong> ADRs are precise and narrow — future ideas become new tickets rather than expanding an in-flight one.</li>
+    </ol>
+
+    <h3 style="margin-top:2rem;font-size:1.05rem;">Good places to start</h3>
+    <div class="grid">
+      <div class="card">
+        <h3>Constrained edge profile</h3>
+        <p>Five open spikes: OS candidate, GitOps agent, image strategy, storage, autonomy-under-partition.</p>
+      </div>
+      <div class="card">
+        <h3><code>ok</code> CLI</h3>
+        <p>Wrapper-vs-logic-carrier design spike — standalone binary vs. kubectl plugin (Krew).</p>
+      </div>
+      <div class="card">
+        <h3>Requirements inventory</h3>
+        <p>Research spike on whether a first-class Requirement layer belongs in the architecture.</p>
+      </div>
+      <div class="card">
+        <h3>Cluster deregistration</h3>
+        <p><code>make unregister-cluster</code> — clean up orphaned secrets and ProviderConfigs after teardown.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="community">
+    <div class="eyebrow">Community</div>
+    <h2>Launch meetup &amp; contact</h2>
+    <p>🚀 <strong>OpenKubes Launch Meetup</strong> — Thu, Aug 6, 2026, 7:00 PM, online via Zoom. Hosted by Kubernauts Worldwide Meetup. Agenda: why OpenKubes, project vision, a live demo of declarative cluster provisioning with private AI, roadmap, and how to become a contributor.</p>
+    <div class="cta" style="margin:1.2rem 0 1.8rem;">
+      <a class="btn primary" href="https://www.meetup.com/kubernauts/events/315551105/">Register for the Launch Meetup</a>
+    </div>
+    <div class="links-row">
+      <a href="https://github.com/openkubes/openkubes">GitHub</a>
+      <a href="https://github.com/openkubes/openkubes/issues">Issues</a>
+      <a href="https://slack.kubernauts.io">Slack</a>
+      <a href="https://kubernauts.io">kubernauts.io</a>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  OpenKubes — an open-source Kubernetes platform engineering framework.<br>
+  <a href="https://github.com/openkubes/openkubes">github.com/openkubes/openkubes</a>
+</footer>
+
+</body>
+</html>
