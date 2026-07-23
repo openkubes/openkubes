@@ -1,0 +1,28 @@
+# Cluster Inspection Contract — read-only tool surface for the specialists.
+#
+# Modeled as a kagent ToolServer (MCP). The tool NAMES are the reviewed surface;
+# the hard read-only boundary is the ServiceAccount RBAC (rbac.yaml), not the
+# tool list — a tool that tried to write would still be denied by the SA.
+#
+# Two common implementation choices for a read-only kubectl surface:
+#   (a) kagent's built-in Kubernetes tools filtered to read verbs, or
+#   (b) an MCP kubectl server (e.g. an mcp-server-kubernetes image) with the SA.
+# Pick per the OK-14 finding; either sits behind the same SA. VERIFY the
+# ToolServer spec shape: `kubectl explain toolserver.spec`.
+apiVersion: kagent.dev/v1alpha1
+kind: ToolServer
+metadata:
+  name: cluster-inspection
+  namespace: platform-diagnostics
+  labels:
+    app.kubernetes.io/part-of: platform-diagnostics
+    platform.openkubes.ai/profile: kagent
+spec:
+  description: Read-only cluster inspection (get/list/watch, secrets excluded).
+  # stdio MCP server example; swap for kagent built-in tools if preferred.
+  stdio:
+    command: "mcp-server-kubernetes"
+    args: ["--read-only"]
+  # The pod running this server MUST use the SA `openkubes-platform-agent`
+  # so its kubectl calls carry the read-only ClusterRole. Enforce via the
+  # kagent values (tool-executor serviceAccount) — see charts/ values.

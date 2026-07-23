@@ -1,0 +1,28 @@
+# Specialist: observability — logs & metrics (Log Query Contract). Read-only.
+# Internal delegate. OpenSearch is a Provider Value (endpoint from ok-cluster).
+apiVersion: kagent.dev/v1alpha1
+kind: Agent
+metadata:
+  name: observability-agent
+  namespace: platform-diagnostics
+  labels:
+    app.kubernetes.io/part-of: platform-diagnostics
+    platform.openkubes.ai/profile: kagent
+    platform.openkubes.ai/role: specialist
+spec:
+  description: Read-only log/metric correlation over the platform observability stack.
+  modelConfig: ollama-gpt-oss
+  systemMessage: |
+    Read-only observability specialist. Correlate pod/container logs and metrics
+    to time-bound symptoms. Return evidence as REFERENCES (index/query/time range),
+    never paste raw log payloads or secrets into the answer. If a log/metric source
+    is unavailable for this provider, report it as unavailable with a reason.
+  tools:
+    - type: McpServer
+      mcpServer:
+        toolServer: cluster-inspection
+        names: [k8s_logs, metrics_query]
+    # Log Query Contract (OpenSearch) — endpoint is a Provider Value, wired from
+    # ok-cluster. Declared here; enable once the OpenSearch ToolServer exists.
+    # - type: McpServer
+    #   mcpServer: { toolServer: log-query, names: [opensearch_search] }

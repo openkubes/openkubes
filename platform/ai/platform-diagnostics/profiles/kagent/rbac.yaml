@@ -1,0 +1,92 @@
+# Read-only RBAC for Profile A — derived from the declared Skill Contracts,
+# NOT from what kagent's tools could do (guideline Part B: "the contract
+# determines the required permissions"). This is ADR-021 contract test 2:
+# the Phase-1 provider identity has NO verbs beyond get/list/watch, and
+# NEVER secrets, in any apiGroup, under any skill.
+#
+# Reuses the proven ruleset from platform/ai/openclaw/charts/openclaw/templates/
+# rbac.yaml, extended with the read-only groups the Cilium / observability
+# specialists need. If a specialist appears to need more: STOP — guideline Part C.
+#
+# The agent/tool-executor pods MUST run as this ServiceAccount so their kubectl
+# path carries exactly these permissions. Wire it via the kagent Helm values
+# (serviceAccount override) — see charts/ values and the ok-cluster README.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: openkubes-platform-agent
+  namespace: platform-diagnostics
+  labels:
+    app.kubernetes.io/part-of: platform-diagnostics
+    platform.openkubes.ai/profile: kagent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: platform-diagnostics-readonly
+  labels:
+    app.kubernetes.io/part-of: platform-diagnostics
+    platform.openkubes.ai/profile: kagent
+rules:
+  # Cluster Inspection Contract (core)
+  - apiGroups: [""]
+    resources:
+      - pods
+      - pods/log
+      - pods/status
+      - services
+      - endpoints
+      - events
+      - nodes
+      - namespaces
+      - persistentvolumeclaims
+      - persistentvolumes
+      - resourcequotas
+      - limitranges
+      # configmaps deliberately EXCLUDED (expose cluster-internal data to the LLM
+      # path; ADR-015 negative consequence). Enable per-instance only if a Skill
+      # Contract forces it, via an ok-cluster overlay — never by default here.
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "replicasets", "statefulsets", "daemonsets"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["batch"]
+    resources: ["jobs", "cronjobs"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["ingresses", "networkpolicies"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["metrics.k8s.io"]
+    resources: ["pods", "nodes"]
+    verbs: ["get", "list"]
+  # Cilium specialist (read-only network triage — UC-4). CRDs only, no writes.
+  - apiGroups: ["cilium.io"]
+    resources:
+      - ciliumendpoints
+      - ciliumnetworkpolicies
+      - ciliumclusterwidenetworkpolicies
+      - ciliumnodes
+      - ciliumidentities
+    verbs: ["get", "list", "watch"]
+  # Cluster Lifecycle specialist (explain CAPI/Crossplane state — UC-3), read-only.
+  - apiGroups: ["cluster.x-k8s.io"]
+    resources: ["clusters", "machines", "machinedeployments", "machinesets"]
+    verbs: ["get", "list", "watch"]
+  # SECRETS ARE NEVER LISTED. Any rule adding `secrets` or a write verb is a
+  # contract violation (test 2) — escalate (Part C), do not merge.
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: platform-diagnostics-readonly
+  labels:
+    app.kubernetes.io/part-of: platform-diagnostics
+    platform.openkubes.ai/profile: kagent
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: platform-diagnostics-readonly
+subjects:
+  - kind: ServiceAccount
+    name: openkubes-platform-agent
+    namespace: platform-diagnostics

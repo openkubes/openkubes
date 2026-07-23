@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: platform-diagnostics
+  labels:
+    app.kubernetes.io/part-of: platform-diagnostics
+    platform.openkubes.ai/profile: kagent
