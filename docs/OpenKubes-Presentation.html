@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>OpenKubes Platform v1.0.3</title>
+<title>OpenKubes Platform v0.12.0</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:"Segoe UI",Arial,sans-serif;background:#e8f4fd;color:#1a2b4a;overflow:hidden;height:100vh;width:100vw}
@@ -108,51 +108,39 @@ h2 .hl{color:#1a6fc4}
 .s7 h2 span{color:#2eb87a}
 .s7 .sub2{font-size:15px;color:#7aa8d0;margin-bottom:28px}
 .cmds{display:flex;flex-direction:column;gap:9px;margin-bottom:28px}
-.cmd{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:10px 24px;font-family:Consolas,monospace;font-size:14px;color:#38bdf8;text-align:left;width:520px}
+.cmd{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:10px 24px;font-family:Consolas,monospace;font-size:14px;color:#38bdf8;text-align:left;width:560px}
 .cmd .cc{color:#4a6fa5;display:block;font-size:11px;margin-bottom:1px}
 .ghlink{font-size:16px;color:#0f1f3d;font-weight:700;text-decoration:none;background:#2eb87a;padding:12px 32px;border-radius:8px;display:inline-block;box-shadow:0 4px 14px rgba(46,184,122,.4)}
 .built{margin-top:18px;font-size:13px;color:#4a6fa5}
 
-    .s-immortal{background:linear-gradient(150deg,#0f1f3d 0%,#1a3a6a 50%,#0f1f3d 100%);color:white;padding:40px}
-    .immortal-quote{text-align:center;margin:28px 0 0}
-    .iq-line{font-size:28px;font-weight:800;letter-spacing:-0.5px;line-height:1.3}
-    .iq-line:first-child{color:#38bdf8}
-    .iq-line:last-child{color:#2eb87a}
-    .s-immortal h2{color:white}
-    .s-immortal .sub{color:#94b8d4}
-    .s-immortal .hl{color:#38bdf8}
-    .s-immortal .al{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.15)}
-    .s-immortal .al h3{color:white}
-    .s-immortal .al li{color:#94b8d4}
+/* === DARK CONTENT SLIDES (governance / anywhere) === */
+.s-immortal{background:linear-gradient(150deg,#0f1f3d 0%,#1a3a6a 50%,#0f1f3d 100%);color:white;padding:40px}
+.immortal-quote{text-align:center;margin:28px 0 0}
+.iq-line{font-size:28px;font-weight:800;letter-spacing:-0.5px;line-height:1.3}
+.iq-line:first-child{color:#38bdf8}
+.iq-line:last-child{color:#2eb87a}
+.s-immortal h2{color:white}
+.s-immortal .sub{color:#94b8d4}
+.s-immortal .hl{color:#38bdf8}
+.s-immortal .al{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.15)}
+.s-immortal .al h3{color:white}
+.s-immortal .al li{color:#94b8d4}
 
-  
-    .s-immortal{background:linear-gradient(150deg,#0f1f3d 0%,#1a3a6a 50%,#0f1f3d 100%);color:white;padding:40px}
-    .immortal-quote{text-align:center;margin:28px 0 0}
-    .iq-line{font-size:28px;font-weight:800;letter-spacing:-0.5px;line-height:1.3}
-    .iq-line:first-child{color:#38bdf8}
-    .iq-line:last-child{color:#2eb87a}
-    .s-immortal h2{color:white}
-    .s-immortal .sub{color:#94b8d4}
-    .s-immortal .hl{color:#38bdf8}
-    .s-immortal .al{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.15)}
-    .s-immortal .al h3{color:white}
-    .s-immortal .al li{color:#94b8d4}
+.s-anywhere{background:linear-gradient(155deg,#0f1f3d 0%,#1a4a7a 55%,#122d5a 100%);color:white}
+.s-anywhere h2{color:white}
+.s-anywhere .sub{color:#94b8d4}
+.s-anywhere .hl{color:#2eb87a}
+.s-anywhere .al{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.15)}
+.s-anywhere .al h3{color:white}
+.s-anywhere .al li{color:#94b8d4}
+.s-anywhere .anote{color:#4a6fa5;font-size:11px;text-align:center;margin-top:16px}
 
-  
-    .s-anywhere{background:linear-gradient(155deg,#0f1f3d 0%,#1a4a7a 55%,#122d5a 100%);color:white}
-    .s-anywhere h2{color:white}
-    .s-anywhere .sub{color:#94b8d4}
-    .s-anywhere .hl{color:#2eb87a}
-    .s-anywhere .al{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.15)}
-    .s-anywhere .al h3{color:white}
-    .s-anywhere .al li{color:#94b8d4}
-    .s-anywhere .anote{color:#4a6fa5;font-size:11px;text-align:center;margin-top:16px}
+.dark-sub{font-size:14px;color:#94b8d4;margin-bottom:24px;margin-top:-14px;text-align:center}
 
-  
-    .s-anywhere,.s-immortal{width:100%;height:100%;position:absolute;top:0;left:0;display:none;flex-direction:column;justify-content:flex-start;padding:48px 72px}
-    .s-anywhere.active,.s-immortal.active{display:flex}
+.s-anywhere,.s-immortal{width:100%;height:100%;position:absolute;top:0;left:0;display:none;flex-direction:column;justify-content:flex-start;padding:48px 72px}
+.s-anywhere.active,.s-immortal.active{display:flex}
 
-  </style>
+</style>
 </head>
 <body>
 <div class="slides">
@@ -160,176 +148,168 @@ h2 .hl{color:#1a6fc4}
 <div class="slide s1 active" data-slide="1">
   <img src="openkubes-logo.png" alt="OpenKubes" onerror="this.style.display='none';document.getElementById('logo-text').style.display='block'">
   <div id="logo-text" style="display:none;font-size:52px;font-weight:900;color:#1a6fc4;margin-bottom:24px">⎈ OpenKubes</div>
-  <div class="ver">Platform v1.0.3 — Generally Available</div>
-  <div class="tag"><strong>The Unified Platform for Kubernetes, Virtual Machines &amp; Specialized Workloads</strong><br>Run Everything. Deliver Anything.</div>
+  <div class="ver">Platform v0.12.0 — Community Preview</div>
+  <div class="tag"><strong>A framework for building sovereign Kubernetes platform distributions.</strong><br>OpenKubes owns the contracts, not the components.</div>
   <div class="badges">
-    <span class="badge">KubeVirt</span><span class="badge">Cluster API</span><span class="badge">Crossplane</span>
-    <span class="badge">Bare Metal</span><span class="badge">Self-Service</span><span class="badge">AI / GPU</span>
+    <span class="badge">Contracts-first</span><span class="badge">Talos</span><span class="badge">Cluster API</span>
+    <span class="badge">Crossplane</span><span class="badge">Bare Metal · Edge · Cloud</span><span class="badge">AI / GPU</span>
   </div>
   <div class="sfooter">github.com/openkubes/openkubes</div>
-  <div class="snum">1 / 9</div>
+  <div class="snum">1 / 10</div>
 </div>
 
 <div class="slide s2" data-slide="2">
-  <h2>The Problem with <span class="hl">Bare Metal Kubernetes</span></h2>
+  <h2>The Problem with <span class="hl">Platform Sprawl</span></h2>
   <div class="pg">
-    <div class="pc"><div class="ico">⏱️</div><h3>Days to provision</h3><p>Manual steps, scripts, tribal knowledge. Cluster setup takes days and is error-prone.</p></div>
+    <div class="pc"><div class="ico">⏱️</div><h3>Days to provision</h3><p>Manual steps, scripts, tribal knowledge. Cluster setup is slow and error-prone.</p></div>
     <div class="pc"><div class="ico">🔒</div><h3>No self-service</h3><p>Teams wait for ops to provision infrastructure. No API, no automation, no guardrails.</p></div>
-    <div class="pc"><div class="ico">🧩</div><h3>VMs and K8s silos</h3><p>Virtual machines and Kubernetes clusters managed separately with different tools.</p></div>
-    <div class="pc"><div class="ico">🔥</div><h3>Cleanup is painful</h3><p>Stuck finalizers, orphaned VMs, leftover namespaces. Manual cleanup takes hours.</p></div>
+    <div class="pc"><div class="ico">🧩</div><h3>VMs and K8s in silos</h3><p>Virtual machines and Kubernetes clusters managed separately with different tools.</p></div>
+    <div class="pc"><div class="ico">❓</div><h3>No verifiable guarantees</h3><p>"Is the platform actually working?" — no deterministic, testable proof of readiness.</p></div>
     <div class="arrow">↓</div>
-    <div class="sc"><h3>✅ OpenKubes: kubectl apply → cluster ready in 90 seconds</h3><p>Full cluster lifecycle as a Kubernetes API. Just <code>make deploy cluster=ok1</code>.</p></div>
+    <div class="sc"><h3>✅ OpenKubes: capability contracts + deterministic gates</h3><p>A cluster isn't "provisioned" until its contract test passes. <code>make new CLUSTER=ok-ai TYPE=talos</code></p></div>
   </div>
-  <div class="snum">2 / 9</div>
+  <div class="snum">2 / 10</div>
 </div>
 
 <div class="slide s3" data-slide="3">
-  <h2>How It <span class="hl">Works</span></h2>
+  <h2>How It <span class="hl">Works</span> — the capability chain</h2>
   <div class="flow">
-    <div class="fs"><div class="sn">1</div><h3>make deploy</h3><p>OpenKubesCluster claim submitted</p></div>
+    <div class="fs"><div class="sn">1</div><h3>Capability</h3><p>What every cluster must provide</p></div>
     <div class="fa">→</div>
-    <div class="fs"><div class="sn">2</div><h3>Crossplane</h3><p>Composition creates deploy Job</p></div>
+    <div class="fs"><div class="sn">2</div><h3>Contract</h3><p>Stable guarantees, fixed in an ADR</p></div>
     <div class="fa">→</div>
-    <div class="fs"><div class="sn">3</div><h3>CAPI + CAPK</h3><p>Cluster API provisions VMs</p></div>
+    <div class="fs"><div class="sn">3</div><h3>Impl. Profile</h3><p>The reference implementation</p></div>
     <div class="fa">→</div>
-    <div class="fs"><div class="sn">4</div><h3>3 VMs boot</h3><p>1 CP + 2 Workers on bare metal</p></div>
+    <div class="fs"><div class="sn">4</div><h3>Provider Values</h3><p>Per-cluster configuration</p></div>
     <div class="fa">→</div>
-    <div class="fs"><div class="sn">5</div><h3>Cluster Ready ✅</h3><p>Calico, MetalLB, kubeconfig</p></div>
-    <div class="fa">→</div>
-    <div class="fs"><div class="sn">6</div><h3>Headlamp UI ✅</h3><p>make manager-deploy</p></div>
+    <div class="fs"><div class="sn">5</div><h3>Contract Test ✅</h3><p>Readiness gate — pass/fail</p></div>
   </div>
   <div class="cb">
-    <span class="co"># Deploy</span><br>
-    <span class="cm">make deploy cluster=ok1</span> &nbsp; <span class="re">→ Complete in 98s ✅</span><br><br>
-    <span class="co"># Delete</span><br>
-    <span class="cm">make delete cluster=ok1</span> &nbsp; <span class="re">→ cluster 'ok1' deleted ✅</span>
+    <span class="co"># Provision a Talos workload cluster</span><br>
+    <span class="cm">make new CLUSTER=ok-ai TYPE=talos WORKERS=2</span><br>
+    <span class="cm">make bootstrap CLUSTER=ok-ai</span> &nbsp; <span class="re">→ CAPI/CAPK + Talos, Cilium ✅</span><br>
+    <span class="cm">make install-storage CLUSTER=ok-ai</span><br>
+    <span class="cm">make install-observability CLUSTER=ok-ai</span> &nbsp; <span class="re">→ contract gate green ✅</span>
   </div>
-  <div class="snum">3 / 9</div>
+  <div class="snum">3 / 10</div>
 </div>
 
 <div class="slide s4" data-slide="4">
   <h2>Platform <span class="hl">Architecture</span></h2>
   <div class="ag">
-    <div class="al lb"><h3>🧠 Management Zone</h3><ul><li>Crossplane v2.2</li><li>Cluster API v1.12</li><li>CAPK v0.11.2</li><li>Flux (GitOps)</li><li>cert-manager</li></ul></div>
-    <div class="al lg"><h3>⚙️ Infrastructure Zone</h3><ul><li>RKE2 Bare Metal</li><li>KubeVirt v1.8.1</li><li>CDI (disk mgmt)</li><li>MetalLB</li><li>local-path storage</li></ul></div>
-    <div class="al lo"><h3>☸️ Workload Zone</h3><ul><li>K8s v1.34 clusters</li><li>Calico CNI</li><li>VM Pools</li><li>AI / GPU workloads</li><li>DBaaS (roadmap)</li></ul></div>
-    <div class="al lp"><h3>🛡️ Platform APIs</h3><ul><li>OpenKubesVM</li><li>OpenKubesCluster</li><li>OpenKubesAI (soon)</li><li>OpenKubesDB (soon)</li><li>OpenKubesTenant (soon)</li></ul></div>
+    <div class="al lb"><h3>🧠 Management (ok-mgmt)</h3><ul><li>Talos mgmt cluster</li><li>Crossplane + provider-helm v0.19.0</li><li>Cluster API + CAPK v0.11.2</li><li>function-go-templating v0.9.0</li><li>cert-manager</li></ul></div>
+    <div class="al lg"><h3>⚙️ Infrastructure (host)</h3><ul><li>RKE2 host cluster</li><li>KubeVirt v1.8.1</li><li>CDI v1.60.0</li><li>MetalLB (LB IPs)</li><li>ok-storage (Longhorn v1)</li></ul></div>
+    <div class="al lo"><h3>☸️ Workload Zone</h3><ul><li>Talos K8s clusters</li><li>Cilium CNI</li><li>Observability (Prom/Grafana/OpenSearch)</li><li>AI / GPU (Ollama + Open WebUI)</li><li>local-path storage</li></ul></div>
+    <div class="al lp"><h3>📜 Capability Contracts</h3><ul><li>ok-linux — OS</li><li>ok-cluster — Lifecycle</li><li>ok-storage — Persistent Storage</li><li>ok-observability — ADR-018</li><li>ok-gitops — planned</li></ul></div>
   </div>
-  <div class="anote">Management Cluster: 3× kubeadm VMs (ok1-vm / ok2-vm / ok3-vm) on RKE2 Infra Cluster</div>
-  <div class="snum">4 / 9</div>
+  <div class="anote">Contract-first — 23 platform ADRs, three-way-reviewed, human-merged. XRDs: OpenWebUIClaim, KubeVirtClusterClaim.</div>
+  <div class="snum">4 / 10</div>
 </div>
 
 <div class="slide s5" data-slide="5">
   <h2>Live <span class="hl">Demo</span></h2>
-  <div class="sub">From zero to running cluster in under 2 minutes</div>
+  <div class="sub">From zero to a contract-verified cluster</div>
   <div class="dg">
     <div class="term">
-      <div class="tb"><div class="dot2 dr"></div><div class="dot2 dy"></div><div class="dot2 dg2"></div><span class="tt">platform/cluster-management/</span></div>
+      <div class="tb"><div class="dot2 dr"></div><div class="dot2 dy"></div><div class="dot2 dg2"></div><span class="tt">ok-cluster/</span></div>
       <div class="tbody">
-        <div><span class="tp">❯ </span><span class="tc">make vm-create vm=ok4</span></div>
-        <div class="ti">[vm-create] creating VM 'ok4' via Crossplane...</div>
-        <div class="tok">ok4-vm &nbsp;Running &nbsp;True ✓ &nbsp;(88s)</div>
+        <div><span class="tp">❯ </span><span class="tc">make new CLUSTER=ok-ai TYPE=talos WORKERS=2</span></div>
+        <div class="ti">[new] scaffolding Talos cluster 'ok-ai'...</div>
+        <div class="tok">ok-ai &nbsp;rendered ✓</div>
         <br>
-        <div><span class="tp">❯ </span><span class="tc">make deploy cluster=ok1</span></div>
-        <div class="ti">[deploy] applying claim for cluster 'ok1'...</div>
-        <div class="tok">deploy-ok1 &nbsp;Complete 1/1 &nbsp;98s ✓</div>
+        <div><span class="tp">❯ </span><span class="tc">make bootstrap CLUSTER=ok-ai</span></div>
+        <div class="ti">[bootstrap] CAPI/CAPK + Talos, installing Cilium...</div>
+        <div class="tok">ok-ai &nbsp;3 nodes Ready ✓</div>
         <br>
-        <div><span class="tp">❯ </span><span class="tc">make recreate cluster=ok1 kubernetes-version=v1.34.1</span></div>
-        <div class="tdn">[recreate] cluster 'ok1' recreated ✅</div>
+        <div><span class="tp">❯ </span><span class="tc">make install-observability CLUSTER=ok-ai</span></div>
+        <div class="ti">[observability] ok-observability-standard + contract test...</div>
+        <div class="tdn">5/5 contract guarantees PASS ✅  gate green</div>
         <br>
-        <div><span class="tp">❯ </span><span class="tc">make manager-deploy cluster=ok1</span></div>
-        <div class="ti">[manager] installing Headlamp on cluster 'ok1'...</div>
-        <div class="tdn">[manager] Headlamp installed ✅  → localhost:8080</div>
+        <div><span class="tp">❯ </span><span class="tc">make register-cluster CLUSTER=ok-ai</span></div>
+        <div class="tdn">[register] kubeconfig secret + ProviderConfig (ADR-013) ✅</div>
       </div>
     </div>
     <div class="dr2">
-      <div class="rc"><div class="ck">✅</div><div><h3>1 CP + 2 Workers Ready</h3><p>Kubernetes v1.34.1</p></div></div>
-      <div class="rc"><div class="ck">✅</div><div><h3>MetalLB LoadBalancer</h3><p>Dedicated IP per cluster</p></div></div>
-      <div class="rc"><div class="ck">✅</div><div><h3>Calico CNI installed</h3><p>Automatically, zero manual steps</p></div></div>
-      <div class="rc"><div class="ck">✅</div><div><h3>Namespace isolation</h3><p>cluster name = namespace, no hash</p></div></div>
-      <div class="rc"><div class="ck">✅</div><div><h3>Clean delete in 26s</h3><p>VMs, namespaces, secrets all gone</p></div></div>
-      <div class="rc"><div class="ck">✅</div><div><h3>Headlamp UI in 60s</h3><p>make manager-deploy → browser ready</p></div></div>
+      <div class="rc"><div class="ck">✅</div><div><h3>Talos control plane + workers</h3><p>Immutable, API-driven</p></div></div>
+      <div class="rc"><div class="ck">✅</div><div><h3>Cilium CNI + MetalLB</h3><p>Installed automatically, dedicated LB IP</p></div></div>
+      <div class="rc"><div class="ck">✅</div><div><h3>Observability contract PASS</h3><p>Metrics, logs, dashboards, alerts</p></div></div>
+      <div class="rc"><div class="ck">✅</div><div><h3>Registered with ok-mgmt</h3><p>Crossplane-ready (ADR-013)</p></div></div>
+      <div class="rc"><div class="ck">✅</div><div><h3>Air-gap capable</h3><p>No management-cluster SPOF</p></div></div>
+      <div class="rc"><div class="ck">✅</div><div><h3>Clean teardown</h3><p>Cluster, PVs, secrets — idempotent</p></div></div>
     </div>
   </div>
-  <div class="snum">5 / 9</div>
+  <div class="snum">5 / 10</div>
 </div>
 
-<div class="slide s6" data-slide="6">
+<div class="slide s3" data-slide="6">
+  <h2>Observability — the <span class="hl">Contract Gate</span></h2>
+  <div class="flow">
+    <div class="fs"><div class="sn">1</div><h3>Metrics</h3><p>ServiceMonitor ingestion in Prometheus</p></div>
+    <div class="fa">·</div>
+    <div class="fs"><div class="sn">2</div><h3>Dashboards</h3><p>Grafana pre-provisioned</p></div>
+    <div class="fa">·</div>
+    <div class="fs"><div class="sn">3</div><h3>Logs</h3><p>Searchable in OpenSearch</p></div>
+    <div class="fa">·</div>
+    <div class="fs"><div class="sn">4</div><h3>Alerting</h3><p>Delivered to a receiver</p></div>
+    <div class="fa">·</div>
+    <div class="fs"><div class="sn">5</div><h3>Autonomy</h3><p>Air-gap, no SPOF</p></div>
+  </div>
+  <div class="cb">
+    <span class="co"># Gated install — fails unless all five guarantees pass</span><br>
+    <span class="cm">make install-observability CLUSTER=ok-ai</span><br>
+    <span class="re">→ 5/5 contract guarantees PASS ✅ &nbsp;(proven on ok-shared + ok-robotics)</span>
+  </div>
+  <div class="anote">ADR-Platform-018 · per-cluster Prometheus / Grafana / OpenSearch · delivered in v0.12.0 · "a cluster is not provisioned until its contract test passes"</div>
+  <div class="snum">6 / 10</div>
+</div>
+
+<div class="slide s-immortal" data-slide="7">
+  <h2><span class="hl">Contract-first</span>, human-merged</h2>
+  <div class="dark-sub">Three-way review — AI argues, humans decide.</div>
+  <div class="immortal-quote">
+    <div class="iq-line">AI may analyze, propose, implement, and argue.</div>
+    <div class="iq-line">Only humans approve and merge.</div>
+  </div>
+  <div class="ag" style="margin-top:32px">
+    <div class="al lb"><h3>👤 Author</h3><ul><li>Anyone proposes on a branch</li><li>ADR or change</li><li>No direct write to main</li></ul></div>
+    <div class="al lg"><h3>🤖 Claude &amp; GPT review</h3><ul><li>Internal consistency</li><li>Missing counter-arguments</li><li>Cross-ADR checks — advisory only</li></ul></div>
+    <div class="al lo"><h3>✅ Human merge</h3><ul><li>Maintainer holds context</li><li>Makes the final call</li><li>Branch protection enforced</li></ul></div>
+  </div>
+  <div class="anote">Repository harness (OK-100, adopted): <strong>AGENTS.md</strong> + deterministic <strong>make verify / conformance / evidence</strong> — the sensors caught real defects and let an agent self-correct, while the ownership boundary held.</div>
+  <div class="snum">7 / 10</div>
+</div>
+
+<div class="slide s6" data-slide="8">
   <h2>What's <span class="hl">Next</span></h2>
   <div class="rg">
-    <div class="rm done"><div class="rv">v1.0.3 — Now ✅</div><h3>Foundation</h3><ul><li>OpenKubesCluster API</li><li>OpenKubesVM API</li><li>Crossplane Go-Template Compositions</li><li>make deploy / delete / recreate</li><li>make vm-create / vm-ssh / vm-list</li><li>Auto Calico + MetalLB</li><li>Cluster upgrade via recreate</li></ul></div>
-    <div class="rm next"><div class="rv">v1.1 — Next</div><h3>Platform Maturity</h3><ul><li>Rolling upgrade (CAPK v0.12.x)</li><li>OpenKubesStorage API</li><li>OpenKubesNetworking API</li><li>GitOps with Flux</li><li>Observability stack</li><li>Multi-cluster dashboard</li></ul></div>
-    <div class="rm fut"><div class="rv">v2.0 — Future</div><h3>Native Operator</h3><ul><li>Go operator</li><li>No Crossplane dependency</li><li>OpenKubesAI — GPU Workspace</li><li>OpenKubesDB — DBaaS API</li><li>OpenKubesTenant — Multi-tenancy</li><li>OperatorHub publication</li></ul></div>
+    <div class="rm done"><div class="rv">v0.12.0 — Now ✅</div><h3>Delivered</h3><ul><li>23 platform ADRs (contract-first)</li><li>Talos + Cilium cluster lifecycle</li><li>Storage (Longhorn v1)</li><li>Observability + contract gate (ADR-018)</li><li>Gated make install-observability</li><li>Crossplane AI platform (Open WebUI)</li><li>Repo harness (verify/conformance/evidence)</li></ul></div>
+    <div class="rm next"><div class="rv">Next</div><h3>Platform Maturity</h3><ul><li>GitOps delivery (ok-gitops / ArgoCD)</li><li>Vault phase-2 (External Secrets)</li><li>Constrained edge profile (ADR-014)</li><li>The <code>ok</code> CLI</li><li>Shared services / federation (ok-shared)</li></ul></div>
+    <div class="rm fut"><div class="rv">Future</div><h3>Vision</h3><ul><li>Immortal Platform — self-healing, RPO=0 (OK-30)</li><li>OpenKubes Anywhere — EKS/AKS/GKE (OK-24)</li><li>Robotics fleets — Open-RMF (ADR-019)</li><li>Bare metal — Metal3 (OK-19)</li></ul></div>
   </div>
-  <div class="snum">6 / 9</div>
+  <div class="snum">8 / 10</div>
 </div>
 
-
-<div class="slide s-anywhere" data-slide="7">
+<div class="slide s-anywhere" data-slide="9">
   <h2>OpenKubes <span class="hl">Anywhere</span></h2>
-  <div class="sub">One Platform. Any Environment.</div>
+  <div class="dark-sub">One platform. Any environment. Same contracts.</div>
   <div class="ag">
-    <div class="al lb"><h3>🏭 On-Premises</h3><ul><li>Bare Metal (Metal3)</li><li>KubeVirt VMs</li><li>Air-gapped</li><li>Sovereign Cloud</li><li>make deploy cluster=factory-a</li></ul></div>
-    <div class="al lg"><h3>☁️ Public Cloud</h3><ul><li>AWS EKS</li><li>Azure AKS</li><li>Google GKE</li><li>Same API</li><li>make deploy cluster=prod-aws</li></ul></div>
-    <div class="al lo"><h3>🤖 Industrial Edge</h3><ul><li>Factory Sites</li><li>k3s Edge Clusters</li><li>Open-RMF / ROS2</li><li>AI / GPU Nodes</li><li>make deploy cluster=site-b</li></ul></div>
-    <div class="al lp"><h3>🔧 Unified Ops</h3><ul><li>Same make interface</li><li>Same GitOps workflow</li><li>Same Platform APIs</li><li>Same Day 2 ops</li><li>OpenKubesCluster XRD</li></ul></div>
+    <div class="al lb"><h3>🏭 On-Premises</h3><ul><li>Bare Metal (Metal3, roadmap)</li><li>KubeVirt VMs</li><li>Air-gapped</li><li>Sovereign Cloud</li></ul></div>
+    <div class="al lg"><h3>☁️ Public Cloud</h3><ul><li>AWS EKS</li><li>Azure AKS</li><li>Google GKE (roadmap)</li><li>Same capability contracts</li></ul></div>
+    <div class="al lo"><h3>🤖 Industrial Edge</h3><ul><li>Factory sites</li><li>Open-RMF / ROS2</li><li>AI / GPU nodes</li><li>Constrained edge profile</li></ul></div>
+    <div class="al lp"><h3>🔧 Unified Ops</h3><ul><li>Same make interface</li><li>Same GitOps workflow</li><li>Same platform ADRs</li><li>Same Day-2 ops</li></ul></div>
   </div>
-  <div class="anote">OpenKubes Anywhere — Hybrid &amp; Multi-Cloud Platform Operations (OK-24)</div>
-  <div class="snum">7 / 9</div>
+  <div class="anote">Hybrid &amp; multi-cloud on one contract set (OK-24) · "Git is the contract, Kubernetes is the enforcer."</div>
+  <div class="snum">9 / 10</div>
 </div>
 
-<div class="slide s-immortal" data-slide="8">
-  <h2>The <span class="hl">Immortal</span> Platform</h2>
-  <div class="sub">Infrastructure that can disappear and come back on its own.</div>
-
-  <div class="immortal-quote">
-    <div class="iq-line">Git is the contract.</div>
-    <div class="iq-line">Kubernetes is the enforcer.</div>
-  </div>
-
-  <div class="ag" style="margin-top:32px">
-    <div class="al lb">
-      <h3>🏭 Metal3 path</h3>
-      <ul>
-        <li>Bare metal node fails</li>
-        <li>BMC/Redfish detects</li>
-        <li>PXE → OS → CAPI</li>
-        <li>Target RTO &lt; 10 min</li>
-        <li>No human intervention</li>
-      </ul>
-    </div>
-    <div class="al lg">
-      <h3>☁️ Shadow MGMT path</h3>
-      <ul>
-        <li>Primary MGMT fails</li>
-        <li>Cloud shadow takes over</li>
-        <li>ArgoCD reconciles all</li>
-        <li>Target RTO &lt; 60 sec</li>
-        <li>Workloads uninterrupted</li>
-      </ul>
-    </div>
-    <div class="al lo">
-      <h3>🗺️ Roadmap</h3>
-      <ul>
-        <li>OK-19 OpenKubesMetal</li>
-        <li>OK-24 OpenKubes Anywhere</li>
-        <li>OK-30 Immortal Platform</li>
-        <li>RPO = 0 (Git)</li>
-        <li>Open · Sovereign · Upstream</li>
-      </ul>
-    </div>
-  </div>
-  <div class="snum">8 / 9</div>
-</div>
-
-<div class="slide s7" data-slide="9">
+<div class="slide s7" data-slide="10">
   <img src="openkubes-logo.png" alt="OpenKubes" onerror="this.style.display='none'">
   <h2>Get <span>Started</span></h2>
-  <div class="sub2">Open Source · Apache 2.0 · Production Ready · v1.0.3</div>
+  <div class="sub2">Open Source · Apache 2.0 · Community Preview · v0.12.0</div>
   <div class="cmds">
-    <div class="cmd"><span class="cc"># Create a VM</span>make vm-create vm=ok4</div>
-    <div class="cmd"><span class="cc"># Deploy a cluster</span>make deploy cluster=ok1</div>
-    <div class="cmd"><span class="cc"># Open Cluster UI</span>make manager-deploy cluster=ok1 &amp;&amp; make manager-open cluster=ok1</div>
+    <div class="cmd"><span class="cc"># Provision a Talos cluster</span>make new CLUSTER=ok-ai TYPE=talos WORKERS=2</div>
+    <div class="cmd"><span class="cc"># Bootstrap + CNI</span>make bootstrap CLUSTER=ok-ai</div>
+    <div class="cmd"><span class="cc"># Observability (gated contract test)</span>make install-observability CLUSTER=ok-ai</div>
   </div>
   <a class="ghlink" href="https://github.com/openkubes/openkubes">⭐ github.com/openkubes/openkubes</a>
   <div class="built">Built with ❤️ by Kubernauts · kubernauts.de</div>
@@ -342,7 +322,7 @@ h2 .hl{color:#1a6fc4}
 <div class="dots" id="dots"></div>
 
 <script>
-let c=1,t=9;
+let c=1,t=10;
 const d=document.getElementById('dots');
 for(let i=1;i<=t;i++){const x=document.createElement('div');x.className='dot'+(i===1?' active':'');x.onclick=()=>goTo(i);d.appendChild(x);}
 function goTo(n){document.querySelector('.slide.active').classList.remove('active');document.querySelector('[data-slide="'+n+'"]').classList.add('active');document.querySelectorAll('.dot').forEach((x,i)=>x.classList.toggle('active',i+1===n));c=n;}
