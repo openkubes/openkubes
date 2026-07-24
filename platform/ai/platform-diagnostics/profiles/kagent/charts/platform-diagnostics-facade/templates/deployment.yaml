@@ -33,6 +33,8 @@ spec:
           env:
             - name: KAGENT_BASE_URL
               value: {{ .Values.kagent.baseUrl | quote }}
+            - name: KAGENT_NAMESPACE
+              value: {{ .Values.kagent.namespace | quote }}
             - name: KAGENT_AGENT
               value: {{ .Values.kagent.agent | quote }}
             {{- if .Values.kagent.token }}

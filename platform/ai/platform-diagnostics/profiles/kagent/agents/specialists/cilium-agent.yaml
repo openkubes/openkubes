@@ -1,5 +1,5 @@
 # Specialist: Cilium / network triage (UC-4). Internal delegate; read-only.
-apiVersion: kagent.dev/v1alpha1
+apiVersion: kagent.dev/v1alpha2
 kind: Agent
 metadata:
   name: cilium-agent
@@ -10,15 +10,20 @@ metadata:
     platform.openkubes.ai/role: specialist
 spec:
   description: Read-only Cilium/CNI and network-policy triage.
-  modelConfig: ollama-gpt-oss
-  systemMessage: |
-    Read-only network specialist. Inspect CiliumEndpoints, CiliumNetworkPolicies,
-    CiliumNodes and core networking (services, endpoints, ingresses,
-    networkpolicies) to explain connectivity/policy issues. Bring in codified
-    OpenKubes network learnings (stale ARP, overlay-vs-vSwitch path) via the
-    Documentation Contract when relevant. get/list/watch only.
-  tools:
-    - type: McpServer
-      mcpServer:
-        toolServer: cluster-inspection
-        names: [k8s_get, k8s_describe, cilium_status]
+  type: Declarative
+  declarative:
+    modelConfig: ollama-gpt-oss
+    a2aConfig: {}
+    systemMessage: |
+      Read-only network specialist. Inspect CiliumEndpoints, CiliumNetworkPolicies,
+      CiliumNodes and core networking (services, endpoints, ingresses,
+      networkpolicies) to explain connectivity/policy issues. Bring in codified
+      OpenKubes network learnings (stale ARP, overlay-vs-vSwitch path) via the
+      Documentation Contract when relevant. get/list/watch only.
+    tools:
+      - type: McpServer
+        mcpServer:
+          apiGroup: kagent.dev
+          kind: ToolServer
+          name: cluster-inspection
+          toolNames: [k8s_get, k8s_describe, cilium_status]

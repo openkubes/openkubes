@@ -21,9 +21,13 @@ It runs and serves schema-valid **stub** responses so consumers and contract tes
 
 ## Config (all env; endpoints are Provider Values from ok-cluster)
 
+The agent is invoked over A2A at `{KAGENT_BASE_URL}/api/a2a/{KAGENT_NAMESPACE}/{KAGENT_AGENT}`
+(JSON-RPC 2.0, `message/send`; enabled by `declarative.a2aConfig` on the Agent).
+
 | env | meaning | default |
 |---|---|---|
-| `KAGENT_BASE_URL` | kagent API/A2A base (in-cluster svc) | `http://kagent.kagent.svc.cluster.local:8083` |
+| `KAGENT_BASE_URL` | kagent controller svc (A2A served here) | `http://kagent.kagent.svc.cluster.local:8083` |
+| `KAGENT_NAMESPACE` | namespace the Agents are deployed in | `platform-diagnostics` |
 | `KAGENT_AGENT` | agent to invoke | `openkubes-platform-agent` |
 | `KAGENT_TOKEN` | bearer for kagent, if enabled | _(unset)_ |
 | `PROVIDER_NAME` | logical provider id for audit | `kagent` |

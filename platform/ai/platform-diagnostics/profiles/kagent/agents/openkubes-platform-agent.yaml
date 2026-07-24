@@ -1,11 +1,12 @@
 # The single agent that FRONTS the contract. Consumers only ever reach this one
-# (via the facade); it delegates internally to specialists (invisible to
+# (via the facade -> A2A); it delegates internally to specialists (invisible to
 # consumers — ADR-021 "Implementation Profiles / Profile A").
 #
-# VERIFY against installed CRD: field names for model reference (`modelConfig`
-# vs `modelConfigRef`) and how sub-agents are attached (tools of type Agent vs.
-# an a2aConfig block) have drifted across kagent 0.9.x — `kubectl explain agent.spec`.
-apiVersion: kagent.dev/v1alpha1
+# Confirmed against kagent.dev/v1alpha2: spec.type + spec.declarative wrapper;
+# model/systemMessage/tools live under declarative; sub-agents are attached as
+# tools of type Agent (typed ref); a2aConfig instantiates the A2A server the
+# facade calls at <controller>:8083/api/a2a/<namespace>/<agent-name>.
+apiVersion: kagent.dev/v1alpha2
 kind: Agent
 metadata:
   name: openkubes-platform-agent
@@ -15,43 +16,55 @@ metadata:
     platform.openkubes.ai/profile: kagent
     platform.openkubes.ai/role: front
 spec:
-  description: >
+  description: >-
     OpenKubes read-only platform diagnostics. Fronts the Read-Only Platform
     Diagnostics Contract (ADR-021). Produces standardized diagnostic reports;
     never mutates cluster state.
-  modelConfig: ollama-gpt-oss
-  systemMessage: |
-    You are the OpenKubes platform-diagnostics agent. You are READ-ONLY:
-    diagnose, explain, and collect evidence — never apply, remediate, patch, or
-    delete anything. "AI may argue; only humans merge."
+  type: Declarative
+  declarative:
+    modelConfig: ollama-gpt-oss          # same namespace (kagent requirement)
+    # A2A server so the facade can invoke this agent. URL:
+    #   http://kagent.kagent.svc.cluster.local:8083/api/a2a/platform-diagnostics/openkubes-platform-agent
+    a2aConfig: {}                        # skills[] optional; empty enables the server
+    systemMessage: |
+      You are the OpenKubes platform-diagnostics agent. You are READ-ONLY:
+      diagnose, explain, and collect evidence — never apply, remediate, patch, or
+      delete anything. "AI may argue; only humans merge."
 
-    You serve exactly three functions (the facade routes each request to you with
-    a FUNCTION tag): get_platform_health, investigate_workload,
-    collect_diagnostic_evidence.
+      You serve exactly three functions (the facade tags each request with the
+      FUNCTION): get_platform_health, investigate_workload,
+      collect_diagnostic_evidence.
 
-    Delegate to specialists when a domain matches: kubernetes-agent (workloads,
-    events, pods, controllers), cilium-agent (network/CNI triage),
-    observability-agent (logs/metrics). Their internal use is invisible to the
-    caller — return one coherent result.
+      Delegate to specialists when a domain matches: kubernetes-agent (workloads,
+      events, pods, controllers), cilium-agent (network/CNI triage),
+      observability-agent (logs/metrics). Their internal use is invisible to the
+      caller — return one coherent result.
 
-    Output discipline (the facade enforces the JSON schema; you must supply the
-    substance):
-      * Every probable cause is a ranked hypothesis with a confidence
-        (low/medium/high) AND an explicit counter_evidence_status: did you look
-        for evidence AGAINST it? found / none_found / not_checked. A hypothesis
-        without sought counter-evidence is a guess — say so.
-      * Reference evidence by source (events, logs, describe); NEVER paste secrets
-        or raw log dumps into the answer.
-      * recommended_next_steps are actions for a HUMAN. You do not execute them.
-      * If a needed signal is unavailable in this provider (e.g. no host journal on
-        Talos), say it is unavailable and why — do not silently omit it.
-  tools:
-    # Sub-agent delegation. If the installed CRD models delegation differently
-    # (a2aConfig), move these there — the intent is: these three are reachable
-    # as internal delegates, nothing else.
-    - type: Agent
-      agent: { name: kubernetes-agent }
-    - type: Agent
-      agent: { name: cilium-agent }
-    - type: Agent
-      agent: { name: observability-agent }
+      Output discipline (the facade enforces the JSON schema; you supply the
+      substance):
+        * Every probable cause is a ranked hypothesis with a confidence
+          (low/medium/high) AND an explicit counter_evidence_status: did you look
+          for evidence AGAINST it? found / none_found / not_checked. A hypothesis
+          without sought counter-evidence is a guess — say so.
+        * Reference evidence by source (events, logs, describe); NEVER paste
+          secrets or raw log dumps into the answer.
+        * recommended_next_steps are actions for a HUMAN. You do not execute them.
+        * If a needed signal is unavailable in this provider (e.g. no host journal
+          on Talos), say it is unavailable and why — do not silently omit it.
+    tools:
+      # Sub-agent delegation via typed Agent refs (same namespace).
+      - type: Agent
+        agent:
+          apiGroup: kagent.dev
+          kind: Agent
+          name: kubernetes-agent
+      - type: Agent
+        agent:
+          apiGroup: kagent.dev
+          kind: Agent
+          name: cilium-agent
+      - type: Agent
+        agent:
+          apiGroup: kagent.dev
+          kind: Agent
+          name: observability-agent

@@ -1,6 +1,8 @@
 # Specialist: Kubernetes workload diagnosis (Cluster Inspection Contract, UC-1).
 # Internal delegate of openkubes-platform-agent — not exposed to consumers.
-apiVersion: kagent.dev/v1alpha1
+# kagent.dev/v1alpha2: declarative wrapper; tools reference the ToolServer via a
+# typed McpServer ref + toolNames. a2aConfig so it is invokable as a sub-agent.
+apiVersion: kagent.dev/v1alpha2
 kind: Agent
 metadata:
   name: kubernetes-agent
@@ -11,16 +13,23 @@ metadata:
     platform.openkubes.ai/role: specialist
 spec:
   description: Read-only Kubernetes workload/controller/event diagnosis.
-  modelConfig: ollama-gpt-oss
-  systemMessage: |
-    Read-only Kubernetes specialist. Inspect pods, deployments, replicasets,
-    statefulsets, daemonsets, jobs, events, endpoints and node conditions to
-    explain workload failures (CrashLoopBackOff, ImagePullBackOff, Pending,
-    OOMKilled, failed probes). get/list/watch only — never mutate. Report what
-    you could NOT see (RBAC/provider limits) rather than guessing around it.
-  tools:
-    - type: McpServer
-      mcpServer:
-        toolServer: cluster-inspection
-        # read-only kubectl surface; the SA RBAC is the hard boundary
-        names: [k8s_get, k8s_describe, k8s_events, k8s_logs]
+  type: Declarative
+  declarative:
+    modelConfig: ollama-gpt-oss
+    a2aConfig: {}
+    systemMessage: |
+      Read-only Kubernetes specialist. Inspect pods, deployments, replicasets,
+      statefulsets, daemonsets, jobs, events, endpoints and node conditions to
+      explain workload failures (CrashLoopBackOff, ImagePullBackOff, Pending,
+      OOMKilled, failed probes). get/list/watch only — never mutate. Report what
+      you could NOT see (RBAC/provider limits) rather than guessing around it.
+    tools:
+      - type: McpServer
+        mcpServer:
+          apiGroup: kagent.dev
+          kind: ToolServer
+          name: cluster-inspection
+          # toolNames must match the tools the ToolServer actually advertises;
+          # confirm with `kubectl get toolserver cluster-inspection -o yaml`
+          # (status lists discovered tools) after it is created.
+          toolNames: [k8s_get, k8s_describe, k8s_events, k8s_logs]

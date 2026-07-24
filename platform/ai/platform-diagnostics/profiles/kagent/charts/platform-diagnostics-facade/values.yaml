@@ -6,9 +6,12 @@ image:
   tag: "0.1.0"
   pullPolicy: IfNotPresent
 
-# kagent connection (in-cluster). Base URL/agent are the contract's provider side.
+# kagent connection (in-cluster). The A2A endpoint is
+#   {baseUrl}/api/a2a/{namespace}/{agent}
+# baseUrl = kagent controller svc; namespace = where the Agents are deployed.
 kagent:
   baseUrl: "http://kagent.kagent.svc.cluster.local:8083"
+  namespace: "platform-diagnostics"
   agent: "openkubes-platform-agent"
   # token: injected via Secret if kagent auth is enabled (Makefile handles it).
   token: ""

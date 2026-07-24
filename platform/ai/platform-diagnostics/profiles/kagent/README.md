@@ -49,23 +49,30 @@ collapses to a pass-through; the contract and consumers do not change either way
 | `charts/platform-diagnostics-kagent/` | Helm chart: facade Deployment/Service + RBAC |
 | `kustomization.yaml` | applies the kagent CRs (ModelConfig, Agents, Tools) as one unit |
 
-## ⚠️ kagent CRD shapes — verify against the pinned version
+## kagent CRD shapes — confirmed against the installed version
 
-The CRs below target **kagent `v1alpha1`** as installed by
-`ok-cluster/kagent/Makefile` (`KAGENT_VERSION=0.9.9`, Helm OCI
-`ghcr.io/kagent-dev`). kagent's CRD schema has drifted across the 0.9.x line —
-treat these manifests as the **intended structure** and confirm field names after
-install:
+The CRs target the schemas installed by `ok-cluster/kagent/Makefile`
+(`KAGENT_VERSION=0.9.9`), verified via `kubectl explain` on ok-ai:
 
-```bash
-make -C ../../../../../  # (context only)
-kubectl --kubeconfig ~/.kube/ok-ai.yaml explain agent.spec
-kubectl --kubeconfig ~/.kube/ok-ai.yaml explain modelconfig.spec
-kubectl --kubeconfig ~/.kube/ok-ai.yaml explain toolserver.spec
-```
+- **`ModelConfig` — `kagent.dev/v1alpha2`**: `spec.provider`, `spec.model`,
+  `spec.ollama.host`, `spec.ollama.options` (string map, holds `num_ctx`).
+- **`Agent` — `kagent.dev/v1alpha2`**: `spec.type: Declarative` + `spec.declarative`
+  wrapper; `modelConfig` (name), `systemMessage`, `tools[]`, and `a2aConfig`
+  (instantiates the A2A server the facade calls). Sub-agents are attached as
+  `tools[].agent` typed refs; MCP tools as `tools[].mcpServer` (`name` + `toolNames`).
+- **`ToolServer` — `kagent.dev/v1alpha1`**: `spec.description` + `spec.config.stdio`
+  (`command` required, `args`, `readTimeoutSeconds`).
 
-Adjust keys to match the installed CRDs before applying. This is expected scaffold
-hygiene, not a rewrite.
+Two things still need confirming **at deploy time** (they depend on runtime state,
+not the schema):
+
+1. `toolNames` on `cluster-inspection` must match the tools the ToolServer actually
+   advertises — check `kubectl get toolserver cluster-inspection -o yaml` (status)
+   after it starts. Or reference kagent's built-in k8s tools instead (see the
+   ToolServer file's note and the shipped `k8s-agent`).
+2. How kagent schedules the ToolServer's stdio process and which ServiceAccount it
+   runs as — the read-only SA (`rbac.yaml`) must be the identity behind the kubectl
+   calls. Pin it via the kagent values.
 
 ## Guardrails (stop rule, guideline Part C)
 

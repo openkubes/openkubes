@@ -27,7 +27,11 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
 # ── config (Provider Values via env; see README) ─────────────────────────────
+# kagent serves each agent's A2A endpoint on the controller HTTP port (8083) at
+#   /api/a2a/<agent-namespace>/<agent-name>
+# (enabled by declarative.a2aConfig on the Agent). That is what we invoke.
 KAGENT_BASE_URL = os.getenv("KAGENT_BASE_URL", "http://kagent.kagent.svc.cluster.local:8083")
+KAGENT_NAMESPACE = os.getenv("KAGENT_NAMESPACE", "platform-diagnostics")
 KAGENT_AGENT = os.getenv("KAGENT_AGENT", "openkubes-platform-agent")
 KAGENT_TOKEN = os.getenv("KAGENT_TOKEN")
 PROVIDER_NAME = os.getenv("PROVIDER_NAME", "kagent")
@@ -135,26 +139,41 @@ def _now() -> datetime:
 
 # ── kagent invocation (TODO: wire to the live endpoint) ──────────────────────
 async def invoke_agent(function: str, payload: dict) -> dict:
-    """Invoke openkubes-platform-agent with a FUNCTION tag; return its raw output.
+    """Invoke openkubes-platform-agent over A2A with a FUNCTION tag.
 
-    TODO(OK-92): confirm kagent's invocation API from the OK-14 evaluation
-    (A2A `POST /api/.../invoke` vs. an OpenAI-compatible `/v1/chat/completions`
-    surface) and parse the agent's structured reply. The agent is prompted
-    (see agents/openkubes-platform-agent.yaml) to supply ranked hypotheses with
-    counter_evidence_status and reference-only evidence; map that reply onto the
-    pydantic models below. Keep the mapping here so consumers never see kagent.
+    kagent exposes the agent via the A2A protocol (JSON-RPC 2.0, method
+    "message/send") at /api/a2a/<ns>/<agent> on the controller. We send the
+    function + input as a text part; the agent (see openkubes-platform-agent.yaml)
+    is prompted to reply with ranked hypotheses (counter_evidence_status) and
+    reference-only evidence.
+
+    TODO(OK-92): parse the A2A task/message reply and MAP it onto the pydantic
+    models below (this is the only substantive piece left). Keep the mapping here
+    so consumers never see kagent/A2A specifics — that is what keeps the backend
+    swappable (ADR-021 test 4).
     """
     headers = {"Content-Type": "application/json"}
     if KAGENT_TOKEN:
         headers["Authorization"] = f"Bearer {KAGENT_TOKEN}"
-    request = {"agent": KAGENT_AGENT, "function": function, "input": payload}
-    # NOTE: URL/shape is a placeholder pending the OK-14 finding.
-    url = f"{KAGENT_BASE_URL}/api/agents/{KAGENT_AGENT}/invoke"
+    url = f"{KAGENT_BASE_URL}/api/a2a/{KAGENT_NAMESPACE}/{KAGENT_AGENT}"
+    text = json.dumps({"function": function, "input": payload})
+    rpc = {
+        "jsonrpc": "2.0",
+        "id": f"pd-{function}",
+        "method": "message/send",
+        "params": {
+            "message": {
+                "role": "user",
+                "parts": [{"kind": "text", "text": text}],
+                "messageId": f"pd-{function}",
+            }
+        },
+    }
     try:
         async with httpx.AsyncClient(timeout=120) as client:
-            resp = await client.post(url, headers=headers, json=request)
+            resp = await client.post(url, headers=headers, json=rpc)
             resp.raise_for_status()
-            return resp.json()
+            return resp.json()  # A2A result — mapping is the OK-92 TODO above
     except Exception as exc:  # skeleton: surface as unavailable evidence, not a 500
         return {"_stub": True, "_error": str(exc)}
 

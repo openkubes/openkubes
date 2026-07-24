@@ -8,8 +8,9 @@
 # patched in at apply time (kustomize patch / Helm value) — same convention as
 # platform/ai/openclaw/charts/openclaw/values.yaml. Do NOT commit the real IP here.
 #
-# VERIFY field names against the installed CRD: `kubectl explain modelconfig.spec`.
-apiVersion: kagent.dev/v1alpha1
+# Confirmed against the installed CRD (kagent.dev/v1alpha2): spec.provider,
+# spec.model, spec.ollama.host, spec.ollama.options (string map).
+apiVersion: kagent.dev/v1alpha2
 kind: ModelConfig
 metadata:
   name: ollama-gpt-oss

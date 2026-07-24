@@ -1,14 +1,14 @@
 # Cluster Inspection Contract — read-only tool surface for the specialists.
 #
-# Modeled as a kagent ToolServer (MCP). The tool NAMES are the reviewed surface;
-# the hard read-only boundary is the ServiceAccount RBAC (rbac.yaml), not the
-# tool list — a tool that tried to write would still be denied by the SA.
+# kagent.dev/v1alpha1 ToolServer: spec.description (required) + spec.config with
+# exactly one of stdio / sse / streamableHttp. The tool NAMES are the reviewed
+# surface; the hard read-only boundary is the ServiceAccount RBAC (rbac.yaml),
+# not the tool list — a tool that tried to write would still be denied by the SA.
 #
-# Two common implementation choices for a read-only kubectl surface:
-#   (a) kagent's built-in Kubernetes tools filtered to read verbs, or
-#   (b) an MCP kubectl server (e.g. an mcp-server-kubernetes image) with the SA.
-# Pick per the OK-14 finding; either sits behind the same SA. VERIFY the
-# ToolServer spec shape: `kubectl explain toolserver.spec`.
+# This uses a stdio MCP kubectl server. Alternative: reference kagent's built-in
+# kubernetes tools instead of a self-hosted server — inspect how the shipped
+# k8s-agent wires them (`kubectl -n kagent get agent k8s-agent -o yaml`) and
+# mirror that mcpServer ref. Either way the SA below is the boundary.
 apiVersion: kagent.dev/v1alpha1
 kind: ToolServer
 metadata:
@@ -19,10 +19,12 @@ metadata:
     platform.openkubes.ai/profile: kagent
 spec:
   description: Read-only cluster inspection (get/list/watch, secrets excluded).
-  # stdio MCP server example; swap for kagent built-in tools if preferred.
-  stdio:
-    command: "mcp-server-kubernetes"
-    args: ["--read-only"]
-  # The pod running this server MUST use the SA `openkubes-platform-agent`
-  # so its kubectl calls carry the read-only ClusterRole. Enforce via the
-  # kagent values (tool-executor serviceAccount) — see charts/ values.
+  config:
+    stdio:
+      command: "mcp-server-kubernetes"
+      args: ["--read-only"]
+      readTimeoutSeconds: 30
+  # The pod running this server MUST use the SA `openkubes-platform-agent` so its
+  # kubectl calls carry the read-only ClusterRole (rbac.yaml). Confirm how kagent
+  # schedules ToolServer stdio processes in 0.9.9 and pin the SA accordingly
+  # (kagent tool-executor serviceAccount / pod template) — see the profile README.
