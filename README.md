@@ -70,11 +70,11 @@ The platform handles the rest. No Helm expertise needed. No manual configuration
 
 | Repository | Contract | Status |
 |---|---|---|
-| [`openkubes/openkubes`](https://github.com/openkubes/openkubes) | Platform Distribution, ADRs, XRDs, AI Platform | ✅ v1.0.4 |
-| [`openkubes/ok-cluster`](https://github.com/openkubes/ok-cluster) | Cluster Lifecycle Contract | ✅ v0.11.0 |
+| [`openkubes/openkubes`](https://github.com/openkubes/openkubes) | Platform Distribution, ADRs, XRDs, AI Platform | ✅ v0.12.0 |
+| [`openkubes/ok-cluster`](https://github.com/openkubes/ok-cluster) | Cluster Lifecycle Contract | ✅ v0.12.0 |
 | [`openkubes/ok-linux`](https://github.com/openkubes/ok-linux) | OS Capability Contract (Talos) | ✅ v0.1.1 |
 | [`openkubes/ok-storage`](https://github.com/openkubes/ok-storage) | Persistent Storage Contract | ✅ v0.1.0 |
-| [`openkubes/ok-observability`](https://github.com/openkubes/ok-observability) | Observability Capability Contract | 🚧 install path live (OK-79, ADR-Platform-018) |
+| [`openkubes/ok-observability`](https://github.com/openkubes/ok-observability) | Observability Capability Contract | ✅ v0.12.0 (ADR-Platform-018) |
 | `openkubes/ok-gitops` | GitOps Contract | 📋 planned |
 | `openkubes/ok-apps` | Application Contract | 📋 planned |
 

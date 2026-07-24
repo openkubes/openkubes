@@ -2,6 +2,33 @@
 
 ---
 
+## v0.12.0 — Observability Capability + Harness Engineering
+
+> **OpenKubes owns the contracts, not the components.**
+
+### What's New
+
+**Observability Capability (ADR-Platform-018)**
+- Gated `make install-observability` in ok-cluster (OK-79): deploys the `ok-observability-standard` profile (kube-prometheus-stack + OpenSearch + log collector) and runs the contract test. A cluster is observability-ready only when all five contract guarantees pass — metric ingestion, Grafana datasource, OpenSearch log search, alert delivery, and declarative registration.
+- Secret-based, Vault-ready credentials model (`ok-observability-credentials`) — no plaintext passwords passed to Helm. Proven end-to-end on two independent clusters (ok-shared, ok-robotics).
+- `openkubes/ok-observability` owns the capability (contract, charts, dashboards, alerting, contract test); ok-cluster installs and integrates it.
+
+**Harness Engineering pilot — adopted (OK-100)**
+- `AGENTS.md` repository guide + deterministic `make verify` / `conformance` / `evidence` entry points in ok-observability. Rule zero: *AI may analyze, propose, implement, and argue; only humans approve architecture decisions and merge changes.*
+- The deterministic sensors caught real defects and let an agent self-correct from their output alone; the ownership boundary held (agent escalated architecture/merge decisions to a human). Documented in the blog post *The Contract Is the Guardrail*.
+
+**New Platform ADRs**
+- ADR-Platform-021: Read-Only Platform Diagnostics Contract *(draft)*
+- ADR-Platform-022: OpenKubes is a distribution framework, not a distribution *(draft)*
+- ADR-Platform-023: CAPI infrastructure providers as Implementation Profiles *(accepted)*
+
+**Three repositories — three releases**
+- openkubes/openkubes v0.12.0
+- ok-cluster v0.12.0
+- ok-observability v0.12.0
+
+---
+
 ## v0.2.0 — Private AI Platform + Management Cluster Architecture
 
 > **OpenKubes owns the contracts, not the components.**
