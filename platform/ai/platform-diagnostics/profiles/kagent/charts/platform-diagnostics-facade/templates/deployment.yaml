@@ -23,6 +23,8 @@ spec:
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
+        seccompProfile:
+          type: RuntimeDefault      # required by 'restricted' PodSecurity
       containers:
         - name: facade
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
@@ -60,3 +62,10 @@ spec:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
             capabilities: { drop: ["ALL"] }
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        # readOnlyRootFilesystem is true; give uvicorn/python a writable /tmp.
+        - name: tmp
+          emptyDir: {}
