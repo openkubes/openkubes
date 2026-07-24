@@ -6,6 +6,10 @@ image:
   tag: "0.1.0"
   pullPolicy: IfNotPresent
 
+# Pull secrets for a private registry (e.g. a private GHCR package). Empty by
+# default; set from the instance values (ok-cluster) when needed.
+imagePullSecrets: []
+
 # kagent connection (in-cluster). The A2A endpoint is
 #   {baseUrl}/api/a2a/{namespace}/{agent}
 # baseUrl = kagent controller svc; namespace = where the Agents are deployed.
