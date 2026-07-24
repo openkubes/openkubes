@@ -70,11 +70,11 @@ The platform handles the rest. No Helm expertise needed. No manual configuration
 
 | Repository | Contract | Status |
 |---|---|---|
-| [`openkubes/openkubes`](https://github.com/openkubes/openkubes) | Platform Distribution, ADRs, XRDs, AI Platform | ✅ v0.3.0 |
-| [`openkubes/ok-cluster`](https://github.com/openkubes/ok-cluster) | Cluster Lifecycle Contract | ✅ v0.10.0 |
+| [`openkubes/openkubes`](https://github.com/openkubes/openkubes) | Platform Distribution, ADRs, XRDs, AI Platform | ✅ v1.0.4 |
+| [`openkubes/ok-cluster`](https://github.com/openkubes/ok-cluster) | Cluster Lifecycle Contract | ✅ v0.11.0 |
 | [`openkubes/ok-linux`](https://github.com/openkubes/ok-linux) | OS Capability Contract (Talos) | ✅ v0.1.1 |
 | [`openkubes/ok-storage`](https://github.com/openkubes/ok-storage) | Persistent Storage Contract | ✅ v0.1.0 |
-| [`openkubes/ok-observability`](https://github.com/openkubes/ok-observability) | Observability Capability Contract | 🚧 scaffold (ADR-Platform-018) |
+| [`openkubes/ok-observability`](https://github.com/openkubes/ok-observability) | Observability Capability Contract | 🚧 install path live (OK-79, ADR-Platform-018) |
 | `openkubes/ok-gitops` | GitOps Contract | 📋 planned |
 | `openkubes/ok-apps` | Application Contract | 📋 planned |
 
@@ -111,7 +111,7 @@ kubectl apply -f claim.yaml
 
 ## Architecture Decisions
 
-OpenKubes is built on 20 documented platform-level decisions:
+OpenKubes is built on 23 documented platform-level decisions:
 
 | ADR | Decision |
 |---|---|
@@ -135,6 +135,9 @@ OpenKubes is built on 20 documented platform-level decisions:
 | [ADR-Platform-018](./architecture/decisions/ADR-Platform-018-observability-capability.md) | Observability capability — per-cluster stack with provisioning readiness gate |
 | [ADR-Platform-019](./architecture/decisions/ADR-Platform-019-robotics-fleet-orchestration.md) | Robotics Fleet Orchestration — Open-RMF profile on OpenKubes contracts |
 | [ADR-Platform-020](./architecture/decisions/ADR-Platform-020-shared-platform-services.md) | Shared Platform Services capability (ok-shared) — accepted via forcing consumer |
+| [ADR-Platform-021](./architecture/decisions/ADR-Platform-021-read-only-platform-diagnostics-contract.md) | Read-Only Platform Diagnostics Contract *(draft)* |
+| [ADR-Platform-022](./architecture/decisions/ADR-Platform-022-distribution-framework-not-a-distribution.md) | OpenKubes is a distribution framework, not a distribution *(draft)* |
+| [ADR-Platform-023](./architecture/decisions/ADR-Platform-023-capi-infrastructure-providers-as-implementation-profiles.md) | CAPI infrastructure providers as Implementation Profiles |
 
 → [`architecture/decisions/`](./architecture/decisions/)
 
