@@ -41,5 +41,11 @@ kagent tool-executor's ServiceAccount. The facade only talks to kagent.
 ```bash
 pip install -r requirements.txt
 uvicorn app:app --host 0.0.0.0 --port 8080      # local
-docker build -t ghcr.io/openkubes/platform-diagnostics-facade:dev .
+
+# Image: build MULTI-ARCH. A plain `docker build` on Apple Silicon produces an
+# arm64-only manifest, which the amd64 cluster nodes reject with
+# "no match for platform in manifest". Use buildx and push a manifest that
+# includes the node architecture (--provenance=false keeps it to real platforms):
+docker buildx build --platform linux/amd64,linux/arm64 --provenance=false \
+  -t ghcr.io/openkubes/platform-diagnostics-facade:0.1.0 --push .
 ```
