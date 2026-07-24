@@ -1,0 +1,47 @@
+<svg viewBox="0 0 880 330" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#475569"/>
+    </marker>
+    <marker id="arrowFb" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#b45309"/>
+    </marker>
+  </defs>
+
+  <!-- AI agent -->
+  <rect x="30" y="40" width="395" height="62" rx="8" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1.5"/>
+  <text x="227" y="66" text-anchor="middle" font-size="15" font-weight="600" fill="#1e293b">AI agent</text>
+  <text x="227" y="86" text-anchor="middle" font-size="12.5" fill="#475569">analyze · propose · implement · argue</text>
+
+  <!-- down arrow: agent -> boundary -->
+  <line x1="122" y1="102" x2="122" y2="168" stroke="#475569" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- feedback arrow: sensors -> agent -->
+  <line x1="332" y1="168" x2="332" y2="104" stroke="#b45309" stroke-width="1.5" stroke-dasharray="5 3" marker-end="url(#arrowFb)"/>
+  <text x="345" y="140" font-size="11.5" fill="#b45309">deterministic feedback → self-correct</text>
+
+  <!-- pipeline boxes -->
+  <rect x="30"  y="170" width="185" height="72" rx="8" fill="#eef2ff" stroke="#6366f1" stroke-width="1.5"/>
+  <text x="122" y="200" text-anchor="middle" font-size="14" font-weight="600" fill="#1e293b">Written boundary</text>
+  <text x="122" y="220" text-anchor="middle" font-size="11.5" fill="#475569">AGENTS.md</text>
+
+  <rect x="240" y="170" width="185" height="72" rx="8" fill="#eef2ff" stroke="#6366f1" stroke-width="1.5"/>
+  <text x="332" y="200" text-anchor="middle" font-size="14" font-weight="600" fill="#1e293b">Deterministic sensors</text>
+  <text x="332" y="220" text-anchor="middle" font-size="11.5" fill="#475569">make verify · conformance</text>
+
+  <rect x="450" y="170" width="185" height="72" rx="8" fill="#eef2ff" stroke="#6366f1" stroke-width="1.5"/>
+  <text x="542" y="200" text-anchor="middle" font-size="14" font-weight="600" fill="#1e293b">Contract gate</text>
+  <text x="542" y="220" text-anchor="middle" font-size="11.5" fill="#475569">five guarantees pass/fail</text>
+
+  <rect x="660" y="170" width="185" height="72" rx="8" fill="#ecfdf5" stroke="#059669" stroke-width="2"/>
+  <text x="752" y="196" text-anchor="middle" font-size="14" font-weight="700" fill="#065f46">Human approval</text>
+  <text x="752" y="215" text-anchor="middle" font-size="14" font-weight="700" fill="#065f46">&amp; merge</text>
+
+  <!-- pipeline arrows -->
+  <line x1="215" y1="206" x2="240" y2="206" stroke="#475569" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="425" y1="206" x2="450" y2="206" stroke="#475569" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="635" y1="206" x2="660" y2="206" stroke="#475569" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- caption under human gate -->
+  <text x="752" y="266" text-anchor="middle" font-size="11.5" font-style="italic" fill="#065f46">the one gate the agent does not control</text>
+</svg>
