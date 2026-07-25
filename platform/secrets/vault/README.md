@@ -37,7 +37,9 @@ Related: OK-110 (production Vault standup), OK-109 (VSO rewiring, last).
 
 - Enforce the singleton invariant (admission/conformance check).
 - Confirm the pinned chart version and the real ok-shared StorageClass.
-- Bootstrap ceremony (init/unseal, custody) — supervised, out of band.
+- Run the **bootstrap ceremony** (init/unseal, custody, root-token revoke) —
+  supervised, out of band. Runbook: `bootstrap/README.md`.
+- Backup/restore: Raft snapshot outside the failure domain + restore rehearsal.
 - **Verify the TLS render** — server TLS is wired in the composition
   (`global.tlsDisable: false`, `vault-server-tls` mounted, https Raft
   `retry_join`, TLS-aware health probe via `VAULT_ADDR`/`VAULT_CACERT`). Run
@@ -125,4 +127,5 @@ crossplane/composition.yaml         provider-helm Release (Raft, Orphan, pinned,
 crossplane/examples/ok-shared-vault.yaml   the singleton XR (placeholder values)
 crossplane/reachability.yaml        internal CA + server cert + IngressRouteTCP (passthrough)
 gate/vault-health-gate.sh           deterministic runtime health gate
+bootstrap/README.md                 supervised init/unseal ceremony runbook
 ```

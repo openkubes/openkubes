@@ -155,7 +155,7 @@ Vault pods MUST be spread across distinct ok-shared nodes (anti-affinity). Repli
 
 ### Vault configuration — one declarative reconciler, two phases
 
-1. **Bootstrap ceremony** (once, supervised): init, unseal, audit device, initial admin auth, automation identity, root-token revocation.
+1. **Bootstrap ceremony** (once, supervised): init, unseal, audit device, initial admin auth, automation identity, root-token revocation. Runbook: `platform/secrets/vault/bootstrap/README.md` (PGP-encrypted Shamir shares + root token, each step bound to a health-gate state, includes the cold-restart rehearsal for items 4 & 12; the automation *auth method* is deferred to item 13, only the least-privilege policy skeleton is created).
 2. **Day-1/Day-2 reconciliation** (declarative): auth mounts, policies, roles, secret engines, per-registered-cluster config — through **exactly one** reconciler; production auth config MUST NOT be split across multiple authoritative reconcilers.
 
 **Open implementation sub-decision — required before the first production consumer:** select exactly one Day-1/Day-2 reconciler and record: execution owner + trigger; state location + recovery; automation auth method; least-privilege policy; drift detection; concurrency + retry semantics; credential rotation + break-glass. Terraform (vault provider) and an idempotent configuration controller remain candidates; a config Job is acceptable only if all of the above are defined. The automation identity is least-privilege and short-lived (no broad standing credential).
