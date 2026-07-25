@@ -149,6 +149,10 @@ path "sys/auth"            { capabilities = ["read"] }
 path "sys/auth/*"          { capabilities = ["create","update","delete","sudo"] }
 path "sys/policies/acl/*"  { capabilities = ["create","read","update","delete","list"] }
 path "auth/kubernetes/*"   { capabilities = ["create","read","update","delete","list"] }
+# REQUIRED: the Upjet terraform-provider-vault creates a limited child token per
+# operation via auth/token/create — without this the provider gets 403 on every MR
+# ("failed to create limited child token"). Verified live 2026-07-25.
+path "auth/token/create"   { capabilities = ["create","update"] }
 HCL
 
 # Seed the reconciler's OWN auth mount for ok-mgmt (Vault -> ok-mgmt TokenReview).
