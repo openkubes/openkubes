@@ -146,7 +146,10 @@ vault write auth/userpass/users/breakglass \
 vault policy write ok-config-automation - <<'HCL'
 # scoped to what the config reconciler needs: auth mounts, policies, roles.
 path "sys/auth"            { capabilities = ["read"] }
-path "sys/auth/*"          { capabilities = ["create","update","delete","sudo"] }
+path "sys/auth/*"          { capabilities = ["create","read","update","delete","sudo"] }
+# REQUIRED: the provider OBSERVES an auth backend via sys/mounts/auth/<path>;
+# without read here the Backend MR never reaches Ready (403 on observe). Live 2026-07-25.
+path "sys/mounts/auth/*"   { capabilities = ["read"] }
 path "sys/policies/acl/*"  { capabilities = ["create","read","update","delete","list"] }
 path "auth/kubernetes/*"   { capabilities = ["create","read","update","delete","list"] }
 # REQUIRED: the Upjet terraform-provider-vault creates a limited child token per
