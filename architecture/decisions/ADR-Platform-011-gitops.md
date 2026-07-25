@@ -85,11 +85,13 @@ Consequences:
 - The secret **tool** (External Secrets Operator, SOPS, Sealed Secrets, Vault,
   Bitwarden, …) is an **Implementation Profile per envelope — not part of the
   contract**.
-- **Datacenter envelope:** ESO / SOPS / Sealed-class mechanisms may be *eligible*,
-  subject to the envelope's full requirements (connectivity, key custody,
-  bootstrap, recovery, operator availability) — e.g. Vault + ESO on ok-shared
-  (OK-110). **Constrained-edge envelope:** only offline-reconcilable mechanisms
-  are eligible (e.g. appropriately configured SOPS / Sealed-class profiles).
+- **Datacenter envelope:** ESO / VSO / SOPS / Sealed-class mechanisms are all
+  *eligible* under this contract, subject to the envelope's full requirements
+  (connectivity, key custody, bootstrap, recovery, operator availability). The
+  selected profile is **Vault + Vault Secrets Operator (VSO) on ok-shared** —
+  ADR-Platform-025 (OK-110). **Constrained-edge envelope:** only
+  offline-reconcilable mechanisms are eligible (e.g. appropriately configured
+  SOPS / Sealed-class profiles).
 - Third precedent for the Constraint Envelope pattern (ADR-017), after storage
   (ADR-009) and OS (ADR-016).
 - Adds an evaluation criterion to the edge GitOps spike (OK-67).
@@ -118,5 +120,5 @@ This supersedes the earlier "options to be decided in implementation" wording.
   implemented.
 - `bootstrap-mgmt.sh` is deprecated in favour of ArgoCD `Application` manifests —
   no ADR amendment needed, it is an implementation detail.
-- Secrets management follows the **Secret Contract** above; the concrete tool is a per-envelope Implementation Profile (datacenter: e.g. Vault + ESO — OK-110; constrained-edge: SOPS / Sealed-class). The contract is settled even though the GitOps profile is still Proposed.
+- Secrets management follows the **Secret Contract** above; the concrete tool is a per-envelope Implementation Profile (datacenter: Vault + VSO, ADR-Platform-025 — OK-110; constrained-edge: SOPS / Sealed-class). The contract is settled even though the GitOps profile is still Proposed.
 - `make e2e` remains valid for local development and CI — GitOps is the production path.
