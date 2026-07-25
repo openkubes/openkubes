@@ -34,7 +34,7 @@ lifecycle via ArgoCD.
 
 ### Contract (stable)
 
-1. Git is the single source of truth for cluster desired state.
+1. Git is the source of truth for declarative cluster lifecycle state and for references to externally managed secret material; plaintext secret values are never required to reside in Git (see the Secret Contract below).
 2. Rendered cluster manifests live in a dedicated `rendered/` directory (or separate repo)
    — not mixed with templates.
 3. Creating a cluster = committing a rendered manifest + pushing.
@@ -54,17 +54,29 @@ lifecycle via ArgoCD.
 
 ### Secret Contract (amendment 2026-07-25 — OK-71; three-way review 2026-07-10)
 
-> These contract clauses are **settled and normative**; the surrounding GitOps
-> Implementation Profile (ArgoCD, `rendered/`, migration) remains **Proposed**.
+> **Amendment status: Accepted / normative** — normative as of the human merge
+> of this amendment (OK-71; three-way review 2026-07-10 & 2026-07-25). The merge
+> is the acceptance act, not the review alone.
+> **GitOps Implementation Profile status: Proposed** — ArgoCD, `rendered/`, and
+> the migration path remain open. This ADR deliberately carries an Accepted
+> amendment inside an otherwise-Proposed decision; the document `Status:` header
+> tracks the profile.
 
 Cluster kubeconfigs, CAPK infra credentials, and application admin credentials
 cannot be committed. Their handling is governed by a technology-independent
 contract:
 
 1. **Git never contains plaintext secret material.**
-2. **Secret material MUST be reconcilable within the constraint envelope of the
-   consuming cluster.** Mechanisms that require an always-on external store are
-   valid only in envelopes that guarantee connectivity.
+2. **Git is the source of truth for the declarative references and reconciliation
+   configuration of secret material — but not necessarily for the secret values
+   themselves** (which may live in an external store, e.g. Vault/Bitwarden).
+3. **Secret material MUST be reconcilable within the constraint envelope of the
+   cluster or environment in which its reconciliation occurs.** Mechanisms that
+   require an always-on external service are valid only where that envelope
+   guarantees the required connectivity and service availability. So a workload
+   credential is judged against the workload cluster's envelope; a CAPK / CAPI /
+   kubeconfig credential against the management / host cluster's envelope that
+   actually reconciles it — not against the (possibly edge) target it refers to.
 
 Consequences:
 
