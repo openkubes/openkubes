@@ -12,7 +12,8 @@ CP_DIR     := crossplane
 VC_XR       ?= $(CP_DIR)/examples/ok-robotics-vaultconfig.yaml
 VC_COMP     := $(CP_DIR)/vaultconfig-composition.yaml
 VC_FUNCS    := $(CP_DIR)/tests/functions.yaml
-VC_RENDER   := $(CROSSPLANE) render $(VC_XR) $(VC_COMP) $(VC_FUNCS)
+RENDER_TIMEOUT ?= 5m
+VC_RENDER   := $(CROSSPLANE) render --timeout $(RENDER_TIMEOUT) $(VC_XR) $(VC_COMP) $(VC_FUNCS)
 
 YAML_FILES := $(CP_DIR)/xrd.yaml $(CP_DIR)/composition.yaml \
               $(CP_DIR)/examples/ok-shared-vault.yaml $(CP_DIR)/reachability.yaml \
