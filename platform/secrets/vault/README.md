@@ -107,7 +107,10 @@ crossplane/provider-vault.yaml         Provider (PINNED) + ProviderConfig (K8s-a
 crossplane/vaultconfig-xrd.yaml        VaultConfig XRD (internal, per-cluster, Manual)
 crossplane/vaultconfig-composition.yaml provider-vault MRs (go-templating loop over roles)
 crossplane/examples/ok-robotics-vaultconfig.yaml   Category-A example (sa-obs)
+crossplane/tests/functions.yaml        pinned render functions (go-templating, auto-ready)
 ```
+
+Local render (needs `crossplane` CLI + Docker): `make render` / `make render-check`.
 
 **Not applyable yet — TO-VERIFY:** pin the tested `provider-vault` version and
 confirm MR CRD coverage (`kubectl get crds | grep vault`); the MR

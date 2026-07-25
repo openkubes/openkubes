@@ -4,17 +4,25 @@
 PYTHON ?= python3
 HELM   ?= helm
 SHELLCHECK ?= shellcheck
+CROSSPLANE ?= crossplane
+DOCKER ?= docker
+
+VC_XR       ?= $(CP_DIR)/examples/ok-robotics-vaultconfig.yaml
+VC_COMP     := $(CP_DIR)/vaultconfig-composition.yaml
+VC_FUNCS    := $(CP_DIR)/tests/functions.yaml
+VC_RENDER   := $(CROSSPLANE) render $(VC_XR) $(VC_COMP) $(VC_FUNCS)
 
 CP_DIR     := crossplane
 YAML_FILES := $(CP_DIR)/xrd.yaml $(CP_DIR)/composition.yaml \
               $(CP_DIR)/examples/ok-shared-vault.yaml $(CP_DIR)/reachability.yaml \
               $(CP_DIR)/provider-vault.yaml $(CP_DIR)/vaultconfig-xrd.yaml \
               $(CP_DIR)/vaultconfig-composition.yaml \
-              $(CP_DIR)/examples/ok-robotics-vaultconfig.yaml
+              $(CP_DIR)/examples/ok-robotics-vaultconfig.yaml \
+              $(CP_DIR)/tests/functions.yaml
 CHART_VER  ?= 0.30.1
 GATE       := gate/vault-health-gate.sh
 
-.PHONY: help validate lint-gate template-check health-gate
+.PHONY: help validate lint-gate template-check health-gate render-prerequisites render render-check
 
 help: ## Show available checks
 	@awk 'BEGIN {FS = ":.*## "}; /^[a-zA-Z_-]+:.*## / {printf "  %-16s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -77,6 +85,25 @@ template-check: ## Render the pinned Vault chart with the composition values (ne
 	@echo "Reminder: verify the TLS render against pinned chart $(CHART_VER) before apply:"
 	@echo "  helm template vault hashicorp/vault --version $(CHART_VER) -f <extracted-values.yaml>"
 	@echo "  (retry_join peer list is coupled to replicas=3 — must match the chosen failure budget)"
+
+render-prerequisites: ## Verify local Crossplane render dependencies
+	@command -v "$(CROSSPLANE)" >/dev/null || (echo "ERROR: Crossplane CLI is required"; exit 1)
+	@command -v "$(DOCKER)" >/dev/null || (echo "ERROR: Docker is required by Crossplane render"; exit 1)
+	@$(DOCKER) info >/dev/null 2>&1 || (echo "ERROR: Docker daemon unavailable"; exit 1)
+
+render: render-prerequisites ## Render the VaultConfig XR locally (needs crossplane + docker + pinned functions)
+	@$(VC_RENDER)
+
+render-check: render-prerequisites ## Render and verify the VaultConfig composition output
+	@$(VC_RENDER) | $(PYTHON) -c 'import sys, yaml; \
+docs=[d for d in yaml.safe_load_all(sys.stdin) if isinstance(d, dict)]; \
+mrs=[d for d in docs if str(d.get("apiVersion","")).endswith("vault.crossplane.io/v1beta1")]; \
+kinds=sorted(d["kind"] for d in mrs); \
+assert "AuthBackend" in kinds and "AuthBackendConfig" in kinds, kinds; \
+assert "Policy" in kinds and "AuthBackendRole" in kinds, kinds; \
+assert all(d["spec"]["providerConfigRef"]["name"]=="ok-shared-vault" for d in mrs), "all MRs must use the ok-shared-vault ProviderConfig"; \
+assert not any("jwt" in str(d.get("spec",{}).get("forProvider",{})).lower() and "SecretRef" not in str(d) for d in mrs), "reviewer JWT must be a secret ref, never inline"; \
+print("OK: VaultConfig renders auth mount + config + per-role policy/role via secret refs")'
 
 health-gate: ## Run the runtime health gate (set VAULT_ADDR/VAULT_CACERT/VAULT_TOKEN/...)
 	@bash $(GATE) $(GATE_ARGS)
