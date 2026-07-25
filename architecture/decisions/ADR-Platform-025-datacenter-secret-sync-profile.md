@@ -42,6 +42,17 @@ The auth mode between a workload cluster and the central Vault on ok-shared is c
 
 The pinned public keys are **cluster-originated** and count as part of the Vault-independent bootstrap origin, so the bootstrap invariant is preserved.
 
+## Cross-cluster reachability (decided — OK-110)
+
+Consumers reach the central Vault via the **ok-shared Traefik ingress**, modeled as an `IngressRouteTCP` with **TLS passthrough** and `HostSNI(vault.ok-shared.internal)`, backed by the leader-only **`vault-active`** service. This supersedes the manual host-cluster LoadBalancer proxy used in the PoC and reduces **OK-57** to an optional simplification rather than a prerequisite for this consumer.
+
+- **Passthrough, not termination.** Vault is a secret backend: TLS is end-to-end so Vault sees the real client and its audit log is meaningful; there is no plaintext hop inside ok-shared. This **supersedes the earlier "no TLS" scaffold note** — server TLS is in scope for the datacenter profile.
+- **`vault-active` backend (leader-only).** Routing to the plain `vault` service can hit a Raft standby, which answers with a 307 redirect to the leader's internal `api_addr` — a cross-cluster consumer cannot follow an internal redirect target. `vault-active` selects only the leader, avoiding the redirect (Vault Community has no performance standbys; all reads go to the leader anyway).
+- **Server TLS trust origin.** The Vault server certificate is issued by a cert-manager **internal CA** (`ok-shared-internal-ca`, self-signed bootstrap Issuer → CA → server cert), a **Vault-independent** origin — consistent with the bootstrap invariant (TLS trust for the Vault endpoint must not come from Vault itself). Not Let's Encrypt: `vault.ok-shared.internal` is not a public zone, so ACME/HTTP-01 cannot validate it.
+- **Consumer-side obligations.** Each datacenter consumer cluster (e.g. `ok-robotics`) needs (1) a **CoreDNS** entry resolving `vault.ok-shared.internal` to the ok-shared ingress MetalLB IP — the SNI host, not just the IP, must match because passthrough routes on SNI; and (2) the internal CA bundle wired into VSO via `VaultConnection.caCertSecretRef` + `tlsServerName`.
+
+Artifacts: `platform/secrets/vault/crossplane/reachability.yaml` (internal CA + server cert + `IngressRouteTCP`). Enabling the Vault server TLS listener itself (mount `vault-server-tls`, https Raft `retry_join`) is a separate, reviewable Composition change; passthrough is inert until Vault serves TLS.
+
 ## Rationale (VSO over ESO)
 
 Chosen because OpenKubes commits to Vault as *the* datacenter backend, and VSO offers **first-party HashiCorp support, Vault-native CRDs and auth, built-in `rolloutRestartTargets`, and support for KV + PKI + dynamic engines** (the direct ESO Vault provider is KV-centric and delegates other engines to separate generators). The rationale rests on *native / first-party / operational fit*, **not** on event-driven sync (which is Enterprise-only).
@@ -176,6 +187,7 @@ The `VaultInstance` XRD/Composition scaffold may begin now provided it does not 
 12. **Cold-restart rehearsal** recorded: recovery time, unseal threshold met under the operating model, all required Raft voters returned to service.
 13. **Exactly one Day-1/Day-2 Vault-config reconciler selected** and documented (state, least-privilege automation identity, drift, retry, rotation/break-glass).
 14. **Singleton invariant enforced** (conformance/admission check — no second production `VaultInstance`).
+15. **Non-manual cross-cluster reachability** proven: consumer reaches Vault over the ok-shared ingress `IngressRouteTCP` (TLS passthrough, `HostSNI(vault.ok-shared.internal)`, `vault-active` backend) with cert-manager server TLS and consumer-side CoreDNS + CA trust — replacing the PoC's manual host-cluster LB proxy.
 
 ## Re-evaluation triggers
 
