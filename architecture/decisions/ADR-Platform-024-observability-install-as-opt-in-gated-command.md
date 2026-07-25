@@ -1,7 +1,7 @@
 # ADR-Platform-024: Observability install and readiness gate as an opt-in ok-cluster command
 
 **Date:** 2026-07-25
-**Status:** Draft — consolidated three-way review edits applied (Arash / Claude / GPT, 2026-07-25). Remains Draft pending the credential-hardening fix in `install-observability.sh` plus a post-fix gate re-run with recorded commit evidence; see "Path to acceptance".
+**Status:** Draft — consolidated three-way review edits applied (Arash / Claude / GPT, 2026-07-25). The credential-hardening fix has landed (ok-cluster `463cfd8`); remains Draft pending a post-fix gate re-run with recorded commit evidence; see "Path to acceptance".
 
 **Amends:** ADR-Platform-018 (scope: only the provisioning / readiness-gate consequence clause; the Capability, Contract v1 guarantees, Implementation Profile, Provider Values, and six-step verification are unchanged)
 **Related:** ADR-Platform-009, ADR-Platform-011, ADR-Platform-014, ADR-Platform-017, ADR-Platform-020, OK-71, OK-77, OK-78, OK-79, OK-80, OK-109, OK-110
@@ -75,19 +75,22 @@ Only the consequence clause quoted above. The Capability, the Contract v1 guaran
 
 ## Open items, to be resolved by amendment
 
-1. **ok-observability ref pin — mechanism open, invariant NOT open.** ok-cluster currently locates the capability through a filesystem path to a sibling checkout (`OK_OBSERVABILITY_PATH`, default `../ok-observability`) and therefore consumes whatever revision happens to be on disk. The **invariant is normative**: a durable, reproducible observability-readiness result MUST identify the consumed `ok-observability` revision. Until a pin lands, the sibling-checkout mechanism is **transitional**, and a current green gate is **not** sufficient as long-term reproducible conformance evidence unless the consumed commit is recorded in the test evidence. Only the pin's *location* (Makefile variable, dedicated version file, or `cluster-config.yaml`) is open; tracked in OK-109.
+1. **ok-observability ref pin — recording half implemented; durable pin still open.** ok-cluster locates the capability through a filesystem path to a sibling checkout (`OK_OBSERVABILITY_PATH`, default `../ok-observability`) and therefore consumes whatever revision happens to be on disk. The **invariant is normative**: a durable, reproducible observability-readiness result MUST identify the consumed `ok-observability` revision. The *recording* half of that invariant now holds — `install-observability.sh` resolves and prints both consumed revisions with a clean/`DIRTY` marker, warns that a dirty checkout is not reproducible conformance evidence, and honours an optional `OK_OBSERVABILITY_REF` that asserts which revision a run may consume and fails loudly on mismatch (it deliberately does not check the sibling repo out). The sibling-checkout mechanism therefore remains **transitional** but no longer produces unattributable evidence. Still open: where the *durable* pin lives (Makefile variable, dedicated version file, or `cluster-config.yaml`); tracked in OK-109.
 2. **Enforcement / drift.** How observability readiness is asserted for an already-provisioned cluster — and whether it belongs in the OK-78 phase/conformance model or in the GitOps successor path (ADR-011) — is open.
-3. **Vault phase 2.** Replacing Secret creation with an External-Secrets sync from the ok-shared Vault is deferred — tracked in **OK-110** (Vault standup on ok-shared; blocks OK-109 Part 2), governed by the Secret Contract (OK-71). It is the datacenter-envelope profile; the phase-1 file-based Secret is the offline-reconcilable profile and stays.
+3. **Vault phase 2.** Replacing Secret creation with an External-Secrets sync from the ok-shared Vault is deferred — tracked in **OK-110** (Vault standup on ok-shared; blocks OK-109 Part 2), governed by the **Secret Contract in ADR-Platform-011 §Secret Contract** (amendment 2026-07-25, OK-71). Under that contract the secret *tool* is an Implementation Profile per envelope, not part of the contract: Vault + ESO is the datacenter-envelope profile, while the phase-1 file-based Secret is the offline-reconcilable profile for constrained-edge and **stays** — it is not superseded by phase 2.
 4. ADR-018's constrained-edge open item is unaffected: the `ok-edge-constrained` observability variant still requires an amendment to ADR-018 before that profile can be accepted.
 
 ## Path to acceptance
 
 This ADR stays **Draft** until its own credential invariant holds in the reference implementation:
 
-1. **Fix the credential exposure** in `ok-cluster/install-observability.sh` — the Secret is created via `kubectl --from-file` from `0600` temp files (`umask 077`, wiped on exit), never `--from-literal`. *(Applied 2026-07-25; pending commit + review.)*
-2. **Re-run** install + gate on at least one reference cluster after the fix.
-3. **Record evidence** with the consumed `ok-cluster` and `ok-observability` commit hashes (per the pin invariant above).
-4. **Only then** set `Status: Accepted — three-way review (Arash / Claude / GPT, 2026-07-25)` and merge.
+1. ~~**Fix the credential exposure**~~ in `ok-cluster/install-observability.sh` — the Secret is created via `kubectl --from-file` from `0600` temp files (`umask 077`, wiped on exit), never `--from-literal`. **Done: ok-cluster `463cfd8` on `main`.**
+2. **Make the evidence attributable and the install non-vacuous.** Two prerequisites surfaced while preparing the re-run, both open PRs: gate passthrough + consumed-revision evidence + an empty-render guard (ok-cluster `OK-109/gate-passthrough-and-ref-evidence`), and a two-level chart dependency build (ok-observability `OK-109/chart-deps-target`). The latter matters for this ADR specifically: the profile is a two-level umbrella, so on a fresh clone it rendered to nothing and Helm installed a release with **no workloads** — a state in which a "successful install" is meaningless, which is precisely why the Consequences above insist that a successfully installed stack does not imply readiness.
+3. **Re-run** install + gate on at least one reference cluster after those land — the approved throwaway `ok-obs-verify` cluster (OK-109).
+4. **Record evidence** with the consumed `ok-cluster` and `ok-observability` commit hashes. The install now prints both, so this is mechanical rather than manual.
+5. **Only then** set `Status: Accepted — three-way review (Arash / Claude / GPT, 2026-07-25)` and merge.
+
+Note the coupling: this ADR's acceptance and OK-109's Part 1 re-verify are the **same evidence run**, not two independent tasks.
 
 ## Re-evaluation triggers
 
