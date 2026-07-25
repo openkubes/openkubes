@@ -112,12 +112,18 @@ crossplane/tests/functions.yaml        pinned render functions (go-templating, a
 
 Local render (needs `crossplane` CLI + Docker): `make render` / `make render-check`.
 
-**Not applyable yet — TO-VERIFY:** pin the tested `provider-vault` version and
-confirm MR CRD coverage (`kubectl get crds | grep vault`); the MR
-`apiVersion`s/field names in the Composition are the expected Upjet shape and
-must be checked against the installed provider. Sensitive inputs (reviewer JWT,
-CA) are secret-ref only, never inline (ADR-024 hygiene). The reconciler's own
-auth is the single manual seed from the bootstrap ceremony (Step 3c).
+CRDs/fields **confirmed** against `xpkg.upbound.io/upbound/provider-vault:v4.0.1`
+on ok-mgmt (render-check green): `Backend[auth]`, `AuthBackendConfig[kubernetes]`
+(`kubernetesCaCert` inline string; only `tokenReviewerJwtSecretRef` is a secret
+ref), `AuthBackendRole[kubernetes]`, `Policy[vault]`. ProviderConfig uses Vault
+**Kubernetes auth** (`credentials.source: Kubernetes`, `mountPath
+kubernetes/ok-mgmt`, `role provider-vault`); the provider SA name is pinned via
+DeploymentRuntimeConfig to match the ceremony-seeded role binding (Step 3c).
+
+**Still to verify at apply time:** distribute the internal CA to ok-mgmt as
+Secret `crossplane-system/ok-shared-vault-ca` (key `ca.crt`) and confirm the
+Upjet provider honours `VAULT_CACERT` for TLS trust (`skip_tls_verify` stays
+false).
 
 ## Health gate (readiness ≠ installed)
 

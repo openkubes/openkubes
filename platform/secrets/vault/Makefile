@@ -72,7 +72,11 @@ prov=[d for d in docs if d.get("kind")=="Provider"][0]; \
 assert prov["spec"]["revisionActivationPolicy"]=="Manual", "provider upgrades must be Manual"; \
 assert ":" in prov["spec"]["package"].split("/")[-1], "provider package MUST be pinned to a tag"; \
 assert not prov["spec"]["package"].rstrip().endswith(":latest"), "provider must not float on :latest"; \
-print("OK: provider-vault pinned + Manual activation")'
+pc=[d for d in docs if d.get("kind")=="ProviderConfig"][0]["spec"]; \
+assert pc.get("skip_tls_verify") is not True, "skip_tls_verify must not be true for a secret backend"; \
+assert pc["credentials"]["source"]=="Kubernetes", "auth must be Vault Kubernetes auth (short-lived, no standing token)"; \
+assert "token" not in str(pc).lower() or "mountPath" in pc, "no inline token in ProviderConfig"; \
+print("OK: provider-vault pinned + Manual + ProviderConfig (K8s auth, TLS verified)")'
 	@! grep -RniE "(password|token|secret[_-]?key)[[:space:]]*[:=][[:space:]]*[^#\$$[:space:]]+" $(CP_DIR) \
 		| grep -viE "secretName|caCertSecretRef|secretKeyRef|vault-server-tls|ok-shared-internal-ca|tokenreview|X-Vault-Token" \
 		&& echo "OK: no inline secret material" || (echo "OK: no inline secret material")
