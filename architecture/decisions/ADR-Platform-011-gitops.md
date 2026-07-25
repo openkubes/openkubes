@@ -62,14 +62,16 @@ lifecycle via ArgoCD.
 > amendment inside an otherwise-Proposed decision; the document `Status:` header
 > tracks the profile.
 
-Cluster kubeconfigs, CAPK infra credentials, and application admin credentials
-cannot be committed. Their handling is governed by a technology-independent
-contract:
+Plaintext cluster kubeconfigs, CAPK infrastructure credentials, and application
+administrator credentials cannot be committed to Git (encrypted artifacts, e.g.
+SOPS / Sealed-class, are a different matter — see the profiles below). Their
+handling is governed by a technology-independent contract:
 
 1. **Git never contains plaintext secret material.**
 2. **Git is the source of truth for the declarative references and reconciliation
    configuration of secret material — but not necessarily for the secret values
-   themselves** (which may live in an external store, e.g. Vault/Bitwarden).
+   themselves** (which may live in an external store like Vault/Bitwarden, or as
+   an *encrypted* artifact in Git for SOPS / Sealed-class profiles).
 3. **Secret material MUST be reconcilable within the constraint envelope of the
    cluster or environment in which its reconciliation occurs.** Mechanisms that
    require an always-on external service are valid only where that envelope
@@ -83,9 +85,11 @@ Consequences:
 - The secret **tool** (External Secrets Operator, SOPS, Sealed Secrets, Vault,
   Bitwarden, …) is an **Implementation Profile per envelope — not part of the
   contract**.
-- **Datacenter envelope:** ESO / SOPS / Sealed all valid (e.g. Vault + ESO on
-  ok-shared — OK-110). **Constrained-edge envelope:** offline-reconcilable
-  mechanisms only (SOPS / Sealed-class).
+- **Datacenter envelope:** ESO / SOPS / Sealed-class mechanisms may be *eligible*,
+  subject to the envelope's full requirements (connectivity, key custody,
+  bootstrap, recovery, operator availability) — e.g. Vault + ESO on ok-shared
+  (OK-110). **Constrained-edge envelope:** only offline-reconcilable mechanisms
+  are eligible (e.g. appropriately configured SOPS / Sealed-class profiles).
 - Third precedent for the Constraint Envelope pattern (ADR-017), after storage
   (ADR-009) and OS (ADR-016).
 - Adds an evaluation criterion to the edge GitOps spike (OK-67).
