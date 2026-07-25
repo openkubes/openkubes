@@ -93,6 +93,70 @@ VSO materialises **native Kubernetes Secrets**, so existing requirements remain 
 - Consumer charts unchanged; the stack + Contract Test Gate stay green with Vault-materialised credentials (re-verified via OK-109 / ADR-024).
 - ok-cluster gains a **datacenter-only** step to ensure the `VaultStaticSecret` exists before helm; the edge/offline path is untouched.
 
+## Implementation & placement
+
+Deploys the production Vault + VSO profile by **reusing the existing Crossplane deployment structure**, introducing **no new repository or platform capability contract** (OK-81 stays parked; Vault is a *bounded singleton* implementation profile). An XRD/Composition/XR is itself new API structure — kept deliberately **internal**.
+
+### Deployment vehicle — Crossplane, internal singleton XR (decided)
+
+Deployed by a Crossplane Composition (provider-helm `Release`) applied from **ok-mgmt** onto **ok-shared**, reusing the mechanism proven by `OpenRMFClaim` / `OpenWebUIClaim` (cluster name = join key via a named `ProviderConfig`, ADR-013).
+
+- Modeled as a **cluster-scoped `VaultInstance` XR with NO `claimNames`** — exactly one instance `ok-shared-vault`. **Not** a self-service `Claim` (Claims expose consumable capabilities; Vault is a bounded singleton) — no public `VaultInstanceClaim` API until a second legitimate instance consumer exists.
+- The singleton invariant is verified by a **conformance / admission check**: no second production `VaultInstance` may exist while `ok-shared-vault` is active (an internal XRD does not by itself enforce a single instance).
+- *Alternative:* an ok-shared bootstrap script — rejected (imperative, off the GitOps trajectory).
+
+### Readiness — Helm-deployed ≠ Vault-ready (invariant)
+
+`VaultInstance Ready=True` **MUST NOT** be derived from provider-helm's `Release=deployed` alone (Vault may be uninitialised, sealed, without Raft quorum / TLS / audit). Expose or gate distinct states: `Installed`, `Initialized`, `Unsealed`, `RaftHealthy`, `TLSReady`, `AuditEnabled`, `Configured`. If the first Composition can observe only the Helm state, it reports **only `Installed`**; a **separate deterministic health gate** supplies acceptance evidence — mirroring the observability contract-test-gate discipline.
+
+### Storage & failure domains
+
+Vault uses **Integrated Storage (Raft)**. The `storageClass` in `VaultInstance` MUST be a StorageClass that exists **inside ok-shared**. The host-cluster `ok-storage` layer may protect the underlying KubeVirt VM disks, but it is **not** itself a workload-cluster StorageClass. The full durability chain MUST be declared and tested:
+
+`Vault Raft replica → ok-shared PVC / node affinity → workload-node disk → KubeVirt VM disk → host ok-storage durability`
+
+If the initial profile uses workload-cluster `local-path`, the ADR states its PVCs are node-affine and **not** independently replicated: Raft provides service-level replication, host storage protects the VM disk — neither silently substitutes the other.
+
+Vault pods MUST be spread across distinct ok-shared nodes (anti-affinity). Replica count is bound to an explicit failure budget: **3 voters → quorum 2, tolerates 1 down; 5 voters → quorum 3, tolerates 2 down.** The chosen count + accepted budget are versioned production config, not chart defaults. Backups use **Vault Raft snapshots** stored outside the Vault cluster's own failure domain (PVC/VM snapshots alone are **not** the normative Vault backup); a restore rehearsal is required before acceptance.
+
+### Artifact placement
+
+| Artifact | Home | Notes |
+|---|---|---|
+| `VaultInstance` XRD + Composition (provider-helm `Release`, versioned) | `openkubes` (platform) | internal singleton XR; reconciled from ok-mgmt onto ok-shared |
+| **Non-secret production config** — HA/Raft, replicas, StorageClass (**inside ok-shared**; see Storage), volume sizes, TLS/ingress (`vault.ok-shared.internal`), seal type, audit storage, auth-mount names, policies, roles, network params | **versioned** in the `VaultInstance` XR / a tracked values doc in `openkubes` | committed & reviewable — **NOT** git-ignored provider values |
+| **Offline custody material** — Shamir unseal/recovery shares + PGP-encrypted initial root token | offline, multi-custodian origin independent of Vault **and** Kubernetes | root token is ceremony-only, destroyed after evidenced revocation |
+| **Operational bootstrap secrets** — TLS private key, token-reviewer credential, Transit token, HSM PIN/creds | Vault-independent secret origin/delivery; never Git, never dependent solely on this Vault | may come from an external PKI, cert-manager, Kubernetes, HSM/KMS — not necessarily offline human custody |
+| VSO cluster add-on | pinned **ok-cluster** install target | explicit, versioned |
+| Consumer `VaultStaticSecret` for `ok-observability-credentials` | **ok-cluster**, applied **before** observability helm | ADR-024/025; no chart change; = OK-109 Part 2 |
+| Per-cluster auth: dedicated mount + roles + least-privilege policies + reviewer credential | **central declarative Vault reconciler**, triggered by cluster **registration** (ADR-013) | see "Vault configuration" |
+
+### Lifecycle safeguards (production)
+
+- The composed `Release` uses **`deletionPolicy: Orphan`**. **Deleting the XR MUST NOT uninstall Vault or delete its persistent data** — teardown is a separate, evidence-based decommission process.
+- The XRD sets **`spec.defaultCompositionUpdatePolicy: Manual`**; the production XR is pinned to an explicitly promoted `CompositionRevision` (field layout per the deployed Crossplane version; Crossplane otherwise auto-adopts newer revisions).
+- **Revision identity** includes: Composition revision, provider-helm version, Vault chart version, Vault image version/digest, versioned values, Vault-config revision (extends ADR-024's revision-identity invariant).
+
+### Seal / unseal — bound to the recovery SLO
+
+- **Phase-1 attended-production baseline: manual Shamir unseal, offline multi-custodian custody** — OpenKubes **accepts a manual-recovery SLO for Phase 1** (attended re-unseal after restart; on 3-node Raft, every rescheduled pod → no unattended recovery after a full restart). Init with **PGP-encrypted shares + PGP-encrypted root token**; use the root token only to enable audit, admin auth and the automation identity, then **revoke it** (evidenced). Acceptance requires a **cold-restart rehearsal** recording achieved recovery time, confirming the unseal threshold can be met under the operating model, and that every required Raft voter returns to service.
+- **Committed follow-up (not merely conditional):** unattended recovery **will** become a production requirement. When it does, Shamir is insufficient and auto-unseal from an **independently bootstrapped** origin is a blocking prerequisite: Transit (edition-neutral; adds a second Vault + renewable-token lifecycle; no Vault→Vault recursion) or PKCS#11/HSM (Vault Enterprise). The probable sovereign endpoint is HSM/Enterprise or a dedicated KMS/transit appliance.
+
+### Vault configuration — one declarative reconciler, two phases
+
+1. **Bootstrap ceremony** (once, supervised): init, unseal, audit device, initial admin auth, automation identity, root-token revocation.
+2. **Day-1/Day-2 reconciliation** (declarative): auth mounts, policies, roles, secret engines, per-registered-cluster config — through **exactly one** reconciler; production auth config MUST NOT be split across multiple authoritative reconcilers.
+
+**Open implementation sub-decision — required before the first production consumer:** select exactly one Day-1/Day-2 reconciler and record: execution owner + trigger; state location + recovery; automation auth method; least-privilege policy; drift detection; concurrency + retry semantics; credential rotation + break-glass. Terraform (vault provider) and an idempotent configuration controller remain candidates; a config Job is acceptable only if all of the above are defined. The automation identity is least-privilege and short-lived (no broad standing credential).
+
+### Decisions requiring ownership
+
+1. **Recovery class** — *decided:* attended Shamir (offline custody) for Phase 1; unattended auto-unseal is a committed follow-up.
+2. **Failure budget** — *open (acceptance-gated):* 3 voters (tolerate 1) vs 5 voters (tolerate 2). A 3-node controlled pilot is defensible **as an accepted risk**, not an implicit chart default.
+3. **Declarative reconciler** — *open (acceptance-gated):* one authoritative Day-1/Day-2 mechanism incl. its state + automation identity.
+
+The `VaultInstance` XRD/Composition scaffold may begin now provided it does not silently choose defaults for the open items; production VSO onboarding waits on the reconciler decision.
+
 ## Path to acceptance (evidence required before `Accepted`)
 
 1. **Mandatory reconciliation settings** defined and tested: `refreshAfter` is always configured; Enterprise `instantUpdates`, if enabled, remains an optional latency optimization, not a conformance dependency. (Edition itself is a deployment/ops choice, not an acceptance gate.)
@@ -108,6 +172,10 @@ VSO materialises **native Kubernetes Secrets**, so existing requirements remain 
 8. **Vault outage + reconciliation** tested (ADR-018 test above).
 9. **Rotation** proven with an actually-rotatable consumer (not the OpenSearch bootstrap password).
 10. ADR-024 / OK-109 Contract Gate re-runs **green** with the materialised Secret.
+11. **Failure budget decided** (3 vs 5 voters, accepted risk) + pod anti-affinity across ok-shared nodes; **Vault Raft snapshot** backup outside the cluster's failure domain, with a **restore rehearsal** completed.
+12. **Cold-restart rehearsal** recorded: recovery time, unseal threshold met under the operating model, all required Raft voters returned to service.
+13. **Exactly one Day-1/Day-2 Vault-config reconciler selected** and documented (state, least-privilege automation identity, drift, retry, rotation/break-glass).
+14. **Singleton invariant enforced** (conformance/admission check — no second production `VaultInstance`).
 
 ## Re-evaluation triggers
 
