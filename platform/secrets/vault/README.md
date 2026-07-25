@@ -39,8 +39,11 @@ Related: OK-110 (production Vault standup), OK-109 (VSO rewiring, last).
 - Confirm the pinned chart version and the real ok-shared StorageClass.
 - Add the separate Vault health/conformance gate.
 - Bootstrap ceremony (init/unseal, custody) — supervised, out of band.
-- **Enable Vault server TLS** (listener `tls_cert_file`, mount `vault-server-tls`,
-  https Raft `retry_join`) — the composition change that makes passthrough live.
+- **Verify the TLS render** — server TLS is wired in the composition
+  (`global.tlsDisable: false`, `vault-server-tls` mounted, https Raft
+  `retry_join`, TLS-aware health probe via `VAULT_ADDR`/`VAULT_CACERT`). Run
+  `helm template` against pinned chart `0.30.1` before apply; the `retry_join`
+  peer list is coupled to `replicas: 3` and must track any failure-budget change.
 
 ## Cross-cluster reachability (ADR-025, OK-110)
 
