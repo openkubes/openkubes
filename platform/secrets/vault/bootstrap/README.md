@@ -35,11 +35,11 @@ If any of these were sourced from Vault/VSO, **stop** — the invariant is broke
 - **Break-glass admin.** A minimal `userpass` break-glass identity with a strong
   password held in the same offline custody — used only when automation is
   unavailable.
-- **Automation identity is reconciler-dependent.** The Day-1/2 config reconciler
-  is **still open (ADR-025 item 13)**. This ceremony creates the *least-privilege
-  policy skeleton* only; the automation **auth method** (AppRole vs. Kubernetes
-  auth vs. short-lived token) is created when item 13 is decided. Do not mint a
-  broad standing credential here.
+- **Automation identity (decided — ADR-025 item 13).** The Day-1/2 config
+  reconciler is Crossplane `provider-vault` on ok-mgmt. This ceremony creates its
+  **single manual seed**: the `ok-config-automation` least-privilege policy plus a
+  Kubernetes-auth binding for ok-mgmt (Step 3c), so the reconciler runs on
+  short-lived tokens — no broad standing credential.
 
 ## Preflight
 
@@ -138,8 +138,11 @@ HCL
 vault write auth/userpass/users/breakglass \
   password="$(gpg -dq breakglass-password.asc)" policies="ok-admin"
 
-# 3c. Automation policy SKELETON only (least privilege). The auth METHOD is
-#     created when the Day-1/2 config reconciler is chosen (ADR-025 item 13).
+# 3c. Automation identity for the Day-1/2 config reconciler (DECIDED, ADR-025
+#     item 13 = Crossplane provider-vault on ok-mgmt). This is the SINGLE manual
+#     seed: least-privilege policy + a Kubernetes-auth binding for ok-mgmt, so
+#     provider-vault authenticates with short-lived tokens (no standing cred).
+#     Everything else is then reconciled declaratively.
 vault policy write ok-config-automation - <<'HCL'
 # scoped to what the config reconciler needs: auth mounts, policies, roles.
 path "sys/auth"            { capabilities = ["read"] }
@@ -147,6 +150,20 @@ path "sys/auth/*"          { capabilities = ["create","update","delete","sudo"] 
 path "sys/policies/acl/*"  { capabilities = ["create","read","update","delete","list"] }
 path "auth/kubernetes/*"   { capabilities = ["create","read","update","delete","list"] }
 HCL
+
+# Seed the reconciler's OWN auth mount for ok-mgmt (Vault -> ok-mgmt TokenReview).
+# Uses the reviewer-JWT model (ADR-025 Category A) — provide ok-mgmt's API host,
+# CA, and a token-reviewer JWT (dedicated SA with system:auth-delegator).
+vault auth enable -path=kubernetes/ok-mgmt kubernetes
+vault write auth/kubernetes/ok-mgmt/config \
+  kubernetes_host="https://<ok-mgmt-api>:6443" \
+  kubernetes_ca_cert=@ok-mgmt-ca.crt \
+  token_reviewer_jwt=@ok-mgmt-reviewer.jwt
+# Bind the Crossplane provider-vault ServiceAccount to the automation policy.
+vault write auth/kubernetes/ok-mgmt/role/provider-vault \
+  bound_service_account_names="provider-vault" \
+  bound_service_account_namespaces="crossplane-system" \
+  policies="ok-config-automation" ttl="20m"
 
 # 3d. Revoke the root token — EVIDENCED.
 vault token lookup -format=json > root-before-revoke.json   # accessor + policies
@@ -200,6 +217,8 @@ PASS`). This is the recorded acceptance evidence for items 4 and 12.
 - **Backup/restore.** Raft snapshot (`vault operator raft snapshot save`) stored
   outside the cluster's failure domain, plus a **restore rehearsal** — ADR-025
   items 4 & 11.
-- **Config reconciler + per-cluster auth mounts** — ADR-025 item 13; unblocks the
-  gate's `Configured` state and consumer onboarding (OK-109 Part 2).
+- **Config reconciler implementation** — the `VaultConfig` XR + `provider-vault`
+  version pin (mechanism decided, ADR-025 item 13 = Crossplane provider-vault on
+  ok-mgmt); unblocks the gate's `Configured` state and consumer onboarding
+  (OK-109 Part 2). The ceremony has already seeded its auth (Step 3c).
 - **Vault outage test** (ADR-018) — item 8.

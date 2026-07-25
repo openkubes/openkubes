@@ -155,18 +155,20 @@ Vault pods MUST be spread across distinct ok-shared nodes (anti-affinity). Repli
 
 ### Vault configuration — one declarative reconciler, two phases
 
-1. **Bootstrap ceremony** (once, supervised): init, unseal, audit device, initial admin auth, automation identity, root-token revocation. Runbook: `platform/secrets/vault/bootstrap/README.md` (PGP-encrypted Shamir shares + root token, each step bound to a health-gate state, includes the cold-restart rehearsal for items 4 & 12; the automation *auth method* is deferred to item 13, only the least-privilege policy skeleton is created).
+1. **Bootstrap ceremony** (once, supervised): init, unseal, audit device, initial admin auth, automation identity, root-token revocation. Runbook: `platform/secrets/vault/bootstrap/README.md` (PGP-encrypted Shamir shares + root token, each step bound to a health-gate state, includes the cold-restart rehearsal for items 4 & 12; seeds the config reconciler's single manual auth (Kubernetes auth for ok-mgmt + `ok-config-automation` policy, item 13)).
 2. **Day-1/Day-2 reconciliation** (declarative): auth mounts, policies, roles, secret engines, per-registered-cluster config — through **exactly one** reconciler; production auth config MUST NOT be split across multiple authoritative reconcilers.
 
-**Open implementation sub-decision — required before the first production consumer:** select exactly one Day-1/Day-2 reconciler and record: execution owner + trigger; state location + recovery; automation auth method; least-privilege policy; drift detection; concurrency + retry semantics; credential rotation + break-glass. Terraform (vault provider) and an idempotent configuration controller remain candidates; a config Job is acceptable only if all of the above are defined. The automation identity is least-privilege and short-lived (no broad standing credential).
+**Day-1/Day-2 Vault-config reconciler (decided — item 13):** exactly one authoritative mechanism = Crossplane `provider-vault` on **ok-mgmt**, driven by the same ADR-013 cluster-registration Composition (a `VaultConfig` XR per registered cluster renders auth mount + policies + roles as Vault managed resources). Chosen for continuous drift correction, reuse of the running control plane and registration trigger, and the absence of a sensitive external state file; a single reconcile loop precludes split-brain over auth config. Terraform (vault provider) was rejected for its drift-only-on-`plan` model and a sensitive state file off the Crossplane/GitOps trajectory; a config Job was rejected as drift-blind/imperative.
+
+**Automation identity & bounded recursion:** the reconciler authenticates via Vault **Kubernetes auth for ok-mgmt** with the least-privilege `ok-config-automation` policy and short-lived tokens (no standing credential). Its own auth mount + policy binding are the **single manual seed** created during the bootstrap ceremony (Vault-independent origin = the ceremony root token), preserving the bootstrap-without-recursion invariant; all further Vault config is reconciled declaratively. Provider version is **pinned** and resource coverage (kubernetes auth backend + role, policy, mount) confirmed as part of this record.
 
 ### Decisions requiring ownership
 
 1. **Recovery class** — *decided:* attended Shamir (offline custody) for Phase 1; unattended auto-unseal is a committed follow-up.
 2. **Failure budget** — *open (acceptance-gated):* 3 voters (tolerate 1) vs 5 voters (tolerate 2). A 3-node controlled pilot is defensible **as an accepted risk**, not an implicit chart default.
-3. **Declarative reconciler** — *open (acceptance-gated):* one authoritative Day-1/Day-2 mechanism incl. its state + automation identity.
+3. **Declarative reconciler** — *decided:* Crossplane `provider-vault` on ok-mgmt, ADR-013-triggered, K8s-auth automation identity seeded by the bootstrap ceremony (see above). Remaining is *implementation* (the `VaultConfig` XR + provider version pin), not selection.
 
-The `VaultInstance` XRD/Composition scaffold may begin now provided it does not silently choose defaults for the open items; production VSO onboarding waits on the reconciler decision.
+The `VaultInstance` XRD/Composition scaffold may begin now provided it does not silently choose defaults for the open items; production VSO onboarding follows the reconciler *implementation* (the selection is now made).
 
 ## Path to acceptance (evidence required before `Accepted`)
 
@@ -185,7 +187,7 @@ The `VaultInstance` XRD/Composition scaffold may begin now provided it does not 
 10. ADR-024 / OK-109 Contract Gate re-runs **green** with the materialised Secret.
 11. **Failure budget decided** (3 vs 5 voters, accepted risk) + pod anti-affinity across ok-shared nodes; **Vault Raft snapshot** backup outside the cluster's failure domain, with a **restore rehearsal** completed.
 12. **Cold-restart rehearsal** recorded: recovery time, unseal threshold met under the operating model, all required Raft voters returned to service.
-13. **Exactly one Day-1/Day-2 Vault-config reconciler selected** and documented (state, least-privilege automation identity, drift, retry, rotation/break-glass).
+13. **Day-1/Day-2 Vault-config reconciler** — *selected:* Crossplane `provider-vault` on ok-mgmt (see §Vault configuration). Remaining evidence: the `VaultConfig` XR implemented, provider version pinned + coverage confirmed, K8s-auth automation identity seeded by the ceremony, drift/retry/rotation/break-glass exercised.
 14. **Singleton invariant enforced** (conformance/admission check — no second production `VaultInstance`).
 15. **Non-manual cross-cluster reachability** proven: consumer reaches Vault over the ok-shared ingress `IngressRouteTCP` (TLS passthrough, `HostSNI(vault.ok-shared.internal)`, `vault-active` backend) with cert-manager server TLS and consumer-side CoreDNS + CA trust — replacing the PoC's manual host-cluster LB proxy.
 
