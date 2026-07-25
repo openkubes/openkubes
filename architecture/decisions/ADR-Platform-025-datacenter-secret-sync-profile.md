@@ -20,11 +20,27 @@ Datacenter-envelope secret-sync profile = **HashiCorp Vault on ok-shared**, cons
 - **Sync baseline:** **periodic reconciliation via `refreshAfter`, compatible with Vault Community.** Vault Enterprise event notifications (`instantUpdates`) may *optionally* reduce propagation latency but are **not required for conformance**; `refreshAfter` remains configured regardless (event delivery is not guaranteed).
 - **Trust model:** one **Kubernetes auth *mount* per consuming cluster**, named by the ADR-013 cluster id (`auth/kubernetes/<cluster-name>`) — a mount binds exactly one API server / CA / token-reviewer context. Within the mount, Vault **roles and policies are scoped per namespace / workload identity**, not merely per cluster. Two levels: the cluster id selects the mount (which API server); the role/policy is the actual authorization.
   - A shared cluster-wide VSO ServiceAccount **MUST NOT** become the effective identity of all secret consumers: each application or bounded workload receives its **own** ServiceAccount, Vault role, and least-privilege policy. `VaultAuthGlobal` may share connection and mount configuration, but **MUST NOT** collapse workload authorization.
-  - **Authentication topology (open — selected per cluster registration profile, proven against its network topology):**
-    - *Kubernetes auth:* Vault validates each presented ServiceAccount token through the consuming cluster's TokenReview API. Preserves Kubernetes-side token revocation semantics, but requires Vault on ok-shared to reach each consuming cluster's API server.
-    - *JWT auth (OIDC discovery / JWKS):* Vault validates projected ServiceAccount JWTs cryptographically **without** calling TokenReview. Vault must still reach the configured discovery / JWKS endpoint. Kubernetes-side revocation is **not** observed before token expiry, so **short-lived** projected tokens are required (VSO's default SA-token TTL of 600s fits this; the audience must match the Vault role).
-    - *JWT auth (pinned `jwt_validation_pubkeys`):* removes runtime connectivity from Vault to the consuming cluster entirely, at the cost of an explicit signing-key **rotation + overlap** procedure.
+  - **Authentication topology — decided (OK-110):** chosen primarily by network topology, then by credential-lifecycle and revocation requirements. See §"Authentication topology (decided — OK-110)" below.
 - **Reference consumer:** `ok-observability-credentials` produced by a `VaultStaticSecret`, applied **before** the observability Helm release (OpenSearch 2.12+ needs the admin password at start) — **no chart change**.
+
+## Authentication topology (decided — OK-110)
+
+The auth mode between a workload cluster and the central Vault on ok-shared is chosen **primarily by network topology, then by credential-lifecycle and revocation requirements** — a three-tier cascade that minimises Day-2 maintenance (key rotation) while respecting network restrictions. (For VSO the consuming cluster must at minimum reach Vault; a truly air-gapped cluster is out of this datacenter profile and uses the offline/edge Secret profile instead.)
+
+| Network scenario | Auth mode | Lifecycle consequence |
+|---|---|---|
+| **A — Same SDN / no restrictive firewall.** Bidirectional Vault ↔ cluster-API allowed. | **Kubernetes auth** (dedicated mount per cluster, `auth/kubernetes/<cluster>`) | Preserves Kubernetes-native TokenReview and early-revocation semantics. Requires Vault → cluster API (6443) reachability **and** an explicit reviewer-credential model: either a lifecycle-managed reviewer JWT, or use of each client JWT for TokenReview with the required `system:auth-delegator` permission. **Not maintenance-free.** |
+| **B — Unidirectional.** Vault cannot reach the cluster API, but a JWKS endpoint is reachable (directly or via an object-store / pushed mirror). | **JWT auth with OIDC discovery or JWKS URL** | Vault re-fetches the published JWKS automatically. For a pushed / object-store mirror, publication freshness and old/new-key overlap remain explicit operational responsibilities. Short-lived projected tokens required (JWT auth does not observe early Kubernetes revocation). |
+| **C — API-isolated / workload-to-Vault only.** The consuming cluster can reach Vault, but Vault can reach neither the cluster API nor a cluster-maintained JWKS endpoint. | **Pinned validation keys (static)** | Purely cryptographic validation against the cluster's pinned public keys. **Hard acceptance gate — see below.** |
+
+**Current scope (ok-robotics):** ok-robotics and ok-shared are in the same SDN without restrictive firewalls → **Category A**. Selected subject to proving **both** the network path (Vault → TokenReview on 6443) **and** the reviewer-credential model — network reachability alone is **not** sufficient acceptance evidence. A dedicated mount per cluster; a shared cluster-wide role is explicitly excluded.
+
+**Category C is gated** — the pinned-keys profile MUST NOT be activated until:
+1. a **key-overlap procedure** is in the GitOps process (Vault holds the old *and* new public key across the cluster's certificate-rotation window),
+2. **short-lived projected tokens** are enforced, and
+3. **alerting on silent auth breakage** is in place — on the observable symptom (consuming `VaultAuth` / `VaultStaticSecret` `Healthy=false` / `VaultAuth.status.valid=false`, and/or a synthetic periodic login probe) plus Vault audit-log auth failures; not on a single vendor telemetry metric that may not exist for the chosen method.
+
+The pinned public keys are **cluster-originated** and count as part of the Vault-independent bootstrap origin, so the bootstrap invariant is preserved.
 
 ## Rationale (VSO over ESO)
 
@@ -81,7 +97,10 @@ VSO materialises **native Kubernetes Secrets**, so existing requirements remain 
 
 1. **Mandatory reconciliation settings** defined and tested: `refreshAfter` is always configured; Enterprise `instantUpdates`, if enabled, remains an optional latency optimization, not a conformance dependency. (Edition itself is a deployment/ops choice, not an acceptance gate.)
 2. **Auth mount per cluster** + workload-scoped roles/policies implemented.
-3. **Authentication topology selected and tested per datacenter cluster:** TokenReview reachability for Kubernetes auth, reachable discovery/JWKS for network-fetched JWT validation, or a tested signing-key rotation procedure for pinned public keys.
+3. **Authentication topology applied per cluster** using network topology, credential lifecycle, and revocation requirements:
+   - **Category A:** Vault→TokenReview reachability proven, and the reviewer-credential model documented and tested without granting unintended cluster-wide privilege.
+   - **Category B:** OIDC discovery or JWKS reachable; for a mirrored JWKS, publication freshness and old/new-key overlap tested.
+   - **Category C:** activated only with the key-overlap procedure, short-lived projected tokens, synthetic auth-failure detection, and CR-status / audit-log alerting in place.
 4. **Unseal / HA / backup / restore** strategy set, and **restore tested**.
 5. Vault bootstrap works **without Vault/VSO recursion** (invariant above).
 6. An **existing** observability install migrated **without credential change**.
