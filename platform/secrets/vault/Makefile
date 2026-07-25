@@ -7,7 +7,10 @@ SHELLCHECK ?= shellcheck
 
 CP_DIR     := crossplane
 YAML_FILES := $(CP_DIR)/xrd.yaml $(CP_DIR)/composition.yaml \
-              $(CP_DIR)/examples/ok-shared-vault.yaml $(CP_DIR)/reachability.yaml
+              $(CP_DIR)/examples/ok-shared-vault.yaml $(CP_DIR)/reachability.yaml \
+              $(CP_DIR)/provider-vault.yaml $(CP_DIR)/vaultconfig-xrd.yaml \
+              $(CP_DIR)/vaultconfig-composition.yaml \
+              $(CP_DIR)/examples/ok-robotics-vaultconfig.yaml
 CHART_VER  ?= 0.30.1
 GATE       := gate/vault-health-gate.sh
 
@@ -46,6 +49,20 @@ assert len(rt)==1 and rt[0]["spec"]["tls"]["passthrough"] is True, "IngressRoute
 assert rt[0]["spec"]["routes"][0]["services"][0]["name"]=="vault-active", "ingress must back the leader-only vault-active service"; \
 assert not any(d.get("kind")=="ClusterIssuer" and "acme" in str(d) for d in docs), "no ACME/Lets Encrypt for .internal SNI"; \
 print("OK: reachability invariants (passthrough, vault-active backend, internal CA not ACME)")'
+	@$(PYTHON) -c 'import yaml; \
+x=yaml.safe_load(open("$(CP_DIR)/vaultconfig-xrd.yaml")); \
+assert "claimNames" not in x["spec"]["names"], "VaultConfig is internal: NO claimNames"; \
+assert x["spec"]["defaultCompositionUpdatePolicy"]=="Manual", "Manual revision promotion"; \
+props=x["spec"]["versions"][0]["schema"]["openAPIV3Schema"]["properties"]["spec"]; \
+assert set(["clusterName","kubernetesHost","reviewerJwtSecretRef","caCertSecretRef"]).issubset(set(props["required"])), "sensitive inputs required as refs"; \
+print("OK: vaultconfig-xrd invariants (internal, Manual, secret-ref inputs required)")'
+	@$(PYTHON) -c 'import yaml; \
+docs=[d for d in yaml.safe_load_all(open("$(CP_DIR)/provider-vault.yaml")) if d]; \
+prov=[d for d in docs if d.get("kind")=="Provider"][0]; \
+assert prov["spec"]["revisionActivationPolicy"]=="Manual", "provider upgrades must be Manual"; \
+assert ":" in prov["spec"]["package"].split("/")[-1], "provider package MUST be pinned to a tag"; \
+assert not prov["spec"]["package"].rstrip().endswith(":latest"), "provider must not float on :latest"; \
+print("OK: provider-vault pinned + Manual activation")'
 	@! grep -RniE "(password|token|secret[_-]?key)[[:space:]]*[:=][[:space:]]*[^#\$$[:space:]]+" $(CP_DIR) \
 		| grep -viE "secretName|caCertSecretRef|secretKeyRef|vault-server-tls|ok-shared-internal-ca|tokenreview|X-Vault-Token" \
 		&& echo "OK: no inline secret material" || (echo "OK: no inline secret material")

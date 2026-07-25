@@ -93,6 +93,29 @@ not a prerequisite. See `crossplane/reachability.yaml`.
      caCertSecretRef: vault-ca
    ```
 
+## Day-1/2 config reconciler (ADR-025 item 13)
+
+Vault *configuration* (auth mounts, policies, roles) is reconciled by **Crossplane
+`provider-vault` on ok-mgmt** — one authoritative loop, continuous drift
+correction, no external state file. Driven by the ADR-013 registration
+Composition: one `VaultConfig` XR per consuming cluster renders that cluster's
+dedicated `auth/kubernetes/<cluster>` mount + workload-scoped least-privilege
+roles/policies as provider-vault managed resources.
+
+```
+crossplane/provider-vault.yaml         Provider (PINNED) + ProviderConfig (K8s-auth, ceremony-seeded)
+crossplane/vaultconfig-xrd.yaml        VaultConfig XRD (internal, per-cluster, Manual)
+crossplane/vaultconfig-composition.yaml provider-vault MRs (go-templating loop over roles)
+crossplane/examples/ok-robotics-vaultconfig.yaml   Category-A example (sa-obs)
+```
+
+**Not applyable yet — TO-VERIFY:** pin the tested `provider-vault` version and
+confirm MR CRD coverage (`kubectl get crds | grep vault`); the MR
+`apiVersion`s/field names in the Composition are the expected Upjet shape and
+must be checked against the installed provider. Sensitive inputs (reviewer JWT,
+CA) are secret-ref only, never inline (ADR-024 hygiene). The reconciler's own
+auth is the single manual seed from the bootstrap ceremony (Step 3c).
+
 ## Health gate (readiness ≠ installed)
 
 The XR's `Ready` only proves the Helm release is INSTALLED. Operational readiness
