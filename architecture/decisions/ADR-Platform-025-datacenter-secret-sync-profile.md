@@ -118,7 +118,7 @@ Deployed by a Crossplane Composition (provider-helm `Release`) applied from **ok
 
 ### Readiness — Helm-deployed ≠ Vault-ready (invariant)
 
-`VaultInstance Ready=True` **MUST NOT** be derived from provider-helm's `Release=deployed` alone (Vault may be uninitialised, sealed, without Raft quorum / TLS / audit). Expose or gate distinct states: `Installed`, `Initialized`, `Unsealed`, `RaftHealthy`, `TLSReady`, `AuditEnabled`, `Configured`. If the first Composition can observe only the Helm state, it reports **only `Installed`**; a **separate deterministic health gate** supplies acceptance evidence — mirroring the observability contract-test-gate discipline.
+`VaultInstance Ready=True` **MUST NOT** be derived from provider-helm's `Release=deployed` alone (Vault may be uninitialised, sealed, without Raft quorum / TLS / audit). Expose or gate distinct states: `Installed`, `Initialized`, `Unsealed`, `RaftHealthy`, `TLSReady`, `AuditEnabled`, `Configured`. If the first Composition can observe only the Helm state, it reports **only `Installed`**; a **separate deterministic health gate** supplies acceptance evidence — mirroring the observability contract-test-gate discipline. Realised as `platform/secrets/vault/gate/vault-health-gate.sh` (read-only; `Initialized` / `Unsealed` / `TLSReady` unauthenticated, `RaftHealthy` / `AuditEnabled` / `Configured` token-gated; exit non-zero on any FAIL), wrapped by `make health-gate`. `Configured` asserts only the dedicated per-cluster auth mount until the Day-1/Day-2 config reconciler is selected (item 13).
 
 ### Storage & failure domains
 

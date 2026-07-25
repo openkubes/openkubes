@@ -37,7 +37,6 @@ Related: OK-110 (production Vault standup), OK-109 (VSO rewiring, last).
 
 - Enforce the singleton invariant (admission/conformance check).
 - Confirm the pinned chart version and the real ok-shared StorageClass.
-- Add the separate Vault health/conformance gate.
 - Bootstrap ceremony (init/unseal, custody) — supervised, out of band.
 - **Verify the TLS render** — server TLS is wired in the composition
   (`global.tlsDisable: false`, `vault-server-tls` mounted, https Raft
@@ -92,11 +91,38 @@ not a prerequisite. See `crossplane/reachability.yaml`.
      caCertSecretRef: vault-ca
    ```
 
+## Health gate (readiness ≠ installed)
+
+The XR's `Ready` only proves the Helm release is INSTALLED. Operational readiness
+is asserted by a **separate deterministic runtime gate** that supplies acceptance
+evidence (ADR-025), mirroring the observability contract-test-gate discipline:
+
+```
+gate/vault-health-gate.sh   Initialized / Unsealed / RaftHealthy / TLSReady /
+                            AuditEnabled / Configured — read-only, exit 1 on any FAIL
+Makefile                    `make validate` (scaffold safety invariants),
+                            `make health-gate` (runtime gate wrapper)
+```
+
+Unauthenticated checks (Initialized, Unsealed, TLSReady) run without a token;
+RaftHealthy / AuditEnabled / Configured need `VAULT_TOKEN` (else SKIP, or FAIL
+with `--require-auth`). `Configured` only asserts the dedicated per-cluster k8s
+auth mount — policies/roles depend on the still-open Day-1/2 config reconciler
+(ADR-025 item 13).
+
+```bash
+VAULT_ADDR=https://vault.ok-shared.internal:443 VAULT_CACERT=./ok-shared-ca.crt \
+VAULT_EXPECT_REPLICAS=3 VAULT_TOKEN=… VAULT_EXPECT_AUTH_MOUNTS=ok-robotics \
+make health-gate            # or: bash gate/vault-health-gate.sh --require-auth
+```
+
 ## Layout
 
 ```
+Makefile                            local validate + health-gate wrapper
 crossplane/xrd.yaml                 VaultInstance XRD (singleton, Manual updates)
-crossplane/composition.yaml         provider-helm Release (Raft, Orphan, pinned)
+crossplane/composition.yaml         provider-helm Release (Raft, Orphan, pinned, TLS)
 crossplane/examples/ok-shared-vault.yaml   the singleton XR (placeholder values)
 crossplane/reachability.yaml        internal CA + server cert + IngressRouteTCP (passthrough)
+gate/vault-health-gate.sh           deterministic runtime health gate
 ```
