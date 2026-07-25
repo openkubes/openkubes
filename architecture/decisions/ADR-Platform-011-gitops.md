@@ -2,7 +2,7 @@
 
 **Status:** Proposed
 **Date:** 2026-07-07
-**Related:** OK-58, ADR-Platform-001 (contracts not components), ADR-Platform-010 (ingress)
+**Related:** OK-58, OK-71 (Secret Contract amendment), OK-67, OK-109, OK-110, ADR-Platform-001 (contracts not components), ADR-Platform-009 (Storage), ADR-Platform-010 (ingress), ADR-Platform-016 (OS), ADR-Platform-017 (Constraint Envelopes)
 
 ## Context
 
@@ -34,7 +34,7 @@ lifecycle via ArgoCD.
 
 ### Contract (stable)
 
-1. Git is the single source of truth for cluster desired state.
+1. Git is the source of truth for declarative cluster lifecycle state and for references to externally managed secret material; plaintext secret values are never required to reside in Git (see the Secret Contract below).
 2. Rendered cluster manifests live in a dedicated `rendered/` directory (or separate repo)
    — not mixed with templates.
 3. Creating a cluster = committing a rendered manifest + pushing.
@@ -52,13 +52,49 @@ lifecycle via ArgoCD.
 - Bootstrap stack (Crossplane, providers, XRDs) expressed as ArgoCD `Application` objects
   — replaces `bootstrap-mgmt.sh` imperative script.
 
-### Secrets strategy
+### Secret Contract (amendment 2026-07-25 — OK-71; three-way review 2026-07-10)
 
-Cluster kubeconfigs and CAPK infra credentials cannot be committed. Options (to be decided
-in implementation):
-- External Secrets Operator (ESO) + Hetzner Vault / Bitwarden
-- Sealed Secrets (simpler, no external dependency)
-- SOPS + age encryption (Git-native, no operator required)
+> **Amendment status: Accepted / normative** — normative as of the human merge
+> of this amendment (OK-71; three-way review 2026-07-10 & 2026-07-25). The merge
+> is the acceptance act, not the review alone.
+> **GitOps Implementation Profile status: Proposed** — ArgoCD, `rendered/`, and
+> the migration path remain open. This ADR deliberately carries an Accepted
+> amendment inside an otherwise-Proposed decision; the document `Status:` header
+> tracks the profile.
+
+Plaintext cluster kubeconfigs, CAPK infrastructure credentials, and application
+administrator credentials cannot be committed to Git (encrypted artifacts, e.g.
+SOPS / Sealed-class, are a different matter — see the profiles below). Their
+handling is governed by a technology-independent contract:
+
+1. **Git never contains plaintext secret material.**
+2. **Git is the source of truth for the declarative references and reconciliation
+   configuration of secret material — but not necessarily for the secret values
+   themselves** (which may live in an external store like Vault/Bitwarden, or as
+   an *encrypted* artifact in Git for SOPS / Sealed-class profiles).
+3. **Secret material MUST be reconcilable within the constraint envelope of the
+   cluster or environment in which its reconciliation occurs.** Mechanisms that
+   require an always-on external service are valid only where that envelope
+   guarantees the required connectivity and service availability. So a workload
+   credential is judged against the workload cluster's envelope; a CAPK / CAPI /
+   kubeconfig credential against the management / host cluster's envelope that
+   actually reconciles it — not against the (possibly edge) target it refers to.
+
+Consequences:
+
+- The secret **tool** (External Secrets Operator, SOPS, Sealed Secrets, Vault,
+  Bitwarden, …) is an **Implementation Profile per envelope — not part of the
+  contract**.
+- **Datacenter envelope:** ESO / SOPS / Sealed-class mechanisms may be *eligible*,
+  subject to the envelope's full requirements (connectivity, key custody,
+  bootstrap, recovery, operator availability) — e.g. Vault + ESO on ok-shared
+  (OK-110). **Constrained-edge envelope:** only offline-reconcilable mechanisms
+  are eligible (e.g. appropriately configured SOPS / Sealed-class profiles).
+- Third precedent for the Constraint Envelope pattern (ADR-017), after storage
+  (ADR-009) and OS (ADR-016).
+- Adds an evaluation criterion to the edge GitOps spike (OK-67).
+
+This supersedes the earlier "options to be decided in implementation" wording.
 
 ### Migration path from current state
 
@@ -82,5 +118,5 @@ in implementation):
   implemented.
 - `bootstrap-mgmt.sh` is deprecated in favour of ArgoCD `Application` manifests —
   no ADR amendment needed, it is an implementation detail.
-- Secrets management requires a decision before implementation (see above).
+- Secrets management follows the **Secret Contract** above; the concrete tool is a per-envelope Implementation Profile (datacenter: e.g. Vault + ESO — OK-110; constrained-edge: SOPS / Sealed-class). The contract is settled even though the GitOps profile is still Proposed.
 - `make e2e` remains valid for local development and CI — GitOps is the production path.
