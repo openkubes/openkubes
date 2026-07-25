@@ -27,6 +27,7 @@
 #   VAULT_EXPECT_REPLICAS=3 \
 #   VAULT_TOKEN=s.xxxx \
 #   VAULT_EXPECT_AUTH_MOUNTS=ok-robotics \
+#   VAULT_RESOLVE_IP=192.168.100.x \   # optional: pin SNI host to an IP (ingress)
 #   ./vault-health-gate.sh [--require-auth] [--json]
 # ─────────────────────────────────────────────────────────────────────────────
 set -u -o pipefail
@@ -59,8 +60,13 @@ PORT="${HOSTPORT##*:}"; [ "$PORT" = "$HOST" ] && PORT=443
 
 CURL=(curl -sS --max-time 10)
 [ -n "$VAULT_CACERT" ] && CURL+=(--cacert "$VAULT_CACERT")
-# SNI/host resolution: if VAULT_ADDR is an IP/port-forward, still present the SNI
-[ -n "$VAULT_SNI" ] && CURL+=(--resolve "${VAULT_SNI}:${PORT}:$(getent hosts "$HOST" 2>/dev/null | awk '{print $1; exit}' || echo "$HOST")" ) 2>/dev/null || true
+# Optional SNI pinning: present VAULT_SNI while connecting to an explicit IP.
+# Portable (no getent). Only needed when the SNI host does not resolve to the
+# target — e.g. hitting the ingress MetalLB IP directly. For a port-forward,
+# leave VAULT_RESOLVE_IP unset and curl uses VAULT_ADDR's host directly.
+if [ -n "${VAULT_RESOLVE_IP:-}" ] && [ -n "$VAULT_SNI" ]; then
+  CURL+=(--resolve "${VAULT_SNI}:${PORT}:${VAULT_RESOLVE_IP}")
+fi
 
 declare -a RESULTS   # "STATE|VERDICT|detail"
 FAILED=0
