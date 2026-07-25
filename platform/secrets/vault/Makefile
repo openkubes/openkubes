@@ -64,8 +64,8 @@ x=yaml.safe_load(open("$(CP_DIR)/vaultconfig-xrd.yaml")); \
 assert "claimNames" not in x["spec"]["names"], "VaultConfig is internal: NO claimNames"; \
 assert x["spec"]["defaultCompositionUpdatePolicy"]=="Manual", "Manual revision promotion"; \
 props=x["spec"]["versions"][0]["schema"]["openAPIV3Schema"]["properties"]["spec"]; \
-assert set(["clusterName","kubernetesHost","reviewerJwtSecretRef","caCertSecretRef"]).issubset(set(props["required"])), "sensitive inputs required as refs"; \
-print("OK: vaultconfig-xrd invariants (internal, Manual, secret-ref inputs required)")'
+assert set(["clusterName","kubernetesHost","reviewerJwtSecretRef","caCert"]).issubset(set(props["required"])), "required inputs present"; \
+print("OK: vaultconfig-xrd invariants (internal, Manual, reviewer-JWT secret ref + caCert required)")'
 	@$(PYTHON) -c 'import yaml; \
 docs=[d for d in yaml.safe_load_all(open("$(CP_DIR)/provider-vault.yaml")) if d]; \
 prov=[d for d in docs if d.get("kind")=="Provider"][0]; \
@@ -99,13 +99,15 @@ render: render-prerequisites ## Render the VaultConfig XR locally (needs crosspl
 render-check: render-prerequisites ## Render and verify the VaultConfig composition output
 	@$(VC_RENDER) | $(PYTHON) -c 'import sys, yaml; \
 docs=[d for d in yaml.safe_load_all(sys.stdin) if isinstance(d, dict)]; \
-mrs=[d for d in docs if str(d.get("apiVersion","")).endswith("vault.crossplane.io/v1beta1")]; \
+mrs=[d for d in docs if str(d.get("apiVersion","")).endswith("vault.upbound.io/v1beta1")]; \
 kinds=sorted(d["kind"] for d in mrs); \
-assert "AuthBackend" in kinds and "AuthBackendConfig" in kinds, kinds; \
+assert "Backend" in kinds and "AuthBackendConfig" in kinds, kinds; \
 assert "Policy" in kinds and "AuthBackendRole" in kinds, kinds; \
 assert all(d["spec"]["providerConfigRef"]["name"]=="ok-shared-vault" for d in mrs), "all MRs must use the ok-shared-vault ProviderConfig"; \
-assert not any("jwt" in str(d.get("spec",{}).get("forProvider",{})).lower() and "SecretRef" not in str(d) for d in mrs), "reviewer JWT must be a secret ref, never inline"; \
-print("OK: VaultConfig renders auth mount + config + per-role policy/role via secret refs")'
+cfg=[d for d in mrs if d["kind"]=="AuthBackendConfig"][0]["spec"]["forProvider"]; \
+assert "tokenReviewerJwtSecretRef" in cfg, "reviewer JWT must be a secret ref"; \
+assert "jwt" not in str({k:v for k,v in cfg.items() if k!="tokenReviewerJwtSecretRef"}).lower(), "no inline JWT outside the secret ref"; \
+print("OK: VaultConfig renders Backend + config (reviewer JWT via secret ref) + per-role policy/role")'
 
 health-gate: ## Run the runtime health gate (set VAULT_ADDR/VAULT_CACERT/VAULT_TOKEN/...)
 	@bash $(GATE) $(GATE_ARGS)
