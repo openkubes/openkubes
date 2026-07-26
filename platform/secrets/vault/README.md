@@ -35,7 +35,9 @@ Related: OK-110 (production Vault standup), OK-109 (VSO rewiring, last).
 
 ## TODO before production
 
-- Enforce the singleton invariant (admission/conformance check).
+- Enforce the singleton invariant — **DONE (mechanism); evidence pending apply.**
+  See "Singleton enforcement" below; run the negative test on ok-mgmt to close
+  ADR-025 criterion 14.
 - Confirm the pinned chart version and the real ok-shared StorageClass.
 - Run the **bootstrap ceremony** (init/unseal, custody, root-token revoke) —
   supervised, out of band. Runbook: `bootstrap/README.md`.
@@ -125,6 +127,36 @@ Secret `crossplane-system/ok-shared-vault-ca` (key `ca.crt`) and confirm the
 Upjet provider honours `VAULT_CACERT` for TLS trust (`skip_tls_verify` stays
 false).
 
+## Singleton enforcement (ADR-025 criterion 14)
+
+`VaultInstance` is an internal singleton — exactly one production instance,
+`ok-shared-vault`. An XRD does not enforce that, so a **Kubernetes-native
+`ValidatingAdmissionPolicy`** on ok-mgmt **pins the name**: only
+`ok-shared-vault` may be created. Because the XR is cluster-scoped (globally
+unique names), permitting one name bounds the population to **at most one** — no
+fragile cross-object counting, and **no external policy controller** (no new
+platform capability). Fail-closed (`failurePolicy: Fail`, `validationActions:
+[Deny]`), CREATE-only (a cluster-scoped object cannot be renamed).
+
+```
+crossplane/singleton-admission.yaml       ValidatingAdmissionPolicy + Binding (name-pin, Deny, fail-closed)
+conformance/singleton-conformance.sh      read-only: policy installed + population <= 1 + name == ok-shared-vault
+conformance/singleton-negative-test.sh     server dry-run: a 2nd VaultInstance is rejected (non-mutating)
+```
+
+Requires Kubernetes **1.30+** on ok-mgmt (`admissionregistration.k8s.io/v1`); on
+1.28–1.29 switch both objects to `v1beta1` (see the file header). Apply and
+prove:
+
+```bash
+kubectl --context ok-mgmt apply -f crossplane/singleton-admission.yaml
+KUBECONFIG=~/.kube/ok-mgmt.yaml make singleton-conformance      # read-only assertion
+KUBECONFIG=~/.kube/ok-mgmt.yaml make singleton-negative-test    # proves a 2nd instance is denied
+```
+
+`make validate` also statically asserts the policy is name-pinned, CREATE-scoped,
+fail-closed, and Deny-bound.
+
 ## Health gate (readiness ≠ installed)
 
 The XR's `Ready` only proves the Helm release is INSTALLED. Operational readiness
@@ -158,6 +190,9 @@ crossplane/xrd.yaml                 VaultInstance XRD (singleton, Manual updates
 crossplane/composition.yaml         provider-helm Release (Raft, Orphan, pinned, TLS)
 crossplane/examples/ok-shared-vault.yaml   the singleton XR (placeholder values)
 crossplane/reachability.yaml        internal CA + server cert + IngressRouteTCP (passthrough)
+crossplane/singleton-admission.yaml ValidatingAdmissionPolicy + Binding (crit. 14 name-pin)
+conformance/singleton-conformance.sh   read-only singleton conformance check
+conformance/singleton-negative-test.sh server dry-run: 2nd VaultInstance rejected
 gate/vault-health-gate.sh           deterministic runtime health gate
 bootstrap/README.md                 supervised init/unseal ceremony runbook
 ```
