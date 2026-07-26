@@ -105,8 +105,17 @@ including the 3D-3b steady-state promotion (`consumerSecretUnchanged: true`).
 
 ## Follow-ups outside A6 migration completion
 
-- **A6 negative-policy test** — prove `ok-config-automation` cannot write a non-`okvc-` policy. This
-  remains an **ADR-025 acceptance blocker** even though the ownership migration itself is complete.
+- **A6 automation-policy tightening (crit. 13)** — **DONE (2026-07-26).** The `ok-config-automation`
+  policy was narrowed from the broad seed (`sys/policies/acl/*`, `sys/auth/*`+sudo) to the reserved
+  least-privilege scope: `sys/policies/acl/okvc-*` (create/read/update/delete/list),
+  `sys/auth/kubernetes/*` + `auth/kubernetes/*` with an explicit **deny** on its own
+  `kubernetes/ok-mgmt` auth mount/role (self-protection), `sys/mounts/auth/kubernetes/*` read, and
+  `auth/token/create`. Validated first in isolation (a temp policy + token proved it grants every
+  reconciler operation and denies admin reach — writing a non-`okvc-` policy is `permission denied`),
+  then applied live; the reconciler's write path was proven by an injected okvc- drift that the
+  reconciler restored using the narrowed policy (4 MRs + XR `ReconcileSuccess`). The narrowed policy
+  takes effect immediately (Vault evaluates ACL policies by name at request time; no provider
+  restart). This closes the last ADR-025 acceptance blocker for the datacenter-envelope profile.
 - **Break-glass credential rotation** — **DONE (2026-07-26).** The exposed break-glass password was
   rotated and all tokens ever issued via `auth/userpass/login/breakglass` were revoked path-wide,
   using an independent ephemeral orphan rotator (path `auth/token/create`, not the break-glass login
