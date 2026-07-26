@@ -1,5 +1,15 @@
 # OK-109 Part 2 — VSO VaultStaticSecret consumer wiring (re-entry briefing)
 
+> **STATUS: DONE (2026-07-26).** Implemented and verified on ok-robotics — VSO
+> `VaultStaticSecret` produces `ok-observability-credentials`, OK-79 contract-test
+> gate green, no chart change. Committed manifests + full how-to live in the
+> **ok-observability** repo: `implementations/vault-secrets-operator/`.
+>
+> **Namespace correction:** the observability stack runs in namespace
+> **`ok-observability`**, not `observability`. Everywhere below that says the
+> `observability` namespace, read `ok-observability` (the Vault role was rebound
+> accordingly via the VaultConfig XR). Kept as-is for history.
+
 **Goal:** replace the "create Secret from provider-values file" step with a **Vault
 Secrets Operator (VSO)** `VaultStaticSecret` that syncs from the central Vault on
 ok-shared and produces the **same** `ok-observability-credentials` Secret.
