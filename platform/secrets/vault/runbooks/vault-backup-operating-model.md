@@ -17,7 +17,7 @@ encryption + access control, retention, and a periodic restore test.**
 | **Cadence** | **Ad-hoc before every Vault change** (upgrade, unseal-key rekey, composition promotion) — **no fixed periodic snapshot**. Accepted consequence: the RPO between changes is unbounded; take an explicit snapshot before any risky operation. |
 | **Owner** | **Arash** — the Vault custodian (Phase-1 single-operator per AR-025-1); backup is part of the custodian role. |
 | **External storage** | **`~/vault-backups`** on the operator workstation (off the ok-shared failure domain). Recommended: also keep a second offsite/removable copy. NOT a PVC/VM snapshot on the same host. |
-| **Encryption + access control** | GPG-encrypted at rest to the **Kubernauts MAN key** `D0204299FC0840FC0EDBB83ACEF6803E5BB0FE01` (rsa4096). Plaintext `.snap` lives only in a private tmp dir and is shredded on exit; artifacts `0600`. (Unseal shares are passphrase-symmetric — a separate custody, both single-operator.) |
+| **Encryption + access control** | GPG-encrypted at rest to the operator key `0E3AF6C9CA71C96E23892AB45D3F5BFDAE1DF20F` (Arash — MY OpenPGP Key, rsa2048; passphrase confirmed usable in the restore rehearsal). Plaintext `.snap` lives only in a private tmp dir and is shredded on exit; artifacts `0600`. (Unseal shares are passphrase-symmetric — a separate custody, both single-operator.) **Do NOT use the Kubernauts MAN key** `D0204...` — its passphrase is not reliably held (see Findings). |
 | **Retention** | **7 days** (`RETENTION_DAYS=7`); prune older; never keep plaintext. |
 | **Restore test** | **Monthly** restore rehearsal into a **throwaway** Vault (never production); record the outcome in the register / acceptance record. |
 
@@ -41,7 +41,7 @@ out, hashes, GPG-encrypts, optionally copies off-host, and appends a row to the 
 ```bash
 # obtain a break-glass token into $BGT via your usual stdin login (never argv/history), then:
 KUBECONFIG=~/.kube/ok-shared.yaml \
-  GPG_RECIPIENT=D0204299FC0840FC0EDBB83ACEF6803E5BB0FE01 \
+  GPG_RECIPIENT=0E3AF6C9CA71C96E23892AB45D3F5BFDAE1DF20F \
   OFFHOST_DIR=~/vault-backups \
   RETENTION_DAYS=7 \
   VAULT_TOKEN="$BGT" \
@@ -96,6 +96,19 @@ evidence; this runbook makes it a **recurring** obligation.
 - Scheduled off-host backup via CronJob (`vault operator raft snapshot save` → object store) with
   server-side encryption, lifecycle/retention, and monitored success — tracked separately. Until
   it exists and is evidenced, **do not claim automated backups**.
+
+## Findings (2026-07-26 — first restore rehearsal)
+
+- **Restore mechanism verified:** the encrypted snapshot decrypts, its sha256 matches the register,
+  and Vault installs it to the FSM (the restored barrier correctly requires the source unseal keys).
+- **Custody hardening (tracked in OK-113):** the rehearsal drove two hardening actions — backups are
+  now encrypted to a **verified** operator key (a decrypt round-trip is confirmed *before* relying on
+  any backup), and migration to **auto-unseal (Transit/KMS)** is prioritized so recovery never
+  depends on a single memorized passphrase. **Always verify a backup decrypts with the intended key
+  before trusting it** — a snapshot you cannot decrypt (or unseal) is not a backup.
+- **Operational gotcha:** GPG in a pipe / non-interactive shell needs `export GPG_TTY=$(tty)` (and a
+  running `gpg-agent`), else decryption fails with `Inappropriate ioctl for device` — put it in the
+  operator's shell profile.
 
 ## Sign-off
 
