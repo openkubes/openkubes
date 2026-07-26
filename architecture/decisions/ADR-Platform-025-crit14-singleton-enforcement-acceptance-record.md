@@ -4,8 +4,9 @@
 singleton invariant so that no second production `VaultInstance` can exist while
 `ok-shared-vault` is active. An internal XRD (no `claimNames`) does not enforce this by itself.
 
-**Status:** Mechanism committed; **live evidence PENDING** the apply + negative-test run on
-ok-mgmt (fill the placeholders below, then flip Status to *Enforced — verified*).
+**Status:** **Enforced — verified (2026-07-26)** on ok-mgmt (k8s v1.34.1). Policy applied,
+conformance PASS, negative test PASS (a second `VaultInstance` is denied at admission). Evidence
+below.
 
 ---
 
@@ -43,19 +44,20 @@ Artifacts:
 **Preflight — confirm the API supports VAP:**
 
 ```bash
-kubectl --context ok-mgmt version -o json | jq -r .serverVersion.gitVersion
-# >= v1.30 → admissionregistration.k8s.io/v1 (as shipped). v1.28–1.29 → switch to v1beta1.
+KUBECONFIG=~/.kube/ok-mgmt.yaml kubectl version -o json | jq -r .serverVersion.gitVersion
+# >= v1.30 → admissionregistration.k8s.io/v1 (as shipped).
 ```
-Server version: `__________`
+Server version: **v1.34.1** (ok-mgmt, Talos) → `admissionregistration.k8s.io/v1` used as-is.
 
 **1. Apply the policy:**
 
 ```bash
-kubectl --context ok-mgmt apply -f platform/secrets/vault/crossplane/singleton-admission.yaml
+KUBECONFIG=~/.kube/ok-mgmt.yaml kubectl apply -f platform/secrets/vault/crossplane/singleton-admission.yaml
 ```
 Output:
 ```
-(paste: validatingadmissionpolicy... created / validatingadmissionpolicybinding... created)
+validatingadmissionpolicy.admissionregistration.k8s.io/vaultinstance-singleton.platform.openkubes.ai created
+validatingadmissionpolicybinding.admissionregistration.k8s.io/vaultinstance-singleton.platform.openkubes.ai created
 ```
 
 **2. Conformance (read-only, must PASS):**
@@ -65,7 +67,12 @@ KUBECONFIG=~/.kube/ok-mgmt.yaml make -C platform/secrets/vault singleton-conform
 ```
 Output:
 ```
-(paste — expect: RESULT: PASS — singleton invariant is enforced (crit. 14))
+PASS  ValidatingAdmissionPolicy '...' present and fail-closed (failurePolicy: Fail)
+PASS  policy pins the singleton name in a validation expression
+PASS  Binding references policy '...'
+PASS  Binding enforces validationActions: [Deny]
+PASS  VaultInstance population = 1 (<= 1, singleton bound holds)
+RESULT: PASS — singleton invariant is enforced (crit. 14)
 ```
 
 **3. Negative test (must PASS = a 2nd VaultInstance is DENIED):**
@@ -75,15 +82,21 @@ KUBECONFIG=~/.kube/ok-mgmt.yaml make -C platform/secrets/vault singleton-negativ
 ```
 Output:
 ```
-(paste — expect: PASS decoy '...neg-test' denied by the singleton policy;
- PASS allowed name 'ok-shared-vault' passes admission;
- RESULT: PASS — a second VaultInstance is rejected; the singleton holds (crit. 14))
+PASS  decoy 'ok-shared-vault-neg-test' denied by the singleton policy.
+      server: Error from server (Forbidden): ... vaultinstances.platform.openkubes.ai
+      "ok-shared-vault-neg-test" is forbidden: ValidatingAdmissionPolicy
+      'vaultinstance-singleton.platform.openkubes.ai' ... denied request:
+      ADR-025 singleton (criterion 14): the only permitted VaultInstance is
+      ok-shared-vault. A second production VaultInstance (ok-shared-vault-neg-test)
+      is forbidden — Vault is a bounded singleton, not a self-service capability.
+PASS  allowed name 'ok-shared-vault' passes admission (dry-run OK).
+RESULT: PASS — a second VaultInstance is rejected; the singleton holds (crit. 14)
 ```
 
 ## Sign-off
 
-- Three-way review (Arash / Claude / GPT): `__________`
-- Criterion 14 closed in ADR-025 / OK-110 review thread on: `__________`
+- Three-way review: **waived by Arash (2026-07-26)** for this enforcement change.
+- Criterion 14 **verified on ok-mgmt 2026-07-26**; to be ticked in the OK-110 thread.
 
 ## Notes / follow-ups
 
