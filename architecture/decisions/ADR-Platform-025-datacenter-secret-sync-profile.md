@@ -92,7 +92,7 @@ Vault is a **soft runtime dependency but a hard bootstrap-and-recovery dependenc
 - Already-materialised Kubernetes Secrets + running workloads survive a **temporary** Vault outage.
 - Rotation, drift-recovery, reinstall, cluster-rebuild, and restoring a **deleted** Secret require ok-shared / Vault.
 - Consistent with OK-71 clause 3 (external store valid only where the envelope guarantees connectivity) and **not** in conflict with ADR-018 autonomy, which the edge/offline profile continues to satisfy.
-- **Required test:** cut the Vault connection, verify existing observability workloads + a pod restart survive, then verify reconciliation after Vault returns.
+- **Required test:** cut the Vault connection (scale the ok-shared `vault` StatefulSet to 0), verify the materialised consumer Secret is still served and existing observability workloads + a pod restart survive, then verify reconciliation (VSO resync + a rotation propagates) after Vault returns and is re-unsealed. Runbook + evidence capture: `platform/secrets/vault/runbooks/vault-outage-recovery.md` (with `conformance/outage-evidence.sh`); this is also the ADR-018 autonomy evidence.
 
 ## Bootstrap invariant (acceptance blocker, not a mere open item)
 
@@ -209,7 +209,7 @@ Proven items referenced *in* the ADR for visibility (the full 15-point acceptanc
 5. Vault bootstrap works **without Vault/VSO recursion** (invariant above).
 6. An **existing** observability install migrated **without credential change**.
 7. A **fresh** install receives the Secret **before** the Helm release.
-8. **Vault outage + reconciliation** tested (ADR-018 test above).
+8. **Vault outage + reconciliation** tested per `runbooks/vault-outage-recovery.md`: full outage via `vault` StatefulSet scale-to-0 — consumer Secret still served + unchanged, workloads + a pod restart survive; after scale-up + attended re-unseal, VSO resyncs and a rotation propagates. Evidence captured in `ADR-Platform-025-crit8-outage-recovery-acceptance-record.md` (also closes the ADR-018 autonomy outage evidence).
 9. **Rotation** proven with an actually-rotatable consumer (not the OpenSearch bootstrap password).
 10. ADR-024 / OK-109 Contract Gate re-runs **green** with the materialised Secret.
 11. **Failure budget decided** (3 vs 5 voters, accepted risk) + pod anti-affinity across ok-shared nodes; **Vault Raft snapshot** backup outside the cluster's failure domain, with a **restore rehearsal** completed, and a **backup operating-model runbook** fixing cadence, owner, external storage location, encryption + access control, retention, and a periodic restore test (manual acceptable; scheduled off-host automation is a Day-2 follow-up — no claim of automated backups).

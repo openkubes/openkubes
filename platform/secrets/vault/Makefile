@@ -24,9 +24,10 @@ YAML_FILES := $(CP_DIR)/xrd.yaml $(CP_DIR)/composition.yaml \
               $(CP_DIR)/singleton-admission.yaml
 CHART_VER  ?= 0.30.1
 GATE       := gate/vault-health-gate.sh
-CONF_SCRIPTS := conformance/singleton-conformance.sh conformance/singleton-negative-test.sh
+CONF_SCRIPTS := conformance/singleton-conformance.sh conformance/singleton-negative-test.sh \
+                conformance/outage-evidence.sh
 
-.PHONY: help validate lint-gate template-check health-gate render-prerequisites render render-check singleton-conformance singleton-negative-test
+.PHONY: help validate lint-gate template-check health-gate render-prerequisites render render-check singleton-conformance singleton-negative-test outage-evidence
 
 help: ## Show available checks
 	@awk 'BEGIN {FS = ":.*## "}; /^[a-zA-Z_-]+:.*## / {printf "  %-16s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -135,5 +136,8 @@ singleton-conformance: ## crit.14 read-only: verify the singleton is enforced on
 
 singleton-negative-test: ## crit.14: prove a 2nd VaultInstance is rejected (server dry-run, non-mutating)
 	@bash conformance/singleton-negative-test.sh $(SINGLETON_ARGS)
+
+outage-evidence: ## crit.8 read-only: capture a phase snapshot (set --phase via EV_ARGS, see runbooks/)
+	@bash conformance/outage-evidence.sh $(EV_ARGS)
 
 .DEFAULT_GOAL := help
