@@ -107,9 +107,12 @@ including the 3D-3b steady-state promotion (`consumerSecretUnchanged: true`).
 
 - **A6 negative-policy test** — prove `ok-config-automation` cannot write a non-`okvc-` policy. This
   remains an **ADR-025 acceptance blocker** even though the ownership migration itself is complete.
-- **Break-glass credential rotation** — a break-glass password was exposed during the working
-  session and must be rotated **before merge / before this session is considered closed**, not left
-  as an open-ended Day-2 item.
+- **Break-glass credential rotation** — **DONE (2026-07-26).** The exposed break-glass password was
+  rotated and all tokens ever issued via `auth/userpass/login/breakglass` were revoked path-wide,
+  using an independent ephemeral orphan rotator (path `auth/token/create`, not the break-glass login
+  path). New-password login was verified, the old password is rejected with the expected `400
+  invalid username or password` signature, and the break-glass user's `token_policies` were
+  preserved. No secret value is recorded.
 
 (The T1–T5 and T6-steady transition Compositions were local, untracked migration artifacts. They
 were removed from the working tree before the final commit and are not retained as canonical
