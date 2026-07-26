@@ -144,18 +144,25 @@ vault write auth/userpass/users/breakglass \
 #     provider-vault authenticates with short-lived tokens (no standing cred).
 #     Everything else is then reconciled declaratively.
 vault policy write ok-config-automation - <<'HCL'
-# scoped to what the config reconciler needs: auth mounts, policies, roles.
-path "sys/auth"            { capabilities = ["read"] }
-path "sys/auth/*"          { capabilities = ["create","read","update","delete","sudo"] }
+# Least-privilege (ADR-025 A6, crit. 13): reconciler-owned policies use the reserved okvc- prefix,
+# so this identity can manage ONLY okvc-* ACL policies and kubernetes auth — never admin policies
+# and never its own ok-mgmt auth mount/role (self-protection via explicit deny).
+path "sys/auth"                      { capabilities = ["read"] }            # list auth methods
+path "sys/auth/kubernetes/*"         { capabilities = ["create","read","update","delete","sudo"] }
+# self-protection: deny lifecycle of the manually seeded automation auth mount (ok-mgmt)
+path "sys/auth/kubernetes/ok-mgmt"   { capabilities = ["deny"] }
+path "sys/auth/kubernetes/ok-mgmt/*" { capabilities = ["deny"] }
+path "auth/kubernetes/ok-mgmt"       { capabilities = ["deny"] }
+path "auth/kubernetes/ok-mgmt/*"     { capabilities = ["deny"] }
 # REQUIRED: the provider OBSERVES an auth backend via sys/mounts/auth/<path>;
 # without read here the Backend MR never reaches Ready (403 on observe). Live 2026-07-25.
-path "sys/mounts/auth/*"   { capabilities = ["read"] }
-path "sys/policies/acl/*"  { capabilities = ["create","read","update","delete","list"] }
-path "auth/kubernetes/*"   { capabilities = ["create","read","update","delete","list"] }
+path "sys/mounts/auth/kubernetes/*"  { capabilities = ["read"] }
+path "sys/policies/acl/okvc-*"       { capabilities = ["create","read","update","delete","list"] }
+path "auth/kubernetes/*"             { capabilities = ["create","read","update","delete","list"] }
 # REQUIRED: the Upjet terraform-provider-vault creates a limited child token per
 # operation via auth/token/create — without this the provider gets 403 on every MR
 # ("failed to create limited child token"). Verified live 2026-07-25.
-path "auth/token/create"   { capabilities = ["create","update"] }
+path "auth/token/create"             { capabilities = ["create","update"] }
 HCL
 
 # Seed the reconciler's OWN auth mount for ok-mgmt (Vault -> ok-mgmt TokenReview).
