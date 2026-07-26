@@ -25,9 +25,9 @@ YAML_FILES := $(CP_DIR)/xrd.yaml $(CP_DIR)/composition.yaml \
 CHART_VER  ?= 0.30.1
 GATE       := gate/vault-health-gate.sh
 CONF_SCRIPTS := conformance/singleton-conformance.sh conformance/singleton-negative-test.sh \
-                conformance/outage-evidence.sh
+                conformance/outage-evidence.sh backup/vault-raft-snapshot.sh
 
-.PHONY: help validate lint-gate template-check health-gate render-prerequisites render render-check singleton-conformance singleton-negative-test outage-evidence
+.PHONY: help validate lint-gate template-check health-gate render-prerequisites render render-check singleton-conformance singleton-negative-test outage-evidence raft-snapshot
 
 help: ## Show available checks
 	@awk 'BEGIN {FS = ":.*## "}; /^[a-zA-Z_-]+:.*## / {printf "  %-16s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -139,5 +139,8 @@ singleton-negative-test: ## crit.14: prove a 2nd VaultInstance is rejected (serv
 
 outage-evidence: ## crit.8 read-only: capture a phase snapshot (set --phase via EV_ARGS, see runbooks/)
 	@bash conformance/outage-evidence.sh $(EV_ARGS)
+
+raft-snapshot: ## crit.11/A10: take + encrypt + register a Raft snapshot (set VAULT_TOKEN/GPG_RECIPIENT/OFFHOST_DIR)
+	@bash backup/vault-raft-snapshot.sh
 
 .DEFAULT_GOAL := help
