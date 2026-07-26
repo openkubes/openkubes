@@ -18,10 +18,10 @@
 #   VAULT_CONTEXT   kube context for Vault (e.g. ok-shared).
 #   VAULT_NS        Vault namespace (default: vault).
 #   VAULT_POD       snapshot source pod (default: auto-resolve the active/leader pod).
-#   WORKDIR         where the .gpg lands locally (default: current dir).
+#   WORKDIR         where the .gpg lands locally (default: $HOME/vault-backups — never the repo).
 #   OFFHOST_DIR     optional: also copy the .gpg here (off the ok-shared failure domain).
 #   REGISTER        register file to append to (default: backup/backup-register.md).
-#   RETENTION_DAYS  retention window recorded in the register (default: 14).
+#   RETENTION_DAYS  retention window recorded in the register (default: 7).
 #
 # Usage: VAULT_TOKEN=… GPG_RECIPIENT=… ./vault-raft-snapshot.sh
 # Dependencies: kubectl, gpg, sha256sum|shasum, date.
@@ -30,9 +30,9 @@ set -u -o pipefail
 
 VAULT_NS="${VAULT_NS:-vault}"
 VAULT_POD="${VAULT_POD:-}"   # empty → auto-resolve the active (leader) pod below
-WORKDIR="${WORKDIR:-.}"
+WORKDIR="${WORKDIR:-$HOME/vault-backups}"   # NEVER default into the repo tree
 REGISTER="${REGISTER:-backup/backup-register.md}"
-RETENTION_DAYS="${RETENTION_DAYS:-14}"
+RETENTION_DAYS="${RETENTION_DAYS:-7}"
 
 : "${VAULT_TOKEN:?set VAULT_TOKEN (break-glass token; via env/stdin, not argv)}"
 : "${GPG_RECIPIENT:?set GPG_RECIPIENT (custodian key id for at-rest encryption)}"

@@ -10,22 +10,19 @@ encryption + access control, retention, and a periodic restore test.**
 
 ---
 
-## Operating parameters (DECIDE → confirm in three-way review)
+## Operating parameters (decided 2026-07-26)
 
-Recommended defaults are proposed; the `DECIDE` values are org-policy choices — confirm, don't
-silently accept.
-
-| Parameter | Recommended default | Decision |
-|---|---|---|
-| **Cadence** | **daily** manual `vault operator raft snapshot save`, plus **ad-hoc before any Vault change** (upgrade, unseal-key rekey, composition promotion) | DECIDE |
-| **Owner** | the Vault custodian (Phase-1: **Arash**, single-operator per AR-025-1); backup is part of the custodian role | DECIDE |
-| **External storage** | off the ok-shared failure domain — **off-host** on `ok-infra` (encrypted dir) **and** a second copy off-cluster (removable/offsite). NOT a PVC/VM snapshot on the same host | DECIDE (path) |
-| **Encryption + access control** | snapshot **GPG-encrypted to the custodian key at rest** (same custody as the unseal shares); plaintext `.snap` never leaves a tmpfs/working dir; filesystem perms `0600`, dir `0700` | DECIDE (recipient key) |
-| **Retention** | keep **daily for 14 days**, **weekly for 8 weeks**; prune older; never keep plaintext | DECIDE |
-| **Restore test** | **quarterly** restore rehearsal into a **throwaway** Vault (never production); record outcome | DECIDE (cadence) |
+| Parameter | Decision |
+|---|---|
+| **Cadence** | **Ad-hoc before every Vault change** (upgrade, unseal-key rekey, composition promotion) — **no fixed periodic snapshot**. Accepted consequence: the RPO between changes is unbounded; take an explicit snapshot before any risky operation. |
+| **Owner** | **Arash** — the Vault custodian (Phase-1 single-operator per AR-025-1); backup is part of the custodian role. |
+| **External storage** | **`~/vault-backups`** on the operator workstation (off the ok-shared failure domain). Recommended: also keep a second offsite/removable copy. NOT a PVC/VM snapshot on the same host. |
+| **Encryption + access control** | GPG-encrypted at rest to the **Kubernauts MAN key** `D0204299FC0840FC0EDBB83ACEF6803E5BB0FE01` (rsa4096). Plaintext `.snap` lives only in a private tmp dir and is shredded on exit; artifacts `0600`. (Unseal shares are passphrase-symmetric — a separate custody, both single-operator.) |
+| **Retention** | **7 days** (`RETENTION_DAYS=7`); prune older; never keep plaintext. |
+| **Restore test** | **Monthly** restore rehearsal into a **throwaway** Vault (never production); record the outcome in the register / acceptance record. |
 
 > These are **not** the Vault non-secret production config (that lives versioned in the XR). This
-> is an operational runbook; the chosen values are recorded here + in the OK-110 thread.
+> is an operational runbook; the values above are recorded here + in the OK-110 thread.
 
 ## What a Vault backup is (and is not)
 
@@ -42,12 +39,19 @@ Helper: `platform/secrets/vault/backup/vault-raft-snapshot.sh` — snapshots via
 out, hashes, GPG-encrypts, optionally copies off-host, and appends a row to the backup register.
 
 ```bash
-export VAULT_CONTEXT=ok-shared VAULT_NS=vault
-export GPG_RECIPIENT=<custodian-key-id>            # same custody as the unseal shares
-export OFFHOST_DIR=/srv/vault-backups              # on ok-infra (or a mounted offsite target)
-export VAULT_TOKEN=<break-glass token, via stdin/env — never argv/history>
-make -C platform/secrets/vault raft-snapshot
+# obtain a break-glass token into $BGT via your usual stdin login (never argv/history), then:
+KUBECONFIG=~/.kube/ok-shared.yaml \
+  GPG_RECIPIENT=D0204299FC0840FC0EDBB83ACEF6803E5BB0FE01 \
+  OFFHOST_DIR=~/vault-backups \
+  RETENTION_DAYS=7 \
+  VAULT_TOKEN="$BGT" \
+  make -C platform/secrets/vault raft-snapshot
 ```
+
+Notes: do **not** set `VAULT_CONTEXT` unless your kube context is literally named that — rely on
+`KUBECONFIG`. The helper **auto-resolves the active (leader) pod** via the `vault-active=true`
+label (a `snapshot save` on a standby is redirected to the leader, whose cert is valid only for
+`127.0.0.1`); override with `VAULT_POD=` only if needed.
 
 The helper records, per backup: **UTC timestamp, file, size, SHA-256 (plaintext + encrypted),
 recipient, off-host destination, retention-until** into `backup/backup-register.md`. Verify the
