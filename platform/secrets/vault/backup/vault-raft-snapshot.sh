@@ -17,7 +17,7 @@
 #   GPG_RECIPIENT   (REQUIRED) key id the snapshot is encrypted to (unseal-share custody).
 #   VAULT_CONTEXT   kube context for Vault (e.g. ok-shared).
 #   VAULT_NS        Vault namespace (default: vault).
-#   VAULT_POD       snapshot source pod (default: vault-0).
+#   VAULT_POD       snapshot source pod (default: auto-resolve the active/leader pod).
 #   WORKDIR         where the .gpg lands locally (default: current dir).
 #   OFFHOST_DIR     optional: also copy the .gpg here (off the ok-shared failure domain).
 #   REGISTER        register file to append to (default: backup/backup-register.md).
@@ -29,7 +29,7 @@
 set -u -o pipefail
 
 VAULT_NS="${VAULT_NS:-vault}"
-VAULT_POD="${VAULT_POD:-vault-0}"
+VAULT_POD="${VAULT_POD:-}"   # empty → auto-resolve the active (leader) pod below
 WORKDIR="${WORKDIR:-.}"
 REGISTER="${REGISTER:-backup/backup-register.md}"
 RETENTION_DAYS="${RETENTION_DAYS:-14}"
@@ -51,6 +51,17 @@ retention_until() { # portable +N days (GNU then BSD)
 }
 
 VC=(kubectl); [ -n "${VAULT_CONTEXT:-}" ] && VC=(kubectl --context "$VAULT_CONTEXT")
+
+# Resolve the ACTIVE (leader) pod unless pinned. `snapshot save` on a standby is
+# redirected to the leader's cluster address, whose TLS cert is valid only for
+# 127.0.0.1 → the redirect fails. The Vault Helm chart labels the active pod
+# `vault-active=true` (same selector the vault-active Service uses).
+if [ -z "$VAULT_POD" ]; then
+  VAULT_POD="$("${VC[@]}" -n "$VAULT_NS" get pods -l vault-active=true \
+                -o jsonpath='{.items[0].metadata.name}' 2>/dev/null)"
+  [ -n "$VAULT_POD" ] || VAULT_POD="vault-0"
+  echo "active pod: $VAULT_POD (auto-resolved; override with VAULT_POD=)"
+fi
 
 TS="$(date -u +%Y%m%dT%H%M%SZ)"
 SNAP="vault-${TS}.snap"
