@@ -210,7 +210,7 @@ Proven items referenced *in* the ADR for visibility (the full 15-point acceptanc
 4. **Unseal / HA / backup / restore** strategy set, and **restore tested**.
 5. Vault bootstrap works **without Vault/VSO recursion** (invariant above).
 6. An **existing** observability install migrated **without credential change**.
-7. A **fresh** install receives the Secret **before** the Helm release.
+7. A **fresh** datacenter install receives the Secret from **Vault via a `VaultStaticSecret` (VSO)** **before** the observability Helm release (OpenSearch needs the admin password at start). **Datacenter-profile evidence, owned on OK-110** — the one situation where the Secret cannot already exist. **Not** satisfied by OK-109 Part 1's *file-profile* fresh install (that satisfies OK-109 AC1 + ADR-024, no Vault in the picture). Efficient path: a throwaway verify cluster (ADR-013 registration → provider-vault reconciles its auth mount/policy/role → VSO), proving the VSO-before-Helm ordering.
 8. **Vault outage + reconciliation** tested per `runbooks/vault-outage-recovery.md`: full outage via `vault` StatefulSet scale-to-0 — consumer Secret still served + unchanged, workloads + a pod restart survive; after scale-up + attended re-unseal, VSO resyncs and a rotation propagates. Evidence captured in `ADR-Platform-025-crit8-outage-recovery-acceptance-record.md` (also closes the ADR-018 autonomy outage evidence).
 9. **Rotation** proven with an actually-rotatable consumer (not the OpenSearch bootstrap password).
 10. ADR-024 / OK-109 Contract Gate re-runs **green** with the materialised Secret.
