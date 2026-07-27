@@ -29,10 +29,15 @@ storage, tls_disable (localhost only). Both scenarios green:
 
 1. **Greenfield auto-unseal:** shadow-vault with `seal "transit"` → `init -recovery-shares` →
    auto-unsealed on init → **restart → `Sealed false` with no unseal command**.
-2. **Shamir → transit migration (the prod path):** Shamir vault with data →
+2. **Shamir → transit migration (single node):** Shamir vault with data →
    append `seal "transit"` stanza → restart (`Seal Migration in Progress: true`, sealed) →
    `vault operator unseal -migrate <shamir-key>` → `Seal Type transit`, unsealed →
    **restart → `Sealed false` (auto); canary secret survived.**
+3. **Shamir → transit migration, 3-node RAFT HA (the exact prod choreography):** each node,
+   restarted with the seal stanza, comes up `Seal Migration in Progress`; each is unsealed with
+   `vault operator unseal -migrate <shamir-key>` — **standbys first, the active node last**. After
+   all three: full restart of all nodes **auto-unseals with no `-migrate`**, 3 voters + leader,
+   canary survived. The old Shamir shares become **recovery keys**.
 
 Transit provider setup (proven):
 ```bash
@@ -75,9 +80,17 @@ seal "transit" {
 3. **seal "transit" on ok-shared** via the `VaultInstance` composition values (`server` raft config
    HCL). **Inject the token via a Kubernetes Secret / `VAULT_SEAL_TRANSIT_TOKEN` env**, not the
    committed composition. Promote the CompositionRevision (Manual policy).
-4. **Migration:** restart ok-shared pods → `Seal Migration in Progress` → on each node
-   `vault operator unseal -migrate` with a threshold of the current (verified) Shamir keys →
-   `Seal Type transit`. Then a full restart → **auto-unseal, no human step**.
+4. **Migration (lab-verified HA choreography).** The ok-shared StatefulSet is `OnDelete`, so
+   promoting the composition updates the ConfigMap/STS **without** restarting pods — the migration
+   is fully controlled:
+   - Find the leader: `vault operator raft list-peers` (the `leader`).
+   - **Standbys first, one at a time:** `kubectl -n vault delete pod vault-<standby>` → it returns
+     `Seal Migration in Progress` (sealed) → `kubectl -n vault exec -i vault-<standby> -- vault
+     operator unseal -migrate` × threshold with the **current verified Shamir keys** → `Sealed
+     false`. Repeat for the second standby.
+   - **Active node last:** delete the leader pod → migrate-unseal it the same way.
+   - **Proof:** delete all three pods → they **auto-unseal via transit, no `-migrate`**; VSO/consumer
+     Secret unaffected. The old Shamir shares are now **recovery keys** (keep the verified custody).
 5. **Cold-restart rehearsal (ADR-025 item 12)** re-run under auto-unseal: delete all ok-shared vault
    pods → they return `Sealed false` unattended, `voters=3/3`.
 6. **Transit Vault backup + custody** documented; recovery drill for "Transit Vault lost" (restore
