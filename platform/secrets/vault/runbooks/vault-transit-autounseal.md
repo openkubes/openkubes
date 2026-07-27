@@ -60,7 +60,16 @@ seal "transit" {
 }
 ```
 
-## Prod rollout plan (ok-shared) — NOT yet executed
+## Prod rollout plan (ok-shared) — EXECUTED 2026-07-27 ✓
+
+> **Outcome — SUCCESS.** Transit Vault deployed on ok-mgmt (verified 3/2 Shamir custody), exposed
+> on the SDN at 192.168.100.208 via an ok-infra LoadBalancer. The `seal "transit"` stanza was
+> promoted into the ok-shared composition (token via `env://` from Secret `vault-transit-seal`, CA
+> mounted). Shamir→transit migration ran in the lab-verified HA order (standbys vault-2/vault-1
+> first, active vault-0 last, `unseal -migrate` × 3 recovery keys each). Migration completed
+> cluster-wide; a full 3-pod restart **auto-unsealed with no manual step**; VSO/consumer Secret on
+> ok-robotics stayed `Synced/Healthy`. Old Shamir shares are now the **recovery keys**. Follow-ups:
+> back up the Transit Vault data + verified custody; monitor/rotate the scoped seal token.
 
 **Constraint:** do not install anything on the mother RKE2 (ok-infra). Transit Vault host = ok-mgmt
 (a Talos guest cluster — safe to extend), decided OK-114.
