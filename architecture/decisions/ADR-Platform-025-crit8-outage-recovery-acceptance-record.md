@@ -9,10 +9,11 @@ Vault returns and is re-unsealed, the reconciler/VSO recover and a rotation prop
 window on ok-shared/ok-robotics. Fill the placeholders, attach `crit8-evidence.log`, then flip
 Status to *Verified*.
 
-> ⛔ **BLOCKED (2026-07-26) — do NOT execute until OK-113 is resolved.** A restore rehearsal found
-> that Vault seal-key recovery is not currently demonstrable (custody hardening + auto-unseal
-> migration tracked in OK-113). The scale-to-0 outage would seal all Vault pods, so it must not run
-> until seal recovery is confirmed. Sequence: OK-113 → re-verify recovery → then this test.
+> ✅ **UNBLOCKED (2026-07-27).** OK-113 resolved: Vault was re-seeded with fresh, **decrypt-verified**
+> Shamir custody — the same shares were used to live-unseal all three voters and to mint a root
+> token (`generate-root`), and break-glass was reset and login-verified. Seal recovery is
+> demonstrable again, so the scale-to-0 outage test is safe to run. crit. 8 execution can now be
+> scheduled.
 
 ---
 
