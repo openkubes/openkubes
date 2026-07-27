@@ -43,7 +43,7 @@ collapses to a pass-through; the contract and consumers do not change either way
 | `modelconfig.yaml` | kagent `ModelConfig` — shared Ollama (`gpt-oss:20b`). Host is a Provider Value (ok-cluster). |
 | `agents/openkubes-platform-agent.yaml` | the single fronting `Agent`; lists specialists as delegates |
 | `agents/specialists/*.yaml` | specialist `Agent`s, one Skill-Contract domain each |
-| `tools/cluster-inspection-toolserver.yaml` | read-only Cluster Inspection tools (kagent `ToolServer`) |
+| `tools/scoped-tools-server.yaml` | scoped kagent tools server (read-only SA) + its `RemoteMCPServer` — the read-only enforcement point |
 | `rbac.yaml` | `ServiceAccount` + read-only `ClusterRole` + binding (get/list/watch, no secrets) |
 | `facade/` | OpenAPI→kagent shim (skeleton), `Dockerfile`, chart values |
 | `charts/platform-diagnostics-kagent/` | Helm chart: facade Deployment/Service + RBAC |
@@ -63,16 +63,32 @@ The CRs target the schemas installed by `ok-cluster/kagent/Makefile`
 - **`ToolServer` — `kagent.dev/v1alpha1`**: `spec.description` + `spec.config.stdio`
   (`command` required, `args`, `readTimeoutSeconds`).
 
-Two things still need confirming **at deploy time** (they depend on runtime state,
-not the schema):
+### Read-only enforcement: the scoped tools server (decision 2026-07-24)
 
-1. `toolNames` on `cluster-inspection` must match the tools the ToolServer actually
-   advertises — check `kubectl get toolserver cluster-inspection -o yaml` (status)
-   after it starts. Or reference kagent's built-in k8s tools instead (see the
-   ToolServer file's note and the shipped `k8s-agent`).
-2. How kagent schedules the ToolServer's stdio process and which ServiceAccount it
-   runs as — the read-only SA (`rbac.yaml`) must be the identity behind the kubectl
-   calls. Pin it via the kagent values.
+kagent's shipped tools are served by the **shared `kagent-tool-server`, which runs
+under kagent's write-capable RBAC** (its `k8s-agent` can create/patch/delete/apply).
+Referencing it would make read-only only *soft* (tool selection + prompt) and would
+NOT satisfy ADR-021 test 2 (RBAC audit of the executing identity).
+
+Decision (OK-92): enforce read-only via RBAC. `scoped-tools-server.yaml` runs a
+**private copy of the tools server under the read-only SA `openkubes-platform-agent`**
+and registers it as `RemoteMCPServer platform-diagnostics-tools` (same namespace).
+Specialists reference that and are given only read tool names
+(`k8s_get_resources`, `k8s_describe_resource`, `k8s_get_events`, `k8s_get_pod_logs`,
+`k8s_get_resource_yaml`, `k8s_get_cluster_configuration`, `k8s_check_service_connectivity`).
+Even if a write tool were exposed, the SA denies it — read-only is hard-enforced.
+
+**Deploy-time `__FILL__`:** the tools image, port, args and the RemoteMCPServer
+transport/URL must be copied from the shipped server (do not guess):
+
+```bash
+kubectl -n kagent get remotemcpserver kagent-tool-server -o yaml
+kubectl -n kagent get deploy,svc -o wide
+```
+
+Fill `scoped-tools-server.yaml`, then uncomment it in `kustomization.yaml`. Until
+then the specialists stay `ACCEPTED:False` (they reference the not-yet-created
+RemoteMCPServer) — expected; the front agent is unaffected.
 
 ## Guardrails (stop rule, guideline Part C)
 

@@ -1,5 +1,6 @@
-# Specialist: observability — logs & metrics (Log Query Contract). Read-only.
-# Internal delegate. OpenSearch is a Provider Value (endpoint from ok-cluster).
+# Specialist: observability — logs & events (Log Query Contract). Read-only.
+# Internal delegate. Tools from the scoped read-only RemoteMCPServer.
+# (Dedicated metrics/OpenSearch tooling is a Provider Value, wired later.)
 apiVersion: kagent.dev/v1alpha2
 kind: Agent
 metadata:
@@ -10,28 +11,26 @@ metadata:
     platform.openkubes.ai/profile: kagent
     platform.openkubes.ai/role: specialist
 spec:
-  description: Read-only log/metric correlation over the platform observability stack.
+  description: Read-only log/event correlation over the platform.
   type: Declarative
   declarative:
     modelConfig: ollama-gpt-oss
     a2aConfig: {}
     systemMessage: |
-      Read-only observability specialist. Correlate pod/container logs and metrics
-      to time-bound symptoms. Return evidence as REFERENCES (index/query/time range),
-      never paste raw log payloads or secrets into the answer. If a log/metric source
-      is unavailable for this provider, report it as unavailable with a reason.
+      Read-only observability specialist. Correlate pod/container logs and cluster
+      events to time-bound symptoms. Return evidence as REFERENCES (pod, container,
+      time range), never paste raw log payloads or secrets into the answer. If a
+      log/event source is unavailable for this provider, report it as unavailable
+      with a reason.
     tools:
       - type: McpServer
         mcpServer:
           apiGroup: kagent.dev
-          kind: ToolServer
-          name: cluster-inspection
-          toolNames: [k8s_logs, metrics_query]
-      # Log Query Contract (OpenSearch) — endpoint is a Provider Value, wired from
-      # ok-cluster. Declared here; enable once the OpenSearch ToolServer exists.
-      # - type: McpServer
-      #   mcpServer:
-      #     apiGroup: kagent.dev
-      #     kind: ToolServer
-      #     name: log-query
-      #     toolNames: [opensearch_search]
+          kind: RemoteMCPServer
+          name: platform-diagnostics-tools
+          toolNames:
+            - k8s_get_pod_logs
+            - k8s_get_events
+            - k8s_get_resources
+      # Log Query Contract (OpenSearch) — Provider Value from ok-cluster; add as a
+      # second RemoteMCPServer once its endpoint exists.

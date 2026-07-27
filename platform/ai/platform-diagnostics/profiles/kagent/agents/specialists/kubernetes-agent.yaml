@@ -1,7 +1,11 @@
 # Specialist: Kubernetes workload diagnosis (Cluster Inspection Contract, UC-1).
 # Internal delegate of openkubes-platform-agent — not exposed to consumers.
-# kagent.dev/v1alpha2: declarative wrapper; tools reference the ToolServer via a
-# typed McpServer ref + toolNames. a2aConfig so it is invokable as a sub-agent.
+#
+# Tools come from OUR scoped kagent-tools instance (RemoteMCPServer
+# `platform-diagnostics-tools`, same namespace), which runs under the read-only
+# SA `openkubes-platform-agent`. Only READ tools are exposed; the write tools
+# kagent ships (k8s_create/patch/delete/apply/execute_command) are omitted AND
+# denied by RBAC — so read-only is hard-enforced (ADR-021 test 2), not just prompt.
 apiVersion: kagent.dev/v1alpha2
 kind: Agent
 metadata:
@@ -27,9 +31,13 @@ spec:
       - type: McpServer
         mcpServer:
           apiGroup: kagent.dev
-          kind: ToolServer
-          name: cluster-inspection
-          # toolNames must match the tools the ToolServer actually advertises;
-          # confirm with `kubectl get toolserver cluster-inspection -o yaml`
-          # (status lists discovered tools) after it is created.
-          toolNames: [k8s_get, k8s_describe, k8s_events, k8s_logs]
+          kind: RemoteMCPServer
+          name: platform-diagnostics-tools     # our scoped, read-only instance
+          toolNames:
+            - k8s_get_resources
+            - k8s_describe_resource
+            - k8s_get_events
+            - k8s_get_pod_logs
+            - k8s_get_resource_yaml
+            - k8s_get_available_api_resources
+            - k8s_get_cluster_configuration

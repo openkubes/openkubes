@@ -1,0 +1,85 @@
+# Scoped kagent tools server for Profile A — the READ-ONLY enforcement point.
+#
+# A private copy of kagent's tools server, running under the read-only SA
+# `openkubes-platform-agent` (rbac.yaml: get/list/watch, secrets excluded). The
+# specialists reference it as RemoteMCPServer `platform-diagnostics-tools` and are
+# given only read tool names. Even if a write tool were exposed, the SA's RBAC
+# denies it — so ADR-021 test 2 (RBAC audit of the executing identity) holds.
+# This is why we do NOT reuse the shared `kagent-tool-server`, which runs under
+# kagent's write-capable RBAC.
+#
+# ►►► FILL FROM CLUSTER (do not guess — same lesson as the v1alpha2 fix):
+#   kubectl -n kagent get remotemcpserver kagent-tool-server -o yaml   # -> spec fields + URL/protocol
+#   kubectl -n kagent get deploy,svc -o wide                            # -> tools image, port, svc
+#   kubectl -n kagent get deploy <tools-deploy> -o yaml \
+#     | grep -nE "image:|serviceAccountName:|containerPort:|args:|command:|- --?[a-z]"
+# Replace every __FILL__ below with the confirmed value, then apply.
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: platform-diagnostics-tools
+  namespace: platform-diagnostics
+  labels:
+    app.kubernetes.io/name: platform-diagnostics-tools
+    app.kubernetes.io/part-of: platform-diagnostics
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: platform-diagnostics-tools
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: platform-diagnostics-tools
+    spec:
+      # THE read-only boundary: tools run as this SA (rbac.yaml).
+      serviceAccountName: openkubes-platform-agent
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: tools
+          image: "__FILL__kagent-tools-image:0.9.9"     # from kagent-tool-server's deploy
+          # args/command as the shipped tools server uses; add a read-only flag if
+          # the image supports one (defense-in-depth on top of RBAC).
+          args: []                                       # __FILL__ (e.g. ["mcp","--port","8084"])
+          ports:
+            - name: mcp
+              containerPort: 8084                        # __FILL__ (shipped tools port)
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: ["ALL"] }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: platform-diagnostics-tools
+  namespace: platform-diagnostics
+  labels:
+    app.kubernetes.io/name: platform-diagnostics-tools
+    app.kubernetes.io/part-of: platform-diagnostics
+spec:
+  selector:
+    app.kubernetes.io/name: platform-diagnostics-tools
+  ports:
+    - name: mcp
+      port: 8084                                         # __FILL__ (match containerPort)
+      targetPort: mcp
+---
+# Registers the scoped tools server so agents can reference it by name.
+# Confirm apiVersion + spec shape from the shipped kagent-tool-server RemoteMCPServer.
+apiVersion: kagent.dev/v1alpha1                          # __FILL__ (confirm group/version)
+kind: RemoteMCPServer
+metadata:
+  name: platform-diagnostics-tools
+  namespace: platform-diagnostics
+  labels:
+    app.kubernetes.io/part-of: platform-diagnostics
+spec:
+  description: Read-only cluster inspection tools (scoped to the read-only SA).
+  # __FILL__ transport + URL exactly as kagent-tool-server declares them, e.g.:
+  #   protocol: SSE            (or streamableHttp)
+  #   url: http://platform-diagnostics-tools.platform-diagnostics.svc.cluster.local:8084/sse
+  url: "http://platform-diagnostics-tools.platform-diagnostics.svc.cluster.local:8084/sse"

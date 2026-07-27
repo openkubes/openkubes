@@ -16,7 +16,12 @@ resources:
   - namespace.yaml
   - rbac.yaml
   - modelconfig.yaml
-  - tools/cluster-inspection-toolserver.yaml
+  # tools/scoped-tools-server.yaml is intentionally NOT listed yet: it carries
+  # __FILL__ placeholders (kagent tools image/port/transport). Add this line once
+  # those are filled from the cluster — until then the specialists stay
+  # ACCEPTED:False (they reference the not-yet-created RemoteMCPServer), which is
+  # expected. The front agent is unaffected.
+  # - tools/scoped-tools-server.yaml
   - agents/openkubes-platform-agent.yaml
   - agents/specialists/kubernetes-agent.yaml
   - agents/specialists/cilium-agent.yaml

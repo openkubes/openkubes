@@ -1,4 +1,5 @@
 # Specialist: Cilium / network triage (UC-4). Internal delegate; read-only.
+# Tools from the scoped read-only RemoteMCPServer `platform-diagnostics-tools`.
 apiVersion: kagent.dev/v1alpha2
 kind: Agent
 metadata:
@@ -17,13 +18,16 @@ spec:
     systemMessage: |
       Read-only network specialist. Inspect CiliumEndpoints, CiliumNetworkPolicies,
       CiliumNodes and core networking (services, endpoints, ingresses,
-      networkpolicies) to explain connectivity/policy issues. Bring in codified
-      OpenKubes network learnings (stale ARP, overlay-vs-vSwitch path) via the
-      Documentation Contract when relevant. get/list/watch only.
+      networkpolicies) via GetResources/DescribeResource to explain connectivity
+      and policy issues. Bring in codified OpenKubes network learnings (stale ARP,
+      overlay-vs-vSwitch path) when relevant. get/list/watch only.
     tools:
       - type: McpServer
         mcpServer:
           apiGroup: kagent.dev
-          kind: ToolServer
-          name: cluster-inspection
-          toolNames: [k8s_get, k8s_describe, cilium_status]
+          kind: RemoteMCPServer
+          name: platform-diagnostics-tools
+          toolNames:
+            - k8s_get_resources
+            - k8s_describe_resource
+            - k8s_check_service_connectivity

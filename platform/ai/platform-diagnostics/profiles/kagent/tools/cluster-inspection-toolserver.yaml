@@ -1,30 +1,8 @@
-# Cluster Inspection Contract — read-only tool surface for the specialists.
+# DEPRECATED — replaced by scoped-tools-server.yaml.
 #
-# kagent.dev/v1alpha1 ToolServer: spec.description (required) + spec.config with
-# exactly one of stdio / sse / streamableHttp. The tool NAMES are the reviewed
-# surface; the hard read-only boundary is the ServiceAccount RBAC (rbac.yaml),
-# not the tool list — a tool that tried to write would still be denied by the SA.
-#
-# This uses a stdio MCP kubectl server. Alternative: reference kagent's built-in
-# kubernetes tools instead of a self-hosted server — inspect how the shipped
-# k8s-agent wires them (`kubectl -n kagent get agent k8s-agent -o yaml`) and
-# mirror that mcpServer ref. Either way the SA below is the boundary.
-apiVersion: kagent.dev/v1alpha1
-kind: ToolServer
-metadata:
-  name: cluster-inspection
-  namespace: platform-diagnostics
-  labels:
-    app.kubernetes.io/part-of: platform-diagnostics
-    platform.openkubes.ai/profile: kagent
-spec:
-  description: Read-only cluster inspection (get/list/watch, secrets excluded).
-  config:
-    stdio:
-      command: "mcp-server-kubernetes"
-      args: ["--read-only"]
-      readTimeoutSeconds: 30
-  # The pod running this server MUST use the SA `openkubes-platform-agent` so its
-  # kubectl calls carry the read-only ClusterRole (rbac.yaml). Confirm how kagent
-  # schedules ToolServer stdio processes in 0.9.9 and pin the SA accordingly
-  # (kagent tool-executor serviceAccount / pod template) — see the profile README.
+# The original approach (a self-hosted `mcp-server-kubernetes` stdio ToolServer)
+# did not run in kagent's runtime, and — more importantly — the decision (OK-92,
+# 2026-07-24) was to enforce read-only via RBAC, not tool selection. That is done
+# by running a scoped copy of kagent's own tools server under the read-only SA and
+# registering it as the RemoteMCPServer `platform-diagnostics-tools`. See
+# scoped-tools-server.yaml. This file is kept only as a record; it is not applied.
