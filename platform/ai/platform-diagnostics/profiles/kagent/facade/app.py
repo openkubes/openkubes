@@ -2,48 +2,46 @@
 Diagnostics facade — OpenAPI -> kagent shim (Profile A, OK-92).
 
 Implements the three functions of the Read-Only Platform Diagnostics Contract
-(ADR-Platform-021) and translates each into an invocation of the kagent
-`openkubes-platform-agent`, shaping the result into the normative schema.
+(ADR-Platform-021) and translates each into an A2A invocation of the kagent
+`openkubes-platform-agent`, then maps the agent's reply onto the normative schema.
 
-SKELETON: HTTP surface + schema + config are real and schema-valid. The kagent
-call and the agent-output -> schema mapping are marked TODO — they need the live
-kagent endpoint (OK-14 finding) and a couple of prompt/response iterations.
-Until then the endpoints return schema-valid STUB results so consumers and the
-schema-level contract tests (1/3/5/6) can run.
+Wire format (confirmed against ok-ai, 2026-07-27):
+  * A2A JSON-RPC 2.0, method "message/send", at
+    {KAGENT_BASE_URL}/api/a2a/{KAGENT_NAMESPACE}/{KAGENT_AGENT}
+  * response: result.status.state == "completed";
+    the agent's answer is the text of result.artifacts[*].parts[* kind=text].
 
-Read-only by construction: this process holds no kube credentials and exposes no
-write path. `recommended_next_steps` are human actions; nothing is executed.
+Read-only by construction: this process holds no kube credentials (cluster access
+lives only in the scoped tools server's SA). recommended_next_steps are human
+actions; nothing is executed.
 """
 from __future__ import annotations
 
 import json
 import os
+import re
+import uuid
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Optional
+from typing import Any, Optional
 
 import httpx
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from pydantic import BaseModel, Field
 
 # ── config (Provider Values via env; see README) ─────────────────────────────
-# kagent serves each agent's A2A endpoint on the controller HTTP port (8083) at
-#   /api/a2a/<agent-namespace>/<agent-name>
-# (enabled by declarative.a2aConfig on the Agent). That is what we invoke.
-KAGENT_BASE_URL = os.getenv("KAGENT_BASE_URL", "http://kagent.kagent.svc.cluster.local:8083")
+KAGENT_BASE_URL = os.getenv("KAGENT_BASE_URL", "http://kagent-controller.kagent.svc.cluster.local:8083")
 KAGENT_NAMESPACE = os.getenv("KAGENT_NAMESPACE", "platform-diagnostics")
 KAGENT_AGENT = os.getenv("KAGENT_AGENT", "openkubes-platform-agent")
 KAGENT_TOKEN = os.getenv("KAGENT_TOKEN")
 PROVIDER_NAME = os.getenv("PROVIDER_NAME", "kagent")
+DEFAULT_CLUSTER = os.getenv("DEFAULT_CLUSTER", "ok-ai")
+AGENT_TIMEOUT = float(os.getenv("AGENT_TIMEOUT_SECONDS", "300"))
 
-# Provider capability declaration (ADR-021): Talos vs RKE2 is a capability delta,
-# NEVER a contract delta. Defaults reflect a Talos provider (no host shell/journal).
+# Provider capability declaration (ADR-021). Talos defaults (no host shell/journal).
 DEFAULT_CAPS = {
-    "workload_events": True,
-    "workload_logs": True,
-    "cilium_diagnostics": True,
-    "host_journal": False,   # Talos
-    "node_shell": False,     # Talos
+    "workload_events": True, "workload_logs": True, "cilium_diagnostics": True,
+    "host_journal": False, "node_shell": False,
 }
 PROVIDER_CAPS = json.loads(os.getenv("PROVIDER_CAPS", json.dumps(DEFAULT_CAPS)))
 
@@ -69,23 +67,23 @@ class EvidenceStatus(str, Enum):
 
 class RankedHypothesis(BaseModel):
     hypothesis: str
-    confidence: Confidence
+    confidence: Confidence = Confidence.low
     evidence_refs: list[str] = []
     contradicting_evidence_refs: list[str] = []
-    counter_evidence_status: CounterEvidence
+    counter_evidence_status: CounterEvidence = CounterEvidence.not_checked
 
 
 class EvidenceRef(BaseModel):
     type: str
     source: str
-    status: EvidenceStatus
-    reason: Optional[str] = None            # MANDATORY when status != available
-    uri: Optional[str] = None               # reference only — never a payload/secret
+    status: EvidenceStatus = EvidenceStatus.available
+    reason: Optional[str] = None
+    uri: Optional[str] = None
     collected_at: Optional[datetime] = None
 
 
 class InvestigateWorkloadInput(BaseModel):
-    cluster: str                            # logical name, not an endpoint
+    cluster: str
     namespace: str
     workload: str
     time_range: str = "PT1H"
@@ -96,7 +94,7 @@ class WorkloadInvestigation(BaseModel):
     symptoms: list[str] = []
     evidence: list[EvidenceRef] = []
     probable_causes: list[RankedHypothesis] = []
-    recommended_next_steps: list[str] = []   # human actions; never executed
+    recommended_next_steps: list[str] = []
     references: list[str] = []
     provider_capabilities: dict[str, bool] = Field(default_factory=lambda: PROVIDER_CAPS)
 
@@ -107,7 +105,7 @@ class GetPlatformHealthInput(BaseModel):
 
 class ClusterHealth(BaseModel):
     cluster: str
-    status: str
+    status: str = "unknown"
     summary: Optional[str] = None
     signals: list[str] = []
     provider_capabilities: dict[str, bool] = Field(default_factory=lambda: PROVIDER_CAPS)
@@ -137,96 +135,210 @@ def _now() -> datetime:
     return datetime.now(timezone.utc)
 
 
-# ── kagent invocation (TODO: wire to the live endpoint) ──────────────────────
-async def invoke_agent(function: str, payload: dict) -> dict:
-    """Invoke openkubes-platform-agent over A2A with a FUNCTION tag.
+class AgentError(Exception):
+    """Agent unreachable or returned a non-completed task."""
 
-    kagent exposes the agent via the A2A protocol (JSON-RPC 2.0, method
-    "message/send") at /api/a2a/<ns>/<agent> on the controller. We send the
-    function + input as a text part; the agent (see openkubes-platform-agent.yaml)
-    is prompted to reply with ranked hypotheses (counter_evidence_status) and
-    reference-only evidence.
 
-    TODO(OK-92): parse the A2A task/message reply and MAP it onto the pydantic
-    models below (this is the only substantive piece left). Keep the mapping here
-    so consumers never see kagent/A2A specifics — that is what keeps the backend
-    swappable (ADR-021 test 4).
+# ── kagent A2A invocation ────────────────────────────────────────────────────
+async def invoke_agent(text: str) -> str:
+    """Send `text` to openkubes-platform-agent over A2A; return the agent's reply.
+
+    Raises AgentError if the agent is unreachable or the task did not complete.
     """
     headers = {"Content-Type": "application/json"}
     if KAGENT_TOKEN:
         headers["Authorization"] = f"Bearer {KAGENT_TOKEN}"
     url = f"{KAGENT_BASE_URL}/api/a2a/{KAGENT_NAMESPACE}/{KAGENT_AGENT}"
-    text = json.dumps({"function": function, "input": payload})
+    mid = uuid.uuid4().hex
     rpc = {
-        "jsonrpc": "2.0",
-        "id": f"pd-{function}",
-        "method": "message/send",
-        "params": {
-            "message": {
-                "role": "user",
-                "parts": [{"kind": "text", "text": text}],
-                "messageId": f"pd-{function}",
-            }
-        },
+        "jsonrpc": "2.0", "id": mid, "method": "message/send",
+        "params": {"message": {
+            "role": "user", "messageId": mid,
+            "parts": [{"kind": "text", "text": text}],
+        }},
     }
     try:
-        async with httpx.AsyncClient(timeout=120) as client:
+        async with httpx.AsyncClient(timeout=AGENT_TIMEOUT) as client:
             resp = await client.post(url, headers=headers, json=rpc)
             resp.raise_for_status()
-            return resp.json()  # A2A result — mapping is the OK-92 TODO above
-    except Exception as exc:  # skeleton: surface as unavailable evidence, not a 500
-        return {"_stub": True, "_error": str(exc)}
+            body = resp.json()
+    except Exception as exc:
+        raise AgentError(f"A2A call failed: {exc}") from exc
+
+    if "error" in body:
+        raise AgentError(f"A2A error: {body['error']}")
+    result = body.get("result", {})
+    state = (result.get("status") or {}).get("state")
+    if state and state != "completed":
+        raise AgentError(f"agent task state: {state}")
+    # answer = concatenated text parts of the produced artifacts
+    parts_text = [
+        p.get("text", "")
+        for art in result.get("artifacts", [])
+        for p in art.get("parts", [])
+        if p.get("kind") == "text"
+    ]
+    text_out = "\n".join(t for t in parts_text if t).strip()
+    if not text_out:
+        raise AgentError("agent returned no text artifact")
+    return text_out
 
 
-def _stub_unavailable(reason: str) -> EvidenceRef:
-    return EvidenceRef(type="agent", source=PROVIDER_NAME,
-                       status=EvidenceStatus.unavailable, reason=reason,
-                       collected_at=_now())
+def _extract_json(text: str) -> Optional[dict]:
+    """Pull a JSON object out of an LLM reply (tolerates ```json fences / prose)."""
+    m = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", text, re.DOTALL)
+    candidate = m.group(1) if m else None
+    if candidate is None:
+        i, j = text.find("{"), text.rfind("}")
+        candidate = text[i : j + 1] if i != -1 and j > i else None
+    if not candidate:
+        return None
+    try:
+        val = json.loads(candidate)
+        return val if isinstance(val, dict) else None
+    except json.JSONDecodeError:
+        return None
+
+
+def _coerce_evidence(items: Any) -> list[EvidenceRef]:
+    out: list[EvidenceRef] = []
+    for it in items or []:
+        if not isinstance(it, dict):
+            continue
+        try:
+            out.append(EvidenceRef(
+                type=str(it.get("type", "unknown")),
+                source=str(it.get("source", PROVIDER_NAME)),
+                status=EvidenceStatus(it.get("status", "available")),
+                reason=it.get("reason"),
+                uri=it.get("uri"),
+                collected_at=_now(),
+            ))
+        except Exception:
+            continue
+    return out
+
+
+def _coerce_hypotheses(items: Any) -> list[RankedHypothesis]:
+    out: list[RankedHypothesis] = []
+    for it in items or []:
+        if not isinstance(it, dict):
+            continue
+        try:
+            out.append(RankedHypothesis(
+                hypothesis=str(it.get("hypothesis", "")).strip() or "(unspecified)",
+                confidence=Confidence(str(it.get("confidence", "low")).lower()),
+                evidence_refs=list(it.get("evidence_refs", []) or []),
+                contradicting_evidence_refs=list(it.get("contradicting_evidence_refs", []) or []),
+                # ADR-021: absence of sought counter-evidence is not_checked, not silence.
+                counter_evidence_status=CounterEvidence(
+                    str(it.get("counter_evidence_status", "not_checked")).lower()),
+            ))
+        except Exception:
+            continue
+    return out
+
+
+# ── prompt builders (ask the agent for STRICT JSON in the contract shape) ────
+def _instruct(function: str, payload: dict, shape: str) -> str:
+    return (
+        f"FUNCTION: {function}\n"
+        f"INPUT: {json.dumps(payload)}\n\n"
+        "You are read-only. Perform the diagnosis using your read tools, then respond\n"
+        "with ONLY a single JSON object (no prose, no markdown fences) of EXACTLY this shape:\n"
+        f"{shape}\n"
+        "Rules: reference evidence by source (never paste raw logs or secrets); every\n"
+        "probable cause needs a counter_evidence_status of found|none_found|not_checked;\n"
+        "recommended_next_steps are actions for a human. If a signal is unavailable in this\n"
+        "provider, record it as an evidence item with status \"unavailable\" and a reason."
+    )
+
+
+_SHAPE_INVESTIGATE = (
+    '{"summary":str,"symptoms":[str],'
+    '"evidence":[{"type":str,"source":str,"status":"available|unavailable|partial",'
+    '"reason":str,"uri":str}],'
+    '"probable_causes":[{"hypothesis":str,"confidence":"low|medium|high",'
+    '"evidence_refs":[str],"contradicting_evidence_refs":[str],'
+    '"counter_evidence_status":"found|none_found|not_checked"}],'
+    '"recommended_next_steps":[str],"references":[str]}'
+)
+_SHAPE_HEALTH = (
+    '{"clusters":[{"cluster":str,"status":"healthy|degraded|unavailable|unknown",'
+    '"summary":str,"signals":[str]}]}'
+)
+_SHAPE_EVIDENCE = (
+    '{"evidence":[{"type":str,"source":str,"status":"available|unavailable|partial",'
+    '"reason":str,"uri":str}]}'
+)
 
 
 # ── the three contract functions ─────────────────────────────────────────────
 @app.post("/v1/get_platform_health", response_model=PlatformHealth,
           operation_id="get_platform_health")
 async def get_platform_health(body: GetPlatformHealthInput) -> PlatformHealth:
-    raw = await invoke_agent("get_platform_health", body.model_dump())
-    if raw.get("_stub"):
-        # schema-valid stub until kagent is wired
-        clusters = body.clusters or ["ok-ai"]
-        return PlatformHealth(
-            generated_at=_now(),
-            clusters=[ClusterHealth(cluster=c, status="unknown",
-                                    summary="stub: kagent not yet wired (OK-92)",
-                                    signals=[]) for c in clusters],
-        )
-    raise HTTPException(501, "agent-output mapping not implemented (OK-92 TODO)")
+    clusters = body.clusters or [DEFAULT_CLUSTER]
+    try:
+        text = await invoke_agent(_instruct("get_platform_health", body.model_dump(), _SHAPE_HEALTH))
+    except AgentError as e:
+        return PlatformHealth(generated_at=_now(), clusters=[
+            ClusterHealth(cluster=c, status="unknown",
+                          summary=f"provider unavailable: {e}") for c in clusters])
+    data = _extract_json(text) or {}
+    out = []
+    for c in data.get("clusters", []) if isinstance(data, dict) else []:
+        if isinstance(c, dict) and c.get("cluster"):
+            out.append(ClusterHealth(
+                cluster=str(c["cluster"]), status=str(c.get("status", "unknown")),
+                summary=c.get("summary"), signals=list(c.get("signals", []) or [])))
+    if not out:  # agent answered but not as parseable JSON
+        out = [ClusterHealth(cluster=c, status="unknown", summary=text[:500]) for c in clusters]
+    return PlatformHealth(generated_at=_now(), clusters=out)
 
 
 @app.post("/v1/investigate_workload", response_model=WorkloadInvestigation,
           operation_id="investigate_workload")
 async def investigate_workload(body: InvestigateWorkloadInput) -> WorkloadInvestigation:
-    raw = await invoke_agent("investigate_workload", body.model_dump())
-    if raw.get("_stub"):
+    try:
+        text = await invoke_agent(_instruct("investigate_workload", body.model_dump(), _SHAPE_INVESTIGATE))
+    except AgentError as e:
         return WorkloadInvestigation(
-            summary=f"stub: would investigate {body.workload} in "
-                    f"{body.cluster}/{body.namespace} (kagent not yet wired, OK-92)",
-            symptoms=[],
-            evidence=[_stub_unavailable("kagent invocation not implemented (OK-92 TODO)")],
-            probable_causes=[],   # empty is valid; a stub must not invent hypotheses
-            recommended_next_steps=[],
-        )
-    raise HTTPException(501, "agent-output mapping not implemented (OK-92 TODO)")
+            summary=f"provider unavailable for {body.workload} in {body.cluster}/{body.namespace}",
+            evidence=[EvidenceRef(type="agent", source=PROVIDER_NAME,
+                                  status=EvidenceStatus.unavailable, reason=str(e),
+                                  collected_at=_now())])
+    data = _extract_json(text)
+    if not data:  # reached the agent but no parseable JSON — degrade gracefully, stay schema-valid
+        return WorkloadInvestigation(
+            summary=text[:1000],
+            evidence=[EvidenceRef(type="agent", source=PROVIDER_NAME,
+                                  status=EvidenceStatus.partial,
+                                  reason="agent reply was not structured JSON",
+                                  collected_at=_now())])
+    return WorkloadInvestigation(
+        summary=str(data.get("summary", "")).strip() or text[:500],
+        symptoms=list(data.get("symptoms", []) or []),
+        evidence=_coerce_evidence(data.get("evidence")),
+        probable_causes=_coerce_hypotheses(data.get("probable_causes")),
+        recommended_next_steps=list(data.get("recommended_next_steps", []) or []),
+        references=list(data.get("references", []) or []))
 
 
 @app.post("/v1/collect_diagnostic_evidence", response_model=EvidenceBundle,
           operation_id="collect_diagnostic_evidence")
 async def collect_diagnostic_evidence(body: CollectEvidenceInput) -> EvidenceBundle:
-    raw = await invoke_agent("collect_diagnostic_evidence", body.model_dump())
-    if raw.get("_stub"):
-        return EvidenceBundle(
-            cluster=body.cluster, collected_at=_now(),
-            evidence=[_stub_unavailable("kagent invocation not implemented (OK-92 TODO)")],
-        )
-    raise HTTPException(501, "agent-output mapping not implemented (OK-92 TODO)")
+    try:
+        text = await invoke_agent(_instruct("collect_diagnostic_evidence", body.model_dump(), _SHAPE_EVIDENCE))
+    except AgentError as e:
+        return EvidenceBundle(cluster=body.cluster, collected_at=_now(), evidence=[
+            EvidenceRef(type="agent", source=PROVIDER_NAME, status=EvidenceStatus.unavailable,
+                        reason=str(e), collected_at=_now())])
+    data = _extract_json(text) or {}
+    ev = _coerce_evidence(data.get("evidence")) if isinstance(data, dict) else []
+    if not ev:
+        ev = [EvidenceRef(type="agent", source=PROVIDER_NAME, status=EvidenceStatus.partial,
+                          reason="agent reply was not structured JSON", collected_at=_now())]
+    return EvidenceBundle(cluster=body.cluster, collected_at=_now(), evidence=ev)
 
 
 @app.get("/healthz")
