@@ -38,7 +38,38 @@ token via a Secret). Migration + restart proof per the runbook.
 
 ## Backups / recovery
 
-The Transit Vault's data (the transit key) is **critical** — persist it (local-path PVC) and back
-it up (Raft/file snapshot + verified custody). If it is lost, ok-shared cannot auto-unseal (restore
-Transit from backup, or use ok-shared's **recovery keys** — the migrated Shamir shares — to
-`generate-root` / re-migrate).
+The Transit Vault's data (the transit key) is **critical** — if lost, ok-shared cannot auto-unseal.
+Two independent safety nets exist: (a) the Transit backup below; (b) ok-shared's **recovery keys**
+(the migrated Shamir shares, `~/vault-init.json.gpg`) — with those you can `generate-root` / re-key
+ok-shared or migrate its seal back to Shamir even if the Transit Vault is permanently gone.
+
+**Backup** (file-storage snapshot, encrypted to the operator key, off-host + registered):
+
+```bash
+KUBECONFIG=~/.kube/ok-mgmt.yaml GPG_RECIPIENT=<operator-key> OFFHOST_DIR=~/vault-backups \
+  bash transit-backup.sh
+```
+
+Records to `transit-backup-register.md`. Recovery also needs the Transit **Shamir shares**
+(`~/transit-init.json.gpg`, verified custody). Restore: recreate the Transit Vault (10-tls +
+Helm), stop it, restore `/vault/data` from the decrypted tar, start, unseal with the Transit
+shares. Re-run a backup after any change to the transit engine/keys.
+
+## Seal-token lifecycle & rotation
+
+The ok-shared seal token is **periodic** (`period=768h`, `renewable=true`, no `explicit_max_ttl`)
+— Vault auto-renews it while running, so it does **not** expire in normal operation. Rotation is
+only needed on compromise or policy change:
+
+```bash
+# 1. mint a fresh scoped token on the Transit Vault (root/admin)
+NEW=$(kubectl -n vault-transit exec -i vault-transit-0 -- env VAULT_ADDR=https://127.0.0.1:8200 \
+  VAULT_SKIP_VERIFY=true VAULT_TOKEN=<admin> vault token create -policy=autounseal -period=768h -orphan -field=token)
+# 2. update the ok-shared seal secret
+kubectl --context ok-shared -n vault create secret generic vault-transit-seal \
+  --from-literal=token="$NEW" --from-file=ca.crt=<transit-ca> --dry-run=client -o yaml | kubectl apply -f -
+unset NEW
+# 3. roll ok-shared pods one at a time so they pick up the new env token (they auto-unseal)
+#    kubectl -n vault delete pod vault-2 ; wait Ready ; vault-1 ; vault-0
+# 4. revoke the old token on the Transit Vault
+```
