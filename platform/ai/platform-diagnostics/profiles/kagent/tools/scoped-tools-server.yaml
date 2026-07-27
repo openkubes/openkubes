@@ -1,19 +1,20 @@
 # Scoped kagent tools server for Profile A — the READ-ONLY enforcement point.
 #
-# A private copy of kagent's tools server, running under the read-only SA
-# `openkubes-platform-agent` (rbac.yaml: get/list/watch, secrets excluded). The
-# specialists reference it as RemoteMCPServer `platform-diagnostics-tools` and are
-# given only read tool names. Even if a write tool were exposed, the SA's RBAC
-# denies it — so ADR-021 test 2 (RBAC audit of the executing identity) holds.
-# This is why we do NOT reuse the shared `kagent-tool-server`, which runs under
-# kagent's write-capable RBAC.
+# A private copy of kagent's tools image (ghcr.io/kagent-dev/kagent/tools), running
+# under the read-only SA `openkubes-platform-agent` (rbac.yaml: get/list/watch,
+# secrets excluded). Specialists reference it as RemoteMCPServer
+# `platform-diagnostics-tools` and get only read tool names. The shared
+# `kagent-tool-server` runs under kagent's WRITE-capable RBAC and exposes
+# destructive tools (k8s_delete_resource, k8s_apply_manifest, shell, ...), so we do
+# NOT reuse it — that would fail ADR-021 test 2 (RBAC audit of the executing identity).
 #
-# ►►► FILL FROM CLUSTER (do not guess — same lesson as the v1alpha2 fix):
-#   kubectl -n kagent get remotemcpserver kagent-tool-server -o yaml   # -> spec fields + URL/protocol
-#   kubectl -n kagent get deploy,svc -o wide                            # -> tools image, port, svc
-#   kubectl -n kagent get deploy <tools-deploy> -o yaml \
-#     | grep -nE "image:|serviceAccountName:|containerPort:|args:|command:|- --?[a-z]"
-# Replace every __FILL__ below with the confirmed value, then apply.
+# Confirmed from the cluster (2026-07-24): image tag 0.2.1, port 8084, MCP path
+# /mcp, protocol STREAMABLE_HTTP, RemoteMCPServer group kagent.dev/v1alpha2.
+#
+# ►►► ONE thing still to confirm — the kagent-tools container's args/command/env:
+#   kubectl -n kagent get deploy kagent-tools -o yaml
+# If the shipped container passes args/env to serve on 8084/mcp, mirror them below.
+# (If it just uses the image's default entrypoint, leave args empty.)
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -33,20 +34,20 @@ spec:
       labels:
         app.kubernetes.io/name: platform-diagnostics-tools
     spec:
-      # THE read-only boundary: tools run as this SA (rbac.yaml).
+      # THE read-only boundary: tools execute kubectl under this SA (rbac.yaml).
       serviceAccountName: openkubes-platform-agent
       securityContext:
         runAsNonRoot: true
         seccompProfile: { type: RuntimeDefault }
       containers:
         - name: tools
-          image: "__FILL__kagent-tools-image:0.9.9"     # from kagent-tool-server's deploy
-          # args/command as the shipped tools server uses; add a read-only flag if
-          # the image supports one (defense-in-depth on top of RBAC).
-          args: []                                       # __FILL__ (e.g. ["mcp","--port","8084"])
+          image: "ghcr.io/kagent-dev/kagent/tools:0.2.1"
+          # __FILL__ args/command/env from `kubectl -n kagent get deploy kagent-tools -o yaml`
+          # (leave empty if the shipped deploy uses the image default entrypoint).
+          args: []
           ports:
             - name: mcp
-              containerPort: 8084                        # __FILL__ (shipped tools port)
+              containerPort: 8084
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
@@ -65,12 +66,12 @@ spec:
     app.kubernetes.io/name: platform-diagnostics-tools
   ports:
     - name: mcp
-      port: 8084                                         # __FILL__ (match containerPort)
+      port: 8084
       targetPort: mcp
 ---
-# Registers the scoped tools server so agents can reference it by name.
-# Confirm apiVersion + spec shape from the shipped kagent-tool-server RemoteMCPServer.
-apiVersion: kagent.dev/v1alpha1                          # __FILL__ (confirm group/version)
+# Registers the scoped tools server. Mirrors the shipped kagent-tool-server spec
+# (kagent.dev/v1alpha2, STREAMABLE_HTTP), but points at OUR service.
+apiVersion: kagent.dev/v1alpha2
 kind: RemoteMCPServer
 metadata:
   name: platform-diagnostics-tools
@@ -79,7 +80,8 @@ metadata:
     app.kubernetes.io/part-of: platform-diagnostics
 spec:
   description: Read-only cluster inspection tools (scoped to the read-only SA).
-  # __FILL__ transport + URL exactly as kagent-tool-server declares them, e.g.:
-  #   protocol: SSE            (or streamableHttp)
-  #   url: http://platform-diagnostics-tools.platform-diagnostics.svc.cluster.local:8084/sse
-  url: "http://platform-diagnostics-tools.platform-diagnostics.svc.cluster.local:8084/sse"
+  protocol: STREAMABLE_HTTP
+  url: http://platform-diagnostics-tools.platform-diagnostics.svc.cluster.local:8084/mcp
+  timeout: 30s
+  sseReadTimeout: 5m0s
+  terminateOnClose: true
