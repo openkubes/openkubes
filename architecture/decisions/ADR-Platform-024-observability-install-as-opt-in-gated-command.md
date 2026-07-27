@@ -1,7 +1,7 @@
 # ADR-Platform-024: Observability install and readiness gate as an opt-in ok-cluster command
 
 **Date:** 2026-07-25
-**Status:** Draft — consolidated three-way review edits applied (Arash / Claude / GPT, 2026-07-25). The credential-hardening fix has landed (ok-cluster `463cfd8`); remains Draft pending a post-fix gate re-run with recorded commit evidence; see "Path to acceptance".
+**Status:** Draft — consolidated three-way review edits applied (Arash / Claude / GPT, 2026-07-25). All evidence in "Path to acceptance" is now complete: the credential-hardening fix landed (ok-cluster `463cfd8`), and the post-fix gate re-run passed on `ok-obs-verify` 2026-07-27 with both consumed revisions recorded. **Remains Draft solely pending human acceptance** — deliberately not self-accepted by the party that produced the evidence.
 
 **Amends:** ADR-Platform-018 (scope: only the provisioning / readiness-gate consequence clause; the Capability, Contract v1 guarantees, Implementation Profile, Provider Values, and six-step verification are unchanged)
 **Related:** ADR-Platform-009, ADR-Platform-011, ADR-Platform-014, ADR-Platform-017, ADR-Platform-020, OK-71, OK-77, OK-78, OK-79, OK-80, OK-109, OK-110
