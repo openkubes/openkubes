@@ -191,4 +191,8 @@ We believe infrastructure should be treated like software, rebuilt like containe
 
 ---
 
+**Where the code lives.** The Crossplane and Cluster API compositions behind this self-healing model, the ADR series that governs them, and the platform method all live in the public [`openkubes/openkubes`](https://github.com/openkubes/openkubes) repository — start with the [architecture decisions](https://github.com/openkubes/openkubes/tree/main/architecture/decisions) and the [platform engineering method](https://github.com/openkubes/openkubes/blob/main/docs/platform-engineering-method.md).
+
+---
+
 *Arash Kaffamanesh is the founder of Clouds Sky GmbH & Kubernauts GmbH and has been building and operating Kubernetes platforms for over ten years across automotive, industrial, financial, and healthcare environments.*

@@ -18,4 +18,6 @@ That rule only works if the environment around it has structure. Three layers di
 
 The portable lesson isn't the filenames. Write the boundary down. Turn its observable promises into deterministic checks. Keep acceptance authority human. In this pilot, that combination made AI-assisted engineering safer, faster to correct, and easier to review. Fittingly, the pilot's own ADOPT recommendation followed the same rule as the engineering work: the agent drafted and argued the case; a human ratified it.
 
+**Where the code lives.** The operating boundary, deterministic checks, and contract tests described here are concrete artifacts in the public [`openkubes/openkubes`](https://github.com/openkubes/openkubes) repository — see the [architecture decisions](https://github.com/openkubes/openkubes/tree/main/architecture/decisions) and the [platform engineering method](https://github.com/openkubes/openkubes/blob/main/docs/platform-engineering-method.md).
+
 *Author's note: The engineering pilot used Claude/Cowork. This article was refined through a human-led three-way review involving Claude and GPT; the final editorial decisions were made by the author.*

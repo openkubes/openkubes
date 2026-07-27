@@ -114,6 +114,8 @@ OpenKubes is open source and available today:
 
 If you are running Kubernetes in production — especially across mixed environments — we would love to hear from you.
 
+**Where the code lives.** The contract-first framework described here — Crossplane and Cluster API compositions, the capability/contract/profile chain, and the ADRs that govern it — is public in [`openkubes/openkubes`](https://github.com/openkubes/openkubes): see the [architecture decisions](https://github.com/openkubes/openkubes/tree/main/architecture/decisions) and the [platform engineering method](https://github.com/openkubes/openkubes/blob/main/docs/platform-engineering-method.md).
+
 *Platform Engineering. Sovereign Infrastructure. Kubernetes Anywhere.*
 
 ---
