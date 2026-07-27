@@ -1,20 +1,16 @@
 # Scoped kagent tools server for Profile A — the READ-ONLY enforcement point.
 #
-# A private copy of kagent's tools image (ghcr.io/kagent-dev/kagent/tools), running
-# under the read-only SA `openkubes-platform-agent` (rbac.yaml: get/list/watch,
-# secrets excluded). Specialists reference it as RemoteMCPServer
-# `platform-diagnostics-tools` and get only read tool names. The shared
-# `kagent-tool-server` runs under kagent's WRITE-capable RBAC and exposes
-# destructive tools (k8s_delete_resource, k8s_apply_manifest, shell, ...), so we do
-# NOT reuse it — that would fail ADR-021 test 2 (RBAC audit of the executing identity).
+# A private copy of kagent's tools deployment (ghcr.io/kagent-dev/kagent/tools),
+# mirrored from the shipped `kagent-tools` (2026-07-24), with ONE deliberate
+# change: it runs under the read-only SA `openkubes-platform-agent` instead of
+# `kagent-tools`. The tools execute kubectl with the POD identity
+# (TOKEN_PASSTHROUGH=false), so the SA's RBAC (get/list/watch, secrets excluded)
+# hard-bounds them — even the write/destructive tools kagent ships (delete, apply,
+# shell, ...) are denied. This is what satisfies ADR-021 test 2; the shared
+# `kagent-tool-server` (kagent's write-capable SA) would not.
 #
-# Confirmed from the cluster (2026-07-24): image tag 0.2.1, port 8084, MCP path
-# /mcp, protocol STREAMABLE_HTTP, RemoteMCPServer group kagent.dev/v1alpha2.
-#
-# ►►► ONE thing still to confirm — the kagent-tools container's args/command/env:
-#   kubectl -n kagent get deploy kagent-tools -o yaml
-# If the shipped container passes args/env to serve on 8084/mcp, mirror them below.
-# (If it just uses the image's default entrypoint, leave args empty.)
+# Specialists reference this as RemoteMCPServer `platform-diagnostics-tools` and
+# are given only read tool names.
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -35,6 +31,7 @@ spec:
         app.kubernetes.io/name: platform-diagnostics-tools
     spec:
       # THE read-only boundary: tools execute kubectl under this SA (rbac.yaml).
+      # This is the ONE intentional difference from the shipped kagent-tools.
       serviceAccountName: openkubes-platform-agent
       securityContext:
         runAsNonRoot: true
@@ -42,16 +39,48 @@ spec:
       containers:
         - name: tools
           image: "ghcr.io/kagent-dev/kagent/tools:0.2.1"
-          # __FILL__ args/command/env from `kubectl -n kagent get deploy kagent-tools -o yaml`
-          # (leave empty if the shipped deploy uses the image default entrypoint).
-          args: []
+          command: ["/tool-server"]
+          args: ["--port", "8084", "--metrics-port", "8085"]
+          env:
+            - name: KAGENT_NAMESPACE
+              valueFrom:
+                fieldRef: { fieldPath: metadata.namespace }
+            # optional=true: the secret lives in the kagent ns and is not required
+            # for the k8s tools; keep the mirror but tolerate its absence here.
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: kagent-tools-openai
+                  key: OPENAI_API_KEY
+                  optional: true
+            - name: OTEL_TRACING_ENABLED
+              value: "false"
+            # CRITICAL: keep false — the server acts as its OWN pod identity (our
+            # read-only SA), not a forwarded caller token. This is the RBAC boundary.
+            - name: TOKEN_PASSTHROUGH
+              value: "false"
           ports:
-            - name: mcp
+            - name: http-tools
               containerPort: 8084
+            - name: http-metrics
+              containerPort: 8085
+          readinessProbe:
+            httpGet: { path: /health, port: http-tools }
+            initialDelaySeconds: 15
+            periodSeconds: 15
+          resources:
+            requests: { cpu: 100m, memory: 128Mi }
+            limits:   { cpu: "1",  memory: 512Mi }
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
             capabilities: { drop: ["ALL"] }
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
 ---
 apiVersion: v1
 kind: Service
@@ -65,12 +94,12 @@ spec:
   selector:
     app.kubernetes.io/name: platform-diagnostics-tools
   ports:
-    - name: mcp
+    - name: http-tools
       port: 8084
-      targetPort: mcp
+      targetPort: http-tools
 ---
 # Registers the scoped tools server. Mirrors the shipped kagent-tool-server spec
-# (kagent.dev/v1alpha2, STREAMABLE_HTTP), but points at OUR service.
+# (kagent.dev/v1alpha2, STREAMABLE_HTTP, /mcp on 8084), pointed at OUR service.
 apiVersion: kagent.dev/v1alpha2
 kind: RemoteMCPServer
 metadata:
