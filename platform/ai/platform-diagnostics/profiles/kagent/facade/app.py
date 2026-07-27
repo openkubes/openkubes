@@ -169,7 +169,10 @@ async def invoke_agent(text: str) -> str:
         raise AgentError(f"A2A error: {body['error']}")
     result = body.get("result", {})
     state = (result.get("status") or {}).get("state")
-    if state and state != "completed":
+    # Only hard-fail on error states. "input-required" (the agent asked a question
+    # instead of completing) is tolerated IF it still produced artifact text; the
+    # prompt below tells the agent not to ask, so this is a safety net.
+    if state in ("failed", "rejected", "canceled", "error"):
         raise AgentError(f"agent task state: {state}")
     # answer = concatenated text parts of the produced artifacts
     parts_text = [
@@ -180,7 +183,7 @@ async def invoke_agent(text: str) -> str:
     ]
     text_out = "\n".join(t for t in parts_text if t).strip()
     if not text_out:
-        raise AgentError("agent returned no text artifact")
+        raise AgentError(f"agent returned no artifact (state={state})")
     return text_out
 
 
@@ -247,10 +250,15 @@ def _instruct(function: str, payload: dict, shape: str) -> str:
         "You are read-only. Perform the diagnosis using your read tools, then respond\n"
         "with ONLY a single JSON object (no prose, no markdown fences) of EXACTLY this shape:\n"
         f"{shape}\n"
-        "Rules: reference evidence by source (never paste raw logs or secrets); every\n"
-        "probable cause needs a counter_evidence_status of found|none_found|not_checked;\n"
-        "recommended_next_steps are actions for a human. If a signal is unavailable in this\n"
-        "provider, record it as an evidence item with status \"unavailable\" and a reason."
+        "Rules:\n"
+        "- Do NOT ask clarifying questions or request more input. Assess with the tools\n"
+        "  available and return the JSON regardless of what is missing.\n"
+        "- Reference evidence by source (never paste raw logs or secrets).\n"
+        "- Every probable cause needs a counter_evidence_status of found|none_found|not_checked.\n"
+        "- recommended_next_steps are actions for a human.\n"
+        "- Events and pod logs ARE available via your read-only tools (k8s_get_events,\n"
+        "  k8s_get_pod_logs) — use them. Only host journal and node shell are unsupported;\n"
+        "  mark ONLY those as unavailable evidence."
     )
 
 
