@@ -12,9 +12,9 @@ imagePullSecrets: []
 
 # kagent connection (in-cluster). The A2A endpoint is
 #   {baseUrl}/api/a2a/{namespace}/{agent}
-# baseUrl = kagent controller svc; namespace = where the Agents are deployed.
+# baseUrl = kagent CONTROLLER svc (serves A2A on 8083); namespace = Agents' ns.
 kagent:
-  baseUrl: "http://kagent.kagent.svc.cluster.local:8083"
+  baseUrl: "http://kagent-controller.kagent.svc.cluster.local:8083"
   namespace: "platform-diagnostics"
   agent: "openkubes-platform-agent"
   # token: injected via Secret if kagent auth is enabled (Makefile handles it).
