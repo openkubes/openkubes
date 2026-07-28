@@ -1,6 +1,6 @@
 # ADR-Platform-027: Assurance scope of the observability contract gate — control-plane-mediated reachability only
 
-**Status:** Draft — awaiting human review. Records a ruling made on OK-109 (2026-07-27); not self-accepted by the party that produced the evidence.
+**Status:** Accepted — human acceptance by Arash 2026-07-28 (three-way review, Arash / Claude / GPT). Records a ruling made on OK-109 (2026-07-27); accepted by the human reviewer, not self-accepted by the party that produced the evidence.
 **Date:** 2026-07-28
 **Deciders:** Arash (final) · Claude
 **Scopes:** ADR-Platform-018 §Verification (Contract Test), ADR-Platform-024 (gate invocation seam)
