@@ -6,6 +6,9 @@
 #              auth mounts/roles/config, observe mounts, mint child tokens).
 #   NEGATIVE — it denies admin reach: writing a NON-okvc policy, and touching its OWN ok-mgmt auth
 #              mount / role (self-protection).
+#   BODY SCOPING — whether "consumers are read-only" is ENFORCED or merely conventional. The A6 HCL
+#              scopes policy NAMES (okvc-*); nothing scopes their CONTENTS. Reported separately and
+#              does NOT block Step 2 — the narrowing is an improvement either way.
 # Proves correctness BEFORE the live policy is narrowed. All temp objects are cleaned up. Fail-closed.
 set -Eeuo pipefail
 SHARED_KUBECONFIG=~/.kube/ok-shared.yaml
@@ -14,10 +17,20 @@ TEST_POLICY=a6-automation-narrowed-test
 PROBE_POLICY=okvc-a6-probe            # a legitimate okvc- name the narrowed policy MAY write
 BAD_POLICY=a6-admin-attempt           # a non-okvc name the narrowed policy MUST NOT write
 PROBE_HCL='path "secret/data/harmless-a6-probe" { capabilities = ["read"] }'
+# Body-scoping probe: an okvc- name the narrowed policy MAY write, carrying a WRITE body it
+# should not be able to confer. sys/policies/acl/okvc-* scopes the policy NAME; nothing in the
+# A6 HCL scopes its CONTENTS, so this asks whether read-only is enforced or merely conventional.
+ESC_POLICY=okvc-a6-escalation-probe
+ESC_HCL='path "secret/data/a6-escalation-probe/*" { capabilities = ["create","update","read"] }'
+ESC_MOUNT=kubernetes/a6-esc-probe     # throwaway auth mount, so no live mount is touched
+ESC_ROLE=a6-esc-probe
 FAILS=0
+ESC_FINDINGS=0
 cleanup(){ local rc=$?; trap - EXIT; set +e
   [[ -n "${TESTTOK:-}" ]] && vx "$TESTTOK" vault token revoke -self >/dev/null 2>&1
   if [[ -n "${BGT:-}" ]]; then
+    vx "$BGT" vault auth disable "$ESC_MOUNT"     >/dev/null 2>&1   # throwaway mount, before its policy
+    vx "$BGT" vault policy delete "$ESC_POLICY"   >/dev/null 2>&1
     vx "$BGT" vault policy delete "$PROBE_POLICY" >/dev/null 2>&1
     vx "$BGT" vault policy delete "$BAD_POLICY"   >/dev/null 2>&1   # only exists if the test FAILED
     vx "$BGT" vault policy delete "$TEST_POLICY"  >/dev/null 2>&1
@@ -54,8 +67,10 @@ BGT="$(printf '%s' "$BG" | jq -Rs '{password:.}' | kubectl --kubeconfig "$SHARED
 unset BG; test -n "$BGT"; vx "$BGT" vault token lookup >/dev/null; echo "break-glass login OK"
 
 # safety: none of the temp names must pre-exist
-for n in "$TEST_POLICY" "$PROBE_POLICY" "$BAD_POLICY"; do
+for n in "$TEST_POLICY" "$PROBE_POLICY" "$BAD_POLICY" "$ESC_POLICY"; do
   vx "$BGT" vault policy list | grep -Fxq "$n" && { echo "ABORT: temp policy '$n' already exists — refusing to clobber" >&2; exit 1; }; done
+vx "$BGT" vault auth list -format=json | jq -er --arg m "${ESC_MOUNT}/" 'has($m)' >/dev/null 2>&1 \
+  && { echo "ABORT: temp auth mount '$ESC_MOUNT' already exists — refusing to clobber" >&2; exit 1; } || true
 
 # ── create the temp NARROWED test policy + a token carrying only it ──
 tok_policy_write "$BGT" "$TEST_POLICY" "$A6_HCL" >/dev/null
@@ -93,6 +108,53 @@ else
   echo "  NEG FAIL $BAD_POLICY write failed but not with permission-denied: $OUT" >&2; FAILS=$((FAILS+1))
 fi
 
+echo; echo "════════ BODY SCOPING — is consumer read-only ENFORCED, or only conventional? ════════"
+# The A6 HCL scopes the reconciler to policy NAMES (sys/policies/acl/okvc-*). Nothing scopes a
+# policy's CONTENTS. The composition emits capabilities=["read"], but that is a template choice,
+# not a boundary. If the reconciler identity can author an okvc- policy carrying WRITE and then
+# reference it from an auth role's token_policies, then "consumers are read-only" rests on the
+# template — and anyone who can drive provider-vault, or any edit to the composition, changes it.
+echo "  -- (1) write an okvc--named policy whose BODY grants KV write --"
+if OUT="$(tok_policy_write "$TESTTOK" "$ESC_POLICY" "$ESC_HCL" 2>&1)"; then
+  echo "  FINDING  okvc- name accepted a WRITE body — policy contents are NOT constrained"
+  ESC_FINDINGS=$((ESC_FINDINGS+1))
+  echo "  -- (2) mint a token carrying it directly (expected DENIED: parent-subset rule) --"
+  if OUT2="$(vx "$TESTTOK" vault token create -ttl=1m -policy="$ESC_POLICY" -format=json 2>&1)"; then
+    echo "  FINDING  direct token mint with $ESC_POLICY SUCCEEDED — no parent-subset restriction"
+    ESC_FINDINGS=$((ESC_FINDINGS+1))
+  else
+    echo "  ok       direct token mint denied (auth/token/create is subset-limited without sudo)"
+  fi
+  echo "  -- (3) confer it via an auth ROLE instead, on a throwaway mount --"
+  if vx "$TESTTOK" vault auth enable -path="$ESC_MOUNT" kubernetes >/dev/null 2>&1 \
+     && vx "$TESTTOK" vault write "auth/${ESC_MOUNT}/role/${ESC_ROLE}" \
+          bound_service_account_names=probe bound_service_account_namespaces=probe \
+          token_policies="$ESC_POLICY" ttl=1m >/dev/null 2>&1; then
+    GOT="$(vx "$BGT" vault read -format=json "auth/${ESC_MOUNT}/role/${ESC_ROLE}" 2>/dev/null | jq -r '.data.token_policies|join(",")')"
+    if grep -qw "$ESC_POLICY" <<<"$GOT"; then
+      echo "  FINDING  auth role now confers $ESC_POLICY (token_policies: $GOT)"
+      echo "           => a bound ServiceAccount logging in here receives KV WRITE."
+      echo "              Read-only is enforced by the composition template, not by the policy boundary."
+      ESC_FINDINGS=$((ESC_FINDINGS+1))
+    else
+      echo "  ok       role created but does not carry $ESC_POLICY (token_policies: ${GOT:-none})"
+    fi
+  else
+    echo "  ok       could not create an auth role conferring $ESC_POLICY — chain is blocked"
+  fi
+else
+  echo "  ok       okvc- policy write with a WRITE body was refused: $OUT"
+fi
+
 echo; echo "════════ RESULT ════════"
+if ((ESC_FINDINGS>0)); then
+  echo "BODY-SCOPING FINDINGS: $ESC_FINDINGS. The narrowing is still an improvement, so this does NOT block Step 2,"
+  echo "  but ADR-025 crit. 13's least-privilege claim needs qualifying: consumer read-only is a property of the"
+  echo "  composition template (capabilities=[\"read\"]), not of the reconciler's policy boundary. Closing it means"
+  echo "  scoping policy CONTENTS as well as names — e.g. a Vault-side admission/sentinel control, or accepting"
+  echo "  and documenting that provider-vault is trusted to confer any KV capability within okvc-*."
+else
+  echo "BODY SCOPING: no findings — the reconciler identity cannot confer KV write."
+fi
 if ((FAILS==0)); then echo "A6 NARROWED POLICY VALIDATED — grants all reconciler ops, denies admin reach. Safe to apply to the live ok-config-automation (Step 2)."
 else echo "A6 POLICY TEST FAILED — $FAILS assertion(s) failed. Do NOT apply the narrowed policy yet." >&2; exit 1; fi
