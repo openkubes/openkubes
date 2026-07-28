@@ -3,7 +3,7 @@
 
 image:
   repository: ghcr.io/openkubes/platform-diagnostics-facade
-  tag: "0.1.0"
+  tag: "0.1.3"
   pullPolicy: IfNotPresent
 
 # Pull secrets for a private registry (e.g. a private GHCR package). Empty by
@@ -17,6 +17,7 @@ kagent:
   baseUrl: "http://kagent-controller.kagent.svc.cluster.local:8083"
   namespace: "platform-diagnostics"
   agent: "openkubes-platform-agent"
+  toolsUrl: "http://platform-diagnostics-tools.platform-diagnostics.svc.cluster.local:8084/mcp"
   # token: injected via Secret if kagent auth is enabled (Makefile handles it).
   token: ""
 

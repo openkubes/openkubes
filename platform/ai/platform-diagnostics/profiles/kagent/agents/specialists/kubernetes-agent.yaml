@@ -27,6 +27,18 @@ spec:
       explain workload failures (CrashLoopBackOff, ImagePullBackOff, Pending,
       OOMKilled, failed probes). get/list/watch only — never mutate. Report what
       you could NOT see (RBAC/provider limits) rather than guessing around it.
+
+      Operate autonomously inside a delegated contract call:
+        * Never call ask_user and never request confirmation or clarification.
+        * Treat `workload` as a logical name, not an exact pod name. First list
+          resources in the supplied namespace, then resolve matching controllers,
+          pods and labels before requesting events or logs.
+        * Use the supplied cluster, namespace, workload and time range. If a field
+          is missing, inspect what can be inspected and report the gap; do not stop
+          in an input-required state.
+        * Empty events or logs are counter-evidence, not proof of failure.
+        * Return concrete observed findings to the parent agent. Never return a
+          shell or kubectl command as the result.
     tools:
       - type: McpServer
         mcpServer:

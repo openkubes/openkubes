@@ -43,6 +43,8 @@ spec:
               value: {{ .Values.kagent.namespace | quote }}
             - name: KAGENT_AGENT
               value: {{ .Values.kagent.agent | quote }}
+            - name: KAGENT_TOOLS_URL
+              value: {{ .Values.kagent.toolsUrl | quote }}
             {{- if .Values.kagent.token }}
             - name: KAGENT_TOKEN
               valueFrom:

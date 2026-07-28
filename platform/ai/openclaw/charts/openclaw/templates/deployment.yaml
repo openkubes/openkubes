@@ -31,11 +31,17 @@ spec:
         runAsGroup: 1000
         fsGroup: 1000
       initContainers:
-        # openclaw.json must live in the writable state dir; ConfigMap mounts
-        # are read-only, so copy it over once at pod start.
+        # Runtime config and agent instructions must live in the writable state
+        # dir; ConfigMap mounts are read-only, so copy them once at pod start.
         - name: init-config
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
-          command: ["sh", "-c", "cp /config-src/openclaw.json /home/node/.openclaw/openclaw.json"]
+          command:
+            - sh
+            - -c
+            - |
+              mkdir -p /home/node/.openclaw/workspace
+              cp /config-src/openclaw.json /home/node/.openclaw/openclaw.json
+              cp /config-src/AGENTS.md /home/node/.openclaw/workspace/AGENTS.md
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true

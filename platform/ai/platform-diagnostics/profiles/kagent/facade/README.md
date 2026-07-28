@@ -29,6 +29,7 @@ The agent is invoked over A2A at `{KAGENT_BASE_URL}/api/a2a/{KAGENT_NAMESPACE}/{
 | `KAGENT_BASE_URL` | kagent controller svc (A2A served here) | `http://kagent.kagent.svc.cluster.local:8083` |
 | `KAGENT_NAMESPACE` | namespace the Agents are deployed in | `platform-diagnostics` |
 | `KAGENT_AGENT` | agent to invoke | `openkubes-platform-agent` |
+| `KAGENT_TOOLS_URL` | scoped read-only Kubernetes MCP server | `http://platform-diagnostics-tools.platform-diagnostics.svc.cluster.local:8084/mcp` |
 | `KAGENT_TOKEN` | bearer for kagent, if enabled | _(unset)_ |
 | `PROVIDER_NAME` | logical provider id for audit | `kagent` |
 | `PROVIDER_CAPS` | JSON of capability flags (Talos vs RKE2 delta) | see `app.py` |
@@ -47,5 +48,5 @@ uvicorn app:app --host 0.0.0.0 --port 8080      # local
 # "no match for platform in manifest". Use buildx and push a manifest that
 # includes the node architecture (--provenance=false keeps it to real platforms):
 docker buildx build --platform linux/amd64,linux/arm64 --provenance=false \
-  -t ghcr.io/openkubes/platform-diagnostics-facade:0.1.0 --push .
+  -t ghcr.io/openkubes/platform-diagnostics-facade:0.1.3 --push .
 ```

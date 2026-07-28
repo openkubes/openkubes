@@ -24,9 +24,12 @@ import uuid
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Optional
+from urllib.parse import quote
 
 import httpx
 from fastapi import FastAPI
+from mcp import ClientSession
+from mcp.client.streamable_http import streamable_http_client
 from pydantic import BaseModel, Field
 
 # ── config (Provider Values via env; see README) ─────────────────────────────
@@ -34,6 +37,10 @@ KAGENT_BASE_URL = os.getenv("KAGENT_BASE_URL", "http://kagent-controller.kagent.
 KAGENT_NAMESPACE = os.getenv("KAGENT_NAMESPACE", "platform-diagnostics")
 KAGENT_AGENT = os.getenv("KAGENT_AGENT", "openkubes-platform-agent")
 KAGENT_TOKEN = os.getenv("KAGENT_TOKEN")
+KAGENT_TOOLS_URL = os.getenv(
+    "KAGENT_TOOLS_URL",
+    "http://platform-diagnostics-tools.platform-diagnostics.svc.cluster.local:8084/mcp",
+)
 PROVIDER_NAME = os.getenv("PROVIDER_NAME", "kagent")
 DEFAULT_CLUSTER = os.getenv("DEFAULT_CLUSTER", "ok-ai")
 AGENT_TIMEOUT = float(os.getenv("AGENT_TIMEOUT_SECONDS", "300"))
@@ -187,6 +194,140 @@ async def invoke_agent(text: str) -> str:
     return text_out
 
 
+async def _call_read_tool(name: str, arguments: dict[str, Any]) -> Any:
+    """Call the scoped read-only kagent toolserver and decode its JSON result."""
+    try:
+        async with streamable_http_client(KAGENT_TOOLS_URL) as streams:
+            read_stream, write_stream = streams[0], streams[1]
+            async with ClientSession(read_stream, write_stream) as session:
+                await session.initialize()
+                result = await session.call_tool(name, arguments)
+    except Exception as exc:
+        raise AgentError(f"read tool {name} failed: {exc}") from exc
+
+    if result.isError:
+        raise AgentError(f"read tool {name} returned an error")
+    text = "\n".join(
+        block.text for block in result.content
+        if getattr(block, "type", None) == "text"
+    ).strip()
+    if not text:
+        raise AgentError(f"read tool {name} returned no JSON")
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError as exc:
+        raise AgentError(f"read tool {name} returned invalid JSON") from exc
+
+
+def _pod_matches_workload(pod: dict[str, Any], workload: str) -> bool:
+    metadata = pod.get("metadata") or {}
+    name = str(metadata.get("name", ""))
+    prefix = f"{workload}-"
+    if name == workload or name.startswith(prefix):
+        return True
+    owners = metadata.get("ownerReferences") or []
+    if any(
+        str(owner.get("name", "")) == workload
+        or str(owner.get("name", "")).startswith(prefix)
+        for owner in owners if isinstance(owner, dict)
+    ):
+        return True
+    labels = metadata.get("labels") or {}
+    return any(
+        str(value) == workload or str(value).startswith(prefix)
+        for value in labels.values()
+    )
+
+
+async def _get_workload_pods(body: InvestigateWorkloadInput) -> list[dict[str, Any]]:
+    data = await _call_read_tool("k8s_get_resources", {
+        "resource_type": "pods",
+        "namespace": body.namespace,
+        "output": "json",
+    })
+    items = data.get("items", []) if isinstance(data, dict) else []
+    return [
+        pod for pod in items
+        if isinstance(pod, dict) and _pod_matches_workload(pod, body.workload)
+    ]
+
+
+def _pod_inventory_report(
+    body: InvestigateWorkloadInput,
+    pods: list[dict[str, Any]],
+) -> Optional[WorkloadInvestigation]:
+    """Return a deterministic report when inventory proves no current pod fault."""
+    encoded_cluster = quote(body.cluster, safe="")
+    encoded_namespace = quote(body.namespace, safe="")
+    encoded_workload = quote(body.workload, safe="")
+    query_uri = (
+        f"k8s://{encoded_cluster}/namespaces/{encoded_namespace}/pods"
+        f"?workload={encoded_workload}"
+    )
+    evidence = [EvidenceRef(
+        type="workload-pod-inventory",
+        source="kubernetes-api",
+        status=EvidenceStatus.available,
+        reason=f"matched_pods={len(pods)}",
+        uri=query_uri,
+        collected_at=_now(),
+    )]
+
+    ready_count = 0
+    restart_count = 0
+    all_running = True
+    for pod in pods:
+        metadata = pod.get("metadata") or {}
+        status = pod.get("status") or {}
+        container_statuses = status.get("containerStatuses") or []
+        ready = bool(container_statuses) and all(
+            bool(container.get("ready")) for container in container_statuses
+        )
+        restarts = sum(
+            int(container.get("restartCount", 0) or 0)
+            for container in container_statuses
+        )
+        phase = str(status.get("phase", "Unknown"))
+        if ready:
+            ready_count += 1
+        restart_count += restarts
+        all_running = all_running and phase == "Running"
+        pod_name = str(metadata.get("name", "unknown"))
+        evidence.append(EvidenceRef(
+            type="pod-status",
+            source="kubernetes-api",
+            status=EvidenceStatus.available,
+            reason=(
+                f"phase={phase}; ready={str(ready).lower()}; "
+                f"cumulative_restarts={restarts}"
+            ),
+            uri=(
+                f"k8s://{encoded_cluster}/namespaces/{encoded_namespace}/pods/"
+                f"{quote(pod_name, safe='')}"
+            ),
+            collected_at=_now(),
+        ))
+
+    summary = (
+        f"Observed {len(pods)} pod(s) matching workload {body.workload} in "
+        f"{body.cluster}/{body.namespace}: {ready_count} Ready, "
+        f"{len(pods) - ready_count} not Ready, "
+        f"{restart_count} cumulative container restart(s)."
+    )
+    if not pods:
+        return WorkloadInvestigation(
+            summary=summary,
+            symptoms=[f"No pods currently match workload {body.workload}."],
+            evidence=evidence,
+        )
+    if all_running and ready_count == len(pods) and restart_count == 0:
+        return WorkloadInvestigation(
+            summary=summary + " No current pod readiness or restart symptom was observed.",
+            evidence=evidence,
+        )
+    return None
+
+
 def _extract_json(text: str) -> Optional[dict]:
     """Pull a JSON object out of an LLM reply (tolerates ```json fences / prose)."""
     m = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", text, re.DOTALL)
@@ -240,6 +381,60 @@ def _coerce_hypotheses(items: Any) -> list[RankedHypothesis]:
         except Exception:
             continue
     return out
+
+
+def _investigation_validation_errors(
+    symptoms: list[str],
+    evidence: list[EvidenceRef],
+    hypotheses: list[RankedHypothesis],
+) -> list[str]:
+    """Reject LLM claims that are not linked to retrievable evidence.
+
+    The facade is the trust boundary: schema-valid JSON from an agent is not
+    automatically factual. A finalized diagnosis may claim symptoms or causes
+    only when its available evidence has a URI and every hypothesis references
+    one of those URIs. ADR-021 also forbids finalized hypotheses whose
+    counter-evidence was never checked.
+    """
+    errors: list[str] = []
+    available_uris = {
+        item.uri for item in evidence
+        if item.status == EvidenceStatus.available and item.uri
+    }
+
+    missing_uri = [
+        item.type for item in evidence
+        if item.status == EvidenceStatus.available and not item.uri
+    ]
+    if missing_uri:
+        errors.append(
+            "available evidence missing uri: " + ", ".join(sorted(set(missing_uri)))
+        )
+
+    if (symptoms or hypotheses) and not available_uris:
+        errors.append("diagnostic claims have no retrievable evidence")
+
+    for index, hypothesis in enumerate(hypotheses, start=1):
+        if not hypothesis.evidence_refs:
+            errors.append(f"hypothesis {index} has no evidence_refs")
+        unknown_refs = [
+            ref for ref in hypothesis.evidence_refs
+            if ref not in available_uris
+        ]
+        if unknown_refs:
+            errors.append(f"hypothesis {index} references unknown evidence")
+        unknown_counter_refs = [
+            ref for ref in hypothesis.contradicting_evidence_refs
+            if ref not in available_uris
+        ]
+        if unknown_counter_refs:
+            errors.append(
+                f"hypothesis {index} references unknown counter-evidence"
+            )
+        if hypothesis.counter_evidence_status == CounterEvidence.not_checked:
+            errors.append(f"hypothesis {index} did not check counter-evidence")
+
+    return errors
 
 
 # ── prompt builders (ask the agent for STRICT JSON in the contract shape) ────
@@ -308,6 +503,26 @@ async def get_platform_health(body: GetPlatformHealthInput) -> PlatformHealth:
           operation_id="investigate_workload")
 async def investigate_workload(body: InvestigateWorkloadInput) -> WorkloadInvestigation:
     try:
+        pods = await _get_workload_pods(body)
+    except AgentError as e:
+        return WorkloadInvestigation(
+            summary=(
+                f"provider unavailable for {body.workload} in "
+                f"{body.cluster}/{body.namespace}"
+            ),
+            evidence=[EvidenceRef(
+                type="workload-pod-inventory",
+                source=PROVIDER_NAME,
+                status=EvidenceStatus.unavailable,
+                reason=str(e),
+                collected_at=_now(),
+            )],
+        )
+    inventory_report = _pod_inventory_report(body, pods)
+    if inventory_report is not None:
+        return inventory_report
+
+    try:
         text = await invoke_agent(_instruct("investigate_workload", body.model_dump(), _SHAPE_INVESTIGATE))
     except AgentError as e:
         return WorkloadInvestigation(
@@ -323,11 +538,31 @@ async def investigate_workload(body: InvestigateWorkloadInput) -> WorkloadInvest
                                   status=EvidenceStatus.partial,
                                   reason="agent reply was not structured JSON",
                                   collected_at=_now())])
+    symptoms = list(data.get("symptoms", []) or [])
+    evidence = _coerce_evidence(data.get("evidence"))
+    hypotheses = _coerce_hypotheses(data.get("probable_causes"))
+    validation_errors = _investigation_validation_errors(
+        symptoms, evidence, hypotheses
+    )
+    if validation_errors:
+        return WorkloadInvestigation(
+            summary=(
+                f"provider returned unverified diagnostic output for "
+                f"{body.workload} in {body.cluster}/{body.namespace}"
+            ),
+            evidence=[EvidenceRef(
+                type="agent-output-validation",
+                source=PROVIDER_NAME,
+                status=EvidenceStatus.unavailable,
+                reason="; ".join(validation_errors),
+                collected_at=_now(),
+            )],
+        )
     return WorkloadInvestigation(
         summary=str(data.get("summary", "")).strip() or text[:500],
-        symptoms=list(data.get("symptoms", []) or []),
-        evidence=_coerce_evidence(data.get("evidence")),
-        probable_causes=_coerce_hypotheses(data.get("probable_causes")),
+        symptoms=symptoms,
+        evidence=evidence,
+        probable_causes=hypotheses,
         recommended_next_steps=list(data.get("recommended_next_steps", []) or []),
         references=list(data.get("references", []) or []))
 

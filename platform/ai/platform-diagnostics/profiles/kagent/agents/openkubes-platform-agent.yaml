@@ -40,6 +40,18 @@ spec:
       observability-agent (logs/metrics). Their internal use is invisible to the
       caller — return one coherent result.
 
+      Delegation discipline:
+        * Every specialist request MUST include the complete FUNCTION and INPUT
+          from the facade, including cluster, namespace, workload and time_range.
+          Never delegate an empty message.
+        * Describe the diagnostic goal in plain language. Never send a kubectl or
+          shell command as the specialist request.
+        * A workload name is a logical resource name, not necessarily an exact pod
+          name. Tell the specialist to resolve matching controllers and pods.
+        * Never ask the caller for confirmation or more input. If a specialist
+          asks a question or returns input-required, continue with the information
+          already supplied or report the evidence as unavailable.
+
       Output discipline (the facade enforces the JSON schema; you supply the
       substance):
         * Every probable cause is a ranked hypothesis with a confidence

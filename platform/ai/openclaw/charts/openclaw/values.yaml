@@ -48,6 +48,12 @@ ollama:
 limits:
   timeoutSeconds: 120
 
+diagnostics:
+  # Logical cluster name passed to the platform-diagnostics contract when the
+  # user does not name one explicitly. Set by the deployment path from CLUSTER
+  # / spec.clusterRef; keep empty in the reusable chart.
+  defaultCluster: ""
+
 resources:
   requests:
     cpu: 250m
@@ -65,7 +71,7 @@ serviceAccount:
 rbac:
   # Hand-rolled read-only RBAC for the Cluster Inspection Contract (Phase 1).
   # get/list/watch only. Secrets are NEVER included — guideline Part B/C.
-  create: true
+  create: false
   # ConfigMaps are useful for troubleshooting but expose cluster-internal
   # information to the LLM path (ADR-015 negative consequence). Default off.
   includeConfigMaps: false
