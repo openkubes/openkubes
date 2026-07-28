@@ -24,6 +24,10 @@
 
 > *OpenKubes owns the contracts, not the components.*
 
+> **OpenKubes defines the framework. OKP proves it can run.**
+> **OpenKubes Platform (OKP)** is its official reference distribution and conforms to the OpenKubes contracts. Deploy OKP as provided, adapt it, or use OpenKubes to build your own OpenKubes-conformant distribution.
+> → [Naming &amp; terminology](./NAMING.md)
+
 ---
 
 ## Platform Architecture
