@@ -1,14 +1,15 @@
 # Vault consumer-cluster onboarding (ADR-Platform-025, Category A)
 
-**Repeatable, reviewable, no break-glass.** Gives one consumer cluster its own Vault
-Kubernetes auth mount so the Vault Secrets Operator running *on that cluster* can
-materialise a Secret from central Vault on ok-shared.
+**Repeatable and reviewable.** Gives one consumer cluster its own Vault Kubernetes auth mount so
+the Vault Secrets Operator running *on that cluster* can materialise a Secret from central Vault
+on ok-shared.
 
 Manifest: `crossplane/examples/consumer-vaultconfig.template.yaml`
 Realised instance to compare against: `crossplane/examples/ok-robotics-vaultconfig.yaml`
 
-Identities involved — see `runbooks/vault-breakglass-ceremony.md` for the full table. Nothing
-here needs `userpass/breakglass`; if you find yourself reaching for it, stop and re-read §Known gap.
+Identities involved — see `runbooks/vault-breakglass-ceremony.md` for the full table. Steps 1–6
+need **no** break-glass. The one exception is the final credential seed, which currently does —
+see §Seeding the credential itself.
 
 ---
 
@@ -130,22 +131,29 @@ kubectl --kubeconfig "$KO" -n <workload-ns> create secret generic vault-ca \
   --from-file=ca.crt=/tmp/vault-ca.crt
 ```
 
-## Known gap — seeding the credential itself
+## Seeding the credential itself — supervised break-glass, until OK-115
 
 This runbook grants a consumer **read** access to its own KV subtree. It does **not** put the
-credential *into* Vault, and today **no identity can**:
+credential *into* Vault, and **no automation can**:
 
 - the `VaultConfig` composition emits `capabilities = ["read"]` on every declared path, so the
   XR cannot grant write by construction;
 - `ok-config-automation` — the provider-vault identity that performs routine auth-mount, policy
-  and role configuration — has **no KV-data paths** at all;
-- `userpass/breakglass` is scoped to manual admin when automation is unavailable, and is
-  explicitly not the automation path. A first-time credential seed is neither an emergency nor
-  an automation outage, so it is out of scope for break-glass.
+  and role configuration — has **no KV-data paths** at all.
 
-Until a scoped per-cluster KV write exists (**OK-115**), the first write to
-`<kv-mount>/<cluster>/obs/<name>` has no sanctioned route. Every new consumer onboarding hits
-this, so it is a platform gap rather than a per-cluster inconvenience.
+**Interim route (decided on OK-110, 2026-07-28): a supervised break-glass write**, per
+`runbooks/vault-breakglass-ceremony.md` Tier A, until the scoped per-cluster KV write of
+**OK-115** exists. Treat it as a ceremony, not a routine step — one seed per onboarding,
+evidenced, and record it as the interim it is:
+
+```bash
+vault kv put <kv-mount>/<cluster>/obs/<name> <key>=<value> …
+vault kv get -format=json <kv-mount>/<cluster>/obs/<name> | jq '.data.data | keys'
+```
+
+Every new consumer onboarding hits this, so the seed remains a **platform gap** and OK-115 is
+the fix, not a nice-to-have. Do not read the interim as a licence to reach for break-glass for
+anything else — it is authorised for the first credential write only.
 
 ## Hygiene
 
