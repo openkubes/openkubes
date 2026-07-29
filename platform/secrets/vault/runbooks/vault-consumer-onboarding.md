@@ -26,9 +26,11 @@ kubectl --kubeconfig ~/.kube/ok-mgmt.yaml get vaultconfigs.platform.openkubes.ai
 # a cluster absent from this list has NO auth mount, however long it has been registered
 ```
 
-> Older wording in ADR-Platform-025 criterion 7 and in the Confluence onboarding page describes
-> registration as reconciling the auth mount/policy/role. That is the intended end state, not
-> current behaviour. Treat this runbook as the operative procedure.
+> ADR-Platform-025 (criterion 7 and three other places) and the Confluence onboarding page both
+> said registration reconciled the auth mount/policy/role. **Both were corrected on 2026-07-28** —
+> they now describe the explicit XR step. Registration auto-reconciling the mount remains a
+> legitimate future enhancement (out of scope for criterion 7, whose claim is the VSO-before-Helm
+> ordering, not how the credential reached Vault).
 
 ## 1. Mint the reviewer JWT (on the consumer cluster)
 
@@ -37,10 +39,10 @@ server, authenticated as a dedicated reviewer identity.
 
 ```bash
 KO=~/.kube/<cluster>.yaml
-kubectl --kubeconfig "$KO" -n kube-system create sa vault-token-reviewer
-kubectl --kubeconfig "$KO" create clusterrolebinding vault-token-reviewer-auth-delegator \
+kubectl --kubeconfig "$KO" -n kube-system create sa vault-reviewer
+kubectl --kubeconfig "$KO" create clusterrolebinding vault-reviewer-tr \
   --clusterrole=system:auth-delegator \
-  --serviceaccount=kube-system:vault-token-reviewer
+  --serviceaccount=kube-system:vault-reviewer
 ```
 
 The JWT must **not** expire, so request a legacy long-lived token Secret rather than using
@@ -52,10 +54,10 @@ kubectl --kubeconfig "$KO" apply -f - <<'EOF'
 apiVersion: v1
 kind: Secret
 metadata:
-  name: vault-token-reviewer
+  name: vault-reviewer-token
   namespace: kube-system
   annotations:
-    kubernetes.io/service-account.name: vault-token-reviewer
+    kubernetes.io/service-account.name: vault-reviewer
 type: kubernetes.io/service-account-token
 EOF
 ```
@@ -64,9 +66,9 @@ Verify the identity can actually perform the review — do this now, not after V
 
 ```bash
 kubectl --kubeconfig "$KO" auth can-i create tokenreviews.authentication.k8s.io \
-  --as=system:serviceaccount:kube-system:vault-token-reviewer          # -> yes
+  --as=system:serviceaccount:kube-system:vault-reviewer          # -> yes
 kubectl --kubeconfig "$KO" auth can-i create subjectaccessreviews.authorization.k8s.io \
-  --as=system:serviceaccount:kube-system:vault-token-reviewer          # -> yes
+  --as=system:serviceaccount:kube-system:vault-reviewer          # -> yes
 ```
 
 ## 2. Collect the endpoint and CA
@@ -87,7 +89,7 @@ logs, or a world-readable file. Use a `0600` file and `--from-file`, never `--fr
 
 ```bash
 umask 077; TMP="$(mktemp -d)"
-kubectl --kubeconfig "$KO" -n kube-system get secret vault-token-reviewer \
+kubectl --kubeconfig "$KO" -n kube-system get secret vault-reviewer-token \
   -o jsonpath='{.data.token}' | base64 -d > "$TMP/token"
 
 kubectl --kubeconfig ~/.kube/ok-mgmt.yaml -n crossplane-system \
