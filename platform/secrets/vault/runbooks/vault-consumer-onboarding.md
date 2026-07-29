@@ -8,8 +8,9 @@ Manifest: `crossplane/examples/consumer-vaultconfig.template.yaml`
 Realised instance to compare against: `crossplane/examples/ok-robotics-vaultconfig.yaml`
 
 Identities involved — see `runbooks/vault-breakglass-ceremony.md` for the full table. Steps 1–6
-need **no** break-glass. The one exception is the final credential seed, which currently does —
-see §Seeding the credential itself.
+need **no** break-glass. Scoped owner seeding is the target routine mechanism; supervised
+break-glass remains the fallback until the updated XRD/Composition and each cluster's `seedRoles`
+entry are applied and the OK-115 negative test passes.
 
 ---
 
@@ -133,29 +134,133 @@ kubectl --kubeconfig "$KO" -n <workload-ns> create secret generic vault-ca \
   --from-file=ca.crt=/tmp/vault-ca.crt
 ```
 
-## Seeding the credential itself — supervised break-glass, until OK-115
+## Seeding the credential itself — scoped owner identity (OK-115)
 
-This runbook grants a consumer **read** access to its own KV subtree. It does **not** put the
-credential *into* Vault, and **no automation can**:
+Workload `roles` remain read-only. Seeding is a separate identity declared through `seedRoles`;
+it does not add write capability to the VSO workload ServiceAccount. A seed entry accepts only:
 
-- the `VaultConfig` composition emits `capabilities = ["read"]` on every declared path, so the
-  XR cannot grant write by construction;
-- `ok-config-automation` — the provider-vault identity that performs routine auth-mount, policy
-  and role configuration — has **no KV-data paths** at all.
+- a DNS-label role `name` and `appName`;
+- one dedicated ServiceAccount name and namespace; and
+- an explicit 60–600 second token TTL.
 
-**Interim route (decided on OK-110, 2026-07-28): a supervised break-glass write**, per
-`runbooks/vault-breakglass-ceremony.md` Tier A, until the scoped per-cluster KV write of
-**OK-115** exists. Treat it as a ceremony, not a routine step — one seed per onboarding,
-evidenced, and record it as the interim it is:
+There is no caller-supplied path or capability. The Composition derives:
 
 ```bash
-vault kv put <kv-mount>/<cluster>/obs/<name> <key>=<value> …
-vault kv get -format=json <kv-mount>/<cluster>/obs/<name> | jq '.data.data | keys'
+policy: okvc-<cluster>-<app>-seed
+path:   secret/data/<cluster>/<app>/*
+caps:   create, update
 ```
 
-Every new consumer onboarding hits this, so the seed remains a **platform gap** and OK-115 is
-the fix, not a nice-to-have. Do not read the interim as a licence to reach for break-glass for
-anything else — it is authorised for the first credential write only.
+KV v2 `vault kv put` calls only the `data/` endpoint, so metadata access is not required. The
+seeder is intentionally write-only: it cannot read back a credential, list metadata, delete,
+undelete, destroy, or metadata-delete it. Read-after-write would widen the separation-of-duties
+boundary only to make verification convenient, so successful API writes are the evidence.
+
+The role sets `tokenNoDefaultPolicy: true`; the token therefore receives only its derived seed
+policy, not Vault's `default` self-inspection policy. Its TTL, max TTL, and explicit max TTL are
+the same short value.
+
+Before applying the Composition revision, confirm the field exists on the **installed** pinned
+provider CRD. This is a deployment gate, not something repository-local validation can prove:
+
+```bash
+kubectl --kubeconfig ~/.kube/ok-mgmt.yaml get \
+  crd/authbackendroles.kubernetes.vault.upbound.io -o json |
+  jq -e '
+    .spec.versions[]
+    | select(.name == "v1alpha1")
+    | .schema.openAPIV3Schema.properties.spec.properties.forProvider.properties
+      .tokenNoDefaultPolicy.type == "boolean"
+  '
+```
+
+Do not promote the Composition if this returns non-zero; without the field, define and review the
+`default` policy's explicit `sys/*` exceptions instead of silently claiming literal denial.
+
+### 7. Create the dedicated owner ServiceAccount and TokenRequest RBAC
+
+Create a ServiceAccount that is used only for seeding. It **must not** be the ServiceAccount in
+`roles[]` that VSO uses. Kubernetes RBAC decides which owner group may mint a bounded token for it:
+
+```yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: vault-seed-obs
+  namespace: ok-observability
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: vault-seed-obs-token
+  namespace: ok-observability
+rules:
+  - apiGroups: [""]
+    resources: ["serviceaccounts/token"]
+    resourceNames: ["vault-seed-obs"]
+    verbs: ["create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: vault-seed-obs-token
+  namespace: ok-observability
+subjects:
+  - kind: Group
+    name: <cluster-owner-group>
+    apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: vault-seed-obs-token
+  apiGroup: rbac.authorization.k8s.io
+```
+
+Add the matching XR entry and apply it through the reviewed VaultConfig workflow:
+
+```yaml
+seedRoles:
+  - name: obs-seed
+    appName: obs
+    serviceAccountName: vault-seed-obs
+    serviceAccountNamespace: ok-observability
+    ttlSeconds: 600
+```
+
+This repository change alone is **not deployment evidence**. Routine self-service starts only
+after the XRD and Composition revision are applied/promoted, the consumer XR reconciles, and the
+real owner-identity test below passes.
+
+### 8. Run the owner-identity acceptance test, then seed
+
+The test mints the ServiceAccount token, logs into the existing per-cluster Kubernetes auth mount,
+creates then updates a unique probe key, checks the exact policy/short TTL, and executes the
+negative API operations required by OK-115. It never asks for break-glass:
+
+```bash
+bash tooling/ok115-scoped-seed-test.sh \
+  --consumer-kubeconfig ~/.kube/<cluster>.yaml \
+  --shared-kubeconfig ~/.kube/ok-shared.yaml \
+  --cluster <cluster> --app obs --role obs-seed \
+  --service-account vault-seed-obs --namespace ok-observability
+```
+
+The identity cannot delete its positive probe. The script prints the exact `vault kv metadata
+delete` command for a separately authorised cleanup step; do not add delete to the seed policy.
+
+For the real credential, keep values out of argv. Prepare a `0600` HCL/JSON payload or use a
+stdin-capable wrapper, mint a bounded ServiceAccount token, log in at
+`auth/kubernetes/<cluster>/login`, and write only:
+
+```text
+secret/<cluster>/<app>/<credential-name>
+```
+
+## Fallback until scoped seeding is deployed and proven
+
+If the updated XRD/Composition/consumer XR has not been deployed and the negative test has not
+passed, use the supervised Tier-A break-glass ceremony in
+`runbooks/vault-breakglass-ceremony.md`. This is a deployment fallback, not the routine end state.
+Record that break-glass was used and why the scoped path was not yet available.
 
 ## Hygiene
 
@@ -163,5 +268,7 @@ anything else — it is authorised for the first credential write only.
 - The cluster CA and the Vault CA are public certificates — no special handling.
 - One `VaultConfig` per cluster; the auth mount name is derived from `clusterName`, so a typo
   creates a second, silently unused mount rather than failing.
+- A seed role binds one dedicated SA and derives its KV path from `clusterName` + `appName`.
+  Never reuse a workload/VSO SA for seeding.
 - Removing a consumer: delete the XR (which removes mount/policy/role), then the reviewer-JWT
   Secret on ok-mgmt, then the consumer-side SA and CRB.
