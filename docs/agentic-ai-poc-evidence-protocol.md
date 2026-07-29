@@ -226,4 +226,5 @@ The script does this automatically unless `--keep-fixtures` is given.
 - ADR-Platform-015 — Agentic AI (UC-1, state handling assumption)
 - ADR-Platform-021 — Read-Only Platform Diagnostics Contract (tests 2, 3, 5, 6)
 - `docs/agentic-ai-poc-guideline.md` — Part A guardrails, Part C stop rule
-- `platform/ai/platform-diagnostics/contract/openapi.yaml` — normative schemas
+- `platform/ai/platform-diagnostics/contract/openapi.yaml` — Draft
+  implementation scaffold; normative finalization remains in OK-89/OK-90

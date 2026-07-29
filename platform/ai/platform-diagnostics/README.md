@@ -30,7 +30,7 @@ test, not a convention.
 ```
 platform/ai/platform-diagnostics/
 ├── contract/
-│   ├── openapi.yaml           # NORMATIVE service contract (3 functions + schema) — owned by OK-89
+│   ├── openapi.yaml           # Draft implementation scaffold — finalization in OK-89/OK-90
 │   ├── mcp-adapter/           # thin agent-facing adapter, DERIVED from openapi.yaml (optional)
 │   └── tests/                 # the 6 contract tests from ADR-021 (schema, RBAC audit, backend-swap, …)
 └── profiles/
@@ -50,13 +50,14 @@ platform/ai/platform-diagnostics/
 
 | Piece | Ticket | Repo |
 |---|---|---|
-| `contract/` (OpenAPI, MCP adapter, contract tests) | **OK-89** (finalize & validate the contract) | `openkubes` (this repo) |
+| `contract/` (OpenAPI, MCP adapter, contract tests) | **OK-89 / OK-90** (normative finalization and validation) | `openkubes` (this repo) |
 | `profiles/kagent/` (Profile A implementation) | **OK-92** (integrate kagent as first provider profile) | `openkubes` (generic) + `ok-cluster` (provider values) |
 | OpenClaw as first **consumer** (diagnostics skill via MCP adapter) | ADR-021 Consumers | `ok-cluster/openclaw` |
 
-OK-92 depends on the `contract/openapi.yaml` from OK-89. Until OK-89 lands, the
-OpenAPI here is a **Draft scaffold** so Profile A has a concrete interface to
-implement against; the schema tracks ADR-021 revision 3.
+OK-92 needs a concrete interface for Profile A. The included
+`contract/openapi.yaml` is therefore explicitly a **Draft implementation
+scaffold**, derived from ADR-021 revision 3. It is not the finalized normative
+specification; that work remains in OK-89/OK-90.
 
 ## What lives where (generic vs. provider values)
 

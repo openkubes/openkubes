@@ -1,10 +1,12 @@
 # Diagnostics facade — OpenAPI → kagent shim
 
 Makes kagent a **conformant provider** of the Read-Only Platform Diagnostics
-Contract. It implements `contract/openapi.yaml` verbatim and, per request,
-invokes the `openkubes-platform-agent` (kagent), then shapes the agent's output
-into the normative ADR-021 schema (`RankedHypothesis` with
+Contract. It implements the `contract/openapi.yaml` **Draft implementation
+scaffold** and, per request, invokes the `openkubes-platform-agent` (kagent),
+then shapes the agent's output into the ADR-021-derived schema
+(`RankedHypothesis` with
 `counter_evidence_status`, `EvidenceRef` references-only, `provider_capabilities`).
+Normative OpenAPI finalization remains in OK-89/OK-90.
 
 ```
 OpenClaw ─(MCP adapter)─► facade  ─(kagent A2A/API)─►  openkubes-platform-agent

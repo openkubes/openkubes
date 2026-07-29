@@ -1,14 +1,15 @@
 openapi: 3.1.0
 # ─────────────────────────────────────────────────────────────────────────────
-# Read-Only Platform Diagnostics Contract — NORMATIVE service contract.
+# Read-Only Platform Diagnostics Contract — Draft implementation scaffold.
 #
-# Owned by OK-89 (ADR-Platform-021). This is the single source of truth for the
-# interface; the MCP adapter (../mcp-adapter) and every provider profile
-# (../../profiles/*) are DERIVED from it, never the other way round. The schema
-# MUST NOT exist only as MCP tool descriptions (ADR-021, Transport).
+# ADR-Platform-021 is the current normative design source. This file gives
+# OK-92/Profile A a concrete interface to implement against, but it is NOT the
+# finalized normative OpenAPI specification. Ownership and normative
+# finalization remain in OK-89/OK-90. The MCP adapter (../mcp-adapter) and every
+# provider profile (../../profiles/*) are derived from this scaffold.
 #
-# Status: DRAFT scaffold — tracks ADR-021 revision 3 (2026-07-17). OK-92 (kagent
-# Profile A) implements against this. Finalization/validation is OK-89's scope.
+# Status: Draft implementation scaffold — tracks ADR-021 revision 3
+# (2026-07-17). OK-92 (kagent Profile A) implements against it.
 #
 # Design rules pinned from ADR-021:
 #   * Phase 1 = read-only. Exactly three public functions. No write path exists.
@@ -18,14 +19,15 @@ openapi: 3.1.0
 #   * A hypothesis without sought counter-evidence is a guess (counter_evidence_status).
 # ─────────────────────────────────────────────────────────────────────────────
 info:
-  title: OpenKubes Read-Only Platform Diagnostics Contract
+  title: OpenKubes Read-Only Platform Diagnostics — Draft Implementation Scaffold
   version: 1.0.0-draft
   description: |
-    Provider-neutral, read-only diagnostics for OpenKubes clusters — LLM-assisted
-    or runbook-driven. Frontends and agent runtimes are interchangeable behind/in
-    front of this contract. See ADR-Platform-021.
+    Draft implementation scaffold for provider-neutral, read-only diagnostics
+    in OpenKubes. Frontends and agent runtimes are interchangeable behind/in
+    front of this interface. Normative finalization remains in OK-89/OK-90;
+    see ADR-Platform-021 for the current normative design.
   x-adr: ADR-Platform-021
-  x-status: Draft (revision 3)
+  x-status: Draft implementation scaffold (revision 3; finalization OK-89/OK-90)
   license:
     name: Apache-2.0
 
@@ -160,7 +162,7 @@ components:
             required: [cluster, status, provider_capabilities]
             properties:
               cluster: { type: string }
-              status:  { type: string, enum: [healthy, degraded, unavailable, unknown] }
+              status:  { type: string, enum: [healthy, degraded, unavailable] }
               summary: { type: string }
               signals:
                 type: array
@@ -200,7 +202,7 @@ components:
           items: { $ref: '#/components/schemas/EvidenceRef' }
         provider_capabilities: { $ref: '#/components/schemas/ProviderCapabilities' }
 
-    # ── shared value objects (ADR-021 "Normative schema") ──────────────────────
+    # ── shared value objects (draft scaffold derived from ADR-021) ─────────────
     RankedHypothesis:
       type: object
       # Contract test 6: confidence, contradicting_evidence_refs and

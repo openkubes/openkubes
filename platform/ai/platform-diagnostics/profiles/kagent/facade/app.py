@@ -3,7 +3,9 @@ Diagnostics facade — OpenAPI -> kagent shim (Profile A, OK-92).
 
 Implements the three functions of the Read-Only Platform Diagnostics Contract
 (ADR-Platform-021) and translates each into an A2A invocation of the kagent
-`openkubes-platform-agent`, then maps the agent's reply onto the normative schema.
+`openkubes-platform-agent`, then maps the agent's reply onto the ADR-021-derived
+Draft implementation scaffold. Normative OpenAPI finalization remains in
+OK-89/OK-90.
 
 Wire format (confirmed against ok-ai, 2026-07-27):
   * A2A JSON-RPC 2.0, method "message/send", at
@@ -112,7 +114,7 @@ class GetPlatformHealthInput(BaseModel):
 
 class ClusterHealth(BaseModel):
     cluster: str
-    status: str = "unknown"
+    status: str = "unavailable"
     summary: Optional[str] = None
     signals: list[str] = []
     provider_capabilities: dict[str, bool] = Field(default_factory=lambda: PROVIDER_CAPS)
@@ -448,8 +450,11 @@ def _instruct(function: str, payload: dict, shape: str) -> str:
         "Rules:\n"
         "- Do NOT ask clarifying questions or request more input. Assess with the tools\n"
         "  available and return the JSON regardless of what is missing.\n"
-        "- Reference evidence by source (never paste raw logs or secrets).\n"
-        "- Every probable cause needs a counter_evidence_status of found|none_found|not_checked.\n"
+        "- Every evidence_refs and contradicting_evidence_refs item MUST be an exact\n"
+        "  copy of a uri from the evidence array; never reference type/source labels.\n"
+        "- Never paste raw logs or secrets into evidence.\n"
+        "- Every probable cause needs counter_evidence_status found|none_found.\n"
+        "  not_checked makes the finalized result unverified and will be rejected.\n"
         "- recommended_next_steps are actions for a human.\n"
         "- Events and pod logs ARE available via your read-only tools (k8s_get_events,\n"
         "  k8s_get_pod_logs) — use them. Only host journal and node shell are unsupported;\n"
@@ -467,7 +472,7 @@ _SHAPE_INVESTIGATE = (
     '"recommended_next_steps":[str],"references":[str]}'
 )
 _SHAPE_HEALTH = (
-    '{"clusters":[{"cluster":str,"status":"healthy|degraded|unavailable|unknown",'
+    '{"clusters":[{"cluster":str,"status":"healthy|degraded|unavailable",'
     '"summary":str,"signals":[str]}]}'
 )
 _SHAPE_EVIDENCE = (
@@ -485,17 +490,53 @@ async def get_platform_health(body: GetPlatformHealthInput) -> PlatformHealth:
         text = await invoke_agent(_instruct("get_platform_health", body.model_dump(), _SHAPE_HEALTH))
     except AgentError as e:
         return PlatformHealth(generated_at=_now(), clusters=[
-            ClusterHealth(cluster=c, status="unknown",
-                          summary=f"provider unavailable: {e}") for c in clusters])
+            ClusterHealth(
+                cluster=c,
+                status="unavailable",
+                summary=f"provider unavailable: {e}",
+                signals=["provider_call_failed"],
+            ) for c in clusters])
     data = _extract_json(text) or {}
-    out = []
+    reported: dict[str, ClusterHealth] = {}
     for c in data.get("clusters", []) if isinstance(data, dict) else []:
         if isinstance(c, dict) and c.get("cluster"):
-            out.append(ClusterHealth(
-                cluster=str(c["cluster"]), status=str(c.get("status", "unknown")),
-                summary=c.get("summary"), signals=list(c.get("signals", []) or [])))
-    if not out:  # agent answered but not as parseable JSON
-        out = [ClusterHealth(cluster=c, status="unknown", summary=text[:500]) for c in clusters]
+            cluster = str(c["cluster"])
+            if cluster not in clusters or cluster in reported:
+                continue
+            raw_status = str(c.get("status", "")).strip().lower()
+            summary = str(c.get("summary", "")).strip()
+            signals = list(c.get("signals", []) or [])
+            if raw_status not in {"healthy", "degraded", "unavailable"}:
+                reported_status = raw_status or "<missing>"
+                raw_status = "unavailable"
+                summary = (
+                    f"provider returned unverified platform health status "
+                    f"{reported_status!r}"
+                    f"{f': {summary}' if summary else ''}"
+                )
+                signals.append("provider_status_unverified")
+            reported[cluster] = ClusterHealth(
+                cluster=cluster,
+                status=raw_status,
+                summary=summary,
+                signals=signals,
+            )
+    out = []
+    for cluster in clusters:
+        if cluster in reported:
+            out.append(reported[cluster])
+            continue
+        reason = (
+            "reply was not structured JSON"
+            if not data
+            else "requested cluster is missing from the structured response"
+        )
+        out.append(ClusterHealth(
+            cluster=cluster,
+            status="unavailable",
+            summary=f"provider returned unverified platform health output: {reason}",
+            signals=["provider_output_unverified"],
+        ))
     return PlatformHealth(generated_at=_now(), clusters=out)
 
 

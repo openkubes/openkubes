@@ -1,11 +1,12 @@
 """
 MCP adapter for the Read-Only Platform Diagnostics Contract (ADR-021).
 
-A thin, agent-facing MCP server DERIVED from the OpenAPI contract: it exposes the
-three contract functions as MCP tools and forwards each to the HTTP contract (the
-facade). It holds NO Kubernetes credentials — it only speaks to the facade, which
-speaks to kagent's read-only provider. Consumers (OpenClaw today, others later)
-register this over MCP; the OpenAPI stays the normative contract.
+A thin, agent-facing MCP server derived from the OpenAPI Draft implementation
+scaffold: it exposes the three contract functions as MCP tools and forwards each
+to the HTTP contract (the facade). It holds NO Kubernetes credentials — it only
+speaks to the facade, which speaks to kagent's read-only provider. Consumers
+(OpenClaw today, others later) register this over MCP; normative OpenAPI
+finalization remains in OK-89/OK-90.
 
 Transport: streamable-http at /mcp (matches OpenClaw `mcp add --transport
 streamable-http` and kagent's own tool server).

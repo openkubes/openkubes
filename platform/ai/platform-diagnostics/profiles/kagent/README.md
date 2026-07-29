@@ -25,13 +25,16 @@ the three contract functions.
 
 ## Why a facade in front of kagent
 
-ADR-021's normative transport is **HTTP + OpenAPI**, with three *named* functions
-and a strict result schema (`RankedHypothesis.counter_evidence_status`,
-`EvidenceRef` references-only, `provider_capabilities`). kagent speaks its own
-agent/A2A protocol and (per the OK-14 evaluation) does not natively expose these
-three functions with this schema. The `facade/` is the thin shim that makes
-kagent a conformant **provider** of the contract without leaking kagent specifics
-to consumers — that is exactly what keeps the backend swappable (test 4).
+ADR-021 selects **HTTP + OpenAPI** as the normative transport. The included
+`contract/openapi.yaml` is still a **Draft implementation scaffold**; normative
+finalization remains in OK-89/OK-90. It supplies three *named* functions and the
+ADR-021-derived result shape (`RankedHypothesis.counter_evidence_status`,
+`EvidenceRef` references-only, `provider_capabilities`) needed to exercise
+Profile A. kagent speaks its own agent/A2A protocol and (per the OK-14
+evaluation) does not natively expose these three functions with this schema. The
+`facade/` is the thin shim that makes kagent a conformant **provider** without
+leaking kagent specifics to consumers — that is exactly what keeps the backend
+swappable (test 4).
 
 If OK-14 concludes kagent *does* expose a directly conformant endpoint, the facade
 collapses to a pass-through; the contract and consumers do not change either way.

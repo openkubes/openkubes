@@ -1,9 +1,11 @@
 # MCP adapter (agent-facing)
 
 Exposes the three contract functions as MCP tools over **streamable-http** and
-forwards each to the HTTP contract (the facade). Derived from `../openapi.yaml`
-(the OpenAPI stays normative). Holds **no Kubernetes credentials** — it only talks
-to the facade; cluster access lives behind the contract in kagent's read-only SA.
+forwards each to the HTTP contract (the facade). Derived from the
+`../openapi.yaml` **Draft implementation scaffold**; normative OpenAPI
+finalization remains in OK-89/OK-90. Holds **no Kubernetes credentials** — it
+only talks to the facade; cluster access lives behind the contract in kagent's
+read-only SA.
 
 A consumer without an LLM (the `ok` CLI, OK-76) skips this and speaks HTTP directly.
 
