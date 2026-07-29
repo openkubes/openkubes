@@ -3,7 +3,7 @@
 
 image:
   repository: ghcr.io/openkubes/platform-diagnostics-facade
-  tag: "0.1.3"
+  tag: "0.1.4"
   pullPolicy: IfNotPresent
 
 # Pull secrets for a private registry (e.g. a private GHCR package). Empty by
