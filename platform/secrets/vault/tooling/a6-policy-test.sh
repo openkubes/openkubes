@@ -123,6 +123,8 @@ if OUT="$(tok_policy_write "$TESTTOK" "$ESC_POLICY" "$ESC_HCL" 2>&1)"; then
   if OUT2="$(vx "$TESTTOK" vault token create -ttl=1m -policy="$ESC_POLICY" -format=json 2>&1)"; then
     echo "  FINDING  direct token mint with $ESC_POLICY SUCCEEDED — no parent-subset restriction"
     ESC_FINDINGS=$((ESC_FINDINGS+1))
+  elif grep -qiF 'child policies must be subset of parent' <<<"$OUT2"; then
+    echo "  ok       direct token mint DENIED — the direct route is closed by the parent-subset rule"
   elif grep -qiE 'permission denied|403' <<<"$OUT2"; then
     echo "  ok       direct token mint DENIED (auth/token/create is subset-limited without sudo)"
   else
@@ -175,18 +177,19 @@ fi
 echo; echo "════════ RESULT ════════"
 if ((ESC_FINDINGS>0)); then
   echo "BODY-SCOPING FINDINGS: $ESC_FINDINGS. The narrowing is still an improvement, so this does NOT block Step 2,"
-  echo "  but ADR-025 crit. 13's least-privilege claim needs qualifying: consumer read-only is a property of the"
-  echo "  composition template (capabilities=[\"read\"]), not of the reconciler's policy boundary. Closing it means"
+  echo "  but the live probe confirms consumer read-only is a property of the composition template"
+  echo "  (capabilities=[\"read\"]), not of the reconciler's policy boundary. Closing the boundary means"
   echo "  scoping policy CONTENTS as well as names — e.g. a Vault-side admission/sentinel control, or accepting"
   echo "  and documenting that provider-vault is trusted to confer any KV capability within okvc-*."
-elif ((ESC_INCONCLUSIVE>0)); then
+elif ((ESC_INCONCLUSIVE==0)); then
+  echo "BODY SCOPING: no findings — every step was explicitly DENIED, so the reconciler identity"
+  echo "  cannot confer KV write. This is a clean bill."
+fi
+if ((ESC_INCONCLUSIVE>0)); then
   echo "BODY SCOPING: INCONCLUSIVE ($ESC_INCONCLUSIVE step(s) failed for non-permission reasons)."
   echo "  This is NOT evidence the chain is blocked. Re-run; if it persists, diagnose the error above"
   echo "  before drawing any security conclusion — a collapsed failure reading as 'clean' is the"
   echo "  defect this section exists to avoid (cf. OK-124)."
-else
-  echo "BODY SCOPING: no findings — every step was explicitly DENIED, so the reconciler identity"
-  echo "  cannot confer KV write. This is a clean bill."
 fi
 if ((FAILS==0)); then echo "A6 NARROWED POLICY VALIDATED — grants all reconciler ops, denies admin reach. Safe to apply to the live ok-config-automation (Step 2)."
 else echo "A6 POLICY TEST FAILED — $FAILS assertion(s) failed. Do NOT apply the narrowed policy yet." >&2; exit 1; fi
