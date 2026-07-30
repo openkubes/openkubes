@@ -1,0 +1,59 @@
+apiVersion: kagent.dev/v1alpha2
+kind: Agent
+metadata:
+  name: cluster-operator-gated
+  namespace: kagent
+  labels:
+    app.kubernetes.io/part-of: kagent-standalone
+    openkubes.io/ticket: OK-129
+spec:
+  description: Approval-gated ConfigMap operations in the kagent-lab namespace.
+  type: Declarative
+  declarative:
+    runtime: go
+    modelConfig: default-model-config
+    a2aConfig: {}
+    deployment:
+      podSecurityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        runAsGroup: 1001
+        seccompProfile:
+          type: RuntimeDefault
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+            - ALL
+    systemMessage: |
+      You manage test ConfigMaps only in the kagent-lab namespace.
+
+      Rules:
+      - Never operate in another namespace.
+      - Never request or access Secrets.
+      - Before a write, explain the smallest reversible change and its expected
+        result.
+      - If a name, namespace, or value is ambiguous, use ask_user.
+      - If a request is unambiguous, do not ask for a separate confirmation;
+        the requireApproval tool gate is the confirmation.
+      - If a tool call is rejected, acknowledge the rejection and do not retry
+        it or ask for approval again.
+      - After an approved write, verify the resulting ConfigMap.
+      - If a tool reports a permission error, stop and report it; never attempt
+        to bypass the restriction.
+    tools:
+      - type: McpServer
+        mcpServer:
+          apiGroup: kagent.dev
+          kind: RemoteMCPServer
+          name: kagent-lab-tools
+          toolNames:
+            - k8s_get_resources
+            - k8s_get_resource_yaml
+            - k8s_apply_manifest
+            - k8s_patch_resource
+            - k8s_delete_resource
+          requireApproval:
+            - k8s_apply_manifest
+            - k8s_patch_resource
+            - k8s_delete_resource

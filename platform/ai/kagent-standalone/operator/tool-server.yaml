@@ -1,0 +1,12 @@
+apiVersion: kagent.dev/v1alpha2
+kind: RemoteMCPServer
+metadata:
+  name: kagent-lab-tools
+  namespace: kagent
+  labels:
+    app.kubernetes.io/part-of: kagent-standalone
+    openkubes.io/ticket: OK-129
+spec:
+  description: Namespace-scoped Kubernetes tools for the gated OK-129 write drill.
+  protocol: STREAMABLE_HTTP
+  url: http://kagent-lab-tools.kagent-lab:8084/mcp

@@ -9,6 +9,12 @@ release line **0.9.x**. Every YAML shape below is taken from upstream docs for
 that line. Anything marked **VERIFY** must be checked against the installed CRDs
 with `kubectl explain` before it goes into customer-facing material.
 
+> **PoC scope:** This reference describes more features than OK-129 deploys.
+> The core operating PoC uses one controller, bundled PostgreSQL, the built-in
+> read-only Kubernetes tool server, one read-only Agent, and one separately
+> scoped approval-gated write exercise. Custom MCP servers, multi-agent, skills,
+> memory, OIDC, HA, and upgrades require separately approved follow-up work.
+
 ---
 
 ## 1. What kagent is

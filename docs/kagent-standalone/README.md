@@ -1,9 +1,9 @@
 # kagent Standalone — OK-129
 
-Documentation set for the **standalone kagent evaluation** on a dedicated lab
-cluster. Goal: be able to *build, explain and operate* a self-contained kagent
-environment on a customer's Kubernetes — installation, configuration, agent
-authoring, day-2 operations, and the honest limits.
+Documentation set for the **standalone kagent operations PoC** on a dedicated
+lab cluster. The goal is deliberately narrow: install one pinned kagent release,
+operate a useful cluster agent, exercise a safely bounded write flow, recover
+the installation, and document the observed limits.
 
 **Ticket:** [OK-129](https://kubernauts.atlassian.net/browse/OK-129) ·
 **Branch:** `feat/kagent-standalone` · **Cluster:** `ok-kagent`
@@ -23,13 +23,18 @@ supersede existing work:
 Whether kagent enters OpenKubes — and in which role — is decided **after** this
 work, on the evidence produced here.
 
+The following capabilities are not acceptance criteria for this PoC: a custom
+MCP server, multi-agent orchestration, memory/pgvector, skills, OIDC, three-node
+controller HA, and a minor-version migration. They are separate follow-up
+questions, not prerequisites for learning to operate kagent well.
+
 ## Documents
 
 | Document | Purpose | Audience |
 |---|---|---|
-| [`reference.md`](reference.md) | What kagent is and how it is configured: architecture, CRD map, every configuration surface, agent authoring patterns, limits | Engineers, architects |
-| [`runbook.md`](runbook.md) | Operational, copy-pasteable: install, verify, build an agent, day-2, troubleshoot, uninstall | Whoever is on the keyboard |
-| [`evidence-protocol.md`](evidence-protocol.md) | The scenarios that must be *proven*, with pass criteria strict enough that a plausible-but-ungrounded result fails | Whoever signs off OK-129 |
+| [`reference.md`](reference.md) | Architecture and feature reference; advanced features are background, not PoC scope | Engineers, architects |
+| [`runbook.md`](runbook.md) | Install, verify, operate, restart, troubleshoot, and uninstall | Whoever is on the keyboard |
+| [`evidence-protocol.md`](evidence-protocol.md) | The small set of operating scenarios that must be proven | Whoever signs off OK-129 |
 
 Read `reference.md` to understand, `runbook.md` to do, `evidence-protocol.md` to
 prove.

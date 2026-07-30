@@ -22,3 +22,8 @@ The Agent is hardened with the numeric UID/GID 1001 used by the v0.9.12 Python
 image; the same manifest also runs with the Go image. Kubernetes reads are
 executed by the separate `kagent-tools` ServiceAccount, so enforce and audit
 read-only access on that identity rather than relying on the Agent prompt.
+
+`operator/` is a separate, temporary drill. It uses the upstream tool image
+with a second ServiceAccount that can change only ConfigMaps in `kagent-lab`;
+all writes require human approval. It is intentionally not part of the default
+Kustomization.
