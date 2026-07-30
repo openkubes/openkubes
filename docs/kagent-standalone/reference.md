@@ -68,8 +68,9 @@ user ──► UI or CLI or A2A/MCP client
       PostgreSQL (sessions, events, memory vectors)
 ```
 
-The Python runtime is built on Google ADK, which is also what makes CrewAI,
-LangGraph and OpenAI-framework integrations possible for BYO agents.
+The Python runtime is built on Google ADK and supports Google ADK-native
+features plus integrations with the CrewAI, LangGraph and OpenAI frameworks.
+BYO agents are a separate mechanism (§5.8) and do not depend on it.
 
 ---
 
@@ -81,11 +82,12 @@ of these.
 | Kind | API group/version | What it is |
 |---|---|---|
 | `Agent` | `kagent.dev/v1alpha2` | An agent. `spec.type` selects `Declarative` (YAML-defined) or `BYO` (your own container). |
-| `SandboxAgent` | `kagent.dev/v1alpha2` **VERIFY** | Same spec as `Agent`, but runs gVisor-sandboxed on Agent Substrate. Go runtime only; no `spec.skills`, no BYO. |
+| `SandboxAgent` | `kagent.dev/v1alpha2` | Same spec as `Agent`, but runs gVisor-sandboxed on Agent Substrate. Go runtime only; no `spec.skills`, no BYO. |
 | `ModelConfig` | `kagent.dev/v1alpha2` | An LLM binding: provider, model, credentials, TLS, provider-specific options. |
+| `ModelProviderConfig` | `kagent.dev/v1alpha2` | Provider-level configuration shared by model configs. |
 | `RemoteMCPServer` | `kagent.dev/v1alpha2` | An MCP server reachable over HTTP/SSE. Supports `spec.tls` for private CAs (since 0.9.6). |
-| `MCPServer` | `kagent.dev/v1alpha1` (kmcp) | An MCP server that kagent *deploys* for you from an image. Replaces the old stdio `ToolServer`. |
-| `AgentHarness` | **VERIFY** | Runs on Agent Substrate; requires the substrate integration to be enabled on the controller. |
+| `MCPServer` | `kagent.dev/v1alpha1` (kmcp) | An MCP server that kagent *deploys* for you — from your own image, or from an `npx`/`uvx` package. Replaces the old stdio `ToolServer`. |
+| `AgentHarness` | `kagent.dev/v1alpha2` | Runs on Agent Substrate; requires the substrate integration to be enabled on the controller. |
 
 Plus plain Kubernetes objects used as configuration surfaces:
 
@@ -190,7 +192,7 @@ spec:
   description: Inspects and (with approval) repairs workloads in this cluster.
   type: Declarative
   declarative:
-    runtime: go                       # or python (default)
+    runtime: go                       # always set it explicitly — see §5.2
     modelConfig: local-ollama
     systemMessage: |
       You are an operations agent for a single Kubernetes cluster.
@@ -220,13 +222,20 @@ Anatomy, in the order it matters:
 
 ### 5.2 Runtime: Python vs Go
 
-| | Python ADK (default) | Go ADK |
+| | Python ADK | Go ADK |
 |---|---|---|
 | Startup | ~15 s | ~2 s |
 | Resource use | higher | lower |
 | Ecosystem | Google ADK, LangGraph, CrewAI, OpenAI frameworks | native Go |
 | MCP / HITL / memory | yes | yes |
 | Extra built-in tools | — | `SkillsTool`, `BashTool`, `ReadFile`, `WriteFile`, `EditFile` |
+
+> **Which one is the default? — VERIFY.** Upstream contradicts itself for 0.9.x:
+> the *Agents* concepts page marks Python as default, while the CRD-generated
+> *API reference* gives `go` as the default for
+> `spec.declarative.runtime`. Resolve it once against the installed release —
+> `kubectl explain agent.spec.declarative.runtime` — and set `runtime`
+> explicitly on every agent so the answer stops mattering.
 
 Choose **Go** for anything that scales or restarts often; choose **Python** when
 you need a framework integration. Measure the startup numbers yourself rather
@@ -283,7 +292,7 @@ tool use and planning. Three flavours:
 
 | Kind | Where it lives | What it is |
 |---|---|---|
-| **A2A skills** | inline in `a2aConfig.skills` | Metadata only: description, examples, id, tags. No code. Also what other agents discover. |
+| **A2A skills** | inline in `a2aConfig.skills` | Metadata only: id, name, description, tags, examples, input/output modes. No code — a machine-readable catalogue entry. |
 | **Container skills** | OCI image, `spec.skills.refs` | Executable: scripts, procedures, behaviour modules, loaded at agent start. |
 | **Git skills** | `spec.skills.gitRefs` | Same content, cloned from a repo instead of pulled as an image. |
 
@@ -307,7 +316,19 @@ agent can actually read is worth more than a runbook only humans read.
 
 ### 5.5 Memory
 
-Opt-in, vector-backed long-term memory over the same PostgreSQL.
+Opt-in, vector-backed long-term memory over the same PostgreSQL. Enabled by
+pointing the agent at a `ModelConfig` whose **embedding** provider generates the
+memory vectors — it need not be the agent's main LLM:
+
+```yaml
+spec:
+  type: Declarative
+  declarative:
+    modelConfig: local-ollama
+    memory:
+      modelConfig: <embedding-model-config>
+      ttlDays: 30                  # defaults to 15 when unset
+```
 
 - Adds three tools: `save_memory`, `load_memory`, `prefetch_memory`.
 - Automatically extracts key information (intent, learnings, preferences) **every
@@ -316,9 +337,13 @@ Opt-in, vector-backed long-term memory over the same PostgreSQL.
   an external PostgreSQL with pgvector and `database.postgres.vectorEnabled: true`,
   or an overridden bundled image.
 
+Upstream limits to know before promising anything: **no per-memory deletion, no
+cross-agent memory sharing, not pluggable.**
+
 Privacy consequence worth stating plainly: memory persists what users said,
-including things they said carelessly. In a customer environment that is a data
-protection question, not a feature toggle.
+including things they said carelessly, and there is no way to delete a single
+entry. In a customer environment that is a data protection question, not a
+feature toggle.
 
 ### 5.6 Context management (compaction)
 
@@ -367,8 +392,10 @@ for per-agent RBAC scoping, and it is the *only* enforcement that actually holds
 
 ### 5.8 BYO agents
 
-`spec.type: BYO` runs your own container. Must be written against ADK; upstream
-also documents CrewAI and LangGraph BYO paths.
+`spec.type: BYO` runs your own container. The contract is the wire, not the
+framework: kagent deploys the image and expects it to **serve the agent over the
+A2A protocol on port 8080**. Upstream documents ADK, CrewAI and LangGraph BYO
+paths.
 
 ```yaml
 spec:
@@ -427,7 +454,10 @@ tools:
 in the agent's namespace.
 
 Since 0.6, cross-namespace references use a **separate `namespace` field** —
-the old `namespace/name` string form fails.
+the old `namespace/name` string form fails. (The upstream *Tools* concepts page
+prose still claims `namespace/name` works, while its own example uses the
+separate field. The prose is stale; the release notes and API reference agree
+with what is written here.)
 
 ### 6.2 Building your own tools with kmcp
 
@@ -555,22 +585,34 @@ With auth enabled, NetworkPolicies restrict UI and controller access to
 oauth2-proxy, and `/api/me` returns the identity extracted from JWT claims.
 
 > **The gap, stated plainly:** upstream says this release adds
-> **authentication only — access control is not yet implemented.** Every
-> authenticated user sees every agent. Any multi-tenancy claim we make must be
-> built on our own layer, or not made. Default mode is `unsecure`, i.e. no
-> authentication at all.
+> **"authentication only. Access control is not yet implemented."** It does not
+> spell out the resulting visibility semantics — so assume any authenticated
+> user can reach any agent until we have tested otherwise (**VERIFY** in the
+> lab). Either way, any multi-tenancy claim we make must be built on our own
+> layer, or not made. Default mode is `unsecure`, i.e. no authentication at all.
 
 This is the single most important limitation for enterprise adoption. Lead with
 it rather than being caught by it.
 
 ### 7.4 Sandboxing
 
-`SandboxAgent` runs the agent as a gVisor-sandboxed actor via the
-[agent-sandbox](https://github.com/kubernetes-sigs/agent-sandbox) project,
-snapshotted to object storage when idle and rehydrated on demand. Network
-allowlists apply to both runtimes. Constraints: Go runtime only, no
-`spec.skills`, no BYO. Requires the substrate integration on the controller and
-a `substrateWorkerPool`.
+`SandboxAgent` runs on **Agent Substrate**: the controller runs the agent as a
+gVisor-sandboxed actor instead of a Deployment, snapshots it to object storage
+when idle, and rehydrates it on demand. Network allowlists restrict which
+external endpoints it may reach.
+
+Prerequisites and traps:
+
+- Install Agent Substrate (`oci://ghcr.io/kagent-dev/substrate/helm/{substrate-crds,substrate}`)
+  and enable `controller.substrate.*` plus a `substrateWorkerPool` on the kagent
+  chart.
+- **Chart version matters.** Upstream requires kagent **0.9.7 or later**;
+  against an older chart a `SandboxAgent` is *silently ignored* and the
+  controller starts without the substrate integration. Easy to lose a day to.
+- Go runtime only, no `spec.skills`, no BYO. (Upstream is inconsistent here: the
+  0.9 release notes say network allowlists work "for both Go and Python
+  runtimes", while the substrate example states Python ADK is not supported on
+  substrate today. Treat Go-only as the working assumption — **VERIFY**.)
 
 Use it for agents you do not fully trust — especially anything with `BashTool`
 or write capability.
@@ -647,15 +689,16 @@ confirm the trace shows tool calls, not just request spans.
 
 | Interface | Who | Notes |
 |---|---|---|
-| **UI / dashboard** | operators, demos | `kubectl port-forward -n kagent svc/kagent-ui 8080:8080`, or `kagent dashboard`. Approve/Reject lives here. |
+| **UI / dashboard** | operators, demos | `kubectl port-forward -n kagent svc/kagent-ui 8080:8080`, or `kagent dashboard` (prints `http://localhost:8082`). Approve/Reject lives here. |
 | **CLI** | engineers | manage resources, `kagent invoke`, `--token` passthrough, local development without a cluster |
 | **A2A endpoint** | other agents, integrations | default port 8083 |
 | **MCP endpoint** | any MCP client | `/mcp` on the A2A port |
-| **Integrations** | end users | documented examples for Slack, Discord, Telegram via A2A |
+| **Integrations** | end users | documented examples for Slack and Discord over A2A, plus a Telegram bot |
 
-Note the port-forward default in some docs is `svc/kagent 8001:80` and in others
-`svc/kagent-ui 8080:8080` — **VERIFY** the actual service names in the installed
-release before writing them into a runbook.
+`svc/kagent-ui` on port 8080 is what the installation guide and the examples use
+and is the command to document. The architecture page still shows
+`svc/kagent 8001:80` — that appears stale; confirm against the installed release
+rather than trusting either.
 
 There is **no OpenAI-compatible `/v1/chat/completions`** in this list. kagent
 speaks its own API plus A2A and MCP. That is exactly why Profile A needed a

@@ -163,12 +163,22 @@ kubectl explain modelconfig --api-version=kagent.dev/v1alpha2 | head -30
 kubectl explain remotemcpserver --api-version=kagent.dev/v1alpha2 | head -30
 ```
 
-Open the UI (**VERIFY** the service name in your release — docs show both
-`svc/kagent-ui 8080:8080` and `svc/kagent 8001:80`):
+Open the UI. `svc/kagent-ui` on 8080 is what upstream's installation guide and
+examples use; the architecture page still shows `svc/kagent 8001:80`, which
+looks stale — confirm from `get svc` rather than trusting either:
 
 ```bash
 kubectl -n "$NS" get svc
 kubectl -n "$NS" port-forward svc/kagent-ui 8080:8080
+# CLI alternative: `kagent dashboard` (prints http://localhost:8082)
+```
+
+Also resolve the runtime default once, since upstream is contradictory (concepts
+page says Python, CRD reference says `go`) — then set `runtime` explicitly on
+every agent so it stops mattering:
+
+```bash
+kubectl explain agent.spec.declarative.runtime
 ```
 
 Controller logs, for everything that follows:
@@ -515,9 +525,24 @@ helm upgrade kagent oci://ghcr.io/kagent-dev/kagent/helm/kagent \
   --version "$KAGENT_VERSION" -n "$NS" -f kagent-values.yaml
 ```
 
-Then enable memory on one agent and confirm `save_memory` / `load_memory` /
-`prefetch_memory` appear and are used (extraction happens every 5th user
-message).
+Then enable memory on one agent. Memory is switched on by referencing a
+`ModelConfig` whose **embedding** provider produces the vectors — it does not
+have to be the agent's main LLM:
+
+```yaml
+spec:
+  type: Declarative
+  declarative:
+    modelConfig: local-ollama
+    memory:
+      modelConfig: <FILL>        # embedding ModelConfig
+      ttlDays: 30                # defaults to 15 when unset
+```
+
+Confirm `save_memory` / `load_memory` / `prefetch_memory` appear and are used
+(extraction happens every 5th user message). Record the upstream limits while
+you are here — no per-memory deletion, no cross-agent sharing, not pluggable —
+because they are data-protection answers, not footnotes.
 
 Compaction, for small context windows:
 
@@ -586,8 +611,9 @@ oauth2-proxy:
       value: <FILL>
 ```
 
-Remember: this gives authentication only. There is no per-user access control
-upstream yet. Every authenticated user sees every agent.
+Remember: this gives authentication only. Upstream states access control is not
+yet implemented, so assume any authenticated user can reach any agent — and test
+it, since upstream does not describe the resulting visibility.
 
 ### 9.4 Observability
 
@@ -610,7 +636,7 @@ first question a customer's security team asks.
 | Helm upgrade fails immediately | values file | `rbac.clusterScoped` still set, or `rbac.namespaces` omits the install namespace |
 | Agent has more power than intended | `kubectl auth can-i --as=system:serviceaccount:...` | Default cluster-scoped RBAC; prompt restrictions are not enforcement |
 | UI unreachable | `kubectl -n kagent get svc` | Service name differs by release — **VERIFY** |
-| Slow first response after idle | pod startup | Python runtime (~15 s). Switch to `runtime: go` |
+| Slow first response after idle | pod startup, `spec.declarative.runtime` | Python runtime (~15 s vs ~2 s for Go). Set `runtime: go` explicitly — do not rely on the default, upstream documents it inconsistently |
 | Everything slow, other GPU consumers suffering | shared GPU | Unbounded agent loop. Bound iterations and timeouts |
 
 Standard collection when opening an issue or asking for help:
