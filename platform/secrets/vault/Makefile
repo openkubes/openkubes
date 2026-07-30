@@ -25,7 +25,8 @@ YAML_FILES := $(CP_DIR)/xrd.yaml $(CP_DIR)/composition.yaml \
 CHART_VER  ?= 0.30.1
 GATE       := gate/vault-health-gate.sh
 CONF_SCRIPTS := conformance/singleton-conformance.sh conformance/singleton-negative-test.sh \
-                conformance/outage-evidence.sh backup/vault-raft-snapshot.sh
+                conformance/outage-evidence.sh backup/vault-raft-snapshot.sh \
+                tooling/ok115-scoped-seed-test.sh
 
 .PHONY: help validate lint-gate template-check health-gate render-prerequisites render render-check singleton-conformance singleton-negative-test outage-evidence raft-snapshot
 
@@ -68,7 +69,37 @@ assert "claimNames" not in x["spec"]["names"], "VaultConfig is internal: NO clai
 assert x["spec"]["defaultCompositionUpdatePolicy"]=="Manual", "Manual revision promotion"; \
 props=x["spec"]["versions"][0]["schema"]["openAPIV3Schema"]["properties"]["spec"]; \
 assert set(["clusterName","kubernetesHost","reviewerJwtSecretRef","caCert"]).issubset(set(props["required"])), "required inputs present"; \
-print("OK: vaultconfig-xrd invariants (internal, Manual, reviewer-JWT secret ref + caCert required)")'
+seed=props["properties"]["seedRoles"]; item=seed["items"]; \
+assert set(item["required"])==set(["name","appName","serviceAccountName","serviceAccountNamespace","ttlSeconds"]), "seedRoles shape must be closed over the five safe inputs"; \
+assert "path" not in item["properties"] and "capabilities" not in item["properties"], "seedRoles must not expose path/capability"; \
+assert item["properties"]["ttlSeconds"]["maximum"]==600, "seeding token TTL ceiling must stay short"; \
+assert seed["maxItems"]==32 and props["properties"]["roles"]["maxItems"]==64, "top-level role arrays must retain their reviewed cost bounds"; \
+validations=props["x-kubernetes-validations"]; assert len(validations)==4, "all four seed-role CEL guards must remain present"; \
+rules=" ".join(v["rule"] for v in validations); \
+assert "serviceAccountName in r.serviceAccountNames" in rules, "seed SA must not reuse workload SA"; \
+assert "other.appName == s.appName" in rules and "other.name == s.name" in rules, "seed app/role names must be unique"; \
+assert "r.name != s.name" in rules, "seed role name must not reuse workload role name"; \
+print("OK: vaultconfig-xrd invariants (seedRoles has no path/capability input, unique identities, no workload-SA reuse, TTL <= 600s)")'
+	@$(PYTHON) -c 'import yaml; \
+x=yaml.safe_load(open("$(CP_DIR)/vaultconfig-xrd.yaml")); \
+schema=x["spec"]["versions"][0]["schema"]["openAPIV3Schema"]; nodes=[]; \
+walk=lambda node,path: (nodes.append((node,path)),[walk(v,f"{path}.{k}") for k,v in node.get("properties",{}).items()],walk(node["items"],f"{path}[]") if isinstance(node.get("items"),dict) else None); \
+walk(schema,"$$"); arrays=[(n,p) for n,p in nodes if n.get("type")=="array"]; strings=[(n,p) for n,p in nodes if n.get("type")=="string"]; \
+assert all(isinstance(n.get("maxItems"),int) for n,p in arrays), "arrays lack integer maxItems: "+", ".join(p for n,p in arrays if not isinstance(n.get("maxItems"),int)); \
+assert all(isinstance(n.get("maxLength"),int) for n,p in strings), "strings lack integer maxLength: "+", ".join(p for n,p in strings if not isinstance(n.get("maxLength"),int)); \
+print(f"OK: vaultconfig CEL cost proxy ({len(arrays)} arrays have maxItems; {len(strings)} strings have maxLength)")'
+	@$(PYTHON) -c 'import copy, jsonschema, yaml; \
+x=yaml.safe_load(open("$(CP_DIR)/vaultconfig-xrd.yaml")); \
+schema=x["spec"]["versions"][0]["schema"]["openAPIV3Schema"]; \
+good={"spec":{"clusterName":"ok-obs-verify","kubernetesHost":"https://127.0.0.1:6443","reviewerJwtSecretRef":{"namespace":"crossplane-system","name":"reviewer","key":"token"},"caCert":"public-ca","seedRoles":[{"name":"obs-seed","appName":"obs","serviceAccountName":"vault-seed-obs","serviceAccountNamespace":"ok-observability","ttlSeconds":600}]}}; \
+validator=jsonschema.Draft7Validator(schema); assert validator.is_valid(good), list(validator.iter_errors(good)); \
+bad_slash=copy.deepcopy(good); bad_slash["spec"]["seedRoles"][0]["appName"]="obs/other"; \
+bad_wild=copy.deepcopy(good); bad_wild["spec"]["seedRoles"][0]["appName"]="obs*"; \
+assert not validator.is_valid(bad_slash) and not validator.is_valid(bad_wild), "seedRoles appName must reject slash and wildcard"; \
+too_many_seed=copy.deepcopy(good); too_many_seed["spec"]["seedRoles"]*=33; \
+too_long_host=copy.deepcopy(good); too_long_host["spec"]["kubernetesHost"]="h"*2049; \
+assert not validator.is_valid(too_many_seed) and not validator.is_valid(too_long_host), "schema bounds must reject oversized arrays and strings"; \
+print("OK: vaultconfig jsonschema accepts safe shape; rejects appName slash/wildcard and over-bound array/string")'
 	@$(PYTHON) -c 'import yaml; \
 docs=[d for d in yaml.safe_load_all(open("$(CP_DIR)/provider-vault.yaml")) if d]; \
 prov=[d for d in docs if d.get("kind")=="Provider"][0]; \
@@ -118,7 +149,7 @@ render: render-prerequisites ## Render the VaultConfig XR locally (needs crosspl
 render-check: render-prerequisites ## Render and verify the VaultConfig composition output
 	@$(VC_RENDER) | $(PYTHON) -c 'import sys, yaml; \
 docs=[d for d in yaml.safe_load_all(sys.stdin) if isinstance(d, dict)]; \
-mrs=[d for d in docs if str(d.get("apiVersion","")).endswith("vault.upbound.io/v1beta1")]; \
+mrs=[d for d in docs if str(d.get("apiVersion","")).endswith("vault.upbound.io/v1alpha1")]; \
 kinds=sorted(d["kind"] for d in mrs); \
 assert "Backend" in kinds and "AuthBackendConfig" in kinds, kinds; \
 assert "Policy" in kinds and "AuthBackendRole" in kinds, kinds; \
@@ -126,7 +157,14 @@ assert all(d["spec"]["providerConfigRef"]["name"]=="ok-shared-vault" for d in mr
 cfg=[d for d in mrs if d["kind"]=="AuthBackendConfig"][0]["spec"]["forProvider"]; \
 assert "tokenReviewerJwtSecretRef" in cfg, "reviewer JWT must be a secret ref"; \
 assert "jwt" not in str({k:v for k,v in cfg.items() if k!="tokenReviewerJwtSecretRef"}).lower(), "no inline JWT outside the secret ref"; \
-print("OK: VaultConfig renders Backend + config (reviewer JWT via secret ref) + per-role policy/role")'
+seed_policy=[d for d in mrs if d["kind"]=="Policy" and d["spec"]["forProvider"]["name"]=="okvc-ok-robotics-obs-seed"]; \
+assert len(seed_policy)==1 and seed_policy[0]["spec"]["forProvider"]["policy"].strip()=="path \"secret/data/ok-robotics/obs/*\" {\n  capabilities = [\"create\", \"update\"]\n}", "seed policy must be derived create/update-only HCL"; \
+seed_role=[d for d in mrs if d["kind"]=="AuthBackendRole" and d["spec"]["forProvider"]["roleName"]=="obs-seed"]; \
+assert len(seed_role)==1; sr=seed_role[0]["spec"]["forProvider"]; \
+assert sr["boundServiceAccountNames"]==["vault-seed-obs"] and sr["boundServiceAccountNamespaces"]==["ok-observability"], "seed role must bind exactly one dedicated SA"; \
+assert sr["tokenPolicies"]==["okvc-ok-robotics-obs-seed"] and sr["tokenNoDefaultPolicy"] is True, "seed role must carry only its derived policy and suppress default"; \
+assert sr["tokenTtl"]==sr["tokenMaxTtl"]==sr["tokenExplicitMaxTtl"]==600, "seed TTL must be capped at 600s"; \
+print("OK: VaultConfig renders read workload + derived write-only seed policy/role (single SA, no default, capped TTL)")'
 
 health-gate: ## Run the runtime health gate (set VAULT_ADDR/VAULT_CACERT/VAULT_TOKEN/...)
 	@bash $(GATE) $(GATE_ARGS)

@@ -20,6 +20,7 @@ rotation (see `architecture/decisions/ADR-Platform-025-A6-ownership-migration-ac
 | `probe-breakglass-rotation.sh` | READ-ONLY preflight: rotator independence/capabilities, exact invalid-credentials signature, environment. |
 | `probe-config-automation.sh` | READ-ONLY: live `ok-config-automation` policy HCL, reconciler role binding, kubernetes auth mounts, okvc- policies. |
 | `phase3-T6-verify.sh` | READ-ONLY provenance + end-state + no-reference (audit-only) verifier for the legacy-policy deletion. |
+| `ok115-scoped-seed-test.sh` | OK-115 owner-identity acceptance: no break-glass; real scoped create/update plus real permission-denied operations across KV destructive and Vault administrative paths. Leaves its write-only positive probe for separately authorised cleanup. |
 
 ## B — Worked-example evidence (the gated A6 migration; do NOT re-run)
 
