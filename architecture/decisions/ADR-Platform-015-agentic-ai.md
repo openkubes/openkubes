@@ -1,8 +1,8 @@
 # ADR-Platform-015: Agentic AI
 
-**Status:** Proposed (pending Go/No-Go from OK-14 PoC)
+**Status:** Proposed — OK-14 PoC returned **Go** (2026-07-30, see Amendment 2026-07-30); proposed for **Accepted** pending final three-way sign-off (this amendment + the 2026-07-21 multi-cluster addendum)
 **Date:** 2026-07-10
-**Updated:** 2026-07-12 (Accepted Risks AR-1/AR-2 added); 2026-07-22 (Multi-cluster deployment scope Addendum, 2026-07-21, approved after three-way review — Arash / Claude / GPT)
+**Updated:** 2026-07-12 (Accepted Risks AR-1/AR-2 added); 2026-07-22 (Multi-cluster deployment scope Addendum, 2026-07-21, approved after three-way review — Arash / Claude / GPT); 2026-07-30 (Amendment: OK-14 PoC outcome = Go; kagent = first diagnostics provider behind ADR-021; OpenClaw repositioned as optional broad assistant)
 **Deciders:** Arash Kaffamanesh
 **Reviewed:** Multi-model review (Arash / Claude / GPT / Gemini), 2026-07-10
 **Related:** ADR-Platform-001 (Contracts, not Components), ADR-Platform-005 (Shared AI Services), ADR-Platform-011 (GitOps), OK-14, OK-15
@@ -314,6 +314,22 @@ correctly downgraded from "informal contract adapter" to "single-backend,
 co-located registration workaround that does not yet meet the proposed
 invariants." Pending final three-way sign-off (Arash / Claude / GPT) before
 this section is treated as Accepted (see Review status above).
+
+## Amendment (2026-07-30): OK-14 PoC outcome = Go — kagent as first diagnostics provider; OpenClaw repositioned
+
+**Review status:** Proposed; awaiting final three-way sign-off (Arash / Claude / GPT). Records the OK-14 PoC outcome and resolves two of this ADR's Revisit triggers ("OK-14 produces a No-Go" and "kagent evaluation favors kagent as implementation profile").
+
+**OK-14 outcome — Go.** The PoC validated the capability framing: an agent reaches the platform only through named read-only Skill Contracts, acts as its own ServiceAccount, and drafts/diagnoses without mutating cluster state. Evidence landed under **OK-92** (openkubes #35 + ok-cluster #13, merged 2026-07-30): a read-only platform diagnostics contract (ADR-Platform-021), a kagent Profile A backend (v1alpha2 ModelConfig + agent, scoped read-only tools server, OpenAPI→A2A facade, Helm chart), a credential-less MCP adapter, and an OpenClaw consumer — live on ok-ai, with `make verify-rbac` proving get/list/watch-only (Secrets + writes denied) and a statelessness restart PASS. The stateless-backend assumption in Decision 4 held.
+
+**kagent is the first diagnostics provider — resolving the kagent Revisit trigger.** The Considered-Alternative status of kagent (Decision context; "decision pending OK-14") is now settled: kagent is adopted as the **first concrete Skill-Contract diagnostics backend**, exposed through the **Read-Only Platform Diagnostics Contract (ADR-Platform-021)** — a narrower, purpose-built contract for the diagnosis use cases (UC-1 through UC-4, UC-9), sitting beneath the general Agent Interface Contract v1. This is a **profile selection, not a contract change**: the Capability → Contract → Implementation Profile split is untouched, and the diagnostics contract is the reviewed API surface for the diagnosis skills.
+
+**OpenClaw is repositioned as an optional broad assistant, not the sole/primary backend.** Decision 4 named "the Open WebUI + OpenClaw tandem" as *the* initial implementation profile. The OK-14 result refines that: OpenClaw remains a supported, **optional** agent backend for **broad / general-assistant** interaction (and served as the MCP consumer in the OK-92 verification), while **diagnosis** — the platform-operations core of the Use Case Portfolio — is served by the kagent diagnostics provider behind ADR-021. Both remain behind Agent Interface Contract v1; neither is load-bearing for the other. This does not revoke OpenClaw; it stops OpenClaw from being the single assumed backend and makes the diagnostics path independent of it.
+
+**What this amendment does *not* decide.** Normative finalization of the diagnostics OpenAPI stays **OK-89 / OK-90** (OK-92 shipped a Draft scaffold only). The **Agent Backend Registration Contract** gap and cross-cluster endpoint reachability from the 2026-07-21 addendum are unchanged and still follow-up work. Per-user authorization at the skill layer remains deferred (v2). The write-access boundary (Decision 5, AR-1) is untouched — kagent Profile A is read-only.
+
+**Consequence for status.** With OK-14 = Go, this ADR should move Proposed → **Accepted** together with the 2026-07-21 addendum, on the same three-way sign-off. Recording the Go here is the evidence; the transition itself is the human reviewer's (AI may argue; only humans merge).
+
+Relates: OK-14, OK-92, OK-87, OK-89, OK-90, ADR-Platform-021.
 
 ## References
 
