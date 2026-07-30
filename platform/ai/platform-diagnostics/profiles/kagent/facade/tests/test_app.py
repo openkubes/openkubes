@@ -8,6 +8,7 @@ from app import (
     RankedHypothesis,
     _event_matches_workload,
     _extract_json,
+    _grounded_hypotheses,
     _investigation_validation_errors,
 )
 
@@ -95,6 +96,22 @@ class InvestigationValidationTests(unittest.TestCase):
             error.startswith("hypothesis 1 references unknown evidence:")
             for error in errors
         ))
+
+    def test_drops_ungrounded_secondary_cause_and_keeps_valid_top_cause(self) -> None:
+        grounded = _grounded_hypotheses(
+            self.canonical,
+            [
+                hypothesis(Confidence.high),
+                RankedHypothesis(
+                    hypothesis="Unsupported secondary guess.",
+                    confidence=Confidence.low,
+                    evidence_refs=[],
+                    counter_evidence_status=CounterEvidence.none_found,
+                ),
+            ],
+        )
+        self.assertEqual(1, len(grounded))
+        self.assertIn("DB_DSN", grounded[0].hypothesis)
 
 
 class AgentJsonTests(unittest.TestCase):

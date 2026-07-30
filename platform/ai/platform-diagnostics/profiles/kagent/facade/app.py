@@ -637,6 +637,37 @@ def _coerce_hypotheses(items: Any) -> list[RankedHypothesis]:
     return out
 
 
+def _grounded_hypotheses(
+    evidence: list[EvidenceRef],
+    hypotheses: list[RankedHypothesis],
+) -> list[RankedHypothesis]:
+    """Keep only causes whose supporting and contradicting refs were collected."""
+    available_uris = {
+        item.uri for item in evidence
+        if item.status == EvidenceStatus.available and item.uri
+    }
+    confidence_rank = {
+        Confidence.high: 3,
+        Confidence.medium: 2,
+        Confidence.low: 1,
+    }
+    grounded = [
+        hypothesis for hypothesis in hypotheses
+        if hypothesis.evidence_refs
+        and all(ref in available_uris for ref in hypothesis.evidence_refs)
+        and all(
+            ref in available_uris
+            for ref in hypothesis.contradicting_evidence_refs
+        )
+        and hypothesis.counter_evidence_status != CounterEvidence.not_checked
+    ]
+    return sorted(
+        grounded,
+        key=lambda hypothesis: confidence_rank[hypothesis.confidence],
+        reverse=True,
+    )
+
+
 def _investigation_validation_errors(
     symptoms: list[str],
     evidence: list[EvidenceRef],
@@ -668,6 +699,8 @@ def _investigation_validation_errors(
 
     if (symptoms or hypotheses) and not available_uris:
         errors.append("diagnostic claims have no retrievable evidence")
+    if not hypotheses:
+        errors.append("provider returned no grounded probable causes")
 
     unknown_reported_uris = [
         item.uri for item in reported_evidence or []
@@ -895,7 +928,10 @@ async def investigate_workload(body: InvestigateWorkloadInput) -> WorkloadInvest
             ])
     symptoms = list(data.get("symptoms", []) or [])
     reported_evidence = _coerce_evidence(data.get("evidence"))
-    hypotheses = _coerce_hypotheses(data.get("probable_causes"))
+    hypotheses = _grounded_hypotheses(
+        canonical_evidence,
+        _coerce_hypotheses(data.get("probable_causes")),
+    )
     validation_errors = _investigation_validation_errors(
         symptoms,
         canonical_evidence,
