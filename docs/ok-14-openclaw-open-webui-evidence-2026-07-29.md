@@ -56,50 +56,61 @@ consistency, and absence of cluster credentials in OpenClaw.
 
 ## Post-OK-92 verification (2026-07-30)
 
-The follow-up ran against source revision `bffdfaf`, which includes the merged
-OK-92 implementation at `2da224c`, and the deployed facade:
+The first post-merge rerun against `0.1.4` passed the structural assertions but
+exposed a semantic false positive: the CrashLoop response claimed an image-pull
+failure, cited a fabricated pod name, and did not identify the injected
+`DB_DSN` failure. That result was rejected rather than used to close OK-14.
+
+The grounding fix was then verified against source revision `cb91018` and the
+deployed facade:
 
 ```text
-ghcr.io/openkubes/platform-diagnostics-facade:0.1.4
-sha256:a4735277374ed802acfc41e17327fc888383368e2ad03a21eccd01e0258d7c26
+ghcr.io/openkubes/platform-diagnostics-facade:0.1.7
+sha256:9babaeb0ebaf49c281d31b9aa184de821d7d0c64d8c60e50a8564e0da94a0cf3
 ```
 
-The runner was invoked with an isolated fixture namespace:
+The strengthened runner was invoked with an isolated fixture namespace:
 
 ```console
 platform/ai/openclaw/scripts/uc1-evidence.sh \
   --skip-restart \
-  --namespace ok14-evidence-post-merge \
-  --out /private/tmp/ok14-post-merge-evidence
+  --namespace ok14-evidence-grounded-v3 \
+  --out /private/tmp/ok14-grounded-evidence-v3
 ```
 
-It reported `33 passed, 0 failed, 5 awaiting operator confirmation`. The five
+It reported `39 passed, 0 failed, 5 awaiting operator confirmation`. The five
 manual items are unchanged from the initial run and already have separate
 evidence below.
 
 | Scenario | Automated result | Observed value |
 |---|---|---|
 | Platform health | Pass | HTTP 200, `status=healthy`, provider capabilities and a non-empty summary. |
-| ImagePullBackOff | Pass | The fixture reached `ImagePullBackOff`; the response identified an image pull failure with high confidence and a retrievable event URI. |
-| CrashLoopBackOff | Contract pass; semantic review failed | All required fields, confidence values, counter-evidence statuses, evidence URIs, and next steps were present, but the ranked diagnosis did not match the deliberately injected failure. |
+| ImagePullBackOff | Pass | The fixture reached `ImagePullBackOff`; the top cause identified the nonexistent image, and the evidence used the actual pod `uc1-imagepull-95d97d7f8-mnsmb`. |
+| CrashLoopBackOff | Pass | The fixture reached `CrashLoopBackOff`; the high-confidence top cause identified the missing `DB_DSN`, and the evidence used the actual pod `uc1-crashloop-578d86f786-lff4w`. |
 | Capability delta | Pass | Events, logs, and describe were available; `host_journal` was explicitly unavailable with a reason. |
 
-### CrashLoop semantic review
+### Grounding controls and semantic result
 
-The fixture starts successfully, writes
-`startup failed, required config key DB_DSN is missing`, and exits with status
-1. The provider's first ranked hypothesis instead claimed that the image could
-not be pulled and that `ImagePullBackOff` transitioned to `CrashLoopBackOff`.
-That is inconsistent with the observed fixture state. The response also used
-evidence URIs for the fabricated pod name `uc1-crashloop-abcde`, rather than
-the generated fixture pod.
+The facade now obtains the real pod inventory, status, events, describe output,
+and logs from the scoped read-only tools server before invoking the diagnostic
+model. It owns the canonical evidence catalog and returns only collected URIs.
+Agent-provided resource identities outside that catalog are rejected;
+unreferenced secondary hypotheses are discarded; and at least one fully
+grounded cause is required.
 
-The response therefore passes the current structural assertions but is not
-accepted as a correct diagnosis. The post-OK-92 run verifies that the original
-empty-field, confidence, counter-evidence, URI, and next-step defects are fixed;
-it also exposes that the current top-hypothesis assertion is too broad and can
-produce a false positive. OK-14 is not ready to close until the CrashLoop
-diagnosis and evidence identity are grounded in the actual collected data.
+The runner additionally requires the CrashLoop top cause to name `DB_DSN` (or
+the missing required configuration key), rejects an image-pull claim for that
+fixture, and verifies every pod-scoped URI against the live fixture pod name.
+The accepted top cause was:
+
+```text
+Missing required environment variable or ConfigMap key (DB_DSN) causing the application to exit on startup.
+```
+
+All machine-checkable follow-up criteria now pass. Together with the existing
+restart, provenance, symptom-consistency, and credential-boundary evidence,
+this supports the OK-14 **Go** recommendation. ADR-015's status transition
+remains subject to the human three-way sign-off recorded in that ADR.
 
 ## Open WebUI and MCP provenance
 
