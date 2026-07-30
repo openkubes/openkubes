@@ -197,7 +197,11 @@ async def invoke_agent(text: str) -> str:
 
 
 async def _call_read_tool(name: str, arguments: dict[str, Any]) -> Any:
-    """Call the scoped read-only kagent toolserver and decode its JSON result."""
+    """Call the scoped read-only kagent toolserver and decode its result.
+
+    Resource and event tools return JSON, while pod logs and describe return
+    plain text. Preserve plain text so callers can ground diagnoses in it.
+    """
     try:
         async with streamable_http_client(KAGENT_TOOLS_URL) as streams:
             read_stream, write_stream = streams[0], streams[1]
@@ -214,11 +218,11 @@ async def _call_read_tool(name: str, arguments: dict[str, Any]) -> Any:
         if getattr(block, "type", None) == "text"
     ).strip()
     if not text:
-        raise AgentError(f"read tool {name} returned no JSON")
+        raise AgentError(f"read tool {name} returned no content")
     try:
         return json.loads(text)
-    except json.JSONDecodeError as exc:
-        raise AgentError(f"read tool {name} returned invalid JSON") from exc
+    except json.JSONDecodeError:
+        return text
 
 
 def _pod_matches_workload(pod: dict[str, Any], workload: str) -> bool:
@@ -252,6 +256,216 @@ async def _get_workload_pods(body: InvestigateWorkloadInput) -> list[dict[str, A
         pod for pod in items
         if isinstance(pod, dict) and _pod_matches_workload(pod, body.workload)
     ]
+
+
+def _pod_observation(pod: dict[str, Any]) -> dict[str, Any]:
+    """Return only diagnosis-relevant, non-secret pod state for the agent."""
+    metadata = pod.get("metadata") or {}
+    spec = pod.get("spec") or {}
+    status = pod.get("status") or {}
+    return {
+        "name": str(metadata.get("name", "")),
+        "phase": str(status.get("phase", "Unknown")),
+        "containers": [
+            {
+                "name": str(container.get("name", "")),
+                "image": str(container.get("image", "")),
+            }
+            for container in spec.get("containers", [])
+            if isinstance(container, dict)
+        ],
+        "container_statuses": [
+            {
+                "name": str(container.get("name", "")),
+                "ready": bool(container.get("ready")),
+                "restart_count": int(container.get("restartCount", 0) or 0),
+                "state": container.get("state") or {},
+                "last_state": container.get("lastState") or {},
+            }
+            for container in status.get("containerStatuses", [])
+            if isinstance(container, dict)
+        ],
+    }
+
+
+def _event_matches_workload(
+    event: dict[str, Any],
+    workload: str,
+    pod_names: set[str],
+) -> bool:
+    involved = event.get("involvedObject") or {}
+    name = str(involved.get("name", ""))
+    return (
+        name == workload
+        or name.startswith(f"{workload}-")
+        or name in pod_names
+    )
+
+
+async def _collect_workload_observations(
+    body: InvestigateWorkloadInput,
+    pods: list[dict[str, Any]],
+) -> tuple[dict[str, Any], list[EvidenceRef]]:
+    """Collect canonical observations and evidence URIs before invoking the LLM.
+
+    The facade, not the agent, owns evidence identity. The agent receives the
+    actual pod names and read-tool output plus a URI catalog it may cite, but it
+    cannot mint evidence references that the facade did not collect.
+    """
+    encoded_cluster = quote(body.cluster, safe="")
+    encoded_namespace = quote(body.namespace, safe="")
+    encoded_workload = quote(body.workload, safe="")
+    base_uri = (
+        f"k8s://{encoded_cluster}/namespaces/{encoded_namespace}"
+    )
+    now = _now()
+    observations: dict[str, Any] = {
+        "pods": [_pod_observation(pod) for pod in pods],
+        "events": [],
+        "pod_logs": {},
+        "pod_describe": {},
+    }
+    evidence = [EvidenceRef(
+        type="workload-pod-inventory",
+        source="k8s_get_resources",
+        status=EvidenceStatus.available,
+        reason=f"matched_pods={len(pods)}",
+        uri=f"{base_uri}/pods?workload={encoded_workload}",
+        collected_at=now,
+    )]
+
+    pod_names = {
+        str((pod.get("metadata") or {}).get("name", ""))
+        for pod in pods
+    }
+    pod_names.discard("")
+
+    for observation in observations["pods"]:
+        pod_name = observation["name"]
+        encoded_pod = quote(pod_name, safe="")
+        evidence.append(EvidenceRef(
+            type="pod-status",
+            source="k8s_get_resources",
+            status=EvidenceStatus.available,
+            reason=(
+                f"phase={observation['phase']}; "
+                f"containers={len(observation['container_statuses'])}"
+            ),
+            uri=f"{base_uri}/pods/{encoded_pod}/status",
+            collected_at=now,
+        ))
+
+    try:
+        event_data = await _call_read_tool(
+            "k8s_get_events", {"namespace": body.namespace}
+        )
+        event_items = (
+            event_data.get("items", [])
+            if isinstance(event_data, dict)
+            else []
+        )
+        matched_events = [
+            event for event in event_items
+            if isinstance(event, dict)
+            and _event_matches_workload(event, body.workload, pod_names)
+        ][-50:]
+        observations["events"] = matched_events
+        evidence.append(EvidenceRef(
+            type="events",
+            source="k8s_get_events",
+            status=EvidenceStatus.available,
+            reason=f"matched_events={len(matched_events)}",
+            uri=f"{base_uri}/workloads/{encoded_workload}/events",
+            collected_at=now,
+        ))
+    except AgentError as exc:
+        evidence.append(EvidenceRef(
+            type="events",
+            source="k8s_get_events",
+            status=EvidenceStatus.unavailable,
+            reason=str(exc),
+            collected_at=now,
+        ))
+
+    for pod in pods:
+        metadata = pod.get("metadata") or {}
+        spec = pod.get("spec") or {}
+        pod_name = str(metadata.get("name", ""))
+        encoded_pod = quote(pod_name, safe="")
+        try:
+            described = await _call_read_tool("k8s_describe_resource", {
+                "resource_type": "pod",
+                "resource_name": pod_name,
+                "namespace": body.namespace,
+            })
+            describe_text = (
+                json.dumps(described, sort_keys=True)
+                if not isinstance(described, str)
+                else described
+            )
+            observations["pod_describe"][pod_name] = describe_text[:16000]
+            evidence.append(EvidenceRef(
+                type="describe",
+                source="k8s_describe_resource",
+                status=EvidenceStatus.available,
+                reason="pod describe collected",
+                uri=f"{base_uri}/pods/{encoded_pod}/describe",
+                collected_at=now,
+            ))
+        except AgentError as exc:
+            evidence.append(EvidenceRef(
+                type="describe",
+                source="k8s_describe_resource",
+                status=EvidenceStatus.unavailable,
+                reason=str(exc),
+                collected_at=now,
+            ))
+
+        for container in spec.get("containers", []):
+            if not isinstance(container, dict) or not container.get("name"):
+                continue
+            container_name = str(container["name"])
+            log_key = f"{pod_name}/{container_name}"
+            log_uri = (
+                f"{base_uri}/pods/{encoded_pod}/logs"
+                f"?container={quote(container_name, safe='')}"
+            )
+            try:
+                logs = await _call_read_tool("k8s_get_pod_logs", {
+                    "pod_name": pod_name,
+                    "namespace": body.namespace,
+                    "container": container_name,
+                    "tail_lines": 50,
+                })
+                log_text = (
+                    json.dumps(logs, sort_keys=True)
+                    if not isinstance(logs, str)
+                    else logs
+                )
+                observations["pod_logs"][log_key] = log_text[:8000]
+                evidence.append(EvidenceRef(
+                    type="pod_logs",
+                    source="k8s_get_pod_logs",
+                    status=EvidenceStatus.available,
+                    reason="last 50 lines collected",
+                    uri=log_uri,
+                    collected_at=now,
+                ))
+            except AgentError as exc:
+                evidence.append(EvidenceRef(
+                    type="pod_logs",
+                    source="k8s_get_pod_logs",
+                    status=EvidenceStatus.unavailable,
+                    reason=str(exc),
+                    collected_at=now,
+                ))
+
+    observations["evidence_catalog"] = [
+        item.model_dump(mode="json")
+        for item in evidence
+        if item.status == EvidenceStatus.available
+    ]
+    return observations, evidence
 
 
 def _pod_inventory_report(
@@ -389,6 +603,7 @@ def _investigation_validation_errors(
     symptoms: list[str],
     evidence: list[EvidenceRef],
     hypotheses: list[RankedHypothesis],
+    reported_evidence: Optional[list[EvidenceRef]] = None,
 ) -> list[str]:
     """Reject LLM claims that are not linked to retrievable evidence.
 
@@ -416,6 +631,26 @@ def _investigation_validation_errors(
     if (symptoms or hypotheses) and not available_uris:
         errors.append("diagnostic claims have no retrievable evidence")
 
+    unknown_reported_uris = [
+        item.uri for item in reported_evidence or []
+        if item.status == EvidenceStatus.available
+        and item.uri not in available_uris
+    ]
+    if unknown_reported_uris:
+        errors.append("agent returned evidence outside the collected catalog")
+
+    confidence_rank = {
+        Confidence.high: 3,
+        Confidence.medium: 2,
+        Confidence.low: 1,
+    }
+    ranks = [
+        confidence_rank[hypothesis.confidence]
+        for hypothesis in hypotheses
+    ]
+    if ranks != sorted(ranks, reverse=True):
+        errors.append("probable causes are not ranked by descending confidence")
+
     for index, hypothesis in enumerate(hypotheses, start=1):
         if not hypothesis.evidence_refs:
             errors.append(f"hypothesis {index} has no evidence_refs")
@@ -440,10 +675,22 @@ def _investigation_validation_errors(
 
 
 # ── prompt builders (ask the agent for STRICT JSON in the contract shape) ────
-def _instruct(function: str, payload: dict, shape: str) -> str:
+def _instruct(
+    function: str,
+    payload: dict,
+    shape: str,
+    observations: Optional[dict[str, Any]] = None,
+) -> str:
+    grounding = (
+        "\nFACADE-COLLECTED OBSERVATIONS (authoritative):\n"
+        f"{json.dumps(observations, default=str)}\n"
+        if observations is not None
+        else ""
+    )
     return (
         f"FUNCTION: {function}\n"
-        f"INPUT: {json.dumps(payload)}\n\n"
+        f"INPUT: {json.dumps(payload)}\n"
+        f"{grounding}\n"
         "You are read-only. Perform the diagnosis using your read tools, then respond\n"
         "with ONLY a single JSON object (no prose, no markdown fences) of EXACTLY this shape:\n"
         f"{shape}\n"
@@ -452,6 +699,12 @@ def _instruct(function: str, payload: dict, shape: str) -> str:
         "  available and return the JSON regardless of what is missing.\n"
         "- Every evidence_refs and contradicting_evidence_refs item MUST be an exact\n"
         "  copy of a uri from the evidence array; never reference type/source labels.\n"
+        "- When facade-collected observations are present, they are authoritative.\n"
+        "  Copy evidence entries only from evidence_catalog. Never invent a resource\n"
+        "  name, pod name, event, log observation, or URI. Rank probable causes by\n"
+        "  descending confidence and make the first cause the best explanation of\n"
+        "  the observed states, events, and logs. If a container started and exited,\n"
+        "  do not diagnose an image-pull failure.\n"
         "- Never paste raw logs or secrets into evidence.\n"
         "- Every probable cause needs counter_evidence_status found|none_found.\n"
         "  not_checked makes the finalized result unverified and will be rejected.\n"
@@ -563,27 +816,49 @@ async def investigate_workload(body: InvestigateWorkloadInput) -> WorkloadInvest
     if inventory_report is not None:
         return inventory_report
 
+    observations, canonical_evidence = await _collect_workload_observations(
+        body, pods
+    )
     try:
-        text = await invoke_agent(_instruct("investigate_workload", body.model_dump(), _SHAPE_INVESTIGATE))
+        text = await invoke_agent(_instruct(
+            "investigate_workload",
+            body.model_dump(),
+            _SHAPE_INVESTIGATE,
+            observations,
+        ))
     except AgentError as e:
         return WorkloadInvestigation(
             summary=f"provider unavailable for {body.workload} in {body.cluster}/{body.namespace}",
-            evidence=[EvidenceRef(type="agent", source=PROVIDER_NAME,
-                                  status=EvidenceStatus.unavailable, reason=str(e),
-                                  collected_at=_now())])
+            evidence=canonical_evidence + [
+                EvidenceRef(
+                    type="agent",
+                    source=PROVIDER_NAME,
+                    status=EvidenceStatus.unavailable,
+                    reason=str(e),
+                    collected_at=_now(),
+                )
+            ])
     data = _extract_json(text)
     if not data:  # reached the agent but no parseable JSON — degrade gracefully, stay schema-valid
         return WorkloadInvestigation(
             summary=text[:1000],
-            evidence=[EvidenceRef(type="agent", source=PROVIDER_NAME,
-                                  status=EvidenceStatus.partial,
-                                  reason="agent reply was not structured JSON",
-                                  collected_at=_now())])
+            evidence=canonical_evidence + [
+                EvidenceRef(
+                    type="agent",
+                    source=PROVIDER_NAME,
+                    status=EvidenceStatus.partial,
+                    reason="agent reply was not structured JSON",
+                    collected_at=_now(),
+                )
+            ])
     symptoms = list(data.get("symptoms", []) or [])
-    evidence = _coerce_evidence(data.get("evidence"))
+    reported_evidence = _coerce_evidence(data.get("evidence"))
     hypotheses = _coerce_hypotheses(data.get("probable_causes"))
     validation_errors = _investigation_validation_errors(
-        symptoms, evidence, hypotheses
+        symptoms,
+        canonical_evidence,
+        hypotheses,
+        reported_evidence,
     )
     if validation_errors:
         return WorkloadInvestigation(
@@ -591,18 +866,20 @@ async def investigate_workload(body: InvestigateWorkloadInput) -> WorkloadInvest
                 f"provider returned unverified diagnostic output for "
                 f"{body.workload} in {body.cluster}/{body.namespace}"
             ),
-            evidence=[EvidenceRef(
-                type="agent-output-validation",
-                source=PROVIDER_NAME,
-                status=EvidenceStatus.unavailable,
-                reason="; ".join(validation_errors),
-                collected_at=_now(),
-            )],
+            evidence=canonical_evidence + [
+                EvidenceRef(
+                    type="agent-output-validation",
+                    source=PROVIDER_NAME,
+                    status=EvidenceStatus.unavailable,
+                    reason="; ".join(validation_errors),
+                    collected_at=_now(),
+                )
+            ],
         )
     return WorkloadInvestigation(
         summary=str(data.get("summary", "")).strip() or text[:500],
         symptoms=symptoms,
-        evidence=evidence,
+        evidence=canonical_evidence,
         probable_causes=hypotheses,
         recommended_next_steps=list(data.get("recommended_next_steps", []) or []),
         references=list(data.get("references", []) or []))

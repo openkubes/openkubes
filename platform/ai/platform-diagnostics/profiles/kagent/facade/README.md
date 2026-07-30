@@ -15,11 +15,12 @@ OpenClaw ─(MCP adapter)─► facade  ─(kagent A2A/API)─►  openkubes-pla
                             └── shapes ADR-021 schema ◄── Kubernetes API (read-only SA)
 ```
 
-This is a **skeleton**: the HTTP surface, schema, config and wiring are real; the
-kagent invocation and the agent-output→schema mapping are marked `TODO` and need
-the live kagent endpoint (from OK-14) plus a couple of prompt/response iterations.
-It runs and serves schema-valid **stub** responses so consumers and contract tests
-1/3/5/6 can be exercised before kagent is fully wired.
+The facade invokes the live kagent endpoint and maps its output into the
+provider-neutral schema. For workload investigations it first collects the
+actual pod identities, status, events, describe output, and logs through the
+scoped read-only tools server. The facade owns the canonical evidence catalog;
+agent-produced hypotheses may cite those exact URIs but cannot mint resource
+identities or evidence references.
 
 ## Config (all env; endpoints are Provider Values from ok-cluster)
 
@@ -50,5 +51,5 @@ uvicorn app:app --host 0.0.0.0 --port 8080      # local
 # "no match for platform in manifest". Use buildx and push a manifest that
 # includes the node architecture (--provenance=false keeps it to real platforms):
 docker buildx build --platform linux/amd64,linux/arm64 --provenance=false \
-  -t ghcr.io/openkubes/platform-diagnostics-facade:0.1.3 --push .
+  -t ghcr.io/openkubes/platform-diagnostics-facade:0.1.5 --push .
 ```

@@ -213,10 +213,19 @@ R2="$(wait_for_reason uc1-crashloop CrashLoopBackOff)" && OK2=0 || OK2=1
 log "uc1-crashloop: ${R2}"
 assert S2 "fixture uc1-crashloop reached CrashLoopBackOff" "${OK2}" "observed=${R2}"
 
+IMAGEPULL_POD="$("${KUBECTL[@]}" -n "${NS_EVIDENCE}" get pods \
+  -l app.kubernetes.io/name=uc1-imagepull \
+  -o jsonpath='{.items[0].metadata.name}')"
+CRASHLOOP_POD="$("${KUBECTL[@]}" -n "${NS_EVIDENCE}" get pods \
+  -l app.kubernetes.io/name=uc1-crashloop \
+  -o jsonpath='{.items[0].metadata.name}')"
+log "resolved fixture pods: imagepull=${IMAGEPULL_POD}, crashloop=${CRASHLOOP_POD}"
+
 # ── S2 — investigate_workload ────────────────────────────────────────────────
-# expect_terms: the answer must name the real failure mode, not just be well-formed.
+# require_terms/forbid_terms: the top-ranked cause must explain the deliberately
+# injected failure, not merely contain a broad state name such as "CrashLoop".
 investigate() {
-  local wl="$1" name="$2" expect_terms="$3" code
+  local wl="$1" name="$2" require_terms="$3" forbid_terms="$4" expected_pod="$5" code
   head2 "S2 — investigate_workload (${wl})"
   code="$(call "${name}" /v1/investigate_workload \
     "{\"cluster\":\"${CLUSTER}\",\"namespace\":\"${NS_EVIDENCE}\",\"workload\":\"${wl}\",\"time_range\":\"PT1H\"}")"
@@ -232,9 +241,13 @@ investigate() {
 
   local top; top="$(jqr '.probable_causes[0].hypothesis // ""' "${name}")"
   log "top hypothesis: ${top:0:160}"
-  assert "S2/${wl}" "top hypothesis names the actual failure mode (${expect_terms})" \
-    "$(printf '%s' "${top}" | grep -Eiq "${expect_terms}" && echo 0 || echo 1)" \
+  assert "S2/${wl}" "top hypothesis names the injected root cause (${require_terms})" \
+    "$(printf '%s' "${top}" | grep -Eiq "${require_terms}" && echo 0 || echo 1)" \
     "top=\"${top:0:120}\""
+
+  assert "S2/${wl}" "top hypothesis does not claim a contradictory failure mode" \
+    "$(printf '%s' "${top}" | grep -Eiq "${forbid_terms}" && echo 1 || echo 0)" \
+    "forbidden=${forbid_terms}; top=\"${top:0:120}\""
 
   assert "S2/${wl}" "every hypothesis has confidence low|medium|high" \
     "$(jq -e '[.probable_causes[].confidence] | length>0 and all(. as $c | ["low","medium","high"]|index($c)!=null)' "${RAW_DIR}/${name}.json" >/dev/null 2>&1 && echo 0 || echo 1)"
@@ -263,12 +276,37 @@ investigate() {
   assert "S2/${wl}" "all evidence_refs resolve to an EvidenceRef (no dangling refs)" \
     "$([[ -z "${dangling}" ]] && echo 0 || echo 1)" "dangling=${dangling}"
 
+  assert "S2/${wl}" "pod-scoped evidence uses the actual fixture pod identity" \
+    "$(jq -e --arg pod "${expected_pod}" '
+      [.evidence[]
+        | select(.status=="available")
+        | select(.type=="pod-status" or .type=="pod_logs" or .type=="describe")
+        | .uri
+      ] as $uris
+      | ($uris|length>0) and ($uris|all(contains($pod)))
+    ' "${RAW_DIR}/${name}.json" >/dev/null 2>&1 && echo 0 || echo 1)" \
+    "expected_pod=${expected_pod}"
+
+  assert "S2/${wl}" "facade accepted the grounded agent output" \
+    "$(jq -e '[.evidence[]|select(.type=="agent-output-validation")]|length==0' \
+      "${RAW_DIR}/${name}.json" >/dev/null 2>&1 && echo 0 || echo 1)"
+
   assert "S2/${wl}" "recommended_next_steps present (human actions only)" \
     "$(jq -e '(.recommended_next_steps|type=="array") and (.recommended_next_steps|length>0)' "${RAW_DIR}/${name}.json" >/dev/null 2>&1 && echo 0 || echo 1)"
 }
 
-investigate uc1-imagepull s2-imagepull 'image|pull|registry|manifest|tag|repository'
-investigate uc1-crashloop s2-crashloop 'crash|exit|restart|terminat|config|startup|dsn'
+investigate \
+  uc1-imagepull \
+  s2-imagepull \
+  '0\.0\.0-openkubes|does not exist|not found|manifest|image.*pull' \
+  'DB_DSN|required config key|started and exited' \
+  "${IMAGEPULL_POD}"
+investigate \
+  uc1-crashloop \
+  s2-crashloop \
+  'DB_DSN|required config key|configuration key.*missing' \
+  'image.*pull|registry credential|image does not exist' \
+  "${CRASHLOOP_POD}"
 
 # ── S3 — collect_diagnostic_evidence (incl. capability delta) ────────────────
 head2 "S3 — collect_diagnostic_evidence (uc1-crashloop, requesting host_journal on purpose)"
