@@ -51,5 +51,5 @@ uvicorn app:app --host 0.0.0.0 --port 8080      # local
 # "no match for platform in manifest". Use buildx and push a manifest that
 # includes the node architecture (--provenance=false keeps it to real platforms):
 docker buildx build --platform linux/amd64,linux/arm64 --provenance=false \
-  -t ghcr.io/openkubes/platform-diagnostics-facade:0.1.5 --push .
+  -t ghcr.io/openkubes/platform-diagnostics-facade:0.1.6 --push .
 ```

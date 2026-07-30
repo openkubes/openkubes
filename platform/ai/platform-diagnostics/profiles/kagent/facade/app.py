@@ -288,6 +288,23 @@ def _pod_observation(pod: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _compact_event(event: dict[str, Any]) -> dict[str, Any]:
+    """Keep the diagnostic signal while bounding the LLM prompt."""
+    involved = event.get("involvedObject") or {}
+    return {
+        "type": str(event.get("type", "")),
+        "reason": str(event.get("reason", "")),
+        "message": str(event.get("message", ""))[:2000],
+        "count": int(event.get("count", 0) or 0),
+        "involved_object": {
+            "kind": str(involved.get("kind", "")),
+            "name": str(involved.get("name", "")),
+        },
+        "first_timestamp": event.get("firstTimestamp"),
+        "last_timestamp": event.get("lastTimestamp"),
+    }
+
+
 def _event_matches_workload(
     event: dict[str, Any],
     workload: str,
@@ -369,7 +386,9 @@ async def _collect_workload_observations(
             if isinstance(event, dict)
             and _event_matches_workload(event, body.workload, pod_names)
         ][-50:]
-        observations["events"] = matched_events
+        observations["events"] = [
+            _compact_event(event) for event in matched_events
+        ]
         evidence.append(EvidenceRef(
             type="events",
             source="k8s_get_events",
@@ -403,7 +422,10 @@ async def _collect_workload_observations(
                 if not isinstance(described, str)
                 else described
             )
-            observations["pod_describe"][pod_name] = describe_text[:16000]
+            observations["pod_describe"][pod_name] = (
+                f"collected ({len(describe_text)} characters); "
+                "cite its catalog URI when needed"
+            )
             evidence.append(EvidenceRef(
                 type="describe",
                 source="k8s_describe_resource",
@@ -461,9 +483,18 @@ async def _collect_workload_observations(
                 ))
 
     observations["evidence_catalog"] = [
-        item.model_dump(mode="json")
+        {
+            "type": item.type,
+            "source": item.source,
+            "status": item.status.value,
+            "reason": item.reason,
+            "uri": item.uri,
+        }
         for item in evidence
         if item.status == EvidenceStatus.available
+    ]
+    observations["allowed_evidence_uris"] = [
+        item["uri"] for item in observations["evidence_catalog"]
     ]
     return observations, evidence
 
@@ -546,18 +577,25 @@ def _pod_inventory_report(
 
 def _extract_json(text: str) -> Optional[dict]:
     """Pull a JSON object out of an LLM reply (tolerates ```json fences / prose)."""
-    m = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", text, re.DOTALL)
-    candidate = m.group(1) if m else None
-    if candidate is None:
-        i, j = text.find("{"), text.rfind("}")
-        candidate = text[i : j + 1] if i != -1 and j > i else None
-    if not candidate:
-        return None
-    try:
-        val = json.loads(candidate)
-        return val if isinstance(val, dict) else None
-    except json.JSONDecodeError:
-        return None
+    candidates: list[str] = []
+    fenced = re.search(
+        r"```(?:json)?\s*(\{.*\})\s*```",
+        text,
+        re.DOTALL,
+    )
+    if fenced:
+        candidates.append(fenced.group(1))
+    i, j = text.find("{"), text.rfind("}")
+    if i != -1 and j > i:
+        candidates.append(text[i : j + 1])
+    for candidate in candidates:
+        try:
+            value = json.loads(candidate)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(value, dict):
+            return value
+    return None
 
 
 def _coerce_evidence(items: Any) -> list[EvidenceRef]:
@@ -659,7 +697,10 @@ def _investigation_validation_errors(
             if ref not in available_uris
         ]
         if unknown_refs:
-            errors.append(f"hypothesis {index} references unknown evidence")
+            errors.append(
+                f"hypothesis {index} references unknown evidence: "
+                + ", ".join(unknown_refs)
+            )
         unknown_counter_refs = [
             ref for ref in hypothesis.contradicting_evidence_refs
             if ref not in available_uris
@@ -700,8 +741,9 @@ def _instruct(
         "- Every evidence_refs and contradicting_evidence_refs item MUST be an exact\n"
         "  copy of a uri from the evidence array; never reference type/source labels.\n"
         "- When facade-collected observations are present, they are authoritative.\n"
-        "  Copy evidence entries only from evidence_catalog. Never invent a resource\n"
-        "  name, pod name, event, log observation, or URI. Rank probable causes by\n"
+        "  Do not call tools again. Copy evidence entries only from evidence_catalog,\n"
+        "  and copy hypothesis references only from allowed_evidence_uris. Never invent\n"
+        "  a resource name, pod name, event, log observation, or URI. Rank causes by\n"
         "  descending confidence and make the first cause the best explanation of\n"
         "  the observed states, events, and logs. If a container started and exited,\n"
         "  do not diagnose an image-pull failure.\n"
@@ -888,18 +930,68 @@ async def investigate_workload(body: InvestigateWorkloadInput) -> WorkloadInvest
 @app.post("/v1/collect_diagnostic_evidence", response_model=EvidenceBundle,
           operation_id="collect_diagnostic_evidence")
 async def collect_diagnostic_evidence(body: CollectEvidenceInput) -> EvidenceBundle:
+    requested = set(body.evidence_types) or {"events", "logs", "describe"}
+    investigation_input = InvestigateWorkloadInput(
+        cluster=body.cluster,
+        namespace=body.namespace,
+        workload=body.workload,
+        time_range=body.time_range,
+    )
     try:
-        text = await invoke_agent(_instruct("collect_diagnostic_evidence", body.model_dump(), _SHAPE_EVIDENCE))
+        pods = await _get_workload_pods(investigation_input)
+        _, canonical_evidence = await _collect_workload_observations(
+            investigation_input, pods
+        )
     except AgentError as e:
-        return EvidenceBundle(cluster=body.cluster, collected_at=_now(), evidence=[
-            EvidenceRef(type="agent", source=PROVIDER_NAME, status=EvidenceStatus.unavailable,
-                        reason=str(e), collected_at=_now())])
-    data = _extract_json(text) or {}
-    ev = _coerce_evidence(data.get("evidence")) if isinstance(data, dict) else []
-    if not ev:
-        ev = [EvidenceRef(type="agent", source=PROVIDER_NAME, status=EvidenceStatus.partial,
-                          reason="agent reply was not structured JSON", collected_at=_now())]
-    return EvidenceBundle(cluster=body.cluster, collected_at=_now(), evidence=ev)
+        return EvidenceBundle(
+            cluster=body.cluster,
+            collected_at=_now(),
+            evidence=[
+                EvidenceRef(
+                    type=evidence_type,
+                    source=PROVIDER_NAME,
+                    status=EvidenceStatus.unavailable,
+                    reason=str(e),
+                    collected_at=_now(),
+                )
+                for evidence_type in sorted(requested)
+            ],
+        )
+
+    type_aliases = {"pod_logs": "logs"}
+    evidence: list[EvidenceRef] = []
+    for item in canonical_evidence:
+        evidence_type = type_aliases.get(item.type, item.type)
+        if evidence_type in requested:
+            evidence.append(item.model_copy(update={"type": evidence_type}))
+
+    for evidence_type in sorted(requested):
+        if any(item.type == evidence_type for item in evidence):
+            continue
+        capability = {
+            "events": "workload_events",
+            "logs": "workload_logs",
+            "host_journal": "host_journal",
+            "node_shell": "node_shell",
+        }.get(evidence_type)
+        unavailable_reason = (
+            f"{evidence_type} is not supported by this provider profile"
+            if capability and not PROVIDER_CAPS.get(capability, False)
+            else f"no {evidence_type} evidence was collected"
+        )
+        evidence.append(EvidenceRef(
+            type=evidence_type,
+            source=PROVIDER_NAME,
+            status=EvidenceStatus.unavailable,
+            reason=unavailable_reason,
+            collected_at=_now(),
+        ))
+
+    return EvidenceBundle(
+        cluster=body.cluster,
+        collected_at=_now(),
+        evidence=evidence,
+    )
 
 
 @app.get("/healthz")

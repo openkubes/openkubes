@@ -7,6 +7,7 @@ from app import (
     EvidenceStatus,
     RankedHypothesis,
     _event_matches_workload,
+    _extract_json,
     _investigation_validation_errors,
 )
 
@@ -90,7 +91,23 @@ class InvestigationValidationTests(unittest.TestCase):
                 )
             ],
         )
-        self.assertIn("hypothesis 1 references unknown evidence", errors)
+        self.assertTrue(any(
+            error.startswith("hypothesis 1 references unknown evidence:")
+            for error in errors
+        ))
+
+
+class AgentJsonTests(unittest.TestCase):
+    def test_extracts_nested_json_from_markdown_fence(self) -> None:
+        text = (
+            "```json\n"
+            '{"summary":"grounded","evidence":[{"type":"logs","uri":"k8s://pod"}]}'
+            "\n```"
+        )
+        self.assertEqual(
+            "k8s://pod",
+            _extract_json(text)["evidence"][0]["uri"],
+        )
 
 
 class WorkloadIdentityTests(unittest.TestCase):
