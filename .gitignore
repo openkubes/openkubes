@@ -12,6 +12,10 @@ docs/*-linkedin.png
 docs/*-whitepaper*.pdf
 !docs/knowledge-graph*.html
 !docs/openkubes_knowledge_graph_force_layout.html
+
+# Live-cluster evidence can contain private infrastructure details.
+docs/kagent-standalone/.evidence/
+platform/**/.evidence/
 !docs/openkubes-family.svg
 
 # macOS

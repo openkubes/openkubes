@@ -9,8 +9,9 @@ Conventions in this document:
 
 - `$KUBECONFIG` always points at the **lab** cluster. Never at `ok-ai`,
   `ok-shared`, `ok-robotics`, `ok-mgmt`.
-- Values written as `<FILL>` are environment-specific and must be resolved once
-  and then recorded in this file.
+- Values written as `<FILL>` are environment-specific and must be resolved once.
+  Sensitive values and private network coordinates are recorded in the Jira
+  evidence, never in this public repository.
 - `VERIFY` marks something to confirm against the installed release before it is
   used in customer-facing material.
 
@@ -23,19 +24,43 @@ Conventions in this document:
 | Cluster | `ok-kagent` (lab, disposable) |
 | Kubeconfig | `~/.kube/ok-kagent.yaml` |
 | Namespace | `kagent` |
-| kagent version | `<FILL>` — pin it; upstream latest documented is `0.9.9` |
+| Kubernetes / Talos | `v1.34.1` / `v1.9.5` |
+| Topology | 1 control plane and 2 workers; each node has 2 CPU and 4 GiB RAM |
+| Storage | default `local-path`; `WaitForFirstConsumer`; no volume expansion |
+| kagent version | `0.9.12` |
 | Charts | `oci://ghcr.io/kagent-dev/kagent/helm/{kagent-crds,kagent}` |
-| Local LLM | Ollama at `<FILL>`, model with **function calling** support |
-| Cloud LLM | `<FILL>` provider + API key in a Secret |
-| Tools | `kubectl`, `helm`, optionally the `kagent` CLI |
+| Local LLM | private Ollama endpoint from `OLLAMA_URL`; `gpt-oss:20b`; `num_ctx=32768` |
+| Cloud LLM | intentionally out of scope by Product Owner decision |
+| Tools at P0 | `kubectl v1.34.1`, `helm v4.2.0`; `kagent`/`kmcp` CLI not installed yet |
 
 ```bash
 export CLUSTER=ok-kagent
 export KUBECONFIG=$HOME/.kube/$CLUSTER.yaml
 export NS=kagent
-export KAGENT_VERSION=<FILL>
-kubectl get nodes
+export KAGENT_VERSION=0.9.12
+: "${OLLAMA_URL:?set the private Ollama endpoint outside Git}"
+
+kubectl --kubeconfig "$KUBECONFIG" config current-context
+kubectl --kubeconfig "$KUBECONFIG" get nodes
 ```
+
+Version choice: `0.9.12` was the newest stable patch in the 0.9 line when this
+run started. `0.10.0-rc1` was pre-release software, so it was not selected for a
+customer-facing reproducibility exercise. The patch update from the repository's
+older `0.9.9` evaluation pin keeps the required 0.9 API line while including
+subsequent fixes.
+
+### P0 observed capacity
+
+The two schedulable workers expose 3.9 CPU and about 6.67 GiB allocatable RAM in
+total. Existing declared requests consume 0.2 CPU and 20 MiB, leaving a
+scheduler budget of approximately **3.7 CPU and 6.65 GiB RAM** before kagent.
+The Metrics API is not installed, so these are request-based scheduling figures,
+not observed utilization.
+
+The Ollama tags API was reachable and listed `gpt-oss:20b`. This proves endpoint
+reachability and model presence only; function calling is tested empirically in
+P2.
 
 ### Guardrails for this lab
 
@@ -49,26 +74,27 @@ kubectl get nodes
 
 ## 1. Create the cluster
 
-Scaffold with the ok-cluster tooling on the feature branch:
+The cluster was scaffolded before this run. Its public, allocation-safe source
+configuration is versioned at `ok-cluster/ok-kagent/cluster-config.yaml`.
+Endpoint and CIDR fields are `auto`; resolved coordinates and rendered manifests
+are deliberately Git-ignored because both repositories are public.
 
 ```bash
 cd <ok-cluster>
-git checkout -b feat/kagent-standalone
-CLUSTER=ok-kagent TYPE=talos WORKERS=<FILL> make -f Makefile render CLUSTER=ok-kagent   # VERIFY target name
+git switch feat/kagent-standalone
+./ok-kagent/generate-manifest.sh
 ```
 
-Before rendering, pick an LB-IP block that does **not** collide. The allocation
-plan (ADR-Platform-010) gives guest clusters disjoint 5-IP blocks from
-`192.168.100.210` upward. Check what is taken:
+Do not run that script from an OK-129 workload-only session: the shared renderer
+consults the management plane for collision-free allocation. Cluster creation
+and the rebuild drill therefore require a separately authorized management-plane
+operator; all kagent commands in this run remain restricted to
+`~/.kube/ok-kagent.yaml`.
 
-```bash
-grep -rh "lbPool" <ok-cluster>/*/cluster-config.yaml
-```
-
-Record the chosen block here: `lbPool: <FILL>`.
-
-Then follow the existing cluster bring-up procedure in the ok-cluster `README.md`
-/ `new-cluster.sh`. When the cluster answers `kubectl get nodes`, continue.
+P0 observation: Cilium serves the `CiliumLoadBalancerIPPool` and
+`CiliumL2AnnouncementPolicy` APIs, but the cluster has **no pool and no L2
+announcement policy**. No `lbPool` is declared. Do not invent one; use
+port-forwarding for the dashboard and other operator access.
 
 > **Rebuild drill.** OK-129 requires one full from-zero rebuild in under 60
 > minutes, documented. Do it *early*, while the environment is still simple —
@@ -91,30 +117,29 @@ helm upgrade --install kagent-crds \
   --namespace "$NS" --create-namespace
 ```
 
-Then kagent with the local model as default provider:
+Then kagent with the versioned values file from `ok-cluster`. Do not put the
+private endpoint in Git; pass it at render/install time from `OLLAMA_URL`.
 
 ```bash
+envsubst < kagent-values.yaml.tmpl > .kagent-values.local.yaml
 helm upgrade --install kagent \
   oci://ghcr.io/kagent-dev/kagent/helm/kagent \
   --version "$KAGENT_VERSION" \
   --namespace "$NS" \
-  --set providers.default=ollama \
-  --set-string providers.ollama.model=<FILL> \
-  --set-string providers.ollama.config.host=<FILL> \
-  --set-string providers.ollama.config.options.num_ctx=32768
+  -f .kagent-values.local.yaml
 ```
 
 Prefer a values file over `--set` once the configuration stabilises — it is
 reviewable and belongs in Git:
 
 ```yaml
-# kagent-values.yaml
+# kagent-values.yaml.tmpl
 providers:
   default: ollama
   ollama:
-    model: <FILL>
+    model: gpt-oss:20b
     config:
-      host: <FILL>
+      host: ${OLLAMA_URL}
       options:
         num_ctx: "32768"
 rbac:
@@ -201,9 +226,9 @@ metadata:
   namespace: kagent
 spec:
   provider: Ollama
-  model: <FILL>              # MUST support function calling
+  model: gpt-oss:20b         # function calling is verified empirically below
   ollama:
-    host: <FILL>
+    host: ${OLLAMA_URL}      # render locally; never commit the private endpoint
     options:
       num_ctx: "32768"
 ```
@@ -211,35 +236,15 @@ spec:
 Confirm the model can actually call tools before blaming kagent for anything:
 
 ```bash
-curl -s <OLLAMA_HOST>/api/tags | jq -r '.models[].name'
-```
-
-### 3.2 Cloud reference
-
-```bash
-kubectl -n "$NS" create secret generic kagent-cloud \
-  --from-literal=<KEY_NAME>=<FILL>
-```
-
-```yaml
-apiVersion: kagent.dev/v1alpha2
-kind: ModelConfig
-metadata:
-  name: cloud-reference
-  namespace: kagent
-spec:
-  provider: <FILL>           # Anthropic | OpenAI | AzureOpenAI | ...
-  model: <FILL>
-  apiKeySecret: kagent-cloud
-  apiKeySecretKey: <KEY_NAME>
+curl -fsS -m 5 "$OLLAMA_URL/api/tags" | jq -r '.models[].name'
 ```
 
 ```bash
 kubectl -n "$NS" get modelconfigs
 ```
 
-Secret rotation needs no rollout: kagent restarts agents that reference a
-changed Secret automatically.
+No cloud model is configured in OK-129. This is an explicit Product Owner scope
+decision, not a missing test.
 
 ---
 
@@ -288,12 +293,10 @@ kubectl -n "$NS" get agent cluster-inspector -o wide
 kubectl -n "$NS" describe agent cluster-inspector | tail -30   # conditions tell you why it is not Accepted
 ```
 
-Test in the UI with a question whose answer you already know, e.g. *"Which pods
-in namespace kagent are not Ready, and why?"*
-
-Then switch the same agent to `modelConfig: cloud-reference`, ask the identical
-question, and record both answers side by side. This one comparison separates
-framework problems from model problems for the rest of the project.
+Test in the UI with the fixed P2 diagnosis prompt. Run it at least 10 times
+without changing the fixture, agent, prompt, or tools, then classify every run
+per `evidence-protocol.md` S3. A diagnosis without a corresponding tool call in
+the logs is a failure even when the answer is correct.
 
 ### Runtime comparison
 
@@ -684,7 +687,7 @@ Before OK-129 is closed:
 - [ ] ≥ 3 own agents, prompts and tool choices explained
 - [ ] Multi-agent delegation proven from logs, not from the answer
 - [ ] ≥ 1 own kmcp tool server built and used
-- [ ] Same agent tested on local and cloud model, difference recorded
+- [ ] Local model tool-calling tested at least 10 times and classified numerically
 - [ ] HITL: approve, reject-with-reason, and `ask_user` each demonstrated
 - [ ] Ungated write and blast-radius scenario recorded, including a failure
 - [ ] RBAC audited via `kubectl auth can-i` for every agent identity

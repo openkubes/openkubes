@@ -27,7 +27,7 @@ that is a separate decision on this evidence.
 
 - Lab cluster `ok-kagent` reachable, `KUBECONFIG=~/.kube/ok-kagent.yaml`
 - kagent installed at a pinned version, recorded in the report
-- Two `ModelConfig`s: local Ollama (function-calling model) and one cloud provider
+- One local Ollama `ModelConfig`; cloud providers are intentionally out of scope
 - Fixture namespace `kagent-lab`
 - Local tools: `kubectl`, `helm`, `jq`
 
@@ -84,25 +84,25 @@ deployment `<fixture>` in namespace `kagent-lab`, and what is your evidence?"*
 
 ---
 
-## S3 — Local vs cloud model, same agent
+## S3 — Local model tool-calling reliability
 
-**Steps** Run the *identical* S2 prompts against `cluster-inspector` with
-`modelConfig: local-ollama`, then with `modelConfig: cloud-reference`. Change
-nothing else.
+**Steps** Run the same diagnosis request at least 10 times against
+`cluster-inspector` with `modelConfig: local-ollama`. Keep the agent, prompt,
+fixture and tools identical.
 
 **Pass**
 
-1. Both runs complete without configuration changes beyond `modelConfig`.
-2. The local model's **tool-calling behaviour** is recorded explicitly: did it
-   emit well-formed tool calls, how often did it fail to, did it loop.
-3. Every quality difference is attributed to *model* or *framework*, with the
-   reasoning stated. "It was worse" without attribution is a FAIL.
-4. A written recommendation: which model class we put in front of a customer for
-   which use case.
+1. A numeric table records each run and totals these mutually observable
+   outcomes: well-formed tool call, no tool call, endless loop, wrong tool, and
+   invented result without a tool call.
+2. Every claimed diagnosis is correlated with controller/agent tool-call logs.
+3. Function calling is judged from those observations, not from the model card.
+4. A written recommendation states whether this exact local model is usable for
+   customer diagnostics and under which constraints.
 
-Expected outcome, stated in advance so it is not mistaken for a defect: a 20B
-local model may struggle with reliable tool calling. Documenting that honestly is
-a pass. Hiding it behind a cloud demo is not.
+Expected outcome, stated in advance so it is not mistaken for a framework
+defect: a 20B local model may struggle with reliable tool calling. Documenting
+that honestly is a pass. Hiding it is not.
 
 ---
 
@@ -224,7 +224,7 @@ The criterion that most implementations skip and most customer engagements need.
 2. A 30-minute internal walkthrough is held and survives the hard questions, at
    minimum:
    - What does it cost to run, per month and per query?
-   - Where does our cluster data go with a cloud model?
+   - Does any cluster data leave the private network in this setup?
    - What happens when the agent is confidently wrong?
    - Who can see which agents, and who can approve a write?
    - Who supports this — us, Solo, or nobody?

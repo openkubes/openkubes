@@ -6,7 +6,7 @@ environment on a customer's Kubernetes — installation, configuration, agent
 authoring, day-2 operations, and the honest limits.
 
 **Ticket:** [OK-129](https://kubernauts.atlassian.net/browse/OK-129) ·
-**Branch:** `feat/kagent-standalone` · **Cluster:** `ok-kagent` (proposal)
+**Branch:** `feat/kagent-standalone` · **Cluster:** `ok-kagent`
 
 ## What this is not
 
@@ -38,7 +38,7 @@ prove.
 
 | Item | Value |
 |---|---|
-| kagent version | pin explicitly; upstream documents `0.9.9` as latest (checked 2026-07-30) |
+| kagent version | `0.9.12` — latest stable 0.9 patch; 0.10 was still a release candidate when selected (checked 2026-07-30) |
 | Charts | OCI, `ghcr.io/kagent-dev/kagent/helm/{kagent-crds,kagent}` |
 | Project status | Solo.io, **CNCF Sandbox** — lowest maturity tier |
 | API group | `kagent.dev/v1alpha2` (since 0.6); kmcp uses `kagent.dev/v1alpha1` for `MCPServer` |
