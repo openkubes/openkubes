@@ -87,7 +87,9 @@ of these.
 | `ModelProviderConfig` | `kagent.dev/v1alpha2` | Provider-level configuration shared by model configs. |
 | `RemoteMCPServer` | `kagent.dev/v1alpha2` | An MCP server reachable over HTTP/SSE. Supports `spec.tls` for private CAs (since 0.9.6). |
 | `MCPServer` | `kagent.dev/v1alpha1` (kmcp) | An MCP server that kagent *deploys* for you — from your own image, or from an `npx`/`uvx` package. Replaces the old stdio `ToolServer`. |
+| `Memory` | `kagent.dev/v1alpha1` | Persisted long-term-memory entries managed by kagent. |
 | `AgentHarness` | `kagent.dev/v1alpha2` | Runs on Agent Substrate; requires the substrate integration to be enabled on the controller. |
+| `ToolServer` | `kagent.dev/v1alpha1` | Legacy compatibility CRD still installed by the 0.9.12 CRD chart. Do not use for new integrations. |
 
 Plus plain Kubernetes objects used as configuration surfaces:
 
@@ -97,12 +99,13 @@ Plus plain Kubernetes objects used as configuration surfaces:
 - **`ConfigMap`** — prompt template fragments.
 - **`Secret`** — API keys, TLS material, tool auth headers, DB URL.
 
-> **`ToolServer` is gone.** The `kagent.dev` `ToolServer` API was **removed in
-> 0.6**. stdio tool servers moved to kmcp `MCPServer`; HTTP/streamable tool
-> servers became `RemoteMCPServer`. Our existing OK-92 Profile A notes still
-> describe `ToolServer` v1alpha1 — that is a legacy artefact. Do **not** carry it
-> into new material without checking `kubectl api-resources | grep kagent`
-> against the installed version.
+> **Do not build new integrations on `ToolServer`.** Upstream moved stdio tool
+> servers to kmcp `MCPServer` and HTTP/streamable servers to
+> `RemoteMCPServer` in 0.6. However, the installed 0.9.12 CRD chart still serves
+> a Helm-managed `toolservers.kagent.dev/v1alpha1` compatibility CRD. Presence
+> in API discovery is therefore not evidence that it is the current integration
+> path. The built-in tool server in this run is connected by
+> `RemoteMCPServer`.
 
 ---
 
@@ -230,12 +233,11 @@ Anatomy, in the order it matters:
 | MCP / HITL / memory | yes | yes |
 | Extra built-in tools | — | `SkillsTool`, `BashTool`, `ReadFile`, `WriteFile`, `EditFile` |
 
-> **Which one is the default? — VERIFY.** Upstream contradicts itself for 0.9.x:
-> the *Agents* concepts page marks Python as default, while the CRD-generated
-> *API reference* gives `go` as the default for
-> `spec.declarative.runtime`. Resolve it once against the installed release —
-> `kubectl explain agent.spec.declarative.runtime` — and set `runtime`
-> explicitly on every agent so the answer stops mattering.
+The installed 0.9.12 CRD reports **Python as the default** in
+`kubectl explain agent.spec.declarative.runtime`. The latest generated API
+reference reported `go` when checked, so documentation remained contradictory.
+Set `runtime` explicitly on every agent; no manifest in this work relies on the
+default.
 
 Choose **Go** for anything that scales or restarts often; choose **Python** when
 you need a framework integration. Measure the startup numbers yourself rather
@@ -695,10 +697,8 @@ confirm the trace shows tool calls, not just request spans.
 | **MCP endpoint** | any MCP client | `/mcp` on the A2A port |
 | **Integrations** | end users | documented examples for Slack and Discord over A2A, plus a Telegram bot |
 
-`svc/kagent-ui` on port 8080 is what the installation guide and the examples use
-and is the command to document. The architecture page still shows
-`svc/kagent 8001:80` — that appears stale; confirm against the installed release
-rather than trusting either.
+The installed 0.9.12 chart exposes `svc/kagent-ui` on port 8080. The architecture
+page's `svc/kagent 8001:80` example is stale for this release.
 
 There is **no OpenAI-compatible `/v1/chat/completions`** in this list. kagent
 speaks its own API plus A2A and MCP. That is exactly why Profile A needed a

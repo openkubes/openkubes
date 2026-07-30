@@ -108,29 +108,19 @@ Two paths. Do both once, then pick one for the documented customer path.
 
 ### 2.1 Helm (the path we should recommend — reviewable, GitOps-able)
 
-CRDs first (they include the kmcp subchart):
+The single supported operator command is versioned in `ok-cluster`:
 
 ```bash
-helm upgrade --install kagent-crds \
-  oci://ghcr.io/kagent-dev/kagent/helm/kagent-crds \
-  --version "$KAGENT_VERSION" \
-  --namespace "$NS" --create-namespace
+export OLLAMA_URL='<private endpoint>'
+make -C <ok-cluster>/ok-kagent/kagent install
 ```
 
-Then kagent with the versioned values file from `ok-cluster`. Do not put the
-private endpoint in Git; pass it at render/install time from `OLLAMA_URL`.
+The target verifies `ok-kagent-admin@ok-kagent` immediately before each
+mutating command, renders a mode-0600 Git-ignored values file, installs CRDs
+first, then installs the application with `--wait`. Do not put the private
+endpoint in Git.
 
-```bash
-envsubst < kagent-values.yaml.tmpl > .kagent-values.local.yaml
-helm upgrade --install kagent \
-  oci://ghcr.io/kagent-dev/kagent/helm/kagent \
-  --version "$KAGENT_VERSION" \
-  --namespace "$NS" \
-  -f .kagent-values.local.yaml
-```
-
-Prefer a values file over `--set` once the configuration stabilises — it is
-reviewable and belongs in Git:
+The committed template contains:
 
 ```yaml
 # kagent-values.yaml.tmpl
@@ -154,19 +144,31 @@ database:
       enabled: true       # demo-grade; postgres:18, no pgvector
 ```
 
-### 2.2 CLI (the path for a fast demo)
+### 2.2 CLI (tested, not recommended as the reproducible path)
 
 ```bash
-curl https://raw.githubusercontent.com/kagent-dev/kagent/refs/heads/main/scripts/get-kagent | bash
-# or: brew install kagent
-
-kagent install --profile minimal     # or --profile demo for the sample agents
-kagent dashboard
+curl -fsSL \
+  https://raw.githubusercontent.com/kagent-dev/kagent/v0.9.12/scripts/get-kagent \
+  | bash -s -- --version v0.9.12
+export KAGENT_DEFAULT_MODEL_PROVIDER=ollama
+KUBECONFIG="$HOME/.kube/ok-kagent.yaml" kagent install --profile minimal
 ```
 
-`--profile demo` preloads sample agents and MCP tools. Useful for a first look,
-misleading for evaluation — the demo agents are not ours and carry kagent's
-default permissions. Use `minimal` for anything we intend to reason about.
+Observed on v0.9.12:
+
+- The CLI defaults to OpenAI and aborts without `OPENAI_API_KEY` unless
+  `KAGENT_DEFAULT_MODEL_PROVIDER=ollama` is set.
+- `--profile minimal` disables demo agents but still installs Grafana MCP and
+  Querydoc. Querydoc pulled an approximately 846 MB image.
+- A conventional space-separated `KAGENT_HELM_EXTRA_ARGS` override did not
+  change the generated Ollama settings; the ModelConfig remained
+  `llama3.2`/`num_ctx=64000`.
+- `kagent uninstall` removed releases, CRDs and cluster RBAC, but left the
+  `kagent` namespace behind.
+
+The CLI is useful for a disposable first look. Helm plus a reviewed values file
+is the customer path because its complete configuration and cleanup behaviour
+are visible.
 
 ### 2.3 Verify the install
 
@@ -178,9 +180,10 @@ kubectl -n "$NS" get modelconfigs,agents,remotemcpservers
 kubectl wait --for=condition=ready pod --all -n "$NS" --timeout=180s
 ```
 
-Record the actual CRD list — this is where you confirm whether a legacy
-`ToolServer` kind is present (upstream removed it in 0.6) and which API versions
-are served:
+The 0.9.12 install served these APIs: `Agent`, `SandboxAgent`, `AgentHarness`,
+`ModelConfig`, `ModelProviderConfig`, and `RemoteMCPServer` at v1alpha2;
+`MCPServer`, `Memory`, and a legacy compatibility `ToolServer` at v1alpha1.
+`Agent` and `ModelConfig` also served v1alpha1.
 
 ```bash
 kubectl explain agent --api-version=kagent.dev/v1alpha2 | head -30
@@ -188,9 +191,7 @@ kubectl explain modelconfig --api-version=kagent.dev/v1alpha2 | head -30
 kubectl explain remotemcpserver --api-version=kagent.dev/v1alpha2 | head -30
 ```
 
-Open the UI. `svc/kagent-ui` on 8080 is what upstream's installation guide and
-examples use; the architecture page still shows `svc/kagent 8001:80`, which
-looks stale — confirm from `get svc` rather than trusting either:
+Open the UI. The installed 0.9.12 service is `svc/kagent-ui` on 8080:
 
 ```bash
 kubectl -n "$NS" get svc
@@ -198,9 +199,9 @@ kubectl -n "$NS" port-forward svc/kagent-ui 8080:8080
 # CLI alternative: `kagent dashboard` (prints http://localhost:8082)
 ```
 
-Also resolve the runtime default once, since upstream is contradictory (concepts
-page says Python, CRD reference says `go`) — then set `runtime` explicitly on
-every agent so it stops mattering:
+The installed 0.9.12 CRD describes **Python** as the default, while the latest
+generated upstream API reference said `go`. Set `runtime` explicitly on every
+agent:
 
 ```bash
 kubectl explain agent.spec.declarative.runtime
@@ -638,7 +639,7 @@ first question a customer's security team asks.
 | Memory tools missing or erroring | `database.postgres.vectorEnabled`, pgvector present | Bundled `postgres:18` has no pgvector |
 | Helm upgrade fails immediately | values file | `rbac.clusterScoped` still set, or `rbac.namespaces` omits the install namespace |
 | Agent has more power than intended | `kubectl auth can-i --as=system:serviceaccount:...` | Default cluster-scoped RBAC; prompt restrictions are not enforcement |
-| UI unreachable | `kubectl -n kagent get svc` | Service name differs by release — **VERIFY** |
+| UI unreachable | `kubectl -n kagent get svc kagent-ui` | For 0.9.12 use `svc/kagent-ui` port 8080 and port-forward; no LB pool exists in this lab |
 | Slow first response after idle | pod startup, `spec.declarative.runtime` | Python runtime (~15 s vs ~2 s for Go). Set `runtime: go` explicitly — do not rely on the default, upstream documents it inconsistently |
 | Everything slow, other GPU consumers suffering | shared GPU | Unbounded agent loop. Bound iterations and timeouts |
 
@@ -659,19 +660,20 @@ See also upstream [Debug kagent](https://kagent.dev/docs/kagent/operations/debug
 ## 11. Uninstall
 
 ```bash
-helm uninstall kagent -n "$NS"
-helm uninstall kagent-crds -n "$NS"
-kubectl delete namespace "$NS" --ignore-not-found
-
-# confirm nothing survived
-kubectl api-resources | grep -Ei 'kagent|mcp' || echo "clean"
-kubectl get crd | grep -Ei 'kagent|mcp' || echo "clean"
-kubectl get clusterrole,clusterrolebinding | grep -i kagent || echo "clean"
+make -C <ok-cluster>/ok-kagent/kagent uninstall
 ```
 
-Deleting the CRD chart deletes the CRDs and therefore **all agents, model
-configs and tool servers**. The database PVC may survive — check and remove it
-deliberately.
+The target names PVCs before removal, uninstalls app and CRD releases, deletes
+the namespace, then fails if any kagent CRD, ClusterRole/Binding, or namespace
+remains.
+
+P1 result: the bundled database used a 500 MiB `local-path` PVC. The first Helm
+uninstall removed it with the namespace and left no CRD, cluster RBAC, namespace,
+or PVC. A second install using the identical command succeeded without an extra
+step in **39.41 seconds**. The installation was left running for P2.
+
+Do not substitute `kagent uninstall` for this path: the tested v0.9.12 CLI left
+the namespace behind.
 
 A clean uninstall is part of what we sell. A customer who cannot cleanly remove
 a tool will not adopt it.
