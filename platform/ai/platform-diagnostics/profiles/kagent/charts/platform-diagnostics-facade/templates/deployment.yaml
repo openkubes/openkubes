@@ -1,0 +1,77 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}
+  labels:
+    app.kubernetes.io/name: platform-diagnostics-facade
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/part-of: platform-diagnostics
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: platform-diagnostics-facade
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: platform-diagnostics-facade
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/part-of: platform-diagnostics
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      # No special ServiceAccount: the facade holds no kube credentials by design.
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        seccompProfile:
+          type: RuntimeDefault      # required by 'restricted' PodSecurity
+      containers:
+        - name: facade
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: KAGENT_BASE_URL
+              value: {{ .Values.kagent.baseUrl | quote }}
+            - name: KAGENT_NAMESPACE
+              value: {{ .Values.kagent.namespace | quote }}
+            - name: KAGENT_AGENT
+              value: {{ .Values.kagent.agent | quote }}
+            - name: KAGENT_TOOLS_URL
+              value: {{ .Values.kagent.toolsUrl | quote }}
+            {{- if .Values.kagent.token }}
+            - name: KAGENT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-kagent
+                  key: token
+            {{- end }}
+            - name: PROVIDER_CAPS
+              value: {{ .Values.providerCapabilities | toJson | quote }}
+          livenessProbe:
+            httpGet: { path: /healthz, port: http }
+            initialDelaySeconds: 5
+            periodSeconds: 15
+          readinessProbe:
+            httpGet: { path: /readyz, port: http }
+            initialDelaySeconds: 3
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: ["ALL"] }
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        # readOnlyRootFilesystem is true; give uvicorn/python a writable /tmp.
+        - name: tmp
+          emptyDir: {}

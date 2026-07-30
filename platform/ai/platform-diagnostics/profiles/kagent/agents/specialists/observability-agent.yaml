@@ -1,0 +1,36 @@
+# Specialist: observability — logs & events (Log Query Contract). Read-only.
+# Internal delegate. Tools from the scoped read-only RemoteMCPServer.
+# (Dedicated metrics/OpenSearch tooling is a Provider Value, wired later.)
+apiVersion: kagent.dev/v1alpha2
+kind: Agent
+metadata:
+  name: observability-agent
+  namespace: platform-diagnostics
+  labels:
+    app.kubernetes.io/part-of: platform-diagnostics
+    platform.openkubes.ai/profile: kagent
+    platform.openkubes.ai/role: specialist
+spec:
+  description: Read-only log/event correlation over the platform.
+  type: Declarative
+  declarative:
+    modelConfig: ollama-gpt-oss
+    a2aConfig: {}
+    systemMessage: |
+      Read-only observability specialist. Correlate pod/container logs and cluster
+      events to time-bound symptoms. Return evidence as REFERENCES (pod, container,
+      time range), never paste raw log payloads or secrets into the answer. If a
+      log/event source is unavailable for this provider, report it as unavailable
+      with a reason.
+    tools:
+      - type: McpServer
+        mcpServer:
+          apiGroup: kagent.dev
+          kind: RemoteMCPServer
+          name: platform-diagnostics-tools
+          toolNames:
+            - k8s_get_pod_logs
+            - k8s_get_events
+            - k8s_get_resources
+      # Log Query Contract (OpenSearch) — Provider Value from ok-cluster; add as a
+      # second RemoteMCPServer once its endpoint exists.

@@ -1,0 +1,90 @@
+#!/usr/bin/env node
+// platform-diag — OpenClaw consumer CLI for the Read-Only Platform Diagnostics
+// Contract (ADR-Platform-021). OpenClaw's agent runs this via its Exec tool, the
+// same mechanism the kubectl "Cluster Inspection skill" used.
+//
+// It ONLY speaks the HTTP contract (the facade); it holds NO Kubernetes
+// credentials. That is the point: OpenClaw is a consumer, not a cluster client
+// (ADR-021 authorization model). Cluster access lives behind the contract, in
+// kagent's read-only SA.
+//
+// Endpoint (Provider Value) from env, defaults to the in-cluster service:
+//   PLATFORM_DIAGNOSTICS_URL=http://platform-diagnostics.platform-diagnostics.svc.cluster.local:8080
+//
+// Usage:
+//   platform-diag health [--clusters ok-ai,ok2]
+//   platform-diag investigate --cluster ok-ai --namespace kube-system --workload coredns [--time-range PT1H]
+//   platform-diag collect     --cluster ok-ai --namespace kube-system --workload coredns [--time-range PT1H]
+
+const BASE = process.env.PLATFORM_DIAGNOSTICS_URL
+  || "http://platform-diagnostics.platform-diagnostics.svc.cluster.local:8080";
+
+function parseFlags(argv) {
+  const out = {};
+  for (let i = 0; i < argv.length; i++) {
+    if (argv[i].startsWith("--")) {
+      const key = argv[i].slice(2);
+      const val = argv[i + 1] && !argv[i + 1].startsWith("--") ? argv[++i] : "true";
+      out[key] = val;
+    }
+  }
+  return out;
+}
+
+async function call(path, body) {
+  const url = `${BASE}/v1/${path}`;
+  let resp;
+  try {
+    resp = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+  } catch (e) {
+    console.error(`platform-diag: cannot reach the diagnostics contract at ${url}: ${e.message}`);
+    process.exit(2);
+  }
+  const text = await resp.text();
+  if (!resp.ok) {
+    console.error(`platform-diag: contract returned HTTP ${resp.status}: ${text}`);
+    process.exit(2);
+  }
+  // Print the ADR-021 JSON straight through for the agent to read.
+  try { console.log(JSON.stringify(JSON.parse(text), null, 2)); }
+  catch { console.log(text); }
+}
+
+const [cmd, ...rest] = process.argv.slice(2);
+const f = parseFlags(rest);
+
+(async () => {
+  switch (cmd) {
+    case "health":
+      await call("get_platform_health",
+        f.clusters ? { clusters: f.clusters.split(",").map((s) => s.trim()) } : {});
+      break;
+    case "investigate":
+      if (!f.cluster || !f.namespace || !f.workload) {
+        console.error("usage: platform-diag investigate --cluster C --namespace N --workload W [--time-range PT1H]");
+        process.exit(1);
+      }
+      await call("investigate_workload", {
+        cluster: f.cluster, namespace: f.namespace, workload: f.workload,
+        ...(f["time-range"] ? { time_range: f["time-range"] } : {}),
+      });
+      break;
+    case "collect":
+      if (!f.cluster || !f.namespace || !f.workload) {
+        console.error("usage: platform-diag collect --cluster C --namespace N --workload W [--time-range PT1H]");
+        process.exit(1);
+      }
+      await call("collect_diagnostic_evidence", {
+        cluster: f.cluster, namespace: f.namespace, workload: f.workload,
+        ...(f["time-range"] ? { time_range: f["time-range"] } : {}),
+      });
+      break;
+    default:
+      console.error("platform-diag <health|investigate|collect> [flags]  (read-only platform diagnostics; ADR-021)");
+      process.exit(1);
+  }
+})();

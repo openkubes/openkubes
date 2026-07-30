@@ -1,0 +1,23 @@
+# Applies the kagent Custom Resources for Profile A as one unit.
+#
+#   kubectl --kubeconfig ~/.kube/ok-ai.yaml apply -k .
+#
+# Prereqs: kagent CRDs + controller installed (ok-cluster/kagent `make install`),
+# and namespace `platform-diagnostics`. This kustomization sets up the read-only
+# RBAC and the kagent CRs. The facade Deployment/Service is deployed by the Helm
+# chart in charts/ (the facade holds no kube creds, so it is not part of this SA).
+#
+# The real Ollama host is patched in from ok-cluster (private Provider Value) —
+# see ok-cluster/kagent. Do not hardcode it here.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: platform-diagnostics
+resources:
+  - namespace.yaml
+  - rbac.yaml
+  - modelconfig.yaml
+  - tools/scoped-tools-server.yaml   # scoped read-only tools server + RemoteMCPServer
+  - agents/openkubes-platform-agent.yaml
+  - agents/specialists/kubernetes-agent.yaml
+  - agents/specialists/cilium-agent.yaml
+  - agents/specialists/observability-agent.yaml

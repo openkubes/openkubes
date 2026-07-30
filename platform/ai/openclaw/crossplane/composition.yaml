@@ -39,6 +39,8 @@ spec:
                     version: "0.1.0"
                   namespace: openclaw
                   values:
+                    diagnostics:
+                      defaultCluster: ""
                     ollama:
                       baseUrl: ""
                       model: "gpt-oss:20b"
@@ -73,6 +75,9 @@ spec:
               - type: FromCompositeFieldPath
                 fromFieldPath: spec.ollamaEndpoint
                 toFieldPath: spec.forProvider.values.ollama.baseUrl
+              - type: FromCompositeFieldPath
+                fromFieldPath: spec.clusterRef
+                toFieldPath: spec.forProvider.values.diagnostics.defaultCluster
               - type: FromCompositeFieldPath
                 fromFieldPath: spec.model
                 toFieldPath: spec.forProvider.values.ollama.model

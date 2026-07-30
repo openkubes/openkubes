@@ -1,0 +1,8 @@
+# DEPRECATED — replaced by scoped-tools-server.yaml.
+#
+# The original approach (a self-hosted `mcp-server-kubernetes` stdio ToolServer)
+# did not run in kagent's runtime, and — more importantly — the decision (OK-92,
+# 2026-07-24) was to enforce read-only via RBAC, not tool selection. That is done
+# by running a scoped copy of kagent's own tools server under the read-only SA and
+# registering it as the RemoteMCPServer `platform-diagnostics-tools`. See
+# scoped-tools-server.yaml. This file is kept only as a record; it is not applied.

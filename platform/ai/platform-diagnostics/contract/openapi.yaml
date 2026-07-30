@@ -1,0 +1,258 @@
+openapi: 3.1.0
+# ─────────────────────────────────────────────────────────────────────────────
+# Read-Only Platform Diagnostics Contract — Draft implementation scaffold.
+#
+# ADR-Platform-021 is the current normative design source. This file gives
+# OK-92/Profile A a concrete interface to implement against, but it is NOT the
+# finalized normative OpenAPI specification. Ownership and normative
+# finalization remain in OK-89/OK-90. The MCP adapter (../mcp-adapter) and every
+# provider profile (../../profiles/*) are derived from this scaffold.
+#
+# Status: Draft implementation scaffold — tracks ADR-021 revision 3
+# (2026-07-17). OK-92 (kagent Profile A) implements against it.
+#
+# Design rules pinned from ADR-021:
+#   * Phase 1 = read-only. Exactly three public functions. No write path exists.
+#   * Consumers hold no Kubernetes credentials — they call these endpoints only.
+#   * cluster is a LOGICAL name, never an endpoint.
+#   * Evidence carries REFERENCES (uri), never embedded payloads or secrets.
+#   * A hypothesis without sought counter-evidence is a guess (counter_evidence_status).
+# ─────────────────────────────────────────────────────────────────────────────
+info:
+  title: OpenKubes Read-Only Platform Diagnostics — Draft Implementation Scaffold
+  version: 1.0.0-draft
+  description: |
+    Draft implementation scaffold for provider-neutral, read-only diagnostics
+    in OpenKubes. Frontends and agent runtimes are interchangeable behind/in
+    front of this interface. Normative finalization remains in OK-89/OK-90;
+    see ADR-Platform-021 for the current normative design.
+  x-adr: ADR-Platform-021
+  x-status: Draft implementation scaffold (revision 3; finalization OK-89/OK-90)
+  license:
+    name: Apache-2.0
+
+servers:
+  - url: http://platform-diagnostics.platform-diagnostics.svc.cluster.local:8080
+    description: In-cluster service (provider-side). Real endpoint is a Provider Value.
+
+tags:
+  - name: diagnostics
+    description: The three public functions of the Phase-1 contract.
+
+paths:
+  /v1/get_platform_health:
+    post:
+      operationId: get_platform_health
+      tags: [diagnostics]
+      summary: Cross-cluster/platform health snapshot.
+      description: Forcing consumer — incident diagnostic workflow.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/GetPlatformHealthInput' }
+      responses:
+        '200':
+          description: Health snapshot.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PlatformHealth' }
+        '4XX': { $ref: '#/components/responses/Error' }
+        '5XX': { $ref: '#/components/responses/Error' }
+
+  /v1/investigate_workload:
+    post:
+      operationId: investigate_workload
+      tags: [diagnostics]
+      summary: Standardized diagnostic report for one workload.
+      description: Forcing consumer — incident diagnostic workflow.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/InvestigateWorkloadInput' }
+      responses:
+        '200':
+          description: Diagnostic report.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/WorkloadInvestigation' }
+        '4XX': { $ref: '#/components/responses/Error' }
+        '5XX': { $ref: '#/components/responses/Error' }
+
+  /v1/collect_diagnostic_evidence:
+    post:
+      operationId: collect_diagnostic_evidence
+      tags: [diagnostics]
+      summary: Raw evidence bundle without hypothesis generation.
+      description: >
+        Public because it supports incident handoff, audit, and offline expert
+        review WITHOUT requiring hypothesis generation — a consumer-forced
+        capability, not a technical decomposition of the provider.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CollectEvidenceInput' }
+      responses:
+        '200':
+          description: Evidence bundle (references only — never embedded payloads/secrets).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/EvidenceBundle' }
+        '4XX': { $ref: '#/components/responses/Error' }
+        '5XX': { $ref: '#/components/responses/Error' }
+
+components:
+  responses:
+    Error:
+      description: Contract error (no raw payloads or secrets in the message).
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+
+  schemas:
+    # ── inputs ────────────────────────────────────────────────────────────────
+    GetPlatformHealthInput:
+      type: object
+      additionalProperties: false
+      properties:
+        clusters:
+          type: array
+          description: Logical cluster names to include. Empty/absent = all known clusters.
+          items: { type: string }
+
+    InvestigateWorkloadInput:
+      type: object
+      additionalProperties: false
+      required: [cluster, namespace, workload]
+      properties:
+        cluster:   { type: string, description: Logical cluster name, NOT an endpoint. }
+        namespace: { type: string }
+        workload:  { type: string }
+        time_range:
+          type: string
+          description: ISO-8601 duration (e.g. PT1H, P1D). Provider clamps to its retention.
+          default: PT1H
+
+    CollectEvidenceInput:
+      type: object
+      additionalProperties: false
+      required: [cluster, namespace, workload]
+      properties:
+        cluster:   { type: string }
+        namespace: { type: string }
+        workload:  { type: string }
+        time_range: { type: string, default: PT1H }
+        evidence_types:
+          type: array
+          description: Optional filter; absent = whatever the provider can supply.
+          items: { type: string, examples: [events, logs, describe, endpoints] }
+
+    # ── outputs ───────────────────────────────────────────────────────────────
+    PlatformHealth:
+      type: object
+      required: [generated_at, clusters]
+      properties:
+        generated_at: { type: string, format: date-time }
+        clusters:
+          type: array
+          items:
+            type: object
+            required: [cluster, status, provider_capabilities]
+            properties:
+              cluster: { type: string }
+              status:  { type: string, enum: [healthy, degraded, unavailable] }
+              summary: { type: string }
+              signals:
+                type: array
+                items: { type: string }
+                description: e.g. node_not_ready, api_latency, workload_failures, network_degradation
+              provider_capabilities: { $ref: '#/components/schemas/ProviderCapabilities' }
+
+    WorkloadInvestigation:
+      type: object
+      # Mirrors ADR-021 "investigate_workload.output" exactly.
+      required: [summary, symptoms, evidence, probable_causes, recommended_next_steps]
+      properties:
+        summary:  { type: string }
+        symptoms: { type: array, items: { type: string } }
+        evidence: { type: array, items: { $ref: '#/components/schemas/EvidenceRef' } }
+        probable_causes:
+          type: array
+          items: { $ref: '#/components/schemas/RankedHypothesis' }
+        recommended_next_steps:
+          type: array
+          description: HUMAN actions; never executed by the provider.
+          items: { type: string }
+        references:
+          type: array
+          description: Runbooks, ADRs, dashboards.
+          items: { type: string }
+        provider_capabilities: { $ref: '#/components/schemas/ProviderCapabilities' }
+
+    EvidenceBundle:
+      type: object
+      required: [cluster, collected_at, evidence, provider_capabilities]
+      properties:
+        cluster:      { type: string }
+        collected_at: { type: string, format: date-time }
+        evidence:
+          type: array
+          items: { $ref: '#/components/schemas/EvidenceRef' }
+        provider_capabilities: { $ref: '#/components/schemas/ProviderCapabilities' }
+
+    # ── shared value objects (draft scaffold derived from ADR-021) ─────────────
+    RankedHypothesis:
+      type: object
+      # Contract test 6: confidence, contradicting_evidence_refs and
+      # counter_evidence_status are MANDATORY; not_checked fails a finalized result.
+      required: [hypothesis, confidence, evidence_refs, contradicting_evidence_refs, counter_evidence_status]
+      properties:
+        hypothesis:   { type: string }
+        confidence:   { type: string, enum: [low, medium, high] }
+        evidence_refs:               { type: array, items: { type: string } }
+        contradicting_evidence_refs: { type: array, items: { type: string } }
+        counter_evidence_status:
+          type: string
+          enum: [found, none_found, not_checked]
+          description: >
+            Distinguishes: counter-evidence was sought and found / sought and not
+            found / never sought. A hypothesis without sought counter-evidence is
+            a guess. "not_checked" is a contract-test failure for finalized results.
+
+    EvidenceRef:
+      type: object
+      required: [type, source, status]
+      properties:
+        type:   { type: string, description: 'e.g. events, logs, describe' }
+        source: { type: string, description: 'e.g. kube-events, opensearch, kubectl' }
+        status: { type: string, enum: [available, unavailable, partial] }
+        reason:
+          type: string
+          description: MANDATORY when status is not "available" (e.g. "node shell not in this provider profile").
+        uri:
+          type: string
+          description: Reference to the evidence at its source — NEVER an embedded payload or secret.
+        collected_at: { type: string, format: date-time }
+
+    ProviderCapabilities:
+      type: object
+      description: >
+        Provider capability declaration. Talos vs. RKE2 differences are a provider
+        capability delta, NEVER a contract delta. Unavailable evidence is reported
+        via EvidenceRef.status=unavailable + reason — never by silently omitting it.
+      additionalProperties: { type: boolean }
+      examples:
+        - workload_events: true
+          workload_logs: true
+          cilium_diagnostics: true
+          host_journal: false
+          node_shell: false
+
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code:    { type: string }
+        message: { type: string, description: No raw log payloads or secrets. }

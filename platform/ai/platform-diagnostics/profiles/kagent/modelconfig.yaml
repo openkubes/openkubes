@@ -1,0 +1,31 @@
+# kagent ModelConfig — shared platform Ollama (ADR-Platform-005).
+#
+# Config parity with ../../../openclaw and ok-cluster/kagent (OK-14 eval): same
+# Ollama, same model, so a backend comparison is about the framework, not the LLM.
+#
+# NOTE (Provider Value): `host` is intentionally a placeholder here. The real
+# endpoint (192.168.100.202:11434) lives in the private ok-cluster repo and is
+# patched in at apply time (kustomize patch / Helm value) — same convention as
+# platform/ai/openclaw/charts/openclaw/values.yaml. Do NOT commit the real IP here.
+#
+# Confirmed against the installed CRD (kagent.dev/v1alpha2): spec.provider,
+# spec.model, spec.ollama.host, spec.ollama.options (string map).
+apiVersion: kagent.dev/v1alpha2
+kind: ModelConfig
+metadata:
+  name: ollama-gpt-oss
+  namespace: platform-diagnostics
+  labels:
+    app.kubernetes.io/part-of: platform-diagnostics
+    platform.openkubes.ai/profile: kagent
+spec:
+  provider: Ollama
+  model: gpt-oss:20b          # function calling required by kagent (README, ok-cluster/kagent)
+  ollama:
+    host: "http://OLLAMA_ENDPOINT:11434"   # PROVIDER VALUE — replaced from ok-cluster
+    options:
+      # CRITICAL: without num_ctx Ollama silently truncates the agent system
+      # prompt -> nonsense. 32768 matches the OK-14 kagent eval parity table.
+      # (openclaw runs 65536; re-verify VRAM headroom on the shared RTX 4000 Ada
+      # before raising here — AR-2, shared 20GB.)
+      num_ctx: "32768"

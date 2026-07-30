@@ -1,0 +1,116 @@
+# Scoped kagent tools server for Profile A — the READ-ONLY enforcement point.
+#
+# A private copy of kagent's tools deployment (ghcr.io/kagent-dev/kagent/tools),
+# mirrored from the shipped `kagent-tools` (2026-07-24), with ONE deliberate
+# change: it runs under the read-only SA `openkubes-platform-agent` instead of
+# `kagent-tools`. The tools execute kubectl with the POD identity
+# (TOKEN_PASSTHROUGH=false), so the SA's RBAC (get/list/watch, secrets excluded)
+# hard-bounds them — even the write/destructive tools kagent ships (delete, apply,
+# shell, ...) are denied. This is what satisfies ADR-021 test 2; the shared
+# `kagent-tool-server` (kagent's write-capable SA) would not.
+#
+# Specialists reference this as RemoteMCPServer `platform-diagnostics-tools` and
+# are given only read tool names.
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: platform-diagnostics-tools
+  namespace: platform-diagnostics
+  labels:
+    app.kubernetes.io/name: platform-diagnostics-tools
+    app.kubernetes.io/part-of: platform-diagnostics
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: platform-diagnostics-tools
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: platform-diagnostics-tools
+    spec:
+      # THE read-only boundary: tools execute kubectl under this SA (rbac.yaml).
+      # This is the ONE intentional difference from the shipped kagent-tools.
+      serviceAccountName: openkubes-platform-agent
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: tools
+          image: "ghcr.io/kagent-dev/kagent/tools:0.2.1"
+          command: ["/tool-server"]
+          args: ["--port", "8084", "--metrics-port", "8085"]
+          env:
+            - name: KAGENT_NAMESPACE
+              valueFrom:
+                fieldRef: { fieldPath: metadata.namespace }
+            # optional=true: the secret lives in the kagent ns and is not required
+            # for the k8s tools; keep the mirror but tolerate its absence here.
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: kagent-tools-openai
+                  key: OPENAI_API_KEY
+                  optional: true
+            - name: OTEL_TRACING_ENABLED
+              value: "false"
+            # CRITICAL: keep false — the server acts as its OWN pod identity (our
+            # read-only SA), not a forwarded caller token. This is the RBAC boundary.
+            - name: TOKEN_PASSTHROUGH
+              value: "false"
+          ports:
+            - name: http-tools
+              containerPort: 8084
+            - name: http-metrics
+              containerPort: 8085
+          readinessProbe:
+            httpGet: { path: /health, port: http-tools }
+            initialDelaySeconds: 15
+            periodSeconds: 15
+          resources:
+            requests: { cpu: 100m, memory: 128Mi }
+            limits:   { cpu: "1",  memory: 512Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: ["ALL"] }
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: platform-diagnostics-tools
+  namespace: platform-diagnostics
+  labels:
+    app.kubernetes.io/name: platform-diagnostics-tools
+    app.kubernetes.io/part-of: platform-diagnostics
+spec:
+  selector:
+    app.kubernetes.io/name: platform-diagnostics-tools
+  ports:
+    - name: http-tools
+      port: 8084
+      targetPort: http-tools
+---
+# Registers the scoped tools server. Mirrors the shipped kagent-tool-server spec
+# (kagent.dev/v1alpha2, STREAMABLE_HTTP, /mcp on 8084), pointed at OUR service.
+apiVersion: kagent.dev/v1alpha2
+kind: RemoteMCPServer
+metadata:
+  name: platform-diagnostics-tools
+  namespace: platform-diagnostics
+  labels:
+    app.kubernetes.io/part-of: platform-diagnostics
+spec:
+  description: Read-only cluster inspection tools (scoped to the read-only SA).
+  protocol: STREAMABLE_HTTP
+  url: http://platform-diagnostics-tools.platform-diagnostics.svc.cluster.local:8084/mcp
+  timeout: 30s
+  sseReadTimeout: 5m0s
+  terminateOnClose: true

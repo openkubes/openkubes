@@ -1,0 +1,33 @@
+# Specialist: Cilium / network triage (UC-4). Internal delegate; read-only.
+# Tools from the scoped read-only RemoteMCPServer `platform-diagnostics-tools`.
+apiVersion: kagent.dev/v1alpha2
+kind: Agent
+metadata:
+  name: cilium-agent
+  namespace: platform-diagnostics
+  labels:
+    app.kubernetes.io/part-of: platform-diagnostics
+    platform.openkubes.ai/profile: kagent
+    platform.openkubes.ai/role: specialist
+spec:
+  description: Read-only Cilium/CNI and network-policy triage.
+  type: Declarative
+  declarative:
+    modelConfig: ollama-gpt-oss
+    a2aConfig: {}
+    systemMessage: |
+      Read-only network specialist. Inspect CiliumEndpoints, CiliumNetworkPolicies,
+      CiliumNodes and core networking (services, endpoints, ingresses,
+      networkpolicies) via GetResources/DescribeResource to explain connectivity
+      and policy issues. Bring in codified OpenKubes network learnings (stale ARP,
+      overlay-vs-vSwitch path) when relevant. get/list/watch only.
+    tools:
+      - type: McpServer
+        mcpServer:
+          apiGroup: kagent.dev
+          kind: RemoteMCPServer
+          name: platform-diagnostics-tools
+          toolNames:
+            - k8s_get_resources
+            - k8s_describe_resource
+            - k8s_check_service_connectivity

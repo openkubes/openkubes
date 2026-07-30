@@ -1,0 +1,9 @@
+apiVersion: v2
+name: platform-diagnostics-facade
+description: >-
+  OpenAPI facade that makes kagent a conformant provider of the Read-Only
+  Platform Diagnostics Contract (ADR-Platform-021, Profile A / OK-92).
+type: application
+version: 0.1.0
+appVersion: "1.0.0-draft"
+keywords: [openkubes, diagnostics, kagent, adr-021]

@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: platform-diagnostics
+  labels:
+    app.kubernetes.io/name: platform-diagnostics-facade
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/part-of: platform-diagnostics
+spec:
+  # Stable name so the contract endpoint is
+  #   http://platform-diagnostics.<ns>.svc.cluster.local:<port>
+  # matching contract/openapi.yaml servers[] and the MCP adapter target.
+  selector:
+    app.kubernetes.io/name: platform-diagnostics-facade
+    app.kubernetes.io/instance: {{ .Release.Name }}
+  ports:
+    - name: http
+      port: {{ .Values.service.port }}
+      targetPort: http
