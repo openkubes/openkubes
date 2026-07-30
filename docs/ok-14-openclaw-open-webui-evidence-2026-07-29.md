@@ -1,10 +1,13 @@
-# OK-14 — OpenClaw + Open WebUI UC-1 evidence (2026-07-29)
+# OK-14 — OpenClaw + Open WebUI UC-1 evidence
 
-This records the reproducible PoC evidence requested in OK-14. The run used
-`ok-ai`, the `openclaw` model in Open WebUI, and the Profile A diagnostics
-provider from OK-92.
+This records the reproducible PoC evidence requested in OK-14. The initial run
+was performed on 2026-07-29 and the post-OK-92 verification on 2026-07-30. Both
+runs used `ok-ai`, the `openclaw` model in Open WebUI, and the Profile A
+diagnostics provider from OK-92.
 
-## Deployed components
+## Initial run (2026-07-29)
+
+### Deployed components
 
 | Component | Observed version |
 |---|---|
@@ -15,7 +18,7 @@ provider from OK-92.
 
 All deployments were available on `ok-ai` during the run.
 
-## Troubleshooting scenarios
+### Troubleshooting scenarios
 
 The automated evidence runner was invoked with:
 
@@ -36,6 +39,67 @@ deltas, and the absence of embedded secret-like material.
 The machine-readable run summary was `26 passed, 7 failed, 5 manual`. The
 failures above were retained as honest boundary evidence and are owned by
 OK-92; they did not result in fabricated diagnoses.
+
+The seven failed machine checks were:
+
+1. platform health returned the forbidden fallback `status=unknown`;
+2. the CrashLoop response had no valid non-empty `probable_causes`;
+3. the CrashLoop top hypothesis did not name the observed failure mode;
+4. the CrashLoop hypotheses did not all carry a valid confidence;
+5. the CrashLoop hypotheses did not all report checked counter-evidence;
+6. the CrashLoop evidence was empty or lacked retrievable evidence URIs; and
+7. the CrashLoop response had no recommended human next steps.
+
+The five manual items were the separately executed restart test plus the four
+operator checks for the OpenClaw answer, server-side provenance, symptom
+consistency, and absence of cluster credentials in OpenClaw.
+
+## Post-OK-92 verification (2026-07-30)
+
+The follow-up ran against source revision `bffdfaf`, which includes the merged
+OK-92 implementation at `2da224c`, and the deployed facade:
+
+```text
+ghcr.io/openkubes/platform-diagnostics-facade:0.1.4
+sha256:a4735277374ed802acfc41e17327fc888383368e2ad03a21eccd01e0258d7c26
+```
+
+The runner was invoked with an isolated fixture namespace:
+
+```console
+platform/ai/openclaw/scripts/uc1-evidence.sh \
+  --skip-restart \
+  --namespace ok14-evidence-post-merge \
+  --out /private/tmp/ok14-post-merge-evidence
+```
+
+It reported `33 passed, 0 failed, 5 awaiting operator confirmation`. The five
+manual items are unchanged from the initial run and already have separate
+evidence below.
+
+| Scenario | Automated result | Observed value |
+|---|---|---|
+| Platform health | Pass | HTTP 200, `status=healthy`, provider capabilities and a non-empty summary. |
+| ImagePullBackOff | Pass | The fixture reached `ImagePullBackOff`; the response identified an image pull failure with high confidence and a retrievable event URI. |
+| CrashLoopBackOff | Contract pass; semantic review failed | All required fields, confidence values, counter-evidence statuses, evidence URIs, and next steps were present, but the ranked diagnosis did not match the deliberately injected failure. |
+| Capability delta | Pass | Events, logs, and describe were available; `host_journal` was explicitly unavailable with a reason. |
+
+### CrashLoop semantic review
+
+The fixture starts successfully, writes
+`startup failed, required config key DB_DSN is missing`, and exits with status
+1. The provider's first ranked hypothesis instead claimed that the image could
+not be pulled and that `ImagePullBackOff` transitioned to `CrashLoopBackOff`.
+That is inconsistent with the observed fixture state. The response also used
+evidence URIs for the fabricated pod name `uc1-crashloop-abcde`, rather than
+the generated fixture pod.
+
+The response therefore passes the current structural assertions but is not
+accepted as a correct diagnosis. The post-OK-92 run verifies that the original
+empty-field, confidence, counter-evidence, URI, and next-step defects are fixed;
+it also exposes that the current top-hypothesis assertion is too broad and can
+produce a false positive. OK-14 is not ready to close until the CrashLoop
+diagnosis and evidence identity are grounded in the actual collected data.
 
 ## Open WebUI and MCP provenance
 
