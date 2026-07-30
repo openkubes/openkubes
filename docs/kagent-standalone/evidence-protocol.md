@@ -87,7 +87,7 @@ deployment `<fixture>` in namespace `kagent-lab`, and what is your evidence?"*
 ## S3 — Local model tool-calling reliability
 
 **Steps** Run the same diagnosis request at least 10 times against
-`cluster-inspector` with `modelConfig: local-ollama`. Keep the agent, prompt,
+`cluster-inspector` with `modelConfig: default-model-config`. Keep the agent, prompt,
 fixture and tools identical.
 
 **Pass**

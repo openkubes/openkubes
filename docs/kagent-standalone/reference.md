@@ -126,7 +126,7 @@ gateway — can be the model backend without kagent needing explicit support.
 apiVersion: kagent.dev/v1alpha2
 kind: ModelConfig
 metadata:
-  name: local-ollama
+  name: default-model-config
   namespace: kagent
 spec:
   provider: Ollama
@@ -155,25 +155,19 @@ At Helm-install time the default provider can be set directly, which creates a
 --set-string providers.ollama.config.options.num_ctx=32768
 ```
 
-### Cloud provider as quality reference
+### Model scope in OK-129
 
-Keep a second `ModelConfig` pointing at a hosted model and switch a *single*
-agent between the two. That isolates "the framework is wrong" from "the local
-model is too small" — the single most valuable diagnostic in this whole
-evaluation.
+No hosted reference model is configured. The Product Owner required the same
+private Ollama `gpt-oss:20b` used by the rest of the platform. Quality is
+therefore characterized with repeated identical requests, not a local/cloud
+comparison.
 
-```yaml
-apiVersion: kagent.dev/v1alpha2
-kind: ModelConfig
-metadata:
-  name: cloud-reference
-  namespace: kagent
-spec:
-  provider: Anthropic
-  model: claude-haiku-4-5
-  apiKeySecret: kagent-anthropic
-  apiKeySecretKey: ANTHROPIC_API_KEY
-```
+Observed with the fixed `imagepull` diagnosis on the Go runtime: **10/10**
+completed requests emitted well-formed, relevant tool calls and returned the
+correct failure mode; no run had zero calls, looped, chose an irrelevant tool,
+or invented an answer without a call. This supports bounded read-only diagnosis
+with a narrow allow-list and hard RBAC. It is not evidence for unattended
+writes; ten trials are a characterization, not an SLA.
 
 Operational nicety: kagent **restarts agents automatically** when a referenced
 Secret changes — API keys, TLS certs, `secretKeyRef` env vars. No manual rollout
@@ -196,7 +190,7 @@ spec:
   type: Declarative
   declarative:
     runtime: go                       # always set it explicitly — see §5.2
-    modelConfig: local-ollama
+    modelConfig: default-model-config
     systemMessage: |
       You are an operations agent for a single Kubernetes cluster.
       Always gather evidence before proposing a cause.
@@ -227,8 +221,8 @@ Anatomy, in the order it matters:
 
 | | Python ADK | Go ADK |
 |---|---|---|
-| Startup | ~15 s | ~2 s |
-| Resource use | higher | lower |
+| Startup on `ok-kagent` | 17 s | 5 s |
+| Working set on `ok-kagent` | 223,784,960 B (213.4 MiB) | 23,396,352 B (22.3 MiB) |
 | Ecosystem | Google ADK, LangGraph, CrewAI, OpenAI frameworks | native Go |
 | MCP / HITL / memory | yes | yes |
 | Extra built-in tools | — | `SkillsTool`, `BashTool`, `ReadFile`, `WriteFile`, `EditFile` |
@@ -240,8 +234,13 @@ Set `runtime` explicitly on every agent; no manifest in this work relies on the
 default.
 
 Choose **Go** for anything that scales or restarts often; choose **Python** when
-you need a framework integration. Measure the startup numbers yourself rather
-than quoting them at a customer.
+you need a framework integration. These measurements used the same agent and
+declared resources; they replace the upstream estimates for this lab.
+
+The Python image declares a named user and Kubernetes cannot verify
+`runAsNonRoot` from that name. The v0.9.12 image defines UID/GID 1001; set both
+numerically. A Python tool call is tagged `kagent_type` in A2A history, while Go
+uses `adk_type`; evidence collectors must recognize both.
 
 Note the Go runtime's built-in `BashTool`, `WriteFile`, `EditFile`: that is
 arbitrary command execution and filesystem write inside the agent pod. If you
@@ -257,7 +256,7 @@ in a ConfigMap and are pulled in by reference:
 spec:
   type: Declarative
   declarative:
-    modelConfig: local-ollama
+    modelConfig: default-model-config
     promptTemplate:
       dataSources:
         - kind: ConfigMap
@@ -326,7 +325,7 @@ memory vectors — it need not be the agent's main LLM:
 spec:
   type: Declarative
   declarative:
-    modelConfig: local-ollama
+    modelConfig: default-model-config
     memory:
       modelConfig: <embedding-model-config>
       ttlDays: 30                  # defaults to 15 when unset
@@ -356,7 +355,7 @@ older events:
 spec:
   type: Declarative
   declarative:
-    modelConfig: local-ollama
+    modelConfig: default-model-config
     context:
       compaction:
         compactionInterval: 5     # user invocations between compactions
@@ -364,7 +363,7 @@ spec:
         eventRetentionSize: 20    # most recent events always retained
         tokenThreshold: 24000     # post-invocation trigger
         summarizer:
-          modelConfig: local-ollama   # without this, compacted events are discarded
+          modelConfig: default-model-config # without this, compacted events are discarded
 ```
 
 Without `summarizer`, compacted events are **discarded** — information is lost,
@@ -382,7 +381,8 @@ spec:
     deployment:
       podSecurityContext:
         runAsNonRoot: true
-        runAsUser: 1000
+        runAsUser: 1001
+        runAsGroup: 1001
       securityContext:
         allowPrivilegeEscalation: false
         readOnlyRootFilesystem: false

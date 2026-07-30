@@ -223,7 +223,7 @@ kubectl -n "$NS" logs deploy/kagent-controller -f --tail=100
 apiVersion: kagent.dev/v1alpha2
 kind: ModelConfig
 metadata:
-  name: local-ollama
+  name: default-model-config
   namespace: kagent
 spec:
   provider: Ollama
@@ -241,11 +241,14 @@ curl -fsS -m 5 "$OLLAMA_URL/api/tags" | jq -r '.models[].name'
 ```
 
 ```bash
-kubectl -n "$NS" get modelconfigs
+kubectl -n "$NS" get modelconfig default-model-config \
+  -o jsonpath='{.spec.provider}{" "}{.spec.model}{" "}{.spec.ollama.options.num_ctx}{"\n"}'
 ```
 
 No cloud model is configured in OK-129. This is an explicit Product Owner scope
-decision, not a missing test.
+decision, not a missing test. The Helm values create `default-model-config`;
+the private host is rendered from `OLLAMA_URL` into a Git-ignored local values
+file.
 
 ---
 
@@ -263,7 +266,18 @@ spec:
   type: Declarative
   declarative:
     runtime: go
-    modelConfig: local-ollama
+    modelConfig: default-model-config
+    deployment:
+      podSecurityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        runAsGroup: 1001
+        seccompProfile:
+          type: RuntimeDefault
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop: [ALL]
     systemMessage: |
       You are a read-only Kubernetes inspector for a single cluster.
 
@@ -294,10 +308,65 @@ kubectl -n "$NS" get agent cluster-inspector -o wide
 kubectl -n "$NS" describe agent cluster-inspector | tail -30   # conditions tell you why it is not Accepted
 ```
 
-Test in the UI with the fixed P2 diagnosis prompt. Run it at least 10 times
-without changing the fixture, agent, prompt, or tools, then classify every run
-per `evidence-protocol.md` S3. A diagnosis without a corresponding tool call in
-the logs is a failure even when the answer is correct.
+The agent pod does not execute Kubernetes API calls itself. The bundled remote
+tool server runs as `system:serviceaccount:kagent:kagent-tools`; that is the
+identity to audit. In P2 it could read pods cluster-wide, but could not delete
+deployments, read Secrets, or perform arbitrary verb/resource combinations:
+
+```bash
+kubectl auth can-i get pods --all-namespaces \
+  --as=system:serviceaccount:kagent:kagent-tools
+kubectl auth can-i delete deployments --all-namespaces \
+  --as=system:serviceaccount:kagent:kagent-tools
+kubectl auth can-i get secrets --all-namespaces \
+  --as=system:serviceaccount:kagent:kagent-tools
+kubectl auth can-i '*' '*' --all-namespaces \
+  --as=system:serviceaccount:kagent:kagent-tools
+```
+
+Test with the fixed P2 diagnosis prompt:
+
+> What is wrong with deployment imagepull in namespace kagent-lab, and what is
+> your evidence?
+
+The v0.9.12 CLI cannot invoke this Go agent: it omits the required A2A
+`messageId`. The agent returns `-32602` with `message ID is required`, and the
+controller proxy turns that into a misleading `-32603` decode error. Use the UI
+or send A2A JSON-RPC with a unique `messageId`; do not weaken the server
+validation.
+
+The P2 run used the controller's `/api/a2a/kagent/cluster-inspector/` endpoint
+through a local port-forward. Raw responses were retained outside Git. Tool-call
+events were counted from A2A history; Go uses metadata key `adk_type`, while
+Python uses `kagent_type`.
+
+Classification definitions used for the fixed test:
+
+- **well-formed:** a function-call event has a tool name and object arguments;
+- **no call:** no function-call event is present;
+- **endless loop:** no completed response within 180 seconds, or repeated calls
+  make no progress;
+- **wrong tool:** the call cannot retrieve deployment, pod, event, YAML, or log
+  evidence relevant to the prompt;
+- **invented/no call:** an answer claims cluster state while no call exists.
+
+| Run | Observed tool sequence | Well-formed | No call | Endless | Wrong | Invented/no call |
+|---:|---|---:|---:|---:|---:|---:|
+| 1 | events | 1 | 0 | 0 | 0 | 0 |
+| 2 | events | 1 | 0 | 0 | 0 | 0 |
+| 3 | resources, events | 1 | 0 | 0 | 0 | 0 |
+| 4 | resources, resources, events | 1 | 0 | 0 | 0 | 0 |
+| 5 | resources, events | 1 | 0 | 0 | 0 | 0 |
+| 6 | events | 1 | 0 | 0 | 0 | 0 |
+| 7 | resources, events, resources | 1 | 0 | 0 | 0 | 0 |
+| 8 | resources, resources, events | 1 | 0 | 0 | 0 | 0 |
+| 9 | resources, resources | 1 | 0 | 0 | 0 | 0 |
+| 10 | describe, resources, events | 1 | 0 | 0 | 0 | 0 |
+| **Total runs** | 10 completed with the correct diagnosis | **10** | **0** | **0** | **0** | **0** |
+
+This exact model is usable for bounded, read-only diagnosis with a narrow tool
+allow-list, a fixed timeout, hard RBAC, and evidence correlation. Ten successes
+do not justify unattended write access.
 
 ### Runtime comparison
 
@@ -308,8 +377,25 @@ kubectl -n "$NS" patch agent cluster-inspector --type=merge \
 kubectl -n "$NS" get pods -w
 ```
 
-Record measured startup times. Do not quote upstream's ~2 s / ~15 s at a
-customer without your own numbers.
+Measured on `ok-kagent` with the same Agent, model, prompt, tools, requests and
+limits:
+
+| Runtime | Pod create → Ready | Working set | Behaviour |
+|---|---:|---:|---|
+| Go | 5 s | 23,396,352 B (22.3 MiB) | Correct diagnosis; tool calls recorded with `adk_type` |
+| Python | 17 s | 223,784,960 B (213.4 MiB) | Correct diagnosis; two calls, recorded with `kagent_type` |
+
+Both generated deployments requested `100m` CPU / `384Mi` memory and limited
+the container to `2` CPU / `1Gi`; the working set came from the kubelet Summary
+API because Metrics Server is absent. The Python image is 339 MB and names its
+user `python`; `runAsNonRoot` alone therefore caused
+`CreateContainerConfigError`. Its official image defines UID/GID 1001, which is
+set explicitly in the manifest and works for both runtimes.
+
+Recommendation: use Go by default on this RAM-constrained cluster. Python took
+3.4× as long to become Ready and used about 9.6× the working-set memory in this
+measurement. Select Python only for a required Python/framework integration,
+and retain the numeric UID/GID hardening.
 
 ---
 
@@ -331,7 +417,7 @@ spec:
   type: Declarative
   declarative:
     runtime: go
-    modelConfig: local-ollama
+    modelConfig: default-model-config
     systemMessage: |
       You are a Kubernetes operations agent.
 
@@ -474,7 +560,7 @@ spec:
   type: Declarative
   declarative:
     runtime: go
-    modelConfig: local-ollama
+    modelConfig: default-model-config
     systemMessage: |
       You are the entry point for cluster questions. Decide which specialist
       can answer, delegate, and present the result. Do not answer from your own
@@ -537,7 +623,7 @@ have to be the agent's main LLM:
 spec:
   type: Declarative
   declarative:
-    modelConfig: local-ollama
+    modelConfig: default-model-config
     memory:
       modelConfig: <FILL>        # embedding ModelConfig
       ttlDays: 30                # defaults to 15 when unset
@@ -558,7 +644,7 @@ context:
     eventRetentionSize: 20
     tokenThreshold: 24000
     summarizer:
-      modelConfig: local-ollama    # without this, compacted events are DISCARDED
+      modelConfig: default-model-config # without this, compacted events are DISCARDED
 ```
 
 ---
@@ -640,7 +726,8 @@ first question a customer's security team asks.
 | Helm upgrade fails immediately | values file | `rbac.clusterScoped` still set, or `rbac.namespaces` omits the install namespace |
 | Agent has more power than intended | `kubectl auth can-i --as=system:serviceaccount:...` | Default cluster-scoped RBAC; prompt restrictions are not enforcement |
 | UI unreachable | `kubectl -n kagent get svc kagent-ui` | For 0.9.12 use `svc/kagent-ui` port 8080 and port-forward; no LB pool exists in this lab |
-| Slow first response after idle | pod startup, `spec.declarative.runtime` | Python runtime (~15 s vs ~2 s for Go). Set `runtime: go` explicitly — do not rely on the default, upstream documents it inconsistently |
+| Slow first response after idle | pod startup, `spec.declarative.runtime` | Measured here: Python 17 s vs Go 5 s. Set `runtime: go` explicitly — do not rely on the default, upstream documents it inconsistently |
+| `kagent invoke` fails with `Error.error.data` decode error | repeat with A2A JSON-RPC and a non-empty `messageId` | v0.9.12 CLI omits the required message ID; the controller proxy masks the agent's `-32602` validation error as `-32603` |
 | Everything slow, other GPU consumers suffering | shared GPU | Unbounded agent loop. Bound iterations and timeouts |
 
 Standard collection when opening an issue or asking for help:
