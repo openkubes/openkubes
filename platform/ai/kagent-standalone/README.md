@@ -7,25 +7,56 @@ Prerequisites:
 
 - kagent 0.9.12 installed in namespace `kagent`
 - `default-model-config` points at the private Ollama `gpt-oss:20b` endpoint
-- the `kagent-tool-server` deployment is configured read-only with no Secret
-  access in the cluster-specific `ok-cluster` values
+- the built-in tool server is pinned read-only with no Secret access — that comes
+  from the access profile (see below), not from a hand-edited value
 
 ```bash
 kubectl --kubeconfig "$HOME/.kube/ok-kagent.yaml" apply -k \
   platform/ai/kagent-standalone
 ```
 
-The `kagent-lab` fixtures are intentionally unhealthy. They provide stable,
-known failure modes for grounded diagnosis tests.
+## Layout
 
-The Agent is hardened with the numeric UID/GID 1001 used by the v0.9.12 Python
-image; the same manifest also runs with the Go image. Kubernetes reads are
-executed by the separate `kagent-tools` ServiceAccount, so enforce and audit
-read-only access on that identity rather than relying on the Agent prompt.
+| Path | Contents |
+|---|---|
+| `agents/cluster-inspector.yaml` | the read-only diagnosis Agent — always deployed |
+| `fixtures.yaml` | `kagent-lab` namespace plus three fixtures: `crashloop`, `imagepull`, and a `healthy` control |
+| `kustomization.yaml` | the read path: fixtures + inspector |
+| `access/` | the access profile renderer — **the permission model lives here** |
 
-`operator/` is the optional `read-write` profile. It uses the upstream tool
-image with a second ServiceAccount that can change only ConfigMaps and
-Deployments in `kagent-lab`; all writes require human approval. It is
-intentionally not part of the default Kustomization. The cluster-specific
-installer in `ok-cluster/ok-kagent/kagent` adds or removes this profile through
-`ACCESS_MODE=read-write` or `ACCESS_MODE=read-only`.
+The `crashloop` and `imagepull` fixtures are intentionally unhealthy: they give
+stable, known failure modes for grounded diagnosis tests. The `healthy` fixture is
+the control — an agent that calls everything broken must fail the matrix, and it
+cannot fail without a known-good workload to be wrong about.
+
+## Permissions come from one config
+
+There are no static write manifests in this directory any more. Read-only versus
+read-write, cluster-wide versus a maintained namespace list, gated versus not —
+all of it is generated from a single `access-config.yaml` by
+[`access/render-access.py`](access/README.md).
+
+```bash
+# what would this profile grant?
+make -C <ok-cluster>/ok-kagent/kagent access-summary
+
+# apply it, then prove it against the API server
+make -C <ok-cluster>/ok-kagent/kagent install
+make -C <ok-cluster>/ok-kagent/kagent verify-access
+```
+
+Start at [`access/README.md`](access/README.md) — it explains where the boundary
+actually is, which is the part that matters and the part that is easy to get
+wrong.
+
+## Two facts worth repeating
+
+**The Agent is not the identity.** Kubernetes calls are executed by the *tool
+server's* ServiceAccount, not by the Agent pod. Enforce and audit read-only on
+that identity (`kubectl auth can-i --as=system:serviceaccount:kagent:kagent-tools`),
+never on the Agent's prompt.
+
+**The Agent is hardened for the shipped images.** The manifests set numeric
+UID/GID 1001, which the v0.9.12 Python image requires under `runAsNonRoot`
+(Kubernetes cannot verify a named user). The same manifest runs on the Go image,
+which is what these agents select explicitly.

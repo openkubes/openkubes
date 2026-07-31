@@ -1,0 +1,80 @@
+# Access profile for a standalone kagent installation (OK-129).
+#
+# This file is the single place where the permissions of the deployment are
+# decided. RBAC, the write tool server, the write Agent and the Helm value
+# fragment for the read path are all generated from it:
+#
+#   render-access.py --config access-config.yaml --out .access.local --summary
+#
+# Copy it next to your cluster values (ok-cluster/<cluster>/kagent/) and edit it
+# there. Nothing in this file is private — no endpoints, no credentials.
+kind: KagentAccessProfile
+
+# read-only  : diagnosis only. No write ServiceAccount, Role, tool server or
+#              Agent is created. Switching back to this value removes them.
+# read-write : additionally deploys one scoped, approval-gated write path.
+mode: read-only
+
+install:
+  # Where kagent itself runs. Write targets may never include this namespace —
+  # an agent that can write here could rewrite its own definition.
+  namespace: kagent
+
+read:
+  # Cluster-wide read is the only implemented read scope. Namespaced read
+  # scoping would mean taking over the chart's built-in tool RBAC; that is a
+  # separate, testable change rather than a config flag.
+  scope: cluster
+  # Refused if set to true. No tool identity in this deployment gets Secrets.
+  secrets: false
+  # Tools the diagnostic path exposes. Names must exist in the installed tool
+  # server — check with `kubectl get remotemcpserver kagent-tool-server -o yaml`.
+  tools:
+    - k8s_get_resources
+    - k8s_describe_resource
+    - k8s_get_events
+    - k8s_get_pod_logs
+    - k8s_get_resource_yaml
+
+write:
+  # namespaces : Role + RoleBinding per listed namespace. Preferred.
+  # cluster    : ClusterRole + ClusterRoleBinding. Every namespace, including
+  #              ones created later. Only with an approval gate.
+  scope: namespaces
+
+  # Required when scope is `namespaces`, must be empty when scope is `cluster`.
+  # kube-* and the install namespace are refused.
+  namespaces:
+    - kagent-lab
+
+  # Resource kinds the write identity may change. Read verbs are always added,
+  # plus read-only context (pods, pod logs, events) so the agent can verify its
+  # own change. Secrets, RBAC objects, ServiceAccounts, Namespaces, Nodes, CRDs
+  # and webhook configurations can never be granted.
+  #
+  # Supported: configmaps, deployments, statefulsets, daemonsets, replicasets,
+  #            services, ingresses, jobs, cronjobs, pods (delete only)
+  resources:
+    - configmaps
+    - deployments
+
+  # Every write tool goes through Approve/Reject in the UI. Setting this to
+  # false is refused when scope is `cluster`, and warns otherwise.
+  requireApproval: true
+
+  # The write tool server runs in its own namespace so its identity stays
+  # separately auditable and cannot be modified by the agent using it.
+  toolServer:
+    namespace: kagent-write
+    releaseName: kagent-write-tools
+    port: 8084
+    metricsPort: 8085
+
+  agentName: cluster-operator-gated
+
+  # Tool names the write identity exposes. Must exist in the installed tool
+  # server; the renderer does not invent names.
+  tools:
+    - k8s_apply_manifest
+    - k8s_patch_resource
+    - k8s_delete_resource

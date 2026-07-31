@@ -21,3 +21,7 @@ platform/**/.evidence/
 # macOS
 .venv/
 .DS_Store
+
+# Python bytecode (renderers and tests under platform/)
+__pycache__/
+*.pyc

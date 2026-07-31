@@ -28,6 +28,22 @@ MCP server, multi-agent orchestration, memory/pgvector, skills, OIDC, three-node
 controller HA, and a minor-version migration. They are separate follow-up
 questions, not prerequisites for learning to operate kagent well.
 
+## The permission model is the deliverable people will ask about
+
+kagent can be deployed here in two roles, chosen at install time from **one
+config file** — read-only diagnosis, or additionally an approval-gated write path
+scoped either to a maintained list of namespaces or to the whole cluster. RBAC,
+the write tool server and the write Agent are generated from that file, so the
+documented boundary and the deployed boundary cannot drift apart.
+
+Where the boundary actually sits, in one sentence: **Kubernetes calls are executed
+by the tool server's ServiceAccount, not by the Agent** — so `toolNames`,
+`requireApproval` and the system prompt shape intent, and RBAC decides capability.
+
+Start at
+[`platform/ai/kagent-standalone/access/README.md`](../../platform/ai/kagent-standalone/access/README.md);
+`reference.md` §7.1 has the same thing in context.
+
 ## Documents
 
 | Document | Purpose | Audience |

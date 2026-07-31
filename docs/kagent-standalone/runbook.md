@@ -16,6 +16,24 @@ minor-version migrations are not part of this run.
 
 ## 0. Safety and local setup
 
+### Local prerequisites
+
+| Tool | Why |
+|---|---|
+| `kubectl` | everything |
+| `helm` | the install path |
+| `python3` with PyYAML | renders the private values file and the access profile |
+
+`make -C <ok-cluster>/ok-kagent/kagent preflight` checks all of them plus the
+repository layout, and fails with the missing name rather than a stack trace.
+
+The Makefile targets use POSIX tools (`grep`, `sed`, `sort`) plus python3 only.
+No ripgrep, no `envsubst`, no BSD-only `stat` flags — they behave the same on
+macOS and Linux. If you add a step that needs something else, add it to
+`preflight` in the same commit.
+
+### Safety
+
 All Kubernetes and Helm commands must explicitly use the dedicated lab
 kubeconfig. Never place the private model endpoint in Git.
 
@@ -28,6 +46,9 @@ export OLLAMA_URL='<private endpoint>'
 test "$(kubectl --kubeconfig "$KUBECONFIG" config current-context)" = \
   'ok-kagent-admin@ok-kagent'
 ```
+
+Every `make` target re-checks the context itself before it changes anything, so a
+switched kubeconfig aborts instead of hitting the wrong cluster.
 
 Public files must not contain:
 
@@ -45,16 +66,20 @@ The supported path lives in the `ok-cluster` repository:
 
 ```bash
 export OLLAMA_URL='<private endpoint>'
+make -C <ok-cluster>/ok-kagent/kagent preflight
 make -C <ok-cluster>/ok-kagent/kagent install
 ```
 
 The target:
 
-1. verifies the expected context;
-2. renders the private endpoint into a mode-0600, Git-ignored values file;
-3. installs the CRD chart first;
-4. installs the application chart;
-5. waits for readiness.
+1. checks local tools, the access config and the openkubes assets;
+2. verifies the expected context;
+3. renders the private endpoint into a mode-0600, Git-ignored values file, and
+   deletes it again if any placeholder survived;
+4. renders the access profile from `access-config.yaml` (§5);
+5. installs the CRD chart first, then the application chart;
+6. applies the read path and adds or removes the write path to match the profile;
+7. verifies the resulting RBAC boundary and prints the active profile.
 
 Helm is the source of truth. The CLI may be useful for a disposable demo, but
 its generated configuration and cleanup were less predictable in the observed
@@ -151,7 +176,9 @@ that it works.
 The private model address exists only in the locally rendered values file:
 
 ```bash
-test "$(stat -f '%Lp' <ok-cluster>/ok-kagent/kagent/.values.local.yaml)" = 600
+# portable on macOS and Linux — `stat` flags are not
+test "$(python3 -c 'import os,sys;print(oct(os.stat(sys.argv[1]).st_mode & 0o777)[2:])' \
+  <ok-cluster>/ok-kagent/kagent/.values.local.yaml)" = 600
 git -C <ok-cluster> check-ignore ok-kagent/kagent/.values.local.yaml
 ```
 
@@ -204,6 +231,10 @@ Expected result for the default operating path:
 If any write or Secret check returns `yes`, stop. The Agent is not read-only
 until the tool identity is fixed and the checks pass.
 
+`make verify-access` runs exactly these assertions plus the ones for whichever
+write profile is active (§5), so use it routinely and keep the manual commands
+for when you need to see a single answer.
+
 ### Invoke and verify grounding
 
 Use the dashboard while watching controller and agent logs. Start with:
@@ -248,50 +279,122 @@ Observed once with the same Agent configuration:
 Use Go by default on the lab cluster. Select Python only for a required Python
 integration and measure its impact again.
 
-## 5. Controlled write exercise
+## 5. Access profiles: read-only and scoped write
 
-The operating PoC must not reuse the cluster-wide read tool identity for
-writes. Create a separate tool path whose Kubernetes identity:
+The deployment has two roles, selected at install time from one file:
+`<ok-cluster>/ok-kagent/kagent/access-config.yaml`. RBAC, the write tool server
+and the write Agent are all generated from it, so the documented boundary and the
+deployed boundary cannot drift apart.
 
-- can read and change only ConfigMaps in `kagent-lab`;
-- cannot access Secrets;
-- cannot write in any other namespace;
-- has no cluster-wide permissions.
+### Where the boundary is
 
-The write Agent exposes only:
+| Layer | Constrains | Strength |
+|---|---|---|
+| `systemMessage` | intent | soft — a prompt |
+| `toolNames` | which tools the model sees | medium — configuration |
+| `requireApproval` | which calls wait for a human | medium — a workflow gate |
+| **tool-server ServiceAccount RBAC** | what the identity *can* do | **hard — the only real boundary** |
 
-- read tools needed to verify the fixture;
-- ConfigMap create/update/delete;
-- `requireApproval` on every write tool.
+Two things follow, and both belong in a customer conversation:
 
-Before deployment, prove the tool identity with `kubectl auth can-i`. Stop if
-namespace isolation cannot be enforced.
+1. **The Agent is not the identity.** Kubernetes calls are executed by the *tool
+   server's* ServiceAccount. Auditing an Agent manifest tells you intent;
+   `kubectl auth can-i --as=<tool SA>` tells you capability.
+2. **Existence and use are separate.** The profile controls whether a write
+   identity exists. Once a write tool server exists, any Agent in the cluster
+   could reference it — nothing upstream prevents that. Treat an installed write
+   path as a cluster-level fact, and switch it off when a drill ends.
 
-Exercise only reversible objects:
+### The two profiles
 
-1. ask the Agent to create a ConfigMap in `kagent-lab`;
+`mode: read-only` — cluster-wide read, no writes, no Secrets, on the chart's
+built-in tool server. Nothing is generated for a write path, and re-installing in
+this mode *removes* a previously generated one.
+
+`mode: read-write` — additionally deploys one scoped write path:
+
+```
+Agent cluster-operator-gated (namespace kagent)
+  ├── reads  via kagent-tool-server   → SA kagent/kagent-tools          cluster read, no Secrets
+  └── writes via kagent-write-tools   → SA kagent-write/kagent-write-tools
+                                         └── Role+RoleBinding per target namespace
+                                             or ClusterRole+ClusterRoleBinding
+```
+
+The write tool server runs in its **own** namespace, never inside a namespace it
+may change — otherwise the agent could patch the tool server it is using.
+
+### Configuring the write scope
+
+```yaml
+mode: read-write
+write:
+  scope: namespaces          # or: cluster
+  namespaces: [kagent-lab]   # must be empty when scope is cluster
+  resources: [configmaps, deployments]
+  requireApproval: true
+```
+
+```bash
+make -C <ok-cluster>/ok-kagent/kagent access-summary   # what would this grant?
+make -C <ok-cluster>/ok-kagent/kagent install          # apply it
+make -C <ok-cluster>/ok-kagent/kagent verify-access    # prove it
+```
+
+Refused by the renderer whatever the config says: Secrets in any scope; RBAC
+objects, ServiceAccounts, Namespaces, Nodes, CRDs, webhooks; `*` as a resource;
+the `kagent` install namespace as a write target; `kube-*` namespaces; and an
+ungated cluster-wide writer. It exits non-zero and generates nothing. Target
+namespaces are never created by the profile — a missing one is an error, not an
+invitation.
+
+Full reference: `platform/ai/kagent-standalone/access/README.md`.
+
+### Verify the identity, not the manifest
+
+```bash
+make -C <ok-cluster>/ok-kagent/kagent verify-access
+```
+
+Asserts against the API server: the read identity reads but cannot write, cannot
+read Secrets and has no wildcard; the write identity works inside its configured
+scope, is denied outside it and cannot create RoleBindings; and in read-only mode
+the write Agent, its `RemoteMCPServer` and the `kagent-write` namespace do not
+exist. A chart upgrade that quietly widens RBAC fails this target.
+
+### The drill
+
+Exercise reversible objects only:
+
+1. ask the Agent to create a ConfigMap in a configured write namespace;
 2. inspect the proposed payload and approve it;
 3. ask for an update and reject it with a reason;
 4. verify that the rejected change did not land;
-5. give an ambiguous ConfigMap request and confirm `ask_user` is used;
-6. approve deletion of the test ConfigMap;
-7. remove the write Agent when the exercise ends.
+5. give an ambiguous request and confirm `ask_user` is used;
+6. approve deletion of the test object;
+7. switch back to `mode: read-only` and re-install.
 
 There is no ungated or cluster-wide write test in OK-129.
 
-Observed result:
+### Observed results
 
-- the scoped identity could create and delete ConfigMaps in `kagent-lab`;
+The recorded drill ran against a **ConfigMap-only** profile in `kagent-lab`:
+
+- the scoped identity could create and delete ConfigMaps there;
 - it could not create ConfigMaps in `default`, read Secrets, or use wildcard
   permissions;
-- an approved apply created the expected test ConfigMap and a read tool verified
-  it;
+- an approved apply created the expected ConfigMap and a read tool verified it;
 - a rejected patch did not change the ConfigMap;
-- after rejection, the local model initially asked for approval again. The
-  system prompt was tightened to prohibit retrying a rejected tool call;
-- the second rejection run went directly to the kagent tool-approval gate,
-  accepted the rejection reason, did not retry, and left the ConfigMap
-  unchanged.
+- after the first rejection the local model asked for approval again; the system
+  prompt was tightened to prohibit retrying a rejected tool call;
+- the second rejection run went straight to the approval gate, accepted the
+  reason, did not retry, and left the object unchanged.
+
+> **Not yet evidenced.** The profile now supports `deployments` and the other
+> workload kinds, and `scope: cluster`. Only the ConfigMap path above has been
+> exercised on a live cluster. Before either is claimed to a customer, re-run the
+> drill for it and record the result here — the renderer's tests prove the *RBAC
+> shape*, not the agent's behaviour with a rollout it can break.
 
 ## 6. Restart and recovery drill
 
@@ -393,7 +496,10 @@ Do not claim HA, disaster recovery, or automatic rollback from this setup.
 | UI unreachable | `svc/kagent-ui` and port-forward | No public endpoint by design |
 | Slow or unschedulable Agent | pod events and runtime | Resource pressure; prefer Go |
 | CLI invoke returns a decode error | UI or direct A2A with message ID | Known v0.9.12 CLI request issue observed in this lab |
-| Agent has excess power | `kubectl auth can-i --as=...` | Tool-server RBAC is broader than intended |
+| Agent has excess power | `make verify-access`, then `kubectl auth can-i --as=...` | Tool-server RBAC is broader than the profile intends |
+| Write tools missing after a profile change | `make access-summary`, `make status` | Profile is still `read-only`, or the re-install was not run |
+| Install aborts on a missing write namespace | the namespace list in `access-config.yaml` | Target namespaces are never created by the profile — create it, or drop it from the list |
+| RoleBindings bind nothing | ServiceAccount in the write namespace | The tools chart stopped creating the SA; the installer fails on this deliberately |
 
 Minimal collection:
 
@@ -440,6 +546,10 @@ values structure changes.
 - [ ] `cluster-inspector` produces a grounded diagnosis for all core fixtures.
 - [ ] The broader local-model test matrix is recorded internally.
 - [ ] The actual read tool identity has no write or Secret permission.
+- [ ] `make verify-access` passes for the active profile, and the operator can
+      say which file decides it.
+- [ ] Switching `mode` in `access-config.yaml` and re-installing visibly adds or
+      removes the write path.
 - [ ] One namespace-scoped ConfigMap write flow passes Approve, Reject, and
       `ask_user`.
 - [ ] Controller and Agent restart timings are recorded.

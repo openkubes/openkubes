@@ -557,6 +557,59 @@ Rule to carry into every customer conversation: **audit the executing identity,
 not the agent definition.** An agent whose SA can delete deployments is a
 delete-capable agent, whatever its prompt says.
 
+#### The executing identity is the tool server, not the Agent
+
+This catches people out. A declarative Agent does not call the Kubernetes API
+itself; it calls an MCP tool server, and *that* server's ServiceAccount is the
+identity the API server authorises. So:
+
+```
+Agent pod            → no cluster credentials of its own
+  └── MCP tool server → ServiceAccount → RBAC → Kubernetes API
+```
+
+Consequences:
+
+- `kubectl auth can-i --as=system:serviceaccount:<ns>:<tool-sa>` is the only
+  honest audit. Reading the Agent manifest tells you intent.
+- Several Agents sharing one tool server share one permission set. Separating
+  read from write therefore means separating *tool servers*, not writing a
+  stricter prompt.
+- The shipped chart's tool server is cluster-wide capable. Upstream's
+  `rbac.readOnly=false` switch grants it cluster-admin-like write — do not reach
+  for it. A second tool server with its own ServiceAccount and a scoped Role is
+  the correct shape.
+- **Existence and use are different questions.** Once a write-capable tool server
+  exists, any Agent in the cluster can reference it; kagent has no admission
+  control over that. Whether a write identity exists at all is a deployment-level
+  decision, not a per-agent detail.
+
+#### How this deployment configures it
+
+Both roles come from one declarative file, `access-config.yaml`, rendered into
+RBAC, the write tool server and the write Agent by
+`platform/ai/kagent-standalone/access/render-access.py`:
+
+| Knob | Values | Effect |
+|---|---|---|
+| `mode` | `read-only` \| `read-write` | whether a write identity exists at all |
+| `write.scope` | `namespaces` \| `cluster` | Role per namespace, or one ClusterRole |
+| `write.namespaces` | list | the maintained set of write targets |
+| `write.resources` | list | which kinds may be changed |
+| `write.requireApproval` | `true` \| `false` | Approve/Reject gate per write tool |
+
+The generator refuses, whatever the config says: Secrets in any scope; RBAC
+objects, ServiceAccounts, Namespaces, Nodes, CRDs and webhooks; `*` as a
+resource; the install namespace as a write target; `kube-*` namespaces; and an
+ungated cluster-wide writer. Those are refusals, not defaults — it exits non-zero
+and generates nothing.
+
+Generating rather than hand-maintaining is a deliberate choice: RBAC that has to
+stay in sync with a prompt, a tool allow-list and a Helm value across two
+repositories drifts, and it did drift here once — a widened Role shipped while
+the documentation still described the narrow one. See
+[`access/README.md`](../../platform/ai/kagent-standalone/access/README.md).
+
 ### 7.2 RBAC scoping (changed in 0.9)
 
 `rbac.clusterScoped` was **removed**. Scope now derives from `rbac.namespaces`:
