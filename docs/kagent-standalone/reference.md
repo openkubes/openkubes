@@ -192,7 +192,9 @@ metadata:
   name: cluster-ops-agent
   namespace: kagent
 spec:
-  description: Inspects and (with approval) repairs workloads in this cluster.
+  # Upstream CRD shape only. This lab's renderer does not grant workload write —
+  # see §7.1. Keep an Agent's description inside what its tool identity can do.
+  description: Inspects workloads and (with approval) edits scoped ConfigMaps.
   type: Declarative
   declarative:
     runtime: go                       # always set it explicitly — see §5.2
@@ -549,8 +551,8 @@ This section decides whether we can responsibly deploy kagent at a customer.
 |---|---|---|
 | `systemMessage` | intent | **soft** — a prompt, nothing more |
 | `toolNames` allow-list | which tools the model sees | **medium** — configuration, not enforcement |
-| `requireApproval` | which tool calls need a human | **medium** — workflow gate; depends on a human paying attention |
-| ServiceAccount RBAC | what the executing identity *can* do against the API server | **hard** — the only real boundary |
+| `requireApproval` | which tool calls need a human, **on the Agent that declares it** | **medium** — a per-Agent workflow gate, not a server-side policy; depends on a human paying attention |
+| ServiceAccount RBAC | which API calls the executing identity may make | **hard** — the only enforced boundary here; note that some permissions reach further than the verbs they name — see "Why the executable surface is smaller than the product's" below |
 | `SandboxAgent` / gVisor + network allowlist | process and network isolation | **hard** for the runtime, orthogonal to RBAC |
 
 Rule to carry into every customer conversation: **audit the executing identity,
@@ -583,38 +585,75 @@ Consequences:
   exists, any Agent in the cluster can reference it; kagent has no admission
   control over that. Whether a write identity exists at all is a deployment-level
   decision, not a per-agent detail.
+- **`requireApproval` does not travel with the tool server.** It is declared on an
+  Agent's *reference* to a tool server, so it constrains that Agent and nothing
+  else. Stated precisely, and this is the sentence to reuse: *the generated
+  operator Agent is approval-gated; the shared write tool server and its
+  Kubernetes identity are not themselves protected by that approval policy.* If
+  approval has to be a hard capability boundary rather than a workflow
+  convenience, it needs enforcement in the tool server or another server-side
+  authorization mechanism — neither exists upstream today.
 
 #### How this deployment configures it
 
 Both roles come from one declarative file, `access-config.yaml`, rendered into
 RBAC, the write tool server and the write Agent by
-`platform/ai/kagent-standalone/access/render-access.py`:
+`research/kagent-standalone/access/render-access.py`:
 
 | Knob | Values | Effect |
 |---|---|---|
 | `mode` | `read-only` \| `read-write` | whether a write identity exists at all |
-| `write.scope` | `namespaces` \| `cluster` | Role per namespace, or one ClusterRole |
-| `write.namespaces` | list | the maintained set of write targets |
-| `write.resources` | list | which kinds may be changed |
-| `write.requireApproval` | `true` \| `false` | Approve/Reject gate per write tool |
+| `write.scope` | `namespaces` | one Role + RoleBinding per listed namespace. `cluster` is refused |
+| `write.namespaces` | non-empty list | the explicit set of write targets |
+| `write.resources` | `[configmaps]` | the only renderable write surface in v1 |
+| `write.requireApproval` | `true` | must be true; the gate is per-Agent, see above |
 
 The generator refuses, whatever the config says: Secrets in any scope; RBAC
 objects, ServiceAccounts, Namespaces, Nodes, CRDs and webhooks; `*` as a
-resource; the install namespace as a write target; `kube-*` namespaces; and an
-ungated cluster-wide writer. Those are refusals, not defaults — it exits non-zero
-and generates nothing.
+resource; the install namespace, the tool server's own namespace, `kube-*` and
+`default` as write targets; `write.scope: cluster`; `requireApproval: false`; a
+mutating tool name in the ungated `read.tools` reference; and every write kind
+beyond ConfigMaps. Those are refusals, not defaults — it exits non-zero and
+generates nothing.
+
+#### Why the executable surface is smaller than the product's
+
+The renderer produces only the profile that has been exercised on a live cluster
+and recorded in [`evidence-protocol.md`](evidence-protocol.md): approval-gated
+ConfigMap writes in an explicit namespace list. Two of the refusals are boundary
+problems rather than test gaps, which is why they are refused instead of flagged:
+
+- **`write.scope: cluster`.** A `ClusterRoleBinding` applies in every namespace,
+  including `kagent`, `kagent-write`, `kube-system` and namespaces created later,
+  and RBAC cannot express an exclusion. The renderer's protected-namespace checks
+  hold precisely because they iterate an explicit list, so no additional condition
+  can make them true for a cluster-scoped binding.
+- **Workload kinds.** **Pod-template mutation on a Deployment, StatefulSet,
+  DaemonSet or Job can reach existing Secrets or a more privileged ServiceAccount
+  in the same namespace** — by setting a different `serviceAccountName`, mounting a
+  Secret that already exists, or changing the image and command — without ever
+  calling the Secret API. RBAC alone does not prevent it; admission control does.
+  So the accurate claim is that *no direct Secret, ServiceAccount or RBAC API
+  permission is granted*, not that escalation is unreachable. Workload write needs
+  narrowly typed repair tools with deterministic field restrictions, or a
+  documented and tested admission-policy boundary, before it can be offered.
 
 Generating rather than hand-maintaining is a deliberate choice: RBAC that has to
 stay in sync with a prompt, a tool allow-list and a Helm value across two
 repositories drifts, and it did drift here once — a widened Role shipped while
 the documentation still described the narrow one. See
-[`access/README.md`](../../platform/ai/kagent-standalone/access/README.md).
+[`access/README.md`](../../research/kagent-standalone/access/README.md).
 
-### 7.2 RBAC scoping (changed in 0.9)
+### 7.2 RBAC scoping in the upstream chart (changed in 0.9)
+
+This section describes what the **upstream kagent chart** does with
+`rbac.namespaces`. It is not what this lab's access renderer produces — that one
+emits namespaced `Role`/`RoleBinding` only and refuses cluster scope outright
+(§7.1).
 
 `rbac.clusterScoped` was **removed**. Scope now derives from `rbac.namespaces`:
 
-| `rbac.namespaces` | Result | Watched |
+| `rbac.namespaces` | Result *(upstream chart, not this renderer)* | Watched |
 |---|---|---|
 | `[]` (default) | `ClusterRole` + `ClusterRoleBinding` | all namespaces |
 | non-empty list | `Role` + `RoleBinding` per listed namespace | that list, unless `controller.watchNamespaces` overrides |

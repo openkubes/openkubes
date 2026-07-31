@@ -7,13 +7,26 @@ Prerequisites:
 
 - kagent 0.9.12 installed in namespace `kagent`
 - `default-model-config` points at the private Ollama `gpt-oss:20b` endpoint
-- the built-in tool server is pinned read-only with no Secret access — that comes
-  from the access profile (see below), not from a hand-edited value
+- the built-in tool server is pinned read-only with no Secret permission — that
+  comes from the access profile (see below), not from a hand-edited value
 
 ```bash
 kubectl --kubeconfig "$HOME/.kube/ok-kagent.yaml" apply -k \
-  platform/ai/kagent-standalone
+  research/kagent-standalone
 ```
+
+## Why this lives under `research/` and not `platform/`
+
+`platform/` is the contracted platform tree: what is there is part of OpenKubes,
+governed by an ADR, and something the platform commits to. This PoC is
+deliberately none of those things — it has no ADR, no contract, and no consumer,
+and whether kagent enters OpenKubes at all is a decision to be made *after* this
+work on the evidence it produces.
+
+A README disclaimer does not change what a directory means architecturally, so the
+placement was corrected rather than annotated. If this work is later adopted, the
+move into `platform/ai/` is part of that adoption — with an ADR, a contract and a
+named consumer — not a precondition for evaluating it.
 
 ## Layout
 
@@ -32,9 +45,14 @@ cannot fail without a known-good workload to be wrong about.
 ## Permissions come from one config
 
 There are no static write manifests in this directory any more. Read-only versus
-read-write, cluster-wide versus a maintained namespace list, gated versus not —
-all of it is generated from a single `access-config.yaml` by
-[`access/render-access.py`](access/README.md).
+read-write, and which namespaces are write targets, are generated from a
+single `access-config.yaml` by [`access/render-access.py`](access/README.md).
+
+The renderable write surface is intentionally the evidenced one and nothing more:
+**approval-gated ConfigMap writes in an explicit list of namespaces.** Workload
+kinds, Services, Ingresses, Pod deletion, ungated writes and cluster-wide scope
+are candidate work and are *refused* by the renderer with the reason — see
+[`access/README.md`](access/README.md#candidate-work--recognised-refused-and-why).
 
 ```bash
 # what would this profile grant?
@@ -49,12 +67,22 @@ Start at [`access/README.md`](access/README.md) — it explains where the bounda
 actually is, which is the part that matters and the part that is easy to get
 wrong.
 
-## Two facts worth repeating
+## Three facts worth repeating
 
 **The Agent is not the identity.** Kubernetes calls are executed by the *tool
 server's* ServiceAccount, not by the Agent pod. Enforce and audit read-only on
 that identity (`kubectl auth can-i --as=system:serviceaccount:kagent:kagent-tools`),
 never on the Agent's prompt.
+
+**The approval gate belongs to the generated Agent, not to the tool server.** Said
+precisely, in the wording every document in this set uses: *the generated operator
+Agent is approval-gated; the shared write tool server and its Kubernetes identity
+are not themselves protected by that approval policy.* `requireApproval` is
+configured on that Agent's reference to the write tools; another Agent referencing
+the same `RemoteMCPServer` is not forced to declare it, and nothing upstream
+prevents that. Making approval a hard capability boundary needs enforcement in the
+tool server or another server-side authorization mechanism, which does not exist
+here.
 
 **The Agent is hardened for the shipped images.** The manifests set numeric
 UID/GID 1001, which the v0.9.12 Python image requires under `runAsNonRoot`

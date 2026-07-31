@@ -12,7 +12,12 @@ the installation, and document the observed limits.
 
 This set is deliberately **decoupled from the OpenKubes ADRs**. It does not
 change a contract, does not commit the platform to anything, and does not
-supersede existing work:
+supersede existing work. The executable assets live under
+[`research/kagent-standalone/`](../../research/kagent-standalone/README.md) rather
+than under `platform/`, because placement in the platform tree carries
+architectural meaning that a disclaimer cannot cancel: `platform/` is contracted,
+ADR-governed work, and this is not. Adoption — if it happens — moves the assets
+there together with an ADR, a contract and a named consumer.
 
 | Existing work | Relationship |
 |---|---|
@@ -31,17 +36,37 @@ questions, not prerequisites for learning to operate kagent well.
 ## The permission model is the deliverable people will ask about
 
 kagent can be deployed here in two roles, chosen at install time from **one
-config file** — read-only diagnosis, or additionally an approval-gated write path
-scoped either to a maintained list of namespaces or to the whole cluster. RBAC,
-the write tool server and the write Agent are generated from that file, so the
-documented boundary and the deployed boundary cannot drift apart.
+config file** — read-only diagnosis, or additionally an approval-gated ConfigMap
+write path scoped to an explicit list of namespaces (`[kagent-lab]` is the
+evidenced one). RBAC, the write tool server and the
+write Agent are generated from that file, so the documented boundary and the
+deployed boundary cannot drift apart.
 
 Where the boundary actually sits, in one sentence: **Kubernetes calls are executed
 by the tool server's ServiceAccount, not by the Agent** — so `toolNames`,
 `requireApproval` and the system prompt shape intent, and RBAC decides capability.
 
+Two corollaries that are easy to overstate, so they are stated here in the form we
+will use with a customer:
+
+- **The generated operator Agent is approval-gated. The shared write tool server
+  and its Kubernetes identity are not themselves protected by that approval
+  policy.** `requireApproval` sits on that one Agent's tool reference; a second
+  Agent could reference the same tool server without it. Making approval a hard
+  capability boundary would require enforcement in the tool server or another
+  server-side authorization mechanism, which does not exist upstream today.
+- **No direct Secret, ServiceAccount or RBAC API permission is granted to the write
+  identity.** That is a claim about permissions, not a proof that no indirect path
+  exists: pod-template mutation on a Deployment, StatefulSet, DaemonSet or Job can
+  reach existing Secrets or a more privileged ServiceAccount in the same namespace
+  without calling the Secret API, and only admission control prevents it. That is
+  one reason the renderable write surface is ConfigMaps only.
+
+The renderer refuses everything wider — workload kinds, Services, Ingresses, Pod
+deletion, ungated writes, cluster-wide scope — as candidate work.
+
 Start at
-[`platform/ai/kagent-standalone/access/README.md`](../../platform/ai/kagent-standalone/access/README.md);
+[`research/kagent-standalone/access/README.md`](../../research/kagent-standalone/access/README.md);
 `reference.md` §7.1 has the same thing in context.
 
 ## Documents

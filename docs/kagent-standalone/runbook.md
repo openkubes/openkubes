@@ -188,7 +188,7 @@ Apply the reusable fixtures and Agent:
 
 ```bash
 kubectl --kubeconfig "$KUBECONFIG" apply -k \
-  <openkubes>/platform/ai/kagent-standalone
+  <openkubes>/research/kagent-standalone
 
 kubectl --kubeconfig "$KUBECONFIG" -n "$NS" \
   wait --for=condition=Ready agent/cluster-inspector --timeout=180s
@@ -292,10 +292,10 @@ deployed boundary cannot drift apart.
 |---|---|---|
 | `systemMessage` | intent | soft — a prompt |
 | `toolNames` | which tools the model sees | medium — configuration |
-| `requireApproval` | which calls wait for a human | medium — a workflow gate |
-| **tool-server ServiceAccount RBAC** | what the identity *can* do | **hard — the only real boundary** |
+| `requireApproval` | which calls wait for a human, on the Agent that declares it | medium — a per-Agent workflow gate |
+| **tool-server ServiceAccount RBAC** | which API calls the identity may make | **hard — the only enforced boundary here.** Note: some permissions reach further than the verbs they name — see the caveat under "Configuring the write scope" |
 
-Two things follow, and both belong in a customer conversation:
+Three things follow, and all three belong in a customer conversation:
 
 1. **The Agent is not the identity.** Kubernetes calls are executed by the *tool
    server's* ServiceAccount. Auditing an Agent manifest tells you intent;
@@ -304,21 +304,26 @@ Two things follow, and both belong in a customer conversation:
    identity exists. Once a write tool server exists, any Agent in the cluster
    could reference it — nothing upstream prevents that. Treat an installed write
    path as a cluster-level fact, and switch it off when a drill ends.
+3. **The approval gate is per-Agent, not server-side.** The generated operator
+   Agent is approval-gated; the shared write tool server and its Kubernetes
+   identity are not themselves protected by that approval policy. A hard approval
+   boundary would need enforcement in the tool server or another server-side
+   authorization mechanism.
 
 ### The two profiles
 
-`mode: read-only` — cluster-wide read, no writes, no Secrets, on the chart's
-built-in tool server. Nothing is generated for a write path, and re-installing in
-this mode *removes* a previously generated one.
+`mode: read-only` — cluster-wide read, no writes, no Secret permission, on the
+chart's built-in tool server. Nothing is generated for a write path, and
+re-installing in this mode *removes* a previously generated one.
 
 `mode: read-write` — additionally deploys one scoped write path:
 
 ```
 Agent cluster-operator-gated (namespace kagent)
-  ├── reads  via kagent-tool-server   → SA kagent/kagent-tools          cluster read, no Secrets
+  ├── reads  via kagent-tool-server   → SA kagent/kagent-tools          cluster read, no Secret permission
   └── writes via kagent-write-tools   → SA kagent-write/kagent-write-tools
-                                         └── Role+RoleBinding per target namespace
-                                             or ClusterRole+ClusterRoleBinding
+                                         └── Role+RoleBinding per listed namespace
+                                             (never a cluster-scoped binding)
 ```
 
 The write tool server runs in its **own** namespace, never inside a namespace it
@@ -326,13 +331,15 @@ may change — otherwise the agent could patch the tool server it is using.
 
 ### Configuring the write scope
 
+This is the whole v1 write surface. There is no wider option to choose:
+
 ```yaml
 mode: read-write
 write:
-  scope: namespaces          # or: cluster
-  namespaces: [kagent-lab]   # must be empty when scope is cluster
-  resources: [configmaps, deployments]
-  requireApproval: true
+  scope: namespaces          # the only scope; `cluster` is refused
+  namespaces: [kagent-lab]   # explicit, non-empty
+  resources: [configmaps]    # the only renderable write kind
+  requireApproval: true      # must be true
 ```
 
 ```bash
@@ -343,12 +350,22 @@ make -C <ok-cluster>/ok-kagent/kagent verify-access    # prove it
 
 Refused by the renderer whatever the config says: Secrets in any scope; RBAC
 objects, ServiceAccounts, Namespaces, Nodes, CRDs, webhooks; `*` as a resource;
-the `kagent` install namespace as a write target; `kube-*` namespaces; and an
-ungated cluster-wide writer. It exits non-zero and generates nothing. Target
-namespaces are never created by the profile — a missing one is an error, not an
-invitation.
+the `kagent` install namespace, the tool server's own namespace, `kube-*` and
+`default` as write targets; `scope: cluster`; `requireApproval: false`; a mutating
+tool name in the ungated `read.tools` reference; and every write kind beyond
+ConfigMaps — workload kinds, Services, Ingresses and Pod deletion are candidate
+work. It exits non-zero and generates nothing. Target namespaces are never created
+by the profile — a missing one is an error, not an invitation.
 
-Full reference: `platform/ai/kagent-standalone/access/README.md`.
+Two of those refusals exist because the boundary itself is missing, not because a
+test is missing: a `ClusterRoleBinding` cannot exclude `kagent`, `kube-*` or a
+namespace created tomorrow; and **pod-template mutation on a Deployment,
+StatefulSet, DaemonSet or Job can reach existing Secrets or a more privileged
+ServiceAccount in the same namespace** without touching the Secret API — RBAC
+alone does not stop that, admission control does. So the claim to make is *no
+direct Secret or RBAC API permission is granted*, not "cannot reach Secrets".
+
+Full reference: `research/kagent-standalone/access/README.md`.
 
 ### Verify the identity, not the manifest
 
@@ -356,11 +373,16 @@ Full reference: `platform/ai/kagent-standalone/access/README.md`.
 make -C <ok-cluster>/ok-kagent/kagent verify-access
 ```
 
-Asserts against the API server: the read identity reads but cannot write, cannot
-read Secrets and has no wildcard; the write identity works inside its configured
-scope, is denied outside it and cannot create RoleBindings; and in read-only mode
-the write Agent, its `RemoteMCPServer` and the `kagent-write` namespace do not
-exist. A chart upgrade that quietly widens RBAC fails this target.
+Asserts against the API server: the read identity reads but cannot write, is
+denied on Secrets and has no wildcard; the write identity can patch ConfigMaps
+inside its configured namespaces, is denied outside them, is denied on workload
+controllers for *every* verb including `get`, and cannot create RoleBindings; and
+in read-only mode the write Agent, its `RemoteMCPServer` and the `kagent-write`
+namespace do not exist. A chart upgrade that quietly widens RBAC fails this target.
+
+The write identity's own read context is Pods, Pod logs and Events in its
+namespaces — enough to verify a change it just made. Everything else it reads, it
+reads through the separate read identity.
 
 ### The drill
 
@@ -374,15 +396,17 @@ Exercise reversible objects only:
 6. approve deletion of the test object;
 7. switch back to `mode: read-only` and re-install.
 
-There is no ungated or cluster-wide write test in OK-129.
+There is no ungated or cluster-wide write test in OK-129, and no way to configure
+one: the renderer refuses both.
 
 ### Observed results
 
-The recorded drill ran against a **ConfigMap-only** profile in `kagent-lab`:
+The recorded drill ran against the **ConfigMap-only** profile in `kagent-lab` —
+which is now also the only profile the renderer can produce:
 
 - the scoped identity could create and delete ConfigMaps there;
-- it could not create ConfigMaps in `default`, read Secrets, or use wildcard
-  permissions;
+- it was denied creating ConfigMaps in `default`, denied on Secrets, and had no
+  wildcard permission;
 - an approved apply created the expected ConfigMap and a read tool verified it;
 - a rejected patch did not change the ConfigMap;
 - after the first rejection the local model asked for approval again; the system
@@ -390,11 +414,14 @@ The recorded drill ran against a **ConfigMap-only** profile in `kagent-lab`:
 - the second rejection run went straight to the approval gate, accepted the
   reason, did not retry, and left the object unchanged.
 
-> **Not yet evidenced.** The profile now supports `deployments` and the other
-> workload kinds, and `scope: cluster`. Only the ConfigMap path above has been
-> exercised on a live cluster. Before either is claimed to a customer, re-run the
-> drill for it and record the result here — the renderer's tests prove the *RBAC
-> shape*, not the agent's behaviour with a rollout it can break.
+> **Candidate work, not shipped capability.** Workload kinds, Services, Ingresses,
+> Pod deletion, ungated writes and `scope: cluster` are *refused* by the renderer.
+> Two things have to happen before any of them becomes a real option: the boundary
+> has to exist (typed repair tools with fixed editable fields, or a tested
+> admission policy; for cluster scope, something that can express a namespace
+> exclusion), and the drill above has to be re-run and recorded for it. The
+> renderer's tests prove the *RBAC shape* — never the agent's behaviour with a
+> rollout it can break.
 
 ## 6. Restart and recovery drill
 
@@ -456,7 +483,7 @@ kubectl --kubeconfig "$KUBECONFIG" -n "$NS" \
   logs deploy/kagent-controller --tail=200
 
 kubectl --kubeconfig "$KUBECONFIG" apply -f \
-  <openkubes>/platform/ai/kagent-standalone/agents/cluster-inspector.yaml
+  <openkubes>/research/kagent-standalone/agents/cluster-inspector.yaml
 ```
 
 Do not commit the deliberately broken manifest.
@@ -531,7 +558,7 @@ Reinstall with:
 export OLLAMA_URL='<private endpoint>'
 make -C <ok-cluster>/ok-kagent/kagent install
 kubectl --kubeconfig "$KUBECONFIG" apply -k \
-  <openkubes>/platform/ai/kagent-standalone
+  <openkubes>/research/kagent-standalone
 ```
 
 The observed initial lifecycle completed a clean uninstall and an identical

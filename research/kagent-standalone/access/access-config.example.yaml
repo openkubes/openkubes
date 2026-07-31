@@ -29,6 +29,8 @@ read:
   secrets: false
   # Tools the diagnostic path exposes. Names must exist in the installed tool
   # server — check with `kubectl get remotemcpserver kagent-tool-server -o yaml`.
+  # This reference is rendered *without* an approval gate, so a mutating-looking
+  # name here is refused: write tools belong in write.tools.
   tools:
     - k8s_get_resources
     - k8s_describe_resource
@@ -36,30 +38,42 @@ read:
     - k8s_get_pod_logs
     - k8s_get_resource_yaml
 
+# The write block below is the *entire* v1 write surface: approval-gated
+# ConfigMap writes in an explicit namespace list. That is the profile
+# that was exercised on a live cluster and recorded in
+# docs/kagent-standalone/evidence-protocol.md. Anything wider is candidate work
+# and the renderer refuses it rather than defaulting it — see
+# "Candidate work" in access/README.md.
 write:
-  # namespaces : Role + RoleBinding per listed namespace. Preferred.
-  # cluster    : ClusterRole + ClusterRoleBinding. Every namespace, including
-  #              ones created later. Only with an approval gate.
+  # `namespaces` is the only scope. `cluster` is refused: a ClusterRoleBinding
+  # applies in every namespace, including kagent, kagent-write, kube-* and any
+  # namespace created later, and RBAC cannot express those exclusions.
   scope: namespaces
 
-  # Required when scope is `namespaces`, must be empty when scope is `cluster`.
-  # kube-* and the install namespace are refused.
+  # Required, must be non-empty. Refused: kube-*, `default`, the install
+  # namespace, and the write tool server's own namespace. One Role +
+  # RoleBinding is rendered per entry, so widening this list is visible in the
+  # manifests. `[kagent-lab]` is the profile the recorded drill was run against.
   namespaces:
     - kagent-lab
 
-  # Resource kinds the write identity may change. Read verbs are always added,
-  # plus read-only context (pods, pod logs, events) so the agent can verify its
-  # own change. Secrets, RBAC objects, ServiceAccounts, Namespaces, Nodes, CRDs
-  # and webhook configurations can never be granted.
+  # Resource kinds the write identity may change. v1 supports `configmaps` only.
+  # Read verbs are always added, plus read-only context (Pods, Pod logs, Events)
+  # so the agent can verify its own change. No `apps` resource is granted, not
+  # even read — that comes from the separate read identity.
   #
-  # Supported: configmaps, deployments, statefulsets, daemonsets, replicasets,
-  #            services, ingresses, jobs, cronjobs, pods (delete only)
+  # Refused as candidate work: deployments, statefulsets, daemonsets,
+  # replicasets, jobs, cronjobs, services, ingresses, pods (deletion).
+  # Never grantable: secrets, RBAC objects, serviceaccounts, namespaces, nodes,
+  # persistentvolumes, CRDs, webhook configurations, `*`.
   resources:
     - configmaps
-    - deployments
 
-  # Every write tool goes through Approve/Reject in the UI. Setting this to
-  # false is refused when scope is `cluster`, and warns otherwise.
+  # Must be true. Every write tool on the generated Agent goes through
+  # Approve/Reject in the UI. Note what this does and does not mean: it is a
+  # policy of *this Agent's* tool reference, not of the shared write
+  # RemoteMCPServer or of its ServiceAccount. Another Agent referencing the same
+  # tool server is not forced to declare it.
   requireApproval: true
 
   # The write tool server runs in its own namespace so its identity stays

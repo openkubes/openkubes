@@ -16,12 +16,16 @@ docs/*-whitepaper*.pdf
 # Live-cluster evidence can contain private infrastructure details.
 docs/kagent-standalone/.evidence/
 platform/**/.evidence/
+research/**/.evidence/
 !docs/openkubes-family.svg
+
+# Rendered access profiles: generated, and a stale one is misleading.
+.access.local/
 
 # macOS
 .venv/
 .DS_Store
 
-# Python bytecode (renderers and tests under platform/)
+# Python bytecode (renderers and tests under platform/ and research/)
 __pycache__/
 *.pyc
