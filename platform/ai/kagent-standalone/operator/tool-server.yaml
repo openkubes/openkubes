@@ -7,6 +7,6 @@ metadata:
     app.kubernetes.io/part-of: kagent-standalone
     openkubes.io/ticket: OK-129
 spec:
-  description: Namespace-scoped Kubernetes tools for the gated OK-129 write drill.
+  description: Namespace-scoped Kubernetes repair tools for the gated OK-129 write profile.
   protocol: STREAMABLE_HTTP
   url: http://kagent-lab-tools.kagent-lab:8084/mcp

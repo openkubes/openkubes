@@ -23,7 +23,9 @@ image; the same manifest also runs with the Go image. Kubernetes reads are
 executed by the separate `kagent-tools` ServiceAccount, so enforce and audit
 read-only access on that identity rather than relying on the Agent prompt.
 
-`operator/` is a separate, temporary drill. It uses the upstream tool image
-with a second ServiceAccount that can change only ConfigMaps in `kagent-lab`;
-all writes require human approval. It is intentionally not part of the default
-Kustomization.
+`operator/` is the optional `read-write` profile. It uses the upstream tool
+image with a second ServiceAccount that can change only ConfigMaps and
+Deployments in `kagent-lab`; all writes require human approval. It is
+intentionally not part of the default Kustomization. The cluster-specific
+installer in `ok-cluster/ok-kagent/kagent` adds or removes this profile through
+`ACCESS_MODE=read-write` or `ACCESS_MODE=read-only`.

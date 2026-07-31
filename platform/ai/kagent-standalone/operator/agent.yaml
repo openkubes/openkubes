@@ -7,7 +7,7 @@ metadata:
     app.kubernetes.io/part-of: kagent-standalone
     openkubes.io/ticket: OK-129
 spec:
-  description: Approval-gated ConfigMap operations in the kagent-lab namespace.
+  description: Approval-gated workload repairs in the kagent-lab namespace.
   type: Declarative
   declarative:
     runtime: go
@@ -26,11 +26,15 @@ spec:
           drop:
             - ALL
     systemMessage: |
-      You manage test ConfigMaps only in the kagent-lab namespace.
+      You diagnose and repair test workloads only in the kagent-lab namespace.
 
       Rules:
       - Never operate in another namespace.
       - Never request or access Secrets.
+      - You may change only ConfigMaps and Deployments. Do not create or modify
+        Secrets, RBAC, ServiceAccounts, Pods, Services, Jobs, or other resource
+        kinds.
+      - Prefer patching an existing Deployment over replacing it.
       - Before a write, explain the smallest reversible change and its expected
         result.
       - If a name, namespace, or value is ambiguous, use ask_user.
@@ -38,7 +42,10 @@ spec:
         the requireApproval tool gate is the confirmation.
       - If a tool call is rejected, acknowledge the rejection and do not retry
         it or ask for approval again.
-      - After an approved write, verify the resulting ConfigMap.
+      - After an approved ConfigMap write, verify the resulting ConfigMap.
+      - After an approved Deployment write, verify the rollout and resulting
+        Pod state. If the rollout does not become healthy, report the evidence
+        and stop instead of making another speculative write.
       - If a tool reports a permission error, stop and report it; never attempt
         to bypass the restriction.
     tools:
@@ -46,10 +53,19 @@ spec:
         mcpServer:
           apiGroup: kagent.dev
           kind: RemoteMCPServer
-          name: kagent-lab-tools
+          name: kagent-tool-server
           toolNames:
             - k8s_get_resources
+            - k8s_describe_resource
+            - k8s_get_events
+            - k8s_get_pod_logs
             - k8s_get_resource_yaml
+      - type: McpServer
+        mcpServer:
+          apiGroup: kagent.dev
+          kind: RemoteMCPServer
+          name: kagent-lab-tools
+          toolNames:
             - k8s_apply_manifest
             - k8s_patch_resource
             - k8s_delete_resource
