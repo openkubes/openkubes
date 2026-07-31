@@ -71,7 +71,7 @@ layer they share** and to prove the platform contracts are genuinely domain-agno
 
 All four tests resolve YES. Per OK-111's deliverables, this spawns the ok-messaging
 capability spike (Capability → Contract → Implementation Profile → Provider Values →
-Contract Tests), tracked as a follow-up ticket.
+Contract Tests), tracked as OK-134.
 
 ## Consequences
 
@@ -86,7 +86,7 @@ Contract Tests), tracked as a follow-up ticket.
 
 - OK-111: introduce vertical layer + ok-iot; spawn ok-messaging spike. Closed by this
   Accepted decision.
-- New ticket (ok-messaging capability spike): define the Capability, Contract v1,
+- OK-134 (ok-messaging capability spike): define the Capability, Contract v1,
   HiveMQ/Kafka Implementation Profiles, and Contract Tests.
 - Provider Values for the broker profile live in `ok-cluster` (private/VPN-only).
 - EN-first; DE Confluence translation follows.
