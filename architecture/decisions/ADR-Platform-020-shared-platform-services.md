@@ -6,6 +6,7 @@
 **Acceptance trigger:** ok2-rmf (Robotics Fleet — Suchit, external cluster owner) requires centrally operated Keycloak. Per-cluster path is demonstrably insufficient: ADR-019 provisioned its own Keycloak as a deliberate choice; a second consumer (ok2-rmf) arriving at the same need confirms the duplication the Acceptance Condition was designed to detect. All four conditions met: committed deployment (ok2-rmf is a registered external cluster), central operation required (Keycloak), per-cluster path insufficient (duplication across ok-robotics-fleet and ok2-rmf), duplication test passed.
 **Relates:** ADR-Platform-005 (Shared AI Services), ADR-Platform-008 (Dedicated cluster types), ADR-Platform-011 (Secret Contract), ADR-Platform-013 (Cluster registration), ADR-Platform-017 (Constraint Envelopes), ADR-Platform-018 (Observability Capability), ADR-Platform-019 (Robotics Fleet Orchestration — documented counter-evidence for the acceptance trigger)
 **Related work:** OK-81 (parked investigation this ADR consciously supersedes as its carrier)
+**Extended by:** ADR-Platform-028 (Artifact Registry Capability)
 
 ## Context
 
@@ -41,8 +42,8 @@ Naming decision (made 2026-07-14, three-way review):
 |---|---|---|
 | Keycloak | Central OIDC identity | OIDC/OAuth2 endpoints (workloads may still bring profile-local identity, per ADR-019) |
 | MinIO | S3 object storage | S3 API — also the natural Thanos store backend and backup target |
-| Harbor | Container registry | OCI registry API — complements ADR-012 air-gapped mirroring |
-| Secret Backend | Central secrets management | Secret Contract (ADR-011) — implementation may be Vault, Infisical, or a cloud secrets manager; the contract, not the product, is the capability |
+| Artifact Registry | Central OCI artifact registry | Artifact Registry Contract (ADR-028); initial profile `registry-default` (zot). Harbor was the provisional v1 candidate and remains an anticipated enterprise path. Complements ADR-012 air-gapped mirroring |
+| Secret Backend | Central secrets management | Secret Contract (ADR-011 §Secret Contract); datacenter Implementation Profile: ADR-025 — the contract, not the product, is the capability |
 | Thanos | Federated metrics: global query + long-term retention over per-cluster Prometheus | Sidecar/Agent on the ADR-018 per-cluster stack |
 | Central Grafana | Global dashboards across clusters | Thanos datasource |
 | Central OpenSearch (and/or Loki) | Cross-cluster log aggregation | Log forwarding from cluster-local collectors |
