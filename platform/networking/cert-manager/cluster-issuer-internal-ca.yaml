@@ -1,0 +1,52 @@
+# ok-shared: cluster-wide issuer for `.internal` names, backed by the EXISTING internal CA.
+#
+# Decision (OK-81 follow-up): reuse the CA ADR-025 already established rather than minting a second
+# trust root. `platform/secrets/vault/crossplane/reachability.yaml` bootstraps
+# `Issuer/ok-shared-selfsigned-bootstrap` → `Certificate/ok-shared-internal-ca` →
+# `Issuer/ok-shared-internal-ca`, all in the `vault` namespace, and that CA already signs
+# `vault.ok-shared.internal`. Verified live before writing this: both Issuers `READY=True`, CA valid
+# 2026-07-25 → 2036-07-22, and the served Vault certificate's issuer matches the CA subject.
+#
+# Why this file exists: those are **namespaced** Issuers, so nothing outside `vault` can request a
+# certificate from them. Keycloak (and any later consumer) lives elsewhere, so the same CA has to be
+# reachable cluster-wide.
+#
+# Why NOT a `selfSigned` ClusterIssuer: that makes every leaf its own root, so the ok-mgmt API server
+# could never trust them through a single `--oidc-ca-file`. A `ca` issuer chaining to one CA can.
+#
+# ── The tradeoff, stated plainly ──────────────────────────────────────────────────────────────────
+# cert-manager resolves a ClusterIssuer's `ca.secretName` in its own cluster-resource namespace
+# (verified: the controller runs with `--cluster-resource-namespace=$(POD_NAMESPACE)`, i.e.
+# `cert-manager`). The CA **private key** therefore has to be copied out of the `vault` namespace, so
+# it exists in two places instead of one. That is a real widening of blast radius, accepted
+# deliberately because the alternative — a second CA — means ok-mgmt has to trust two roots, and
+# per-consumer Issuers would copy the key into every consuming namespace instead of exactly once.
+#
+# Rejected alternatives, recorded so this is not relitigated:
+#   - `--cluster-resource-namespace=vault`: avoids the copy, but couples every future ClusterIssuer on
+#     this cluster to the Vault namespace and is a cert-manager deployment change.
+#   - trust-manager: distributes CA *certificates* (public), not signing keys. Cannot back an issuer.
+#   - Vault PKI via a cert-manager `vault` Issuer: copies no key at all and is arguably the better end
+#     state, but needs a PKI mount, a role and an auth path in Vault — a larger, separately reviewable
+#     change. Worth revisiting before any external-facing certificate.
+#
+# ── Apply (idempotent; the copy is derived, never hand-authored) ──────────────────────────────────
+#   kubectl -n vault get secret ok-shared-internal-ca -o json \
+#     | jq '{apiVersion,kind,type,metadata:{name:.metadata.name,namespace:"cert-manager"},data}' \
+#     | kubectl apply -f -
+#   kubectl apply -f platform/networking/cert-manager/cluster-issuer-internal-ca.yaml
+#
+# Re-copy whenever the CA is rotated in `vault`, or this issuer will sign against a stale key.
+# A `make` target for this is a follow-up; today it is a documented two-command sequence, matching
+# `platform/secrets/vault/bootstrap/README.md`.
+#
+# NOTE: this issues certificates. It does NOT make `keycloak.ok-shared.internal` resolvable — DNS for
+# `.internal` is still absent and blocks ingress independently.
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: ok-shared-internal-ca
+spec:
+  ca:
+    # Read from cert-manager's cluster-resource namespace, NOT from `vault`.
+    secretName: ok-shared-internal-ca

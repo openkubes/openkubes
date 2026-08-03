@@ -1,0 +1,129 @@
+# Applied by `make harden (via network-policy)`. Contains namespace isolation: allow rules plus ingress-only default-deny.
+# Apply ORDER is not encoded in this filename on purpose — it lives in the `install` target,
+# which is its only real authority. Filenames match their make target so the mapping is obvious.
+# Portable Kubernetes NetworkPolicy is sufficient: this policy needs only pod/namespace
+# selectors, ports, and IP blocks; no Cilium-only L7 or identity feature is required.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: keycloak
+  namespace: ${NAMESPACE}
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/instance: ${KEYCLOAK_RELEASE}
+      app.kubernetes.io/name: keycloakx
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Traefik terminates nothing here — it passes TLS through to Keycloak's own 8443 listener, so this
+    # is the one ingress path that must be open. Found the hard way: with no ingress rule the SNI route
+    # reached Traefik and then died as `dial tcp <pod>:8443: i/o timeout`, which reads like a routing
+    # or certificate fault rather than a policy one. Scoped to the ingress controller and that port only.
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ${INGRESS_NAMESPACE}
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: traefik
+      ports:
+        - protocol: TCP
+          port: 8443
+  # Nothing else may enter. Deliberately no rule for 8080 or 9000: the conformance suite and the
+  # kubelet probes arrive as node-originated traffic, which NetworkPolicy does not govern.
+  # `policyTypes: [Ingress]` with no rules already means "deny all ingress"; the empty list is
+  # semantically identical but the API server does not persist it, so re-applying it looked like a
+  # spec change every time, bumped `metadata.generation`, and made `make diff` report permanent
+  # phantom drift. A drift detector that always fires is worse than none.
+  # Node-originated kubectl port-forward and kubelet probes remain allowed by NetworkPolicy
+  # semantics, which is why conformance passes with no ingress rule.
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              cnpg.io/cluster: ${CNPG_CLUSTER}
+      ports:
+        - protocol: TCP
+          port: 5432
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: keycloak-db
+  namespace: ${NAMESPACE}
+spec:
+  podSelector:
+    matchLabels:
+      cnpg.io/cluster: ${CNPG_CLUSTER}
+  # Ingress ONLY, and that is an empirical result, not a preference. The CNPG instance manager must
+  # reach the Kubernetes API (verified: it calls https://10.96.48.1:443, the ClusterIP). Cilium does
+  # not match ipBlock/CIDR selectors against cluster-internal identities such as kube-apiserver, so a
+  # plain NetworkPolicy cannot express that egress at all: an `ipBlock: 0.0.0.0/0` rule on port 443
+  # was applied and the instance manager still reported `apiServerReachable:false ... context
+  # deadline exceeded`, fell back to a cached cluster definition, and stopped reconciling the managed
+  # role — a changed database password never reached PostgreSQL while the Cluster still read Ready.
+  # Expressing it would require a CiliumNetworkPolicy with `toEntities: [kube-apiserver]`, i.e. giving
+  # up portability for a rule whose value is small. Ingress is where the actual exposure was.
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: ${KEYCLOAK_RELEASE}
+              app.kubernetes.io/name: keycloakx
+      ports:
+        - protocol: TCP
+          port: 5432
+    # CNPG reconciles instance-manager over 8000 from its controller namespace.
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ${CNPG_NAMESPACE}
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: cloudnative-pg
+      ports:
+        - protocol: TCP
+          port: 8000
+        - protocol: TCP
+          port: 5432
+    # Preserve CNPG instance-to-instance database and instance-manager traffic if
+    # this single-instance cluster is later expanded for availability.
+    - from:
+        - podSelector:
+            matchLabels:
+              cnpg.io/cluster: ${CNPG_CLUSTER}
+      ports:
+        - protocol: TCP
+          port: 5432
+        - protocol: TCP
+          port: 8000
+---
+# Apply the allow policies above before default-deny to avoid a transient outage.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny
+  namespace: ${NAMESPACE}
+spec:
+  podSelector: {}
+  # Ingress only, for the same reason as keycloak-db above: a namespace-wide egress deny would again
+  # cut the CNPG instance manager off from the API server, and that failure is silent — Ready stays
+  # True while role reconciliation quietly stops.
+  policyTypes:
+    - Ingress

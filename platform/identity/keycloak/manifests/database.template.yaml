@@ -1,0 +1,53 @@
+# Applied by `make database`. Contains the CNPG Cluster, bootstrapped from the already-materialised keycloak-db Secret.
+# Apply ORDER is not encoded in this filename on purpose — it lives in the `install` target,
+# which is its only real authority. Filenames match their make target so the mapping is obvious.
+# Keycloak's single-instance CNPG database is deliberately separate from identities
+# so the stateful dependency can be created after credentials and removed first.
+# PRECONDITION: VSO must already own a `keycloak-db` Secret in this namespace with
+# type kubernetes.io/basic-auth, username `keycloak`, a `password` key, and label
+# `cnpg.io/reload: "true"` for immediate managed-role password reconciliation. Do
+# not create that Secret here: CNPG bootstrap and managed role reconciliation read it.
+# local-path has reclaim policy Delete; deleting its PVC destroys all realm state.
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: ${CNPG_CLUSTER}
+  namespace: ${NAMESPACE}
+spec:
+  instances: 1
+
+  # PostgreSQL 16 is the conservative Keycloak 26-compatible choice and avoids
+  # adopting a newer major merely to defer a future upgrade.
+  # Pinned by digest: a mutable tag would let the database image change under us.
+  imageName: ghcr.io/cloudnative-pg/postgresql:16.10-system-trixie@sha256:26e146bc71ebfc2a3937f729a15161a7fb6cd7c8a0b0007ad60cb53d2371b3fc
+
+  bootstrap:
+    initdb:
+      database: ${DB_NAME}
+      owner: ${DB_USERNAME}
+      secret:
+        name: ${VSO_DB_SECRET}
+
+  managed:
+    roles:
+      - name: ${DB_USERNAME}
+        ensure: present
+        login: true
+        passwordSecret:
+          name: ${VSO_DB_SECRET}
+
+  # 10Gi on local-path is sufficient for phase 1; reclaim Delete means this is
+  # disposable infrastructure only when loss of Keycloak realm state is intended.
+  storage:
+    size: 10Gi
+    storageClass: local-path
+
+  # Keep PostgreSQL bounded within each node's 1950m/~3.4Gi budget because three
+  # worker nodes also co-locate the Vault quorum.
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi

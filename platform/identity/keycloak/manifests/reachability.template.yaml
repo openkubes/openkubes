@@ -1,0 +1,32 @@
+# Applied by `make reachability`. Contains the Keycloak server Certificate and
+# TLS-passthrough route. Apply ORDER is not encoded in this filename on purpose:
+# `install` applies it before `keycloak`, so the mounted Secret exists at startup.
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: ${KEYCLOAK_TLS_SECRET}
+  namespace: ${NAMESPACE}
+spec:
+  secretName: ${KEYCLOAK_TLS_SECRET}
+  issuerRef:
+    name: ${KEYCLOAK_TLS_ISSUER}
+    kind: ClusterIssuer
+  commonName: ${KEYCLOAK_HOST}
+  dnsNames:
+    - ${KEYCLOAK_HOST}
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRouteTCP
+metadata:
+  name: keycloak
+  namespace: ${NAMESPACE}
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: HostSNI(`${KEYCLOAK_HOST}`)
+      services:
+        - name: ${KEYCLOAK_RELEASE}-keycloakx-http
+          port: 8443
+  tls:
+    passthrough: true

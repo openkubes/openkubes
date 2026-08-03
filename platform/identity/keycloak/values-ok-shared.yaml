@@ -1,0 +1,100 @@
+# The keycloakx 7.2.2 chart otherwise renders no server command or arguments.
+command:
+  - "/opt/keycloak/bin/kc.sh"
+  - "start"
+  - "--http-port=8080"
+
+image:
+  repository: quay.io/keycloak/keycloak
+  tag: "26.6.4"
+  # Resolved immutable digest for 26.6.4 (quay.io), pinned so the tag cannot move.
+  digest: sha256:0aae0de7fca85525f727d3354df17896092de8bb26ae4c12d89c77e5df8cbce4
+
+http:
+  # A new endpoint must not inherit the chart's backwards-compatible /auth path.
+  relativePath: "/"
+  # Enabling server TLS moves Keycloak's management listener to HTTPS as well.
+  internalScheme: HTTPS
+
+proxy:
+  # Traefik passes the TLS stream through untouched, so no trusted proxy adds
+  # forwarding headers. HTTP remains enabled only for the existing, isolated
+  # administrative port-forward tooling; the external route uses 8443.
+  enabled: false
+  http:
+    enabled: true
+
+dbchecker:
+  # Wait for CNPG instead of crash-looping Keycloak while the database starts.
+  enabled: true
+  image:
+    repository: docker.io/busybox
+    tag: "1.37.0"
+    digest: sha256:9532d8c39891ca2ecde4d30d7710e01fb739c87a8b9299685c63704296b16028
+  resources:
+    requests:
+      cpu: 20m
+      memory: 32Mi
+    limits:
+      cpu: 20m
+      memory: 32Mi
+
+database:
+  vendor: postgres
+  hostname: keycloak-db-rw
+  port: 5432
+  database: keycloak
+  username: keycloak
+  # VSO owns this Secret; the chart reads only its password key.
+  existingSecret: keycloak-db
+  existingSecretKey: password
+
+serviceAccount:
+  create: true
+  name: keycloak
+  # Keycloak does not call the Kubernetes API.
+  automountServiceAccountToken: false
+
+service:
+  # The external path is the separately managed TLS-passthrough TCP route.
+  type: ClusterIP
+
+extraVolumes: |
+  - name: keycloak-tls
+    secret:
+      secretName: keycloak-server-tls
+
+extraVolumeMounts: |
+  - name: keycloak-tls
+    mountPath: /opt/keycloak/conf/tls
+    readOnly: true
+
+# These bounds fit the 1950m/~3.4Gi node budget while sharing nodes with Vault.
+resources:
+  requests:
+    cpu: 250m
+    memory: 768Mi
+  limits:
+    cpu: "1"
+    memory: 1536Mi
+
+extraEnv: |
+  # Seed the first admin on an empty database. admin-cutover supersedes this
+  # temporary account with the permanent admin and re-escrows its credential.
+  - name: KC_BOOTSTRAP_ADMIN_USERNAME
+    valueFrom:
+      secretKeyRef:
+        name: keycloak-admin
+        key: username
+  - name: KC_BOOTSTRAP_ADMIN_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: keycloak-admin
+        key: password
+  - name: KC_HTTPS_CERTIFICATE_FILE
+    value: /opt/keycloak/conf/tls/tls.crt
+  - name: KC_HTTPS_CERTIFICATE_KEY_FILE
+    value: /opt/keycloak/conf/tls/tls.key
+  # The public issuer is stable even when conformance pins it to a local forward.
+  - name: KC_HOSTNAME
+    value: https://keycloak.ok-shared.internal
