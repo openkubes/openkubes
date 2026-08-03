@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>OpenKubes Platform v0.12.0</title>
+<title>OpenKubes Platform v0.13.0</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:"Segoe UI",Arial,sans-serif;background:#e8f4fd;color:#1a2b4a;overflow:hidden;height:100vh;width:100vw}
@@ -148,7 +148,7 @@ h2 .hl{color:#1a6fc4}
 <div class="slide s1 active" data-slide="1">
   <img src="openkubes-logo.png" alt="OpenKubes" onerror="this.style.display='none';document.getElementById('logo-text').style.display='block'">
   <div id="logo-text" style="display:none;font-size:52px;font-weight:900;color:#1a6fc4;margin-bottom:24px">⎈ OpenKubes</div>
-  <div class="ver">Platform v0.12.0 — Community Preview</div>
+  <div class="ver">Platform v0.13.0 — Launch Meetup Community Preview</div>
   <div class="tag"><strong>A framework for building sovereign Kubernetes platform distributions.</strong><br>OpenKubes owns the contracts, not the components.</div>
   <div class="badges">
     <span class="badge">Contracts-first</span><span class="badge">Talos</span><span class="badge">Cluster API</span>
@@ -282,8 +282,8 @@ h2 .hl{color:#1a6fc4}
 <div class="slide s6" data-slide="8">
   <h2>What's <span class="hl">Next</span></h2>
   <div class="rg">
-    <div class="rm done"><div class="rv">v0.12.0 — Now ✅</div><h3>Delivered</h3><ul><li>23 platform ADRs (contract-first)</li><li>Talos + Cilium cluster lifecycle</li><li>Storage (Longhorn v1)</li><li>Observability + contract gate (ADR-018)</li><li>Gated make install-observability</li><li>Crossplane AI platform (Open WebUI)</li><li>Repo harness (verify/conformance/evidence)</li></ul></div>
-    <div class="rm next"><div class="rv">Next</div><h3>Platform Maturity</h3><ul><li>GitOps delivery (ok-gitops / ArgoCD)</li><li>Vault phase-2 (External Secrets)</li><li>Constrained edge profile (ADR-014)</li><li>The <code>ok</code> CLI</li><li>Shared services / federation (ok-shared)</li></ul></div>
+    <div class="rm done"><div class="rv">v0.13.0 — Now ✅</div><h3>Delivered</h3><ul><li>29 platform ADRs (contract-first)</li><li>Talos + constrained Flatcar lifecycle</li><li>Longhorn snapshot-clone storage</li><li>Observability + contract gate (ADR-018)</li><li>Vault + VSO Secret Contract profile</li><li>Read-only platform diagnostics</li><li>Repo harness (verify/conformance/evidence)</li></ul></div>
+    <div class="rm next"><div class="rv">Next</div><h3>Platform Maturity</h3><ul><li>GitOps delivery (ok-gitops / ArgoCD)</li><li>Complete Keycloak consumer integration</li><li>Constrained edge profile (ADR-014)</li><li>The <code>ok</code> CLI</li><li>Shared services / federation (ok-shared)</li></ul></div>
     <div class="rm fut"><div class="rv">Future</div><h3>Vision</h3><ul><li>Immortal Platform — self-healing, RPO=0 (OK-30)</li><li>OpenKubes Anywhere — EKS/AKS/GKE (OK-24)</li><li>Robotics fleets — Open-RMF (ADR-019)</li><li>Bare metal — Metal3 (OK-19)</li></ul></div>
   </div>
   <div class="snum">8 / 10</div>
@@ -305,7 +305,7 @@ h2 .hl{color:#1a6fc4}
 <div class="slide s7" data-slide="10">
   <img src="openkubes-logo.png" alt="OpenKubes" onerror="this.style.display='none'">
   <h2>Get <span>Started</span></h2>
-  <div class="sub2">Open Source · Apache 2.0 · Community Preview · v0.12.0</div>
+  <div class="sub2">Open Source · Apache 2.0 · Launch Meetup Community Preview · v0.13.0</div>
   <div class="cmds">
     <div class="cmd"><span class="cc"># Provision a Talos cluster</span>make new CLUSTER=ok-ai TYPE=talos WORKERS=2</div>
     <div class="cmd"><span class="cc"># Bootstrap + CNI</span>make bootstrap CLUSTER=ok-ai</div>

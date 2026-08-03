@@ -2,6 +2,50 @@
 
 ---
 
+## v0.13.0 — Launch Meetup Community Preview
+
+> **A framework for building sovereign Kubernetes platform distributions.**
+
+### What's New
+
+**Sovereign platform services**
+- Vault + Vault Secrets Operator is now the datacenter Secret Contract profile,
+  including consumer onboarding, scoped self-service seeding, backup/restore,
+  outage recovery, Transit auto-unseal, and singleton enforcement evidence.
+- The central Keycloak capability adds TLS, hardening, backup/restore, credential
+  rotation, and conformance tooling. Cluster-side installation remains an
+  explicit follow-up and is not claimed as part of this release.
+
+**Immutable OS and cluster lifecycle**
+- Constrained Flatcar support is validated and promoted for KubeVirt, including
+  replacement-based lifecycle and Longhorn-backed 50 GiB boot clones.
+- Talos v1.9.6 Golden Images are pinned, verified, and consumed through local
+  CSI snapshot clones, with guarded replacement and cleanup evidence.
+- A controlled Flatcar/Talos provisioning benchmark records comparable lifecycle
+  milestones without broadening the supported platform contract.
+
+**Diagnostics, verticals, and governance**
+- The read-only platform diagnostics contract and kagent Profile A establish a
+  grounded, evidence-first diagnostics boundary.
+- The vertical-layer decision accepts `ok-robotics`, `ok-ai`, and `ok-iot` as
+  forcing consumers; messaging and artifact-registry capability contracts are
+  published as drafts for review.
+- Canonical naming, additional acceptance records, and the Launch Meetup deck
+  bring the public documentation in line with the implemented platform.
+
+### Release Train
+
+| Repository | Release |
+|---|---:|
+| `openkubes/openkubes` | `v0.13.0` |
+| `openkubes/ok-cluster` | `v0.13.0` |
+| `openkubes/ok-observability` | `v0.13.0` |
+| `openkubes/ok-linux` | `v0.2.0` |
+| `openkubes/ok-storage` | `v0.1.1` |
+| `openkubes/ok-local` | `v0.1.0` |
+
+---
+
 ## v0.12.0 — Observability Capability + Harness Engineering
 
 > **OpenKubes owns the contracts, not the components.**
