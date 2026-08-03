@@ -26,13 +26,13 @@
 
 ADR-Platform-020 established that a container registry is one of the services `ok-shared` operates once and offers to all clusters, and provisionally named Harbor for that row. It did not define the registry as a contract, and it did not decide the initial implementation against the actual first forcing consumer.
 
-That forcing consumer now exists: a central OpenKubes-Family registry on the Shared Cluster that must publish, verify, store, distribute, export, and recover OCI artifacts — container images, OCI Helm charts, multi-architecture indexes, signatures, SBOMs, attestations, provenance, and policy bundles — for connected and air-gapped environments, without the operational footprint of a full enterprise registry before that footprint is justified.
+That forcing consumer now exists: a central OpenKubes-Family registry on the Shared Cluster that must publish, verify, store, distribute, export, and recover OCI artifacts — container images, OCI Helm charts, multi-architecture indexes, signatures, SBOMs, attestations, provenance, and policy bundles — for connected environments today, with offline artifact portability as a first-class contract concern and formal air-gapped qualification deferred (§4.9), without the operational footprint of a full enterprise registry before that footprint is justified.
 
 The OCI Distribution Specification is content-type-agnostic, so one standards-based registry contract covers all of the above rather than product-specific repository contracts. Consistent with ADR-Platform-001, the platform must own the required behaviour without making zot, Harbor, Quay, or any future implementation part of the consumer-facing architecture.
 
 ## 2. Decision drivers
 
-OCI-standard compatibility; container images and OCI Helm charts; signatures, SBOMs, attestations; connected and air-gapped operation; low initial operational complexity; fit for the Shared Cluster; identity via the OpenKubes OIDC capability (ADR-020); revocable machine access for CI/CD and clusters; immutable, digest-addressable releases; tested backup and recovery; observability via the platform contract; implementation replaceability; no proprietary artifact format or client protocol; and no new registry engine before a demonstrated need.
+OCI-standard compatibility; container images and OCI Helm charts; signatures, SBOMs, attestations; connected operation with offline artifact portability (air-gapped qualification deferred, §4.9); low initial operational complexity; fit for the Shared Cluster; identity via the OpenKubes OIDC capability (ADR-020); revocable machine access for CI/CD and clusters; immutable, digest-addressable releases; tested backup and recovery; observability via the platform contract; implementation replaceability; no proprietary artifact format or client protocol; and no new registry engine before a demonstrated need.
 
 ## 3. Decision
 
@@ -61,7 +61,9 @@ The contract SHALL be validated against the OCI Distribution conformance tooling
 
 ### 4.2 Mandatory OpenKubes integration (registry-default)
 
-The `registry-default` Implementation Profile MUST integrate with the OpenKubes central OIDC identity capability (ADR-020), the Secret Contract (ADR-Platform-011 §Secret Contract) through its datacenter Implementation Profile (ADR-025), the ingress and certificate capability (ADR-010), the observability capability (ADR-018), GitOps-managed configuration (ADR-011), and a tested backup and recovery procedure (§4.8). Provider-specific mechanisms may differ across future profiles, but the externally observable contract SHALL remain equivalent.
+The `registry-default` Implementation Profile MUST integrate with the OpenKubes central OIDC identity capability (ADR-020), the Secret Contract (ADR-Platform-011 §Secret Contract) through its datacenter Implementation Profile (ADR-025), the ingress and certificate capability (ADR-010), the observability capability (ADR-018), and a tested backup and recovery procedure (§4.8). Provider-specific mechanisms may differ across future profiles, but the externally observable contract SHALL remain equivalent.
+
+The profile SHOULD be managed as GitOps configuration (ADR-011, `Proposed`); manual or Helm-based deployment is acceptable for initial acceptance, with GitOps as the target operating model. GitOps management is therefore not a §8 acceptance gate.
 
 ### 4.3 Artifact identity
 
@@ -96,6 +98,8 @@ The `registry-default` profile MUST provide documented, tested recovery for arti
 
 The `registry-default` Implementation Profile is scoped to the `datacenter` Constraint Envelope (ADR-Platform-017). The following base-contract guarantees are **envelope-invariant**: immutable-digest retrieval, portable OCI content, artifact enumeration, and preservation of subject-to-referrer relationships. The base contract does not prescribe a provider-specific transfer mechanism.
 
+Per ADR-Platform-017's requirement that a contract address each envelope explicitly: the Artifact Registry Contract governs a datacenter-hosted shared service; `constrained-edge` clusters are **consumers (pull clients)** of that service, not registry hosts, so no `constrained-edge` Implementation Profile is defined.
+
 ADR-Platform-017 does **not** currently define an `air-gapped` Constraint Envelope — it defines only `datacenter` and `constrained-edge`, and lists air-gapped explicitly as a deferred candidate. The operational offline-transfer proof required by §8 validates the portability and completeness of registry content; it does **not** create or formalize a new Constraint Envelope.
 
 When a real deployment demonstrates materially distinct air-gapped guarantees, a separate ADR SHALL extend ADR-Platform-017 and qualify those guarantees. That later formalization does not block acceptance of this ADR.
@@ -112,7 +116,7 @@ The `registry-default` profile MUST expose enough signal to monitor service avai
 Profile:     registry-default
 Location:    OpenKubes Shared Cluster (ok-shared, ADR-020)
 Audience:    OpenKubes Family and internal automation
-Management:  GitOps (ADR-011)
+Management:  GitOps (ADR-011) — target; manual/Helm acceptable for initial acceptance
 Storage:     Production-approved persistent or object storage
 Identity:    OpenKubes central OIDC capability (ADR-020)
 ```
