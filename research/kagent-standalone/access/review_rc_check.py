@@ -57,13 +57,16 @@ ck("ClusterRoleBinding" not in src.split("PROTECTED_NAMESPACES")[0] and '"kind":
    "no ClusterRoleBinding emitter anywhere in the renderer")
 ck('"kind": "ClusterRole"' not in src, "no ClusterRole emitter anywhere in the renderer")
 with tempfile.TemporaryDirectory() as t:
-    p=pathlib.Path(t)/"c.yaml"; p.write_text(yaml.safe_dump(profile(namespaces=["kagent-lab","team-a"])))
+    p=pathlib.Path(t)/"c.yaml"; p.write_text(yaml.safe_dump(profile()))
     out=pathlib.Path(t)/"o"; ra.write_outputs(ra.load_config(p, quiet=True), out, p, None)
     kinds=[d["kind"] for f in out.rglob("*.yaml") for d in yaml.safe_load_all(f.read_text()) if d and "kind" in d]
     ck(not [k for k in kinds if k.startswith("Cluster")], f"nothing cluster-scoped rendered", str(kinds))
 
 print("\nRC2 — v1 = ConfigMaps only, in THIS repo's renderer and docs")
 ck(sorted(ra.WRITABLE_RESOURCES)==["configmaps"], "WRITABLE_RESOURCES == {configmaps}", str(sorted(ra.WRITABLE_RESOURCES)))
+ck(ra.EVIDENCED_WRITE_NAMESPACES=={"kagent-lab"}, "EVIDENCED_WRITE_NAMESPACES == {kagent-lab}")
+refused(profile(namespaces=["team-a"]), "an unevidenced namespace is refused")
+refused(profile(namespaces=["kagent-lab", "team-a"]), "a mixed namespace list is refused")
 for r in ("deployments","statefulsets","daemonsets","replicasets","jobs","cronjobs","services","ingresses","pods"):
     refused(profile(resources=[r]), f"resources=[{r}] refused")
 refused(profile(requireApproval=False), "requireApproval=false refused")
@@ -71,6 +74,13 @@ ex = yaml.safe_load(txt("research/kagent-standalone/access/access-config.example
 ck(ex["write"]["resources"]==["configmaps"], "shipped example: resources == [configmaps]", str(ex["write"]["resources"]))
 ck(ex["write"]["namespaces"]==["kagent-lab"], "shipped example: namespaces == [kagent-lab]")
 ck(ex["write"]["scope"]=="namespaces", "shipped example: scope == namespaces")
+
+print("\nFollow-up — ports are actual integers, never coerced")
+for field in ("port", "metricsPort"):
+    for value in (True, 8084.9, "8084"):
+        ts={"namespace":"kagent-write","releaseName":"kagent-write-tools","port":8084,"metricsPort":8085}
+        ts[field]=value
+        refused(profile(toolServer=ts), f"{field}={value!r} refused")
 
 print("\nRC3 — approval gate qualified, in access/README.md AND reference.md")
 SENT = "shared write tool server and its Kubernetes identity are not"

@@ -49,9 +49,9 @@ read-write, and which namespaces are write targets, are generated from a
 single `access-config.yaml` by [`access/render-access.py`](access/README.md).
 
 The renderable write surface is intentionally the evidenced one and nothing more:
-**approval-gated ConfigMap writes in an explicit list of namespaces.** Workload
-kinds, Services, Ingresses, Pod deletion, ungated writes and cluster-wide scope
-are candidate work and are *refused* by the renderer with the reason — see
+**approval-gated ConfigMap writes in `kagent-lab`.** Other namespace targets,
+workload kinds, Services, Ingresses, Pod deletion, ungated writes and
+cluster-wide scope are candidate work and are *refused* by the renderer with the reason — see
 [`access/README.md`](access/README.md#candidate-work--recognised-refused-and-why).
 
 ```bash

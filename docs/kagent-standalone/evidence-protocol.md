@@ -103,7 +103,7 @@ Both roles come from one file, `access-config.yaml`, so this scenario tests the
 *profile*, not a hand-built set of manifests.
 
 The renderable write profile and the evidenced write profile are deliberately the
-same thing: approval-gated ConfigMap writes in an explicit namespace list. If a
+same thing: approval-gated ConfigMap writes in `kagent-lab`. If a
 future change widens the renderer, this section is where the matching evidence has
 to appear first.
 

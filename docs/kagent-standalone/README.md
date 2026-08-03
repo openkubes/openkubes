@@ -37,8 +37,7 @@ questions, not prerequisites for learning to operate kagent well.
 
 kagent can be deployed here in two roles, chosen at install time from **one
 config file** — read-only diagnosis, or additionally an approval-gated ConfigMap
-write path scoped to an explicit list of namespaces (`[kagent-lab]` is the
-evidenced one). RBAC, the write tool server and the
+write path scoped exactly to the evidenced `kagent-lab` namespace. RBAC, the write tool server and the
 write Agent are generated from that file, so the documented boundary and the
 deployed boundary cannot drift apart.
 
@@ -62,8 +61,9 @@ will use with a customer:
   without calling the Secret API, and only admission control prevents it. That is
   one reason the renderable write surface is ConfigMaps only.
 
-The renderer refuses everything wider — workload kinds, Services, Ingresses, Pod
-deletion, ungated writes, cluster-wide scope — as candidate work.
+The renderer refuses everything wider — other namespace targets, workload kinds,
+Services, Ingresses, Pod deletion, ungated writes, cluster-wide scope — as
+candidate work.
 
 Start at
 [`research/kagent-standalone/access/README.md`](../../research/kagent-standalone/access/README.md);

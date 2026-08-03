@@ -89,7 +89,7 @@ orphaning it.
 Agent cluster-operator-gated  (namespace: kagent)
   ├── reads via  kagent-tool-server      → SA kagent/kagent-tools        (cluster read, no Secret permission)
   └── writes via kagent-write-tools      → SA kagent-write/kagent-write-tools
-                                            └── Role + RoleBinding per listed namespace
+                                            └── Role + RoleBinding in kagent-lab
                                                 (never a cluster-scoped binding)
 ```
 
@@ -98,7 +98,7 @@ The write tool server deliberately runs in its **own** namespace
 it may change. Otherwise the agent could patch the Deployment of the tool server
 it is using.
 
-## Write scope — explicit namespaces only
+## Write scope — the evidenced namespace only
 
 ```yaml
 write:
@@ -106,10 +106,10 @@ write:
   namespaces: [kagent-lab]
 ```
 
-One `Role` + `RoleBinding` per namespace. Adding a namespace is one line;
-removing one removes its Role on the next install. Namespaces are **never
-created** by the profile — if a target does not exist, the installer fails with
-that message rather than inventing it.
+v1 renders one `Role` + `RoleBinding` in `kagent-lab`. Any other namespace — by
+itself or added to the list — is refused until it has a recorded drill and a
+reviewed boundary. Namespaces are **never created** by the profile; if
+`kagent-lab` does not exist, the installer fails rather than inventing it.
 
 `scope: cluster` is **refused**, and not because it is untested. A normal
 `ClusterRoleBinding` applies in every namespace — `kagent`, `kagent-write`,
@@ -233,7 +233,7 @@ Outputs in `--out`:
 | `values-access.yaml` | Helm values fragment pinning the built-in tool server to read-only |
 | `tools-values.yaml` | Helm values for the scoped write tool server (write mode only) |
 | `manifests/10-namespace.yaml` | the write tool server's own namespace |
-| `manifests/20-rbac.yaml` | one Role + RoleBinding per listed namespace — never a cluster-scoped object |
+| `manifests/20-rbac.yaml` | one Role + RoleBinding in `kagent-lab` — never a cluster-scoped object |
 | `manifests/30-tool-server.yaml` | `RemoteMCPServer` pointing at the scoped tool server |
 | `manifests/40-agent.yaml` | the write Agent, with `requireApproval` on every write tool it references |
 | `profile.env` | shell-sourceable facts, so the installer asserts the same boundary it generated |

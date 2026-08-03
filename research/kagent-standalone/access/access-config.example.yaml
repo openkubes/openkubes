@@ -39,7 +39,7 @@ read:
     - k8s_get_resource_yaml
 
 # The write block below is the *entire* v1 write surface: approval-gated
-# ConfigMap writes in an explicit namespace list. That is the profile
+# ConfigMap writes in `kagent-lab`. That is the profile
 # that was exercised on a live cluster and recorded in
 # docs/kagent-standalone/evidence-protocol.md. Anything wider is candidate work
 # and the renderer refuses it rather than defaulting it — see
@@ -50,10 +50,9 @@ write:
   # namespace created later, and RBAC cannot express those exclusions.
   scope: namespaces
 
-  # Required, must be non-empty. Refused: kube-*, `default`, the install
-  # namespace, and the write tool server's own namespace. One Role +
-  # RoleBinding is rendered per entry, so widening this list is visible in the
-  # manifests. `[kagent-lab]` is the profile the recorded drill was run against.
+  # Required and must be exactly `[kagent-lab]`, the target exercised by the
+  # recorded drill. Any other namespace, alone or added to this list, is refused
+  # until it has its own evidence and reviewed boundary.
   namespaces:
     - kagent-lab
 

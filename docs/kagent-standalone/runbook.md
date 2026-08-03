@@ -322,7 +322,7 @@ re-installing in this mode *removes* a previously generated one.
 Agent cluster-operator-gated (namespace kagent)
   ├── reads  via kagent-tool-server   → SA kagent/kagent-tools          cluster read, no Secret permission
   └── writes via kagent-write-tools   → SA kagent-write/kagent-write-tools
-                                         └── Role+RoleBinding per listed namespace
+                                         └── Role+RoleBinding in kagent-lab
                                              (never a cluster-scoped binding)
 ```
 
@@ -337,7 +337,7 @@ This is the whole v1 write surface. There is no wider option to choose:
 mode: read-write
 write:
   scope: namespaces          # the only scope; `cluster` is refused
-  namespaces: [kagent-lab]   # explicit, non-empty
+  namespaces: [kagent-lab]   # the only evidenced v1 target
   resources: [configmaps]    # the only renderable write kind
   requireApproval: true      # must be true
 ```
@@ -353,8 +353,9 @@ objects, ServiceAccounts, Namespaces, Nodes, CRDs, webhooks; `*` as a resource;
 the `kagent` install namespace, the tool server's own namespace, `kube-*` and
 `default` as write targets; `scope: cluster`; `requireApproval: false`; a mutating
 tool name in the ungated `read.tools` reference; and every write kind beyond
-ConfigMaps — workload kinds, Services, Ingresses and Pod deletion are candidate
-work. It exits non-zero and generates nothing. Target namespaces are never created
+ConfigMaps — plus every namespace target other than `kagent-lab`. Workload kinds,
+Services, Ingresses, Pod deletion and other namespace targets are candidate work.
+It exits non-zero and generates nothing. Target namespaces are never created
 by the profile — a missing one is an error, not an invitation.
 
 Two of those refusals exist because the boundary itself is missing, not because a
@@ -375,7 +376,7 @@ make -C <ok-cluster>/ok-kagent/kagent verify-access
 
 Asserts against the API server: the read identity reads but cannot write, is
 denied on Secrets and has no wildcard; the write identity can patch ConfigMaps
-inside its configured namespaces, is denied outside them, is denied on workload
+inside `kagent-lab`, is denied outside it, is denied on workload
 controllers for *every* verb including `get`, and cannot create RoleBindings; and
 in read-only mode the write Agent, its `RemoteMCPServer` and the `kagent-write`
 namespace do not exist. A chart upgrade that quietly widens RBAC fails this target.

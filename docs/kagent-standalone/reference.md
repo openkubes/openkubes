@@ -603,8 +603,8 @@ RBAC, the write tool server and the write Agent by
 | Knob | Values | Effect |
 |---|---|---|
 | `mode` | `read-only` \| `read-write` | whether a write identity exists at all |
-| `write.scope` | `namespaces` | one Role + RoleBinding per listed namespace. `cluster` is refused |
-| `write.namespaces` | non-empty list | the explicit set of write targets |
+| `write.scope` | `namespaces` | one Role + RoleBinding in the evidenced namespace. `cluster` is refused |
+| `write.namespaces` | `[kagent-lab]` | the only evidenced write target in v1 |
 | `write.resources` | `[configmaps]` | the only renderable write surface in v1 |
 | `write.requireApproval` | `true` | must be true; the gate is per-Agent, see above |
 
@@ -613,14 +613,14 @@ objects, ServiceAccounts, Namespaces, Nodes, CRDs and webhooks; `*` as a
 resource; the install namespace, the tool server's own namespace, `kube-*` and
 `default` as write targets; `write.scope: cluster`; `requireApproval: false`; a
 mutating tool name in the ungated `read.tools` reference; and every write kind
-beyond ConfigMaps. Those are refusals, not defaults — it exits non-zero and
+beyond ConfigMaps, plus every namespace target other than `kagent-lab`. Those are refusals, not defaults — it exits non-zero and
 generates nothing.
 
 #### Why the executable surface is smaller than the product's
 
 The renderer produces only the profile that has been exercised on a live cluster
 and recorded in [`evidence-protocol.md`](evidence-protocol.md): approval-gated
-ConfigMap writes in an explicit namespace list. Two of the refusals are boundary
+ConfigMap writes in `kagent-lab`. Two of the refusals are boundary
 problems rather than test gaps, which is why they are refused instead of flagged:
 
 - **`write.scope: cluster`.** A `ClusterRoleBinding` applies in every namespace,

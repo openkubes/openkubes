@@ -28,9 +28,8 @@ Design rules, in order of importance:
 4.  **Only evidenced capability is executable.** v1 renders exactly the write
     profile that has been exercised against a live cluster and recorded in
     ``docs/kagent-standalone/evidence-protocol.md``: approval-gated ConfigMap
-    writes in an explicit, non-empty namespace list (the recorded drill used
-    ``[kagent-lab]``). Everything wider — workload
-    kinds, Jobs, Services, Ingresses, Pod deletion, ungated writes and
+    writes in ``[kagent-lab]``. Everything wider — any other namespace target,
+    workload kinds, Jobs, Services, Ingresses, Pod deletion, ungated writes and
     cluster-wide scope — is candidate work and is *refused*, not defaulted.
     See ``CANDIDATE_RESOURCES`` and the ``write.scope`` check for why each one
     is not merely "untested" but currently unsupportable.
@@ -150,6 +149,11 @@ PROTECTED_NAMESPACE_PREFIXES = ("kube-",)
 #: rather than in a warning because the generated summary asserts that writes in
 #: ``default`` are denied — a warning would let that assertion become false.
 PROTECTED_NAMESPACES = frozenset({"default"})
+
+#: The only namespace target exercised by the recorded v1 drill. This belongs
+#: in the shared renderer rather than only in an installer-side guard: every
+#: consumer must get the same evidenced boundary without reimplementing it.
+EVIDENCED_WRITE_NAMESPACES = frozenset({"kagent-lab"})
 
 #: Matched with ``fullmatch``. ``re.match`` with ``$`` would accept a trailing
 #: newline, and ``"kagent\n"`` passing this check is enough to slip past the
@@ -318,10 +322,14 @@ def _require_mapping(value: object, field: str) -> dict:
 
 
 def _require_port(value: object, field: str) -> int:
-    try:
-        port = int(value)
-    except (TypeError, ValueError):
-        raise ConfigError(f"{field}: {value!r} is not a port number")
+    # bool is a subclass of int in Python. An explicit exclusion is required or
+    # YAML `port: true` silently becomes port 1. Do not coerce strings or floats
+    # either: both layers consume the same config and must agree on its type.
+    if not isinstance(value, int) or isinstance(value, bool):
+        raise ConfigError(
+            f"{field}: {value!r} is not a port number; expected an integer"
+        )
+    port = value
     if not 1 <= port <= 65535:
         raise ConfigError(f"{field}: {port} is outside 1-65535")
     return port
@@ -480,6 +488,14 @@ def _validate_write(write_raw: object, install_ns: str) -> dict:
                 "would quietly turn into a false claim. Use a purpose-named "
                 "namespace."
             )
+
+    if set(namespaces) != EVIDENCED_WRITE_NAMESPACES:
+        expected = ", ".join(sorted(EVIDENCED_WRITE_NAMESPACES))
+        raise ConfigError(
+            "write.namespaces: v1 requires exactly the evidenced target: "
+            f"[{expected}]. Other namespace targets are candidate work until "
+            "they have their own recorded drill and reviewed boundary."
+        )
 
     resources = write_raw.get("resources") or []
     if not isinstance(resources, list) or not resources:

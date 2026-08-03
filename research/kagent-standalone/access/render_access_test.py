@@ -134,21 +134,23 @@ def test_namespace_scope() -> None:
     )
 
 
-def test_multiple_namespaces_get_one_role_each() -> None:
-    print("\nmultiple write namespaces")
-    out = render(base(namespaces=["team-a", "team-b", "kagent-lab"]))
+def test_only_evidenced_namespace_is_renderable() -> None:
+    print("\nevidenced write namespace")
+    out = render(base())
     rbac = out["manifests/20-rbac.yaml"]
     roles = [o for o in rbac if o["kind"] == "Role"]
     bindings = [o for o in rbac if o["kind"] == "RoleBinding"]
-    check(len(roles) == 3, f"one Role per namespace (got {len(roles)})")
-    check(len(bindings) == 3, f"one RoleBinding per namespace (got {len(bindings)})")
+    check(len(roles) == 1, f"one Role for the evidenced namespace (got {len(roles)})")
+    check(len(bindings) == 1, f"one RoleBinding for the evidenced namespace (got {len(bindings)})")
     check(
-        sorted(o["metadata"]["namespace"] for o in roles) == ["kagent-lab", "team-a", "team-b"],
-        "Roles cover exactly the configured namespaces",
+        [o["metadata"]["namespace"] for o in roles] == ["kagent-lab"],
+        "the Role covers exactly kagent-lab",
     )
-    check(
-        not any(o["kind"].startswith("Cluster") for o in rbac),
-        "no cluster-scoped RBAC leaks into a namespaced profile",
+    expect_config_error(base(namespaces=["team-a"]), "exactly the evidenced target", "team-a target")
+    expect_config_error(
+        base(namespaces=["kagent-lab", "team-a"]),
+        "exactly the evidenced target",
+        "mixed evidenced and unevidenced targets",
     )
 
 
@@ -158,6 +160,10 @@ def test_v1_write_surface_is_configmaps_only() -> None:
     check(
         sorted(ra.WRITABLE_RESOURCES) == ["configmaps"],
         f"only configmaps are renderable (got {sorted(ra.WRITABLE_RESOURCES)})",
+    )
+    check(
+        ra.EVIDENCED_WRITE_NAMESPACES == {"kagent-lab"},
+        "only kagent-lab is an evidenced write target",
     )
     check(
         not (set(ra.CANDIDATE_RESOURCES) & set(ra.WRITABLE_RESOURCES)),
@@ -213,7 +219,7 @@ def test_no_cluster_scoped_object_is_renderable() -> None:
         "refused",
         "write.scope=cluster with a namespace list",
     )
-    out = render(base(namespaces=["team-a", "kagent-lab"]))
+    out = render(base())
     for name, objects in out.items():
         if not name.endswith(".yaml") or not isinstance(objects, list):
             continue
@@ -480,6 +486,20 @@ def test_rejected_configs() -> None:
         "not a port number",
         "non-numeric port",
     )
+    for field in ("port", "metricsPort"):
+        for value in (True, 8084.9, "8084"):
+            tool_server = {
+                "namespace": "kagent-write",
+                "releaseName": "kagent-write-tools",
+                "port": 8084,
+                "metricsPort": 8085,
+            }
+            tool_server[field] = value
+            expect_config_error(
+                base(toolServer=tool_server),
+                "expected an integer",
+                f"{field} rejects {value!r}",
+            )
     expect_config_error(
         base(toolServer={"namespace": "kagent-write", "releaseName": "kagent-write-tools", "port": 0}),
         "outside 1-65535",
@@ -550,7 +570,7 @@ def main() -> int:
     print("OK-129 access renderer tests")
     test_read_only_generates_no_write_path()
     test_namespace_scope()
-    test_multiple_namespaces_get_one_role_each()
+    test_only_evidenced_namespace_is_renderable()
     test_v1_write_surface_is_configmaps_only()
     test_no_cluster_scoped_object_is_renderable()
     test_no_renderer_entry_point_accepts_cluster_scope()
