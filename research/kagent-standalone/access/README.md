@@ -2,12 +2,15 @@
 
 `render-access.py` turns a single declarative config into every object that grants
 a standalone kagent installation its permissions: read-only diagnosis, or
-additionally one approval-gated ConfigMap write path in an explicit, non-empty
-list of namespaces. All of it comes from `access-config.yaml`. The evidenced
-profile — the one the drill in `evidence-protocol.md` was run against — is
-`[kagent-lab]`; the operator chooses the list, and each entry costs exactly one
-`Role` + `RoleBinding`, so widening it is visible in the rendered manifests rather
-than implicit.
+additionally one approval-gated ConfigMap write path in `kagent-lab`. All of it
+comes from `access-config.yaml`.
+
+The namespace is not an operator choice in v1. `kagent-lab` is the one target the
+recorded drill in `evidence-protocol.md` was run against, so
+`EVIDENCED_WRITE_NAMESPACES` in the renderer is exactly that set and any other or
+mixed list fails closed. This restriction lives here, in the shared renderer,
+rather than only in an installer-side guard — otherwise the guarantee would hold
+only for consumers that happen to re-implement it, which is not a guarantee.
 
 Why a generator instead of a few static manifests: RBAC that has to stay in sync
 with a prompt, a tool allow-list and a Helm value across two repositories drifts.
@@ -47,7 +50,7 @@ loud in a customer conversation.
 | `systemMessage` | intent | **soft** — a prompt | generated from the config |
 | `toolNames` allow-list | which tools the model can see | **medium** — configuration | `read.tools` / `write.tools` |
 | `requireApproval` | which calls wait for a human *on the Agent that declares it* | **medium** — a per-Agent workflow gate, not a server-side policy | `write.requireApproval` |
-| **tool-server ServiceAccount RBAC** | which API calls the executing identity may make | **hard — the only enforced boundary here.** Some permissions reach further than the verbs they name; see "What withholding those verbs does and does not prove" | `write.namespaces`, `write.resources` |
+| **tool-server ServiceAccount RBAC** | which API calls the executing identity may make | **hard — the only enforced boundary here.** Some permissions reach further than the verbs they name; see "What withholding those verbs does and does not prove" | not config — the `EVIDENCED_WRITE_NAMESPACES` and `WRITABLE_RESOURCES` allow-lists in the renderer |
 
 Three consequences that surprise people:
 
@@ -108,15 +111,17 @@ write:
 
 v1 renders one `Role` + `RoleBinding` in `kagent-lab`. Any other namespace — by
 itself or added to the list — is refused until it has a recorded drill and a
-reviewed boundary. Namespaces are **never created** by the profile; if
-`kagent-lab` does not exist, the installer fails rather than inventing it.
+reviewed boundary. The write **target** is never created by the profile; if
+`kagent-lab` does not exist, the installer fails rather than inventing it. The one
+namespace the profile does create is the write tool server's own
+(`10-namespace.yaml`), which is not a write target.
 
 `scope: cluster` is **refused**, and not because it is untested. A normal
 `ClusterRoleBinding` applies in every namespace — `kagent`, `kagent-write`,
 `kube-system`, and every namespace created after the install — and RBAC has no
-way to express an exclusion. The protected-namespace checks in this renderer work
-precisely because they iterate an explicit list, so they cannot be made to hold
-for a cluster-scoped binding by adding more conditions. Cluster-wide write is
+way to express an exclusion. An allow-list can be checked one entry at a time; a
+cluster-scoped binding has no entries to check, so no additional condition makes
+the namespace guarantees hold for it. Cluster-wide write is
 candidate work until there is both a forcing consumer and an enforceable
 boundary; in this lab there is neither.
 
@@ -134,6 +139,8 @@ The renderer refuses, regardless of config:
   can rewrite its own Agent and tool definitions;
 - the write tool server's own namespace as a write target;
 - `kube-*` namespaces, and `default`;
+- **any write target other than `kagent-lab`** — v1 requires exactly the evidenced
+  set, so a different namespace or a mixed list is refused, not merely warned about;
 - `write.scope: cluster`;
 - `requireApproval: false`;
 - a mutating or Secret-flavoured tool name in `read.tools` — that reference is
@@ -152,17 +159,25 @@ a way of turning into a quietly false claim:
 - **a namespace or object name that is not a clean DNS label**, checked with
   `fullmatch`. `re.match` with `$` accepts a trailing newline, and `"kagent\n"`
   passing that check was enough to slip past the install-namespace comparison;
-- **shell metacharacters in `agentName`, `releaseName` or a tool name.**
-  `profile.env` is documented as shell-sourceable, so an unvalidated name there is
-  command execution in the installer, not a broken manifest. Values are validated
-  *and* single-quoted;
-- a duplicate namespace or tool, an out-of-range or non-numeric port, and a
-  metrics port equal to the tool port.
+- **shell metacharacters in `agentName`, `releaseName`, `install.namespace`,
+  `toolServer.namespace` or a tool name.** Every one of those reaches
+  `profile.env`, which is documented as shell-sourceable, so an unvalidated name
+  there is command execution in the installer rather than a broken manifest. They
+  are validated *and* single-quoted — and validated again on the render path, so
+  the guarantee holds for an importer of this module and not only for callers of
+  `load_config`;
+- a duplicate namespace, tool or resource; a metrics port equal to the tool port;
+  a `toolServer.port` other than `CHART_TOOLS_PORT`, because this renderer
+  templates only the metrics port and any other value would put a port the tool
+  server is not serving into the generated `RemoteMCPServer` URL; and a port
+  that is not an actual integer — `true` would otherwise become port 1 and
+  `8084.9` would be truncated, because `bool` is a subclass of `int` in Python and
+  `int()` coerces silently.
 
 Grantable resources in v1: **`configmaps`, and nothing else.**
 
-Every write profile also gets read-only context in its own namespaces — Pods, Pod
-logs and Events — so the agent can verify the change it just made instead of
+The write identity also gets read-only context in `kagent-lab` — Pods, Pod logs
+and Events — so the agent can verify the change it just made instead of
 asserting success. Deliberately *not* included: any `apps` resource. Granting the
 write identity even a read verb on a workload controller would make the
 "no permission on workload kinds" claim false, and cluster-wide read already
@@ -201,13 +216,15 @@ table to find out.
 | `services`, `ingresses` | traffic-path write. No drill, and no tested bound on blast radius. |
 | `pods` (delete) | a disruption primitive. No recorded drill. |
 | `write.scope: cluster` | `ClusterRoleBinding` cannot exclude namespaces; no forcing consumer in this lab. |
+| any write namespace other than `kagent-lab` | no recorded drill for it. Multi-namespace RBAC is the same *shape*, but shape is not evidence, and `EVIDENCED_WRITE_NAMESPACES` is the renderer's own boundary rather than a downstream consumer's. |
 | `requireApproval: false` | no drill, and no compensating server-side control. |
 | namespaced **read** scope | would mean taking over the chart's built-in tool RBAC; needs live testing, not a config flag. |
 
 Promoting one of these is a specific piece of work: implement the boundary, run
-E4b in `evidence-protocol.md` for it, record the result, *then* move it out of
-`CANDIDATE_RESOURCES`. Adding a kind to `WRITABLE_RESOURCES` is a claim that this
-already happened.
+E4b in `evidence-protocol.md` for it, record the result, *then* widen the
+allow-list — `WRITABLE_RESOURCES` for a kind, `EVIDENCED_WRITE_NAMESPACES` for a
+namespace. Editing either constant is a claim that this already happened, and the
+tests assert the current contents so the edit cannot pass unnoticed.
 
 ## Usage
 
@@ -241,8 +258,10 @@ Outputs in `--out`:
 
 Only `manifests/` is meant for `kubectl apply`. The output is generated: keep it
 out of Git and re-render rather than editing it. A stale manifest from a wider
-profile is a security bug, not clutter — the renderer clears the directory on
-every run for exactly that reason.
+profile is a security bug, not clutter — the renderer empties `manifests/` on every
+run for exactly that reason, every file and not only `*.yaml`, and removes the
+directory entirely for a read-only profile so `kubectl apply -f manifests/` cannot
+quietly apply nothing.
 
 ## Verifying instead of trusting
 
@@ -260,23 +279,59 @@ python3 render_access_test.py    # renderer behaviour
 python3 review_rc_check.py       # the five review points, incl. the documents
 ```
 
-`review_rc_check.py` is the narrower one: it asserts that each requested change
-from the PR review is true of this tree — cluster scope refused at *every*
-renderer entry point and not only in `load_config`, ConfigMaps-only in the code
-*and* in the shipped example, the exact approval-boundary sentence present in all
-six documents and in the generated summary, the pod-template escalation caveat
-worded as the reviewer asked, and no stale `platform/ai/` reference in a tracked
-file. A later edit that softens one of these fails a check instead of surfacing in
+`review_rc_check.py` is the narrower one: it asserts that each point raised in the
+PR review is true of this tree.
+
+- cluster scope **and** the evidenced namespace refused at *every* render entry
+  point, not only in `load_config` — the boundary must hold for an importer of this
+  module, not only for callers that go through the loader;
+- ConfigMaps-only and `kagent-lab`-only, in the code *and* in the shipped example;
+- the exact approval-boundary sentence in all six documents and in the generated
+  summary;
+- the pod-template escalation caveat worded as the reviewer asked, naming
+  Deployment/StatefulSet/DaemonSet/Job and a more privileged ServiceAccount;
+- ports rejected unless they are actual integers — `bool` is a subclass of `int`,
+  so `port: true` would otherwise render port 1;
+- no stale `platform/ai/` reference in a tracked file.
+
+A later edit that softens one of these fails a check instead of surfacing in
 another review round.
 
-Static, no cluster. Asserts the properties that matter: read-only generates no
-write path; the renderable write surface is ConfigMaps only and every candidate
-kind is refused; no cluster-scoped object can be produced at all; forbidden
-resources never appear in a generated rule; `requireApproval` covers every exposed
-write tool; the summary states the approval boundary as an Agent-level policy and
-avoids absolute Secret or escalation claims; downgrading removes the previous
-manifests; and each refused config is actually refused — including the fail-closed
-cases above, which are the ones a reader would otherwise have to take on trust.
+Static, no cluster. Asserts the properties that matter:
+
+- read-only generates no write path, and a read-only profile that still carries a
+  populated write block is refused rather than summarised;
+- the renderable write surface is ConfigMaps in `kagent-lab` only;
+- **nothing `load_config` refuses is renderable.** Not as a second list of checks —
+  those drifted from the first three times, and each time a reviewer found the one
+  that had been missed. `_require_renderable_profile` converts the config back to
+  its on-disk shape and re-runs `validate_raw_config`, the same validator the
+  loader uses, so divergence is impossible by construction. The round trip must
+  also be lossless, which is how a dropped or renamed field would surface. Every
+  public renderer calls it — `render_read_values`, `render_namespace`,
+  `render_rbac`, `render_tool_server`, `render_agent`, `render_tools_values`,
+  `render_summary`, `render_profile_env`, `write_outputs` — and the test enumerates
+  all nine, because a list that omits one cannot falsify a claim about all of them;
+  that omission is exactly how `render_namespace` stayed unguarded for a round;
+- anything unrenderable is a `ConfigError`, never a `TypeError` or `KeyError`: a
+  valid *read-only* profile passed to a write renderer is refused with a message,
+  not a traceback;
+- no cluster-scoped **RBAC** object can be produced (`10-namespace.yaml` is a
+  `Namespace`, which is cluster-scoped and intended — it is the tool server's own);
+- a refusal anywhere in `write_outputs` leaves no partial profile behind; no shell
+  metacharacter reaches `profile.env` through any field **in either mode** — the
+  read-only case is asserted separately, because `KAGENT_ACCESS_MODE` and
+  `KAGENT_INSTALL_NAMESPACE` are emitted before the write branch, and the test
+  counts its own assertions so a loop that silently short-circuits fails;
+- the config filename cannot inject a heading into `SUMMARY.md`, the one document
+  whose purpose is to be the reviewable statement of the boundary;
+- forbidden resources never appear in a generated rule; `requireApproval` covers
+  every exposed write tool;
+- the summary states the approval boundary as an Agent-level policy and avoids
+  absolute Secret or escalation claims;
+- downgrading removes the previous manifests, and each refused config is refused
+  *for the reason its label names* — a bare "some error was raised" check would
+  still pass with the named check deleted.
 
 ## Extension points
 

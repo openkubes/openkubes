@@ -15,7 +15,8 @@ Run from anywhere::
 
     python3 research/kagent-standalone/access/review_rc_check.py
 
-Exits non-zero on the first unmet point. No cluster, no network.
+Reports every point, then exits non-zero if any is unmet — the whole list matters,
+not just the first failure. No cluster, no network.
 """
 import importlib.util, pathlib, re, subprocess, sys, tempfile, yaml
 
@@ -24,18 +25,30 @@ ROOT = ACC.parents[2]
 spec = importlib.util.spec_from_file_location("ra", ACC / "render-access.py")
 ra = importlib.util.module_from_spec(spec); spec.loader.exec_module(ra)
 
+WORK = tempfile.TemporaryDirectory()
+WORKDIR = pathlib.Path(WORK.name)
+
 fails = []
 def ck(ok, label, detail=""):
     print(f"  {'PASS' if ok else 'FAIL'}  {label}" + (f"  [{detail}]" if detail and not ok else ""))
     if not ok: fails.append(label)
 
-def refused(cfg, label):
+def refused(cfg, label, needle):
+    """Refused *for the stated reason*.
+
+    A bare "some ConfigError was raised" check passes even when the refusal comes
+    from an unrelated invariant — so deleting the very check the label names would
+    not fail this file. The needle makes each PASS mean what its label says.
+    """
     with tempfile.TemporaryDirectory() as t:
         p = pathlib.Path(t)/"c.yaml"; p.write_text(yaml.safe_dump(cfg))
         try:
             ra.load_config(p, quiet=True)
         except ra.ConfigError as e:
-            print(f"  PASS  {label}\n          -> {str(e)[:110]}...")
+            if needle.lower() in str(e).lower():
+                print(f"  PASS  {label}\n          -> {str(e)[:110]}...")
+            else:
+                ck(False, label, f"refused for the wrong reason: {e}")
             return
     ck(False, label, "ACCEPTED")
 
@@ -50,26 +63,32 @@ def profile(**w):
 def txt(p): return (ROOT/p).read_text(encoding="utf-8")
 
 print("RC1 — write.scope: cluster removed from the SHARED renderer schema")
-refused(profile(scope="cluster", namespaces=[]), "scope=cluster refused by render-access.py itself")
-refused(profile(scope="cluster", namespaces=["kagent-lab"]), "scope=cluster + list refused")
+refused(profile(scope="cluster", namespaces=[]), "scope=cluster refused by render-access.py itself", "write.scope: 'cluster' is refused")
+refused(profile(scope="cluster", namespaces=["kagent-lab"]), "scope=cluster + list refused", "write.scope: 'cluster' is refused")
 src = txt("research/kagent-standalone/access/render-access.py")
-ck("ClusterRoleBinding" not in src.split("PROTECTED_NAMESPACES")[0] and '"kind": "ClusterRoleBinding"' not in src,
-   "no ClusterRoleBinding emitter anywhere in the renderer")
-ck('"kind": "ClusterRole"' not in src, "no ClusterRole emitter anywhere in the renderer")
+# Look for the *emitter*, not the word: prose and error messages legitimately
+# discuss ClusterRoleBinding, and a substring check on those produced a false
+# positive the moment the docstring was expanded.
+emitters = re.findall(r"""["']kind["']\s*:\s*["'](Cluster\w+)["']""", src)
+ck(not emitters, "no ClusterRole/ClusterRoleBinding is constructed anywhere in the renderer", str(emitters))
 with tempfile.TemporaryDirectory() as t:
     p=pathlib.Path(t)/"c.yaml"; p.write_text(yaml.safe_dump(profile()))
     out=pathlib.Path(t)/"o"; ra.write_outputs(ra.load_config(p, quiet=True), out, p, None)
     kinds=[d["kind"] for f in out.rglob("*.yaml") for d in yaml.safe_load_all(f.read_text()) if d and "kind" in d]
-    ck(not [k for k in kinds if k.startswith("Cluster")], f"nothing cluster-scoped rendered", str(kinds))
+    # `Namespace` is cluster-scoped but expected: it is the tool server's own
+    # namespace. The claim is about cluster-scoped *RBAC*.
+    ck(not [k for k in kinds if k.startswith("Cluster")], "no cluster-scoped RBAC object is rendered", str(kinds))
 
 print("\nRC2 — v1 = ConfigMaps only, in THIS repo's renderer and docs")
 ck(sorted(ra.WRITABLE_RESOURCES)==["configmaps"], "WRITABLE_RESOURCES == {configmaps}", str(sorted(ra.WRITABLE_RESOURCES)))
 ck(ra.EVIDENCED_WRITE_NAMESPACES=={"kagent-lab"}, "EVIDENCED_WRITE_NAMESPACES == {kagent-lab}")
-refused(profile(namespaces=["team-a"]), "an unevidenced namespace is refused")
-refused(profile(namespaces=["kagent-lab", "team-a"]), "a mixed namespace list is refused")
+refused(profile(namespaces=["team-a"]), "an unevidenced namespace is refused", "exactly the evidenced target")
+refused(profile(namespaces=["kagent-lab", "team-a"]), "a mixed namespace list is refused", "exactly the evidenced target")
 for r in ("deployments","statefulsets","daemonsets","replicasets","jobs","cronjobs","services","ingresses","pods"):
-    refused(profile(resources=[r]), f"resources=[{r}] refused")
-refused(profile(requireApproval=False), "requireApproval=false refused")
+    refused(profile(resources=[r]), f"resources=[{r}] refused", "candidate work")
+for r in ("secrets", "clusterroles", "*"):
+    refused(profile(resources=[r]), f"resources=[{r}] refused", "can never be granted")
+refused(profile(requireApproval=False), "requireApproval=false refused", "requireApproval: must be true")
 ex = yaml.safe_load(txt("research/kagent-standalone/access/access-config.example.yaml"))
 ck(ex["write"]["resources"]==["configmaps"], "shipped example: resources == [configmaps]", str(ex["write"]["resources"]))
 ck(ex["write"]["namespaces"]==["kagent-lab"], "shipped example: namespaces == [kagent-lab]")
@@ -77,10 +96,54 @@ ck(ex["write"]["scope"]=="namespaces", "shipped example: scope == namespaces")
 
 print("\nFollow-up — ports are actual integers, never coerced")
 for field in ("port", "metricsPort"):
-    for value in (True, 8084.9, "8084"):
+    for value in (True, False, 8084.9, "8084", None):
         ts={"namespace":"kagent-write","releaseName":"kagent-write-tools","port":8084,"metricsPort":8085}
         ts[field]=value
-        refused(profile(toolServer=ts), f"{field}={value!r} refused")
+        refused(profile(toolServer=ts), f"{field}={value!r} refused", "expected an integer")
+
+print("\nFollow-up — the v1 boundary holds for an importer, not only via load_config")
+# The reviewer's point about the shared renderer applies to BOTH halves of the
+# scope. A namespace allow-list enforced only in load_config is enforced only for
+# callers that use load_config — the same gap as leaving it to each consumer.
+def _hand_built(**over):
+    w={"scope":"namespaces","namespaces":["kagent-lab"],"resources":["configmaps"],
+       "require_approval":True,"tool_server_namespace":"kagent-write",
+       "tool_server_release":"kagent-write-tools","tool_server_port":8084,
+       "tool_server_metrics_port":8085,"tools":["k8s_apply_manifest"],
+       "agent_name":"cluster-operator-gated"}
+    w.update(over)
+    return w, {"mode":"read-write","install_namespace":"kagent",
+               "read":{"scope":"cluster","secrets":False,"tools":["k8s_get_resources"]},"write":w}
+
+for label, over in (("cluster scope", {"scope":"cluster","namespaces":[]}),
+                    ("namespaces=['prod-payments']", {"namespaces":["prod-payments"]}),
+                    ("namespaces=['kagent-lab','team-a']", {"namespaces":["kagent-lab","team-a"]}),
+                    ("namespaces=['kagent-lab','kagent-lab']", {"namespaces":["kagent-lab","kagent-lab"]}),
+                    ("resources=['deployments']", {"resources":["deployments"]}),
+                    ("resources=['secrets']", {"resources":["secrets"]}),
+                    ("agent_name with shell metacharacters", {"agent_name":"a'; id; #"}),
+                    ("tool_server_namespace with shell metacharacters", {"tool_server_namespace":"x'; id; #"}),
+                    ("require_approval=False", {"require_approval":False})):
+    w, c = _hand_built(**over)
+    for name, call in (("render_read_values", lambda: ra.render_read_values(c)),
+                       ("render_namespace", lambda: ra.render_namespace(c)),
+                       ("render_rbac", lambda: ra.render_rbac(c)),
+                       ("render_tool_server", lambda: ra.render_tool_server(c)),
+                       ("render_agent", lambda: ra.render_agent(c)),
+                       ("render_tools_values", lambda: ra.render_tools_values(c, None)),
+                       ("render_summary", lambda: ra.render_summary(c, pathlib.Path("x"))),
+                       ("render_profile_env", lambda: ra.render_profile_env(c)),
+                       ("write_outputs", lambda: ra.write_outputs(c, WORKDIR/"o", pathlib.Path("x"), None))):
+        try:
+            call(); ck(False, f"{name} accepted {label} (bypassing load_config)")
+        except ra.ConfigError: ck(True, f"{name} refuses {label} without load_config")
+        except AssertionError: ck(False, f"{name} guards {label} with assert, stripped by python3 -O")
+        except Exception as exc: ck(False, f"{name} raised {type(exc).__name__} for {label}")
+w, c = _hand_built()
+ck({o["metadata"]["namespace"] for o in ra.render_rbac(c)} == {"kagent-lab"},
+   "the evidenced hand-built dict still renders, in kagent-lab only")
+ck("KAGENT_WRITE_NAMESPACES='kagent-lab'" in ra.render_profile_env(c),
+   "profile.env publishes exactly the evidenced namespace")
 
 print("\nRC3 — approval gate qualified, in access/README.md AND reference.md")
 SENT = "shared write tool server and its Kubernetes identity are not"
@@ -137,6 +200,8 @@ stale = "\n".join(
     if t and t != SELF and "platform/ai/kagent-standalone" in (ROOT/t).read_text(errors="ignore")
 )
 ck(not stale, "no stale platform/ai/kagent-standalone reference in any TRACKED file", stale[:200])
+
+WORK.cleanup()
 
 print("\n" + ("="*60))
 print(f"FAILED: {len(fails)}" if fails else "ALL RC CHECKS PASS")

@@ -355,11 +355,11 @@ the `kagent` install namespace, the tool server's own namespace, `kube-*` and
 tool name in the ungated `read.tools` reference; and every write kind beyond
 ConfigMaps — plus every namespace target other than `kagent-lab`. Workload kinds,
 Services, Ingresses, Pod deletion and other namespace targets are candidate work.
-It exits non-zero and generates nothing. Target namespaces are never created
-by the profile — a missing one is an error, not an invitation.
+It exits non-zero and generates nothing. `kagent-lab` is never created by the
+profile — a missing target is an error, not an invitation.
 
-Two of those refusals exist because the boundary itself is missing, not because a
-test is missing: a `ClusterRoleBinding` cannot exclude `kagent`, `kube-*` or a
+Two of those refusals are there because the boundary itself is missing rather than
+the test: a `ClusterRoleBinding` cannot exclude `kagent`, `kube-*` or a
 namespace created tomorrow; and **pod-template mutation on a Deployment,
 StatefulSet, DaemonSet or Job can reach existing Secrets or a more privileged
 ServiceAccount in the same namespace** without touching the Secret API — RBAC
@@ -381,15 +381,15 @@ controllers for *every* verb including `get`, and cannot create RoleBindings; an
 in read-only mode the write Agent, its `RemoteMCPServer` and the `kagent-write`
 namespace do not exist. A chart upgrade that quietly widens RBAC fails this target.
 
-The write identity's own read context is Pods, Pod logs and Events in its
-namespaces — enough to verify a change it just made. Everything else it reads, it
+The write identity's own read context is Pods, Pod logs and Events in `kagent-lab`
+— enough to verify a change it just made. Everything else it reads, it
 reads through the separate read identity.
 
 ### The drill
 
 Exercise reversible objects only:
 
-1. ask the Agent to create a ConfigMap in a configured write namespace;
+1. ask the Agent to create a ConfigMap in `kagent-lab`;
 2. inspect the proposed payload and approve it;
 3. ask for an update and reject it with a reason;
 4. verify that the rejected change did not land;
@@ -526,7 +526,7 @@ Do not claim HA, disaster recovery, or automatic rollback from this setup.
 | CLI invoke returns a decode error | UI or direct A2A with message ID | Known v0.9.12 CLI request issue observed in this lab |
 | Agent has excess power | `make verify-access`, then `kubectl auth can-i --as=...` | Tool-server RBAC is broader than the profile intends |
 | Write tools missing after a profile change | `make access-summary`, `make status` | Profile is still `read-only`, or the re-install was not run |
-| Install aborts on a missing write namespace | the namespace list in `access-config.yaml` | Target namespaces are never created by the profile — create it, or drop it from the list |
+| Install aborts on a missing write namespace | `kubectl get ns kagent-lab` | The profile never creates its target — create `kagent-lab`, or switch to `mode: read-only`. It cannot be swapped for another namespace |
 | RoleBindings bind nothing | ServiceAccount in the write namespace | The tools chart stopped creating the SA; the installer fails on this deliberately |
 
 Minimal collection:

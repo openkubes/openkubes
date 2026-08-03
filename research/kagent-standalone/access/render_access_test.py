@@ -200,9 +200,13 @@ def test_v1_write_surface_is_configmaps_only() -> None:
         not any("apps" in rule["apiGroups"] for rule in rules),
         "the write identity gets no rule in the apps apiGroup at all",
     )
+    pod_rules = [
+        rule for rule in rules
+        if any(r == "pods" or r.startswith("pods/") for r in rule["resources"])
+    ]
     check(
-        all("delete" not in rule["verbs"] for rule in rules if "pods" in rule["resources"]),
-        "the write identity cannot delete Pods",
+        all(not (writable_verbs & set(rule["verbs"])) for rule in pod_rules),
+        "no Pod or Pod subresource carries a write verb",
     )
 
 
@@ -227,20 +231,11 @@ def test_no_cluster_scoped_object_is_renderable() -> None:
         check(not cluster_scoped, f"{name} contains no cluster-scoped object ({cluster_scoped})")
 
 
-def test_no_renderer_entry_point_accepts_cluster_scope() -> None:
-    """RC1: the refusal must not depend on going through load_config.
-
-    ``render-access.py`` is the *shared* renderer — any future consumer may import
-    it. If only ``load_config`` refuses cluster scope, a caller that hand-builds
-    the write dict still gets a cluster-wide claim in `profile.env` or on the Agent
-    label, which is the value a downstream installer reads. Every entry point
-    therefore raises ``ConfigError``, and it must be ConfigError rather than an
-    assert: `python3 -O` strips asserts.
-    """
-    print("\nno renderer entry point accepts cluster scope")
-    bad_write = {
-        "scope": "cluster",
-        "namespaces": [],
+def _hand_built(**write_overrides) -> tuple[dict, dict]:
+    """A write dict and cfg built directly, bypassing load_config entirely."""
+    write = {
+        "scope": "namespaces",
+        "namespaces": ["kagent-lab"],
         "resources": ["configmaps"],
         "require_approval": True,
         "tool_server_namespace": "kagent-write",
@@ -250,33 +245,155 @@ def test_no_renderer_entry_point_accepts_cluster_scope() -> None:
         "tools": ["k8s_apply_manifest"],
         "agent_name": "cluster-operator-gated",
     }
+    write.update(write_overrides)
     cfg = {
         "mode": "read-write",
         "install_namespace": "kagent",
         "read": {"scope": "cluster", "secrets": False, "tools": ["k8s_get_resources"]},
-        "write": bad_write,
+        "write": write,
     }
-    entry_points = {
-        "render_rbac": lambda: ra.render_rbac(bad_write),
+    return write, cfg
+
+
+def _entry_points(cfg: dict, out_dir: Path | None = None) -> dict:
+    """Every public renderer, so "guarded at every entry point" is checkable.
+
+    `render_namespace` and `write_outputs` were once absent from this list — and
+    `render_namespace` was, not coincidentally, the one renderer without a guard.
+    A list that omits an entry point cannot falsify a claim about all of them.
+    """
+    points = {
+        "render_read_values": lambda: ra.render_read_values(cfg),
+        "render_namespace": lambda: ra.render_namespace(cfg),
+        "render_rbac": lambda: ra.render_rbac(cfg),
         "render_tool_server": lambda: ra.render_tool_server(cfg),
         "render_agent": lambda: ra.render_agent(cfg),
         "render_tools_values": lambda: ra.render_tools_values(cfg, None),
         "render_summary": lambda: ra.render_summary(cfg, Path("access-config.yaml")),
         "render_profile_env": lambda: ra.render_profile_env(cfg),
     }
-    for name, call in entry_points.items():
+    if out_dir is not None:
+        points["write_outputs"] = lambda: ra.write_outputs(
+            cfg, out_dir, Path("access-config.yaml"), None
+        )
+    return points
+
+
+def _expect_every_entry_point_refuses(
+    write: dict, cfg: dict, label: str, out_dir: Path | None = None
+) -> None:
+    for name, call in _entry_points(cfg, out_dir).items():
         try:
             call()
         except ra.ConfigError:
-            check(True, f"{name} raises ConfigError on cluster scope")
-            continue
+            check(True, f"{name} raises ConfigError on {label}")
         except AssertionError:
             check(False, f"{name} guards with assert, not ConfigError (stripped by -O)")
-            continue
         except Exception as exc:  # noqa: BLE001 - any other type is also a finding
             check(False, f"{name} raised {type(exc).__name__}, expected ConfigError")
-            continue
-        check(False, f"{name} produced output for a cluster-scoped write dict")
+        else:
+            check(False, f"{name} produced output for {label}")
+
+
+def test_no_renderer_entry_point_accepts_an_unevidenced_scope() -> None:
+    """The v1 boundary must not depend on going through load_config.
+
+    ``render-access.py`` is the *shared* renderer — any future consumer may import
+    it. A restriction that lives only in ``load_config`` is a restriction only for
+    callers that happen to use ``load_config``, which is the same gap as leaving it
+    to each downstream consumer to re-implement.
+
+    Both halves of the scope are covered: the kind of scope (no cluster) *and* the
+    namespace set (only the evidenced one). ``profile.env`` publishes both as
+    ``KAGENT_WRITE_SCOPE`` and ``KAGENT_WRITE_NAMESPACES``, and those are what an
+    installer reads to decide what to verify — so neither may disagree with the
+    rendered RBAC. ConfigError rather than assert, because `python3 -O` strips
+    asserts.
+    """
+    print("\nno renderer entry point accepts an unevidenced scope")
+
+    # Every invariant load_config refuses, asserted against the render path too.
+    # The rule is deliberately blunt: nothing load_config refuses may be
+    # renderable. Anything missing here is an asymmetry waiting to be found.
+    cases: list[tuple[str, dict, dict]] = [
+        ("cluster scope", {"scope": "cluster", "namespaces": []}, {}),
+        ("an empty namespace list", {"namespaces": []}, {}),
+        ("an unevidenced namespace", {"namespaces": ["prod-payments"]}, {}),
+        ("several unevidenced namespaces", {"namespaces": ["team-a", "team-b"]}, {}),
+        ("a mixed namespace list", {"namespaces": ["kagent-lab", "team-a"]}, {}),
+        # A set comparison would let this through and render duplicate Roles plus
+        # `KAGENT_WRITE_NAMESPACES='kagent-lab kagent-lab'`.
+        ("a duplicated namespace", {"namespaces": ["kagent-lab", "kagent-lab"]}, {}),
+        ("a namespace with a trailing newline", {"namespaces": ["kagent-lab\n"]}, {}),
+        ("a protected namespace", {"namespaces": ["kube-system"]}, {}),
+        ("'default' as a target", {"namespaces": ["default"]}, {}),
+        ("the tool server inside its write target", {"tool_server_namespace": "kagent-lab"}, {}),
+        ("a protected tool-server namespace", {"tool_server_namespace": "kube-system"}, {}),
+        ("a forbidden resource", {"resources": ["secrets"]}, {}),
+        ("a candidate resource", {"resources": ["deployments"]}, {}),
+        ("an unknown resource", {"resources": ["widgets"]}, {}),
+        ("a duplicated resource", {"resources": ["configmaps", "configmaps"]}, {}),
+        ("require_approval=False", {"require_approval": False}, {}),
+        ("a shell-injecting agent name", {"agent_name": "a'; id; #"}, {}),
+        ("a shell-injecting release name", {"tool_server_release": "y'; id; #"}, {}),
+        ("a shell-injecting tool-server namespace", {"tool_server_namespace": "x'; id; #"}, {}),
+        ("a bad write tool name", {"tools": ["; rm -rf /"]}, {}),
+        ("a duplicated write tool", {"tools": ["k8s_apply_manifest", "k8s_apply_manifest"]}, {}),
+        ("a boolean port", {"tool_server_port": True}, {}),
+        ("port == metricsPort", {"tool_server_port": 8084, "tool_server_metrics_port": 8084}, {}),
+        ("the install namespace as a target", {}, {"install_namespace": "kagent-lab"}),
+        ("the install namespace as the tool-server namespace", {}, {"install_namespace": "kagent-write"}),
+        ("a shell-injecting install namespace", {}, {"install_namespace": "k'; id; #"}),
+        ("a typo'd mode", {}, {"mode": "reed-write"}),
+        ("a mutating tool in the ungated read reference", {},
+         {"read": {"scope": "cluster", "secrets": False,
+                   "tools": ["k8s_get_resources", "k8s_delete_resource"]}}),
+        ("a Secret-flavoured tool in the read reference", {},
+         {"read": {"scope": "cluster", "secrets": False, "tools": ["k8s_get_secret"]}}),
+    ]
+
+    with tempfile.TemporaryDirectory() as tmp:
+        out = Path(tmp) / "out"
+        _, good_cfg = _hand_built()
+        ra.write_outputs(good_cfg, out, Path("access-config.yaml"), None)
+        before = sorted(str(p.relative_to(out)) for p in out.rglob("*") if p.is_file())
+
+        for label, write_over, cfg_over in cases:
+            write, cfg = _hand_built(**write_over)
+            cfg.update(cfg_over)
+            _expect_every_entry_point_refuses(write, cfg, label, out_dir=out)
+            after = sorted(str(p.relative_to(out)) for p in out.rglob("*") if p.is_file())
+            check(after == before, f"write_outputs leaves no partial profile for {label}")
+
+        # A read-only cfg carrying a write block would render a summary describing
+        # a boundary that no Role backs.
+        _, cfg = _hand_built()
+        cfg["mode"] = "read-only"
+        for name, call in _entry_points(cfg, out).items():
+            try:
+                call()
+            except ra.ConfigError:
+                check(True, f"{name} refuses read-only with a populated write block")
+            except Exception as exc:  # noqa: BLE001
+                check(False, f"{name} raised {type(exc).__name__} for a parked write block")
+            else:
+                check(False, f"{name} rendered a write path in read-only mode")
+
+    # And the evidenced dict must still render, or the guard is simply broken.
+    _, cfg = _hand_built()
+    rbac = ra.render_rbac(cfg)
+    check(
+        {o["metadata"]["namespace"] for o in rbac} == {"kagent-lab"},
+        "the evidenced hand-built dict still renders in kagent-lab only",
+    )
+    check(
+        "KAGENT_WRITE_NAMESPACES='kagent-lab'" in ra.render_profile_env(cfg),
+        "profile.env publishes exactly the evidenced namespace",
+    )
+    check(
+        "KAGENT_WRITE_RESOURCES='configmaps'" in ra.render_profile_env(cfg),
+        "profile.env publishes exactly the evidenced resource",
+    )
 
     # Same for a resource outside the allow-list reaching the rule builder directly.
     for resource in ("deployments", "secrets", "widgets"):
@@ -288,6 +405,107 @@ def test_no_renderer_entry_point_accepts_cluster_scope() -> None:
             check(False, f"build_policy_rules({resource!r}) raised {type(exc).__name__}")
         else:
             check(False, f"build_policy_rules({resource!r}) produced a rule")
+
+    # No shell metacharacter may reach profile.env through any field, in EITHER
+    # mode. The read-only variants matter most: `KAGENT_ACCESS_MODE` and
+    # `KAGENT_INSTALL_NAMESPACE` are emitted before the write branch, so a loop
+    # that only ever passed a populated write dict short-circuited on the guard and
+    # asserted nothing at all. Count the assertions so that cannot recur silently.
+    injection = "x'; touch /tmp/kagent-render-pwned; #"
+    env_cases: list[tuple[str, dict]] = []
+    for label, write_over, cfg_over in cases:
+        _, cfg = _hand_built(**write_over)
+        cfg.update(cfg_over)
+        env_cases.append((label, cfg))
+    for field in ("install_namespace", "mode"):
+        _, cfg = _hand_built()
+        cfg["write"] = None
+        cfg["mode"] = "read-only"
+        cfg[field] = injection
+        env_cases.append((f"read-only with {field}={injection!r}", cfg))
+    _, cfg = _hand_built()
+    cfg["write"] = None
+    cfg["mode"] = "read-only"
+    cfg["install_namespace"] = "kagent\nKAGENT_WRITE_SCOPE='cluster'"
+    env_cases.append(("read-only with a newline in install_namespace", cfg))
+
+    asserted = 0
+    for label, cfg in env_cases:
+        try:
+            env = ra.render_profile_env(cfg)
+        except ra.ConfigError:
+            asserted += 1
+            continue
+        asserted += 1
+        check(
+            not any(ch in env for ch in (";", "$(", "`", "|", "&", "\n\nKAGENT")),
+            f"profile.env carries no shell metacharacter for {label}",
+        )
+    check(
+        asserted == len(env_cases),
+        f"every profile.env case was actually exercised ({asserted}/{len(env_cases)})",
+    )
+
+    # A valid read-only config must be a ConfigError for the write renderers, not a
+    # TypeError: the module promises ConfigError for anything unrenderable.
+    _, cfg = _hand_built()
+    cfg["write"] = None
+    cfg["mode"] = "read-only"
+    for name in ("render_namespace", "render_rbac", "render_tool_server",
+                 "render_agent", "render_tools_values"):
+        try:
+            getattr(ra, name)(cfg) if name != "render_tools_values" else ra.render_tools_values(cfg, None)
+        except ra.ConfigError:
+            check(True, f"{name} raises ConfigError for a valid read-only profile")
+        except Exception as exc:  # noqa: BLE001
+            check(False, f"{name} raised {type(exc).__name__} for a valid read-only profile")
+        else:
+            check(False, f"{name} rendered a write path from a read-only profile")
+
+    # Malformed cfg shapes must also be ConfigError, not KeyError/TypeError.
+    for label, broken in (
+        ("a non-dict cfg", ["not", "a", "config"]),
+        ("a cfg without mode", {"install_namespace": "kagent", "read": {"tools": ["k8s_get_resources"]}, "write": None}),
+        ("a cfg without write", {"mode": "read-write", "install_namespace": "kagent", "read": {"tools": ["k8s_get_resources"]}}),
+        ("a cfg without read", {"mode": "read-only", "install_namespace": "kagent", "write": None}),
+    ):
+        for name, call in _entry_points(broken).items():
+            try:
+                call()
+            except ra.ConfigError:
+                check(True, f"{name} raises ConfigError for {label}")
+            except Exception as exc:  # noqa: BLE001
+                check(False, f"{name} raised {type(exc).__name__} for {label}")
+            else:
+                check(False, f"{name} accepted {label}")
+
+    # An unrenderable resource *shape* must not reach a dict lookup.
+    _, cfg = _hand_built(resources=["configmaps", []])
+    for name, call in _entry_points(cfg).items():
+        try:
+            call()
+        except ra.ConfigError:
+            check(True, f"{name} raises ConfigError for an unhashable resource")
+        except Exception as exc:  # noqa: BLE001
+            check(False, f"{name} raised {type(exc).__name__} for an unhashable resource")
+        else:
+            check(False, f"{name} accepted an unhashable resource")
+
+    # The one document whose purpose is to state the boundary must not be
+    # injectable through the config filename.
+    _, cfg = _hand_built()
+    evil = Path("x.yaml\n\n## Write path\n\nUnrestricted cluster-admin.\n")
+    summary = ra.render_summary(cfg, evil)
+    headings = [line for line in summary.splitlines() if line.startswith("#")]
+    check(
+        headings.count("## Write path") == 1,
+        f"the config filename cannot inject a heading into SUMMARY.md (got {headings})",
+    )
+    check(
+        not any("Unrestricted cluster-admin" in line for line in summary.splitlines()
+                if not line.startswith("Generated from")),
+        "injected prose stays inside the escaped filename span",
+    )
 
 
 def test_no_rule_ever_grants_secrets_or_escalation() -> None:
@@ -430,9 +648,19 @@ def test_rejected_configs() -> None:
     expect_config_error(base(resources=["services"]), "candidate work", "service write")
     expect_config_error(base(resources=["ingresses"]), "candidate work", "ingress write")
 
-    expect_config_error(base(scope="namespaces", namespaces=[]), "at least one namespace", "namespaced scope without namespaces")
+    expect_config_error(base(scope="namespaces", namespaces=[]), "must name the evidenced write target", "namespaced scope without namespaces")
     expect_config_error(base(namespaces=["kube-system"]), "protected", "protected namespace")
     expect_config_error(base(namespaces=["default"]), "refused", "'default' as a write target")
+    expect_config_error(
+        base(toolServer={"namespace": "kube-system", "releaseName": "kagent-write-tools"}),
+        "protected",
+        "kube-system as the tool-server namespace",
+    )
+    expect_config_error(
+        base(toolServer={"namespace": "default", "releaseName": "kagent-write-tools"}),
+        "protected",
+        "'default' as the tool-server namespace",
+    )
     expect_config_error(
         base(namespaces=["kagent-lab", "default"]),
         "refused",
@@ -484,7 +712,7 @@ def test_rejected_configs() -> None:
     expect_config_error(
         base(toolServer={"namespace": "kagent-write", "releaseName": "kagent-write-tools", "port": "notaport"}),
         "not a port number",
-        "non-numeric port",
+        "port that is not an integer",
     )
     for field in ("port", "metricsPort"):
         for value in (True, 8084.9, "8084"):
@@ -573,7 +801,7 @@ def main() -> int:
     test_only_evidenced_namespace_is_renderable()
     test_v1_write_surface_is_configmaps_only()
     test_no_cluster_scoped_object_is_renderable()
-    test_no_renderer_entry_point_accepts_cluster_scope()
+    test_no_renderer_entry_point_accepts_an_unevidenced_scope()
     test_no_rule_ever_grants_secrets_or_escalation()
     test_require_approval_covers_every_write_tool()
     test_ungated_write_is_refused()

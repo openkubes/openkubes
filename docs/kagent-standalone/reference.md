@@ -625,9 +625,9 @@ problems rather than test gaps, which is why they are refused instead of flagged
 
 - **`write.scope: cluster`.** A `ClusterRoleBinding` applies in every namespace,
   including `kagent`, `kagent-write`, `kube-system` and namespaces created later,
-  and RBAC cannot express an exclusion. The renderer's protected-namespace checks
-  hold precisely because they iterate an explicit list, so no additional condition
-  can make them true for a cluster-scoped binding.
+  and RBAC cannot express an exclusion. An allow-list can be checked one entry at
+  a time; a cluster-scoped binding has no entries to check, so no additional
+  condition makes the namespace guarantees hold for it.
 - **Workload kinds.** **Pod-template mutation on a Deployment, StatefulSet,
   DaemonSet or Job can reach existing Secrets or a more privileged ServiceAccount
   in the same namespace** — by setting a different `serviceAccountName`, mounting a

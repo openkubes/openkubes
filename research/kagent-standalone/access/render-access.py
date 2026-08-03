@@ -31,8 +31,33 @@ Design rules, in order of importance:
     writes in ``[kagent-lab]``. Everything wider — any other namespace target,
     workload kinds, Jobs, Services, Ingresses, Pod deletion, ungated writes and
     cluster-wide scope — is candidate work and is *refused*, not defaulted.
-    See ``CANDIDATE_RESOURCES`` and the ``write.scope`` check for why each one
-    is not merely "untested" but currently unsupportable.
+
+    Two different reasons, kept distinct on purpose:
+
+    * **Boundary gaps.** Cluster scope and workload write cannot be bounded with
+      what this lab has: a ``ClusterRoleBinding`` cannot exclude a namespace, and
+      pod-template write reaches Secrets and other ServiceAccounts without the
+      Role naming them. See the ``write.scope`` check and
+      ``WORKLOAD_WRITE_PRECONDITION``.
+    * **Evidence gaps.** Another namespace target, Services, Ingresses and Pod
+      deletion are enforceable in the same shape that already works — they simply
+      have no recorded drill. Shape is not evidence, so they are refused too, but
+      promoting one is a drill rather than a design problem.
+
+    Both are enforced by this module rather than left to a consumer. The
+    allow-lists are ``WRITABLE_RESOURCES`` and ``EVIDENCED_WRITE_NAMESPACES``, and
+    the rule for where they apply is deliberately blunt:
+
+        **Nothing ``load_config`` refuses may be renderable.**
+
+    Every public renderer calls ``_require_renderable_profile``, which does not
+    re-list the invariants — it converts the config back to its on-disk shape and
+    runs ``validate_raw_config``, the *same* validator ``load_config`` uses. There
+    is therefore one validator and no second list to drift from the first, which is
+    what makes the rule above true by construction. This matters because the module
+    is the shared renderer: an importer can build the config by hand, and an
+    invariant checked only in the loader is an invariant only for callers that use
+    the loader — the same gap as leaving it to each consumer to re-implement.
 
 Usage::
 
@@ -155,14 +180,20 @@ PROTECTED_NAMESPACES = frozenset({"default"})
 #: consumer must get the same evidenced boundary without reimplementing it.
 EVIDENCED_WRITE_NAMESPACES = frozenset({"kagent-lab"})
 
+#: The port the kagent-tools chart serves on. This renderer does *not* template
+#: the chart's service port — only the metrics port — so ``write.toolServer.port``
+#: is the port the generated ``RemoteMCPServer`` URL points at, not the port the
+#: chart is told to listen on. A different value would therefore produce a URL that
+#: lies. Fail closed rather than emit it: the port is pinned until the chart value
+#: is templated too.
+CHART_TOOLS_PORT = 8084
+
 #: Matched with ``fullmatch``. ``re.match`` with ``$`` would accept a trailing
 #: newline, and ``"kagent\n"`` passing this check is enough to slip past the
 #: install-namespace and tool-server-namespace comparisons below.
 DNS_LABEL = re.compile(r"[a-z0-9]([-a-z0-9]*[a-z0-9])?")
 
-#: Kubernetes object names and the shell-safe subset the installer can source.
-#: Deliberately the same shape as a DNS label: these values are interpolated into
-#: ``profile.env``, so anything else is a shell-injection surface, not a name.
+#: The write tools a profile exposes when it does not name its own.
 DEFAULT_WRITE_TOOLS = [
     "k8s_apply_manifest",
     "k8s_patch_resource",
@@ -172,6 +203,9 @@ DEFAULT_WRITE_TOOLS = [
 #: Tool names are identifiers, not free text: they end up in a manifest and in a
 #: shell-sourceable file.
 TOOL_NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,126}")
+
+#: A container image tag. Interpolated into a Helm values file.
+IMAGE_TAG = re.compile(r"[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}")
 
 #: Substrings that mark a tool name as mutating or Secret-flavoured. Used to keep
 #: ``read.tools`` — which is rendered without an approval gate — free of anything
@@ -354,6 +388,19 @@ def load_config(path: Path, quiet: bool = False) -> dict:
     if not isinstance(raw, dict):
         raise ConfigError(f"{path}: expected a YAML mapping")
 
+    return validate_raw_config(raw, quiet=quiet)
+
+
+def validate_raw_config(raw: dict, quiet: bool = False) -> dict:
+    """Validate a parsed config mapping and return the internal config.
+
+    Split out of ``load_config`` so that there is exactly *one* validator. The
+    render path re-enters this same function (see ``_require_renderable_profile``)
+    instead of re-implementing the checks, which is what makes "nothing
+    ``load_config`` refuses may be renderable" true by construction rather than by
+    keeping two lists in sync — and two lists in sync is precisely what kept
+    failing review.
+    """
     _reject_unknown_keys(raw, {"kind", "mode", "install", "read", "write"}, "<top level>")
 
     kind = raw.get("kind")
@@ -445,16 +492,17 @@ def _validate_write(write_raw: object, install_ns: str) -> dict:
             "normal ClusterRoleBinding applies in every namespace, including the "
             "install namespace, the write tool server's own namespace, kube-* and "
             "any namespace created later, and RBAC cannot express those "
-            "exclusions. The protected-namespace checks below only work because "
-            "they iterate an explicit list. Cluster-wide write stays candidate "
-            "work until there is a forcing consumer and an enforceable boundary "
-            "(admission policy, or a tool server that scopes its own calls). Use "
-            "write.scope: namespaces with an explicit list."
+            "exclusions. An allow-list of namespaces can be checked one entry at "
+            "a time; a cluster-scoped binding has no entries to check. "
+            "Cluster-wide write stays candidate work until there is a forcing "
+            "consumer and an enforceable boundary (admission policy, or a tool "
+            "server that scopes its own calls). Use write.scope: namespaces with "
+            "the evidenced target, EVIDENCED_WRITE_NAMESPACES."
         )
     if scope != "namespaces":
         raise ConfigError(
-            "write.scope: must be 'namespaces'. v1 renders only explicitly "
-            "listed namespaces."
+            "write.scope: must be 'namespaces'. v1 renders only the evidenced "
+            "target, EVIDENCED_WRITE_NAMESPACES."
         )
 
     namespaces = write_raw.get("namespaces") or []
@@ -464,8 +512,9 @@ def _validate_write(write_raw: object, install_ns: str) -> dict:
 
     if not namespaces:
         raise ConfigError(
-            "write.namespaces: must list at least one namespace. Every write "
-            "target is explicit in v1 — there is no implicit or wildcard scope."
+            "write.namespaces: must name the evidenced write target: "
+            + repr(sorted(EVIDENCED_WRITE_NAMESPACES))
+            + ". There is no implicit, wildcard or empty scope."
         )
 
     if len(set(namespaces)) != len(namespaces):
@@ -504,6 +553,8 @@ def _validate_write(write_raw: object, install_ns: str) -> dict:
         if not isinstance(r, str):
             raise ConfigError(f"write.resources: {r!r} is not a resource name")
     resources = [r.lower() for r in resources]
+    if len(set(resources)) != len(resources):
+        raise ConfigError("write.resources: contains a duplicate entry")
 
     for res in resources:
         if res in FORBIDDEN_RESOURCES:
@@ -556,6 +607,13 @@ def _validate_write(write_raw: object, install_ns: str) -> dict:
             "write.toolServer.namespace: must differ from the kagent install "
             "namespace so the write identity stays separately auditable."
         )
+    # The protected list applies here too. The profile *creates* this namespace, so
+    # `toolServer.namespace: kube-system` would relabel kube-system on apply.
+    if ts_namespace.startswith(PROTECTED_NAMESPACE_PREFIXES) or ts_namespace in PROTECTED_NAMESPACES:
+        raise ConfigError(
+            f"write.toolServer.namespace: {ts_namespace!r} is a protected "
+            "namespace, and the profile creates this one — it must be its own."
+        )
 
     tools = write_raw.get("tools") or DEFAULT_WRITE_TOOLS
     if not isinstance(tools, list) or not tools:
@@ -568,10 +626,19 @@ def _validate_write(write_raw: object, install_ns: str) -> dict:
     metrics_port = _require_port(
         tool_server.get("metricsPort", 8085), "write.toolServer.metricsPort"
     )
+    if port != CHART_TOOLS_PORT:
+        raise ConfigError(
+            f"write.toolServer.port: must be {CHART_TOOLS_PORT}, got {port}. This "
+            "renderer does not template the chart's tool service port — it only "
+            "renders metrics.port — so this value only reaches the generated "
+            "RemoteMCPServer URL. Any other number produces a URL pointing at a "
+            "port the tool server is not serving. See CHART_TOOLS_PORT."
+        )
     if port == metrics_port:
         raise ConfigError(
-            "write.toolServer.port and metricsPort must differ — the chart renders "
-            "both on the same container, and Kubernetes rejects a duplicate port."
+            f"write.toolServer.metricsPort: must differ from the tool port "
+            f"({port}); the chart would otherwise render two container ports with "
+            "the same number, which Kubernetes rejects."
         )
 
     return {
@@ -638,6 +705,18 @@ def build_policy_rules(resources: list[str]) -> list[dict]:
     return rules
 
 
+def _inline_code(value: object) -> str:
+    """Make an arbitrary string safe inside a markdown inline-code span.
+
+    Newlines out (a heading needs a line start), backticks and backslashes out (they
+    end the span), and a length cap. The config filename is caller-supplied and
+    lands in the one document whose purpose is to be the reviewable statement of the
+    boundary, so it must not be able to add a section to it.
+    """
+    text = re.sub(r"\s+", " ", str(value))
+    return re.sub(r"[`\\]", "", text).strip()[:120]
+
+
 def _labels(extra: dict | None = None) -> dict:
     labels = dict(COMMON_LABELS)
     if extra:
@@ -650,27 +729,125 @@ def _labels(extra: dict | None = None) -> dict:
 # --------------------------------------------------------------------------- #
 
 
-def _require_renderable_scope(write: dict, caller: str) -> None:
-    """Guard every renderer entry point, not only the one that emits RBAC.
+def _to_raw_config(cfg: dict) -> dict:
+    """Map the internal config back to the on-disk config shape.
 
-    Deliberately a ``ConfigError`` and not an ``assert``: ``python3 -O`` strips
-    asserts, and this is the check that keeps a caller which bypassed
-    ``load_config`` from producing a manifest, an Agent label or a ``profile.env``
-    that claims a scope this renderer cannot enforce. ``KAGENT_WRITE_SCOPE`` is
-    exactly the value a downstream installer reads to decide what to verify, so a
-    disagreement between it and the rendered RBAC must be impossible rather than
-    merely unlikely.
+    The inverse of what ``validate_raw_config`` produces. Its only job is to let
+    the render path re-enter the single validator, so no invariant has to be
+    written twice.
     """
-    if write.get("scope") != "namespaces" or not write.get("namespaces"):
+    if not isinstance(cfg, dict):
+        raise ConfigError(f"expected a config mapping, got {type(cfg).__name__}")
+    read = cfg.get("read")
+    if not isinstance(read, dict):
+        raise ConfigError("read: expected a mapping")
+    raw: dict = {
+        "kind": "KagentAccessProfile",
+        "mode": cfg.get("mode"),
+        "install": {"namespace": cfg.get("install_namespace")},
+        "read": {
+            "scope": read.get("scope", "cluster"),
+            "secrets": read.get("secrets", False),
+            "tools": read.get("tools"),
+        },
+    }
+    write = cfg.get("write")
+    if write is not None:
+        if not isinstance(write, dict):
+            raise ConfigError("write: expected a mapping")
+        raw["write"] = {
+            "scope": write.get("scope"),
+            "namespaces": write.get("namespaces"),
+            "resources": write.get("resources"),
+            "requireApproval": write.get("require_approval"),
+            "toolServer": {
+                "namespace": write.get("tool_server_namespace"),
+                "releaseName": write.get("tool_server_release"),
+                "port": write.get("tool_server_port"),
+                "metricsPort": write.get("tool_server_metrics_port"),
+            },
+            "tools": write.get("tools"),
+            "agentName": write.get("agent_name"),
+        }
+    return raw
+
+
+def _require_renderable_profile(cfg: dict, caller: str) -> None:
+    """Re-validate the whole profile, through the *same* validator, at every
+    render entry point.
+
+    This module is the shared renderer: an importer can build ``cfg`` by hand and
+    never call ``load_config``. An invariant checked only in ``load_config`` is
+    therefore an invariant only for callers that use ``load_config`` — the same gap
+    as leaving it to each downstream consumer to re-implement.
+
+    Earlier versions of this function re-listed the invariants. That is the wrong
+    shape: the list drifted from ``_validate_write`` three times, and each time a
+    reviewer found the one that had been missed. So it does not re-list anything —
+    it converts the config back to its on-disk shape and runs
+    ``validate_raw_config`` over it. Divergence is then impossible by construction,
+    and the guarantee is checkable in one sentence:
+
+        **Nothing ``load_config`` refuses may be renderable.**
+
+    Round-tripping also catches a config that would validate but not survive the
+    conversion, which is how a silently dropped or renamed field would show up.
+
+    A ``ConfigError``, never an ``assert``: ``python3 -O`` strips asserts, and
+    ``profile.env`` — which an installer sources, and reads to decide what to
+    verify — must not be able to disagree with the manifests beside it.
+    """
+    try:
+        revalidated = validate_raw_config(_to_raw_config(cfg), quiet=True)
+    except ConfigError as exc:
+        raise ConfigError(f"{caller}: {exc}") from None
+
+    # The round trip must be lossless. If it is not, this config is not the one
+    # the validator just approved.
+    if revalidated != cfg:
         raise ConfigError(
-            f"{caller}: only an explicit, non-empty namespace scope is "
-            f"renderable, got scope={write.get('scope')!r} "
-            f"namespaces={write.get('namespaces')!r}. Cluster-wide write is "
-            "candidate work in v1 — see write.scope in load_config."
+            f"{caller}: the config does not survive revalidation unchanged. "
+            f"Validated: {revalidated!r}. Given: {cfg!r}. A field was dropped, "
+            "renamed or carries a value the validator normalises — either way the "
+            "rendered output would not match the profile that was checked."
         )
 
 
-def render_namespace(write: dict) -> list[dict]:
+def _require_write_profile(cfg: dict, caller: str) -> dict:
+    """The full guard, plus: this renderer only exists for a write profile.
+
+    Without the mode check the write renderers accepted a valid *read-only* config
+    and failed with ``TypeError: 'NoneType' object is not subscriptable`` — a
+    traceback where the module promises a ``ConfigError``.
+    """
+    _require_renderable_profile(cfg, caller)
+    if not _is_read_write(cfg):
+        raise ConfigError(
+            f"{caller}: mode is {cfg['mode']!r}; there is no write profile to "
+            "render. Read-only means nothing is generated for the write path."
+        )
+    return cfg["write"]
+
+
+def _is_read_write(cfg: dict) -> bool:
+    """The single predicate for the mode.
+
+    ``write_outputs``, ``render_summary`` and ``render_profile_env`` each used to
+    test this differently — ``mode == "read-write"``, ``mode == "read-only"``, and
+    ``if write:`` — so a typo'd mode took a different branch in each and produced a
+    summary describing RBAC that was never rendered.
+    """
+    return cfg["mode"] == "read-write"
+
+
+def render_namespace(cfg: dict) -> list[dict]:
+    """The write tool server's own namespace.
+
+    Guarded like every other entry point. It was previously the only renderer
+    without a guard — and, not coincidentally, the only one missing from the test
+    that claims every entry point is guarded.
+    """
+    write = _require_write_profile(cfg, "render_namespace")
     return [
         {
             "apiVersion": "v1",
@@ -683,10 +860,16 @@ def render_namespace(write: dict) -> list[dict]:
     ]
 
 
-def render_rbac(write: dict) -> list[dict]:
-    """One Role + RoleBinding per explicitly listed namespace. Nothing else.
+def render_rbac(cfg: dict) -> list[dict]:
+    """One Role + RoleBinding in each evidenced namespace. Nothing else.
 
-    No cluster-scoped object is ever emitted: a ClusterRoleBinding cannot exclude
+    In v1 that is exactly one namespace, ``kagent-lab``. The loop is kept because
+    the shape is per-namespace and stays correct if the evidenced set ever grows —
+    but the set, not the loop, is the boundary.
+
+    No cluster-scoped *RBAC* object is ever emitted anywhere in this module (the
+    tool server's own ``Namespace`` in ``10-namespace.yaml`` is cluster-scoped and
+    intended). A ClusterRoleBinding cannot exclude
     namespaces, so the protected-namespace validation — which iterates the
     explicit list — would not hold for it.
 
@@ -694,7 +877,7 @@ def render_rbac(write: dict) -> list[dict]:
     installer asserts that it exists before applying these bindings, so a chart
     that stops creating it fails loudly instead of silently binding nothing.
     """
-    _require_renderable_scope(write, "render_rbac")
+    write = _require_write_profile(cfg, "render_rbac")
     rules = build_policy_rules(write["resources"])
     sa_namespace = write["tool_server_namespace"]
     sa_name = write["tool_server_release"]
@@ -739,8 +922,7 @@ def render_rbac(write: dict) -> list[dict]:
 
 
 def render_tool_server(cfg: dict) -> list[dict]:
-    write = cfg["write"]
-    _require_renderable_scope(write, "render_tool_server")
+    write = _require_write_profile(cfg, "render_tool_server")
     url = (
         f"http://{write['tool_server_release']}."
         f"{write['tool_server_namespace']}:{write['tool_server_port']}/mcp"
@@ -767,14 +949,21 @@ def render_tool_server(cfg: dict) -> list[dict]:
 
 
 def _scope_phrase(write: dict) -> str:
-    if len(write["namespaces"]) == 1:
-        return f"namespace {write['namespaces'][0]}"
-    return "namespaces " + ", ".join(write["namespaces"])
+    """Prose for the write scope.
+
+    Both branches are live: the singular one is what v1 renders, and the plural
+    one keeps this correct if ``EVIDENCED_WRITE_NAMESPACES`` ever grows after a
+    drill. It is never reached with an unvalidated list — every caller has passed
+    ``_require_renderable_profile`` first.
+    """
+    namespaces = list(write["namespaces"])
+    if len(namespaces) == 1:
+        return f"namespace {namespaces[0]}"
+    return "namespaces " + ", ".join(namespaces)
 
 
 def _system_message(cfg: dict) -> str:
-    write = cfg["write"]
-    _require_renderable_scope(write, "_system_message")
+    write = _require_write_profile(cfg, "_system_message")
     resources = ", ".join(sorted(write["resources"]))
 
     allowed = ", ".join(write["namespaces"])
@@ -825,8 +1014,7 @@ def render_agent(cfg: dict) -> list[dict]:
     tool server is not forced to declare it. That is why the ServiceAccount's
     Role, not this field, is the capability boundary.
     """
-    write = cfg["write"]
-    _require_renderable_scope(write, "render_agent")
+    write = _require_write_profile(cfg, "render_agent")
     write_tool = {
         "type": "McpServer",
         "mcpServer": {
@@ -891,7 +1079,15 @@ def render_agent(cfg: dict) -> list[dict]:
 
 
 def render_read_values(cfg: dict) -> dict:
-    """Helm values fragment that pins the built-in tool server to read-only."""
+    """Helm values fragment that pins the built-in tool server to read-only.
+
+    Guarded like every other public renderer even though the body ignores ``cfg``.
+    That the current body happens not to use it is an accident of this
+    implementation, not a property the tests or the documentation establish — and
+    an unguarded public renderer is how `render_namespace` stayed unguarded for a
+    review round.
+    """
+    _require_renderable_profile(cfg, "render_read_values")
     return {
         "kagent-tools": {
             "enabled": True,
@@ -911,15 +1107,18 @@ def render_tools_values(cfg: dict, image_tag: str | None) -> dict:
     ``rbac.create: false`` on purpose: the chart's own RBAC is cluster-wide.
     The scoped Role in ``20-rbac.yaml`` is the whole point of this profile.
     """
-    write = cfg["write"]
-    _require_renderable_scope(write, "render_tools_values")
+    write = _require_write_profile(cfg, "render_tools_values")
     values: dict = {
         "fullnameOverride": write["tool_server_release"],
         "tools": {
             "enabledTools": ["k8s"],
-            # The chart otherwise renders tools and metrics on the same
-            # container port, which Kubernetes rejects as a duplicate port key.
-            "metrics": {"port": str(write["tool_server_metrics_port"])},
+            # The chart otherwise renders tools and metrics on the same container
+            # port, which Kubernetes rejects as a duplicate port key. Note the
+            # asymmetry: only the metrics port is templated here, which is why
+            # write.toolServer.port is pinned to CHART_TOOLS_PORT.
+            # int() first: an int subclass such as IntEnum would otherwise
+            # stringify to its member name.
+            "metrics": {"port": str(int(write["tool_server_metrics_port"]))},
         },
         "rbac": {"create": False},
         "podSecurityContext": {
@@ -932,7 +1131,14 @@ def render_tools_values(cfg: dict, image_tag: str | None) -> dict:
             "capabilities": {"drop": ["ALL"]},
         },
     }
-    if image_tag:
+    if image_tag is not None:
+        # Straight into a Helm values file, so it has to be a plain tag: a
+        # multi-line string would become a block scalar and could add sibling keys.
+        if not isinstance(image_tag, str) or not IMAGE_TAG.fullmatch(image_tag):
+            raise ConfigError(
+                f"render_tools_values: image tag {image_tag!r} is not a valid "
+                "container image tag."
+            )
         values["tools"]["image"] = {"tag": image_tag}
     return values
 
@@ -943,11 +1149,19 @@ def render_tools_values(cfg: dict, image_tag: str | None) -> dict:
 
 
 def render_summary(cfg: dict, config_path: Path) -> str:
+    # Before the mode branch, not inside it: the read-only summary asserts that no
+    # write path exists, which is a claim about the profile and must be validated
+    # even when nothing is rendered for the write path.
+    _require_renderable_profile(cfg, "render_summary")
     read_tools = ", ".join(f"`{t}`" for t in cfg["read"]["tools"])
     lines = [
         "# Access profile summary",
         "",
-        f"Generated from `{config_path.name}`. Regenerate after every change; do",
+        # Escaped: the filename is caller-supplied, and an unescaped one could
+        # inject headings into the one document whose purpose is to be the
+        # reviewable statement of the boundary.
+        f"Generated from `{_inline_code(config_path.name)}`. Regenerate after every",
+        "change; do",
         "not hand-edit the manifests.",
         "",
         f"**Mode:** `{cfg['mode']}`",
@@ -962,9 +1176,16 @@ def render_summary(cfg: dict, config_path: Path) -> str:
         "| Writes | denied by RBAC, not only by prompt |",
         f"| Tools exposed | {read_tools} |",
         "",
+        "`Tools exposed` is the list this profile puts on a generated Agent's tool",
+        "reference. It is not a server-side restriction: the chart's tool server",
+        "runs `enabledTools: [k8s]`, i.e. the whole Kubernetes tool set, and any",
+        "Agent may reference any of them. In `read-only` mode no Agent is generated",
+        "here at all, so nothing in this profile narrows the read tools — the read",
+        "identity's RBAC is what bounds them.",
+        "",
     ]
 
-    if cfg["mode"] == "read-only":
+    if not _is_read_write(cfg):
         lines += [
             "## Write path",
             "",
@@ -975,12 +1196,11 @@ def render_summary(cfg: dict, config_path: Path) -> str:
         ]
         return "\n".join(lines)
 
-    write = cfg["write"]
-    _require_renderable_scope(write, "render_summary")
+    write = _require_write_profile(cfg, "render_summary")
     rules = build_policy_rules(write["resources"])
 
-    count = len(write["namespaces"])
-    rbac_objects = f"Role + RoleBinding in {count} namespace(s) — no cluster-scoped object"
+    namespace_list = ", ".join(f"`{ns}`" for ns in write["namespaces"])
+    rbac_objects = f"Role + RoleBinding in {namespace_list} — no cluster-scoped object"
 
     lines += [
         "## Write path",
@@ -1006,7 +1226,7 @@ def render_summary(cfg: dict, config_path: Path) -> str:
             f"| `{group}` | {', '.join(rule['resources'])} | {', '.join(rule['verbs'])} |"
         )
 
-    target = write["namespaces"][0]
+    targets = list(write["namespaces"])
     lines += [
         "",
         "### What this profile does not grant",
@@ -1018,8 +1238,8 @@ def render_summary(cfg: dict, config_path: Path) -> str:
         "- **no direct RBAC API permission**: Roles, RoleBindings, ClusterRoles,",
         "  ClusterRoleBindings and ServiceAccounts appear in no rule;",
         "- no Namespace, Node, PersistentVolume, CRD or webhook permission;",
-        "- no permission in any namespace outside the list above — RBAC denies it,",
-        "  the prompt is not the boundary;",
+        f"- no permission in any namespace other than {namespace_list} — RBAC",
+        "  denies it, the prompt is not the boundary;",
         "- no permission in the kagent install namespace, so the identity cannot",
         "  rewrite its own Agent or tool definitions;",
         "- no permission of any kind — not even `get` — on workload controllers",
@@ -1027,7 +1247,7 @@ def render_summary(cfg: dict, config_path: Path) -> str:
         "  Services, or on Ingresses. Those are candidate work and this renderer",
         "  refuses them; the read identity is what reads them.",
         "- no Pod *mutation* of any kind, including deletion. Pods, Pod logs and",
-        "  Events are readable in the listed namespaces — that is the write",
+        f"  Events are readable in {namespace_list} — that is the write",
         "  identity's verification context, and it is in the table above.",
         "",
         "### Two limits of these guarantees",
@@ -1056,12 +1276,19 @@ def render_summary(cfg: dict, config_path: Path) -> str:
         f"SUBJECT='system:serviceaccount:{write['tool_server_namespace']}:{write['tool_server_release']}'",
         "kubectl auth can-i get secrets --all-namespaces --as=\"$SUBJECT\"   # expect no",
         "kubectl auth can-i '*' '*' --all-namespaces --as=\"$SUBJECT\"       # expect no",
-        f"kubectl auth can-i patch configmaps -n {target} --as=\"$SUBJECT\"    # expect yes",
+    ]
+    # Every target, not only the first: a block that checks one namespace of
+    # several would under-report the moment the evidenced set grows.
+    for target in targets:
+        lines += [
+            f"kubectl auth can-i patch configmaps -n {target} --as=\"$SUBJECT\"    # expect yes",
+            f"kubectl auth can-i patch deployments -n {target} --as=\"$SUBJECT\"   # expect no",
+            f"kubectl auth can-i get deployments -n {target} --as=\"$SUBJECT\"     # expect no",
+        ]
+    lines += [
         # 'default' is refused as a write target, so it is always a valid
         # negative control here.
         "kubectl auth can-i patch configmaps -n default --as=\"$SUBJECT\"     # expect no",
-        f"kubectl auth can-i patch deployments -n {target} --as=\"$SUBJECT\"   # expect no",
-        f"kubectl auth can-i get deployments -n {target} --as=\"$SUBJECT\"     # expect no",
         "```",
         "",
     ]
@@ -1109,6 +1336,7 @@ def render_profile_env(cfg: dict) -> str:
     that from this file instead of re-parsing YAML in Make keeps one source of
     truth and keeps the Makefile portable.
     """
+    _require_renderable_profile(cfg, "render_profile_env")
     write = cfg["write"]
     lines = [
         "# Generated by render-access.py — source, do not edit.",
@@ -1116,11 +1344,13 @@ def render_profile_env(cfg: dict) -> str:
         f"KAGENT_INSTALL_NAMESPACE='{cfg['install_namespace']}'",
     ]
     if write:
-        _require_renderable_scope(write, "render_profile_env")
-        # Every value here is a validated DNS label, tool name or literal, and all
-        # are single-quoted: this file is sourced by the installer, so an
-        # unvalidated, unquoted value would be command execution rather than a
-        # broken manifest.
+        # Every value here has passed _require_renderable_profile in this same
+        # call — DNS label, object name, tool name or literal — and every one is
+        # single-quoted. Both halves matter: this file is sourced by the installer,
+        # so a value that skipped validation would be command execution rather than
+        # a broken manifest. Validation used to live only in load_config, which
+        # made that guarantee true for callers of load_config instead of true of
+        # this function.
         lines += [
             f"KAGENT_WRITE_SCOPE='{write['scope']}'",
             "KAGENT_WRITE_NAMESPACES='" + " ".join(write["namespaces"]) + "'",
@@ -1149,36 +1379,60 @@ def render_profile_env(cfg: dict) -> str:
 
 
 def write_outputs(cfg: dict, out_dir: Path, config_path: Path, image_tag: str | None) -> list[Path]:
+    # Before anything reads cfg, so a malformed config is a ConfigError rather than
+    # a KeyError from _is_read_write.
+    _require_renderable_profile(cfg, "write_outputs")
+    # Render everything in memory before touching the filesystem. Emitting as we
+    # go meant a refusal part-way through left `values-access.yaml` and
+    # `10-namespace.yaml` on disk next to a stale `profile.env` and `SUMMARY.md`
+    # describing RBAC that had just been deleted — the precise "stale output from a
+    # wider profile" failure the directory clearing below exists to prevent.
+    payload: list[tuple[Path, str]] = [
+        (out_dir / "values-access.yaml", _dump_values(render_read_values(cfg)))
+    ]
+    if _is_read_write(cfg):
+        payload += [
+            (out_dir / "manifests" / "10-namespace.yaml", _dump(render_namespace(cfg))),
+            (out_dir / "manifests" / "20-rbac.yaml", _dump(render_rbac(cfg))),
+            (out_dir / "manifests" / "30-tool-server.yaml", _dump(render_tool_server(cfg))),
+            (out_dir / "manifests" / "40-agent.yaml", _dump(render_agent(cfg))),
+            (out_dir / "tools-values.yaml", _dump_values(render_tools_values(cfg, image_tag))),
+        ]
+    payload += [
+        (out_dir / "profile.env", render_profile_env(cfg)),
+        (out_dir / "SUMMARY.md", render_summary(cfg, config_path)),
+    ]
+
     manifests_dir = out_dir / "manifests"
     # A stale manifest from a previous, wider profile is a security bug, not
     # clutter: clear the directory before writing.
     if manifests_dir.exists():
-        for stale in sorted(manifests_dir.glob("*.yaml")):
+        # Every file, not only *.yaml: the documented promise is that the directory
+        # holds nothing from a previous profile, and `kubectl apply -f manifests/`
+        # picks up .yml and .json too.
+        for stale in sorted(p for p in manifests_dir.iterdir() if p.is_file()):
             stale.unlink()
-    manifests_dir.mkdir(parents=True, exist_ok=True)
+    # Only keep manifests/ when there is something to put in it: the runbook tells
+    # an operator to `kubectl apply -f manifests/`, and an empty directory makes
+    # that error instead of being a no-op — which reads like a broken install
+    # rather than a read-only profile.
+    out_dir.mkdir(parents=True, exist_ok=True)
+    if _is_read_write(cfg):
+        manifests_dir.mkdir(parents=True, exist_ok=True)
+    elif manifests_dir.exists() and not any(manifests_dir.iterdir()):
+        manifests_dir.rmdir()
 
     written: list[Path] = []
-
-    def emit(path: Path, content: str) -> None:
+    for path, content in payload:
         path.write_text(content, encoding="utf-8")
         written.append(path)
 
-    emit(out_dir / "values-access.yaml", _dump_values(render_read_values(cfg)))
-
-    if cfg["mode"] == "read-write":
-        emit(manifests_dir / "10-namespace.yaml", _dump(render_namespace(cfg["write"])))
-        emit(manifests_dir / "20-rbac.yaml", _dump(render_rbac(cfg["write"])))
-        emit(manifests_dir / "30-tool-server.yaml", _dump(render_tool_server(cfg)))
-        emit(manifests_dir / "40-agent.yaml", _dump(render_agent(cfg)))
-        emit(out_dir / "tools-values.yaml", _dump_values(render_tools_values(cfg, image_tag)))
-    else:
+    if not _is_read_write(cfg):
         # Leave no usable write values behind in a read-only profile.
         stale_values = out_dir / "tools-values.yaml"
         if stale_values.exists():
             stale_values.unlink()
 
-    emit(out_dir / "profile.env", render_profile_env(cfg))
-    emit(out_dir / "SUMMARY.md", render_summary(cfg, config_path))
     return written
 
 
@@ -1208,13 +1462,15 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
 
+    # Both calls inside the handler. The render path re-validates, so it can raise
+    # ConfigError too — and a ConfigError there is still a config problem for the
+    # operator, not a bug worth a traceback.
     try:
         cfg = load_config(args.config, quiet=args.quiet)
+        written = write_outputs(cfg, args.out, args.config, args.tools_image_tag)
     except ConfigError as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 2
-
-    written = write_outputs(cfg, args.out, args.config, args.tools_image_tag)
 
     if not args.quiet:
         print(f"access profile: mode={cfg['mode']}", end="")
