@@ -95,7 +95,9 @@ ProviderConfigs, Functions, or other Crossplane internals.
 
 No RoleBinding is included because the Kubernetes user or group identity for
 user must be supplied by the `ok-mgmt` authentication owner. Bind the Role
-only after that subject is confirmed.
+only after that subject is confirmed. See the
+[claim-editor binding plan](docs/claim-editor-binding-plan.md) for the interim
+choice, OIDC dependency chain, privileged steps, and end-to-end proof.
 
 ## Stateful lifecycle policy
 
