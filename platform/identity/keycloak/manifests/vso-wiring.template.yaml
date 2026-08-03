@@ -1,0 +1,63 @@
+# Applied by `make vso-wiring`. Contains VaultConnection, VaultAuth and both VaultStaticSecrets.
+# Apply ORDER is not encoded in this filename on purpose — it lives in the `install` target,
+# which is its only real authority. Filenames match their make target so the mapping is obvious.
+# The CA copy is namespace-local because VaultConnection cannot resolve a Secret
+# in Vault's namespace. The in-cluster address avoids MetalLB/Traefik hairpinning.
+apiVersion: secrets.hashicorp.com/v1beta1
+kind: VaultConnection
+metadata:
+  name: ${VSO_CONNECTION}
+  namespace: ${NAMESPACE}
+spec:
+  address: ${VAULT_SERVICE_ADDRESS}
+  caCertSecretRef: ${VAULT_CA_DEST_SECRET}
+---
+# VSO mints a TokenRequest for this automount-disabled ServiceAccount; it does not
+# depend on a mounted token, and the 600-second minimum is cluster-proven.
+apiVersion: secrets.hashicorp.com/v1beta1
+kind: VaultAuth
+metadata:
+  name: ${VSO_AUTH}
+  namespace: ${NAMESPACE}
+spec:
+  method: kubernetes
+  mount: ${VAULT_AUTH_MOUNT}
+  vaultConnectionRef: ${VSO_CONNECTION}
+  kubernetes:
+    role: ${VAULT_READER_ROLE}
+    serviceAccount: ${VSO_SERVICE_ACCOUNT}
+    tokenExpirationSeconds: 600
+---
+apiVersion: secrets.hashicorp.com/v1beta1
+kind: VaultStaticSecret
+metadata:
+  name: ${VSO_ADMIN_SECRET}
+  namespace: ${NAMESPACE}
+spec:
+  vaultAuthRef: ${VSO_AUTH}
+  mount: ${KV_MOUNT}
+  type: kv-v2
+  path: ${KV_ADMIN_PATH}
+  refreshAfter: ${VSO_REFRESH_AFTER}
+  destination:
+    create: true
+    name: ${VSO_ADMIN_SECRET}
+---
+# CNPG requires this exact Secret type, role-matching username, and reload label.
+apiVersion: secrets.hashicorp.com/v1beta1
+kind: VaultStaticSecret
+metadata:
+  name: ${VSO_DB_SECRET}
+  namespace: ${NAMESPACE}
+spec:
+  vaultAuthRef: ${VSO_AUTH}
+  mount: ${KV_MOUNT}
+  type: kv-v2
+  path: ${KV_DB_PATH}
+  refreshAfter: ${VSO_REFRESH_AFTER}
+  destination:
+    create: true
+    name: ${VSO_DB_SECRET}
+    type: kubernetes.io/basic-auth
+    labels:
+      cnpg.io/reload: "true"
