@@ -1,9 +1,10 @@
 # ADR-Platform-029: ok-messaging Capability — Broker-Agnostic Pub/Sub & Streaming Contract
 
-- **Status:** Draft
+- **Status:** Accepted
 - **Date:** 2026-07-31
 - **Updated:** 2026-08-03 — revised per three-way review (GPT, via PR #49): RC1–RC8 addressed,
   restructured into base contract + declared message flow model + profile extensions.
+- **Accepted:** 2026-08-03 — Arash, following the addressed review
 - **Deciders:** Arash (final) · Claude · GPT (three-way review)
 - **Extends:** ADR-Platform-026 (Vertical Layer — verdict YES, this ADR is its spawned follow-up)
 - **Relates:** ADR-Platform-017 (Constraint Envelopes), ADR-Platform-019 (Robotics Fleet Orchestration, contract-shape precedent), ADR-Platform-020 (Shared Platform Services)
