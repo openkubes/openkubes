@@ -113,8 +113,11 @@ does not, and cannot, guarantee this by itself.
 
 ### 4. Profile Extension: `mqtt-session-v1`
 
-**Implementation Profile:** `ok-messaging-hivemq-edge` (HiveMQ or equivalent MQTT
+**Implementation Profile:** `ok-messaging-hivemq` (HiveMQ or equivalent MQTT
 broker). **Forcing consumer:** ok-iot, `constrained-edge` envelope (ADR-Platform-017).
+No second HiveMQ deployment topology exists to disambiguate against, so the profile
+name carries no envelope qualifier; per "no structure without a forcing consumer,"
+that qualifier is added only if and when a second HiveMQ topology is actually forced.
 
 Extends the base contract with:
 
@@ -144,7 +147,7 @@ Extends the base contract with:
 
 ### 5. Candidate Profile Extension: `durable-stream-v1`
 
-**Candidate Implementation Profile:** `ok-messaging-kafka-core` (Kafka or
+**Candidate Implementation Profile:** `ok-messaging-kafka` (Kafka or
 Kafka-API-compatible, e.g. Redpanda). **Status: Candidate — not yet specified for
 acceptance.** No concrete consumer currently requires replay, consumer groups, or
 transactional stream processing; per "no structure without a forcing consumer"
