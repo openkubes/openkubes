@@ -26,6 +26,7 @@ set -Eeuo pipefail
 : "${KC_RESOLVE:?KC_RESOLVE is required}"
 : "${KC_CONNECT:?KC_CONNECT is required}"
 : "${KC_CACERT:?KC_CACERT is required}"
+: "${KC_EXPECTED_ISSUER:?KC_EXPECTED_ISSUER is required}"
 : "${KEYCLOAK_ADMIN_USERNAME:?KEYCLOAK_ADMIN_USERNAME is required}"
 : "${VSO_ADMIN_SECRET:?VSO_ADMIN_SECRET is required}"
 : "${PLATFORM_REALM:?PLATFORM_REALM is required}"
@@ -122,8 +123,9 @@ JSON
 
   # THE MAPPER IS THE WHOLE POINT. Without it the token carries no groups claim, every RoleBinding
   # to a group matches nobody, and nothing errors anywhere — the failure mode is silence.
-  # full.path=false so groups arrive as "openrmf-claim-editors", not "/openrmf-claim-editors";
-  # Kubernetes compares the claim value literally against the RoleBinding subject.
+  # full.path=false is the platform naming decision: RoleBindings use leaf names such as
+  # "openrmf-claim-editors" rather than full paths such as "/openrmf-claim-editors". Kubernetes
+  # compares either form literally; leaf names would collide if nested groups later reuse a name.
   # id.token.claim=true because kubectl presents the ID token to the API server.
   cat > "$_d/mapper.json" <<'JSON'
 {"name":"groups","protocol":"openid-connect","protocolMapper":"oidc-group-membership-mapper",
@@ -133,57 +135,142 @@ JSON
   c=$(api POST "/admin/realms/$PLATFORM_REALM/clients/$uuid/protocol-mappers/models" "$_d/mapper.json")
   case "$c" in
     201) ok "client $cl: groups mapper created" ;;
-    409) ok "client $cl: groups mapper already present" ;;
+    409)
+      c=$(api GET "/admin/realms/$PLATFORM_REALM/clients/$uuid/protocol-mappers/models")
+      if [ "$c" != 200 ]; then
+        fail "client $cl mapper lookup http=$c"; cat "$_d/out" >&2; continue
+      fi
+      mapper_count=$(python3 -c "import json;d=json.load(open('$_d/out'));print(sum(m.get('name') == 'groups' for m in d))")
+      if [ "$mapper_count" != 1 ]; then
+        fail "client $cl has $mapper_count mappers named groups; expected exactly one"; continue
+      fi
+      mapper_id=$(python3 -c "import json;d=json.load(open('$_d/out'));print(next(m['id'] for m in d if m.get('name') == 'groups'))")
+      mapper_type=$(python3 -c "import json;d=json.load(open('$_d/out'));print(next(m.get('protocolMapper','') for m in d if m.get('name') == 'groups'))")
+      if [ "$mapper_type" = oidc-group-membership-mapper ]; then
+        # PUT preserves the mapper id for anything that may reference it. Keycloak cannot change a
+        # mapper's implementation type in place, so only a wrong-type name collision is recreated.
+        python3 - "$_d/mapper.json" "$mapper_id" > "$_d/mapper-put.json" <<'PY2'
+import json,sys
+mapper=json.load(open(sys.argv[1])); mapper["id"]=sys.argv[2]
+print(json.dumps(mapper))
+PY2
+        c=$(api PUT "/admin/realms/$PLATFORM_REALM/clients/$uuid/protocol-mappers/models/$mapper_id" "$_d/mapper-put.json")
+        [ "$c" = 204 ] && ok "client $cl: groups mapper already present, settings reconciled" || fail "client $cl mapper update http=$c"
+      else
+        c=$(api DELETE "/admin/realms/$PLATFORM_REALM/clients/$uuid/protocol-mappers/models/$mapper_id")
+        if [ "$c" != 204 ]; then
+          fail "client $cl wrong-type mapper delete http=$c"; continue
+        fi
+        c=$(api POST "/admin/realms/$PLATFORM_REALM/clients/$uuid/protocol-mappers/models" "$_d/mapper.json")
+        [ "$c" = 201 ] && ok "client $cl: wrong-type groups mapper replaced" || fail "client $cl mapper recreate http=$c"
+      fi
+      ;;
     *)   fail "client $cl mapper http=$c"; cat "$_d/out" >&2 ;;
   esac
 done
 
-step "4. PROVE the groups claim actually lands in a token"
+step "4. PROVE every client renders every configured group in its token"
 # A 201 on the mapper proves it was created, not that it works. The failure this guards against is
 # silent: no groups claim means every RoleBinding to a group matches nobody, with no error anywhere.
-# Keycloak can render the exact ID token a given user would receive, so this asserts the real output
-# rather than the configuration that is supposed to produce it. Probe user is created and removed.
+# Keycloak can render the exact ID token a given user would receive, so this asserts mapper output
+# rather than the configuration that is supposed to produce it. One realm user is sufficient for
+# every client evaluation; creating one per client would add cleanup risk without changing scope.
 PROBE_USER="claim-probe-$$"
-PROBE_GROUP="$(printf '%s' "$PLATFORM_GROUPS" | awk '{print $1}')"
-PROBE_CLIENT="$(printf '%s' "$PLATFORM_CLIENTS" | awk '{print $1}')"
 probe_id=""
+probe_cleanup_done=0
 cleanup_probe() {
-  [ -n "$probe_id" ] || return 0
-  api DELETE "/admin/realms/$PLATFORM_REALM/users/$probe_id" >/dev/null 2>&1 || true
+  local c id remaining cleanup_failed=0
+  [ "$probe_cleanup_done" = 0 ] || return 0
+  c=$(api GET "/admin/realms/$PLATFORM_REALM/users?username=$PROBE_USER&exact=true")
+  if [ "$c" != 200 ]; then
+    fail "probe user cleanup lookup http=$c"
+    return 1
+  fi
+  for id in $(python3 -c "import json;print(' '.join(u['id'] for u in json.load(open('$_d/out'))))"); do
+    c=$(api DELETE "/admin/realms/$PLATFORM_REALM/users/$id")
+    if [ "$c" != 204 ]; then
+      fail "probe user $PROBE_USER delete http=$c"
+      cleanup_failed=1
+    fi
+  done
+  c=$(api GET "/admin/realms/$PLATFORM_REALM/users?username=$PROBE_USER&exact=true")
+  if [ "$c" != 200 ]; then
+    fail "probe user cleanup verification http=$c"
+    return 1
+  fi
+  remaining=$(python3 -c "import json;print(len(json.load(open('$_d/out'))))")
+  if [ "$remaining" != 0 ]; then
+    fail "probe user $PROBE_USER remains after cleanup"
+    return 1
+  fi
+  probe_cleanup_done=1
+  [ "$cleanup_failed" = 0 ] || return 1
+  ok "probe user $PROBE_USER is absent after verified cleanup"
 }
-trap 'cleanup_probe; keep' EXIT INT TERM
+on_exit() {
+  local rc=$?
+  trap - EXIT INT TERM
+  cleanup_probe || rc=1
+  keep
+  exit "$rc"
+}
+trap on_exit EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
 
-printf '{"username":"%s","enabled":true,"groups":["%s"]}' "$PROBE_USER" "$PROBE_GROUP" > "$_d/probe.json"
+python3 - "$PROBE_USER" "$PLATFORM_GROUPS" > "$_d/probe.json" <<'PY2'
+import json,sys
+print(json.dumps({"username":sys.argv[1], "enabled":True, "groups":sys.argv[2].split()}))
+PY2
 c=$(api POST "/admin/realms/$PLATFORM_REALM/users" "$_d/probe.json")
 if [ "$c" != 201 ]; then
   fail "probe user create http=$c"; cat "$_d/out" >&2
 else
-  api GET "/admin/realms/$PLATFORM_REALM/users?username=$PROBE_USER&exact=true" >/dev/null
-  probe_id=$(python3 -c "import json;d=json.load(open('$_d/out'));print(d[0]['id'] if d else '')")
-  api GET "/admin/realms/$PLATFORM_REALM/clients?clientId=$PROBE_CLIENT" >/dev/null
-  probe_client_uuid=$(python3 -c "import json;d=json.load(open('$_d/out'));print(d[0]['id'] if d else '')")
-  c=$(api GET "/admin/realms/$PLATFORM_REALM/clients/$probe_client_uuid/evaluate-scopes/generate-example-id-token?userId=$probe_id&scope=openid")
-  if [ "$c" != 200 ]; then
-    fail "example id-token http=$c"; cat "$_d/out" >&2
+  c=$(api GET "/admin/realms/$PLATFORM_REALM/users?username=$PROBE_USER&exact=true")
+  [ "$c" = 200 ] || fail "probe user lookup http=$c"
+  probe_id=$(python3 -c "import json;d=json.load(open('$_d/out'));print(d[0]['id'] if len(d) == 1 else '')")
+  if [ -z "$probe_id" ]; then
+    fail "probe user lookup did not return exactly one user"
   else
-    python3 - "$_d/out" "$PROBE_GROUP" "$PROBE_CLIENT" <<'PY2' || fail "groups claim assertion failed"
+    for probe_client in $PLATFORM_CLIENTS; do
+      c=$(api GET "/admin/realms/$PLATFORM_REALM/clients?clientId=$probe_client")
+      if [ "$c" != 200 ]; then
+        fail "client $probe_client probe lookup http=$c"; continue
+      fi
+      probe_client_uuid=$(python3 -c "import json;d=json.load(open('$_d/out'));print(d[0]['id'] if len(d) == 1 else '')")
+      if [ -z "$probe_client_uuid" ]; then
+        fail "client $probe_client probe lookup did not return exactly one client"; continue
+      fi
+      c=$(api GET "/admin/realms/$PLATFORM_REALM/clients/$probe_client_uuid/evaluate-scopes/generate-example-id-token?userId=$probe_id&scope=openid")
+      if [ "$c" != 200 ]; then
+        fail "client $probe_client example id-token http=$c"; cat "$_d/out" >&2; continue
+      fi
+      python3 - "$_d/out" "$PLATFORM_GROUPS" "$probe_client" <<'PY3' || fail "client $probe_client groups/audience assertion failed"
 import json,sys
-tok=json.load(open(sys.argv[1])); want,client=sys.argv[2],sys.argv[3]
+tok=json.load(open(sys.argv[1])); wants,client=sys.argv[2].split(),sys.argv[3]
 groups=tok.get("groups")
 assert groups is not None, "no 'groups' claim in the ID token — the mapper is not producing it"
-assert want in groups, f"groups={groups!r} does not contain {want!r}"
+missing=[want for want in wants if want not in groups]
+assert not missing, f"groups={groups!r} is missing configured groups {missing!r}"
 aud=tok.get("aud")
 auds=aud if isinstance(aud,list) else [aud]
 assert client in auds, f"aud={aud!r} is not the per-cluster client {client!r}"
-print(f"   ok   ID token carries groups={groups} and aud={aud}")
-PY2
+print(f"   ok   client {client}: ID token carries every group {groups} and aud={aud}")
+PY3
+    done
   fi
 fi
+if ! cleanup_probe; then :; fi
 
-step "5. report the issuer each API server must be pointed at"
+step "5. assert the issuer each API server will trust"
 c=$(api GET "/realms/$PLATFORM_REALM/.well-known/openid-configuration")
 if [ "$c" = 200 ]; then
-  python3 -c "import json;d=json.load(open('$_d/out'));print('   ok   issuer=%s' % d['issuer'])"
+  python3 - "$_d/out" "$KC_EXPECTED_ISSUER" <<'PY2' || fail "discovery issuer assertion failed"
+import json,sys
+issuer=json.load(open(sys.argv[1])).get("issuer")
+assert issuer == sys.argv[2], f"issuer={issuer!r}, expected {sys.argv[2]!r}"
+print(f"   ok   issuer={issuer}")
+PY2
 else
   fail "discovery http=$c"
 fi
