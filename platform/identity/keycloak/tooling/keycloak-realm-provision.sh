@@ -45,7 +45,23 @@ kc_curl() { curl --resolve "$KC_RESOLVE" --connect-to "$KC_CONNECT" --cacert "$K
 
 umask 077
 _d="$(mktemp -d)"
-keep() { echo "      work dir RETAINED (mode 700): $_d"; }
+# The work dir is retained on purpose: its API responses are what made the defects in this
+# capability diagnosable after the fact. The credentials in it are not, and must not be.
+#
+# Shredding these three destroys nothing recoverable. adminpw is a COPY — the admin password
+# lives in Vault and VSO renders it into the keycloak-admin Secret, so it can be read again at
+# any time. tok/auth.curl hold a short-lived bearer token that expires on its own. Contrast the
+# scripts in this directory that GENERATE a password (admin-cutover, recover-admin): those
+# retain everything, because a cleanup trap there once destroyed the only copy of a generated
+# admin password and locked the realm out.
+keep() {
+  local f
+  for f in adminpw tok auth.curl; do
+    [ -e "$_d/$f" ] || continue
+    shred -u "$_d/$f" 2>/dev/null || rm -f "$_d/$f"
+  done
+  echo "      work dir RETAINED (mode 700), credentials shredded: $_d"
+}
 trap keep EXIT INT TERM
 
 "$KUBECTL" --kubeconfig "$KUBECONFIG" get secret "$VSO_ADMIN_SECRET" -n "$NS" \
