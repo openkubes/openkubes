@@ -121,6 +121,15 @@ KEYCLOAK_CERT_WAIT_TIMEOUT ?= 2m
 SEED_SCRIPT ?= $(TOOLING)/seed-keycloak-credentials.sh
 VSO_WAIT_SCRIPT ?= $(TOOLING)/wait-vso-current.sh
 VERIFY_SCRIPT ?= $(TOOLING)/keycloak-conformance-test.sh
+REALM_SCRIPT ?= $(TOOLING)/keycloak-realm-provision.sh
+# ONE platform realm, not one per consumer: realms do not trust each other and each carries its own
+# issuer and signing keys, so a realm per team means no SSO and a different issuer per API server.
+PLATFORM_REALM ?= openkubes
+KC_EXPECTED_ISSUER ?= $(KEYCLOAK_HOSTNAME)/realms/$(PLATFORM_REALM)
+PLATFORM_GROUPS ?= openrmf-claim-editors platform-admins
+# PER-CLUSTER clients: the client id is the token audience, so a token minted for one cluster cannot
+# authenticate to another. Add a cluster here when it starts consuming central OIDC.
+PLATFORM_CLIENTS ?= ok-mgmt
 CUTOVER_SCRIPT ?= $(TOOLING)/keycloak-admin-cutover.sh
 ROTATION_SCRIPT ?= $(TOOLING)/keycloak-rotation-test.sh
 KV_PUT_SCRIPT ?= $(TOOLING)/vault-kv-put.sh
@@ -137,7 +146,7 @@ APPROVE_NETWORK_POLICY ?=
 
 .PHONY: help render diff require-cluster require-inputs require-tools require-chart require-cnpg require-vendors require-values-contract require-mgmt-approval \
 	require-vault-config require-confirm require-cutover-approval require-restore-input require-restore-drill-approval require-network-policy-approval baseline install-vso identities vault-config seed \
-	vso-wiring database reachability keycloak verify backup restore-drill brute-force network-policy recover-admin admin-cutover rotation-test post-check install teardown-keycloak \
+	vso-wiring database reachability keycloak realm verify backup restore-drill brute-force network-policy recover-admin admin-cutover rotation-test post-check install teardown-keycloak \
 	teardown-database teardown-vso-wiring teardown-identities teardown-reviewer teardown-vso teardown
 
 help: ## Show available phase-1 lifecycle targets
@@ -405,7 +414,21 @@ keycloak: require-inputs require-tools require-chart require-values-contract ## 
 	@$(HELM) upgrade --install "$(KEYCLOAK_RELEASE)" "$(CHART_DIR)" -n "$(NAMESPACE)" -f "$(VALUES_FILE)" --kubeconfig "$(KUBECONFIG)"
 	@$(KUBECTL) --kubeconfig "$(KUBECONFIG)" rollout status statefulset/$(KEYCLOAK_STATEFULSET) -n "$(NAMESPACE)" --timeout="$(KEYCLOAK_WAIT_TIMEOUT)"
 
-# The forward is process-owned by this recipe; every success, failure, signal, or timeout reaps it.
+# realm does not consume VALUES_FILE, so coupling it to require-values-contract would mix concerns.
+# Assert the canonical origin it does rely on directly; the forward remains process-owned so every
+# success, failure, signal, or timeout reaps it.
+realm: require-inputs require-tools ## Provision the platform realm, its groups, and one OIDC client per cluster (idempotent)
+	@set -Eeuo pipefail; \
+		$(PYTHON) -c 'import sys; assert sys.argv[2]==sys.argv[1]+":443", f"realm origin {sys.argv[2]!r} is not canonical HTTPS for KC_HOSTNAME {sys.argv[1]!r}"; assert int(sys.argv[3]) > 1023, "VERIFY_PORT must be unprivileged"' "$(KEYCLOAK_HOSTNAME)" "$(KEYCLOAK_VERIFY_ORIGIN)" "$(VERIFY_PORT)"; \
+		$(PYTHON) -c 'import socket,sys; s=socket.socket(); s.bind(("127.0.0.1", int(sys.argv[1]))); s.close()' "$(VERIFY_PORT)" || { echo "ERROR: localhost:$(VERIFY_PORT) is already bound; refusing to risk the wrong Keycloak origin" >&2; exit 1; }; \
+		d="$$(mktemp -d)"; test -d "$$d"; pf_pid=''; cleanup() { if test -n "$$pf_pid"; then kill "$$pf_pid" 2>/dev/null || true; wait "$$pf_pid" 2>/dev/null || true; fi; rm -rf -- "$$d"; }; trap cleanup EXIT INT TERM; \
+		$(KUBECTL) --kubeconfig "$(KUBECONFIG)" get secret "$(KEYCLOAK_TLS_SECRET)" -n "$(NAMESPACE)" -o jsonpath='{.data.ca\.crt}' | base64 -d > "$$d/ca.crt"; test -s "$$d/ca.crt" || { echo "ERROR: $(KEYCLOAK_TLS_SECRET) has no CA certificate" >&2; exit 1; }; \
+		$(KUBECTL) --kubeconfig "$(KUBECONFIG)" port-forward -n "$(NAMESPACE)" statefulset/$(KEYCLOAK_STATEFULSET) "$(VERIFY_PORT):8443" --address=127.0.0.1 > "$$d/port-forward.log" 2>&1 & pf_pid=$$!; \
+		set +o pipefail; $(TIMEOUT) "$(PORT_FORWARD_TIMEOUT)" tail -n +1 -F "$$d/port-forward.log" | grep -m1 -F "Forwarding from 127.0.0.1:$(VERIFY_PORT)" >/dev/null; statuses=("$${PIPESTATUS[@]}"); set -o pipefail; \
+		test "$${statuses[1]}" = 0 || { echo "ERROR: port-forward did not become ready" >&2; cat "$$d/port-forward.log" >&2; exit 1; }; \
+		kill -0 "$$pf_pid" 2>/dev/null || { echo "ERROR: port-forward exited before conformance" >&2; cat "$$d/port-forward.log" >&2; exit 1; }; \
+		KUBECTL="$(KUBECTL)" KUBECONFIG="$(KUBECONFIG)" NAMESPACE="$(NAMESPACE)" KC_ORIGIN="$(KEYCLOAK_VERIFY_ORIGIN)" KC_RESOLVE="$(KEYCLOAK_HOST):443:127.0.0.1" KC_CONNECT="$(KEYCLOAK_HOST):443:127.0.0.1:$(VERIFY_PORT)" KC_CACERT="$$d/ca.crt" KC_EXPECTED_ISSUER="$(KC_EXPECTED_ISSUER)" KEYCLOAK_ADMIN_USERNAME="$(KEYCLOAK_ADMIN_USERNAME)" VSO_ADMIN_SECRET="$(VSO_ADMIN_SECRET)" PLATFORM_REALM="$(PLATFORM_REALM)" PLATFORM_GROUPS="$(PLATFORM_GROUPS)" PLATFORM_CLIENTS="$(PLATFORM_CLIENTS)" bash "$(REALM_SCRIPT)"
+
 verify: require-inputs require-tools require-values-contract ## Run the recorded OIDC conformance test through an owned port-forward
 	@set -Eeuo pipefail; \
 		$(PYTHON) -c 'import sys; assert sys.argv[2]==sys.argv[1]+":443", f"conformance origin {sys.argv[2]!r} is not canonical HTTPS for KC_HOSTNAME {sys.argv[1]!r}"; assert int(sys.argv[3]) > 1023, "VERIFY_PORT must be unprivileged"' "$(KEYCLOAK_HOSTNAME)" "$(KEYCLOAK_VERIFY_ORIGIN)" "$(VERIFY_PORT)"; \
