@@ -1,0 +1,22 @@
+# Binds the claim-only Role to the platform OIDC group on ok-mgmt.
+#
+# The subject is the group as the API server sees it *after* authentication.
+# ok-mgmt's AuthenticationConfiguration sets claimMappings.groups.prefix to
+# "oidc:", so the Keycloak group `openrmf-claim-editors` (realm `openkubes`,
+# client `ok-mgmt`) arrives as `oidc:openrmf-claim-editors`. A bare group name
+# here would bind nobody, and Kubernetes reports no error when it happens.
+#
+# Rationale and the resolved dependency chain: docs/claim-editor-binding-plan.md
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: openrmf-claim-editor
+  namespace: openkubes-system
+subjects:
+  - kind: Group
+    name: oidc:openrmf-claim-editors
+    apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: openrmf-claim-editor
+  apiGroup: rbac.authorization.k8s.io
