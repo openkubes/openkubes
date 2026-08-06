@@ -1,7 +1,7 @@
 # OpenRMF Composition — simulation profile for registered workload clusters
 #
 # The chart is pinned to the versioned release asset published from
-# rmf_deployment_template tag openrmf-deployment-v1.0.0.
+# rmf_deployment_template tag openrmf-deployment-v1.0.1.
 apiVersion: apiextensions.crossplane.io/v1
 kind: Composition
 metadata:
@@ -38,6 +38,12 @@ spec:
                 deletionPolicy: Orphan
                 forProvider:
                   chart:
+                    # Pin all three chart identity fields. provider-helm late-
+                    # initializes name/version, and a Composition update that
+                    # changes only url can leave the old version in the managed
+                    # Release spec, making every successful upgrade look stale.
+                    name: openrmf-deployment
+                    version: 1.0.1
                     url: https://github.com/openkubes/rmf_deployment_template/releases/download/openrmf-deployment-v1.0.1/openrmf-deployment-1.0.1.tgz
                   namespace: rmf
                   wait: true
