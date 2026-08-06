@@ -16,8 +16,8 @@ Both original holds on applying a Claim are resolved. The repo pins
 `function-patch-and-transform` `v0.9.0` (`tests/functions.yaml`) and renders
 against core Crossplane `v2.3.3` (`--crossplane-version`); that this matches the
 rebuilt `ok-mgmt` was verified on-cluster and recorded on OK-99, not in this
-repo. The direct-Helm ownership handoff is moot because `ok2-rmf` was
-permanently deleted, leaving `ok-robotics` as the only target.
+repo. `ok-robotics` is the only deployment target, and it is a clean install
+with no pre-existing Helm release to take ownership of.
 
 The local checks (`validate`, `chart-check`, `ready-check`, `render`,
 `render-check`) still apply nothing anywhere. The `bind`, `deploy` and
@@ -31,11 +31,9 @@ The local checks (`validate`, `chart-check`, `ready-check`, `render`,
 |---|---|
 | `xrd.yaml` | `OpenRMFInstance` XRD and namespaced `OpenRMFClaim` |
 | `composition.yaml` | Simulation-profile provider-helm Release |
-| `examples/ok2-rmf.yaml` | Retained contract fixture; `ok2-rmf` itself was permanently deleted |
 | `examples/ok-robotics.yaml` | Non-secret example Claim for the intended first managed-deployment target (OK-88/OK-99) |
 | `rbac/claim-editor-role.yaml` | Claim-only namespaced Role; no Secret or Crossplane-internal access |
 | `rbac/claim-editor-binding.yaml` | Binds that Role to the platform OIDC group `oidc:openrmf-claim-editors` |
-| `tests/xr-ok2-rmf.yaml` | Representative XR fixture for local rendering against `ok2-rmf` |
 | `tests/xr-ok-robotics.yaml` | Representative XR fixture for local rendering against `ok-robotics` |
 | `tests/functions.yaml` | Local-render function package matching `ok-mgmt` |
 | `Makefile` | Local checks, plus the approval-gated `ok-mgmt` bind/deploy lifecycle |
@@ -46,7 +44,7 @@ values; it does not copy the chart.
 
 ## v1alpha1 contract
 
-The first version exposes only the profile already smoke-tested on `ok2-rmf`:
+The first version exposes only the simulation profile:
 
 - RMF simulation mode;
 - RMF Web dashboard and API;
@@ -66,10 +64,10 @@ Composition.
 apiVersion: platform.openkubes.ai/v1alpha1
 kind: OpenRMFClaim
 metadata:
-  name: ok2-rmf
+  name: ok-robotics
   namespace: openkubes-system
 spec:
-  clusterRef: ok2-rmf
+  clusterRef: ok-robotics
   namespace: rmf
   mode: simulation
   hostname: rmf.openkubes.local
@@ -151,13 +149,9 @@ make undeploy CLUSTER=ok-robotics APPROVE_MGMT=yes    # removes the Claim only
 kubectl delete release.helm.crossplane.io openrmf-ok-robotics   # separate, destructive
 ```
 
-The Composition preserves the external release name `rmf`, which was originally
-`ok2-rmf`'s. That cluster has since been permanently deleted, so there is no
-live release to adopt and no direct-Helm-to-Crossplane ownership handoff left to
-rehearse. `examples/ok2-rmf.yaml` is retained as a contract fixture only.
-
-`ok-robotics` is therefore the only deployment target, and it is a clean
-install.
+The Composition sets the external release name to `rmf`. There is no live
+release anywhere to adopt, so no direct-Helm-to-Crossplane ownership handoff has
+to be rehearsed before a Claim is submitted.
 
 ## Local validation
 
@@ -183,14 +177,16 @@ make render-check
   ProviderConfig, external release name, orphan policy, and four Secret
   references.
 
-`render` and `render-check` default to the `ok2-rmf` fixture. Override
-`CLUSTER` to render/verify the `ok-robotics` fixture instead (this also
-selects `tests/xr-$(CLUSTER).yaml` and the expected `ProviderConfig`/release
-name):
+`CLUSTER` selects the XR fixture (`tests/xr-$(CLUSTER).yaml`) and the expected
+`ProviderConfig` and release name. It defaults to `ok-robotics`, the only
+registered target, so the explicit form below is equivalent:
 
 ```bash
 make render-check CLUSTER=ok-robotics
 ```
+
+Adding a second target cluster means adding `tests/xr-<cluster>.yaml` and
+`examples/<cluster>.yaml` alongside it.
 
 Crossplane CLI rendering uses Docker by default. If Docker is unavailable,
 `render-prerequisites` fails explicitly and no render result should be
@@ -219,8 +215,8 @@ Step 4 is the first reconcile of any XR against this Composition, so
 provider-side failures that rendering cannot catch — the chart pull from the
 workload cluster, a credential key mismatch — surface there first.
 
-There is no adoption rehearsal step: `ok2-rmf` is gone, so `ok-robotics` is a
-clean install with no live release to take ownership of.
+There is no adoption rehearsal step: this is a clean install with no live
+release to take ownership of.
 
 ## References
 

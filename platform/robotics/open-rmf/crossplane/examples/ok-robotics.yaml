@@ -7,8 +7,8 @@
 # Submit it through the approval-gated target, not a bare kubectl apply:
 #   make deploy CLUSTER=ok-robotics APPROVE_MGMT=yes
 #
-# This is the first managed-deployment target (OK-88/OK-99), and a clean
-# install: ok2-rmf was permanently deleted, so no Helm ownership handoff applies.
+# This is the first managed-deployment target (OK-88/OK-99), and a clean install:
+# there is no pre-existing Helm release to take ownership of.
 apiVersion: platform.openkubes.ai/v1alpha1
 kind: OpenRMFClaim
 metadata:

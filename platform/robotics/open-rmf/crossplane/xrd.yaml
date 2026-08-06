@@ -1,7 +1,7 @@
 # OpenRMF XRD — Robotics Fleet Orchestration contract
 #
-# v1alpha1 deliberately exposes only the simulation profile already validated
-# on ok2-rmf. Real/core RMF is added only after its ADR-Platform-019 gates pass.
+# v1alpha1 deliberately exposes only the simulation profile. Real/core RMF is
+# added only after its ADR-Platform-019 gates pass.
 apiVersion: apiextensions.crossplane.io/v1
 kind: CompositeResourceDefinition
 metadata:
@@ -38,7 +38,8 @@ spec:
                   pattern: "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
                   description: >-
                     Canonical workload-cluster name and provider-helm
-                    ProviderConfig name, for example ok2-rmf.
+                    ProviderConfig name, for example ok-robotics. The cluster
+                    must already be registered under ADR-Platform-013.
                 namespace:
                   type: string
                   default: rmf
