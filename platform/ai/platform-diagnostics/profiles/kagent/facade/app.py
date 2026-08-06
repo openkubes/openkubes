@@ -3,9 +3,8 @@ Diagnostics facade — OpenAPI -> kagent shim (Profile A, OK-92).
 
 Implements the three functions of the Read-Only Platform Diagnostics Contract
 (ADR-Platform-021) and translates each into an A2A invocation of the kagent
-`openkubes-platform-agent`, then maps the agent's reply onto the ADR-021-derived
-Draft implementation scaffold. Normative OpenAPI finalization remains in
-OK-89/OK-90.
+`openkubes-platform-agent`, then maps the agent's reply onto the normative
+ADR-021 Phase-1 OpenAPI contract.
 
 Wire format (confirmed against ok-ai, 2026-07-27):
   * A2A JSON-RPC 2.0, method "message/send", at
@@ -56,6 +55,8 @@ PROVIDER_CAPS = json.loads(os.getenv("PROVIDER_CAPS", json.dumps(DEFAULT_CAPS)))
 
 app = FastAPI(
     title="OpenKubes Read-Only Platform Diagnostics Contract",
+    # Provider implementation version. Keep it draft until the executable
+    # conformance suite in OK-89/OK-91 passes against this profile.
     version="1.0.0-draft",
     description="Profile A (kagent) provider. Implements ADR-Platform-021.",
 )
