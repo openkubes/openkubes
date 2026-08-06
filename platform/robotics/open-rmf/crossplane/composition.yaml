@@ -38,7 +38,7 @@ spec:
                 deletionPolicy: Orphan
                 forProvider:
                   chart:
-                    url: https://github.com/openkubes/rmf_deployment_template/releases/download/openrmf-deployment-v1.0.0/openrmf-deployment-1.0.0.tgz
+                    url: https://github.com/openkubes/rmf_deployment_template/releases/download/openrmf-deployment-v1.0.1/openrmf-deployment-1.0.1.tgz
                   namespace: rmf
                   wait: true
                   waitTimeout: 10m
@@ -55,6 +55,33 @@ spec:
                       useTraefikDefaultCertificate: true
                     monitoring:
                       enabled: false
+                    keycloak:
+                      # No profile-local identity provider: RMF authenticates
+                      # against the one central Keycloak on ok-shared. false here
+                      # stops the chart rendering its own Keycloak, database,
+                      # ingress and realm-setup Job entirely.
+                      enabled: false
+                      externalUrl: https://keycloak.ok-shared.internal
+                      issuer: https://keycloak.ok-shared.internal/realms/rmf-web
+                      # rmf-web-rmf-server validates tokens against this key from
+                      # a mounted file rather than fetching JWKS, so the realm's
+                      # signing key has to be supplied. It is a public key.
+                      #
+                      # Reproduce it with, in platform/identity/keycloak:
+                      #   make rmf-realm CLUSTER=ok-shared ... (prints it on stdout)
+                      # If the rmf-web realm is ever rebuilt this key changes and
+                      # RMF Web logins start failing as 401s with nothing logged
+                      # to explain them. Update it here and reconcile.
+                      jwtPublicKey: |-
+                        -----BEGIN PUBLIC KEY-----
+                        MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA5t5WqEx7RO5nK2db33a0
+                        eImAi84p/ot3UjdTYT8QnfIXf0RuLOqv9fPDBG9inmYCKm3Dl5JZJBSp8lFCOh1R
+                        zzydK/UCQ2PtnBaCZ1+BNej2HJav3kUUJlXYJ9cRGfQNGbli7Ib/7uYojEKrh9nf
+                        G0XkjysdFH3CdG+U7xOYNWeb9ECZbkZ3KlkXisMQMfir5hMyqIljwRcfYKmLsv3O
+                        oiO8DEcslY5YLg9h3ex1WXD5O9Zzm74STrDCtd4/QQ535h/UckDCsLfrVYQ4v22i
+                        i4Peb7tQ/cAthkvs6cIS4TBjwvQdJ/9taE8CPhn77N99+DvcsUNktzWIILVybgOJ
+                        0QIDAQAB
+                        -----END PUBLIC KEY-----
                   set:
                     - name: rmf_web.API_SERVER_DB_PASSWD
                       valueFrom:
@@ -68,18 +95,6 @@ spec:
                           name: rmf-credentials
                           namespace: crossplane-system
                           key: rmfWebAdminPassword
-                    - name: keycloak.KEYCLOAK_ADMIN_PASSWD
-                      valueFrom:
-                        secretKeyRef:
-                          name: rmf-credentials
-                          namespace: crossplane-system
-                          key: keycloakAdminPassword
-                    - name: keycloak.KEYCLOAK_DB_PASSWD
-                      valueFrom:
-                        secretKeyRef:
-                          name: rmf-credentials
-                          namespace: crossplane-system
-                          key: keycloakDatabasePassword
                 rollbackLimit: 3
             patches:
               - type: FromCompositeFieldPath
@@ -121,18 +136,6 @@ spec:
               - type: FromCompositeFieldPath
                 fromFieldPath: spec.credentialsSecretRef.namespace
                 toFieldPath: spec.forProvider.set[1].valueFrom.secretKeyRef.namespace
-              - type: FromCompositeFieldPath
-                fromFieldPath: spec.credentialsSecretRef.name
-                toFieldPath: spec.forProvider.set[2].valueFrom.secretKeyRef.name
-              - type: FromCompositeFieldPath
-                fromFieldPath: spec.credentialsSecretRef.namespace
-                toFieldPath: spec.forProvider.set[2].valueFrom.secretKeyRef.namespace
-              - type: FromCompositeFieldPath
-                fromFieldPath: spec.credentialsSecretRef.name
-                toFieldPath: spec.forProvider.set[3].valueFrom.secretKeyRef.name
-              - type: FromCompositeFieldPath
-                fromFieldPath: spec.credentialsSecretRef.namespace
-                toFieldPath: spec.forProvider.set[3].valueFrom.secretKeyRef.namespace
               - type: ToCompositeFieldPath
                 fromFieldPath: status.atProvider.state
                 toFieldPath: status.releaseState

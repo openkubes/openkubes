@@ -48,8 +48,9 @@ The first version exposes only the simulation profile:
 
 - RMF simulation mode;
 - RMF Web dashboard and API;
-- profile-local Keycloak;
-- RMF and Keycloak PostgreSQL databases;
+- authentication against the central Keycloak on `ok-shared` — the chart's own
+  bundled Keycloak is switched off, see below;
+- the RMF Web PostgreSQL database;
 - Traefik routing with `ok-ingress` profile values;
 - Traefik's default TLS certificate;
 - monitoring disabled.
@@ -84,12 +85,34 @@ keys:
 |---|---|
 | `rmfWebDatabasePassword` | `rmf_web.API_SERVER_DB_PASSWD` |
 | `rmfWebAdminPassword` | `rmf_web.ADMIN_PASSWD` |
-| `keycloakAdminPassword` | `keycloak.KEYCLOAK_ADMIN_PASSWD` |
-| `keycloakDatabasePassword` | `keycloak.KEYCLOAK_DB_PASSWD` |
 
 The Secret creation and vault/reconciliation workflow is intentionally not
 part of this scaffold. Do not commit a Secret manifest containing usable
 values.
+
+Two keys were removed when identity moved to `ok-shared`:
+`keycloakAdminPassword` and `keycloakDatabasePassword` configured the chart's own
+Keycloak and its database, neither of which is deployed any more. They may still
+be present in an existing `rmf-credentials` Secret; nothing reads them, and
+`make validate` rejects any attempt to reintroduce them into the contract.
+
+## Identity
+
+RMF authenticates against the one central Keycloak on `ok-shared`, realm
+`rmf-web`. There is no profile-local identity provider — the Composition sets
+`keycloak.enabled: false`, which stops the chart rendering its own Keycloak,
+database, ingress and realm-setup Job.
+
+The realm, its `dashboard` and `smart_cart` clients, the `dashboard` audience
+mapper and the `admin` user are provisioned idempotently by `make rmf-realm` in
+`platform/identity/keycloak`. That command also prints the realm's signing public
+key, which the Composition pins as `keycloak.jwtPublicKey` because
+`rmf-web-rmf-server` validates tokens from a mounted file rather than fetching
+JWKS. **If that realm is rebuilt the key changes and logins begin failing as 401s
+with nothing logged to explain it** — rerun the command and update the value.
+
+`make validate` asserts all of this: Keycloak disabled, the expected issuer, a
+well-formed PEM, and no Keycloak credential in the Secret contract.
 
 ## Claim-only RBAC
 

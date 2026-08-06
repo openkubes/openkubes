@@ -11,7 +11,7 @@ HELM       ?= helm
 CROSSPLANE ?= crossplane
 DOCKER     ?= docker
 RMF_CHART  ?= ../../../../../rmf_deployment_template/charts/rmf-deployment
-CHART_URL  := https://github.com/openkubes/rmf_deployment_template/releases/download/openrmf-deployment-v1.0.0/openrmf-deployment-1.0.0.tgz
+CHART_URL  := https://github.com/openkubes/rmf_deployment_template/releases/download/openrmf-deployment-v1.0.1/openrmf-deployment-1.0.1.tgz
 CLUSTER    ?= ok-robotics
 XR         ?= tests/xr-$(CLUSTER).yaml
 YAML_FILES := xrd.yaml composition.yaml examples/ok-robotics.yaml \
@@ -67,7 +67,7 @@ PROFILE_ARGS := \
 
 .PHONY: help validate chart-check ready-check render render-check render-prerequisites \
 	require-mgmt-context require-mgmt-approval require-explicit-cluster \
-	bind authz-check deploy status undeploy
+	setup bind authz-check deploy status undeploy
 
 help: ## Show available local checks
 	@awk 'BEGIN {FS = ":.*## "}; /^[a-zA-Z_-]+:.*## / {printf "  %-16s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -80,7 +80,8 @@ validate: ## Parse YAML and verify scaffold safety invariants
 	@! grep -Eq '(PASSWD|Password):[[:space:]]+[^#[:space:]]' examples/ok-robotics.yaml
 	@$(PYTHON) -c 'import pathlib, yaml; role = yaml.safe_load(pathlib.Path("rbac/claim-editor-role.yaml").read_text()); rules = role["rules"]; assert len(rules) == 1, rules; rule = rules[0]; assert rule["apiGroups"] == ["platform.openkubes.ai"], rule; assert rule["resources"] == ["openrmfclaims"], rule; assert "secrets" not in rule["resources"], rule'
 	@$(PYTHON) -c 'import pathlib, yaml; b = yaml.safe_load(pathlib.Path("rbac/claim-editor-binding.yaml").read_text()); assert b["kind"] == "RoleBinding", b["kind"]; assert b["metadata"]["namespace"] == "openkubes-system", b["metadata"]; rr = b["roleRef"]; assert rr == {"kind": "Role", "name": "openrmf-claim-editor", "apiGroup": "rbac.authorization.k8s.io"}, rr; subs = b["subjects"]; assert len(subs) == 1, "exactly one subject is intended; widening the binding must be a reviewed edit, not an appended list item: %r" % subs; s = subs[0]; assert s == {"kind": "Group", "name": "oidc:openrmf-claim-editors", "apiGroup": "rbac.authorization.k8s.io"}, "the bound subject is pinned; note the oidc: prefix, without which it silently binds nobody: %r" % s'
-	@echo "OK: YAML parses and local safety/chart-source/RBAC guards are present"
+	@$(PYTHON) -c 'import pathlib, yaml; c = yaml.safe_load(pathlib.Path("composition.yaml").read_text()); res = c["spec"]["pipeline"][0]["input"]["resources"][0]; fp = res["base"]["spec"]["forProvider"]; kc = fp["values"]["keycloak"]; assert kc["enabled"] is False, "the profile-local Keycloak must stay disabled: RMF uses the one central Keycloak on ok-shared: %r" % kc; assert kc["issuer"] == "https://keycloak.ok-shared.internal/realms/rmf-web", kc["issuer"]; assert kc["externalUrl"].startswith("https://") and not kc["externalUrl"].endswith("/"), kc["externalUrl"]; assert kc["jwtPublicKey"].startswith("-----BEGIN PUBLIC KEY-----") and kc["jwtPublicKey"].rstrip().endswith("-----END PUBLIC KEY-----"), "jwtPublicKey must be a PEM public key or every login 401s with nothing logged"; keys = [s["valueFrom"]["secretKeyRef"]["key"] for s in fp["set"]]; assert not [k for k in keys if "keycloak" in k.lower()], "no keycloak credential belongs in the Secret contract once the bundled Keycloak is gone: %r" % keys'
+	@echo "OK: YAML parses and local safety/chart-source/RBAC/central-identity guards are present"
 
 chart-check: ## Run local Helm lint/template for the simulation values profile
 	@test -d "$(RMF_CHART)" || (echo "ERROR: RMF chart not found: $(RMF_CHART)"; exit 1)
@@ -89,8 +90,8 @@ chart-check: ## Run local Helm lint/template for the simulation values profile
 	@echo "OK: Helm lint/template and ingress/CRD guards passed locally"
 
 ready-check: validate ## Verify the pinned published chart name and version
-	@$(HELM) show chart "$(CHART_URL)" | $(PYTHON) -c 'import sys, yaml; chart = yaml.safe_load(sys.stdin); assert chart.get("name") == "openrmf-deployment", chart; assert chart.get("version") == "1.0.0", chart'
-	@echo "OK: published chart is reachable and pinned to openrmf-deployment 1.0.0"
+	@$(HELM) show chart "$(CHART_URL)" | $(PYTHON) -c 'import sys, yaml; chart = yaml.safe_load(sys.stdin); assert chart.get("name") == "openrmf-deployment", chart; assert chart.get("version") == "1.0.1", chart'
+	@echo "OK: published chart is reachable and pinned to openrmf-deployment 1.0.1"
 
 render-prerequisites: ## Verify local Crossplane render dependencies
 	@test -f "$(XR)" || { echo "ERROR: no XR fixture $(XR) for CLUSTER=$(CLUSTER). Without this the render error is piped into a YAML parser and resurfaces as a confusing parse failure. Add tests/xr-$(CLUSTER).yaml, or use a cluster that has one." >&2; exit 2; }
@@ -102,7 +103,7 @@ render: render-prerequisites ## Render the representative XR locally (CLUSTER=ok
 	@$(RENDER_CMD)
 
 render-check: render-prerequisites ## Render and verify the composed Helm Release (CLUSTER=ok-robotics)
-	@$(RENDER_CMD) | $(PYTHON) -c 'import sys, yaml; docs = [d for d in yaml.safe_load_all(sys.stdin) if isinstance(d, dict)]; releases = [d for d in docs if d.get("apiVersion") == "helm.crossplane.io/v1beta1" and d.get("kind") == "Release"]; assert len(releases) == 1, releases; r = releases[0]; spec = r["spec"]; fp = spec["forProvider"]; assert r["metadata"]["name"] == "openrmf-$(CLUSTER)", r["metadata"]; assert r["metadata"]["annotations"]["crossplane.io/external-name"] == "rmf", r["metadata"]; assert spec["deletionPolicy"] == "Orphan", spec; assert spec["providerConfigRef"]["name"] == "$(CLUSTER)", spec; assert fp["chart"]["url"] == "$(CHART_URL)", fp["chart"]; assert fp["namespace"] == "rmf", fp; refs = [v["valueFrom"]["secretKeyRef"] for v in fp["set"]]; assert len(refs) == 4, refs; assert all(v["name"] == "rmf-credentials" and v["namespace"] == "crossplane-system" for v in refs), refs'
+	@$(RENDER_CMD) | $(PYTHON) -c 'import sys, yaml; docs = [d for d in yaml.safe_load_all(sys.stdin) if isinstance(d, dict)]; releases = [d for d in docs if d.get("apiVersion") == "helm.crossplane.io/v1beta1" and d.get("kind") == "Release"]; assert len(releases) == 1, releases; r = releases[0]; spec = r["spec"]; fp = spec["forProvider"]; assert r["metadata"]["name"] == "openrmf-$(CLUSTER)", r["metadata"]; assert r["metadata"]["annotations"]["crossplane.io/external-name"] == "rmf", r["metadata"]; assert spec["deletionPolicy"] == "Orphan", spec; assert spec["providerConfigRef"]["name"] == "$(CLUSTER)", spec; assert fp["chart"]["url"] == "$(CHART_URL)", fp["chart"]; assert fp["namespace"] == "rmf", fp; refs = [v["valueFrom"]["secretKeyRef"] for v in fp["set"]]; assert len(refs) == 2, refs; assert all(v["name"] == "rmf-credentials" and v["namespace"] == "crossplane-system" for v in refs), refs'
 	@echo "OK: Composition rendered one safe, secret-referencing Helm Release for $(CLUSTER)"
 
 # Read-only, so it gates authz-check too: a green authorization result about the
@@ -123,6 +124,21 @@ require-mgmt-approval: require-mgmt-context
 require-explicit-cluster:
 	@test "$(origin CLUSTER)" != file || { echo "ERROR: name CLUSTER explicitly for this target, e.g. CLUSTER=ok-robotics; a mutating target must not inherit the default '$(CLUSTER)'" >&2; exit 2; }
 	@test -f "examples/$(CLUSTER).yaml" || { echo "ERROR: no example Claim for CLUSTER=$(CLUSTER)" >&2; exit 2; }
+
+setup: validate require-mgmt-approval ## APPROVAL: apply the XRD and Composition to ok-mgmt (run after bootstrap, and to roll out Composition changes)
+	@set -Eeuo pipefail; \
+		for f in xrd.yaml composition.yaml; do \
+			$(MGMT_KUBECTL) apply --dry-run=server -f "$$f" >/dev/null; \
+			$(MGMT_KUBECTL) diff -f "$$f" && echo "  ($$f: no change)" || \
+				{ rc=$$?; test $$rc -eq 1 || { echo "ERROR: kubectl diff failed on $$f (exit $$rc)" >&2; exit $$rc; }; }; \
+		done; \
+		read -r -p "Apply the XRD and Composition diffed above to $(MGMT_CLUSTER)? Type yes: " answer; \
+		test "$$answer" = yes || { echo "Aborted." >&2; exit 1; }; \
+		$(MGMT_KUBECTL) apply -f xrd.yaml; \
+		$(MGMT_KUBECTL) apply -f composition.yaml; \
+		$(MGMT_KUBECTL) wait xrd/openrmfinstances.platform.openkubes.ai --for=condition=Established --timeout=60s
+	@echo "OK: OpenRMF XRD and Composition are current on $(MGMT_CLUSTER)."
+	@echo "    Existing Claims reconcile against the new Composition revision on their own."
 
 bind: validate require-explicit-cluster require-mgmt-approval ## APPROVAL: apply the claim-only Role and its OIDC RoleBinding to ok-mgmt, then prove both authorization halves
 	@set -Eeuo pipefail; \
