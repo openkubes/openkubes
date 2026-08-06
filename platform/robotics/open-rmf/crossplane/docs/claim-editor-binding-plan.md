@@ -68,11 +68,16 @@ OK-99 rollout**, and the reason is recorded here rather than left implicit:
 
 - **Authentication** is evidenced by a real `kubectl oidc-login` completing the full
   authorization-code + PKCE flow, with the decoded ID token carrying the expected
-  `groups`, `aud` and `iss`. That evidence is on **OK-99 (comment 13185)**. Note that
-  [`docs/ok-mgmt-oidc-rollout.md`](../../../../../docs/ok-mgmt-oidc-rollout.md) on `main`
-  still records the earlier state, where the flow reached the login screen but no token
-  was issued; the update is in flight as openkubes PR #58. Read the ticket, not that file,
-  until #58 lands.
+  `groups`, `aud` and `iss`. Recorded in
+  [`docs/ok-mgmt-oidc-rollout.md`](../../../../../docs/ok-mgmt-oidc-rollout.md) §6 and on
+  OK-99 (comment 13185).
+
+  One correction to that file, which is otherwise the authority on the `ok-mgmt` side: its
+  §7 states that no `Role` or `ClusterRole` named `openrmf-claim-editor` exists and that no
+  namespace looks like a deliberate convention. Both are inaccurate — the namespaced Role
+  has been in `openkubes-system` since 2026-07-22, and that namespace is the convention,
+  set by [the Role](../rbac/claim-editor-role.yaml), by order 1 of the table above, and by
+  [the example Claim](../examples/ok-robotics.yaml). Do not create a second Role.
 - **Authorization** is evidenced by `make authz-check`, which impersonates the subject.
   An impersonated request is resolved by the same authorizer, against the same RBAC rules,
   as a bearer-token request — so it is authoritative for authorization, and it needs
