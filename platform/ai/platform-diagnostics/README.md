@@ -30,7 +30,7 @@ test, not a convention.
 ```
 platform/ai/platform-diagnostics/
 ├── contract/
-│   ├── openapi.yaml           # Draft implementation scaffold — finalization in OK-89/OK-90
+│   ├── openapi.yaml           # normative Phase-1 HTTP contract (v1.0.0)
 │   ├── mcp-adapter/           # thin agent-facing adapter, DERIVED from openapi.yaml (optional)
 │   └── tests/                 # the 6 contract tests from ADR-021 (schema, RBAC audit, backend-swap, …)
 └── profiles/
@@ -54,10 +54,10 @@ platform/ai/platform-diagnostics/
 | `profiles/kagent/` (Profile A implementation) | **OK-92** (integrate kagent as first provider profile) | `openkubes` (generic) + `ok-cluster` (provider values) |
 | OpenClaw as first **consumer** (diagnostics skill via MCP adapter) | ADR-021 Consumers | `ok-cluster/openclaw` |
 
-OK-92 needs a concrete interface for Profile A. The included
-`contract/openapi.yaml` is therefore explicitly a **Draft implementation
-scaffold**, derived from ADR-021 revision 3. It is not the finalized normative
-specification; that work remains in OK-89/OK-90.
+`contract/openapi.yaml` is the **normative, machine-readable Phase-1 contract**.
+It defines the three public operations and their input, output, evidence,
+capability, and error schemas. Provider profiles and the optional MCP adapter
+derive from it; provider endpoints and credentials remain Provider Values.
 
 ## What lives where (generic vs. provider values)
 
