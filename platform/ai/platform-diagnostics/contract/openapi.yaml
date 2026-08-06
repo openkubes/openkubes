@@ -8,7 +8,7 @@ jsonSchemaDialect: https://json-schema.org/draft/2020-12/schema
 info:
   title: OpenKubes Read-Only Platform Diagnostics Contract
   summary: Provider-neutral, read-only platform diagnostics.
-  version: 1.0.0
+  version: 1.1.0
   description: |
     Normative HTTP contract for standardized OpenKubes platform diagnostics.
     It defines exactly three Phase-1 operations. Consumers never receive
@@ -18,6 +18,17 @@ info:
     MCP servers, agent runtimes, runbook implementations, and user interfaces
     are adapters or providers of this contract. They are not part of the
     normative API surface.
+
+    Consumers authenticate to the contract endpoint with their own consumer
+    identity (`bearerAuth`); that identity — never a Kubernetes credential — is
+    what the invocation audit records. Every response carries an
+    `invocation_id`, the join key between the four ADR-021 audit artifacts
+    (invocation audit, provider tool trace, diagnostic result, raw evidence).
+
+    Every successful response is self-describing: it names the cluster, the
+    subject, the effective time window, and the time of generation, so that a
+    stored result remains attributable after it leaves the HTTP exchange
+    (incident handoff, audit, offline expert review).
   license:
     name: Apache License 2.0
     identifier: Apache-2.0
@@ -28,6 +39,11 @@ info:
 servers:
   - url: /
     description: Deployment-relative endpoint supplied by the selected provider profile.
+
+# Applies to all operations. Providers MAY additionally require transport-level
+# client authentication; that is a provider value, not part of this contract.
+security:
+  - bearerAuth: []
 
 tags:
   - name: diagnostics
@@ -43,6 +59,8 @@ paths:
         Returns health for the requested logical cluster names. An empty request
         includes all clusters known to the provider. Cluster values are logical
         names, never API endpoints or kubeconfig references.
+      parameters:
+        - $ref: '#/components/parameters/RequestId'
       requestBody:
         required: true
         content:
@@ -52,6 +70,9 @@ paths:
       responses:
         '200':
           description: A normalized platform health snapshot.
+          headers:
+            X-Invocation-Id:
+              $ref: '#/components/headers/InvocationId'
           content:
             application/json:
               schema:
@@ -79,6 +100,8 @@ paths:
         Recommended next steps are human actions only and are never executed by
         the provider. Every returned hypothesis has completed a counter-evidence
         check; `not_checked` is invalid in a successful response.
+      parameters:
+        - $ref: '#/components/parameters/RequestId'
       requestBody:
         required: true
         content:
@@ -88,6 +111,9 @@ paths:
       responses:
         '200':
           description: A finalized, evidence-grounded workload investigation.
+          headers:
+            X-Invocation-Id:
+              $ref: '#/components/headers/InvocationId'
           content:
             application/json:
               schema:
@@ -116,6 +142,8 @@ paths:
         their sources. For every explicitly requested unsupported evidence type,
         the response contains an `unavailable` EvidenceRef with a reason; silent
         omission is not conformant.
+      parameters:
+        - $ref: '#/components/parameters/RequestId'
       requestBody:
         required: true
         content:
@@ -125,6 +153,9 @@ paths:
       responses:
         '200':
           description: An evidence bundle containing references only.
+          headers:
+            X-Invocation-Id:
+              $ref: '#/components/headers/InvocationId'
           content:
             application/json:
               schema:
@@ -143,45 +174,116 @@ paths:
           $ref: '#/components/responses/ProviderUnavailable'
 
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        Consumer identity as a bearer token. The token identifies the *consumer*
+        (a conversational assistant, a CLI, a controller, a test suite) and is
+        never a Kubernetes credential: per ADR-021 the consumer holds no cluster
+        access, and the provider enforces Kubernetes RBAC internally.
+
+        The provider MUST record this identity in the invocation audit together
+        with the operation, the timestamp, and the `invocation_id`. Issuer,
+        audience, and claim mapping are provider profile values, not part of
+        this contract.
+
+  parameters:
+    RequestId:
+      name: X-Request-Id
+      in: header
+      required: false
+      description: |
+        Consumer-supplied correlation id. When present, the provider MUST echo it
+        in the invocation audit alongside the `invocation_id` it assigns, so a
+        consumer-side incident record and the platform audit trail can be joined
+        from either end.
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 128
+
+  headers:
+    InvocationId:
+      required: true
+      description: |
+        The `invocation_id` assigned to this call. Present on every response,
+        including errors — an authorization failure or provider outage must stay
+        traceable in the invocation audit even though it carries no result body.
+      schema:
+        $ref: '#/components/schemas/InvocationId'
+
   responses:
     BadRequest:
       description: The request is semantically invalid.
+      headers:
+        X-Invocation-Id:
+          $ref: '#/components/headers/InvocationId'
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
     Unauthorized:
       description: Consumer authentication is missing or invalid.
+      headers:
+        X-Invocation-Id:
+          $ref: '#/components/headers/InvocationId'
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
     Forbidden:
       description: The authenticated consumer may not perform this operation.
+      headers:
+        X-Invocation-Id:
+          $ref: '#/components/headers/InvocationId'
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
     UnprocessableContent:
       description: The JSON body does not conform to the operation input schema.
+      headers:
+        X-Invocation-Id:
+          $ref: '#/components/headers/InvocationId'
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
     InternalError:
       description: The provider failed without exposing raw evidence or secrets.
+      headers:
+        X-Invocation-Id:
+          $ref: '#/components/headers/InvocationId'
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
     ProviderUnavailable:
       description: The selected diagnostics provider is temporarily unavailable.
+      headers:
+        X-Invocation-Id:
+          $ref: '#/components/headers/InvocationId'
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
 
   schemas:
+    InvocationId:
+      type: string
+      minLength: 1
+      maxLength: 128
+      description: |
+        Provider-assigned identifier for a single contract invocation. It is the
+        join key between the four ADR-021 audit artifacts: invocation audit,
+        provider tool trace, diagnostic result, and raw evidence. It carries no
+        evidence content and is safe to log centrally and to quote in an incident
+        ticket.
+      examples: [inv-2026-08-06-7f3a91c4]
+
     LogicalClusterName:
       type: string
       minLength: 1
@@ -210,6 +312,22 @@ components:
       description: ISO-8601 duration. A provider may clamp it to available retention.
       examples: [PT1H, P1D]
 
+    TimeWindow:
+      type: object
+      additionalProperties: false
+      required: [start, end]
+      description: |
+        The time window the provider actually evaluated. A provider may clamp the
+        requested `time_range` to available retention; reporting the resulting
+        absolute window is what makes a result reproducible and auditable.
+      properties:
+        start:
+          type: string
+          format: date-time
+        end:
+          type: string
+          format: date-time
+
     GetPlatformHealthInput:
       type: object
       additionalProperties: false
@@ -217,6 +335,7 @@ components:
         clusters:
           type: array
           uniqueItems: true
+          maxItems: 100
           description: Logical clusters to include. Empty or absent means all known clusters.
           items:
             $ref: '#/components/schemas/LogicalClusterName'
@@ -251,6 +370,7 @@ components:
         evidence_types:
           type: array
           uniqueItems: true
+          maxItems: 50
           description: |
             Evidence types requested by the consumer. Empty or absent requests
             the provider's standard evidence set. Values are extensible; an
@@ -264,13 +384,16 @@ components:
     PlatformHealth:
       type: object
       additionalProperties: false
-      required: [generated_at, clusters]
+      required: [invocation_id, generated_at, clusters]
       properties:
+        invocation_id:
+          $ref: '#/components/schemas/InvocationId'
         generated_at:
           type: string
           format: date-time
         clusters:
           type: array
+          maxItems: 100
           items:
             $ref: '#/components/schemas/ClusterHealth'
 
@@ -289,6 +412,7 @@ components:
         signals:
           type: array
           uniqueItems: true
+          maxItems: 100
           description: Stable or provider-extension signal identifiers.
           items:
             type: string
@@ -301,7 +425,18 @@ components:
     WorkloadInvestigation:
       type: object
       additionalProperties: false
+      description: |
+        A finalized diagnostic result. It is self-describing: subject, effective
+        time window, generation time, and invocation id travel with the payload,
+        so the result stays attributable after it is exported into an incident
+        ticket or an offline review.
       required:
+        - invocation_id
+        - cluster
+        - namespace
+        - workload
+        - generated_at
+        - effective_time_range
         - summary
         - symptoms
         - evidence
@@ -310,28 +445,46 @@ components:
         - references
         - provider_capabilities
       properties:
+        invocation_id:
+          $ref: '#/components/schemas/InvocationId'
+        cluster:
+          $ref: '#/components/schemas/LogicalClusterName'
+        namespace:
+          $ref: '#/components/schemas/NamespaceName'
+        workload:
+          $ref: '#/components/schemas/WorkloadName'
+        generated_at:
+          type: string
+          format: date-time
+        effective_time_range:
+          $ref: '#/components/schemas/TimeWindow'
         summary:
           type: string
         symptoms:
           type: array
+          maxItems: 100
           items:
             type: string
         evidence:
           type: array
+          maxItems: 500
           items:
             $ref: '#/components/schemas/EvidenceRef'
         probable_causes:
           type: array
+          maxItems: 20
           description: Ranked from highest to lowest confidence.
           items:
             $ref: '#/components/schemas/FinalizedRankedHypothesis'
         recommended_next_steps:
           type: array
+          maxItems: 50
           description: Human actions only; the provider never executes them.
           items:
             type: string
         references:
           type: array
+          maxItems: 50
           description: References to runbooks, ADRs, or dashboards.
           items:
             type: string
@@ -341,15 +494,36 @@ components:
     EvidenceBundle:
       type: object
       additionalProperties: false
-      required: [cluster, collected_at, evidence, provider_capabilities]
+      description: |
+        Evidence references without hypothesis generation. Like
+        WorkloadInvestigation it is self-describing, because its forcing consumers
+        are incident handoff, audit, and offline expert review.
+      required:
+        - invocation_id
+        - cluster
+        - namespace
+        - workload
+        - collected_at
+        - effective_time_range
+        - evidence
+        - provider_capabilities
       properties:
+        invocation_id:
+          $ref: '#/components/schemas/InvocationId'
         cluster:
           $ref: '#/components/schemas/LogicalClusterName'
+        namespace:
+          $ref: '#/components/schemas/NamespaceName'
+        workload:
+          $ref: '#/components/schemas/WorkloadName'
         collected_at:
           type: string
           format: date-time
+        effective_time_range:
+          $ref: '#/components/schemas/TimeWindow'
         evidence:
           type: array
+          maxItems: 500
           items:
             $ref: '#/components/schemas/EvidenceRef'
         provider_capabilities:
@@ -374,6 +548,7 @@ components:
         evidence_refs:
           type: array
           minItems: 1
+          maxItems: 50
           uniqueItems: true
           description: URIs of supporting EvidenceRef objects returned with the result.
           items:
@@ -381,6 +556,7 @@ components:
             format: uri-reference
         contradicting_evidence_refs:
           type: array
+          maxItems: 50
           uniqueItems: true
           description: URIs of contradicting EvidenceRef objects returned with the result.
           items:
@@ -494,3 +670,5 @@ components:
           type: string
           minLength: 1
           description: Safe summary containing no raw evidence, credentials, or secrets.
+        invocation_id:
+          $ref: '#/components/schemas/InvocationId'
