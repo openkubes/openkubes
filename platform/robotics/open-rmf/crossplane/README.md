@@ -12,12 +12,18 @@ The Composition pins the published `openrmf-deployment` chart version `1.0.0`:
 https://github.com/openkubes/rmf_deployment_template/releases/download/openrmf-deployment-v1.0.0/openrmf-deployment-1.0.0.tgz
 ```
 
-**Do not apply the Claim to the live release yet.** Crossplane function
-compatibility and the existing direct-Helm ownership handoff still require
-validation and approval.
+Both original holds on applying a Claim are resolved. The repo pins
+`function-patch-and-transform` `v0.9.0` (`tests/functions.yaml`) and renders
+against core Crossplane `v2.3.3` (`--crossplane-version`); that this matches the
+rebuilt `ok-mgmt` was verified on-cluster and recorded on OK-99, not in this
+repo. The direct-Helm ownership handoff is moot because `ok2-rmf` was
+permanently deleted, leaving `ok-robotics` as the only target.
 
-No command in this directory applies resources to `ok-mgmt`, `ok2-rmf`, or
-`ok-robotics`.
+The local checks (`validate`, `chart-check`, `ready-check`, `render`,
+`render-check`) still apply nothing anywhere. The `bind`, `deploy` and
+`undeploy` targets **do** mutate `ok-mgmt`; each one requires
+`APPROVE_MGMT=yes`, an attended terminal, a kubeconfig that really identifies
+`ok-mgmt`, and a typed confirmation after a server-side dry run.
 
 ## Files
 
@@ -25,13 +31,14 @@ No command in this directory applies resources to `ok-mgmt`, `ok2-rmf`, or
 |---|---|
 | `xrd.yaml` | `OpenRMFInstance` XRD and namespaced `OpenRMFClaim` |
 | `composition.yaml` | Simulation-profile provider-helm Release |
-| `examples/ok2-rmf.yaml` | Non-secret example Claim for the manually-deployed reference cluster |
+| `examples/ok2-rmf.yaml` | Retained contract fixture; `ok2-rmf` itself was permanently deleted |
 | `examples/ok-robotics.yaml` | Non-secret example Claim for the intended first managed-deployment target (OK-88/OK-99) |
 | `rbac/claim-editor-role.yaml` | Claim-only namespaced Role; no Secret or Crossplane-internal access |
+| `rbac/claim-editor-binding.yaml` | Binds that Role to the platform OIDC group `oidc:openrmf-claim-editors` |
 | `tests/xr-ok2-rmf.yaml` | Representative XR fixture for local rendering against `ok2-rmf` |
 | `tests/xr-ok-robotics.yaml` | Representative XR fixture for local rendering against `ok-robotics` |
 | `tests/functions.yaml` | Local-render function package matching `ok-mgmt` |
-| `Makefile` | Local parsing, safety, Helm chart, and Composition-render checks |
+| `Makefile` | Local checks, plus the approval-gated `ok-mgmt` bind/deploy lifecycle |
 
 The Helm implementation remains in the sibling `rmf_deployment_template`
 repository. This directory owns the platform API and the translation to Helm
@@ -93,11 +100,40 @@ only to namespaced `openrmfclaims` in `openkubes-system`. It does not grant
 access to Secrets, XRDs, Compositions, provider-helm Releases,
 ProviderConfigs, Functions, or other Crossplane internals.
 
-No RoleBinding is included because the Kubernetes user or group identity for
-user must be supplied by the `ok-mgmt` authentication owner. Bind the Role
-only after that subject is confirmed. See the
-[claim-editor binding plan](docs/claim-editor-binding-plan.md) for the interim
-choice, OIDC dependency chain, privileged steps, and end-to-end proof.
+`rbac/claim-editor-binding.yaml` binds that Role to the group
+`oidc:openrmf-claim-editors`. The `oidc:` prefix is not decoration: `ok-mgmt`'s
+`AuthenticationConfiguration` sets `claimMappings.groups.prefix` to `oidc:`, so
+the Keycloak group `openrmf-claim-editors` (realm `openkubes`, client `ok-mgmt`)
+reaches the API server under that name. **A subject without the prefix binds
+nobody and Kubernetes reports no error** — so `make validate` pins the manifest
+exactly: one subject, that group, `roleRef` to this namespaced Role in
+`openkubes-system`. Appending a second subject, swapping in another `oidc:`
+group, escalating `roleRef` to a `ClusterRole`, or dropping the prefix each fail
+the check. Widening the binding is therefore a reviewed edit to the invariant,
+not something a stray list item can do quietly.
+
+See the [claim-editor binding plan](docs/claim-editor-binding-plan.md) for the
+resolved dependency chain and what each link was blocked on.
+
+### Applying and proving it
+
+```bash
+make bind APPROVE_MGMT=yes                        # Role + RoleBinding, then authz-check
+make authz-check CLUSTER=ok-robotics              # re-runnable proof, mutates nothing
+```
+
+`authz-check` impersonates the claim-editor subject and asserts both halves: it
+**may** create `openrmfclaims` in `openkubes-system`, and it **may not** read
+Secrets in any namespace or exercise any cluster-wide verb. Impersonation takes
+the same `SubjectAccessReview` path a real token does, so it proves
+authorization without holding anyone's credentials — it does not prove
+authentication, which is evidenced separately by a real `kubectl oidc-login` on
+OK-99. To reproduce a specific login's claim set, override the subject:
+
+```bash
+make authz-check CLAIM_EDITOR_USER=oidc:alice \
+  CLAIM_EDITOR_GROUPS="oidc:openrmf-claim-editors oidc:platform-admins"
+```
 
 ## Stateful lifecycle policy
 
@@ -106,16 +142,22 @@ must not automatically uninstall the external Helm release. This is a safety
 default while the two PostgreSQL data sets lack a proven automated backup and
 restore path.
 
-The existing `ok2-rmf` Helm release is named `rmf`. The Composition preserves
-that external name, but this does not prove safe adoption. Before a Claim
-targets `ok2-rmf`, rehearse provider-helm behavior away from the live
-namespace and approve the direct-Helm-to-Crossplane ownership handoff.
+`make undeploy` deletes only the Claim, and says plainly that the Release and
+the target namespace survive it. Rolling a deployment back is consequently two
+deliberate acts, not one — the second destroys data and is not automated here:
 
-The intended first managed deployment (`ok-robotics`, OK-88/OK-99) has no
-pre-existing Helm release to adopt — it is a clean install, so the ownership
-handoff above does not apply there. `ok2-rmf` remains the manually-deployed
-reference until functional parity is verified on `ok-robotics`, after which
-it is decommissioned under a separately approved teardown.
+```bash
+make undeploy CLUSTER=ok-robotics APPROVE_MGMT=yes    # removes the Claim only
+kubectl delete release.helm.crossplane.io openrmf-ok-robotics   # separate, destructive
+```
+
+The Composition preserves the external release name `rmf`, which was originally
+`ok2-rmf`'s. That cluster has since been permanently deleted, so there is no
+live release to adopt and no direct-Helm-to-Crossplane ownership handoff left to
+rehearse. `examples/ok2-rmf.yaml` is retained as a contract fixture only.
+
+`ok-robotics` is therefore the only deployment target, and it is a clean
+install.
 
 ## Local validation
 
@@ -163,16 +205,22 @@ make chart-check RMF_CHART=/path/to/rmf_deployment_template/charts/rmf-deploymen
 
 ## Before any apply
 
-The chart is published and pinned, and the current credential Secret contract
-has been populated outside Git. The remaining sequence is:
+The chart is published and pinned, and the credential Secret contract has been
+populated outside Git. Run, in order:
 
-1. Pass `make validate`, `make chart-check`, and `make ready-check`.
-2. Pass `make render-check` with the function version used by `ok-mgmt`.
-3. Confirm the RoleBinding subject for the claim-only Role.
-4. Rehearse adoption of a release named `rmf` outside the live namespace.
-5. Review the rendered provider-helm Release and Helm manifests for secret
-   leakage and unintended changes.
-6. Only then plan an explicit management-plane apply and ownership handoff.
+1. `make validate`, `make chart-check`, `make ready-check`.
+2. `make render-check CLUSTER=ok-robotics` with the function version `ok-mgmt`
+   runs — review the rendered Release for secret leakage and unintended changes.
+3. `make bind CLUSTER=ok-robotics APPROVE_MGMT=yes` — binds the claim-only Role
+   and proves both authorization halves.
+4. `make deploy CLUSTER=ok-robotics APPROVE_MGMT=yes`.
+
+Step 4 is the first reconcile of any XR against this Composition, so
+provider-side failures that rendering cannot catch — the chart pull from the
+workload cluster, a credential key mismatch — surface there first.
+
+There is no adoption rehearsal step: `ok2-rmf` is gone, so `ok-robotics` is a
+clean install with no live release to take ownership of.
 
 ## References
 

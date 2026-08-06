@@ -1,7 +1,9 @@
 # OpenRMF simulation Claim for ok2-rmf.
 #
-# Do not apply until Crossplane function compatibility and the ownership
-# handoff for the existing Helm release rmf are validated and approved.
+# Contract fixture — do not apply. The ok2-rmf cluster was permanently deleted,
+# so its ProviderConfig no longer exists and a Claim built from this file cannot
+# reconcile. Retained because it exercises the v1alpha1 schema in `make validate`.
+# The live target is ../examples/ok-robotics.yaml.
 apiVersion: platform.openkubes.ai/v1alpha1
 kind: OpenRMFClaim
 metadata:
