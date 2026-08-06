@@ -15,6 +15,26 @@ make install CLUSTER=<name> NAMESPACE=<namespace> KUBECONFIG=<path> MGMT_KUBECON
   APPROVE_CUTOVER=yes
 ```
 
+RMF Web uses a dedicated application realm on the same central Keycloak instance. Provision it
+with the exact browser origin; the target permits only `<origin>/*` redirects and reads RMF Web's
+built-in administrator password from `crossplane-system/rmf-credentials` on ok-mgmt without
+placing either password in argv, the environment, a log, or a file:
+
+```bash
+make rmf-realm CLUSTER=ok-shared NAMESPACE=keycloak KUBECONFIG=<ok-shared-kubeconfig> \
+  MGMT_KUBECONFIG=<ok-mgmt-kubeconfig> RMF_WEB_ORIGIN=https://robotics.openkubes.local \
+  APPROVE_RMF_REALM=yes
+```
+
+The target reconciles realm `rmf-web`, browser client `dashboard`, service client `smart_cart`,
+the `dashboard` audience scope, and application user `admin`. It verifies the Admin API shape,
+obtains a real dashboard token through discovery and checks `aud=dashboard`, then writes only the
+realm signing public key PEM to stdout; progress and the idempotency result go to stderr. Redirect
+origins are deliberately per invocation rather than wildcarded across hosts. The central server
+does not provide RMF's custom `jsonlog_event_listener`, so this target leaves realm event settings
+untouched instead of pretending the built-in JBoss logger is format-compatible. No deployed chart
+workload consumes `smart_cart`'s generated client secret, so the target neither reads nor escrows it.
+
 On an empty database the bootstrap environment wiring mints the first `admin` from the
 Vault-materialised `keycloak-admin` Secret. `install` requires `APPROVE_CUTOVER=yes` and an attended
 terminal up front, then promotes that temporary account to the permanent `admin` before running
