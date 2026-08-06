@@ -13,8 +13,8 @@ interchangeable behind/in front of it — that replaceability is the whole point
  Consumers                        Contract                     Providers
  ─────────                        ────────                     ─────────
  OpenClaw (conversational)  ┐                            ┌ Profile A: kagent
- ok CLI (OK-76)             ├─►  HTTP + OpenAPI  ◄────────┤ Profile B: runbook/API
- Slack / incident tooling   ┘   (+ MCP adapter)          └   (declared, not built)
+ ok CLI (OK-76)             ├─►  HTTP + OpenAPI  ◄────────┤ Profile B: deterministic stub
+ Slack / incident tooling   ┘   (+ MCP adapter)          └   (backend-swap proof)
                                      │
                                      ▼  the three public functions
                 get_platform_health · investigate_workload · collect_diagnostic_evidence
@@ -32,9 +32,10 @@ platform/ai/platform-diagnostics/
 ├── contract/
 │   ├── openapi.yaml           # normative Phase-1 HTTP contract (v1.1.0)
 │   ├── mcp-adapter/           # thin agent-facing adapter, DERIVED from openapi.yaml (optional)
-│   └── tests/                 # the 6 contract tests from ADR-021 (schema, RBAC audit, backend-swap, …)
+│   └── tests/                 # executable provider-neutral ADR-021 tests 1–6
 └── profiles/
-    └── kagent/                # Profile A (first) — kagent operations engine  ← OK-92
+    ├── stub/                  # Profile B — deterministic backend-swap proof ← OK-91
+    └── kagent/                # Profile A (first) — kagent operations engine ← OK-92
         ├── modelconfig.yaml           # kagent ModelConfig: shared Ollama
         ├── agents/
         │   ├── openkubes-platform-agent.yaml   # single agent that fronts the contract
@@ -60,6 +61,19 @@ platform/ai/platform-diagnostics/
 It defines the three public operations and their input, output, evidence,
 capability, and error schemas. Provider profiles and the optional MCP adapter
 derive from it; provider endpoints and credentials remain Provider Values.
+
+## Executable contract suite
+
+The same HTTP-level test suite runs against any provider. By default it starts
+Profile B on an ephemeral loopback port:
+
+```bash
+make verify
+```
+
+Set `DIAGNOSTICS_BASE_URL` and `DIAGNOSTICS_RBAC_PATH` to run it unchanged
+against a deployed provider. The six tests cover schema conformance, RBAC,
+evidence hygiene, backend swap, capability deltas, and counter-evidence.
 
 ## What lives where (generic vs. provider values)
 
