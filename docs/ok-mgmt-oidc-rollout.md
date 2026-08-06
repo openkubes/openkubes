@@ -96,29 +96,51 @@ Both incidents caused a brief outage of the management plane each (single contro
 | `kubectl get nodes` | ✓ all 3 nodes `Ready` (v1.34.1) |
 | Existing x509 kubeconfig | ✓ still works — additive change confirmed |
 
-## 6. First real login test (`kubectl oidc-login`)
+## 6. First real login test (`kubectl oidc-login`) — succeeded
 
 The login test is the only step that actually exercises PKCE, token signing, and JWKS validation (unlike Keycloak's `evaluate-scopes/generate-example-id-token`, which only simulates the mapper).
 
-Intermediate step: `kubectl oidc-login` first failed with a DNS error (`lookup keycloak.ok-shared.internal: no such host`), because the `extraHostEntries` entry only exists on the Talos node, not on the workstation. Fix: added a local `/etc/hosts` entry (`192.168.100.207 keycloak.ok-shared.internal`) — the address is reachable from the workstation.
+Two setup issues were resolved along the way, both on the client/workstation side, not in the patch itself:
 
-Next, error #2: `--oidc-extra-scope=groups` is rejected by Keycloak with `invalid_scope`. Without that scope, the authorization-code flow completes all the way to the real Keycloak login screen for realm `openkubes` / client `ok-mgmt` — which already confirms issuer, CA chain, host entry, and client ID are all configured correctly.
+- `kubectl oidc-login` first failed with a DNS error (`lookup keycloak.ok-shared.internal: no such host`), because the `extraHostEntries` entry only exists on the Talos node, not on the workstation. Fixed with a local `/etc/hosts` entry.
+- `--oidc-extra-scope=groups` was rejected by Keycloak with `invalid_scope`. Traced to source (`keycloak-realm-provision.sh`): the groups mapper is attached directly to the client as a default protocol mapper, not exposed as a separate client scope — so there is no scope named `groups` to request. Fix: drop the flag; the mapper fires on every token regardless.
 
-Open item: no personal user account exists yet in the realm to actually complete the login screen.
+**Personal account.** The provisioning script only ever creates a short-lived probe user for mapper verification and deletes it immediately afterward — there is no code path that creates a persistent human user. A personal account (`arash`, member of `openrmf-claim-editors` + `platform-admins`) was created directly via the Keycloak Admin REST API as a pragmatic, ad hoc unblock, using the Vault-escrowed `keycloak-admin` master-realm credentials. Note: this account does not survive a realm rebuild and isn't reproducible — the same class of gap the provisioning script deliberately avoids for everything else. Worth deciding whether to formalize personal/test user provisioning into that script, or accept manual creation as a documented exception.
 
-## 7. Open questions for Suchit (posted as an OK-99 comment, 2026-08-05)
+One incidental finding: the Keycloak Admin REST API (`/admin/realms/...`) is not reachable over the external route (the same MetalLB/Traefik path the OIDC login uses) — it returned 401 there but worked immediately over a direct `kubectl port-forward` to the `keycloak-keycloakx-http` Service. Likely intentional hardening (the admin API has no business being externally reachable), but worth a one-line note somewhere so it isn't mistaken for a bug later.
 
-- Is a client scope `groups` assigned to client `ok-mgmt` as Default (not just Optional), or is the group-membership mapper attached to a differently named scope?
-- Does `make realm` create test users, does the realm federate identities from elsewhere (e.g. LDAP/GitHub OAuth), or does a personal account need to be created manually via the admin console?
+**Result.** The full browser flow completed (temporary password change → profile completion → redirect to `localhost:8000`, "Authenticated — you have logged in to the cluster"). Decoded ID token:
+
+```
+preferred_username: arash
+groups: [openrmf-claim-editors, platform-admins]
+aud: ok-mgmt
+iss: https://keycloak.ok-shared.internal/realms/openkubes
+```
+
+This confirms the mapper, the per-cluster audience, and the full claim pipeline all work correctly end to end.
+
+## 7. RBAC wiring — started, blocked on a workflow decision (not infra)
+
+Attempted to wire `RoleBinding Role/openrmf-claim-editor` → subject `oidc:openrmf-claim-editors` and found:
+
+- Neither `Role` nor `ClusterRole` named `openrmf-claim-editor` exists yet on ok-mgmt — it needs to be created, not just bound.
+- `openrmfclaims.platform.openkubes.ai/v1alpha1` is **namespaced** (`openrmfinstances` is cluster-scoped — the Crossplane-managed composite, not meant for direct end-user access).
+- No existing claims and no namespace among the current ones (`openkubes-system`, `default`, `crossplane-system`, etc.) looks like a deliberate convention for where claim editors are meant to work.
+
+Deciding the target namespace is a workflow/product decision, not an infrastructure one — handed to Suchit (OK-99 comment 13186), along with the ready-to-apply Role/RoleBinding YAML once a namespace is chosen.
 
 ## 8. Current status
 
-The machine-config patch is fully applied and verified at every layer (node level, API-server level, existing-auth level). The remaining gap is purely on the Keycloak side (scope assignment, user provisioning) and is no longer part of the Talos/Kubernetes rollout.
+- Machine-config patch: fully applied and verified (section 5).
+- OIDC login: fully verified end to end (section 6).
+- RBAC wiring: Role/RoleBinding drafted, blocked on choosing a target namespace for `OpenRMFClaim`s (section 7).
+- Not yet done: positive test (create an `OpenRMFClaim` as a real claim-editor login) and negative test (same login denied reading Secrets) — both depend on section 7 landing first.
 
-## 9. Next steps (pending Suchit's reply)
+## 9. Next steps (pending Suchit)
 
-- Complete the personal login and check the ID token for the `groups` claim
-- Wire `RoleBinding Role/openrmf-claim-editor` → subject `oidc:openrmf-claim-editors` (mind the prefix!)
-- Positive test: a real login can create an `OpenRMFClaim`
+- Decide the target namespace for `openrmfclaims` and apply the Role/RoleBinding from comment 13186
+- Positive test: `arash` (or another claim-editor) can create an `OpenRMFClaim`
 - Negative test: the same login is denied when reading Secrets
-- Post a final success comment with the login test result to OK-99
+- Decide whether personal/test user provisioning belongs in `keycloak-realm-provision.sh`
+- Post a final success comment to OK-99 once both tests pass
