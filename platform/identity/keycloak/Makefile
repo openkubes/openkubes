@@ -122,6 +122,7 @@ SEED_SCRIPT ?= $(TOOLING)/seed-keycloak-credentials.sh
 VSO_WAIT_SCRIPT ?= $(TOOLING)/wait-vso-current.sh
 VERIFY_SCRIPT ?= $(TOOLING)/keycloak-conformance-test.sh
 REALM_SCRIPT ?= $(TOOLING)/keycloak-realm-provision.sh
+RMF_REALM_SCRIPT ?= $(TOOLING)/keycloak-rmf-realm-provision.sh
 # ONE platform realm, not one per consumer: realms do not trust each other and each carries its own
 # issuer and signing keys, so a realm per team means no SSO and a different issuer per API server.
 PLATFORM_REALM ?= openkubes
@@ -130,6 +131,13 @@ PLATFORM_GROUPS ?= openrmf-claim-editors platform-admins
 # PER-CLUSTER clients: the client id is the token audience, so a token minted for one cluster cannot
 # authenticate to another. Add a cluster here when it starts consuming central OIDC.
 PLATFORM_CLIENTS ?= ok-mgmt
+RMF_REALM ?= rmf-web
+RMF_WEB_ORIGIN ?=
+RMF_CREDENTIALS_NAMESPACE ?= crossplane-system
+RMF_CREDENTIALS_SECRET ?= rmf-credentials
+RMF_ADMIN_PASSWORD_KEY ?= rmfWebAdminPassword
+RMF_REALM_LOCK ?= /tmp/openkubes-keycloak-rmf-realm.lock
+APPROVE_RMF_REALM ?=
 CUTOVER_SCRIPT ?= $(TOOLING)/keycloak-admin-cutover.sh
 ROTATION_SCRIPT ?= $(TOOLING)/keycloak-rotation-test.sh
 KV_PUT_SCRIPT ?= $(TOOLING)/vault-kv-put.sh
@@ -145,8 +153,9 @@ APPROVE_RESTORE_DRILL ?=
 APPROVE_NETWORK_POLICY ?=
 
 .PHONY: help render diff require-cluster require-inputs require-tools require-chart require-cnpg require-vendors require-values-contract require-mgmt-approval \
+	require-rmf-realm-inputs require-rmf-realm-approval \
 	require-vault-config require-confirm require-cutover-approval require-restore-input require-restore-drill-approval require-network-policy-approval baseline install-vso identities vault-config seed \
-	vso-wiring database reachability keycloak realm verify backup restore-drill brute-force network-policy recover-admin admin-cutover rotation-test post-check install teardown-keycloak \
+	vso-wiring database reachability keycloak realm rmf-realm verify backup restore-drill brute-force network-policy recover-admin admin-cutover rotation-test post-check install teardown-keycloak \
 	teardown-database teardown-vso-wiring teardown-identities teardown-reviewer teardown-vso teardown
 
 help: ## Show available phase-1 lifecycle targets
@@ -198,6 +207,23 @@ require-mgmt-approval:
 		cluster="$$( $(KUBECTL) --kubeconfig "$(MGMT_KUBECONFIG)" config view --minify -o jsonpath='{.clusters[0].name}' )"; \
 		test "$$context" = "$(MGMT_CLUSTER)" || test "$$cluster" = "$(MGMT_CLUSTER)" || { \
 		echo "ERROR: MGMT_KUBECONFIG identifies context '$$context' / cluster '$$cluster', not $(MGMT_CLUSTER)" >&2; exit 2; }
+
+require-rmf-realm-inputs: require-inputs require-tools
+	@test "$(CLUSTER)" = ok-shared || { echo "ERROR: rmf-realm is scoped to central Keycloak on ok-shared, not $(CLUSTER)" >&2; exit 2; }
+	@test -n "$(MGMT_KUBECONFIG)" || { echo "ERROR: MGMT_KUBECONFIG is required to read $(MGMT_NAMESPACE)/$(RMF_CREDENTIALS_SECRET)" >&2; exit 2; }
+	@test -r "$(MGMT_KUBECONFIG)" || { echo "ERROR: MGMT_KUBECONFIG is not readable: $(MGMT_KUBECONFIG)" >&2; exit 2; }
+	@test -n "$(RMF_WEB_ORIGIN)" || { echo "ERROR: RMF_WEB_ORIGIN is required, e.g. https://robotics.openkubes.local" >&2; exit 2; }
+	@command -v flock >/dev/null || { echo "ERROR: required tool not found: flock" >&2; exit 2; }
+	@$(PYTHON) -c 'import re,sys; assert re.fullmatch(r"https://[A-Za-z0-9](?:[A-Za-z0-9.-]*[A-Za-z0-9])?(?::[0-9]{1,5})?", sys.argv[1]), "RMF_WEB_ORIGIN must be one canonical HTTPS origin with no path, query, wildcard, or trailing slash"' "$(RMF_WEB_ORIGIN)"
+	@context="$$( $(KUBECTL) --kubeconfig "$(KUBECONFIG)" config current-context )"; cluster="$$( $(KUBECTL) --kubeconfig "$(KUBECONFIG)" config view --minify -o jsonpath='{.clusters[0].name}' )"; \
+		test "$$context" = ok-shared || test "$$cluster" = ok-shared || { echo "ERROR: KUBECONFIG identifies context '$$context' / cluster '$$cluster', not ok-shared" >&2; exit 2; }
+	@context="$$( $(KUBECTL) --kubeconfig "$(MGMT_KUBECONFIG)" config current-context )"; cluster="$$( $(KUBECTL) --kubeconfig "$(MGMT_KUBECONFIG)" config view --minify -o jsonpath='{.clusters[0].name}' )"; \
+		test "$$context" = "$(MGMT_CLUSTER)" || test "$$cluster" = "$(MGMT_CLUSTER)" || { echo "ERROR: MGMT_KUBECONFIG identifies context '$$context' / cluster '$$cluster', not $(MGMT_CLUSTER)" >&2; exit 2; }
+
+require-rmf-realm-approval:
+	@test "$(APPROVE_RMF_REALM)" = yes || { \
+		echo "ERROR: rmf-realm mutates application identity objects on cluster $(CLUSTER)." >&2; \
+		echo "       Review the origin and object contract, then rerun with APPROVE_RMF_REALM=yes." >&2; exit 2; }
 
 # The management-plane writes are deliberately outside install: a workload install must never
 # acquire permission to mutate ok-mgmt merely because its prerequisites are missing.
@@ -428,6 +454,26 @@ realm: require-inputs require-tools ## Provision the platform realm, its groups,
 		test "$${statuses[1]}" = 0 || { echo "ERROR: port-forward did not become ready" >&2; cat "$$d/port-forward.log" >&2; exit 1; }; \
 		kill -0 "$$pf_pid" 2>/dev/null || { echo "ERROR: port-forward exited before conformance" >&2; cat "$$d/port-forward.log" >&2; exit 1; }; \
 		KUBECTL="$(KUBECTL)" KUBECONFIG="$(KUBECONFIG)" NAMESPACE="$(NAMESPACE)" KC_ORIGIN="$(KEYCLOAK_VERIFY_ORIGIN)" KC_RESOLVE="$(KEYCLOAK_HOST):443:127.0.0.1" KC_CONNECT="$(KEYCLOAK_HOST):443:127.0.0.1:$(VERIFY_PORT)" KC_CACERT="$$d/ca.crt" KC_EXPECTED_ISSUER="$(KC_EXPECTED_ISSUER)" KEYCLOAK_ADMIN_USERNAME="$(KEYCLOAK_ADMIN_USERNAME)" VSO_ADMIN_SECRET="$(VSO_ADMIN_SECRET)" PLATFORM_REALM="$(PLATFORM_REALM)" PLATFORM_GROUPS="$(PLATFORM_GROUPS)" PLATFORM_CLIENTS="$(PLATFORM_CLIENTS)" bash "$(REALM_SCRIPT)"
+
+# Only public CA and port-forward diagnostics enter the work directory. Both passwords are streamed
+# from their source Secrets into inherited descriptors and are never placed in argv, the environment,
+# a log, or a file. flock prevents two reconcilers from sharing the fixed localhost port.
+rmf-realm: require-rmf-realm-inputs require-rmf-realm-approval ## APPROVAL: provision the RMF Web application realm on ok-shared (idempotent)
+	@set -Eeuo pipefail; umask 077; \
+		exec 9>"$(RMF_REALM_LOCK)"; flock -n 9 || { echo "ERROR: another RMF realm provisioner holds $(RMF_REALM_LOCK)" >&2; exit 1; }; \
+		$(PYTHON) -c 'import sys; assert sys.argv[2]==sys.argv[1]+":443", f"RMF realm origin {sys.argv[2]!r} is not canonical HTTPS for KC_HOSTNAME {sys.argv[1]!r}"; assert int(sys.argv[3]) > 1023, "VERIFY_PORT must be unprivileged"' "$(KEYCLOAK_HOSTNAME)" "$(KEYCLOAK_VERIFY_ORIGIN)" "$(VERIFY_PORT)"; \
+		$(PYTHON) -c 'import socket,sys; s=socket.socket(); s.bind(("127.0.0.1", int(sys.argv[1]))); s.close()' "$(VERIFY_PORT)" || { echo "ERROR: localhost:$(VERIFY_PORT) is already bound; refusing to risk the wrong Keycloak origin" >&2; exit 1; }; \
+		d="$$(mktemp -d)"; test -d "$$d"; pf_pid=''; cleanup() { if test -n "$$pf_pid"; then kill "$$pf_pid" 2>/dev/null || true; wait "$$pf_pid" 2>/dev/null || true; fi; rm -rf -- "$$d"; }; trap cleanup EXIT INT TERM; \
+		$(KUBECTL) --kubeconfig "$(KUBECONFIG)" get secret "$(KEYCLOAK_TLS_SECRET)" -n "$(NAMESPACE)" -o jsonpath='{.data.ca\.crt}' | base64 -d > "$$d/ca.crt"; test -s "$$d/ca.crt" || { echo "ERROR: $(KEYCLOAK_TLS_SECRET) has no CA certificate" >&2; exit 1; }; \
+		$(KUBECTL) --kubeconfig "$(KUBECONFIG)" port-forward -n "$(NAMESPACE)" statefulset/$(KEYCLOAK_STATEFULSET) "$(VERIFY_PORT):8443" --address=127.0.0.1 > "$$d/port-forward.log" 2>&1 & pf_pid=$$!; \
+		set +o pipefail; $(TIMEOUT) "$(PORT_FORWARD_TIMEOUT)" tail -n +1 -F "$$d/port-forward.log" | grep -m1 -F "Forwarding from 127.0.0.1:$(VERIFY_PORT)" >/dev/null; statuses=("$${PIPESTATUS[@]}"); set -o pipefail; \
+		test "$${statuses[1]}" = 0 || { echo "ERROR: port-forward did not become ready" >&2; cat "$$d/port-forward.log" >&2; exit 1; }; \
+		kill -0 "$$pf_pid" 2>/dev/null || { echo "ERROR: port-forward exited before RMF realm provisioning" >&2; cat "$$d/port-forward.log" >&2; exit 1; }; \
+		KC_ORIGIN="$(KEYCLOAK_VERIFY_ORIGIN)" KC_RESOLVE="$(KEYCLOAK_HOST):443:127.0.0.1" KC_CONNECT="$(KEYCLOAK_HOST):443:127.0.0.1:$(VERIFY_PORT)" KC_CACERT="$$d/ca.crt" \
+		KEYCLOAK_ADMIN_USERNAME="$(KEYCLOAK_ADMIN_USERNAME)" RMF_REALM="$(RMF_REALM)" RMF_WEB_ORIGIN="$(RMF_WEB_ORIGIN)" \
+		bash "$(RMF_REALM_SCRIPT)" \
+			3< <($(KUBECTL) --kubeconfig "$(KUBECONFIG)" get secret "$(VSO_ADMIN_SECRET)" -n "$(NAMESPACE)" -o jsonpath='{.data.password}' | base64 -d) \
+			4< <($(KUBECTL) --kubeconfig "$(MGMT_KUBECONFIG)" get secret "$(RMF_CREDENTIALS_SECRET)" -n "$(RMF_CREDENTIALS_NAMESPACE)" -o "jsonpath={.data.$(RMF_ADMIN_PASSWORD_KEY)}" | base64 -d)
 
 verify: require-inputs require-tools require-values-contract ## Run the recorded OIDC conformance test through an owned port-forward
 	@set -Eeuo pipefail; \
