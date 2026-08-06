@@ -20,7 +20,24 @@ Owned by OK-89; Profile A (OK-92) must pass all six before it can be called done
    `contradicting_evidence_refs`, and `counter_evidence_status`; `not_checked`
    fails a finalized diagnostic result.
 
-> Status: specification only. Executable tests land with OK-89. Recommended shape:
-> schema/tests 1,3,5,6 as OpenAPI + JSON-Schema assertions over recorded provider
-> responses; test 2 as the in-cluster RBAC probe (see `profiles/kagent/rbac.yaml`
-> and the reused `verify-kubectl` target); test 4 against `profiles/_stub-b`.
+## Run
+
+From `platform/ai/platform-diagnostics`:
+
+```bash
+make verify
+```
+
+The default harness starts Profile B on an ephemeral loopback port and sends the
+three real HTTP requests through the same `ProviderClient` used for an external
+provider. To test another provider without changing the suite:
+
+```bash
+DIAGNOSTICS_BASE_URL=http://127.0.0.1:8080 \
+DIAGNOSTICS_RBAC_PATH=profiles/kagent/rbac.yaml \
+make verify
+```
+
+`OPENAPI_SPEC` may point at another checkout of the normative specification;
+this is useful while a contract change and its conformance implementation are
+reviewed on stacked branches.
