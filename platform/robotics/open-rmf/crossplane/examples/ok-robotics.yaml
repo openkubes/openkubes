@@ -1,9 +1,14 @@
 # OpenRMF simulation Claim for ok-robotics.
 #
-# Local scaffold only: do not apply until OK-79 observability passes on
-# ok-robotics and the claim-only RoleBinding subject is confirmed. This is
-# the intended first managed-deployment target (OK-88/OK-99) — ok2-rmf
-# remains the manually-deployed reference until parity is verified here.
+# Both conditions this file used to wait on are met: the OK-79 observability
+# gate closed Done, and the claim-only RoleBinding subject is confirmed as
+# `oidc:openrmf-claim-editors` (../rbac/claim-editor-binding.yaml).
+#
+# Submit it through the approval-gated target, not a bare kubectl apply:
+#   make deploy CLUSTER=ok-robotics APPROVE_MGMT=yes
+#
+# This is the first managed-deployment target (OK-88/OK-99), and a clean install:
+# there is no pre-existing Helm release to take ownership of.
 apiVersion: platform.openkubes.ai/v1alpha1
 kind: OpenRMFClaim
 metadata:
