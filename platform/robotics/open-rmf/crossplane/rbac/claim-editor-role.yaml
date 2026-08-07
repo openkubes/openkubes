@@ -15,7 +15,6 @@ rules:
       - openrmfclaims
     verbs:
       - create
-      - delete
       - get
       - list
       - patch

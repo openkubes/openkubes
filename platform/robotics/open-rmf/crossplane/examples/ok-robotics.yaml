@@ -5,10 +5,10 @@
 # `oidc:openrmf-claim-editors` (../rbac/claim-editor-binding.yaml).
 #
 # Submit it through the approval-gated target, not a bare kubectl apply:
-#   make deploy CLUSTER=ok-robotics APPROVE_MGMT=yes
+#   make deploy CLUSTER=ok-robotics DEPLOY_USER=<real-api-username> APPROVE_MGMT=yes
 #
-# This is the first managed-deployment target (OK-88/OK-99), and a clean install:
-# there is no pre-existing Helm release to take ownership of.
+# This was the first managed-deployment target (OK-88/OK-99). It began as a
+# clean install; subsequent submissions update the existing managed Claim.
 apiVersion: platform.openkubes.ai/v1alpha1
 kind: OpenRMFClaim
 metadata:
