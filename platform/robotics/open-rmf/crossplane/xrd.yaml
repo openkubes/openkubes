@@ -34,19 +34,22 @@ spec:
                 clusterRef:
                   type: string
                   minLength: 1
-                  maxLength: 63
-                  pattern: "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+                  maxLength: 253
+                  pattern: "^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$"
                   description: >-
-                    Canonical workload-cluster name and provider-helm
-                    ProviderConfig name, for example ok-robotics. The cluster
-                    must already be registered under ADR-Platform-013.
+                    Workload-cluster and provider-helm ProviderConfig name.
+                    This is portable API syntax; a fail-closed admission policy
+                    maps authenticated identities to exact authorized target
+                    and namespace pairs.
                 namespace:
                   type: string
                   default: rmf
                   minLength: 1
                   maxLength: 63
                   pattern: "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
-                  description: Namespace where the Helm release is installed.
+                  description: >-
+                    Workload namespace. Authorization is enforced together
+                    with clusterRef by the fail-closed admission policy.
                 mode:
                   type: string
                   default: simulation
@@ -61,28 +64,30 @@ spec:
                   maxLength: 253
                   pattern: "^[a-z0-9]([-.a-z0-9]*[a-z0-9])?$"
                   description: >-
-                    External hostname shared by ingress, dashboard, Keycloak,
-                    and JWT validation. Supply a hostname, not a URL.
+                    External hostname shared by RMF ingress, dashboard and API.
+                    The central identity provider has its own hostname. Supply
+                    a hostname, not a URL.
                 credentialsSecretRef:
                   type: object
                   required:
                     - name
                   description: >-
-                    Reference to a Secret readable by provider-helm on the
-                    management plane. Password values are never Claim fields.
+                    Fixed credential contract retained in v1alpha1 for
+                    compatibility and explicit rejection of unauthorized
+                    Secret selection. The Composition does not consume these
+                    claimant fields.
                   properties:
                     name:
                       type: string
-                      minLength: 1
-                      maxLength: 253
-                      description: Name of the Secret containing RMF credentials.
+                      enum:
+                        - rmf-credentials
+                      description: Fixed RMF credential Secret name.
                     namespace:
                       type: string
                       default: crossplane-system
-                      minLength: 1
-                      maxLength: 63
-                      pattern: "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
-                      description: Namespace containing the credentials Secret.
+                      enum:
+                        - crossplane-system
+                      description: Fixed RMF credential Secret namespace.
             status:
               type: object
               properties:

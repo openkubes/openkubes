@@ -128,20 +128,9 @@ spec:
                     string:
                       type: Format
                       fmt: "https://%s"
-              # provider-helm reads these Secret values from the management
-              # cluster and passes them to Helm without Claim password fields.
-              - type: FromCompositeFieldPath
-                fromFieldPath: spec.credentialsSecretRef.name
-                toFieldPath: spec.forProvider.set[0].valueFrom.secretKeyRef.name
-              - type: FromCompositeFieldPath
-                fromFieldPath: spec.credentialsSecretRef.namespace
-                toFieldPath: spec.forProvider.set[0].valueFrom.secretKeyRef.namespace
-              - type: FromCompositeFieldPath
-                fromFieldPath: spec.credentialsSecretRef.name
-                toFieldPath: spec.forProvider.set[1].valueFrom.secretKeyRef.name
-              - type: FromCompositeFieldPath
-                fromFieldPath: spec.credentialsSecretRef.namespace
-                toFieldPath: spec.forProvider.set[1].valueFrom.secretKeyRef.namespace
+              # The credential Secret references above are fixed in the
+              # Composition. A claim editor must never select management-plane
+              # Secrets indirectly through Crossplane's broader authority.
               - type: ToCompositeFieldPath
                 fromFieldPath: status.atProvider.state
                 toFieldPath: status.releaseState

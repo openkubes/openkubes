@@ -1,0 +1,130 @@
+# OpenRMFClaim delegated-authority boundary (ADR-Platform-019).
+#
+# Keep the API schema portable. Environment authorization lives here as an
+# explicit authenticated-group -> (ProviderConfig, workload namespace) map.
+# Additions are reviewed entries, not broader string patterns.
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: openrmfclaim-authority.platform.openkubes.ai
+  labels:
+    app.kubernetes.io/part-of: openkubes-openrmf
+    openkubes.ai/adr: adr-platform-019
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    matchPolicy: Exact
+    resourceRules:
+      - apiGroups: ["platform.openkubes.ai"]
+        apiVersions: ["v1alpha1"]
+        operations: ["CREATE", "UPDATE"]
+        resources: ["openrmfclaims"]
+        scope: Namespaced
+  variables:
+    - name: authorizations
+      expression: >-
+        [{'group': 'oidc:openrmf-claim-editors',
+          'claimNamespace': 'openkubes-system',
+          'claimName': 'ok-robotics',
+          'clusterRef': 'ok-robotics',
+          'namespace': 'rmf',
+          'hostname': 'robotics.openkubes.local'}]
+    - name: allocationIsAuthorized
+      expression: >-
+        variables.authorizations.exists(a,
+          request.namespace == a['claimNamespace'] &&
+          object.metadata.name == a['claimName'] &&
+          object.spec.clusterRef == a['clusterRef'] &&
+          object.spec.namespace == a['namespace'] &&
+          object.spec.hostname == a['hostname'])
+    - name: claimantIsAuthorized
+      expression: >-
+        variables.authorizations.exists(a,
+          request.userInfo.groups.exists(g, g == a['group']) &&
+          request.namespace == a['claimNamespace'] &&
+          object.metadata.name == a['claimName'] &&
+          object.spec.clusterRef == a['clusterRef'] &&
+          object.spec.namespace == a['namespace'] &&
+          object.spec.hostname == a['hostname'])
+    - name: isCrossplaneControllerUpdate
+      expression: >-
+        request.operation == 'UPDATE' &&
+        request.userInfo.username ==
+          'system:serviceaccount:crossplane-system:crossplane'
+  validations:
+    - expression: >-
+        variables.allocationIsAuthorized &&
+        (variables.claimantIsAuthorized ||
+         variables.isCrossplaneControllerUpdate)
+      reason: Forbidden
+      message: >-
+        OpenRMFClaim allocation authorization denied: the authenticated subject
+        or one of its groups is not mapped to the exact requested Claim
+        namespace/name, clusterRef, workload namespace, and hostname.
+    - expression: >-
+        variables.isCrossplaneControllerUpdate ||
+        (request.operation == 'CREATE'
+          ? (!has(object.spec.compositionRef) &&
+             !has(object.spec.compositionSelector) &&
+             !has(object.spec.compositionRevisionRef) &&
+             !has(object.spec.compositionRevisionSelector) &&
+             !has(object.spec.compositionUpdatePolicy) &&
+             (!has(object.spec.compositeDeletePolicy) ||
+              object.spec.compositeDeletePolicy == 'Background') &&
+             !has(object.spec.resourceRef) &&
+             !has(object.spec.writeConnectionSecretToRef))
+          : ((has(object.spec.compositionRef) == has(oldObject.spec.compositionRef)) &&
+             (!has(object.spec.compositionRef) || object.spec.compositionRef == oldObject.spec.compositionRef) &&
+             (has(object.spec.compositionSelector) == has(oldObject.spec.compositionSelector)) &&
+             (!has(object.spec.compositionSelector) || object.spec.compositionSelector == oldObject.spec.compositionSelector) &&
+             (has(object.spec.compositionRevisionRef) == has(oldObject.spec.compositionRevisionRef)) &&
+             (!has(object.spec.compositionRevisionRef) || object.spec.compositionRevisionRef == oldObject.spec.compositionRevisionRef) &&
+             (has(object.spec.compositionRevisionSelector) == has(oldObject.spec.compositionRevisionSelector)) &&
+             (!has(object.spec.compositionRevisionSelector) || object.spec.compositionRevisionSelector == oldObject.spec.compositionRevisionSelector) &&
+             (has(object.spec.compositionUpdatePolicy) == has(oldObject.spec.compositionUpdatePolicy)) &&
+             (!has(object.spec.compositionUpdatePolicy) || object.spec.compositionUpdatePolicy == oldObject.spec.compositionUpdatePolicy) &&
+             (has(object.spec.compositeDeletePolicy) == has(oldObject.spec.compositeDeletePolicy)) &&
+             (!has(object.spec.compositeDeletePolicy) || object.spec.compositeDeletePolicy == oldObject.spec.compositeDeletePolicy) &&
+             (has(object.spec.resourceRef) == has(oldObject.spec.resourceRef)) &&
+             (!has(object.spec.resourceRef) || object.spec.resourceRef == oldObject.spec.resourceRef) &&
+             (has(object.spec.writeConnectionSecretToRef) == has(oldObject.spec.writeConnectionSecretToRef)) &&
+             (!has(object.spec.writeConnectionSecretToRef) || object.spec.writeConnectionSecretToRef == oldObject.spec.writeConnectionSecretToRef)))
+      reason: Forbidden
+      message: >-
+        OpenRMFClaim control fields are controller-owned: claimants may not set
+        or change composition, revision, composite-resource, deletion, or
+        connection-publication selectors.
+    - expression: >-
+        variables.isCrossplaneControllerUpdate ||
+        (request.operation == 'CREATE'
+          ? ((!has(object.metadata.ownerReferences) || object.metadata.ownerReferences.size() == 0) &&
+             (!has(object.metadata.finalizers) || object.metadata.finalizers.size() == 0) &&
+             (!has(object.metadata.labels) ||
+              object.metadata.labels.all(k, !k.startsWith('crossplane.io/'))) &&
+             (!has(object.metadata.annotations) ||
+              object.metadata.annotations.all(k, !k.startsWith('crossplane.io/'))))
+          : ((!has(object.metadata.ownerReferences) || object.metadata.ownerReferences.size() == 0) &&
+             has(object.metadata.finalizers) &&
+             object.metadata.finalizers == ['finalizer.apiextensions.crossplane.io'] &&
+             (!has(object.metadata.labels) ||
+              object.metadata.labels.all(k, !k.startsWith('crossplane.io/'))) &&
+             (!has(object.metadata.annotations) ||
+              object.metadata.annotations.all(k, !k.startsWith('crossplane.io/')))))
+      reason: Forbidden
+      message: >-
+        OpenRMFClaim metadata controls are controller-owned: claimants may not
+        set owner references or reserved Crossplane metadata, or alter the
+        pinned Crossplane Claim finalizer.
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: openrmfclaim-authority.platform.openkubes.ai
+  labels:
+    app.kubernetes.io/part-of: openkubes-openrmf
+    openkubes.ai/adr: adr-platform-019
+spec:
+  policyName: openrmfclaim-authority.platform.openkubes.ai
+  validationActions: [Deny]
+  # Deliberately no namespaceSelector or matchResources: the binding applies to
+  # every namespace matched by the policy, so moving a Claim cannot bypass it.

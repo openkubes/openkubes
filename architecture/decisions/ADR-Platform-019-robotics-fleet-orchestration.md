@@ -8,6 +8,75 @@
 
 ---
 
+## Amendments
+
+### 2026-08-07 — managed v1alpha1 identity and claim authorization
+
+The OpenKubes-managed simulation profile now uses the central Keycloak on
+`ok-shared`; its chart-bundled Keycloak, database, ingress and setup Job are
+disabled. This changes the implementation profile, not Contract v1 guarantee 7:
+the capability still requires OIDC authentication without selecting Keycloak as
+the only admissible provider. The original RKE2 profile below remains the
+historical bundled-identity profile.
+
+`OpenRMFClaim` v1alpha1 has a generic, DNS-shaped `clusterRef` and workload
+namespace schema. Environment authorization is a separate, fail-closed
+Kubernetes `ValidatingAdmissionPolicy`: authenticated subjects are admitted
+only when one of their groups maps to the exact Claim namespace/name, target
+`(clusterRef, workload namespace)`, and hostname allocation. The initial mapping
+is `oidc:openrmf-claim-editors` to `openkubes-system/ok-robotics`,
+`ok-robotics/rmf`, and `robotics.openkubes.local`. Extra groups do not negate a
+matching group. The policy covers exact v1alpha1 Claim CREATE and UPDATE
+requests, uses `failurePolicy: Fail`, and is bound with `validationActions:
+[Deny]` in every namespace.
+
+The credential reference remains fixed in the v1alpha1 schema as
+`crossplane-system/rmf-credentials` for compatibility and explicit rejection,
+while the Composition pins its Secret references independently and consumes
+neither claimant field. Crossplane-generated Composition/revision,
+`resourceRef`, deletion, and connection-publication selectors are
+controller-owned: admission rejects claimant selection or alteration of them,
+while allowing only the schema-injected `compositeDeletePolicy: Background`
+default on CREATE. Claimants also cannot set owner references or finalizers,
+set reserved `crossplane.io/*` metadata, alter the pinned Crossplane finalizer,
+or attach an owner after CREATE; ordinary non-Crossplane metadata remains
+usable. This prevents garbage-collection deletion, reconciliation pausing, and
+Crossplane-label steering. Only the exact Crossplane controller identity may
+update these controls for an already authorized allocation.
+
+The policy and binding are installed before the generic XRD schema is served.
+After the XRD is Established, setup forces and observes a fresh policy
+generation so CEL is type-checked against the generated API, restores and
+rechecks the reviewed candidate, inspects every generated served Claim version
+and field, and proves enforcement before
+restoring delegation. Policy updates temporarily remove the delegated
+claim-editor RoleBinding, inventory every existing Claim, and refuse to remove a
+live allocation from the candidate mapping. This closes the
+inventory/apply race; tightening admission does not remove an already-admitted
+Claim and could otherwise strand controller updates. Every Crossplane install
+or upgrade requires generated served-version and field inspection before Claim
+delegation is considered proved.
+
+The policy is a required part of the generic API and has no supported independent
+rollback. To suspend delegation, remove the claim-editor RoleBinding first and
+retain the policy. Removing admission while the generic XRD and delegated Claim
+RBAC remain active recreates the privileged-deputy vulnerability.
+
+A second target requires a render fixture, example Claim, and a reviewed exact
+allocation entry followed by local and live admission matrices. A second tenant
+receives its own OIDC group, dedicated Claim namespace and namespaced RBAC,
+Claim name, target/workload namespace, and hostname. Claim-object isolation,
+workload placement, external Helm ownership, and ingress hostname ownership are
+separate boundaries; every component is exact, never wildcard authorization.
+Tests must deny cross-tenant allocation permutations before RBAC is granted.
+This policy matches Claims only; direct composite access remains an RBAC
+boundary, and any future `OpenRMFInstance` grant requires a separate allocation
+admission design.
+
+For this managed profile, identity verification means proving the external realm,
+issuer, signing key, browser login and authenticated API request. It does not wait
+for a profile-local Keycloak database or setup Job.
+
 ## Context
 
 Open-RMF is the first running robotics workload on OpenKubes. It coordinates
@@ -163,11 +232,11 @@ RKE2 is selected because it is the existing supported cluster substrate for
 this installation and already supplies the required operational integrations.
 It is not a Robotics Fleet Orchestration contract requirement.
 
-Keycloak remains profile-local in the current deployment; once `ok-shared` is
-provisioned under ADR-Platform-020 (tracked by OK-81), this profile may migrate
-identity there without changing the capability contract.
+The original RKE2 deployment keeps Keycloak profile-local. The managed
+v1alpha1 simulation profile has since migrated identity to `ok-shared` under the
+amendment above without changing the capability contract.
 
-The profile has this runtime boundary:
+The original RKE2 profile has this runtime boundary:
 
 ```text
 Operator
