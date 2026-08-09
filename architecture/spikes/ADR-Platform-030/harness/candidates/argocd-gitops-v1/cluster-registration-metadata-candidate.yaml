@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: disposable-ok141-cluster
+  namespace: argocd
+  labels:
+    argocd.argoproj.io/secret-type: cluster
+  annotations:
+    openkubes.io/candidate-status: blocked-no-go
+    openkubes.io/intent-revision: sha256:d49e844113bdd96868eb9dec2d6672dfcc98ccb7a0bd43f2c6b53aabc2adda62
+    openkubes.io/capi-cluster-uid: M0B_REQUIRED
+    openkubes.io/workload-kube-system-uid: M0B_REQUIRED
+    openkubes.io/workload-api-ca-sha256: M0B_REQUIRED
+type: Opaque
+stringData:
+  name: disposable-ok141
+  # .invalid and the absent config field make this candidate non-operational.
+  server: https://api.invalid
+  namespaces: observability
+  clusterResources: "false"
+  project: openkubes-disposable

@@ -1,0 +1,19 @@
+{
+  "format": "ok141-gitops-root-model/v1",
+  "model": "direct-application",
+  "reason": "The fixture has exactly one required leaf; no composition generator is forced.",
+  "authoritativeProfile": "minimal-observability-v2",
+  "profilePath": "profiles/platform/minimal-observability-v2/profile.json",
+  "applicationSetPath": "profiles/platform/minimal-observability-v2/applications.yaml",
+  "applicationSetDigest": "sha256:60f95393486bdb2276d4e7af1aadc57e17eb722b340e1bc0351295f3f5e53c18",
+  "requiredApplications": [
+    "disposable-ok141-observability"
+  ],
+  "excludedModels": {
+    "app-of-apps": "No transitive membership is required and parent health is not child readiness.",
+    "application-set": "No multi-cluster or parameterized generation consumer exists in this fixture."
+  },
+  "platformRevision": "sha256:b46911c06ac31ed4755ffa83b0c960fafa0a23cab8442dc9eb1945df927b0665",
+  "executionFixture": "sha256:b27bb7c8e959e2c1028fcc0822755caa795ce21432344a64a62474abeb7f9f2b",
+  "authorization": "NO-GO"
+}

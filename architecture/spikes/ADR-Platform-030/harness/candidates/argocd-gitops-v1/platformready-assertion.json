@@ -1,0 +1,62 @@
+{
+  "format": "ok141-platformready-assertion/v1",
+  "rootModel": "direct-application",
+  "platformRevision": "sha256:b46911c06ac31ed4755ffa83b0c960fafa0a23cab8442dc9eb1945df927b0665",
+  "requiredApplication": {
+    "namespace": "argocd",
+    "name": "disposable-ok141-observability",
+    "project": "openkubes-disposable",
+    "source": {
+      "repoURL": "https://github.com/openkubes/ok-observability.git",
+      "path": "profiles/ok-observability-standard",
+      "commit": "fe394da8875adecc3b497137e546cecabd710d1d"
+    },
+    "destination": {
+      "registrationName": "disposable-ok141",
+      "namespace": "observability"
+    }
+  },
+  "targetProof": {
+    "requireRegistrationSecretUID": true,
+    "requireExactRegistrationName": true,
+    "requireExactCAPIClusterUID": true,
+    "requireLiveKubeSystemNamespaceUID": true,
+    "requireWorkloadAPICAFingerprint": true,
+    "nameOrServerAloneIsIdentity": false
+  },
+  "applicationProof": {
+    "requireExactCurrentSpecDigest": true,
+    "requireComparedToMatchesCurrentSourceAndDestination": true,
+    "requireAppliedRevisionEqualsCommit": true,
+    "requireSyncStatus": "Synced",
+    "requireHealthStatus": "Healthy",
+    "rejectCurrentConditions": [
+      "ComparisonError",
+      "InvalidSpecError",
+      "SyncError"
+    ],
+    "historicalSuccessfulOperationIsCurrentProof": false
+  },
+  "capabilityProof": {
+    "requiredChecks": [
+      "ok-observability-capability-contract-v1",
+      "ok-observability-contract-test"
+    ],
+    "requireCurrentPassingEvidence": true,
+    "argoHealthAloneIsCapabilityProof": false
+  },
+  "negativeControls": [
+    "wrong-registration-secret-uid",
+    "reused-registration-name",
+    "wrong-capi-cluster-uid",
+    "wrong-kube-system-uid",
+    "wrong-api-ca-fingerprint",
+    "mutable-source-revision",
+    "missing-required-application",
+    "extra-required-application",
+    "compared-to-mismatch",
+    "historical-success-with-current-error",
+    "capability-check-missing-or-stale"
+  ],
+  "authorization": "NO-GO"
+}
