@@ -1,0 +1,36 @@
+{
+  "format": "ok141-platform-profile/v1",
+  "profile": "minimal-observability-v1",
+  "target": {
+    "clusterName": "disposable-ok141",
+    "contractIdentity": {
+      "namespace": "default",
+      "name": "disposable-ok141"
+    },
+    "registrationName": "disposable-ok141"
+  },
+  "requiredApplications": [
+    {
+      "name": "disposable-ok141-observability",
+      "source": {
+        "repoURL": "https://github.com/openkubes/ok-observability.git",
+        "path": "profiles/ok-observability-standard",
+        "commit": "fe394da8875adecc3b497137e546cecabd710d1d"
+      },
+      "sourceArtifacts": {
+        "contractDigest": "sha256:b6ef10a8ecf6daf42e6d44018d51e2263f380ed649445e5a70ff5c550c73415e",
+        "contractTestDigest": "sha256:bd68328f35de960bfc291880dd7f85274021c0cce8d7b69ccecde0a459ead648",
+        "chartDigest": "sha256:cbc2741f88d8f46611de7ca4fef0ae19721a5ae04513e67f86b7aac71aa13032",
+        "defaultValuesDigest": "sha256:7605fc92ada990218dca3d2a36a188a108a79da4e172a9fe97a8f784597fc8a6"
+      },
+      "destination": {
+        "name": "disposable-ok141",
+        "namespace": "observability"
+      },
+      "capabilityChecks": [
+        "ok-observability-capability-contract-v1",
+        "ok-observability-contract-test"
+      ]
+    }
+  ]
+}

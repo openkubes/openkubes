@@ -1,0 +1,23 @@
+{
+  "format": "ok141-condition-profile/v1",
+  "profile": "disposable-ready-v1",
+  "requiredConditions": [
+    "InfrastructureReady",
+    "ControlPlaneAvailable",
+    "NetworkReady",
+    "PlatformReady"
+  ],
+  "freshness": {
+    "intentRevisionMustEqualR": true,
+    "observedRevisionMustEqualExpectedRevision": true,
+    "observedGenerationMustEqualGeneration": true,
+    "missingObserverResult": "Unknown",
+    "conflictingAuthorityResult": "Unknown",
+    "historicalSuccessIsCurrentEvidence": false
+  },
+  "aggregate": {
+    "anyFalse": "False",
+    "elseAnyUnknown": "Unknown",
+    "allTrue": "True"
+  }
+}

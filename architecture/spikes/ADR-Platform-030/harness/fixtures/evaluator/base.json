@@ -1,0 +1,12 @@
+{
+  "intentRevision": "sha256:a880b119148dbd6e2532932a91b1367d04b042f7a638f891da02b9a1bf9199c7",
+  "profileDigest": "sha256:69bef08a6ff04b940844439d81554828dea83cde84450a6602c508834271d9a3",
+  "evaluatedAt": "2026-08-09T00:00:00Z",
+  "requiredConditions": ["InfrastructureReady", "ControlPlaneAvailable", "NetworkReady", "PlatformReady"],
+  "sources": [
+    {"type": "InfrastructureReady", "status": "True", "reason": "ProviderReady", "observerAvailable": true, "intentRevision": "sha256:a880b119148dbd6e2532932a91b1367d04b042f7a638f891da02b9a1bf9199c7", "expectedRevision": "sha256:a880b119148dbd6e2532932a91b1367d04b042f7a638f891da02b9a1bf9199c7", "observedRevision": "sha256:a880b119148dbd6e2532932a91b1367d04b042f7a638f891da02b9a1bf9199c7", "generation": 2, "observedGeneration": 2},
+    {"type": "ControlPlaneAvailable", "status": "True", "reason": "ControlPlaneAvailable", "observerAvailable": true, "intentRevision": "sha256:a880b119148dbd6e2532932a91b1367d04b042f7a638f891da02b9a1bf9199c7", "expectedRevision": "sha256:a880b119148dbd6e2532932a91b1367d04b042f7a638f891da02b9a1bf9199c7", "observedRevision": "sha256:a880b119148dbd6e2532932a91b1367d04b042f7a638f891da02b9a1bf9199c7", "generation": 2, "observedGeneration": 2},
+    {"type": "NetworkReady", "status": "True", "reason": "NetworkProfileReady", "observerAvailable": true, "intentRevision": "sha256:a880b119148dbd6e2532932a91b1367d04b042f7a638f891da02b9a1bf9199c7", "expectedRevision": "sha256:7393fdbfd31a6e8122860f4b458540672083e2323f5d1a47a776ff39db836568", "observedRevision": "sha256:7393fdbfd31a6e8122860f4b458540672083e2323f5d1a47a776ff39db836568", "generation": 3, "observedGeneration": 3},
+    {"type": "PlatformReady", "status": "True", "reason": "PlatformProfileConverged", "observerAvailable": true, "intentRevision": "sha256:a880b119148dbd6e2532932a91b1367d04b042f7a638f891da02b9a1bf9199c7", "expectedRevision": "sha256:17ef42f4187a743fa09f6d955e70811af47763c4f98a4e73735da70055bc8969", "observedRevision": "sha256:17ef42f4187a743fa09f6d955e70811af47763c4f98a4e73735da70055bc8969", "generation": 4, "observedGeneration": 4}
+  ]
+}

@@ -1,0 +1,28 @@
+# Different order, explicit defaults, and server fields must preserve R.
+kind: ClusterIntentFixture
+apiVersion: test.openkubes.io/v1alpha1
+metadata:
+  generation: 9
+  resourceVersion: "77"
+  uid: ignored-by-c14n
+  creationTimestamp: "2026-08-09T00:00:00Z"
+  namespace: default
+  name: disposable-ok141
+spec:
+  controlPlaneReplicas: 1
+  conditions:
+    required: [InfrastructureReady, ControlPlaneAvailable, NetworkReady, PlatformReady]
+  platform:
+    revision: sha256:17ef42f4187a743fa09f6d955e70811af47763c4f98a4e73735da70055bc8969
+    profile: minimal-fixture-v1
+  enablement:
+    revision: sha256:7393fdbfd31a6e8122860f4b458540672083e2323f5d1a47a776ff39db836568
+    profile: cilium-fixture-v1
+  connectivity:
+    forbiddenCIDRs: [192.168.100.0/24]
+    serviceCIDR: 10.100.0.0/20
+    podCIDR: 10.40.0.0/16
+    profile: datacenter-isolated-v1
+  infrastructureProvider: kubevirt
+  kubernetesVersion: v1.36.2
+status: {}

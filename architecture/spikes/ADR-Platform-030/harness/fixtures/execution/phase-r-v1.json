@@ -1,0 +1,115 @@
+{
+  "format": "ok141-execution-fixture/v1",
+  "fixtureVersion": "phase-r-v1",
+  "fixtureDigest": "sha256:a97e1e31e1f09cc44210679b48130e36edd90709d84ba3ee7b729ba5df82c9ba",
+  "fixtureSchema": {
+    "path": "schema/execution-fixture-v1.schema.json",
+    "digest": "sha256:090429503ac9857c8914b7e0499e2a292e462272c844cb84a8d7f1fbfafe7e26"
+  },
+  "authorizationState": "NO-GO",
+  "contractIdentity": {
+    "namespace": "default",
+    "name": "disposable-ok141"
+  },
+  "contract": {
+    "path": "fixtures/contracts/base.yaml",
+    "schemaPath": "schema/contract-v1.schema.json",
+    "canonicalizationProfile": "openkubes-contract-c14n/v1",
+    "rawArtifactDigest": "sha256:1b39f25fcef73f992d9382056c9fd94270a8ca9ad1aac020b594d709ec7ed43b",
+    "schemaDigest": "sha256:a582c791ca2b9023903f521aaa921ffaec056dd636e2f8c0ea4f53503f00ca94",
+    "R": "sha256:a880b119148dbd6e2532932a91b1367d04b042f7a638f891da02b9a1bf9199c7"
+  },
+  "connectivity": {
+    "profile": "datacenter-isolated-v1",
+    "podCIDR": "10.40.0.0/16",
+    "serviceCIDR": "10.100.0.0/20",
+    "forbiddenCIDRs": ["192.168.100.0/24"]
+  },
+  "allocation": {
+    "podAndServiceCIDRs": {
+      "mode": "fixture-static",
+      "scope": "single-disposable-cluster",
+      "crossClusterUniquenessRequired": false,
+      "productionAuthority": "unresolved"
+    },
+    "hostEndpoints": {
+      "authority": "CAPK plus MetalLB",
+      "status": "existing-mechanism-sufficient"
+    }
+  },
+  "enablement": {
+    "profilePath": "profiles/enablement/cilium-fixture-v1/profile.json",
+    "valuesPath": "profiles/enablement/cilium-fixture-v1/values.yaml",
+    "E": "sha256:7393fdbfd31a6e8122860f4b458540672083e2323f5d1a47a776ff39db836568",
+    "package": {
+      "name": "cilium",
+      "version": "1.19.6",
+      "chartDigest": "sha256:21c43cf53841f9ab0375047d95aa4c64051ea52bbd2c679416e6408f5f1c9179",
+      "normalizedValuesDigest": "sha256:a02a2a8b5c5213c86e482ef7421884281d00d3bae1f27c34d67b3726df12d410"
+    },
+    "render": {
+      "helmTemplateDigest": "sha256:262c00448d0fc0cf6cc8166f3efff237946836e9f493600b0d53fb54e6c3599a",
+      "objectSetDigest": "sha256:eca2e16b5b39815bc429ffb23abbcb3f7945aedaa83e065a7ee7d26707381b3a",
+      "objectCount": 25
+    },
+    "images": [
+      "quay.io/cilium/cilium-envoy:v1.36.9-1782267392-edeb3f2af56c37c407efa1f63f0b32f595399bbc@sha256:767101fb8a5e38f055778cb43b7aa8eed80450b37f8121effac3d9de9e06dc99",
+      "quay.io/cilium/cilium:v1.19.6@sha256:0df5b2750b64c49843aba1d649e9eaf61467cb0645ad3171db6f6962c095ac92",
+      "quay.io/cilium/operator-generic:v1.19.6@sha256:0db4ca4e06969d8904ee036617795d0e9c3228cf7b8d902ba74fc2bb98d2d665"
+    ],
+    "convergenceOwnerCandidate": "cluster-api-addon-provider-helm",
+    "candidateStatus": "configurable-not-proven"
+  },
+  "platform": {
+    "profilePath": "profiles/platform/minimal-observability-v1/profile.json",
+    "applicationsPath": "profiles/platform/minimal-observability-v1/applications.yaml",
+    "profile": "minimal-observability-v1",
+    "P": "sha256:17ef42f4187a743fa09f6d955e70811af47763c4f98a4e73735da70055bc8969",
+    "applicationSetDigest": "sha256:60f95393486bdb2276d4e7af1aadc57e17eb722b340e1bc0351295f3f5e53c18",
+    "requiredApplications": ["disposable-ok141-observability"],
+    "sourceCommit": "fe394da8875adecc3b497137e546cecabd710d1d",
+    "convergenceOwnerCandidate": "argo-cd",
+    "candidateStatus": "configurable-not-proven"
+  },
+  "conditions": {
+    "profilePath": "profiles/conditions/disposable-ready-v1.json",
+    "profileDigest": "sha256:69bef08a6ff04b940844439d81554828dea83cde84450a6602c508834271d9a3"
+  },
+  "tools": {
+    "canonicalizerVersion": "openkubes-contract-c14n/v1",
+    "evaluatorVersion": "ok141-evaluator/v1",
+    "harnessDigest": "sha256:1c9102a47324892def8bad9c0e94fff6b3ff9d770228e9ed3ac8ddab1877df72"
+  },
+  "evidence": {
+    "schemaId": "ok141-evidence/v1",
+    "schemaPath": "schema/evidence-manifest-v1.schema.json",
+    "schemaDigest": "sha256:97442f98e85bb2d5975ba028209331a4b017cb8492fe0f791fa29da6ee721ad1",
+    "finalBundleChecksumRequired": true
+  },
+  "positiveAssertions": [
+    {"id": "PA-R", "claim": "Observed lifecycle objects correlate to R and current generations"},
+    {"id": "PA-E", "claim": "Applied Cilium artifacts, configuration, images, and probes correlate to E"},
+    {"id": "PA-P", "claim": "Required Argo Application membership, applied commit, health, and capabilities correlate to P"},
+    {"id": "PA-READY", "claim": "All required current source conditions deterministically evaluate Ready=True"},
+    {"id": "PA-EVIDENCE", "claim": "Every retained artifact verifies against the final evidence bundle"}
+  ],
+  "negativeControls": [
+    {"id": "NC-R-WRONG", "expectedReady": "Unknown"},
+    {"id": "NC-E-WRONG", "expectedReady": "Unknown"},
+    {"id": "NC-P-WRONG", "expectedReady": "Unknown"},
+    {"id": "NC-STALE-GENERATION", "expectedReady": "Unknown"},
+    {"id": "NC-MISSING-SOURCE", "expectedReady": "Unknown"},
+    {"id": "NC-CONFLICTING-AUTHORITY", "expectedReady": "Unknown"},
+    {"id": "NC-HISTORICAL-SUCCESS", "expectedReady": "False"},
+    {"id": "NC-TAMPERED-EVIDENCE", "expectedReady": "NotEvaluated"}
+  ],
+  "expectedEvidence": {
+    "capi": ["Cluster UID", "generation", "observedGeneration", "InfrastructureReady", "ControlPlaneAvailable"],
+    "provider": ["KubeVirt machine identity", "VirtualMachine UID", "VirtualMachineInstance UID"],
+    "workload": ["Node UID", "providerID", "Ready condition"],
+    "enablement": ["applied E", "Cilium chart digest", "values identity", "image digests", "NetworkReady source evidence"],
+    "platform": ["Application UID", "desired P", "applied Git commit", "Synced", "Healthy", "capability-check results"],
+    "aggregate": ["bounded evaluator input", "Ready outcome", "per-source correlation decisions"],
+    "bundle": ["artifact hashes", "correlation manifest", "final bundle checksum"]
+  }
+}

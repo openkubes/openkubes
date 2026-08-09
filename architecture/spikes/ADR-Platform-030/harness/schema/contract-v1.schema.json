@@ -1,0 +1,77 @@
+{
+  "$id": "openkubes-contract-test/v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["apiVersion", "kind", "metadata", "spec"],
+  "properties": {
+    "apiVersion": {"type": "string", "enum": ["test.openkubes.io/v1alpha1"]},
+    "kind": {"type": "string", "enum": ["ClusterIntentFixture"]},
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "namespace": {"type": "string", "minLength": 1, "default": "default"},
+        "uid": {"type": "string", "x-openkubes-semantic": false},
+        "resourceVersion": {"type": "string", "x-openkubes-semantic": false},
+        "generation": {"type": "integer", "minimum": 1, "x-openkubes-semantic": false},
+        "creationTimestamp": {"type": "string", "x-openkubes-semantic": false}
+      }
+    },
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kubernetesVersion", "infrastructureProvider", "connectivity", "enablement", "platform", "conditions"],
+      "properties": {
+        "kubernetesVersion": {"type": "string", "minLength": 1},
+        "infrastructureProvider": {"type": "string", "enum": ["kubevirt"]},
+        "controlPlaneReplicas": {"type": "integer", "minimum": 1, "default": 1},
+        "connectivity": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["profile", "podCIDR", "serviceCIDR"],
+          "properties": {
+            "profile": {"type": "string", "enum": ["datacenter-isolated-v1"]},
+            "podCIDR": {"type": "string", "format": "ipv4-cidr"},
+            "serviceCIDR": {"type": "string", "format": "ipv4-cidr"},
+            "forbiddenCIDRs": {"type": "array", "items": {"type": "string", "format": "ipv4-cidr"}, "uniqueItems": true, "default": []}
+          }
+        },
+        "enablement": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["profile", "revision"],
+          "properties": {
+            "profile": {"type": "string", "minLength": 1},
+            "revision": {"type": "string", "format": "sha256"}
+          }
+        },
+        "platform": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["profile", "revision"],
+          "properties": {
+            "profile": {"type": "string", "minLength": 1},
+            "revision": {"type": "string", "format": "sha256"}
+          }
+        },
+        "conditions": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["required"],
+          "properties": {
+            "required": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {"type": "string", "enum": ["InfrastructureReady", "ControlPlaneAvailable", "NetworkReady", "PlatformReady"]}
+            }
+          }
+        }
+      }
+    },
+    "status": {"type": "object", "additionalProperties": false, "properties": {}, "x-openkubes-semantic": false}
+  }
+}
+
