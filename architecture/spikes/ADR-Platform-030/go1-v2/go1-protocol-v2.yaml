@@ -1,0 +1,216 @@
+apiVersion: test.openkubes.io/v1alpha2
+kind: GO1Protocol
+metadata:
+  name: ok141-create-converge-observe-v2
+  ticket: OK-141
+  baseCommit: 1d74060961b2775740e68ecbe30e576f8fa34dea
+spec:
+  protocolVersion: ok141-go1/v2
+  protocolState: BLOCKED
+  fixture:
+    version: phase-r-v3
+    path: ../harness/fixtures/execution/phase-r-v3.json
+    fixtureDigest: sha256:67fa2e63bba98d8cc70f680e8df56dea5803c0a0d8c5db81ab78578daacebd9f
+    R: sha256:62e4d20fdd352474f4a5d2ea6639d7d63fa494af58b9b4532169bd96437d9f78
+    E: sha256:2a849d69e9c64344e907c1bce3bb1abf3d8f77217377081a5be055d62c213300
+    P: sha256:0dcfbe10f271aeb7e82d94fbad0ff2691dec67f69c7452578662df09a650439b
+    rule: Only this exact Phase-R-v3 fixture may be proposed for a later GO-1 decision.
+  authorization:
+    decision: NO-GO
+    goGranted: false
+    grantID: null
+    authorizedProtocolDigest: null
+    goAuthority: UNASSIGNED
+    decidedAt: null
+    rule: A merged protocol and its draft digest grant no execution authority.
+  scope:
+    operation: create-converge-observe
+    clusterCount: 1
+    disposableOnly: true
+    cluster:
+      contractNamespace: disposable-ok141
+      contractName: disposable-ok141
+      managementNamespace: disposable-ok141
+      infrastructureNamespace: disposable-ok141
+      workloadName: disposable-ok141
+      controlPlaneReplicas: 1
+      workerReplicas: 1
+      kubernetesVersion: v1.36.2
+      infrastructureProvider: kubevirt
+    connectivity:
+      profile: datacenter-isolated-v1
+      requestedControlPlaneEndpoint: provider-allocated
+      allocationAuthority: CAPK-and-MetalLB
+      podCIDR: 10.40.0.0/16
+      serviceCIDR: 10.100.0.0/20
+      forbiddenCIDRs: [192.168.100.0/24]
+    maximumBoundary:
+      wallClockMinutes: 120
+      clustersCreated: 1
+      controlPlanesCreated: 1
+      workerMachinesCreated: 1
+      reviewedSubmissionGroups: 2
+      reviewedObjects: 11
+      prohibitedMutations:
+        - worker or executor failure injection
+        - manual drift injection
+        - delete or finalizer manipulation
+        - break-glass action
+        - ok-mgmt outage
+        - shadow promotion or disaster recovery
+        - upgrade or scaling
+        - exploratory follow-up mutation
+  submission:
+    operation: ApplyReviewedObjectSet
+    executorIdentity: UNRESOLVED
+    executorArtifactDigest: UNRESOLVED
+    credentialModel: short-lived-least-privilege-required
+    freeFormShellEndpoint: false
+    enabled: false
+    groups:
+      - id: provider-prerequisites
+        order: 1
+        targetPlane: ok-infra
+        path: ../harness/projections/phase-r-v3/ok-infra-prerequisites.yaml
+        objectCount: 3
+        objectSetDigest: sha256:2ab902814fddf5e9e7606fbecfe74d4379a958119462a29655fe81faac02878b
+        allowedKinds: [Namespace, Role, RoleBinding]
+        capiLifecycleObjectsAllowed: false
+        enabled: false
+      - id: capi-lifecycle
+        order: 2
+        targetPlane: ok-mgmt
+        path: ../harness/projections/phase-r-v3/ok-mgmt-lifecycle.yaml
+        objectCount: 8
+        objectSetDigest: sha256:1666c1002ff5f12a6946936c1501dc08752501ee28c920bc884eb6484570b817
+        allowedKinds: [Namespace, Cluster, KubevirtCluster, TalosControlPlane, TalosConfigTemplate, MachineDeployment, KubevirtMachineTemplate]
+        capiLifecycleObjectsAllowed: true
+        enabled: false
+    correlation:
+      projectionManifestPath: ../harness/projections/phase-r-v3/projection-manifest.json
+      projectionManifestDigest: sha256:198922b599f73833249f5f13de61e72a39aab9508e0cee44d5a7ff2ef0ca81b3
+      authorityMapPath: ../harness/projections/phase-r-v3/authority-map.json
+      requireRCarrierOnEveryObject: true
+  mechanisms:
+    lifecycle:
+      owner: CAPI-and-CAPK
+      managementPlane: ok-mgmt
+      status: EXISTING-NOT-GO-AUTHORIZED
+    endpointAllocation:
+      owner: CAPK-and-MetalLB
+      infrastructurePlane: ok-infra
+      status: EXISTING-NOT-GO-AUTHORIZED
+    enablement:
+      ownerCandidate: cluster-api-addon-provider-helm
+      versionCandidate: v0.6.4
+      managementPlane: ok-mgmt
+      desiredRevision: sha256:2a849d69e9c64344e907c1bce3bb1abf3d8f77217377081a5be055d62c213300
+      candidatePath: ../harness/candidates/caaph-v0.6.4/helmchartproxy-candidate.yaml
+      immutableChartDigest: sha256:21c43cf53841f9ab0375047d95aa4c64051ea52bbd2c679416e6408f5f1c9179
+      immutableSourceCoordinate: UNRESOLVED
+      exactReviewedSubmission: UNRESOLVED
+      status: BLOCKED-M0A-NOT-GRANTED
+    platform:
+      ownerCandidate: argo-cd
+      desiredRevision: sha256:0dcfbe10f271aeb7e82d94fbad0ff2691dec67f69c7452578662df09a650439b
+      applicationsPath: ../harness/profiles/platform/minimal-observability-v3/applications.yaml
+      applicationSetDigest: sha256:22a076bd28fbb075ed515f63e27030194345a6434afa159cbb93df4dda6ecb0f
+      controlPlanePlacement: UNRESOLVED
+      immutableTargetIdentityScheme: capi-cluster-uid/v1
+      targetRegistrationIdentity: RUNTIME-UNRESOLVED
+      exactReviewedSecurityPrerequisites: UNRESOLVED
+      status: BLOCKED-M0B-NOT-GRANTED
+    aggregate:
+      owner: bounded-ok141-evaluator
+      conditionProfileDigest: sha256:69bef08a6ff04b940844439d81554828dea83cde84450a6602c508834271d9a3
+      durablePublicationRequired: false
+      status: OFFLINE-PROVEN
+  blockers:
+    - {id: EXECUTOR-IDENTITY, class: technical, status: BLOCKED, closure: Bind the reviewed executor artifact digest and semantic ApplyReviewedObjectSet implementation.}
+    - {id: SUBMISSION-CREDENTIALS, class: security, status: BLOCKED, closure: Bind short-lived least-privilege credentials for the two exact target planes.}
+    - {id: M0A-INSTALLATION, class: prerequisite, status: BLOCKED, closure: Review and prove CAAPH v0.6.4 installation, API, RBAC, restart, and retry behavior on ok-mgmt.}
+    - {id: M0A-CHART-SOURCE, class: prerequisite, status: BLOCKED, closure: Bind controller-reachable immutable Cilium chart resolution equal to the fixture digest.}
+    - {id: M0A-PROJECTION, class: prerequisite, status: BLOCKED, closure: Produce a current R/E/Fixture-bound HelmChartProxy and exact reviewed submission after M0a.}
+    - {id: M0B-PLACEMENT, class: prerequisite, status: BLOCKED, closure: Authorize and prove the GitOps control-plane placement and recovery path.}
+    - {id: M0B-REGISTRATION, class: security, status: BLOCKED, closure: Bind least-privilege rotatable credentials and immutable target correlation without retaining secrets.}
+    - {id: M0B-RBAC, class: security, status: BLOCKED, closure: Render exact inventory and bind AppProject plus workload RBAC without wildcards.}
+    - {id: M0B-TARGET-CAPABILITIES, class: prerequisite, status: BLOCKED, closure: Prove local-path availability and credentials Secret lifecycle on the target.}
+    - {id: M0B-RUNTIME-CAPABILITY, class: prerequisite, status: BLOCKED, closure: Resolve the OpenSearch retention scope and bind alert-delivery acceptance before claiming them.}
+    - {id: OBSERVERS, class: operational, status: BLOCKED, closure: Assign independent management, infrastructure, workload, enablement, platform, and evidence observers.}
+    - {id: HUMAN-AUTHORITIES, class: operational, status: BLOCKED, closure: Assign GO, test, abort, recovery, and evidence-review authorities for one test window.}
+    - {id: EVIDENCE-DESTINATION, class: operational, status: BLOCKED, closure: Bind an independent immutable evidence destination with redaction and UTC skew limits.}
+    - {id: RECOVERY-EVIDENCE, class: operational, status: BLOCKED, closure: Verify management and infrastructure recovery evidence and out-of-band access.}
+  observers:
+    management: {identity: UNASSIGNED, failureDomain: ok-mgmt, credentialIdentity: UNRESOLVED}
+    infrastructure: {identity: UNASSIGNED, failureDomain: ok-infra, credentialIdentity: UNRESOLVED}
+    workload: {identity: UNASSIGNED, failureDomain: disposable-ok141, credentialIdentity: created-only-after-GO}
+    enablement: {identity: UNASSIGNED, failureDomain: caaph-on-ok-mgmt, sourceIdentity: UNRESOLVED}
+    platform: {identity: UNASSIGNED, failureDomain: gitops-control-plane, sourceIdentity: UNRESOLVED}
+    evidence: {identity: UNASSIGNED, failureDomain: independent-evidence-store, destination: UNRESOLVED}
+  authorities:
+    goAuthority: UNASSIGNED
+    testOperator: UNASSIGNED
+    abortAuthority: UNASSIGNED
+    recoveryAuthority: UNASSIGNED
+    evidenceReviewer: UNASSIGNED
+    communicationChannel: UNRESOLVED
+  preconditions:
+    - Phase-R-v3 verification reproduces FixtureDigest-double-prime exactly
+    - all blockers are CLOSED in a newly canonicalized protocol
+    - M0a and M0b prerequisite evidence is independently reviewed
+    - executor and short-lived credential identities are exact and least privilege is proven
+    - all observers and authorities are assigned for the exact test window
+    - ok-mgmt and ok-infra baselines plus out-of-band recovery access are verified
+    - unrelated lifecycle changes are frozen for the exact test window
+    - evidence destination, timestamp synchronization, redaction, and final verification are proven
+    - a final protocol digest is reviewed separately from this informational draft digest
+    - an explicit human GO decision names that final digest and this fixture digest
+  phases:
+    - {id: G0, name: preflight-and-baseline, mutating: false, enabled: false}
+    - {id: G1, name: apply-reviewed-object-sets, mutating: true, enabled: false}
+    - {id: G2, name: lifecycle-convergence, mutating: false, enabled: false}
+    - {id: G3, name: enablement-convergence, mutating: false, enabled: false}
+    - {id: G4, name: platform-convergence, mutating: false, enabled: false}
+    - {id: G5, name: aggregate-and-close, mutating: false, enabled: false}
+  expectedEvidence:
+    submission: [executor artifact digest, short-lived credential identities, exact accepted object UIDs, R carrier, field manager]
+    capi: [Cluster UID, current generations and Conditions, control-plane and Machine identity graph]
+    provider: [allocated endpoint, MetalLB allocation identity, VirtualMachine and VirtualMachineInstance UIDs]
+    workload: [Node UIDs, providerIDs, current Ready Conditions, exact control-plane and worker count]
+    enablement: [current HCP and HRP UIDs plus owner chain, desired and applied E, chart and values identity, Cilium rollout and NetworkReady probes]
+    platform: [registration Secret UID without secret data, CAPI and workload target correlation, exact Application membership, desired and applied P, Synced, Healthy, capability results]
+    aggregate: [evaluator input/tool digest, source freshness decisions, Ready result]
+    bundle: [raw artifact manifest, correlation manifest, final checksum, independent verification]
+  stopConditions:
+    - any FixtureDigest, R, E, P, object-set digest, target plane, or target identity differs
+    - more than one Cluster or either submission group is submitted more than once
+    - any object outside the exact 3-plus-8 membership is proposed or observed from the executor
+    - ok-mgmt, ok-infra, storage, network, or an existing workload unexpectedly degrades
+    - duplicate lifecycle writer, Machine, VM, VMI, or endpoint is observed
+    - independent observation, evidence integrity, timestamp integrity, credential confidence, or recovery confidence is lost
+    - an authoritative source is missing, stale, conflicting, or uncorrelated
+    - a timeout is reached or any excluded mutation is proposed
+  stopResponse:
+    - announce STOP through the bound communication channel
+    - perform no further protocol mutation or exploratory diagnosis
+    - retain raw evidence before separately authorized diagnostic changes
+    - transfer control to assigned abort and recovery authorities
+    - recover pre-existing planes only through independently authorized runbooks
+    - do not delete or force-finalize disposable resources under GO-1
+  recovery:
+    baseline: Existing ok-mgmt and ok-infra state must be recoverable independently of GO-1.
+    disposableCluster: Preserve the object graph and evidence on STOP; GO-1 does not authorize deletion.
+    cleanup: A later separately reviewed delete protocol and authorization are required.
+    executorFailure: An accepted desired transition remains authoritative; executor failure is not injected by GO-1.
+  acceptance:
+    successRequires:
+      - exactly the two reviewed submission groups are accepted once on their exact planes
+      - current-generation CAPI and CAPK lifecycle convergence to R-double-prime
+      - exactly one control-plane and one worker identity chain reaches current Ready evidence
+      - CAAPH converges to E-prime and current NetworkReady evidence passes
+      - Argo converges the exact three-Application set to P-double-prime
+      - bounded aggregation produces Ready=True from current correlated sources
+      - the independently retained evidence bundle verifies
+    executorExitIsLifecycleSuccess: false
+    historicalSuccessIsCurrentProof: false
+    allBlockersMustBeClosedBeforeGoDecision: true

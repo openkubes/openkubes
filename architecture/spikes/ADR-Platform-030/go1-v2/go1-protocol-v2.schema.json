@@ -1,0 +1,44 @@
+{
+  "$id": "ok141-go1-protocol/v2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["apiVersion", "kind", "metadata", "spec"],
+  "properties": {
+    "apiVersion": {"const": "test.openkubes.io/v1alpha2"},
+    "kind": {"const": "GO1Protocol"},
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "ticket", "baseCommit"],
+      "properties": {
+        "name": {"const": "ok141-create-converge-observe-v2"},
+        "ticket": {"const": "OK-141"},
+        "baseCommit": {"const": "1d74060961b2775740e68ecbe30e576f8fa34dea"}
+      }
+    },
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["protocolVersion", "protocolState", "fixture", "authorization", "scope", "submission", "mechanisms", "blockers", "observers", "authorities", "preconditions", "phases", "expectedEvidence", "stopConditions", "stopResponse", "recovery", "acceptance"],
+      "properties": {
+        "protocolVersion": {"const": "ok141-go1/v2"},
+        "protocolState": {"const": "BLOCKED"},
+        "fixture": {"type": "object"},
+        "authorization": {"type": "object"},
+        "scope": {"type": "object"},
+        "submission": {"type": "object"},
+        "mechanisms": {"type": "object"},
+        "blockers": {"type": "array", "minItems": 12, "items": {"type": "object"}},
+        "observers": {"type": "object"},
+        "authorities": {"type": "object"},
+        "preconditions": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+        "phases": {"type": "array", "minItems": 6, "items": {"type": "object"}},
+        "expectedEvidence": {"type": "object"},
+        "stopConditions": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+        "stopResponse": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+        "recovery": {"type": "object"},
+        "acceptance": {"type": "object"}
+      }
+    }
+  }
+}
