@@ -1,5 +1,11 @@
 # R8 Exact Disposable Execution Fixture
 
+> **Historical checkpoint:** `phase-r-v1` and FixtureDigest `a97e1e31...df82c9ba`
+> remain valid and byte-for-byte verifiable, but are superseded for GO-1 preparation
+> by the Phase-R cluster-semantics amendment. They do not bind worker count, complete
+> OS/machine/provider semantics, or the exact management/infra projection. See
+> `phase-r-cluster-semantics-amendment.md`.
+
 Status: **Offline closure candidate complete; review pending**
 
 Recorded: 2026-08-09

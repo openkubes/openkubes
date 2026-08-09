@@ -1,0 +1,18 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: disposable-ok141-observability
+  namespace: argocd
+spec:
+  project: openkubes-disposable
+  source:
+    repoURL: https://github.com/openkubes/ok-observability.git
+    path: profiles/ok-observability-standard
+    targetRevision: fe394da8875adecc3b497137e546cecabd710d1d
+  destination:
+    name: disposable-ok141
+    namespace: observability
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

@@ -1,0 +1,182 @@
+{
+  "format": "ok141-execution-fixture/v2",
+  "fixtureVersion": "phase-r-v2",
+  "fixtureDigest": "sha256:b27bb7c8e959e2c1028fcc0822755caa795ce21432344a64a62474abeb7f9f2b",
+  "fixtureSchema": {
+    "path": "schema/execution-fixture-v2.schema.json",
+    "digest": "sha256:a16c885984bcd7df5ac0ef181c37d2d11de07a74587dba99c4beeb93ab726722"
+  },
+  "authorizationState": "NO-GO",
+  "supersedes": {
+    "fixtureVersion": "phase-r-v1",
+    "fixtureDigest": "sha256:a97e1e31e1f09cc44210679b48130e36edd90709d84ba3ee7b729ba5df82c9ba",
+    "disposition": "valid-historical-superseded-not-mutated",
+    "reason": "The v1 fixture omitted worker, OS, machine, scheduling, provider-profile, endpoint, and exact Contract-to-CAPI projection semantics required by GO-1."
+  },
+  "contractIdentity": {
+    "namespace": "disposable-ok141",
+    "name": "disposable-ok141"
+  },
+  "contract": {
+    "path": "fixtures/contracts-v2/base.yaml",
+    "schemaPath": "schema/contract-v2.schema.json",
+    "canonicalizationProfile": "openkubes-contract-c14n/v1",
+    "rawArtifactDigest": "sha256:d9c8a5740740beb0e5c52d60132c28affa7e69ca46bb8709260ed05fbbc15492",
+    "schemaDigest": "sha256:8e8dbdee077ffcc6ab06ab323b53a93723c7841183e75925d4d0b812efdcc5e8",
+    "R": "sha256:d49e844113bdd96868eb9dec2d6672dfcc98ccb7a0bd43f2c6b53aabc2adda62"
+  },
+  "clusterSemantics": {
+    "kubernetesVersion": "v1.36.2",
+    "infrastructure": {
+      "provider": "kubevirt",
+      "profile": {
+        "name": "ok-infra",
+        "identity": "sha256:60fc84a67c33a41661c68ffadd646a13fd5ffd09f2a3d536f0eac1b909befc89",
+        "nodeSelector": "ok-infra",
+        "cloneTargetStorageClass": "ok-storage-block",
+        "replicaCount": 2,
+        "snapshotClass": "ok-storage-block-snapshot"
+      },
+      "controlPlaneEndpoint": {
+        "mode": "provider-allocated",
+        "serviceType": "LoadBalancer",
+        "addressFamily": "IPv4",
+        "allocationAuthority": "CAPK+MetalLB"
+      }
+    },
+    "operatingSystem": {
+      "distribution": "ok-linux",
+      "profile": "kubevirt",
+      "version": "v1.9.6",
+      "architecture": "amd64",
+      "schematicID": "ce4c980550dd2ab1b17bbf2b08801c7eb59418eafe8f279833297925d67c7515",
+      "imageDigest": "sha256:461d72d30750b9e18cf0656239e0274764b1e391bde5bbc41084a887b8a55ed5",
+      "identity": "sha256:7f5dd4276432f522727a50e604538b6befc0cac51ee2b90d4b1ccbfcac774a2d",
+      "goldenImage": {
+        "namespace": "ok-images",
+        "claim": "talos-v1-9-6-ce4c980550dd-461d72d30750-amd64",
+        "storageClass": "ok-storage-block"
+      }
+    },
+    "topology": {
+      "controlPlane": {
+        "replicas": 1,
+        "machine": {"cores": 2, "memory": "4Gi", "disk": "20Gi"}
+      },
+      "workers": {
+        "replicas": 1,
+        "machine": {"cores": 2, "memory": "4Gi", "disk": "15Gi"}
+      }
+    },
+    "connectivity": {
+      "profile": "datacenter-isolated-v1",
+      "podCIDR": "10.40.0.0/16",
+      "serviceCIDR": "10.100.0.0/20",
+      "forbiddenCIDRs": ["192.168.100.0/24"]
+    }
+  },
+  "projection": {
+    "format": "ok141-contract-to-capi-projection/v1",
+    "manifestPath": "projections/phase-r-v2/projection-manifest.json",
+    "manifestDigest": "sha256:30e964ce345b6c0b60143462dc745669537a618758c33f4bdb45b48f5a760d25",
+    "authorityMapPath": "projections/phase-r-v2/authority-map.json",
+    "managementObjectsPath": "projections/phase-r-v2/ok-mgmt-lifecycle.yaml",
+    "infrastructurePrerequisitesPath": "projections/phase-r-v2/ok-infra-prerequisites.yaml",
+    "source": {
+      "files": {
+        "kubevirtTemplate": {
+          "digest": "sha256:6f9de34f54c2cab6423b2979694d29adb5cc10c0c98f33417e8dd5e1d5700a2b",
+          "path": "templates/talos/providers/kubevirt/cluster-base.yaml.tpl"
+        },
+        "renderer": {
+          "digest": "sha256:b74ef85c9dab5d3a52c8ea985f0f2521e8533d3d8643d1c5c98dc2faced0558e",
+          "path": "render.py"
+        },
+        "talosResolver": {
+          "digest": "sha256:d51633fd5e65b4e06b0c41e1a1f814790f4def08b19aeda1a6fd2a4b0cfdc550",
+          "path": "profile_resolvers/talos.py"
+        }
+      },
+      "okClusterCommit": "430b946a43368d605c23bcf9888cc2eedad9a13a",
+      "okLinuxCommit": "49c244558279907b383cd87d0f672684ac1ed666",
+      "okLinuxProfile": {
+        "digest": "sha256:f460d2aa68e3d989c5322d63b55a8ce79854c4d36a83b54c724d8aced0613116",
+        "path": "profiles/kubevirt/profile.yaml"
+      }
+    },
+    "objectSets": {
+      "rendererSource": {"count": 10, "digest": "sha256:587ae8d06b22535168454cd69b79dd381457e529a7ab7171a78742db236a2910"},
+      "okMgmtLifecycle": {"count": 8, "digest": "sha256:a094b3bb4fd41f0a0c9031fd7660aa752b27fb490a80b2f423e0cd2949cd1380"},
+      "okInfraPrerequisites": {"count": 3, "digest": "sha256:b9ec510eaac3263e68d946417ad58947288643543d17bfb28fd19da08d2c94f9"}
+    }
+  },
+  "enablement": {
+    "profilePath": "profiles/enablement/cilium-fixture-v2/profile.json",
+    "valuesPath": "profiles/enablement/cilium-fixture-v2/values.yaml",
+    "E": "sha256:2a849d69e9c64344e907c1bce3bb1abf3d8f77217377081a5be055d62c213300",
+    "package": {
+      "name": "cilium",
+      "version": "1.19.6",
+      "chartDigest": "sha256:21c43cf53841f9ab0375047d95aa4c64051ea52bbd2c679416e6408f5f1c9179",
+      "normalizedValuesDigest": "sha256:a02a2a8b5c5213c86e482ef7421884281d00d3bae1f27c34d67b3726df12d410"
+    },
+    "convergenceOwnerCandidate": "cluster-api-addon-provider-helm",
+    "candidateStatus": "configurable-not-proven"
+  },
+  "platform": {
+    "profilePath": "profiles/platform/minimal-observability-v2/profile.json",
+    "applicationsPath": "profiles/platform/minimal-observability-v2/applications.yaml",
+    "profile": "minimal-observability-v2",
+    "P": "sha256:b46911c06ac31ed4755ffa83b0c960fafa0a23cab8442dc9eb1945df927b0665",
+    "applicationSetDigest": "sha256:60f95393486bdb2276d4e7af1aadc57e17eb722b340e1bc0351295f3f5e53c18",
+    "sourceCommit": "fe394da8875adecc3b497137e546cecabd710d1d",
+    "convergenceOwnerCandidate": "argo-cd",
+    "candidateStatus": "configurable-not-proven"
+  },
+  "conditions": {
+    "profilePath": "profiles/conditions/disposable-ready-v1.json",
+    "profileDigest": "sha256:69bef08a6ff04b940844439d81554828dea83cde84450a6602c508834271d9a3"
+  },
+  "tools": {
+    "canonicalizerVersion": "openkubes-contract-c14n/v1",
+    "evaluatorVersion": "ok141-evaluator/v1",
+    "projectionVersion": "ok141-contract-to-capi-projection/v1",
+    "frozenV1HarnessDigest": "sha256:1c9102a47324892def8bad9c0e94fff6b3ff9d770228e9ed3ac8ddab1877df72",
+    "phaseRV2ToolDigest": "sha256:4fa6849a54a5d766643ffdc1c1aaa916e5729187ddc46117e155bf4fbb2442ee"
+  },
+  "evidence": {
+    "schemaId": "ok141-evidence/v1",
+    "schemaPath": "schema/evidence-manifest-v1.schema.json",
+    "schemaDigest": "sha256:97442f98e85bb2d5975ba028209331a4b017cb8492fe0f791fa29da6ee721ad1",
+    "finalBundleChecksumRequired": true
+  },
+  "positiveAssertions": [
+    {"id": "PA-R", "claim": "The complete desired Cluster semantics reproduce R."},
+    {"id": "PA-PROJECTION", "claim": "The pinned renderer sources reproduce the exact, R-carried object sets."},
+    {"id": "PA-AUTHORITY", "claim": "CAPI lifecycle objects target only ok-mgmt and provider prerequisites target only ok-infra."},
+    {"id": "PA-E", "claim": "The target-bound Enablement profile reproduces E."},
+    {"id": "PA-P", "claim": "The target-bound Platform profile reproduces P."},
+    {"id": "PA-READY", "claim": "All required current source conditions deterministically evaluate Ready=True."},
+    {"id": "PA-EVIDENCE", "claim": "Every retained artifact verifies against the final evidence bundle."}
+  ],
+  "negativeControls": [
+    {"id": "NC-R-WRONG", "expectedReady": "Unknown"},
+    {"id": "NC-E-WRONG", "expectedReady": "Unknown"},
+    {"id": "NC-P-WRONG", "expectedReady": "Unknown"},
+    {"id": "NC-STALE-GENERATION", "expectedReady": "Unknown"},
+    {"id": "NC-MISSING-SOURCE", "expectedReady": "Unknown"},
+    {"id": "NC-CONFLICTING-AUTHORITY", "expectedReady": "Unknown"},
+    {"id": "NC-HISTORICAL-SUCCESS", "expectedReady": "False"},
+    {"id": "NC-TAMPERED-EVIDENCE", "expectedReady": "NotEvaluated"}
+  ],
+  "expectedEvidence": {
+    "projection": ["R carrier on every object", "exact object-set digests", "pinned renderer provenance", "authority-map digest"],
+    "capi": ["ok-mgmt identity", "Cluster UID", "generation", "observedGeneration", "InfrastructureReady", "ControlPlaneAvailable"],
+    "provider": ["ok-infra identity", "KubeVirt machine identity", "VirtualMachine UID", "VirtualMachineInstance UID"],
+    "workload": ["Node UID", "providerID", "Ready condition", "one control-plane node", "one worker node"],
+    "enablement": ["applied E", "Cilium chart digest", "values identity", "image digests", "NetworkReady source evidence"],
+    "platform": ["Application UID", "desired P", "applied Git commit", "Synced", "Healthy", "capability-check results"],
+    "aggregate": ["bounded evaluator input", "Ready outcome", "per-source correlation decisions"],
+    "bundle": ["artifact hashes", "correlation manifest", "final bundle checksum"]
+  }
+}
