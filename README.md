@@ -74,9 +74,9 @@ The platform handles the rest. No Helm expertise needed. No manual configuration
 
 | Repository | Contract | Status |
 |---|---|---|
-| [`openkubes/openkubes`](https://github.com/openkubes/openkubes) | Platform Distribution, ADRs, XRDs, AI Platform | ✅ v0.13.0 |
-| [`openkubes/ok-cluster`](https://github.com/openkubes/ok-cluster) | Cluster Lifecycle Contract | ✅ v0.13.0 |
-| [`openkubes/ok-linux`](https://github.com/openkubes/ok-linux) | OS Capability Contract (Talos + Flatcar) | ✅ v0.2.0 |
+| [`openkubes/openkubes`](https://github.com/openkubes/openkubes) | Platform Distribution, ADRs, XRDs, AI Platform | ✅ v0.14.0 |
+| [`openkubes/ok-cluster`](https://github.com/openkubes/ok-cluster) | Cluster Lifecycle Contract | ✅ v0.14.0 |
+| [`openkubes/ok-linux`](https://github.com/openkubes/ok-linux) | OS Capability Contract (Talos + Flatcar) | ✅ v0.3.0 |
 | [`openkubes/ok-storage`](https://github.com/openkubes/ok-storage) | Persistent Storage Contract | ✅ v0.1.1 |
 | [`openkubes/ok-local`](https://github.com/openkubes/ok-local) | Local Multipass and Crossplane learning environment | ✅ v0.1.0 |
 | [`openkubes/ok-observability`](https://github.com/openkubes/ok-observability) | Observability Capability Contract | ✅ v0.13.0 (ADR-Platform-018) |

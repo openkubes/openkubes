@@ -2,6 +2,49 @@
 
 ---
 
+## v0.14.0 — Central Identity and Governed Application Claims
+
+> **Human intent is authenticated centrally and constrained before it becomes platform state.**
+
+### What's New
+
+**Central identity**
+- The central Keycloak capability now provisions one platform realm, platform
+  groups, and audience-bound clients for consuming clusters.
+- The RMF Web application realm is provisioned separately while reusing the
+  central Keycloak service instead of deploying an application-local identity
+  provider.
+- The cluster lifecycle repository consumes the Keycloak capability from an
+  exact, pinned `openkubes` revision.
+
+**Governed OpenRMF claims**
+- OpenRMF claim editing is delegated to the platform OIDC group through
+  least-privilege, namespace-scoped RBAC.
+- Admission policy constrains identities to reviewed cluster, target,
+  namespace, and hostname allocations before a Claim is accepted.
+- Negative controls cover authorization widening, schema regressions,
+  credential redirection, and unsafe delegation during XRD updates.
+
+**Cluster and OS contracts**
+- Talos KubeVirt scheduling is now selected through reviewed provider profiles,
+  including production `ok-gpu` and isolated single-replica development storage.
+- Free-form scheduling and consumer-side storage overrides fail closed; the
+  existing Talos Golden Image identity remains pinned.
+- ADR-Platform-029 is accepted as the OpenKubes messaging capability contract.
+
+### Release Train
+
+| Repository | Release |
+|---|---:|
+| `openkubes/openkubes` | `v0.14.0` |
+| `openkubes/ok-cluster` | `v0.14.0` |
+| `openkubes/ok-linux` | `v0.3.0` |
+| `openkubes/ok-observability` | `v0.13.0` |
+| `openkubes/ok-storage` | `v0.1.1` |
+| `openkubes/ok-local` | `v0.1.0` |
+
+---
+
 ## v0.13.0 — Launch Meetup Community Preview
 
 > **A framework for building sovereign Kubernetes platform distributions.**
