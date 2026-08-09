@@ -1,0 +1,21 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: ok141-m0a-hcp-submitter
+  namespace: disposable-ok141
+  annotations:
+    openkubes.io/candidate-status: blocked-no-go
+    openkubes.io/execution-fixture: sha256:67fa2e63bba98d8cc70f680e8df56dea5803c0a0d8c5db81ab78578daacebd9f
+rules:
+  # RBAC cannot constrain create by resourceName. A later authorization must
+  # bind the exact submitted object digest and admission/field-manager path.
+  - apiGroups: [addons.cluster.x-k8s.io]
+    resources: [helmchartproxies]
+    verbs: [create]
+  - apiGroups: [addons.cluster.x-k8s.io]
+    resources: [helmchartproxies]
+    verbs: [get, list, watch]
+  - apiGroups: [addons.cluster.x-k8s.io]
+    resources: [helmchartproxies]
+    resourceNames: [disposable-ok141-cilium]
+    verbs: [patch, update]
