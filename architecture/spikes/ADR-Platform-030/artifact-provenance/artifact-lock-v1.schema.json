@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openkubes.io/spikes/ok141/artifact-lock-v1.schema.json",
+  "additionalProperties": false,
+  "properties": {
+    "authorization": {
+      "additionalProperties": false,
+      "properties": {
+        "decision": {"const": "NO-GO"},
+        "executionGranted": {"const": false}
+      },
+      "required": ["decision", "executionGranted"],
+      "type": "object"
+    },
+    "closure": {
+      "additionalProperties": false,
+      "properties": {
+        "authoritative": {"type": "boolean"},
+        "contentGraph": {"enum": ["CLOSED", "OPEN", "CANDIDATE-CLOSED"]},
+        "result": {"type": "string"}
+      },
+      "required": ["contentGraph", "authoritative", "result"],
+      "type": "object"
+    },
+    "consumer": {
+      "additionalProperties": false,
+      "properties": {
+        "addressMode": {"enum": ["DIGEST-NATIVE", "TAG-ONLY", "GIT-COMMIT"]},
+        "digestEnforced": {"type": "boolean"},
+        "mechanism": {"type": "string"}
+      },
+      "required": ["mechanism", "addressMode", "digestEnforced"],
+      "type": "object"
+    },
+    "format": {"const": "openkubes-artifact-lock/v1"},
+    "integrity": {
+      "additionalProperties": false,
+      "properties": {
+        "authenticity": {"enum": ["PROVEN", "CONFIGURABLE-NOT-VERIFIED", "UNRESOLVED"]},
+        "content": {"enum": ["PROVEN", "UNRESOLVED"]}
+      },
+      "required": ["content", "authenticity"],
+      "type": "object"
+    },
+    "roots": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "contentDigest": {"pattern": "^sha256:[0-9a-f]{64}$", "type": "string"},
+          "coordinate": {"type": "string"},
+          "id": {"type": "string"},
+          "inImmutableRoot": {"type": "boolean"},
+          "resolvedIdentity": {"type": "string"},
+          "transport": {"enum": ["oci", "git-vendored-helm"]}
+        },
+        "required": ["id", "transport", "coordinate", "resolvedIdentity", "contentDigest", "inImmutableRoot"],
+        "type": "object"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "subject": {
+      "additionalProperties": false,
+      "properties": {
+        "executionFixture": {"pattern": "^sha256:[0-9a-f]{64}$", "type": "string"},
+        "kind": {"enum": ["Enablement", "Platform"]},
+        "semanticRevision": {"pattern": "^sha256:[0-9a-f]{64}$", "type": "string"}
+      },
+      "required": ["kind", "semanticRevision", "executionFixture"],
+      "type": "object"
+    }
+  },
+  "required": ["format", "subject", "roots", "integrity", "consumer", "closure", "authorization"],
+  "type": "object"
+}

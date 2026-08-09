@@ -1,0 +1,34 @@
+{
+  "authorization": {
+    "failureInjection": "NO-GO",
+    "go1": "NOT-GRANTED",
+    "infrastructure": "NO-GO",
+    "m0a": "NOT-GRANTED",
+    "m0b": "NOT-GRANTED"
+  },
+  "baseCommit": "437d723610595fb5dcff68af0c1aa888402cf03a",
+  "files": [
+    {
+      "path": "artifact-lock-v1.schema.json",
+      "sha256": "sha256:a49f9b1386d18628eab8e6a11615c39c1c91dc736cba1a9cf07feafe538ca89d"
+    },
+    {
+      "path": "enablement-artifact-lock.json",
+      "sha256": "sha256:0be89a8d20baf53e83465d98854422d9d4bbe74c3cbee3b516dc6814932bda1d"
+    },
+    {
+      "path": "platform-artifact-lock-candidate.json",
+      "sha256": "sha256:c911fbbf41cd291a42b6a952f1102630278c6b987aefcd80422793644cffa0a0"
+    },
+    {
+      "path": "verify_artifact_provenance.py",
+      "sha256": "sha256:c9cd4956b6804bca3d5bdf170f462cdb4160c2aee7bac5927492c2cba6106faa"
+    }
+  ],
+  "format": "ok141-artifact-provenance-checkpoint/v1",
+  "result": {
+    "enablement": "INTEGRITY-PROVEN-AUTHENTICITY-AND-CONSUMER-BINDING-BLOCKED",
+    "openKubesReconcilerRequired": false,
+    "platform": "VENDOR-CANDIDATE-REPRODUCES-RENDER-BUT-IS-ABSENT-FROM-GIT"
+  }
+}
