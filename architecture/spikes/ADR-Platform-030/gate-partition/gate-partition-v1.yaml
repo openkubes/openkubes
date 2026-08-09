@@ -1,0 +1,175 @@
+apiVersion: test.openkubes.io/v1alpha1
+kind: GatePartition
+metadata:
+  name: ok141-go1-gate-partition-v1
+  ticket: OK-141
+  baseCommit: 1eed5cc498d48da481b9040a3d8212bd38bc9fd7
+spec:
+  version: ok141-gate-partition/v1
+  state: PROPOSED-READ-ONLY
+  authorization:
+    decision: NO-GO
+    mutationAuthorized: false
+    m0aInstallationGranted: false
+    m0bInstallationGranted: false
+    go1Granted: false
+    rule: This partition classifies evidence obligations and grants no authority.
+  sourceProtocol:
+    path: ../go1-v3/go1-protocol-v3.yaml
+    draftDigest: sha256:9a8c62d09bc8cdd86b2488aed0e1cf43846321f37329cefe25fb9e260e1185fc
+    fixtureDigest: sha256:a2ae3437645db5a83426b89d36d00693d2600e4ef20dc1aba2650dcda7f936f6
+    disposition: historical-structurally-complete-gate-semantics-superseded
+  installationGates:
+    - id: M0A-I
+      status: NOT-GRANTED
+      scope: install-caaph-control-plane-on-ok-mgmt-only
+      mayAuthorizeTargetConvergence: false
+      mayAuthorizeGO1: false
+    - id: M0B-I
+      status: NOT-GRANTED
+      scope: install-argo-control-plane-at-reviewed-placement-only
+      mayAuthorizeTargetConvergence: false
+      mayAuthorizeGO1: false
+  preGoRequirements:
+    - id: EXECUTOR-IDENTITY
+      sourceBlockers: [EXECUTOR-IDENTITY]
+      status: BLOCKED
+      requiredBefore: GO1-DECISION
+      closure: Bind the reviewed executor artifact and semantic ApplyReviewedObjectSet implementation.
+    - id: SUBMISSION-CREDENTIAL-MODEL
+      sourceBlockers: [SUBMISSION-CREDENTIALS]
+      status: BLOCKED
+      requiredBefore: GO1-DECISION
+      closure: Bind least-privilege issuance, scope, expiry, revocation, and audit rules for both target planes.
+    - id: M0A-I-INSTALLATION
+      sourceBlockers: [M0A-INSTALLATION]
+      status: BLOCKED
+      requiredBefore: GO1-DECISION
+      closure: Independently authorize and prove the CAAPH installation gate without authorizing target convergence.
+    - id: M0A-CHART-SOURCE
+      sourceBlockers: [M0A-CHART-SOURCE]
+      status: BLOCKED
+      requiredBefore: GO1-DECISION
+      closure: Bind controller-reachable Cilium content provenance and its independent verification rule.
+    - id: M0A-HCP-PROJECTION
+      sourceBlockers: [M0A-PROJECTION]
+      status: BLOCKED
+      requiredBefore: GO1-DECISION
+      closure: Bind the exact reviewed R/E/Fixture-derived HelmChartProxy object digest; runtime target selection is evaluated in G3.
+    - id: M0B-I-PLACEMENT
+      sourceBlockers: [M0B-PLACEMENT]
+      status: BLOCKED
+      requiredBefore: GO1-DECISION
+      closure: Authorize and prove the Argo control-plane placement and independent recovery path.
+    - id: M0B-REGISTRATION-MODEL
+      sourceBlockers: [M0B-REGISTRATION]
+      status: BLOCKED
+      requiredBefore: GO1-DECISION
+      closure: Bind credential issuance, rotation, revocation, target-correlation, and secret-redaction rules; the registration instance is evaluated in G4.
+    - id: M0B-RBAC-SPEC
+      sourceBlockers: [M0B-RBAC]
+      status: BLOCKED
+      requiredBefore: GO1-DECISION
+      closure: Bind exact AppProject and workload RBAC specifications without wildcards; runtime bindings are evaluated in G4.
+    - id: M0B-TARGET-COMPATIBILITY
+      sourceBlockers: [M0B-TARGET-CAPABILITIES, M0B-RUNTIME-CAPABILITY]
+      status: BLOCKED
+      requiredBefore: GO1-DECISION
+      closure: Prove Kubernetes compatibility and bind required capability probes and expected outcomes before GO-1.
+    - id: OBSERVERS
+      sourceBlockers: [OBSERVERS]
+      status: BLOCKED
+      requiredBefore: GO1-DECISION
+      closure: Assign independent observers for every authority and runtime failure domain.
+    - id: HUMAN-AUTHORITIES
+      sourceBlockers: [HUMAN-AUTHORITIES]
+      status: BLOCKED
+      requiredBefore: GO1-DECISION
+      closure: Assign GO, test, abort, recovery, and evidence-review authorities for the exact window.
+    - id: EVIDENCE-AND-RECOVERY
+      sourceBlockers: [EVIDENCE-DESTINATION, RECOVERY-EVIDENCE]
+      status: BLOCKED
+      requiredBefore: GO1-DECISION
+      closure: Bind an independent immutable evidence destination and verify recovery evidence plus out-of-band access.
+  runtimeObligations:
+    - id: G2-LIFECYCLE-IDENTITY
+      sourceBlockers: []
+      phase: G2
+      status: PENDING-RUNTIME
+      mayBeClosedBeforeRuntime: false
+      preconditions: [G1 accepted exactly once, CAPI observers available]
+      acceptance: Correlate the current CAPI Cluster UID and complete provider/workload identity chain to R.
+      onFailure: STOP-NOT-SUCCESS
+    - id: G3-M0A-TARGET-CORRELATION
+      sourceBlockers: [M0A-PROJECTION]
+      phase: G3
+      status: PENDING-RUNTIME
+      mayBeClosedBeforeRuntime: false
+      preconditions: [G2 lifecycle identity accepted, reviewed HelmChartProxy submitted]
+      acceptance: Prove exactly one current target selected by immutable CAPI Cluster UID and the HCP-to-HRP owner chain.
+      onFailure: STOP-NOT-SUCCESS
+    - id: G3-ENABLEMENT-CONVERGENCE
+      sourceBlockers: [M0A-CHART-SOURCE]
+      phase: G3
+      status: PENDING-RUNTIME
+      mayBeClosedBeforeRuntime: false
+      preconditions: [target correlation accepted]
+      acceptance: Prove applied E, chart content and values identity, Cilium rollout, and current NetworkReady probes.
+      onFailure: STOP-NOT-SUCCESS
+    - id: G4-M0B-REGISTRATION-INSTANCE
+      sourceBlockers: [M0B-REGISTRATION]
+      phase: G4
+      status: PENDING-RUNTIME
+      mayBeClosedBeforeRuntime: false
+      preconditions: [G3 NetworkReady accepted, reviewed registration model available]
+      acceptance: Correlate registration Secret UID without secret data to workload kube-system UID, API CA fingerprint, endpoint, credential identity, and CAPI Cluster UID.
+      onFailure: STOP-NOT-SUCCESS
+    - id: G4-M0B-RBAC-BINDINGS
+      sourceBlockers: [M0B-RBAC]
+      phase: G4
+      status: PENDING-RUNTIME
+      mayBeClosedBeforeRuntime: false
+      preconditions: [registration instance accepted]
+      acceptance: Prove exact runtime subjects and bindings match the reviewed no-wildcard RBAC specification.
+      onFailure: STOP-NOT-SUCCESS
+    - id: G4-TARGET-CAPABILITIES
+      sourceBlockers: [M0B-TARGET-CAPABILITIES, M0B-RUNTIME-CAPABILITY]
+      phase: G4
+      status: PENDING-RUNTIME
+      mayBeClosedBeforeRuntime: false
+      preconditions: [registration and RBAC accepted, capability contract fixed before GO]
+      acceptance: Prove local-path availability, required Secret lifecycle, retention semantics, and alert-delivery capability using bound probes.
+      onFailure: STOP-NOT-SUCCESS
+    - id: G4-PLATFORM-CONVERGENCE
+      sourceBlockers: [M0B-RUNTIME-CAPABILITY]
+      phase: G4
+      status: PENDING-RUNTIME
+      mayBeClosedBeforeRuntime: false
+      preconditions: [target capabilities accepted]
+      acceptance: Prove exact Application membership, source closure, applied P, Synced, Healthy, and profile capability results.
+      onFailure: STOP-NOT-SUCCESS
+    - id: G5-AGGREGATE-EVIDENCE
+      sourceBlockers: [EVIDENCE-DESTINATION]
+      phase: G5
+      status: PENDING-RUNTIME
+      mayBeClosedBeforeRuntime: false
+      preconditions: [G2 through G4 obligations accepted from current correlated evidence]
+      acceptance: Produce Ready from current sources and independently verify the durable evidence bundle.
+      onFailure: STOP-NOT-SUCCESS
+  deferredScenarios:
+    - {id: CAAPH-RESTART-RETRY-INJECTION, status: DEFERRED-SEPARATE-GATE, includedInGO1: false}
+    - {id: ARGO-RESTART-RETRY-INJECTION, status: DEFERRED-SEPARATE-GATE, includedInGO1: false}
+    - {id: EXECUTOR-CRASH-INJECTION, status: DEFERRED-SEPARATE-GATE, includedInGO1: false}
+    - {id: MANUAL-DRIFT-INJECTION, status: DEFERRED-SEPARATE-GATE, includedInGO1: false}
+    - {id: WORKER-FAILURE-INJECTION, status: DEFERRED-SEPARATE-GATE, includedInGO1: false}
+    - {id: DELETE-AND-FINALIZER, status: DEFERRED-SEPARATE-GATE, includedInGO1: false}
+    - {id: MANAGEMENT-OUTAGE, status: DEFERRED-SEPARATE-GATE, includedInGO1: false}
+    - {id: BREAK-GLASS-AND-DR, status: DEFERRED-SEPARATE-GATE, includedInGO1: false}
+  invariants:
+    - Installation authority is distinct from workload-target convergence authority.
+    - Every pre-GO requirement must be CLOSED in a newly canonicalized protocol before a GO-1 decision.
+    - A runtime obligation cannot be closed using planned, historical, inferred, or pre-runtime evidence.
+    - Missing, stale, conflicting, or uncorrelated runtime evidence produces STOP-NOT-SUCCESS.
+    - Runtime obligations authorize observation and acceptance only inside the already bounded GO-1 phases.
+    - Deferred scenarios require a new protocol digest, preflight, and explicit authorization.
+    - This partition does not authorize mutation, controller installation, GO-1, or failure injection.
