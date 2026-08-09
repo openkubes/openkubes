@@ -1,0 +1,46 @@
+{
+  "authorization": {"decision": "NO-GO", "executionGranted": false},
+  "closure": {
+    "authoritative": false,
+    "contentGraph": "CANDIDATE-CLOSED",
+    "result": "VENDOR-CANDIDATE-REPRODUCES-RENDER-BUT-IS-ABSENT-FROM-GIT"
+  },
+  "consumer": {
+    "addressMode": "GIT-COMMIT",
+    "digestEnforced": false,
+    "mechanism": "argo-cd/v3.4.2"
+  },
+  "format": "openkubes-artifact-lock/v1",
+  "integrity": {"authenticity": "UNRESOLVED", "content": "PROVEN"},
+  "roots": [
+    {
+      "contentDigest": "sha256:241acee7834df7d2de6697f505b64a0ae5105fe2771bf3d34cfca66361fe94f0",
+      "coordinate": "profiles/ok-observability-standard/charts/ok-observability-prometheus-0.1.0.tgz",
+      "id": "prometheus-wrapper",
+      "inImmutableRoot": false,
+      "resolvedIdentity": "fe394da8875adecc3b497137e546cecabd710d1d",
+      "transport": "git-vendored-helm"
+    },
+    {
+      "contentDigest": "sha256:1d80132e47136ef2d0d67eca1f77d63d8a8397bff7fdc31b632cc420a277e5d8",
+      "coordinate": "profiles/ok-observability-standard/charts/ok-observability-grafana-0.1.0.tgz",
+      "id": "grafana-wrapper",
+      "inImmutableRoot": false,
+      "resolvedIdentity": "fe394da8875adecc3b497137e546cecabd710d1d",
+      "transport": "git-vendored-helm"
+    },
+    {
+      "contentDigest": "sha256:c9c8eaf2f32891cafc04eb273804fb11ed7a26c2f94b9367e4c5b879f1b609d7",
+      "coordinate": "profiles/ok-observability-standard/charts/ok-observability-opensearch-0.1.0.tgz",
+      "id": "opensearch-wrapper",
+      "inImmutableRoot": false,
+      "resolvedIdentity": "fe394da8875adecc3b497137e546cecabd710d1d",
+      "transport": "git-vendored-helm"
+    }
+  ],
+  "subject": {
+    "executionFixture": "sha256:67fa2e63bba98d8cc70f680e8df56dea5803c0a0d8c5db81ab78578daacebd9f",
+    "kind": "Platform",
+    "semanticRevision": "sha256:0dcfbe10f271aeb7e82d94fbad0ff2691dec67f69c7452578662df09a650439b"
+  }
+}

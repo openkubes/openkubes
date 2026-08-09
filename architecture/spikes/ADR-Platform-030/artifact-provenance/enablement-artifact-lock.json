@@ -1,0 +1,30 @@
+{
+  "authorization": {"decision": "NO-GO", "executionGranted": false},
+  "closure": {
+    "authoritative": false,
+    "contentGraph": "CLOSED",
+    "result": "INTEGRITY-PROVEN-AUTHENTICITY-AND-CONSUMER-BINDING-BLOCKED"
+  },
+  "consumer": {
+    "addressMode": "TAG-ONLY",
+    "digestEnforced": false,
+    "mechanism": "cluster-api-addon-provider-helm/v0.6.4"
+  },
+  "format": "openkubes-artifact-lock/v1",
+  "integrity": {"authenticity": "CONFIGURABLE-NOT-VERIFIED", "content": "PROVEN"},
+  "roots": [
+    {
+      "contentDigest": "sha256:21c43cf53841f9ab0375047d95aa4c64051ea52bbd2c679416e6408f5f1c9179",
+      "coordinate": "quay.io/cilium/charts/cilium:1.19.6",
+      "id": "cilium-chart",
+      "inImmutableRoot": true,
+      "resolvedIdentity": "sha256:b8d600c542c97dc8652429e12487ecce922d73de9785505457a8f653833e75f9",
+      "transport": "oci"
+    }
+  ],
+  "subject": {
+    "executionFixture": "sha256:67fa2e63bba98d8cc70f680e8df56dea5803c0a0d8c5db81ab78578daacebd9f",
+    "kind": "Enablement",
+    "semanticRevision": "sha256:2a849d69e9c64344e907c1bce3bb1abf3d8f77217377081a5be055d62c213300"
+  }
+}
