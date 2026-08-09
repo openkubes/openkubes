@@ -1,0 +1,74 @@
+{
+  "format": "ok141-platform-profile/v2",
+  "profile": "minimal-observability-v3",
+  "target": {
+    "contractIdentity": {"namespace": "disposable-ok141", "name": "disposable-ok141"},
+    "addressing": {"registrationName": "disposable-ok141"},
+    "immutableIdentityReference": {
+      "scheme": "capi-cluster-uid/v1",
+      "contractRef": {"namespace": "disposable-ok141", "name": "disposable-ok141"},
+      "resolution": "runtime-required"
+    }
+  },
+  "namespace": {
+    "name": "ok-observability",
+    "creationOwner": "disposable-ok141-observability-core",
+    "podSecurityLabels": {
+      "pod-security.kubernetes.io/enforce": "privileged",
+      "pod-security.kubernetes.io/audit": "privileged",
+      "pod-security.kubernetes.io/warn": "privileged"
+    }
+  },
+  "providerValues": {
+    "path": "provider-values.yaml",
+    "digest": "sha256:7b134ad97acb9f026fe94ff40a90dd811267c1ffe31183e52dc877a012684d1d"
+  },
+  "requiredApplications": [
+    {
+      "name": "disposable-ok141-observability-core",
+      "role": "composed-profile-chart",
+      "source": {"repoURL": "https://github.com/openkubes/ok-observability.git", "path": "profiles/ok-observability-standard", "commit": "fe394da8875adecc3b497137e546cecabd710d1d"},
+      "sourceArtifacts": {
+        "chartDigest": "sha256:cbc2741f88d8f46611de7ca4fef0ae19721a5ae04513e67f86b7aac71aa13032",
+        "defaultValuesDigest": "sha256:7605fc92ada990218dca3d2a36a188a108a79da4e172a9fe97a8f784597fc8a6"
+      },
+      "applicationDigest": "sha256:37c4e4019ddc854a02bd20fea97e36f7ef992e209e3f84aeb12219901466ec6a"
+    },
+    {
+      "name": "disposable-ok141-observability-alerting",
+      "role": "required-alerting-artifact",
+      "source": {"repoURL": "https://github.com/openkubes/ok-observability.git", "path": "alerting", "commit": "fe394da8875adecc3b497137e546cecabd710d1d", "include": "prometheus-rules.yaml"},
+      "sourceArtifacts": {"manifestDigest": "sha256:9be38525e3ffd052eebfef759da57414d71c4bf13c49de3410f52fa7ad00857c"},
+      "applicationDigest": "sha256:fda4e67fa2fa25b732c84e04e9e77b7ea39578b0031bc46a04a71d925d6b729d"
+    },
+    {
+      "name": "disposable-ok141-observability-dashboards",
+      "role": "required-dashboard-artifact",
+      "source": {"repoURL": "https://github.com/openkubes/ok-observability.git", "path": "dashboards", "commit": "fe394da8875adecc3b497137e546cecabd710d1d", "include": "platform-overview-configmap.yaml"},
+      "sourceArtifacts": {"manifestDigest": "sha256:9e8a0b391eb479ca9880a2f5895793e4bcec4e9f9b5587b67e1910ac11547e09"},
+      "applicationDigest": "sha256:c28f8666e048117e099c841bc0e531ddbbcef4366c3313029fba05cda5834e42"
+    }
+  ],
+  "syncContract": {
+    "automated": {"enabled": true, "prune": true, "selfHeal": true, "allowEmpty": false},
+    "retry": {"limit": 5, "backoff": {"duration": "10s", "factor": 2, "maxDuration": "3m"}, "refresh": true},
+    "syncOptions": ["PrunePropagationPolicy=foreground", "PruneLast=true"]
+  },
+  "requiredSecretContract": {
+    "name": "ok-observability-credentials",
+    "namespace": "ok-observability",
+    "keys": ["grafana-admin-user", "grafana-admin-password", "opensearch-admin-password"],
+    "valuesAreSemantic": false
+  },
+  "capabilityCheck": {
+    "contract": {"path": "contracts/observability-capability-contract-v1.md", "digest": "sha256:b6ef10a8ecf6daf42e6d44018d51e2263f380ed649445e5a70ff5c550c73415e"},
+    "executable": {"path": "tests/contract-test.sh", "digest": "sha256:bd68328f35de960bfc291880dd7f85274021c0cce8d7b69ccecde0a459ead648"},
+    "parameters": {"namespace": "ok-observability", "alertAcceptance": "firing-only"},
+    "requiresCurrentPassingEvidence": true,
+    "argoHealthAloneIsCapabilityProof": false
+  },
+  "mechanismPrerequisites": {
+    "includedInPlatformRevision": false,
+    "items": ["registration-credentials", "registration-rbac", "app-project-rbac", "gitops-placement-authority"]
+  }
+}
