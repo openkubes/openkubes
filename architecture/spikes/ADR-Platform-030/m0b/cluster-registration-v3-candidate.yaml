@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: disposable-ok141-cluster
+  namespace: argocd
+  labels: {argocd.argoproj.io/secret-type: cluster}
+  annotations:
+    openkubes.io/candidate-status: blocked-no-go
+    openkubes.io/intent-revision: sha256:62e4d20fdd352474f4a5d2ea6639d7d63fa494af58b9b4532169bd96437d9f78
+    openkubes.io/platform-revision: sha256:0dcfbe10f271aeb7e82d94fbad0ff2691dec67f69c7452578662df09a650439b
+    openkubes.io/execution-fixture: sha256:67fa2e63bba98d8cc70f680e8df56dea5803c0a0d8c5db81ab78578daacebd9f
+    openkubes.io/capi-cluster-uid: M0B_RUNTIME_REQUIRED
+    openkubes.io/workload-kube-system-uid: M0B_RUNTIME_REQUIRED
+    openkubes.io/workload-api-ca-sha256: M0B_RUNTIME_REQUIRED
+type: Opaque
+stringData:
+  name: disposable-ok141
+  server: https://api.invalid
+  namespaces: ok-observability,kube-system
+  clusterResources: "true"
+  project: openkubes-disposable
+  # config is deliberately absent. No token, key, client certificate, CA data,
+  # or insecure TLS setting belongs in this candidate or evidence bundle.

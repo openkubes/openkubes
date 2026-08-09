@@ -1,0 +1,57 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: ok141-gitops-cluster-scoped
+  annotations:
+    openkubes.io/candidate-status: blocked-no-go
+    openkubes.io/execution-fixture: sha256:67fa2e63bba98d8cc70f680e8df56dea5803c0a0d8c5db81ab78578daacebd9f
+rules:
+  - apiGroups: [""]
+    resources: [namespaces]
+    verbs: [get, list, watch, create, patch, update]
+  - apiGroups: [apiextensions.k8s.io]
+    resources: [customresourcedefinitions]
+    verbs: [get, list, watch, create, patch, update, delete]
+  - apiGroups: [rbac.authorization.k8s.io]
+    resources: [clusterroles, clusterrolebindings]
+    verbs: [get, list, watch, create, patch, update, delete]
+  - apiGroups: [admissionregistration.k8s.io]
+    resources: [mutatingwebhookconfigurations, validatingwebhookconfigurations]
+    verbs: [get, list, watch, create, patch, update, delete]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: ok141-gitops-platform
+  namespace: ok-observability
+  annotations: {openkubes.io/candidate-status: blocked-no-go}
+rules:
+  - apiGroups: [""]
+    resources: [configmaps, persistentvolumeclaims, pods, secrets, services, serviceaccounts]
+    verbs: [get, list, watch, create, patch, update, delete]
+  - apiGroups: [apps]
+    resources: [daemonsets, deployments, statefulsets]
+    verbs: [get, list, watch, create, patch, update, delete]
+  - apiGroups: [batch]
+    resources: [jobs]
+    verbs: [get, list, watch, create, patch, update, delete]
+  - apiGroups: [policy]
+    resources: [poddisruptionbudgets]
+    verbs: [get, list, watch, create, patch, update, delete]
+  - apiGroups: [rbac.authorization.k8s.io]
+    resources: [roles, rolebindings]
+    verbs: [get, list, watch, create, patch, update, delete]
+  - apiGroups: [monitoring.coreos.com]
+    resources: [alertmanagers, prometheuses, prometheusrules, servicemonitors]
+    verbs: [get, list, watch, create, patch, update, delete]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: ok141-gitops-kube-system
+  namespace: kube-system
+  annotations: {openkubes.io/candidate-status: blocked-no-go}
+rules:
+  - apiGroups: [""]
+    resources: [services]
+    verbs: [get, list, watch, create, patch, update, delete]

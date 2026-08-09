@@ -1,0 +1,113 @@
+apiVersion: test.openkubes.io/v1alpha1
+kind: PrerequisiteProtocol
+metadata:
+  name: ok141-m0b-gitops-v3.4.2
+  ticket: OK-141
+  baseCommit: 38d06bd898735ef5380e7e13803fd0a79f809ce7
+spec:
+  protocolVersion: ok141-m0b/v1
+  protocolState: BLOCKED
+  fixture:
+    version: phase-r-v3
+    fixtureDigest: sha256:67fa2e63bba98d8cc70f680e8df56dea5803c0a0d8c5db81ab78578daacebd9f
+    R: sha256:62e4d20fdd352474f4a5d2ea6639d7d63fa494af58b9b4532169bd96437d9f78
+    P: sha256:0dcfbe10f271aeb7e82d94fbad0ff2691dec67f69c7452578662df09a650439b
+  authorization:
+    decision: NO-GO
+    m0bGranted: false
+    go1Granted: false
+    authorizedProtocolDigest: null
+    authority: UNASSIGNED
+    rule: This draft digest proves document identity only and grants no authority.
+  placement:
+    candidatePlane: ok-shared
+    placementAuthority: UNRESOLVED
+    controlPlaneReplicas: 1
+    workerReplicas: 3
+    productionHA: false
+    capacityEvidence: MISSING-METRICS-API
+    recoveryWithoutArgo: UNPROVEN
+  installation:
+    inventoryPath: argocd-installation-inventory.yaml
+    version: v3.4.2
+    upstreamCommit: 0dc6b1b57dd5bb925d5b03c3d09419ab9fb4225e
+    profile: ha-namespace-install
+    reviewedObjectCount: 65
+    applyEnabled: false
+  sourceProjection:
+    applicationsPath: ../harness/profiles/platform/minimal-observability-v3/applications.yaml
+    sourceCommit: fe394da8875adecc3b497137e546cecabd710d1d
+    renderer: {helmVersion: v3.20.2+g8fb76d6, kubernetesVersion: v1.36.2, includeCRDs: true}
+    inventoryPath: platform-rendered-inventory.json
+    objectCount: 120
+    observedInventoryDigest: sha256:a14300e9cf7f36b3c4468744aac9403bd48cfe3597eb8c6832e36f5c47a361cf
+    status: BLOCKED-NON-AUTHORITATIVE
+    reason: Seven chart archives used by the local render are ignored and absent from the pinned Git commit.
+  candidates:
+    appProject: {path: appproject-v3-candidate.yaml, status: BLOCKED-NOT-AUTHORIZED}
+    registration: {path: cluster-registration-v3-candidate.yaml, status: BLOCKED-NON-OPERATIONAL, containsCredential: false}
+    targetRBAC: {path: target-rbac-v3-candidate.yaml, status: RENDERED-NOT-PROVEN, containsBindings: false}
+    platformReady: {path: platformready-v3-assertion.json, status: BLOCKED-BY-SOURCE-AND-TARGET-PROOF}
+    submitEnabled: false
+  targetAuthorization:
+    registrationName: disposable-ok141
+    endpoint: RUNTIME-UNRESOLVED
+    capiClusterUID: RUNTIME-UNRESOLVED
+    workloadKubeSystemUID: RUNTIME-UNRESOLVED
+    workloadAPICAFingerprint: RUNTIME-UNRESOLVED
+    credentialIdentity: UNRESOLVED
+    credentialRotation: UNRESOLVED
+    credentialRevocation: UNRESOLVED
+    roleBindings: ABSENT-BY-DESIGN
+    clusterResourcesRequired: true
+    namespaces: [ok-observability, kube-system]
+    exactNamespaceCreateAdmission: UNRESOLVED
+  compatibility:
+    argocdControlPlaneKubernetes: v1.34.1-SUPPORTED
+    disposableTargetKubernetes: v1.36.2-UNTESTED-BY-ARGO-3.4
+  ownership:
+    platformDesiredState: P-double-prime
+    convergenceOwner: argo-cd
+    capabilityRuntimeOwners: platform-capability-controllers
+    targetCorrelationOwner: bounded-evaluator
+    platformReadyOwner: bounded-evaluator
+    openKubesPlatformReconcilerRequired: false
+  blockers:
+    - {id: M0B-PLACEMENT-AUTHORITY, status: BLOCKED, closure: Record the explicit architectural authority for central GitOps on ok-shared.}
+    - {id: M0B-HA-CAPACITY-RECOVERY, status: BLOCKED, closure: Resolve single-control-plane availability measured capacity and recovery independent of Argo.}
+    - {id: M0B-INSTALLATION-RBAC, status: BLOCKED, closure: Review and authorize the exact 65-object HA namespace installation and image identities.}
+    - {id: M0B-SOURCE-PROVENANCE, status: BLOCKED, closure: Bind transitive Helm dependency content in an immutable source visible to Argo and reproduce the inventory without ignored local files.}
+    - {id: M0B-TARGET-COMPATIBILITY, status: BLOCKED, closure: Prove or change the v1.36.2 target because Argo 3.4 upstream testing stops at v1.35.}
+    - {id: M0B-TARGET-IDENTITY, status: BLOCKED, closure: Bind registration Secret UID CAPI Cluster UID workload kube-system UID CA fingerprint and endpoint.}
+    - {id: M0B-CREDENTIAL-LIFECYCLE, status: BLOCKED, closure: Bind least-privilege rotatable revocable recoverable credentials without retaining secret data.}
+    - {id: M0B-TARGET-RBAC, status: BLOCKED, closure: Prove exact AppProject and workload RBAC including two namespaces and enumerated cluster-scoped kinds.}
+    - {id: M0B-NAMESPACE-ADMISSION, status: BLOCKED, closure: Bound exact Namespace creation because RBAC create cannot restrict semantic object identity.}
+    - {id: M0B-TARGET-CAPABILITIES, status: BLOCKED, closure: Prove local-path behavior and required credentials Secret lifecycle on the disposable target.}
+    - {id: M0B-RUNTIME-CAPABILITY, status: BLOCKED, closure: Resolve OpenSearch retention scope and retain real firing alert acceptance evidence.}
+    - {id: M0B-EVIDENCE, status: BLOCKED, closure: Bind independent observers evidence destination UTC skew and redaction rules.}
+    - {id: M0B-RECOVERY, status: BLOCKED, closure: Bind verified ok-shared recovery and bootstrap independent of Argo.}
+  phases:
+    - {id: M0B-G0, name: verify-baseline-release-and-source, mutating: false, enabled: false}
+    - {id: M0B-G1, name: install-reviewed-argocd-inventory, mutating: true, enabled: false}
+    - {id: M0B-G2, name: verify-api-ha-rbac-and-images, mutating: false, enabled: false}
+    - {id: M0B-G3, name: bind-target-identity-and-credentials, mutating: true, enabled: false}
+    - {id: M0B-G4, name: submit-appproject-and-three-applications, mutating: true, enabled: false}
+    - {id: M0B-G5, name: observe-convergence-and-platformready, mutating: false, enabled: false}
+    - {id: M0B-G6, name: controlled-restart-and-retry-proof, mutating: true, enabled: false}
+    - {id: M0B-G7, name: verify-evidence-and-close, mutating: false, enabled: false}
+  acceptance:
+    - exact Argo release manifest CRD and linux-amd64 image digests are observed
+    - exact reviewed installation is healthy on an explicitly authorized and recoverable ok-shared
+    - authoritative source rendering reproduces the exact inventory without ignored local dependencies
+    - target registration correlates one current immutable Cluster incarnation without secret disclosure
+    - AppProject and workload RBAC contain no wildcard and allow only exact required groups kinds and namespaces
+    - exactly three current Applications match P-double-prime and the authoritative source inventory
+    - current applied revisions equal the exact Git commit and all Applications are Synced and Healthy
+    - current capability checks pass independently of Argo Health
+    - controller restart pauses then resumes convergence without creating a competing writer
+  exclusions:
+    - GO-1 cluster submission
+    - CAAPH installation or enablement mutation
+    - worker executor or management failure injection
+    - delete finalizer break-glass management outage or DR
+    - treating Application name endpoint annotation or historical success as identity proof

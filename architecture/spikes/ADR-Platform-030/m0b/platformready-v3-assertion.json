@@ -1,0 +1,37 @@
+{
+  "authorization": "NO-GO",
+  "format": "ok141-platformready-assertion/v2",
+  "platformRevision": "sha256:0dcfbe10f271aeb7e82d94fbad0ff2691dec67f69c7452578662df09a650439b",
+  "requiredApplications": [
+    "disposable-ok141-observability-alerting",
+    "disposable-ok141-observability-core",
+    "disposable-ok141-observability-dashboards"
+  ],
+  "sourceProof": {
+    "commit": "fe394da8875adecc3b497137e546cecabd710d1d",
+    "requireTransitiveArtifactIdentity": true,
+    "currentTransitiveArtifactIdentity": "BLOCKED"
+  },
+  "targetProof": {
+    "requireRegistrationSecretUID": true,
+    "requireExactCAPIClusterUID": true,
+    "requireLiveKubeSystemNamespaceUID": true,
+    "requireWorkloadAPICAFingerprint": true,
+    "nameOrServerAloneIsIdentity": false
+  },
+  "applicationProof": {
+    "requireExactMembership": true,
+    "requireExactCurrentSpecDigest": true,
+    "requireComparedToMatchesCurrentSourceAndDestination": true,
+    "requireAppliedRevisionEqualsCommit": true,
+    "requireSyncStatus": "Synced",
+    "requireHealthStatus": "Healthy",
+    "rejectCurrentConditions": ["ComparisonError", "InvalidSpecError", "SyncError"],
+    "historicalSuccessfulOperationIsCurrentProof": false
+  },
+  "capabilityProof": {
+    "requireCurrentPassingEvidence": true,
+    "argoHealthAloneIsCapabilityProof": false,
+    "alertAcceptance": "firing-only"
+  }
+}
