@@ -1,0 +1,25 @@
+apiVersion: test.openkubes.io/v1alpha1
+kind: ClusterIntentFixture
+metadata:
+  name: disposable-ok141
+spec:
+  kubernetesVersion: v1.36.2
+  infrastructureProvider: kubevirt
+  connectivity:
+    profile: datacenter-isolated-v1
+    podCIDR: 10.40.0.0/16
+    serviceCIDR: 10.100.0.0/20
+    forbiddenCIDRs:
+      - 192.168.100.0/24
+  enablement:
+    profile: cilium-fixture-v1
+    revision: sha256:7393fdbfd31a6e8122860f4b458540672083e2323f5d1a47a776ff39db836568
+  platform:
+    profile: minimal-fixture-v1
+    revision: sha256:17ef42f4187a743fa09f6d955e70811af47763c4f98a4e73735da70055bc8969
+  conditions:
+    required:
+      - InfrastructureReady
+      - ControlPlaneAvailable
+      - NetworkReady
+      - PlatformReady

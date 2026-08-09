@@ -1,0 +1,5 @@
+apiVersion: test.openkubes.io/v1alpha1
+apiVersion: test.openkubes.io/v1alpha1
+kind: ClusterIntentFixture
+metadata: {name: duplicate}
+spec: {}
