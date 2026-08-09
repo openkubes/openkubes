@@ -1,0 +1,37 @@
+{
+  "authorization": "NO-GO",
+  "format": "ok141-platformready-assertion/v2",
+  "platformRevision": "sha256:b0f25c639a45d895b889997f5ecc2325db45dd5d51b0684998c94d5e17bd47bf",
+  "requiredApplications": [
+    "disposable-ok141-observability-alerting",
+    "disposable-ok141-observability-core",
+    "disposable-ok141-observability-dashboards"
+  ],
+  "sourceProof": {
+    "commit": "b5f7be6a7ddab798f31f32197fcbb9e86a9798b6",
+    "requireTransitiveArtifactIdentity": true,
+    "currentTransitiveArtifactIdentity": "sha256:cdcc6f63b6202a89e90510ddb371cfd3130ff2ebc450336b3ee66e0f1fa85bf5"
+  },
+  "targetProof": {
+    "requireRegistrationSecretUID": true,
+    "requireExactCAPIClusterUID": true,
+    "requireLiveKubeSystemNamespaceUID": true,
+    "requireWorkloadAPICAFingerprint": true,
+    "nameOrServerAloneIsIdentity": false
+  },
+  "applicationProof": {
+    "requireExactMembership": true,
+    "requireExactCurrentSpecDigest": true,
+    "requireComparedToMatchesCurrentSourceAndDestination": true,
+    "requireAppliedRevisionEqualsCommit": true,
+    "requireSyncStatus": "Synced",
+    "requireHealthStatus": "Healthy",
+    "rejectCurrentConditions": ["ComparisonError", "InvalidSpecError", "SyncError"],
+    "historicalSuccessfulOperationIsCurrentProof": false
+  },
+  "capabilityProof": {
+    "requireCurrentPassingEvidence": true,
+    "argoHealthAloneIsCapabilityProof": false,
+    "alertAcceptance": "firing-only"
+  }
+}

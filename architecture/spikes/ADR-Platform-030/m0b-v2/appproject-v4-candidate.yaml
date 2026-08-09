@@ -1,0 +1,45 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: openkubes-disposable
+  namespace: argocd
+  annotations:
+    openkubes.io/candidate-status: blocked-no-go
+    openkubes.io/intent-revision: sha256:636fe23404ac53109f44d6346534dcf1367ae91c572d5e18bd32cd0a3128a16e
+    openkubes.io/platform-revision: sha256:b0f25c639a45d895b889997f5ecc2325db45dd5d51b0684998c94d5e17bd47bf
+    openkubes.io/execution-fixture: sha256:a2ae3437645db5a83426b89d36d00693d2600e4ef20dc1aba2650dcda7f936f6
+    openkubes.io/rendered-inventory: sha256:a14300e9cf7f36b3c4468744aac9403bd48cfe3597eb8c6832e36f5c47a361cf
+    openkubes.io/source-provenance: git-tracked-artifact-lock-verified
+spec:
+  description: Blocked OK-141 P-triple-prime AppProject candidate
+  sourceRepos: [https://github.com/openkubes/ok-observability.git]
+  sourceNamespaces: [argocd]
+  destinations:
+    - {name: disposable-ok141, namespace: ok-observability}
+    - {name: disposable-ok141, namespace: kube-system}
+  clusterResourceWhitelist:
+    - {group: "", kind: Namespace}
+    - {group: admissionregistration.k8s.io, kind: MutatingWebhookConfiguration}
+    - {group: admissionregistration.k8s.io, kind: ValidatingWebhookConfiguration}
+    - {group: apiextensions.k8s.io, kind: CustomResourceDefinition}
+    - {group: rbac.authorization.k8s.io, kind: ClusterRole}
+    - {group: rbac.authorization.k8s.io, kind: ClusterRoleBinding}
+  namespaceResourceWhitelist:
+    - {group: "", kind: ConfigMap}
+    - {group: "", kind: PersistentVolumeClaim}
+    - {group: "", kind: Pod}
+    - {group: "", kind: Secret}
+    - {group: "", kind: Service}
+    - {group: "", kind: ServiceAccount}
+    - {group: apps, kind: DaemonSet}
+    - {group: apps, kind: Deployment}
+    - {group: apps, kind: StatefulSet}
+    - {group: batch, kind: Job}
+    - {group: monitoring.coreos.com, kind: Alertmanager}
+    - {group: monitoring.coreos.com, kind: Prometheus}
+    - {group: monitoring.coreos.com, kind: PrometheusRule}
+    - {group: monitoring.coreos.com, kind: ServiceMonitor}
+    - {group: policy, kind: PodDisruptionBudget}
+    - {group: rbac.authorization.k8s.io, kind: Role}
+    - {group: rbac.authorization.k8s.io, kind: RoleBinding}
+  orphanedResources: {warn: true}
