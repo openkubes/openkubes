@@ -1,0 +1,74 @@
+apiVersion: addons.cluster.x-k8s.io/v1alpha1
+kind: HelmChartProxy
+metadata:
+  name: disposable-ok141-cilium
+  namespace: disposable-ok141
+  annotations:
+    openkubes.io/candidate-status: blocked-no-go
+    openkubes.io/intent-revision: sha256:636fe23404ac53109f44d6346534dcf1367ae91c572d5e18bd32cd0a3128a16e
+    openkubes.io/enablement-revision: sha256:2a849d69e9c64344e907c1bce3bb1abf3d8f77217377081a5be055d62c213300
+    openkubes.io/execution-fixture: sha256:a2ae3437645db5a83426b89d36d00693d2600e4ef20dc1aba2650dcda7f936f6
+    openkubes.io/oci-manifest-digest: sha256:b8d600c542c97dc8652429e12487ecce922d73de9785505457a8f653833e75f9
+    openkubes.io/chart-artifact-digest: sha256:21c43cf53841f9ab0375047d95aa4c64051ea52bbd2c679416e6408f5f1c9179
+    openkubes.io/values-digest: sha256:a02a2a8b5c5213c86e482ef7421884281d00d3bae1f27c34d67b3726df12d410
+    openkubes.io/digest-enforcement: external-evidence-required
+spec:
+  clusterSelector:
+    matchLabels:
+      openkubes.io/type: talos
+      openkubes.io/provider: kubevirt
+  chartName: cilium
+  repoURL: oci://quay.io/cilium/charts
+  releaseName: cilium
+  namespace: kube-system
+  version: 1.19.6
+  reconcileStrategy: Continuous
+  valuesTemplate: |
+    operator:
+      replicas: 1
+    ipam:
+      mode: kubernetes
+    kubeProxyReplacement: true
+    k8sServiceHost: localhost
+    k8sServicePort: 7445
+    tunnelPort: 8473
+    k8sClientRateLimit:
+      qps: 10
+      burst: 20
+    securityContext:
+      capabilities:
+        ciliumAgent:
+          - CHOWN
+          - KILL
+          - NET_ADMIN
+          - NET_RAW
+          - IPC_LOCK
+          - SYS_ADMIN
+          - SYS_RESOURCE
+          - DAC_OVERRIDE
+          - FOWNER
+          - SETGID
+          - SETUID
+        cleanCiliumState:
+          - NET_ADMIN
+          - SYS_ADMIN
+          - SYS_RESOURCE
+    cgroup:
+      autoMount:
+        enabled: false
+      hostRoot: /sys/fs/cgroup
+  options:
+    atomic: true
+    wait: true
+    waitForJobs: true
+    timeout: 15m
+    takeOwnership: false
+    install:
+      createNamespace: false
+    upgrade:
+      resetValues: true
+      reuseValues: false
+      cleanupOnFail: true
+      maxHistory: 3
+    uninstall:
+      keepHistory: false
