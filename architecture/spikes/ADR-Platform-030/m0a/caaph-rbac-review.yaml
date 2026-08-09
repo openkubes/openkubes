@@ -1,0 +1,62 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: RBACReview
+metadata:
+  name: caaph-v0.6.4-manager-role
+spec:
+  source:
+    repository: https://github.com/kubernetes-sigs/cluster-api-addon-provider-helm
+    tag: v0.6.4
+    commit: 825662962a26dc339f3871184c91ed4bd2f83a4f
+    path: config/rbac/role.yaml
+  controllerScope: cluster
+  sensitiveCapabilities:
+    - resources: [secrets]
+      apiGroups: [core]
+      verbs: [get, list, watch]
+      reason: Workload kubeconfig and optional Helm repository credentials.
+      boundary: Controller only; bounded submitter must not inherit this access.
+    - resources: ['*']
+      apiGroups:
+        - bootstrap.cluster.x-k8s.io
+        - clusterctl.cluster.x-k8s.io
+        - controlplane.cluster.x-k8s.io
+        - infrastructure.cluster.x-k8s.io
+      verbs: [get, list, watch]
+      reason: Cluster discovery across provider/bootstrap/control-plane types.
+      boundary: Read-only but cluster-wide wildcard resource visibility requires explicit security acceptance.
+    - resources: [tokenreviews]
+      apiGroups: [authentication.k8s.io]
+      verbs: [create]
+      reason: Delegated authentication.
+      boundary: Controller only.
+    - resources: [subjectaccessreviews]
+      apiGroups: [authorization.k8s.io]
+      verbs: [create]
+      reason: Delegated authorization.
+      boundary: Controller only.
+    - resources: [helmchartproxies, helmreleaseproxies]
+      apiGroups: [addons.cluster.x-k8s.io]
+      verbs: [create, delete, get, list, patch, update, watch]
+      reason: Native CAAPH reconciliation ownership.
+      boundary: OpenKubes submitter may write reviewed HCP only and must not write HRP.
+  submitterCandidate:
+    rolePath: submitter-role-candidate.yaml
+    namespace: disposable-ok141
+    allowed:
+      - apiGroup: addons.cluster.x-k8s.io
+        resource: helmchartproxies
+        verbs: [create, get, list, watch, patch, update]
+    explicitlyDenied:
+      - arbitrary Secret get/list/watch
+      - helmreleaseproxies create/patch/update/delete
+      - CAAPH status or finalizer writes
+      - wildcard provider/bootstrap/control-plane reads
+      - tokenreviews or subjectaccessreviews
+    residualGap:
+      - RBAC cannot restrict create by resourceName or semantic object digest.
+      - No RoleBinding is defined until a short-lived executor identity is authorized.
+  result:
+    controllerRole: SECURITY-REVIEW-REQUIRED
+    submitterRole: RENDERED-NOT-PROVEN
+    exactObjectAdmission: UNRESOLVED
+    m0a: NOT-GRANTED

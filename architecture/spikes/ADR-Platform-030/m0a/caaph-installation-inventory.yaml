@@ -1,0 +1,53 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: ReviewedInstallationInventory
+metadata:
+  name: caaph-v0.6.4
+spec:
+  upstream:
+    repository: https://github.com/kubernetes-sigs/cluster-api-addon-provider-helm
+    tag: v0.6.4
+    commit: 825662962a26dc339f3871184c91ed4bd2f83a4f
+    releaseAsset:
+      name: addon-components.yaml
+      sha256: a70f4eb77eac626231daca1e2a046b4b069bb84320efa327cc8c56a9c4ca03e6
+      sizeBytes: 55263
+    metadataAsset:
+      name: metadata.yaml
+      sha256: d50a44ee0db2f0368699d15ff011b9b5a61d9969483de1c4f6e4e6046390530f
+  target:
+    plane: ok-mgmt
+    architecture: linux/amd64
+  controllerImage:
+    reference: registry.k8s.io/cluster-api-helm/cluster-api-helm-controller:v0.6.4
+    indexDigest: sha256:97d2a86f8e35d23bb4656b26f4564b35f109e47a0dc4860b71089e52eb6e6a24
+    linuxAmd64Digest: sha256:66344ab0107c0a3fcbce860697206ac7e6a2316a7af4a07f81a9f8d53e448e6a
+  objectInventory:
+    total: 19
+    byKind:
+      Namespace: 1
+      CustomResourceDefinition: 2
+      ServiceAccount: 1
+      Role: 1
+      RoleBinding: 1
+      ClusterRole: 3
+      ClusterRoleBinding: 2
+      ConfigMap: 1
+      Service: 2
+      Deployment: 1
+      Certificate: 1
+      Issuer: 1
+      MutatingWebhookConfiguration: 1
+      ValidatingWebhookConfiguration: 1
+  baseline:
+    observedAt: "2026-08-09"
+    nodes:
+      count: 3
+      architecture: amd64
+      kubeletVersion: v1.34.1
+    capiController: registry.k8s.io/cluster-api/cluster-api-controller:v1.13.4
+    certManagerController: quay.io/jetstack/cert-manager-controller:v1.20.1
+    caaphCRDsPresent: false
+    caaphControllerPresent: false
+  authorization:
+    decision: NO-GO
+    applyEnabled: false
