@@ -181,6 +181,82 @@ ID or contract generation links them to an authorization decision.
 Only the first two could plausibly force durable OpenKubes reconciliation, and neither
 does so based on this snapshot alone.
 
+## Authority and revision evidence matrix
+
+The disposable-cluster test must prove two different chains. A healthy revision chain
+does not prove that the correct management plane has lifecycle authority, and an active
+lifecycle writer does not prove that it is reconciling the requested OpenKubes revision.
+
+```text
+Authority chain
+  intent owner
+    -> management-plane identity
+    -> authorized active writer set
+    -> CAPI ownership
+    -> provider resources
+
+Revision chain
+  OpenKubes intent R
+    -> CAPI projection
+    -> infrastructure identities and observed generations
+    -> enablement revision E
+    -> platform revision P
+    -> generation-correct derived Conditions
+```
+
+The matrix below defines the missing proof without selecting an OpenKubes Operator or
+a new public API. A **candidate carrier** is metadata or an existing durable record to
+test first, not an accepted schema decision.
+
+| Unknown to resolve | Required evidence | Candidate carrier or relationship to test | Authoritative observer | Acceptance rule |
+|---|---|---|---|---|
+| Originating intent | Immutable normalized intent revision `R`, contract identity, and accepted generation | Git commit plus normalized contract digest; or contract UID/generation plus digest | Declared authoritative persistence path | One accepted `R` is recoverable independently of the Executor and cannot be confused with a later edit |
+| Authorization and operation | Policy decision bound to actor, operation, target, before/after revisions, and correlation ID | Admission/audit record or durable operation evidence keyed by `R` | Policy/audit system outside Executor-local state | The mutation from the prior revision to `R` and the authorizing identity are independently auditable |
+| Allocation authority | Allocation UID/revision for endpoint, Pod CIDR, Service CIDR, and any other scarce value | Existing allocation record referenced from the contract and projected objects | Declared allocation authority | Observed values match one current allocation record; value equality alone does not pass |
+| Owning management plane | Stable management-plane identity recorded with the lifecycle projection | Management-plane ID plus authority epoch/reference on the top-level lifecycle object and evidence record | Independent management/DR inventory | The CAPI object graph names the expected management authority; API address or reachability alone does not pass |
+| Current lifecycle writer | Complete set of components allowed to mutate lifecycle state and proof that no competing authority is active | Controller inventory, leader-election records, scoped credentials, authority epoch, and fencing evidence where another plane exists | Independent authority observer defined by ADR-031 | All declared writers belong to one authority; an old API being unreachable is not fencing evidence |
+| Intent-to-CAPI projection | Exact `R` associated with the projected CAPI object identity and desired spec | Revision/digest metadata on `Cluster` or topology root plus a projection record | CAPI API and the declared projection mechanism | The current top-level CAPI UID/spec is explicitly linked to `R`; matching names or values do not pass |
+| Object-local reconciliation | Desired spec identity, object UID, `metadata.generation`, and current `status.observedGeneration` for every required CAPI/provider object | OwnerReferences plus per-object spec digest/revision metadata | Each owning controller's API status | Every required object has observed its own current generation and its desired spec is traceable to `R` |
+| Machine-to-VM identity | CAPI `Machine` and infrastructure-machine UID chain to the exact KubeVirt VM/VMI | OwnerReferences, provider resource reference, CAPK labels, and provider ID | CAPI/CAPK and KubeVirt APIs | Exactly one current VM/VMI is attributable to each current Machine; names alone do not pass |
+| Machine-to-Node identity | Exact current Machine to workload Node relationship | `Machine.status.nodeRef`, Node UID, and `spec.providerID` matched to the provider object | CAPI API plus workload API | Each expected Machine resolves to exactly one current Node and provider identity |
+| Intended enablement revision | Profile identity and immutable enablement revision `E`, including CNI chart/image/config identity | Profile digest and controller-owned enablement root projected to Cilium/Helm resources | Declared Enablement owner | `E` is explicit, durable, linked to `R`, and the observed CNI resources resolve to `E` |
+| `NetworkReady` outcome | Desired `E` present; required agents available; Node networking established; required control components available; declared functional probe passes | Enablement Conditions plus Cilium DaemonSet/operator status, Node Conditions, image/config identities, and profile-defined probe evidence | Declared Enablement owner; OpenKubes only normalizes | All profile-required signals are current for `E`; DaemonSet availability alone does not pass |
+| Intended platform revision | Platform profile identity and immutable GitOps revision `P` | Git commit/chart/profile digest on the authoritative GitOps root | Selected GitOps controller/API | `P` is explicit, linked to `R`, and is the revision reported as applied rather than merely requested |
+| `PlatformReady` outcome | Sync, health, and required platform capability results for `P` | GitOps status and profile-defined contract checks | Selected GitOps/platform owner; OpenKubes only normalizes | Every required platform result is healthy for the exact applied `P` |
+| Aggregate lifecycle result | Required source Conditions for `R`, including their source revisions, Reasons, and observation times | Durable status/evidence record derived from the authoritative sources | Single declared status aggregator or read-only evidence evaluator | `Ready=True` only when every profile-required source is current and explicitly correlated to `R`; Executor exit never counts |
+| Evidence persistence | Tamper-evident bundle linking authorization, `R`, CAPI identities, `E`, `P`, Conditions, timestamps, and outcome | Evidence manifest with content hashes stored outside ephemeral Executor and disposable cluster state | Evidence store and independent reviewer | The full proof survives Executor loss and later cluster deletion and can be re-verified from recorded hashes |
+
+### Correlation rules for the test
+
+The disposable test must enforce these rules before any result is called correlated:
+
+1. Kubernetes `metadata.generation` is object-local. Equal or adjacent generation
+   numbers on different objects do not establish a revision relationship.
+2. Names, IP addresses, replica counts, versions, and timestamps are supporting facts,
+   not immutable identity anchors.
+3. Runtime health does not prove lifecycle authority, and lifecycle authority does not
+   prove revision provenance.
+4. A controller's leader-election record proves leadership only inside its configured
+   election domain; it does not by itself exclude an undeclared management plane.
+5. `PreviousAPIUnreachable` is not equivalent to `PreviousAuthorityFenced`.
+6. Normalized Conditions may preserve or derive source status, but they may not invent
+   a correlation that the source evidence cannot prove.
+
+### Read-only gate before disposable creation
+
+Before the mutation gate can be evaluated, every row above must identify:
+
+- an exact sensor or query;
+- the failure domain from which that observation is collected;
+- the raw artifact and fields to retain;
+- the correlation assertion and its negative control; and
+- the reviewer responsible for accepting that evidence.
+
+This planning gate can pass without deciding that a new Operator, CRD, or status
+aggregator is required. A missing carrier remains a test-design gap until existing
+mechanisms have been evaluated. Completing this matrix does not change the outage
+preflight: infrastructure mutation remains `NO-GO`.
+
 ## Next evidence gate
 
 A complete current-generation correlation test now requires a deliberately created,
