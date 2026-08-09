@@ -1,0 +1,129 @@
+{
+  "$id": "ok141-gate-partition/v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["apiVersion", "kind", "metadata", "spec"],
+  "properties": {
+    "apiVersion": {"const": "test.openkubes.io/v1alpha1"},
+    "kind": {"const": "GatePartition"},
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "ticket", "baseCommit"],
+      "properties": {
+        "name": {"const": "ok141-go1-gate-partition-v1"},
+        "ticket": {"const": "OK-141"},
+        "baseCommit": {"const": "1eed5cc498d48da481b9040a3d8212bd38bc9fd7"}
+      }
+    },
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "state", "authorization", "sourceProtocol", "installationGates", "preGoRequirements", "runtimeObligations", "deferredScenarios", "invariants"],
+      "properties": {
+        "version": {"const": "ok141-gate-partition/v1"},
+        "state": {"const": "PROPOSED-READ-ONLY"},
+        "authorization": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["decision", "mutationAuthorized", "m0aInstallationGranted", "m0bInstallationGranted", "go1Granted", "rule"],
+          "properties": {
+            "decision": {"const": "NO-GO"},
+            "mutationAuthorized": {"const": false},
+            "m0aInstallationGranted": {"const": false},
+            "m0bInstallationGranted": {"const": false},
+            "go1Granted": {"const": false},
+            "rule": {"type": "string", "minLength": 1}
+          }
+        },
+        "sourceProtocol": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["path", "draftDigest", "fixtureDigest", "disposition"],
+          "properties": {
+            "path": {"const": "../go1-v3/go1-protocol-v3.yaml"},
+            "draftDigest": {"const": "sha256:9a8c62d09bc8cdd86b2488aed0e1cf43846321f37329cefe25fb9e260e1185fc"},
+            "fixtureDigest": {"const": "sha256:a2ae3437645db5a83426b89d36d00693d2600e4ef20dc1aba2650dcda7f936f6"},
+            "disposition": {"const": "historical-structurally-complete-gate-semantics-superseded"}
+          }
+        },
+        "installationGates": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {"$ref": "#/$defs/installationGate"}
+        },
+        "preGoRequirements": {
+          "type": "array",
+          "minItems": 12,
+          "maxItems": 12,
+          "items": {"$ref": "#/$defs/preGoRequirement"}
+        },
+        "runtimeObligations": {
+          "type": "array",
+          "minItems": 8,
+          "maxItems": 8,
+          "items": {"$ref": "#/$defs/runtimeObligation"}
+        },
+        "deferredScenarios": {
+          "type": "array",
+          "minItems": 8,
+          "maxItems": 8,
+          "items": {"$ref": "#/$defs/deferredScenario"}
+        },
+        "invariants": {"type": "array", "minItems": 7, "items": {"type": "string", "minLength": 1}}
+      }
+    }
+  },
+  "$defs": {
+    "installationGate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "status", "scope", "mayAuthorizeTargetConvergence", "mayAuthorizeGO1"],
+      "properties": {
+        "id": {"enum": ["M0A-I", "M0B-I"]},
+        "status": {"const": "NOT-GRANTED"},
+        "scope": {"type": "string", "minLength": 1},
+        "mayAuthorizeTargetConvergence": {"const": false},
+        "mayAuthorizeGO1": {"const": false}
+      }
+    },
+    "preGoRequirement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "sourceBlockers", "status", "requiredBefore", "closure"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "sourceBlockers": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+        "status": {"const": "BLOCKED"},
+        "requiredBefore": {"const": "GO1-DECISION"},
+        "closure": {"type": "string", "minLength": 1}
+      }
+    },
+    "runtimeObligation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "sourceBlockers", "phase", "status", "mayBeClosedBeforeRuntime", "preconditions", "acceptance", "onFailure"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "sourceBlockers": {"type": "array", "items": {"type": "string", "minLength": 1}},
+        "phase": {"enum": ["G2", "G3", "G4", "G5"]},
+        "status": {"const": "PENDING-RUNTIME"},
+        "mayBeClosedBeforeRuntime": {"const": false},
+        "preconditions": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+        "acceptance": {"type": "string", "minLength": 1},
+        "onFailure": {"const": "STOP-NOT-SUCCESS"}
+      }
+    },
+    "deferredScenario": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "status", "includedInGO1"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "status": {"const": "DEFERRED-SEPARATE-GATE"},
+        "includedInGO1": {"const": false}
+      }
+    }
+  }
+}
