@@ -1,0 +1,112 @@
+apiVersion: test.openkubes.io/v1alpha1
+kind: PrerequisiteProtocol
+metadata:
+  name: ok141-m0a-caaph-v0.6.4-binding-v2
+  ticket: OK-141
+  baseCommit: 658ea799336adb1c507c7f3635f62a5ea4aa6c3c
+spec:
+  protocolVersion: ok141-m0a/v2
+  protocolState: BLOCKED
+  fixture:
+    version: phase-r-v4
+    path: ../harness/fixtures/execution/phase-r-v4.json
+    fixtureDigest: sha256:a2ae3437645db5a83426b89d36d00693d2600e4ef20dc1aba2650dcda7f936f6
+    R: sha256:636fe23404ac53109f44d6346534dcf1367ae91c572d5e18bd32cd0a3128a16e
+    E: sha256:2a849d69e9c64344e907c1bce3bb1abf3d8f77217377081a5be055d62c213300
+  authorization:
+    decision: NO-GO
+    m0aGranted: false
+    go1Granted: false
+    authorizedProtocolDigest: null
+    authority: UNASSIGNED
+    rule: This draft digest proves document identity only and grants no authority.
+  target:
+    plane: ok-mgmt
+    namespace: caaph-system
+    architecture: linux/amd64
+  baseline:
+    observedAt: "2026-08-09"
+    capiVersion: v1.13.4
+    certManagerVersion: v1.20.1
+    caaphAPI: ABSENT
+    caaphController: ABSENT
+  installation:
+    inventoryPath: ../m0a/caaph-installation-inventory.yaml
+    rbacReviewPath: ../m0a/caaph-rbac-review.yaml
+    version: v0.6.4
+    upstreamCommit: 825662962a26dc339f3871184c91ed4bd2f83a4f
+    releaseAssetDigest: sha256:a70f4eb77eac626231daca1e2a046b4b069bb84320efa327cc8c56a9c4ca03e6
+    controllerImageIndexDigest: sha256:97d2a86f8e35d23bb4656b26f4564b35f109e47a0dc4860b71089e52eb6e6a24
+    controllerImagePlatformDigest: sha256:66344ab0107c0a3fcbce860697206ac7e6a2316a7af4a07f81a9f8d53e448e6a
+    reviewedObjectCount: 19
+    applyEnabled: false
+  artifactResolution:
+    repository: oci://quay.io/cilium/charts
+    chart: cilium
+    version: 1.19.6
+    ociManifestDigest: sha256:b8d600c542c97dc8652429e12487ecce922d73de9785505457a8f653833e75f9
+    chartContentDigest: sha256:21c43cf53841f9ab0375047d95aa4c64051ea52bbd2c679416e6408f5f1c9179
+    fixtureArtifactDigest: sha256:21c43cf53841f9ab0375047d95aa4c64051ea52bbd2c679416e6408f5f1c9179
+    equalityProvenReadOnly: true
+    caaphDigestFieldAvailable: false
+    enforcement: EXTERNAL-EVIDENCE-NOT-CONTROLLER-ENFORCED
+    acceptanceRule: Resolve before submission and after reconciliation; retain raw registry and fetched-content evidence; fail closed on any mismatch.
+  candidate:
+    path: helmchartproxy-v4-candidate.yaml
+    objectDigest: sha256:7fd0a0831ddccac1b2ca4beb3f5ca968e48ba446de104876897180a768e257fb
+    status: BLOCKED-NOT-AUTHORIZED
+    submitEnabled: false
+    safetyRule: The candidate is valid YAML; repository metadata does not prevent apply and is not authorization.
+    targetSelection:
+      expectedNamespace: disposable-ok141
+      expectedClusterName: disposable-ok141
+      expectedClusterUID: RUNTIME-UNRESOLVED
+      matchingClusterCount: 1
+  submitter:
+    rolePath: ../m0a/submitter-role-candidate.yaml
+    roleStatus: RENDERED-NOT-PROVEN
+    roleBindingStatus: ABSENT-BY-DESIGN
+    identity: UNRESOLVED
+    exactObjectAdmission: UNRESOLVED
+  ownership:
+    hcpWriter: reviewed-bounded-submitter
+    hrpWriter: caaph-controller-only
+    helmReleaseOwner: caaph-and-helm
+    runtimeNetworkOwner: cilium-and-kubernetes
+    networkReadyOwner: bounded-evaluator
+    openKubesPackageReconcilerRequired: false
+  blockers:
+    - {id: M0A-AUTHORITY, status: BLOCKED, closure: Assign an authority to approve exactly one reviewed prerequisite run and digest.}
+    - {id: M0A-INSTALL-RBAC, status: BLOCKED, closure: Review exact 19-object inventory and prove controller plus rendered submitter least-privilege access.}
+    - {id: M0A-SUBMISSION-BOUNDARY, status: BLOCKED, closure: Bind a short-lived identity and exact-object digest/admission path because RBAC create cannot restrict object content.}
+    - {id: M0A-CHART-ENFORCEMENT, status: BLOCKED, closure: Accept or replace the external digest-evidence model because CAAPH cannot enforce the content digest.}
+    - {id: M0A-CONTROLLER-PATH, status: BLOCKED, closure: Prove CAAPH can reach the disposable workload API without exposing its kubeconfig to the submitter.}
+    - {id: M0A-TARGET-UID, status: BLOCKED, closure: Bind the runtime CAPI Cluster UID and prove exactly one selected target.}
+    - {id: M0A-RESTART-RETRY, status: BLOCKED, closure: Separately authorize and prove controller restart plus failed Helm operation retry semantics.}
+    - {id: M0A-EVIDENCE, status: BLOCKED, closure: Bind independent evidence destination observers UTC skew and redaction rules.}
+    - {id: M0A-RECOVERY, status: BLOCKED, closure: Bind verified ok-mgmt recovery evidence and an abort path before installation.}
+  phases:
+    - {id: M0A-G0, name: verify-baseline-and-digests, mutating: false, enabled: false}
+    - {id: M0A-G1, name: install-reviewed-caaph-inventory, mutating: true, enabled: false}
+    - {id: M0A-G2, name: verify-api-webhooks-rbac-and-image, mutating: false, enabled: false}
+    - {id: M0A-G3, name: submit-current-fixture-hcp, mutating: true, enabled: false}
+    - {id: M0A-G4, name: observe-hrp-and-chart-resolution, mutating: false, enabled: false}
+    - {id: M0A-G5, name: controlled-restart-and-retry-proof, mutating: true, enabled: false}
+    - {id: M0A-G6, name: verify-evidence-and-close, mutating: false, enabled: false}
+  acceptance:
+    - exact release asset and controller platform image digests are observed
+    - exactly the reviewed 19-object inventory exists on ok-mgmt
+    - both CAAPH CRDs are Established and webhooks plus controller are Available
+    - submitter RBAC cannot read arbitrary Secrets or write HelmReleaseProxy objects
+    - controller cluster-wide Secret and provider-object visibility is explicitly accepted for this bounded prerequisite or the run remains blocked
+    - registry resolution and fetched chart content equal the bound manifest and artifact digests
+    - current HCP selects exactly one current CAPI Cluster UID
+    - exactly one HRP has the current HCP as controller owner and current-generation conditions
+    - controller restart does not orphan accepted desired state and retry converges once
+    - evidence remains attributable without treating an annotation or Helm revision as E
+  exclusions:
+    - GO-1 cluster submission
+    - worker or executor failure injection
+    - arbitrary rendered-resource drift repair claim
+    - NetworkReady equals Helm release Ready
+    - delete finalizer break-glass management outage or DR
