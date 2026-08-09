@@ -1,5 +1,10 @@
 # OK-141 Read-only Closure Plan
 
+> **Historical R1-R8 baseline:** the identities below describe the merged Phase-R v1
+> checkpoint. The GO-1 preflight subsequently proved that this fixture was
+> semantically incomplete for execution. It remains valid historical evidence and is
+> superseded, not mutated, by `phase-r-cluster-semantics-amendment.md`.
+
 Status: **Phase-R closure candidate complete; review pending**
 
 Recorded: 2026-08-09

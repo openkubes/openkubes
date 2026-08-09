@@ -1,0 +1,34 @@
+{
+  "format": "ok141-enable-profile/v1",
+  "profile": "cilium-fixture-v2",
+  "target": {
+    "clusterName": "disposable-ok141",
+    "contractIdentity": {
+      "namespace": "disposable-ok141",
+      "name": "disposable-ok141"
+    }
+  },
+  "package": {
+    "type": "helm",
+    "name": "cilium",
+    "version": "1.19.6",
+    "artifactDigest": "sha256:21c43cf53841f9ab0375047d95aa4c64051ea52bbd2c679416e6408f5f1c9179",
+    "valuesDigest": "sha256:a02a2a8b5c5213c86e482ef7421884281d00d3bae1f27c34d67b3726df12d410"
+  },
+  "renderedImages": [
+    "quay.io/cilium/cilium-envoy:v1.36.9-1782267392-edeb3f2af56c37c407efa1f63f0b32f595399bbc@sha256:767101fb8a5e38f055778cb43b7aa8eed80450b37f8121effac3d9de9e06dc99",
+    "quay.io/cilium/cilium:v1.19.6@sha256:0df5b2750b64c49843aba1d649e9eaf61467cb0645ad3171db6f6962c095ac92",
+    "quay.io/cilium/operator-generic:v1.19.6@sha256:0db4ca4e06969d8904ee036617795d0e9c3228cf7b8d902ba74fc2bb98d2d665"
+  ],
+  "requiredSources": [
+    "cilium-daemonset-current-generation",
+    "cilium-operator-current-generation",
+    "all-nodes-ready",
+    "cilium-status",
+    "profile-functional-network-probe"
+  ],
+  "ownerCandidate": {
+    "mechanism": "cluster-api-addon-provider-helm",
+    "status": "configurable-not-proven"
+  }
+}
