@@ -84,3 +84,21 @@ python3 architecture/spikes/ADR-Platform-030/harness/ok141_phase_r_v3.py \
 
 Phase-R v3 supersedes v2 only for future GO-1 planning. It does not mutate or
 invalidate historical v1/v2 evidence and remains `NO-GO`.
+
+Verify the additive authoritative-source amendment and Phase-R v4 fixture:
+
+```bash
+python3 architecture/spikes/ADR-Platform-030/harness/ok141_platform_source_amendment.py \
+  --profile architecture/spikes/ADR-Platform-030/harness/profiles/platform/minimal-observability-v4/profile.json \
+  --applications architecture/spikes/ADR-Platform-030/harness/profiles/platform/minimal-observability-v4/applications.yaml \
+  --provider-values architecture/spikes/ADR-Platform-030/harness/profiles/platform/minimal-observability-v4/provider-values.yaml
+
+python3 architecture/spikes/ADR-Platform-030/harness/ok141_phase_r_v4.py \
+  --root architecture/spikes/ADR-Platform-030/harness \
+  --input architecture/spikes/ADR-Platform-030/harness/fixtures/execution/phase-r-v4.json
+```
+
+Phase-R v4 binds the package closure committed by `ok-observability` source
+amendment `b5f7be6`. It supersedes v3 only for future protocol planning,
+preserves v1-v3 as historical evidence, performs no submission, and remains
+`NO-GO`.
