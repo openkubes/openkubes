@@ -1,0 +1,74 @@
+apiVersion: addons.cluster.x-k8s.io/v1alpha1
+kind: HelmChartProxy
+metadata:
+  name: disposable-ok141-cilium
+  namespace: disposable-ok141
+  annotations:
+    openkubes.io/candidate-status: blocked-no-go
+    openkubes.io/intent-revision: sha256:d49e844113bdd96868eb9dec2d6672dfcc98ccb7a0bd43f2c6b53aabc2adda62
+    openkubes.io/enablement-revision: sha256:2a849d69e9c64344e907c1bce3bb1abf3d8f77217377081a5be055d62c213300
+    openkubes.io/execution-fixture: sha256:b27bb7c8e959e2c1028fcc0822755caa795ce21432344a64a62474abeb7f9f2b
+    openkubes.io/chart-artifact-digest: sha256:21c43cf53841f9ab0375047d95aa4c64051ea52bbd2c679416e6408f5f1c9179
+    openkubes.io/values-digest: sha256:a02a2a8b5c5213c86e482ef7421884281d00d3bae1f27c34d67b3726df12d410
+spec:
+  clusterSelector:
+    matchLabels:
+      openkubes.io/type: talos
+      openkubes.io/provider: kubevirt
+  chartName: cilium
+  # .invalid is deliberately non-routable. M0a must replace it with a reviewed,
+  # immutable registry coordinate and then recompute the protocol digest.
+  repoURL: oci://registry.invalid/openkubes/charts
+  releaseName: cilium
+  namespace: kube-system
+  version: 1.19.6
+  reconcileStrategy: Continuous
+  valuesTemplate: |
+    operator:
+      replicas: 1
+    ipam:
+      mode: kubernetes
+    kubeProxyReplacement: true
+    k8sServiceHost: localhost
+    k8sServicePort: 7445
+    tunnelPort: 8473
+    k8sClientRateLimit:
+      qps: 10
+      burst: 20
+    securityContext:
+      capabilities:
+        ciliumAgent:
+          - CHOWN
+          - KILL
+          - NET_ADMIN
+          - NET_RAW
+          - IPC_LOCK
+          - SYS_ADMIN
+          - SYS_RESOURCE
+          - DAC_OVERRIDE
+          - FOWNER
+          - SETGID
+          - SETUID
+        cleanCiliumState:
+          - NET_ADMIN
+          - SYS_ADMIN
+          - SYS_RESOURCE
+    cgroup:
+      autoMount:
+        enabled: false
+      hostRoot: /sys/fs/cgroup
+  options:
+    atomic: true
+    wait: true
+    waitForJobs: true
+    timeout: 15m
+    takeOwnership: false
+    install:
+      createNamespace: false
+    upgrade:
+      resetValues: true
+      reuseValues: false
+      cleanupOnFail: true
+      maxHistory: 3
+    uninstall:
+      keepHistory: false

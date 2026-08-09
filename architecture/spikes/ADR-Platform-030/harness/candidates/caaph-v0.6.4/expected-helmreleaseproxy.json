@@ -1,0 +1,43 @@
+{
+  "format": "ok141-caaph-helmreleaseproxy-assertion/v1",
+  "generatedBy": "HelmChartProxy/disposable-ok141-cilium",
+  "object": {
+    "apiVersion": "addons.cluster.x-k8s.io/v1alpha1",
+    "kind": "HelmReleaseProxy",
+    "namespace": "disposable-ok141",
+    "generateName": "cilium-disposable-ok141-",
+    "controllerOwner": {
+      "apiVersion": "addons.cluster.x-k8s.io/v1alpha1",
+      "kind": "HelmChartProxy",
+      "name": "disposable-ok141-cilium"
+    },
+    "labels": {
+      "cluster.x-k8s.io/cluster-name": "disposable-ok141",
+      "helmreleaseproxy.addons.cluster.x-k8s.io/helmchartproxy-name": "disposable-ok141-cilium"
+    },
+    "spec": {
+      "clusterRef": {
+        "apiVersion": "cluster.x-k8s.io/v1beta2",
+        "kind": "Cluster",
+        "namespace": "disposable-ok141",
+        "name": "disposable-ok141"
+      },
+      "chartName": "cilium",
+      "repoURL": "oci://registry.invalid/openkubes/charts",
+      "releaseName": "cilium",
+      "releaseNamespace": "kube-system",
+      "version": "1.19.6",
+      "reconcileStrategy": "Continuous"
+    }
+  },
+  "runtimeAcceptance": {
+    "matchingClusterCount": 1,
+    "requireExactClusterUID": true,
+    "requireCurrentObservedGeneration": true,
+    "requireReleaseReady": true,
+    "requireReleaseStatus": "deployed",
+    "helmRevisionIsEnablementRevision": false,
+    "requireIndependentEnablementRevisionCorrelation": true
+  },
+  "authorization": "NO-GO"
+}
