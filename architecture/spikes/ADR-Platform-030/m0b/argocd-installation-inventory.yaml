@@ -1,0 +1,60 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: ReviewedInstallationInventory
+metadata:
+  name: argocd-v3.4.2-ha-namespace
+spec:
+  upstream:
+    repository: https://github.com/argoproj/argo-cd
+    tag: v3.4.2
+    commit: 0dc6b1b57dd5bb925d5b03c3d09419ab9fb4225e
+    profile: manifests/ha/namespace-install.yaml
+    profileDigest: sha256:cfe6b1e3c0fc483d2c93822cac53bf2542fd5035161a3d30ba781486378bcc57
+  separatePrerequisites:
+    namespace: argocd
+    crds:
+      - {name: applications.argoproj.io, path: manifests/crds/application-crd.yaml, digest: sha256:fa8a0c7f8127f85bbbf57467e7c659ec7d47e7d162cc76c1b07482ebf2b98f49}
+      - {name: applicationsets.argoproj.io, path: manifests/crds/applicationset-crd.yaml, digest: sha256:51f69883c692698fbcf3c82455c07c0f6413899ac9d96565a9e8395c0196f58d}
+      - {name: appprojects.argoproj.io, path: manifests/crds/appproject-crd.yaml, digest: sha256:7b99337686905b444864c84b1305938a7bfbca9b5f4e2c5d5d2de4acae16ceb3}
+  target:
+    plane: ok-shared
+    architecture: linux/amd64
+  objectInventory:
+    manifestObjects: 61
+    separateObjects: 4
+    total: 65
+    byKind:
+      ConfigMap: 9
+      Deployment: 6
+      NetworkPolicy: 8
+      Role: 7
+      RoleBinding: 7
+      Secret: 2
+      Service: 12
+      ServiceAccount: 8
+      StatefulSet: 2
+    separateByKind: {Namespace: 1, CustomResourceDefinition: 3}
+  images:
+    - reference: quay.io/argoproj/argocd:v3.4.2
+      indexDigest: sha256:c612d570cb6d6ff29afb72932c1bfe98a1ecc234df50f8ea4873fb7066e760fc
+      linuxAmd64Digest: sha256:a8679d1bbf7679ad27bf39fadbd30e486f59446eadd4f5c2c11ce6a41053a216
+    - reference: ghcr.io/dexidp/dex:v2.45.0
+      indexDigest: sha256:b8469881d3cb3a73001506f0d3aaefecb9c45d2311c1e0f405d8ac538316c59d
+      linuxAmd64Digest: sha256:8a9281c3a115180415b0726ca160e38fc40f9284bc9a2d1032c839a3a934695c
+    - reference: public.ecr.aws/docker/library/haproxy:3.0.8-alpine
+      indexDigest: sha256:e11f034e651603f10a365e5ad5a0321825e18eded9620e40c4f4d6ae58419bfe
+      linuxAmd64Digest: sha256:3ad414bdb5c94d712e0e9a7dc1517eca45cce652afc85a002fd7bb42b44d5dde
+    - reference: public.ecr.aws/docker/library/redis:8.2.3-alpine
+      indexDigest: sha256:08ad0b1d280850169a790dba1393ff7a90aef951fc19632cf4d3ce4f78e679ba
+      linuxAmd64Digest: sha256:e499175dfb27569cd40010c2eee346113db95fdd0efc88ab9fd70a9e807f4542
+  baseline:
+    observedAt: "2026-08-09"
+    nodes: {count: 4, controlPlaneCount: 1, workerCount: 3, architecture: amd64, kubeletVersion: v1.34.1}
+    argocdNamespacePresent: false
+    argocdCRDsPresent: false
+    argocdControllerPresent: false
+    metricsAPIAvailable: false
+    storageClass: {name: local-path, reclaimPolicy: Delete, volumeBindingMode: WaitForFirstConsumer}
+  compatibility:
+    controlPlaneKubernetes: SUPPORTED-v1.34.1
+    disposableTargetKubernetes: UNTESTED-v1.36.2
+  authorization: {decision: NO-GO, applyEnabled: false}
