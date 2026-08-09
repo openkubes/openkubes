@@ -1,0 +1,101 @@
+{
+  "format": "ok141-execution-fixture/v3",
+  "fixtureVersion": "phase-r-v3",
+  "fixtureDigest": "sha256:67fa2e63bba98d8cc70f680e8df56dea5803c0a0d8c5db81ab78578daacebd9f",
+  "fixtureSchema": {"path": "schema/execution-fixture-v3.schema.json", "digest": "sha256:71dc4113562eb1308f5506addb084caf12a785b7272cb1e45d432df1becb0c5c"},
+  "authorizationState": "NO-GO",
+  "supersedes": {
+    "fixtureVersion": "phase-r-v2",
+    "fixtureDigest": "sha256:b27bb7c8e959e2c1028fcc0822755caa795ce21432344a64a62474abeb7f9f2b",
+    "disposition": "valid-historical-superseded-not-mutated",
+    "reason": "T2b proved that P-prime omitted Provider Values, required alerting/dashboard artifacts, namespace/security semantics, complete sync behavior, and an immutable target identity reference."
+  },
+  "contractIdentity": {"namespace": "disposable-ok141", "name": "disposable-ok141"},
+  "contract": {
+    "path": "fixtures/contracts-v3/base.yaml",
+    "schemaPath": "schema/contract-v2.schema.json",
+    "canonicalizationProfile": "openkubes-contract-c14n/v1",
+    "rawArtifactDigest": "sha256:51fba19a909af68dcfc773131bdefb0c0b2b3773dfe4e10c4be3f0631c02b40c",
+    "schemaDigest": "sha256:8e8dbdee077ffcc6ab06ab323b53a93723c7841183e75925d4d0b812efdcc5e8",
+    "R": "sha256:62e4d20fdd352474f4a5d2ea6639d7d63fa494af58b9b4532169bd96437d9f78"
+  },
+  "clusterSemantics": {
+    "kubernetesVersion": "v1.36.2",
+    "infrastructure": {
+      "provider": "kubevirt",
+      "profile": {"name": "ok-infra", "identity": "sha256:60fc84a67c33a41661c68ffadd646a13fd5ffd09f2a3d536f0eac1b909befc89", "nodeSelector": "ok-infra", "cloneTargetStorageClass": "ok-storage-block", "replicaCount": 2, "snapshotClass": "ok-storage-block-snapshot"},
+      "controlPlaneEndpoint": {"mode": "provider-allocated", "serviceType": "LoadBalancer", "addressFamily": "IPv4", "allocationAuthority": "CAPK+MetalLB"}
+    },
+    "operatingSystem": {
+      "distribution": "ok-linux", "profile": "kubevirt", "version": "v1.9.6", "architecture": "amd64",
+      "schematicID": "ce4c980550dd2ab1b17bbf2b08801c7eb59418eafe8f279833297925d67c7515",
+      "imageDigest": "sha256:461d72d30750b9e18cf0656239e0274764b1e391bde5bbc41084a887b8a55ed5",
+      "identity": "sha256:7f5dd4276432f522727a50e604538b6befc0cac51ee2b90d4b1ccbfcac774a2d",
+      "goldenImage": {"namespace": "ok-images", "claim": "talos-v1-9-6-ce4c980550dd-461d72d30750-amd64", "storageClass": "ok-storage-block"}
+    },
+    "topology": {"controlPlane": {"replicas": 1, "machine": {"cores": 2, "memory": "4Gi", "disk": "20Gi"}}, "workers": {"replicas": 1, "machine": {"cores": 2, "memory": "4Gi", "disk": "15Gi"}}},
+    "connectivity": {"profile": "datacenter-isolated-v1", "podCIDR": "10.40.0.0/16", "serviceCIDR": "10.100.0.0/20", "forbiddenCIDRs": ["192.168.100.0/24"]}
+  },
+  "projection": {
+    "format": "ok141-contract-to-capi-projection/v1",
+    "manifestPath": "projections/phase-r-v3/projection-manifest.json",
+    "manifestDigest": "sha256:198922b599f73833249f5f13de61e72a39aab9508e0cee44d5a7ff2ef0ca81b3",
+    "authorityMapPath": "projections/phase-r-v3/authority-map.json",
+    "managementObjectsPath": "projections/phase-r-v3/ok-mgmt-lifecycle.yaml",
+    "infrastructurePrerequisitesPath": "projections/phase-r-v3/ok-infra-prerequisites.yaml",
+    "objectSets": {
+      "rendererSource": {"count": 10, "digest": "sha256:587ae8d06b22535168454cd69b79dd381457e529a7ab7171a78742db236a2910"},
+      "okMgmtLifecycle": {"count": 8, "digest": "sha256:1666c1002ff5f12a6946936c1501dc08752501ee28c920bc884eb6484570b817"},
+      "okInfraPrerequisites": {"count": 3, "digest": "sha256:2ab902814fddf5e9e7606fbecfe74d4379a958119462a29655fe81faac02878b"}
+    }
+  },
+  "enablement": {
+    "profilePath": "profiles/enablement/cilium-fixture-v2/profile.json",
+    "valuesPath": "profiles/enablement/cilium-fixture-v2/values.yaml",
+    "E": "sha256:2a849d69e9c64344e907c1bce3bb1abf3d8f77217377081a5be055d62c213300",
+    "convergenceOwnerCandidate": "cluster-api-addon-provider-helm",
+    "candidateStatus": "configurable-not-proven"
+  },
+  "platform": {
+    "profilePath": "profiles/platform/minimal-observability-v3/profile.json",
+    "applicationsPath": "profiles/platform/minimal-observability-v3/applications.yaml",
+    "providerValuesPath": "profiles/platform/minimal-observability-v3/provider-values.yaml",
+    "profile": "minimal-observability-v3",
+    "P": "sha256:0dcfbe10f271aeb7e82d94fbad0ff2691dec67f69c7452578662df09a650439b",
+    "applicationSetDigest": "sha256:22a076bd28fbb075ed515f63e27030194345a6434afa159cbb93df4dda6ecb0f",
+    "providerValuesDigest": "sha256:7b134ad97acb9f026fe94ff40a90dd811267c1ffe31183e52dc877a012684d1d",
+    "sourceCommit": "fe394da8875adecc3b497137e546cecabd710d1d",
+    "immutableTargetIdentityScheme": "capi-cluster-uid/v1",
+    "convergenceOwnerCandidate": "argo-cd",
+    "candidateStatus": "configurable-not-proven",
+    "registrationAndRBAC": "outside-P-blocked-for-M0b"
+  },
+  "conditions": {"profilePath": "profiles/conditions/disposable-ready-v1.json", "profileDigest": "sha256:69bef08a6ff04b940844439d81554828dea83cde84450a6602c508834271d9a3"},
+  "tools": {
+    "canonicalizerVersion": "openkubes-contract-c14n/v1",
+    "evaluatorVersion": "ok141-evaluator/v1",
+    "projectionVersion": "ok141-contract-to-capi-projection/v1",
+    "platformAmendmentToolDigest": "sha256:cf143bd5489e56417041ad8f547db57b6bb1da4036fe75d2e43badad31392c94",
+    "phaseRV3ToolDigest": "sha256:6815b492d3110b81f3f37f83fd172ad36f0d12e40d119e3e21c0503a19d19185"
+  },
+  "evidence": {"schemaId": "ok141-evidence/v1", "schemaPath": "schema/evidence-manifest-v1.schema.json", "schemaDigest": "sha256:97442f98e85bb2d5975ba028209331a4b017cb8492fe0f791fa29da6ee721ad1", "finalBundleChecksumRequired": true},
+  "positiveAssertions": [
+    {"id": "PA-R", "claim": "The amended Cluster contract reproduces R-double-prime."},
+    {"id": "PA-PROJECTION", "claim": "Every projected lifecycle and prerequisite object carries R-double-prime."},
+    {"id": "PA-E", "claim": "The historical target-bound Enablement profile still reproduces E-prime."},
+    {"id": "PA-P", "claim": "The complete Platform profile, Provider Values, exact Application membership, target reference, and capability checks reproduce P-double-prime."},
+    {"id": "PA-BOUNDARY", "claim": "Registration credentials and AppProject RBAC remain outside P-double-prime."}
+  ],
+  "negativeControls": [
+    {"id": "NC-R-WRONG", "expectedReady": "Unknown"}, {"id": "NC-E-WRONG", "expectedReady": "Unknown"},
+    {"id": "NC-P-WRONG", "expectedReady": "Unknown"}, {"id": "NC-STALE-GENERATION", "expectedReady": "Unknown"},
+    {"id": "NC-MISSING-SOURCE", "expectedReady": "Unknown"}, {"id": "NC-CONFLICTING-AUTHORITY", "expectedReady": "Unknown"},
+    {"id": "NC-HISTORICAL-SUCCESS", "expectedReady": "False"}, {"id": "NC-TAMPERED-EVIDENCE", "expectedReady": "NotEvaluated"}
+  ],
+  "expectedEvidence": {
+    "platform": ["exact three-Application membership", "P-double-prime", "current applied commit", "current Synced and Healthy", "current capability-check evidence"],
+    "target": ["registration Secret UID", "current CAPI Cluster UID", "live kube-system Namespace UID", "workload API CA fingerprint"],
+    "securityPrerequisites": ["redacted registration proof", "least-privilege AppProject/RBAC inventory", "no credential material retained"],
+    "bundle": ["artifact hashes", "correlation manifest", "final bundle checksum"]
+  }
+}

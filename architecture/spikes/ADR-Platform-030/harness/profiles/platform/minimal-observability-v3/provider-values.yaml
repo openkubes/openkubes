@@ -1,0 +1,50 @@
+ok-observability-prometheus:
+  kube-prometheus-stack:
+    prometheus:
+      prometheusSpec:
+        retention: 3d
+        resources:
+          requests: {cpu: 250m, memory: 512Mi}
+          limits: {memory: 1Gi}
+        storageSpec:
+          volumeClaimTemplate:
+            spec:
+              storageClassName: local-path
+              resources:
+                requests:
+                  storage: 5Gi
+    alertmanager:
+      alertmanagerSpec:
+        resources:
+          requests: {cpu: 50m, memory: 64Mi}
+        storage:
+          volumeClaimTemplate:
+            spec:
+              storageClassName: local-path
+              resources:
+                requests:
+                  storage: 1Gi
+ok-observability-grafana:
+  grafana:
+    persistence:
+      enabled: true
+      storageClassName: local-path
+      size: 1Gi
+    resources:
+      requests: {cpu: 100m, memory: 128Mi}
+      limits: {memory: 256Mi}
+    ingress:
+      enabled: false
+ok-observability-opensearch:
+  opensearch:
+    persistence:
+      enabled: true
+      storageClass: local-path
+      size: 5Gi
+    resources:
+      requests: {cpu: 250m, memory: 1Gi}
+      limits: {memory: 2Gi}
+  fluent-bit:
+    resources:
+      requests: {cpu: 50m, memory: 64Mi}
+      limits: {memory: 128Mi}

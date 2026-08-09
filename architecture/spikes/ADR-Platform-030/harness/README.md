@@ -68,3 +68,19 @@ python3 architecture/spikes/ADR-Platform-030/harness/ok141_phase_r_v2.py \
 Kubernetes client or apply command. Its checked-in object sets state exactly what a
 future submission mechanism would have to reproduce; they do not authorize that
 submission.
+
+Verify the additive Platform-fixture amendment and Phase-R v3 fixture:
+
+```bash
+python3 architecture/spikes/ADR-Platform-030/harness/ok141_platform_amendment.py \
+  --profile architecture/spikes/ADR-Platform-030/harness/profiles/platform/minimal-observability-v3/profile.json \
+  --applications architecture/spikes/ADR-Platform-030/harness/profiles/platform/minimal-observability-v3/applications.yaml \
+  --provider-values architecture/spikes/ADR-Platform-030/harness/profiles/platform/minimal-observability-v3/provider-values.yaml
+
+python3 architecture/spikes/ADR-Platform-030/harness/ok141_phase_r_v3.py \
+  --root architecture/spikes/ADR-Platform-030/harness \
+  --input architecture/spikes/ADR-Platform-030/harness/fixtures/execution/phase-r-v3.json
+```
+
+Phase-R v3 supersedes v2 only for future GO-1 planning. It does not mutate or
+invalidate historical v1/v2 evidence and remains `NO-GO`.
