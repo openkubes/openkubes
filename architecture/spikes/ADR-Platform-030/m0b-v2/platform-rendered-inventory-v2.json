@@ -1,0 +1,997 @@
+{
+  "artifactLock": {
+    "digest": "sha256:cdcc6f63b6202a89e90510ddb371cfd3130ff2ebc450336b3ee66e0f1fa85bf5",
+    "path": "profiles/ok-observability-standard/artifact-lock.json"
+  },
+  "authorization": "NO-GO",
+  "coreRenderedRawDigest": "sha256:2adb637ca1b4bfd528abc660c102019057cdad5389b989ea1a2d7a5e9c5b7ecf",
+  "dependencyArtifacts": [
+    {
+      "digest": "sha256:241acee7834df7d2de6697f505b64a0ae5105fe2771bf3d34cfca66361fe94f0",
+      "path": "profiles/ok-observability-standard/charts/ok-observability-prometheus-0.1.0.tgz",
+      "trackedAtSourceCommit": true
+    },
+    {
+      "digest": "sha256:1d80132e47136ef2d0d67eca1f77d63d8a8397bff7fdc31b632cc420a277e5d8",
+      "path": "profiles/ok-observability-standard/charts/ok-observability-grafana-0.1.0.tgz",
+      "trackedAtSourceCommit": true
+    },
+    {
+      "digest": "sha256:c9c8eaf2f32891cafc04eb273804fb11ed7a26c2f94b9367e4c5b879f1b609d7",
+      "path": "profiles/ok-observability-standard/charts/ok-observability-opensearch-0.1.0.tgz",
+      "trackedAtSourceCommit": true
+    }
+  ],
+  "format": "ok141-platform-rendered-inventory/v2",
+  "inventoryDigest": "sha256:a14300e9cf7f36b3c4468744aac9403bd48cfe3597eb8c6832e36f5c47a361cf",
+  "objectCount": 120,
+  "objects": [
+    {
+      "apiVersion": "monitoring.coreos.com/v1",
+      "generateName": null,
+      "kind": "PrometheusRule",
+      "name": "ok-observability-platform-rules",
+      "namespace": "ok-observability",
+      "source": "alerting"
+    },
+    {
+      "apiVersion": "admissionregistration.k8s.io/v1",
+      "generateName": null,
+      "kind": "MutatingWebhookConfiguration",
+      "name": "ok-observability-admission",
+      "namespace": null,
+      "source": "core"
+    },
+    {
+      "apiVersion": "admissionregistration.k8s.io/v1",
+      "generateName": null,
+      "kind": "ValidatingWebhookConfiguration",
+      "name": "ok-observability-admission",
+      "namespace": null,
+      "source": "core"
+    },
+    {
+      "apiVersion": "apiextensions.k8s.io/v1",
+      "generateName": null,
+      "kind": "CustomResourceDefinition",
+      "name": "alertmanagerconfigs.monitoring.coreos.com",
+      "namespace": null,
+      "source": "core"
+    },
+    {
+      "apiVersion": "apiextensions.k8s.io/v1",
+      "generateName": null,
+      "kind": "CustomResourceDefinition",
+      "name": "alertmanagers.monitoring.coreos.com",
+      "namespace": null,
+      "source": "core"
+    },
+    {
+      "apiVersion": "apiextensions.k8s.io/v1",
+      "generateName": null,
+      "kind": "CustomResourceDefinition",
+      "name": "podmonitors.monitoring.coreos.com",
+      "namespace": null,
+      "source": "core"
+    },
+    {
+      "apiVersion": "apiextensions.k8s.io/v1",
+      "generateName": null,
+      "kind": "CustomResourceDefinition",
+      "name": "probes.monitoring.coreos.com",
+      "namespace": null,
+      "source": "core"
+    },
+    {
+      "apiVersion": "apiextensions.k8s.io/v1",
+      "generateName": null,
+      "kind": "CustomResourceDefinition",
+      "name": "prometheusagents.monitoring.coreos.com",
+      "namespace": null,
+      "source": "core"
+    },
+    {
+      "apiVersion": "apiextensions.k8s.io/v1",
+      "generateName": null,
+      "kind": "CustomResourceDefinition",
+      "name": "prometheuses.monitoring.coreos.com",
+      "namespace": null,
+      "source": "core"
+    },
+    {
+      "apiVersion": "apiextensions.k8s.io/v1",
+      "generateName": null,
+      "kind": "CustomResourceDefinition",
+      "name": "prometheusrules.monitoring.coreos.com",
+      "namespace": null,
+      "source": "core"
+    },
+    {
+      "apiVersion": "apiextensions.k8s.io/v1",
+      "generateName": null,
+      "kind": "CustomResourceDefinition",
+      "name": "scrapeconfigs.monitoring.coreos.com",
+      "namespace": null,
+      "source": "core"
+    },
+    {
+      "apiVersion": "apiextensions.k8s.io/v1",
+      "generateName": null,
+      "kind": "CustomResourceDefinition",
+      "name": "servicemonitors.monitoring.coreos.com",
+      "namespace": null,
+      "source": "core"
+    },
+    {
+      "apiVersion": "apiextensions.k8s.io/v1",
+      "generateName": null,
+      "kind": "CustomResourceDefinition",
+      "name": "thanosrulers.monitoring.coreos.com",
+      "namespace": null,
+      "source": "core"
+    },
+    {
+      "apiVersion": "apps/v1",
+      "generateName": null,
+      "kind": "DaemonSet",
+      "name": "disposable-ok141-observability-core-prometheus-node-exporter",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "apps/v1",
+      "generateName": null,
+      "kind": "DaemonSet",
+      "name": "ok-observability-log-collector",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "apps/v1",
+      "generateName": null,
+      "kind": "Deployment",
+      "name": "disposable-ok141-observability-core-kube-state-metrics",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "apps/v1",
+      "generateName": null,
+      "kind": "Deployment",
+      "name": "ok-observability-grafana",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "apps/v1",
+      "generateName": null,
+      "kind": "Deployment",
+      "name": "ok-observability-operator",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "apps/v1",
+      "generateName": null,
+      "kind": "StatefulSet",
+      "name": "ok-observability-opensearch",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "batch/v1",
+      "generateName": null,
+      "kind": "Job",
+      "name": "ok-observability-admission-create",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "batch/v1",
+      "generateName": null,
+      "kind": "Job",
+      "name": "ok-observability-admission-patch",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "monitoring.coreos.com/v1",
+      "generateName": null,
+      "kind": "Alertmanager",
+      "name": "ok-observability-alertmanager",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "monitoring.coreos.com/v1",
+      "generateName": null,
+      "kind": "Prometheus",
+      "name": "ok-observability-prometheus",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "monitoring.coreos.com/v1",
+      "generateName": null,
+      "kind": "PrometheusRule",
+      "name": "ok-observability-alertmanager.rules",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "monitoring.coreos.com/v1",
+      "generateName": null,
+      "kind": "PrometheusRule",
+      "name": "ok-observability-config-reloaders",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "monitoring.coreos.com/v1",
+      "generateName": null,
+      "kind": "PrometheusRule",
+      "name": "ok-observability-etcd",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "monitoring.coreos.com/v1",
+      "generateName": null,
+      "kind": "PrometheusRule",
+      "name": "ok-observability-general.rules",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "monitoring.coreos.com/v1",
+      "generateName": null,
+      "kind": "PrometheusRule",
+      "name": "ok-observability-k8s.rules.container-cpu-usage-seconds-total",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "monitoring.coreos.com/v1",
+      "generateName": null,
+      "kind": "PrometheusRule",
+      "name": "ok-observability-k8s.rules.container-memory-cache",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "monitoring.coreos.com/v1",
+      "generateName": null,
+      "kind": "PrometheusRule",
+      "name": "ok-observability-k8s.rules.container-memory-rss",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "monitoring.coreos.com/v1",
+      "generateName": null,
+      "kind": "PrometheusRule",
+      "name": "ok-observability-k8s.rules.container-memory-swap",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "monitoring.coreos.com/v1",
+      "generateName": null,
+      "kind": "PrometheusRule",
+      "name": "ok-observability-k8s.rules.container-memory-working-set-bytes",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "monitoring.coreos.com/v1",
+      "generateName": null,
+      "kind": "PrometheusRule",
+      "name": "ok-observability-k8s.rules.container-resource",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "monitoring.coreos.com/v1",
+      "generateName": null,
+      "kind": "PrometheusRule",
+      "name": "ok-observability-k8s.rules.pod-owner",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "monitoring.coreos.com/v1",
+      "generateName": null,
+      "kind": "PrometheusRule",
+      "name": "ok-observability-kube-apiserver-availability.rules",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "monitoring.coreos.com/v1",
+      "generateName": null,
+      "kind": "PrometheusRule",
+      "name": "ok-observability-kube-apiserver-burnrate.rules",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "monitoring.coreos.com/v1",
+      "generateName": null,
+      "kind": "PrometheusRule",
+      "name": "ok-observability-kube-apiserver-histogram.rules",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "monitoring.coreos.com/v1",
+      "generateName": null,
+      "kind": "PrometheusRule",
+      "name": "ok-observability-kube-apiserver-slos",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "monitoring.coreos.com/v1",
+      "generateName": null,
+      "kind": "PrometheusRule",
+      "name": "ok-observability-kube-prometheus-general.rules",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "monitoring.coreos.com/v1",
+      "generateName": null,
+      "kind": "PrometheusRule",
+      "name": "ok-observability-kube-prometheus-node-recording.rules",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "monitoring.coreos.com/v1",
+      "generateName": null,
+      "kind": "PrometheusRule",
+      "name": "ok-observability-kube-scheduler.rules",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "monitoring.coreos.com/v1",
+      "generateName": null,
+      "kind": "PrometheusRule",
+      "name": "ok-observability-kube-state-metrics",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "monitoring.coreos.com/v1",
+      "generateName": null,
+      "kind": "PrometheusRule",
+      "name": "ok-observability-kubelet.rules",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "monitoring.coreos.com/v1",
+      "generateName": null,
+      "kind": "PrometheusRule",
+      "name": "ok-observability-kubernetes-apps",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "monitoring.coreos.com/v1",
+      "generateName": null,
+      "kind": "PrometheusRule",
+      "name": "ok-observability-kubernetes-resources",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "monitoring.coreos.com/v1",
+      "generateName": null,
+      "kind": "PrometheusRule",
+      "name": "ok-observability-kubernetes-storage",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "monitoring.coreos.com/v1",
+      "generateName": null,
+      "kind": "PrometheusRule",
+      "name": "ok-observability-kubernetes-system",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "monitoring.coreos.com/v1",
+      "generateName": null,
+      "kind": "PrometheusRule",
+      "name": "ok-observability-kubernetes-system-apiserver",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "monitoring.coreos.com/v1",
+      "generateName": null,
+      "kind": "PrometheusRule",
+      "name": "ok-observability-kubernetes-system-controller-manager",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "monitoring.coreos.com/v1",
+      "generateName": null,
+      "kind": "PrometheusRule",
+      "name": "ok-observability-kubernetes-system-kube-proxy",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "monitoring.coreos.com/v1",
+      "generateName": null,
+      "kind": "PrometheusRule",
+      "name": "ok-observability-kubernetes-system-kubelet",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "monitoring.coreos.com/v1",
+      "generateName": null,
+      "kind": "PrometheusRule",
+      "name": "ok-observability-kubernetes-system-scheduler",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "monitoring.coreos.com/v1",
+      "generateName": null,
+      "kind": "PrometheusRule",
+      "name": "ok-observability-node-exporter",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "monitoring.coreos.com/v1",
+      "generateName": null,
+      "kind": "PrometheusRule",
+      "name": "ok-observability-node-exporter.rules",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "monitoring.coreos.com/v1",
+      "generateName": null,
+      "kind": "PrometheusRule",
+      "name": "ok-observability-node-network",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "monitoring.coreos.com/v1",
+      "generateName": null,
+      "kind": "PrometheusRule",
+      "name": "ok-observability-node.rules",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "monitoring.coreos.com/v1",
+      "generateName": null,
+      "kind": "PrometheusRule",
+      "name": "ok-observability-prometheus",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "monitoring.coreos.com/v1",
+      "generateName": null,
+      "kind": "PrometheusRule",
+      "name": "ok-observability-prometheus-operator",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "monitoring.coreos.com/v1",
+      "generateName": null,
+      "kind": "ServiceMonitor",
+      "name": "disposable-ok141-observability-core-kube-state-metrics",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "monitoring.coreos.com/v1",
+      "generateName": null,
+      "kind": "ServiceMonitor",
+      "name": "disposable-ok141-observability-core-prometheus-node-exporter",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "monitoring.coreos.com/v1",
+      "generateName": null,
+      "kind": "ServiceMonitor",
+      "name": "ok-observability-alertmanager",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "monitoring.coreos.com/v1",
+      "generateName": null,
+      "kind": "ServiceMonitor",
+      "name": "ok-observability-apiserver",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "monitoring.coreos.com/v1",
+      "generateName": null,
+      "kind": "ServiceMonitor",
+      "name": "ok-observability-coredns",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "monitoring.coreos.com/v1",
+      "generateName": null,
+      "kind": "ServiceMonitor",
+      "name": "ok-observability-kube-controller-manager",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "monitoring.coreos.com/v1",
+      "generateName": null,
+      "kind": "ServiceMonitor",
+      "name": "ok-observability-kube-etcd",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "monitoring.coreos.com/v1",
+      "generateName": null,
+      "kind": "ServiceMonitor",
+      "name": "ok-observability-kube-proxy",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "monitoring.coreos.com/v1",
+      "generateName": null,
+      "kind": "ServiceMonitor",
+      "name": "ok-observability-kube-scheduler",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "monitoring.coreos.com/v1",
+      "generateName": null,
+      "kind": "ServiceMonitor",
+      "name": "ok-observability-kubelet",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "monitoring.coreos.com/v1",
+      "generateName": null,
+      "kind": "ServiceMonitor",
+      "name": "ok-observability-operator",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "monitoring.coreos.com/v1",
+      "generateName": null,
+      "kind": "ServiceMonitor",
+      "name": "ok-observability-prometheus",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "policy/v1",
+      "generateName": null,
+      "kind": "PodDisruptionBudget",
+      "name": "ok-observability-opensearch-pdb",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "rbac.authorization.k8s.io/v1",
+      "generateName": null,
+      "kind": "ClusterRole",
+      "name": "disposable-ok141-observability-core-kube-state-metrics",
+      "namespace": null,
+      "source": "core"
+    },
+    {
+      "apiVersion": "rbac.authorization.k8s.io/v1",
+      "generateName": null,
+      "kind": "ClusterRole",
+      "name": "ok-observability-admission",
+      "namespace": null,
+      "source": "core"
+    },
+    {
+      "apiVersion": "rbac.authorization.k8s.io/v1",
+      "generateName": null,
+      "kind": "ClusterRole",
+      "name": "ok-observability-grafana-clusterrole",
+      "namespace": null,
+      "source": "core"
+    },
+    {
+      "apiVersion": "rbac.authorization.k8s.io/v1",
+      "generateName": null,
+      "kind": "ClusterRole",
+      "name": "ok-observability-log-collector",
+      "namespace": null,
+      "source": "core"
+    },
+    {
+      "apiVersion": "rbac.authorization.k8s.io/v1",
+      "generateName": null,
+      "kind": "ClusterRole",
+      "name": "ok-observability-operator",
+      "namespace": null,
+      "source": "core"
+    },
+    {
+      "apiVersion": "rbac.authorization.k8s.io/v1",
+      "generateName": null,
+      "kind": "ClusterRole",
+      "name": "ok-observability-prometheus",
+      "namespace": null,
+      "source": "core"
+    },
+    {
+      "apiVersion": "rbac.authorization.k8s.io/v1",
+      "generateName": null,
+      "kind": "ClusterRoleBinding",
+      "name": "disposable-ok141-observability-core-kube-state-metrics",
+      "namespace": null,
+      "source": "core"
+    },
+    {
+      "apiVersion": "rbac.authorization.k8s.io/v1",
+      "generateName": null,
+      "kind": "ClusterRoleBinding",
+      "name": "ok-observability-admission",
+      "namespace": null,
+      "source": "core"
+    },
+    {
+      "apiVersion": "rbac.authorization.k8s.io/v1",
+      "generateName": null,
+      "kind": "ClusterRoleBinding",
+      "name": "ok-observability-grafana-clusterrolebinding",
+      "namespace": null,
+      "source": "core"
+    },
+    {
+      "apiVersion": "rbac.authorization.k8s.io/v1",
+      "generateName": null,
+      "kind": "ClusterRoleBinding",
+      "name": "ok-observability-log-collector",
+      "namespace": null,
+      "source": "core"
+    },
+    {
+      "apiVersion": "rbac.authorization.k8s.io/v1",
+      "generateName": null,
+      "kind": "ClusterRoleBinding",
+      "name": "ok-observability-operator",
+      "namespace": null,
+      "source": "core"
+    },
+    {
+      "apiVersion": "rbac.authorization.k8s.io/v1",
+      "generateName": null,
+      "kind": "ClusterRoleBinding",
+      "name": "ok-observability-prometheus",
+      "namespace": null,
+      "source": "core"
+    },
+    {
+      "apiVersion": "rbac.authorization.k8s.io/v1",
+      "generateName": null,
+      "kind": "Role",
+      "name": "ok-observability-admission",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "rbac.authorization.k8s.io/v1",
+      "generateName": null,
+      "kind": "Role",
+      "name": "ok-observability-grafana",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "rbac.authorization.k8s.io/v1",
+      "generateName": null,
+      "kind": "RoleBinding",
+      "name": "ok-observability-admission",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "rbac.authorization.k8s.io/v1",
+      "generateName": null,
+      "kind": "RoleBinding",
+      "name": "ok-observability-grafana",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "v1",
+      "generateName": null,
+      "kind": "ConfigMap",
+      "name": "ok-observability-grafana",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "v1",
+      "generateName": null,
+      "kind": "ConfigMap",
+      "name": "ok-observability-grafana-config-dashboards",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "v1",
+      "generateName": null,
+      "kind": "ConfigMap",
+      "name": "ok-observability-grafana-test",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "v1",
+      "generateName": null,
+      "kind": "ConfigMap",
+      "name": "ok-observability-log-collector",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "v1",
+      "generateName": null,
+      "kind": "ConfigMap",
+      "name": "ok-observability-opensearch-config",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "v1",
+      "generateName": null,
+      "kind": "PersistentVolumeClaim",
+      "name": "ok-observability-grafana",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "v1",
+      "generateName": null,
+      "kind": "Pod",
+      "name": "ok-observability-grafana-test",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "v1",
+      "generateName": null,
+      "kind": "Pod",
+      "name": "ok-observability-log-collector-test-connection",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "v1",
+      "generateName": null,
+      "kind": "Secret",
+      "name": "alertmanager-ok-observability-alertmanager",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "v1",
+      "generateName": null,
+      "kind": "Service",
+      "name": "ok-observability-coredns",
+      "namespace": "kube-system",
+      "source": "core"
+    },
+    {
+      "apiVersion": "v1",
+      "generateName": null,
+      "kind": "Service",
+      "name": "ok-observability-kube-controller-manager",
+      "namespace": "kube-system",
+      "source": "core"
+    },
+    {
+      "apiVersion": "v1",
+      "generateName": null,
+      "kind": "Service",
+      "name": "ok-observability-kube-etcd",
+      "namespace": "kube-system",
+      "source": "core"
+    },
+    {
+      "apiVersion": "v1",
+      "generateName": null,
+      "kind": "Service",
+      "name": "ok-observability-kube-proxy",
+      "namespace": "kube-system",
+      "source": "core"
+    },
+    {
+      "apiVersion": "v1",
+      "generateName": null,
+      "kind": "Service",
+      "name": "ok-observability-kube-scheduler",
+      "namespace": "kube-system",
+      "source": "core"
+    },
+    {
+      "apiVersion": "v1",
+      "generateName": null,
+      "kind": "Service",
+      "name": "disposable-ok141-observability-core-kube-state-metrics",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "v1",
+      "generateName": null,
+      "kind": "Service",
+      "name": "disposable-ok141-observability-core-prometheus-node-exporter",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "v1",
+      "generateName": null,
+      "kind": "Service",
+      "name": "ok-observability-alertmanager",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "v1",
+      "generateName": null,
+      "kind": "Service",
+      "name": "ok-observability-grafana",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "v1",
+      "generateName": null,
+      "kind": "Service",
+      "name": "ok-observability-log-collector",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "v1",
+      "generateName": null,
+      "kind": "Service",
+      "name": "ok-observability-operator",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "v1",
+      "generateName": null,
+      "kind": "Service",
+      "name": "ok-observability-prometheus",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "v1",
+      "generateName": null,
+      "kind": "Service",
+      "name": "opensearch-cluster-master",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "v1",
+      "generateName": null,
+      "kind": "Service",
+      "name": "opensearch-cluster-master-headless",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "v1",
+      "generateName": null,
+      "kind": "ServiceAccount",
+      "name": "disposable-ok141-observability-core-kube-state-metrics",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "v1",
+      "generateName": null,
+      "kind": "ServiceAccount",
+      "name": "disposable-ok141-observability-core-prometheus-node-exporter",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "v1",
+      "generateName": null,
+      "kind": "ServiceAccount",
+      "name": "ok-observability-admission",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "v1",
+      "generateName": null,
+      "kind": "ServiceAccount",
+      "name": "ok-observability-alertmanager",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "v1",
+      "generateName": null,
+      "kind": "ServiceAccount",
+      "name": "ok-observability-grafana",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "v1",
+      "generateName": null,
+      "kind": "ServiceAccount",
+      "name": "ok-observability-grafana-test",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "v1",
+      "generateName": null,
+      "kind": "ServiceAccount",
+      "name": "ok-observability-log-collector",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "v1",
+      "generateName": null,
+      "kind": "ServiceAccount",
+      "name": "ok-observability-operator",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "v1",
+      "generateName": null,
+      "kind": "ServiceAccount",
+      "name": "ok-observability-prometheus",
+      "namespace": "ok-observability",
+      "source": "core"
+    },
+    {
+      "apiVersion": "v1",
+      "generateName": null,
+      "kind": "ConfigMap",
+      "name": "ok-observability-dashboard-platform-overview",
+      "namespace": "ok-observability",
+      "source": "dashboards"
+    }
+  ],
+  "renderer": {
+    "helmVersion": "v3.20.2+g8fb76d6",
+    "includeCRDs": true,
+    "kubernetesVersion": "v1.36.2"
+  },
+  "sourceCommit": "b5f7be6a7ddab798f31f32197fcbb9e86a9798b6",
+  "sourceProvenance": "GIT-TRACKED-TRANSITIVE-CLOSURE-AUTHORITATIVE"
+}
