@@ -1,0 +1,43 @@
+{
+  "$id": "ok141-m0a-installation/v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["apiVersion", "kind", "metadata", "spec"],
+  "properties": {
+    "apiVersion": {"const": "test.openkubes.io/v1alpha1"},
+    "kind": {"const": "InstallationGateProtocol"},
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "ticket", "baseCommit"],
+      "properties": {
+        "name": {"const": "ok141-m0a-i-caaph-v0.6.4"},
+        "ticket": {"const": "OK-141"},
+        "baseCommit": {"const": "489903b9f84386cb5f2b904c917b9f6747ae3a61"}
+      }
+    },
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["protocolVersion", "protocolState", "authorityBoundary", "references", "authorization", "target", "source", "submission", "securityReview", "preInstallationRequirements", "runtimeObligations", "phases", "acceptance", "rollback", "stopConditions", "excludedScenarios"],
+      "properties": {
+        "protocolVersion": {"const": "ok141-m0a-i/v1"},
+        "protocolState": {"const": "BLOCKED"},
+        "authorityBoundary": {"type": "object"},
+        "references": {"type": "object"},
+        "authorization": {"type": "object"},
+        "target": {"type": "object"},
+        "source": {"type": "object"},
+        "submission": {"type": "object"},
+        "securityReview": {"type": "object"},
+        "preInstallationRequirements": {"type": "array", "minItems": 8, "maxItems": 8, "items": {"type": "object"}},
+        "runtimeObligations": {"type": "array", "minItems": 5, "maxItems": 5, "items": {"type": "object"}},
+        "phases": {"type": "array", "minItems": 4, "maxItems": 4, "items": {"type": "object"}},
+        "acceptance": {"type": "array", "minItems": 7, "items": {"type": "string"}},
+        "rollback": {"type": "object"},
+        "stopConditions": {"type": "array", "minItems": 7, "items": {"type": "string"}},
+        "excludedScenarios": {"type": "array", "minItems": 6, "items": {"type": "string"}}
+      }
+    }
+  }
+}
