@@ -1,0 +1,33 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: ProviderRecoveryInventory
+metadata:
+  name: ok141-provider-recovery-inventory-v1
+spec:
+  observedAt: "2026-08-10T10:44:32Z"
+  observerPlane: ok-infra
+  operation: READ-ONLY
+  clusterContacted: true
+  mutationAuthorized: false
+  resources:
+    ok-mgmt:
+      virtualMachines:
+        - {name: ok-mgmt-cp-6nc84, uid: 8e086201-6a22-4ff5-aed3-a2be43ad29a5, ready: true}
+        - {name: ok-mgmt-workers-tbch6-9x5qh, uid: 660405ea-7134-40c5-b8c1-09771d9114a8, ready: true}
+        - {name: ok-mgmt-workers-tbch6-cqs7p, uid: 6b80305d-3b93-42f0-8bc6-5be12f54021a, ready: true}
+    ok-shared:
+      virtualMachines:
+        - {name: ok-shared-cp-z4gxn, uid: bebcb37d-e5fd-4ece-ab2d-3694059e9f65, ready: true}
+        - {name: ok-shared-workers-tkrlw-9c2dx, uid: 3cffa654-d0b6-4d3c-ad07-210cf8c47897, ready: true}
+        - {name: ok-shared-workers-tkrlw-9gs5z, uid: 360b9b0e-6ab7-4a16-b65e-22c2e3fd17e1, ready: true}
+        - {name: ok-shared-workers-tkrlw-ndzch, uid: 8850eb41-b396-4106-b5e5-e0cab60afab8, ready: true}
+  snapshotInventory:
+    virtualMachineSnapshots: 0
+    virtualMachineRestores: 0
+    volumeSnapshots: 0
+  developmentPolicy:
+    highAvailabilityRequired: false
+    providerSnapshotsRequired: false
+    totalStateLossAccepted: true
+    intendedRecoveryMode: rebuild-not-restore
+    rebuildPathProven: false
+  conclusion: Current runtime inventory is independently visible. The absence of provider snapshots is an accepted DEV constraint, but it provides no production DR, restore, adoption, or lifecycle-continuity claim.

@@ -1,0 +1,87 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: LiveClosureResults
+metadata:
+  name: ok141-installation-live-closure-v1
+  ticket: OK-141
+spec:
+  version: ok141-installation-live-closure/v1
+  state: EVALUATED-NO-GO
+  sourceMatrix:
+    path: ../installation-closure/installation-closure-v1.yaml
+    digest: sha256:0cd56a0fa6d4e483ea02cce795980100166ac47006b37defbf0ce8a4b1ff8d3c
+  priorOfflineResults:
+    path: ../installation-closure/offline-closure-results-v1.yaml
+    digest: sha256:1e34953595fa98de3e2207f8ac90c2e1a52e2652491012f6323021f8570cc6e3
+  artifacts:
+    observer: {path: live_observer.py, digest: sha256:7b8786e7c5df11c8aa27db67720fc14f9d07d0624d34c8de46597faab0ee3f51}
+    management: {path: evidence/ok-mgmt-live-v1.yaml, digest: sha256:8dbf269a2face50dc9bf95b00593a5713e14a0b566b7e57f4e14de405879d235}
+    shared: {path: evidence/ok-shared-live-v1.yaml, digest: sha256:40e6c4de50c4bd2cd17ddfdb0618628c3d040bc17ac5e84b0ac81bf0cd1d76eb}
+    providerRecovery: {path: evidence/provider-recovery-inventory-v1.yaml, digest: sha256:d14cfbb4237fe09b2448169a42acd8d5f7d73d1fdce0343663cff0efa27e6010}
+  results:
+    - id: M0AI-BASELINE-LIVE
+      result: OBSERVED-REPEATABLE-PREFLIGHT
+      evidence: [management]
+      claim: The exact ok-mgmt incarnation, Kubernetes and provider-controller tuple, three ready amd64 Nodes, CAAPH absence, empty CAPI lifecycle inventory, and visible controller set were observed.
+      boundary: The observation must be repeated immediately before an M0a-I decision and does not establish exclusive lifecycle authority.
+    - id: M0AI-COMPATIBILITY-CURRENT-TUPLE
+      result: OBSERVED-PARTIAL
+      evidence: [management]
+      claim: The current tuple is Kubernetes v1.34.1, CAPI v1.13.4, CAPK v0.11.2, cert-manager v1.20.1, and linux/amd64.
+      boundary: The exact CAAPH interoperability tuple remains unproven because the offline source evidence contains no authoritative tested matrix for it.
+    - id: M0AI-EVIDENCE-DESTINATION-LIVE
+      result: UNRESOLVED
+      evidence: [management]
+      claim: No authoritative immutable evidence destination, redaction policy, destination access proof, or destination clock source is bound.
+      boundary: Repository files and this snapshot are not silently promoted to an independent immutable evidence service.
+    - id: M0AI-RECOVERY-EVIDENCE-LIVE
+      result: OBSERVED-NO-RECOVERY-EVIDENCE
+      evidence: [management, providerRecovery]
+      claim: Three ready provider VMs and the Kubernetes API are visible; the DEV profile intentionally requires neither HA nor provider snapshots and accepts total management-state loss.
+      boundary: Rebuild is not yet proven, automatic workload adoption is forbidden, and no production DR or lifecycle-continuity claim is allowed; no recovery action was performed.
+    - id: M0BI-BASELINE-LIVE
+      result: OBSERVED-REPEATABLE-PREFLIGHT
+      evidence: [shared]
+      claim: The exact ok-shared incarnation, four ready amd64 Nodes, Argo absence, Cilium health, local-path storage, and shared controller set were observed.
+      boundary: The observation must be repeated immediately before an M0b-I decision and does not authorize the ok-shared placement.
+    - id: M0BI-CAPACITY-TOPOLOGY-LIVE
+      result: OBSERVED-PARTIAL
+      evidence: [shared]
+      claim: Allocatable capacity and declarative Pod requests and limits were observed for one control-plane and three worker Nodes.
+      boundary: The single-control-plane shape is the accepted DEV profile, not an HA defect; direct etcd membership remains unobserved, production HA remains forbidden, and resource declarations are not utilization metrics.
+    - id: M0BI-COMPATIBILITY-CURRENT-TUPLE
+      result: OBSERVED-REPEATABLE-PREFLIGHT
+      evidence: [shared]
+      claim: ok-shared is Kubernetes v1.34.1 on amd64, which correlates with the offline Argo CD 3.4 tested-version and locked linux-amd64 image evidence.
+      boundary: Argo is absent; this correlation must be refreshed before M0b-I and does not prove runtime installation or convergence.
+    - id: M0BI-EVIDENCE-DESTINATION-LIVE
+      result: UNRESOLVED
+      evidence: [shared]
+      claim: No authoritative immutable evidence destination, redaction policy, destination access proof, or destination clock source is bound.
+      boundary: Repository files and this snapshot are not silently promoted to an independent immutable evidence service.
+    - id: M0BI-RECOVERY-EVIDENCE-LIVE
+      result: OBSERVED-NO-RECOVERY-EVIDENCE
+      evidence: [shared, providerRecovery]
+      claim: Four ready provider VMs and the Kubernetes API are visible; the DEV profile intentionally requires neither HA nor provider snapshots and accepts total cluster-state loss.
+      boundary: Argo-independent rebuild is not yet proven and no production DR or continuity claim is allowed; no recovery action was performed.
+  summary:
+    evaluated: 9
+    byResult:
+      OBSERVED-REPEATABLE-PREFLIGHT: 3
+      OBSERVED-PARTIAL: 2
+      OBSERVED-NO-RECOVERY-EVIDENCE: 2
+      UNRESOLVED: 2
+    sourceBlockersClosed: 0
+    installationGatesGranted: 0
+  authorization:
+    decision: NO-GO
+    mutationAuthorized: false
+    m0aInstallationGranted: false
+    m0bInstallationGranted: false
+    go1Granted: false
+  rules:
+    - A live snapshot evaluates only its atomic observation obligation and never closes its composite source blocker.
+    - OBSERVED-REPEATABLE-PREFLIGHT must be refreshed immediately before the associated installation decision.
+    - OBSERVED-PARTIAL OBSERVED-NO-RECOVERY-EVIDENCE and UNRESOLVED remain fail closed.
+    - Runtime availability is not evidence of backup restore immutability authority or production high availability.
+    - A development profile may accept total state loss and rebuild instead of restore but must prohibit production DR continuity and automatic adoption claims until separately proven.
+    - No observation authorizes installation credential issuance placement target registration convergence recovery or GO-1.
