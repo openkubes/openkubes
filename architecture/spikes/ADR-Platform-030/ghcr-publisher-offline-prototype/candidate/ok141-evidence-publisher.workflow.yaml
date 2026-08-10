@@ -1,0 +1,102 @@
+name: OK-141 evidence publisher candidate
+
+"on":
+  workflow_dispatch:
+    inputs:
+      source-run-id:
+        description: Exact GitHub Actions run containing the reviewed evidence artifact
+        required: true
+        type: string
+
+permissions:
+  actions: read
+  artifact-metadata: write
+  attestations: write
+  contents: read
+  id-token: write
+  packages: write
+
+concurrency:
+  group: ok141-evidence-publisher
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    environment: ok-141-evidence-publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out the reviewed publisher source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Download the exact evidence bundle artifact
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SOURCE_RUN_ID: ${{ inputs.source-run-id }}
+        run: |
+          python3 -c 'import os,re,sys; sys.exit(0 if re.fullmatch(r"[1-9][0-9]{0,19}", os.environ["SOURCE_RUN_ID"]) else 2)'
+          gh run download "$SOURCE_RUN_ID" --repo openkubes/openkubes --name ok141-evidence-bundle --dir runtime-input
+      - name: Verify bundle and create deterministic transport
+        run: |
+          python3 architecture/spikes/ADR-Platform-030/ghcr-publisher-offline-prototype/publish_evidence.py plan \
+            --root runtime-input/evidence \
+            --manifest runtime-input/evidence-bundle.json \
+            --source-run-id "${{ inputs.source-run-id }}" \
+            --transport "$RUNNER_TEMP/evidence-bundle.tar" \
+            --plan "$RUNNER_TEMP/publication-plan.json"
+      - name: Install the reviewed ORAS binary
+        run: |
+          curl --fail --location --proto '=https' --tlsv1.2 \
+            --output "$RUNNER_TEMP/oras.tar.gz" \
+            https://github.com/oras-project/oras/releases/download/v1.3.3/oras_1.3.3_linux_amd64.tar.gz
+          echo '9ce999f8d2de03fc03968b29d743077a58783e545e5eaa53917ca177352d0e59  '"$RUNNER_TEMP/oras.tar.gz" | sha256sum --check --strict
+          tar -xzf "$RUNNER_TEMP/oras.tar.gz" -C "$RUNNER_TEMP" oras
+      - name: Publish by a non-authoritative run tag
+        id: publish
+        env:
+          GHCR_USERNAME: ${{ github.actor }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          printf '%s' "$GHCR_TOKEN" | "$RUNNER_TEMP/oras" login ghcr.io --username "$GHCR_USERNAME" --password-stdin
+          "$RUNNER_TEMP/oras" push \
+            --artifact-type application/vnd.openkubes.ok141.evidence.v1 \
+            --format json \
+            "ghcr.io/openkubes/ok141-evidence:run-${{ inputs.source-run-id }}" \
+            "$RUNNER_TEMP/evidence-bundle.tar:application/vnd.openkubes.ok141.evidence.bundle.v1+tar" \
+            > "$RUNNER_TEMP/oras-push.json"
+          python3 -c 'import json,os,re,sys; d=json.load(open(os.environ["RUNNER_TEMP"]+"/oras-push.json"))["digest"]; sys.exit(2) if not re.fullmatch(r"sha256:[0-9a-f]{64}",d) else open(os.environ["GITHUB_OUTPUT"],"a").write("digest="+d+"\n")'
+      - name: Attest the exact OCI manifest digest
+        id: attest
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6
+        with:
+          subject-name: ghcr.io/openkubes/ok141-evidence
+          subject-digest: ${{ steps.publish.outputs.digest }}
+          push-to-registry: true
+          create-storage-record: true
+      - name: Pull back only by digest
+        run: |
+          mkdir "$RUNNER_TEMP/pulled"
+          "$RUNNER_TEMP/oras" pull \
+            "ghcr.io/openkubes/ok141-evidence@${{ steps.publish.outputs.digest }}" \
+            --output "$RUNNER_TEMP/pulled"
+          test -f "$RUNNER_TEMP/pulled/evidence-bundle.tar"
+      - name: Verify pull-back receipt
+        run: |
+          gh attestation verify \
+            "oci://ghcr.io/openkubes/ok141-evidence@${{ steps.publish.outputs.digest }}" \
+            --repo openkubes/openkubes \
+            --signer-workflow openkubes/openkubes/.github/workflows/ok141-evidence-publisher.yaml \
+            --source-ref refs/heads/main \
+            --format json \
+            > "$RUNNER_TEMP/verified-attestation.json"
+          python3 architecture/spikes/ADR-Platform-030/ghcr-publisher-offline-prototype/publish_evidence.py receipt \
+            --plan "$RUNNER_TEMP/publication-plan.json" \
+            --oci-manifest-digest "${{ steps.publish.outputs.digest }}" \
+            --attestation-subject-digest "${{ steps.publish.outputs.digest }}" \
+            --workflow-run-url "https://github.com/openkubes/openkubes/actions/runs/$GITHUB_RUN_ID" \
+            --receipt "$RUNNER_TEMP/publication-receipt.json"
+          python3 architecture/spikes/ADR-Platform-030/ghcr-publisher-offline-prototype/publish_evidence.py verify-receipt \
+            --plan "$RUNNER_TEMP/publication-plan.json" \
+            --receipt "$RUNNER_TEMP/publication-receipt.json" \
+            --pulled-transport "$RUNNER_TEMP/pulled/evidence-bundle.tar"
