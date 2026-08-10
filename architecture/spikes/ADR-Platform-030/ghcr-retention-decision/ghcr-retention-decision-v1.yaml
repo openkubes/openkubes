@@ -1,0 +1,106 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: GHCRRetentionDecision
+metadata:
+  name: ok141-ghcr-retention-decision-v1
+  ticket: OK-141
+spec:
+  version: ok141-ghcr-retention-decision/v1
+  state: ACCEPTED-POLICY-IMPLEMENTATION-BLOCKED-NO-GO
+  recordedAt: "2026-08-10T17:23:41Z"
+  sourcePreflight:
+    path: ../ghcr-observer-preflight/ghcr-observer-preflight-v1.yaml
+    digest: sha256:ca3a11f82458c5668440c1a55db7caf69728779aad5298d9f18751e3b7ca4344
+    state: OBSERVED-BLOCKED-NO-GO
+  decision:
+    outcome: ACCEPTED
+    acceptedBy: github:arashkaffamanesh
+    statement: Ich akzeptiere für OK-141 das 90-tägige DEV-BEST-EFFORT-NON-WORM-Retention-Modell mit den dokumentierten Lösch- und Verfügbarkeitsgrenzen.
+    scope: OK-141-DEV-EVIDENCE-ONLY
+  retentionPolicy:
+    model: DEV-BEST-EFFORT-NON-WORM
+    minimumRetentionDaysAfterOK141Closure: 90
+    retentionAnchor: OK141-CLOSURE-TIMESTAMP
+    retentionAnchorStatus: NOT-YET-AVAILABLE
+    primaryCopy:
+      type: GHCR-OCI-ARTIFACT
+      repository: ghcr.io/openkubes/ok141-evidence
+      identity: OCI-MANIFEST-DIGEST
+    secondaryIndex:
+      type: REVIEWED-GIT-COMMIT
+      repository: openkubes/openkubes
+      retainedFields:
+        - internalBundleDigest
+        - ociManifestDigest
+        - attestationSubjectDigest
+        - attestationSignerIdentity
+        - workflowRunURL
+      fullEvidencePayloadRetained: false
+    integrityClaim: CONTENT-INTEGRITY-VERIFIABLE-BY-DIGEST
+    availabilityClaim: BEST-EFFORT-NOT-GUARANTEED
+    immutabilityClaim: NOT-WORM
+    administratorDeletionPossible: true
+    conditionalRestoreWindowDays: 30
+    restoreGuaranteed: false
+    productionRetentionClaimAllowed: false
+    disasterRecoveryClaimAllowed: false
+  deletionMonitoring:
+    required: true
+    status: NOT-IMPLEMENTED
+    observer: ok-141-evidence-observer
+    lookupIdentity: OCI-MANIFEST-DIGEST
+    interval: UNDECIDED
+    onMissing: ALERT-AND-FAIL-CLOSED
+    automaticRepairAllowed: false
+    automaticRepublishAllowed: false
+    deletePermissionAllowed: false
+    boundary: Detection records loss of availability; it neither restores nor republishes evidence and grants no package mutation authority.
+  expirySemantics:
+    calculation: closure timestamp plus 90 complete 24-hour periods
+    earlyDeletionAllowed: false
+    deletionAtExpiryRequired: false
+    extensionAllowedWithoutNewGate: true
+    shorteningRequiresNewDecision: true
+    boundary: The policy defines a minimum not a mandatory deletion date.
+  operationalState:
+    packageExists: false
+    packageReadAccessProven: false
+    publishEnvironmentExists: false
+    observerWorkflowDeployed: false
+    deletionMonitoringDeployed: false
+    publicationCredentialAuthorized: false
+    firstPublishPullbackProven: false
+    currentClockEvidenceReusable: false
+  remainingBlockers:
+    - Create the package only under a separate exact external-write gate.
+    - Prove read access and least-privilege package visibility.
+    - Create and review the ok-141-evidence-publish environment.
+    - Implement full-SHA-pinned publish attestation pull-back and verification workflow logic.
+    - Select and authorize the deletion-monitoring interval.
+    - Implement missing-digest alerting without delete or republish permission.
+    - Repeat the cache-busted UTC skew observation inside the exact window.
+    - Publish attest and pull back a disposable bundle under a separate mutation gate.
+  authorization:
+    decision: NO-GO
+    externalWriteAuthorized: false
+    packageCreationAuthorized: false
+    environmentCreationAuthorized: false
+    workflowDeploymentAuthorized: false
+    credentialMutationAuthorized: false
+    infrastructureMutationAuthorized: false
+    m0aInstallationGranted: false
+    m0bInstallationGranted: false
+    go1Granted: false
+  summary:
+    retentionDecisionAccepted: true
+    minimumRetentionDays: 90
+    wormClaimAllowed: false
+    availabilityGuaranteed: false
+    monitoringImplemented: false
+    installationGatesGranted: 0
+  rules:
+    - Acceptance closes only the retention policy decision and does not prove or create its implementation.
+    - Ninety days begins at the recorded OK-141 closure timestamp and is a minimum retention period.
+    - GHCR and Git correlation provide verifiable integrity but no WORM availability production retention or disaster recovery guarantee.
+    - Deletion monitoring may alert and fail closed but may not delete restore republish or mutate packages.
+    - Any shorter retention period WORM claim or stronger availability claim requires a new explicit decision and evidence.
+    - Package environment workflow credential external write M0a-I M0b-I GO-1 infrastructure mutation and failure injection remain NO-GO.
