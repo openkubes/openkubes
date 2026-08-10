@@ -1,0 +1,148 @@
+apiVersion: test.openkubes.io/v1alpha1
+kind: InstallationGateProtocol
+metadata:
+  name: ok141-m0b-i-argocd-v3.4.2
+  ticket: OK-141
+  baseCommit: 4a86e55bd181dd4313286edcfa6ce2540e5a8378
+spec:
+  protocolVersion: ok141-m0b-i/v1
+  protocolState: BLOCKED
+  authorityBoundary:
+    gate: M0B-I
+    purpose: install-argo-control-plane-at-reviewed-placement-only
+    mayAuthorizeTargetRegistration: false
+    mayAuthorizeTargetConvergence: false
+    mayAuthorizeGO1: false
+    mayCreateTargetCredentials: false
+    maySubmitAppProject: false
+    maySubmitApplication: false
+  references:
+    go1Protocol:
+      path: ../go1-v4/go1-protocol-v4.yaml
+      digest: sha256:2718d719c322190e36036f98730edcb9aaa679c434fb04f151f7f24fc2626705
+    gatePartition:
+      path: ../gate-partition/gate-partition-v1.yaml
+      digest: sha256:a12a5e30f5bd5479d502f0dbf80e709e14216702ba804f986afcb408f0c32be9
+    historicalM0b:
+      path: ../m0b-v2/m0b-protocol-v2.yaml
+      digest: sha256:22f37eb2f81d9a37819ef9ae65ec3bdea78f81d5b8e5786c044843f00d17934c
+  authorization:
+    decision: NO-GO
+    mutationAuthorized: false
+    m0bInstallationGranted: false
+    m0bTargetRegistrationGranted: false
+    m0bTargetConvergenceGranted: false
+    go1Granted: false
+    grantID: null
+    authorizedProtocolDigest: null
+    authority: UNASSIGNED
+    decidedAt: null
+  placement:
+    candidatePlane: ok-shared
+    placementAuthority: UNRESOLVED
+    namespace: argocd
+    architecture: linux/amd64
+    controlPlaneReplicas: 1
+    workerReplicas: 3
+    productionHAClaimAllowed: false
+    capacityEvidence: MISSING-METRICS-API
+    recoveryWithoutArgo: UNPROVEN
+    kubeContextIdentity: UNRESOLVED
+  source:
+    version: v3.4.2
+    upstreamCommit: 0dc6b1b57dd5bb925d5b03c3d09419ab9fb4225e
+    lockPath: argocd-installation-source-lock-v1.yaml
+    lockDigest: sha256:6322722bd9abc788b99a0f9d57ac96ed610e0105f14e91279e14719cea9567a1
+    namespacePath: argocd-namespace.yaml
+    namespaceRawDigest: sha256:0a2c5ac85283184d1392ae712f7e8bd4b8d19f837e28055664399046532f7844
+    remoteContentRetained: false
+    materializationRequiredBeforeInstallation: true
+    combinedObjectCount: 65
+    combinedSemanticDigest: sha256:811b07f7face5d56df3434d083b9efedc5f8b28f8a264985c4b9616f0b2fd9d8
+    objectKinds:
+      Namespace: 1
+      CustomResourceDefinition: 3
+      ConfigMap: 9
+      Deployment: 6
+      NetworkPolicy: 8
+      Role: 7
+      RoleBinding: 7
+      Secret: 2
+      Service: 12
+      ServiceAccount: 8
+      StatefulSet: 2
+    controllerImages:
+      - {reference: quay.io/argoproj/argocd:v3.4.2, linuxAmd64Digest: sha256:a8679d1bbf7679ad27bf39fadbd30e486f59446eadd4f5c2c11ce6a41053a216}
+      - {reference: ghcr.io/dexidp/dex:v2.45.0, linuxAmd64Digest: sha256:8a9281c3a115180415b0726ca160e38fc40f9284bc9a2d1032c839a3a934695c}
+      - {reference: public.ecr.aws/docker/library/haproxy:3.0.8-alpine, linuxAmd64Digest: sha256:3ad414bdb5c94d712e0e9a7dc1517eca45cce652afc85a002fd7bb42b44d5dde}
+      - {reference: public.ecr.aws/docker/library/redis:8.2.3-alpine, linuxAmd64Digest: sha256:e499175dfb27569cd40010c2eee346113db95fdd0efc88ab9fd70a9e807f4542}
+  submission:
+    operation: MaterializeVerifyAndApplyReviewedInstallationSet
+    enabled: false
+    targetPlane: ok-shared
+    installerIdentity: UNRESOLVED
+    installerArtifactDigest: UNRESOLVED
+    credentialModel: short-lived-least-privilege-required
+    freeFormShellEndpoint: false
+    expectedObjectCount: 65
+    expectedSemanticDigest: sha256:811b07f7face5d56df3434d083b9efedc5f8b28f8a264985c4b9616f0b2fd9d8
+    exactObjectAdmission: UNRESOLVED
+    rule: All remote sources must match the lock before submission; RBAC alone cannot constrain cluster-wide writes to this exact object-set digest.
+  preInstallationRequirements:
+    - {id: M0BI-AUTHORITY-PLACEMENT, status: BLOCKED, closure: Assign installation authority and explicitly authorize the ok-shared placement for one reviewed protocol digest and window.}
+    - {id: M0BI-BASELINE-CAPACITY, status: BLOCKED, closure: Re-observe ok-shared identity Kubernetes architecture existing Argo resources capacity and conflicting writers; do not claim production HA.}
+    - {id: M0BI-SOURCE-MATERIALIZATION, status: BLOCKED, closure: Materialize all four remote files and prove raw semantic size membership and combined digest equality to the source lock.}
+    - {id: M0BI-INSTALLER-IDENTITY, status: BLOCKED, closure: Bind reviewed installer artifact and short-lived credentials with issuance expiry revocation and audit evidence.}
+    - {id: M0BI-EXACT-OBJECT-SUBMISSION, status: BLOCKED, closure: Bind a trusted bounded operation or existing policy control that rejects any object set other than the reviewed digest.}
+    - {id: M0BI-CONTROLLER-RBAC-SECURITY, status: BLOCKED, closure: Review and explicitly accept or reduce the exact control-plane RBAC Secrets and cluster-visible capabilities.}
+    - {id: M0BI-IMAGE-COMPATIBILITY, status: BLOCKED, closure: Re-prove all platform image digests and exact Argo compatibility with the current ok-shared Kubernetes version.}
+    - {id: M0BI-OBSERVERS-EVIDENCE, status: BLOCKED, closure: Bind independent placement security and evidence observers plus immutable destination redaction and UTC rules.}
+    - {id: M0BI-RECOVERY, status: BLOCKED, closure: Prove ok-shared bootstrap backup recovery and out-of-band access independent of Argo plus the bounded rollback decision path.}
+  runtimeObligations:
+    - {id: M0BI-INVENTORY-IDENTITY, phase: M0BI-G2, status: PENDING-RUNTIME, mayBeClosedBeforeRuntime: false, onFailure: STOP-NOT-SUCCESS}
+    - {id: M0BI-CRD-API-READY, phase: M0BI-G2, status: PENDING-RUNTIME, mayBeClosedBeforeRuntime: false, onFailure: STOP-NOT-SUCCESS}
+    - {id: M0BI-CONTROL-PLANE-READY, phase: M0BI-G2, status: PENDING-RUNTIME, mayBeClosedBeforeRuntime: false, onFailure: STOP-NOT-SUCCESS}
+    - {id: M0BI-IMAGE-IDENTITY, phase: M0BI-G2, status: PENDING-RUNTIME, mayBeClosedBeforeRuntime: false, onFailure: STOP-NOT-SUCCESS}
+    - {id: M0BI-NO-TARGET-STATE, phase: M0BI-G2, status: PENDING-RUNTIME, mayBeClosedBeforeRuntime: false, onFailure: STOP-NOT-SUCCESS}
+    - {id: M0BI-EVIDENCE-BUNDLE, phase: M0BI-G3, status: PENDING-RUNTIME, mayBeClosedBeforeRuntime: false, onFailure: STOP-NOT-SUCCESS}
+  phases:
+    - {id: M0BI-G0, name: preflight-placement-materialization-and-digests, mutating: false, enabled: false}
+    - {id: M0BI-G1, name: apply-reviewed-installation-set, mutating: true, enabled: false}
+    - {id: M0BI-G2, name: verify-control-plane-only-readiness, mutating: false, enabled: false}
+    - {id: M0BI-G3, name: verify-evidence-and-close, mutating: false, enabled: false}
+  acceptance:
+    - all four upstream sources and the Namespace reproduce the exact 65-object semantic identity
+    - exactly the reviewed object set is accepted once on the authorized ok-shared incarnation
+    - all three Argo CRDs are Established with expected schema identities
+    - reviewed Deployments StatefulSets Services NetworkPolicies Secrets and RBAC are current and available
+    - all running containers use the bound linux-amd64 image identities
+    - no workload registration Secret AppProject Application or ApplicationSet desired state is submitted by M0b-I
+    - no production HA claim is emitted from the current single-control-plane placement
+    - independently retained evidence correlates accepted object UIDs to the source lock and combined digest
+  rollback:
+    enabled: false
+    authorizationRequired: true
+    mode: exact-reviewed-object-set-only
+    preconditions:
+      - STOP has been declared by the assigned abort authority
+      - no workload registration Secret or non-installation Argo custom resource exists
+      - every candidate object UID belongs to the accepted M0b-I submission
+      - no foreign owner or dependent resource is observed
+      - raw evidence is retained before rollback
+    unsafeResponse: STOP-AND-TRANSFER-TO-RECOVERY-AUTHORITY
+    rule: Rollback must never delete Argo CRDs containing target or platform desired state.
+  stopConditions:
+    - any source lock raw semantic combined object-set target-plane or image identity differs
+    - an object outside the exact reviewed installation set is proposed
+    - a registration credential AppProject Application ApplicationSet or target RBAC mutation is observed
+    - a CRD controller workload network policy RBAC image or evidence obligation is missing stale or conflicting
+    - ok-shared storage network or an existing workload unexpectedly degrades
+    - credential placement recovery or independent-observation confidence is lost
+    - timeout or any restart retry drift delete outage or other excluded scenario is proposed
+  excludedScenarios:
+    - workload target registration credentials and target RBAC
+    - AppProject Application and ApplicationSet platform submission
+    - P convergence and PlatformReady
+    - controller restart retry or cache failure injection
+    - CAAPH enablement or GO-1 cluster mutation
+    - deletion finalizer management outage break-glass or DR

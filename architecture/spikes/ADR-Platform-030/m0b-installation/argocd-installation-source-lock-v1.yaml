@@ -1,0 +1,47 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: RemoteSourceLock
+metadata:
+  name: argocd-v3.4.2-ha-namespace-install
+spec:
+  repository: https://github.com/argoproj/argo-cd
+  tag: v3.4.2
+  commit: 0dc6b1b57dd5bb925d5b03c3d09419ab9fb4225e
+  observedReadOnlyAt: "2026-08-10"
+  files:
+    - id: ha-namespace-install
+      path: manifests/ha/namespace-install.yaml
+      url: https://raw.githubusercontent.com/argoproj/argo-cd/v3.4.2/manifests/ha/namespace-install.yaml
+      rawDigest: sha256:cfe6b1e3c0fc483d2c93822cac53bf2542fd5035161a3d30ba781486378bcc57
+      semanticDigest: sha256:c058afb0a8be119787b94433731ceec4647e5fb07ca32cbd4df27b070fc27fe6
+      sizeBytes: 139547
+      objectCount: 61
+    - id: application-crd
+      path: manifests/crds/application-crd.yaml
+      url: https://raw.githubusercontent.com/argoproj/argo-cd/v3.4.2/manifests/crds/application-crd.yaml
+      rawDigest: sha256:fa8a0c7f8127f85bbbf57467e7c659ec7d47e7d162cc76c1b07482ebf2b98f49
+      semanticDigest: sha256:a30d786c22f9895ab3fb70b169f3c870e226c083b4e56cfc001d1b413a9b7133
+      sizeBytes: 396773
+      objectCount: 1
+    - id: applicationset-crd
+      path: manifests/crds/applicationset-crd.yaml
+      url: https://raw.githubusercontent.com/argoproj/argo-cd/v3.4.2/manifests/crds/applicationset-crd.yaml
+      rawDigest: sha256:51f69883c692698fbcf3c82455c07c0f6413899ac9d96565a9e8395c0196f58d
+      semanticDigest: sha256:42a101f4c42f575d4634265aa6e02d176e1ff2d2ba60aa41197eab113689cdc5
+      sizeBytes: 1385775
+      objectCount: 1
+    - id: appproject-crd
+      path: manifests/crds/appproject-crd.yaml
+      url: https://raw.githubusercontent.com/argoproj/argo-cd/v3.4.2/manifests/crds/appproject-crd.yaml
+      rawDigest: sha256:7b99337686905b444864c84b1305938a7bfbca9b5f4e2c5d5d2de4acae16ceb3
+      semanticDigest: sha256:d89d247abcd91192feac0ea0d27b5da3673259fe1b9b950801de441481ea4542
+      sizeBytes: 16502
+      objectCount: 1
+  localNamespace:
+    path: argocd-namespace.yaml
+    rawDigest: sha256:0a2c5ac85283184d1392ae712f7e8bd4b8d19f837e28055664399046532f7844
+    objectCount: 1
+  combined:
+    objectCount: 65
+    semanticDigest: sha256:811b07f7face5d56df3434d083b9efedc5f8b28f8a264985c4b9616f0b2fd9d8
+    contentMaterialization: REQUIRED-BEFORE-INSTALLATION
+    rule: Every remote file must be fetched from its locked URL and match raw plus semantic digest before a final installation protocol can be authorized.

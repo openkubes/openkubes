@@ -1,0 +1,42 @@
+{
+  "$id": "ok141-m0b-installation/v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["apiVersion", "kind", "metadata", "spec"],
+  "properties": {
+    "apiVersion": {"const": "test.openkubes.io/v1alpha1"},
+    "kind": {"const": "InstallationGateProtocol"},
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "ticket", "baseCommit"],
+      "properties": {
+        "name": {"const": "ok141-m0b-i-argocd-v3.4.2"},
+        "ticket": {"const": "OK-141"},
+        "baseCommit": {"const": "4a86e55bd181dd4313286edcfa6ce2540e5a8378"}
+      }
+    },
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["protocolVersion", "protocolState", "authorityBoundary", "references", "authorization", "placement", "source", "submission", "preInstallationRequirements", "runtimeObligations", "phases", "acceptance", "rollback", "stopConditions", "excludedScenarios"],
+      "properties": {
+        "protocolVersion": {"const": "ok141-m0b-i/v1"},
+        "protocolState": {"const": "BLOCKED"},
+        "authorityBoundary": {"type": "object"},
+        "references": {"type": "object"},
+        "authorization": {"type": "object"},
+        "placement": {"type": "object"},
+        "source": {"type": "object"},
+        "submission": {"type": "object"},
+        "preInstallationRequirements": {"type": "array", "minItems": 9, "maxItems": 9, "items": {"type": "object"}},
+        "runtimeObligations": {"type": "array", "minItems": 6, "maxItems": 6, "items": {"type": "object"}},
+        "phases": {"type": "array", "minItems": 4, "maxItems": 4, "items": {"type": "object"}},
+        "acceptance": {"type": "array", "minItems": 8, "items": {"type": "string"}},
+        "rollback": {"type": "object"},
+        "stopConditions": {"type": "array", "minItems": 7, "items": {"type": "string"}},
+        "excludedScenarios": {"type": "array", "minItems": 6, "items": {"type": "string"}}
+      }
+    }
+  }
+}
