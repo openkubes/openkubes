@@ -1,0 +1,85 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: LivePlaneEvidence
+metadata:
+  name: ok141-ok-mgmt-live-v1
+spec:
+  observedAt: "2026-08-10T10:43:48.833854Z"
+  observer: bounded-kubectl-get
+  plane: ok-mgmt
+  operation: READ-ONLY
+  clusterContacted: true
+  mutationAuthorized: false
+  identity:
+    apiServer: https://192.168.100.200:6443
+    kubeconfigContext: ok-mgmt-admin@ok-mgmt
+    kubeSystemNamespaceUID: c3b45aab-d2a1-4e64-8f12-77b99186ad4a
+    kubeSystemCreatedAt: "2026-07-22T13:20:54Z"
+    kubernetesVersion: v1.34.1
+    kubernetesCommit: 93248f9ae092f571eb870b7664c534bfc7d00f03
+    platform: linux/amd64
+    osImage: Talos (v1.9.5)
+  topology:
+    availabilityProfile: development-single-control-plane
+    highAvailabilityRequired: false
+    totalManagementStateLossAccepted: true
+    nodes: 3
+    readyNodes: 3
+    controlPlaneNodes: 1
+    workerNodes: 2
+    architectures: [amd64]
+    nodeUIDs:
+      ok-mgmt-cp-6nc84: e32d82bf-e6a1-4b47-a317-14398fda2aeb
+      ok-mgmt-workers-tbch6-9x5qh: 1a035f46-c7e7-4717-b49e-34f7d30712e5
+      ok-mgmt-workers-tbch6-cqs7p: 315345d1-8b19-40e5-ae6f-1e5a4789f9ba
+  currentTuple:
+    capi: v1.13.4
+    capk: v0.11.2
+    talosBootstrapProvider: v0.6.12
+    talosControlPlaneProvider: v0.5.13
+    certManager: v1.20.1
+    kubernetes: v1.34.1
+  observedLifecycleControllers:
+    - {namespace: capi-system, name: capi-controller-manager, image: registry.k8s.io/cluster-api/cluster-api-controller:v1.13.4, ready: 1/1}
+    - {namespace: capk-system, name: capk-controller-manager, image: quay.io/capk/capk-manager:v0.11.2, ready: 1/1}
+    - {namespace: cabpt-system, name: cabpt-controller-manager, image: ghcr.io/siderolabs/cluster-api-talos-controller:v0.6.12, ready: 1/1}
+    - {namespace: cacppt-system, name: cacppt-controller-manager, image: ghcr.io/siderolabs/cluster-api-control-plane-talos-controller:v0.5.13, ready: 1/1}
+    - {namespace: crossplane-system, name: crossplane, image: xpkg.crossplane.io/crossplane/crossplane:v2.3.3, ready: 1/1}
+  lifecycleObjects:
+    capiClusters: 0
+    capiMachines: 0
+  caaphAbsence:
+    namespacePresent: false
+    helmChartProxyCRDPresent: false
+    helmReleaseProxyCRDPresent: false
+    helmChartProxyAPIQuery: NO_MATCH
+    helmReleaseProxyAPIQuery: NO_MATCH
+    caaphControllerWorkloads: 0
+  storage:
+    storageClasses:
+      - {name: local-path, provisioner: rancher.io/local-path, reclaimPolicy: Delete, volumeBindingMode: WaitForFirstConsumer}
+    csiDrivers: []
+  providerRecoveryInventory:
+    observerPlane: ok-infra
+    virtualMachines: 3
+    allVirtualMachinesReady: true
+    virtualMachineSnapshots: 0
+    virtualMachineRestores: 0
+    volumeSnapshots: 0
+    talosAPIObservation: UNAVAILABLE
+    talosAPIReason: TCP port 50000 was unreachable from the observer; no recovery action was attempted.
+  evidenceDestination:
+    result: UNRESOLVED
+    reason: No authoritative immutable destination, redaction policy, access proof, or destination clock source is bound by the current protocol or repository evidence.
+  recovery:
+    result: OBSERVED-ABSENT-DEV-RISK-ACCEPTANCE-REQUIRED
+    strategy: rebuild-not-restore
+    rebuildPathProven: false
+    workloadAdoptionClaimAllowed: false
+    reason: The DEV profile intentionally has no snapshot requirement and accepts total management-state loss; current VMs are visible but no external backup, restore rehearsal, or proven rebuild path was observed.
+  boundaries:
+    - This snapshot must be repeated immediately before any M0a-I decision.
+    - Presence of controllers does not establish exclusive lifecycle authority.
+    - Dependency and version observations do not prove the unresolved exact CAAPH interoperability tuple.
+    - The single-control-plane topology and lack of snapshots are intentional DEV constraints, not availability defects.
+    - Accepted state loss forbids production DR, automatic adoption, and lifecycle-continuity claims.
+    - VM availability is not backup or restore evidence, and rebuild remains unproven.

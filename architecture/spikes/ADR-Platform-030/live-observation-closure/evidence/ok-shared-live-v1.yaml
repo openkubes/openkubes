@@ -1,0 +1,92 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: LivePlaneEvidence
+metadata:
+  name: ok141-ok-shared-live-v1
+spec:
+  observedAt: "2026-08-10T10:45:08.807932Z"
+  observer: bounded-kubectl-get
+  plane: ok-shared
+  operation: READ-ONLY
+  clusterContacted: true
+  mutationAuthorized: false
+  identity:
+    apiServer: https://192.168.100.206:6443
+    kubeconfigContext: ok-shared-admin@ok-shared
+    kubeSystemNamespaceUID: 46b9ecf7-2e7a-48b1-a6eb-7d11df396efb
+    kubeSystemCreatedAt: "2026-07-22T12:57:46Z"
+    kubernetesVersion: v1.34.1
+    kubernetesCommit: 93248f9ae092f571eb870b7664c534bfc7d00f03
+    platform: linux/amd64
+    osImage: Talos (v1.9.5)
+  topology:
+    availabilityProfile: development-single-control-plane
+    highAvailabilityRequired: false
+    totalClusterStateLossAccepted: true
+    nodes: 4
+    readyNodes: 4
+    controlPlaneNodes: 1
+    workerNodes: 3
+    architectures: [amd64]
+    etcdMembersDirectlyObserved: false
+    productionHAClaimAllowed: false
+    nodeUIDs:
+      ok-shared-cp-z4gxn: a05eb57a-fba8-4922-807e-18d950531c8b
+      ok-shared-workers-tkrlw-9c2dx: b8f7f4b8-ab02-4673-8804-26d408470c30
+      ok-shared-workers-tkrlw-9gs5z: 4ff8e1a0-6355-483f-bed5-5790f8084cc8
+      ok-shared-workers-tkrlw-ndzch: a7d9c33c-3571-48db-98e4-a36e578276ba
+  capacity:
+    method: Non-terminal scheduled Pods; max of summed application containers and largest init container, plus Pod overhead for requests.
+    includedPods: 28
+    unscheduledPods: 0
+    nodes:
+      ok-shared-cp-z4gxn: {allocatableCPU: 1950m, allocatableMemory: 3364912Ki, cpuRequestMilli: 360, cpuLimitMilli: 1000, memoryRequestBytes: 882900992, memoryLimitBytes: 1073741824}
+      ok-shared-workers-tkrlw-9c2dx: {allocatableCPU: 1950m, allocatableMemory: 3495984Ki, cpuRequestMilli: 215, cpuLimitMilli: 2100, memoryRequestBytes: 249561088, memoryLimitBytes: 1551892480}
+      ok-shared-workers-tkrlw-9gs5z: {allocatableCPU: 1950m, allocatableMemory: 3495984Ki, cpuRequestMilli: 650, cpuLimitMilli: 2500, memoryRequestBytes: 1231028224, memoryLimitBytes: 3577741312}
+      ok-shared-workers-tkrlw-ndzch: {allocatableCPU: 1950m, allocatableMemory: 3495984Ki, cpuRequestMilli: 200, cpuLimitMilli: 1750, memoryRequestBytes: 278921216, memoryLimitBytes: 1879048192}
+  network:
+    cilium: {version: v1.19.6, desired: 4, ready: 4}
+    ciliumEnvoy: {desired: 4, ready: 4}
+    ciliumOperator: {desired: 1, ready: 1}
+  storage:
+    storageClasses:
+      - {name: local-path, provisioner: rancher.io/local-path, reclaimPolicy: Delete, volumeBindingMode: WaitForFirstConsumer}
+    csiDrivers: []
+  argocdAbsence:
+    namespacePresent: false
+    argoprojCRDs: 0
+    argocdControllerWorkloads: 0
+  observedSharedControllers:
+    - {namespace: cert-manager, name: cert-manager, image: quay.io/jetstack/cert-manager-controller:v1.17.2, ready: 1/1}
+    - {namespace: cnpg-system, name: cnpg-controller-manager, image: ghcr.io/cloudnative-pg/cloudnative-pg:1.30.0, ready: 1/1}
+    - {namespace: ingress, name: traefik, image: docker.io/traefik:v3.7.6, ready: 1/1}
+    - {namespace: vault, name: vault, image: hashicorp/vault:1.20.1, ready: 3/3}
+    - {namespace: vault-secrets-operator, name: vault-secrets-operator-controller-manager, image: hashicorp/vault-secrets-operator:1.5.0, ready: 1/1}
+    - {namespace: zot, name: zot, image: ghcr.io/project-zot/zot:v2.1.20@sha256:542e25be4d32e7879c0cfad93492a93c81b1e059cbd2d30d485d4bd567318234, ready: 1/1}
+  providerRecoveryInventory:
+    observerPlane: ok-infra
+    virtualMachines: 4
+    allVirtualMachinesReady: true
+    virtualMachineSnapshots: 0
+    virtualMachineRestores: 0
+    volumeSnapshots: 0
+  compatibilityCorrelation:
+    argoVersion: v3.4.2
+    observedKubernetesVersion: v1.34.1
+    observedArchitecture: amd64
+    upstreamTestedKubernetesVersion: true
+    lockedLinuxAmd64ImagesVerifiedOffline: 4
+    currentArgoWorkloads: 0
+  evidenceDestination:
+    result: UNRESOLVED
+    reason: No authoritative immutable destination, redaction policy, access proof, or destination clock source is bound by the current protocol or repository evidence.
+  recovery:
+    result: OBSERVED-ABSENT-DEV-RISK-ACCEPTANCE-REQUIRED
+    strategy: rebuild-not-restore
+    rebuildPathProven: false
+    reason: The DEV profile intentionally has no snapshot requirement and accepts total cluster-state loss; current VMs are visible but no external backup, restore rehearsal, or proven Argo-independent rebuild path was observed.
+  boundaries:
+    - This snapshot must be repeated immediately before any M0b-I decision.
+    - One control-plane Node is the explicitly intended DEV topology; direct etcd membership remains unobserved and no production-HA claim is allowed.
+    - Requested and limited resources are declarative scheduling inputs, not runtime utilization.
+    - Argo compatibility correlation does not install Argo or authorize placement.
+    - Accepted state loss forbids production DR and continuity claims; VM availability is not backup or restore evidence, and rebuild remains unproven.
