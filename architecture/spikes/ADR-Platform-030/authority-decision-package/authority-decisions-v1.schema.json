@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["apiVersion", "kind", "metadata", "spec"],
+  "properties": {
+    "apiVersion": {"const": "evidence.openkubes.io/v1alpha1"},
+    "kind": {"const": "AuthorityDecisionPackage"},
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "ticket"],
+      "properties": {
+        "name": {"const": "ok141-installation-authority-decisions-v1"},
+        "ticket": {"const": "OK-141"}
+      }
+    },
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "state", "authorization", "sources", "developmentRiskProfile", "targetIncarnations", "decisions", "excludedMutationGates", "summary", "rules"],
+      "properties": {
+        "version": {"const": "ok141-authority-decisions/v1"},
+        "state": {"const": "PREPARED-UNDECIDED-NO-GO"},
+        "authorization": {"type": "object"},
+        "sources": {"type": "object"},
+        "developmentRiskProfile": {"type": "object"},
+        "targetIncarnations": {"type": "object"},
+        "decisions": {"type": "array", "minItems": 9, "maxItems": 9, "items": {"type": "object"}},
+        "excludedMutationGates": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "object"}},
+        "summary": {"type": "object"},
+        "rules": {"type": "array", "minItems": 6, "items": {"type": "string", "minLength": 1}}
+      }
+    }
+  }
+}
