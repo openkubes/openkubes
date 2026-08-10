@@ -77,7 +77,10 @@ require-tools:
 	done
 
 require-chart:
-	@test -d "$(CHART_DIR)" || { echo "ERROR: pinned zot chart checkout is absent: $(CHART_DIR) (override CHART_DIR)" >&2; exit 2; }
+	@test -d "$(CHART_DIR)" || { echo "ERROR: pinned zot chart checkout is absent: $(CHART_DIR) (override CHART_DIR)" >&2; \
+		echo "       Create it once from the workspace root -- it is workspace-local, not part of any repository:" >&2; \
+		echo "         git clone --no-checkout https://github.com/project-zot/helm-charts zot" >&2; \
+		echo "         git -C zot checkout tags/$(CHART_TAG)" >&2; exit 2; }
 	@test -r "$(CHART_DIR)/Chart.yaml" || { echo "ERROR: zot Chart.yaml is absent under CHART_DIR=$(CHART_DIR)" >&2; exit 2; }
 	@actual="$$(git -C "$(CHART_DIR)" describe --tags --exact-match 2>/dev/null || true)"; \
 		test "$$actual" = "$(CHART_TAG)" || { echo "ERROR: CHART_DIR must be checked out exactly at $(CHART_TAG); found '$${actual:-no exact tag}'" >&2; exit 2; }

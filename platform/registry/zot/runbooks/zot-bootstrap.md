@@ -5,7 +5,15 @@ This is the Increment-1 bootstrap ceremony. Run it from the workspace root in an
 Prerequisites:
 
 - branch `feat/ok-138-registry-default-ok-shared` is already checked out in `openkubes`;
-- the local chart checkout exists at `zot/charts/zot` at exact tag `zot-0.1.122` with clean runtime files;
+- the local chart checkout exists at `zot/charts/zot` at exact tag `zot-0.1.122` with clean runtime files. It is a workspace-local prerequisite, a sibling of the repositories rather than part of any of them — the same arrangement as the Keycloak and CNPG chart checkouts. Create it once from the workspace root:
+
+  ```bash
+  git clone --no-checkout https://github.com/project-zot/helm-charts zot
+  git -C zot checkout tags/zot-0.1.122
+  git -C zot describe --tags --exact-match   # expect: zot-0.1.122
+  ```
+
+  `make` refuses to run against a missing, mistagged or locally modified chart, so this is a hard prerequisite rather than a convenience;
 - `kubectl`, Helm, Python 3 with PyYAML, jq, curl, OpenSSL, `htpasswd`, GNU Make and `rg` are installed;
 - central Keycloak, ClusterIssuer `ok-shared-internal-ca`, Traefik and StorageClass `local-path` are live;
 - `registry.ok-shared.internal` is tested through `--resolve ...:192.168.100.207` (or an equivalent hosts entry). No LoadBalancer Service is created.
