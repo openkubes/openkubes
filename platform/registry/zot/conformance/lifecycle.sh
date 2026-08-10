@@ -7,8 +7,10 @@ for command_name in base64 curl jq sha256sum; do
   command -v "$command_name" >/dev/null 2>&1 || { echo "ERROR: $command_name is required" >&2; exit 2; }
 done
 
-REGISTRY_HOST="${REGISTRY_HOST:-registry.ok-shared.internal}"
-REGISTRY_IP="${REGISTRY_IP:-${REGISTRY_LB:-192.168.100.207}}"
+SCRIPT_SELF_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=./registry-defaults.sh
+. "$SCRIPT_SELF_DIR/../tooling/registry-defaults.sh"
+REGISTRY_IP="${REGISTRY_IP:-$REGISTRY_LB}"
 REGISTRY_PORT="${REGISTRY_PORT:-443}"
 KUBE_CONTEXT="${KUBE_CONTEXT:-}"
 KUBECONFIG="${KUBECONFIG:-}"

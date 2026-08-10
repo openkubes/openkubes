@@ -6,8 +6,9 @@ case $- in *x*) set +x ;; esac
 : "${KUBECONFIG:?KUBECONFIG is required}"
 : "${NAMESPACE:=zot}"
 : "${RELEASE:=zot}"
-: "${REGISTRY_HOST:=registry.ok-shared.internal}"
-: "${REGISTRY_LB:=192.168.100.207}"
+SCRIPT_SELF_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=./registry-defaults.sh
+. "$SCRIPT_SELF_DIR/./registry-defaults.sh"
 : "${TLS_SECRET:=zot-server-tls}"
 : "${HTPASSWD_SECRET:=zot-htpasswd}"
 : "${MACHINE_SECRET:=zot-machine-identities}"
