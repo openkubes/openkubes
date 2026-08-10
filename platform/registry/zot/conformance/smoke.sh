@@ -204,6 +204,11 @@ spec:
   template:
     spec:
       restartPolicy: Never
+      # Match manifests/contract-job.template.yaml: without these the Job runs with the
+      # default ServiceAccount's API token mounted next to the registry credentials, which
+      # is strictly more authority than a pull test needs.
+      serviceAccountName: zot-contract
+      automountServiceAccountToken: false
       securityContext:
         seccompProfile: {type: RuntimeDefault}
       containers:

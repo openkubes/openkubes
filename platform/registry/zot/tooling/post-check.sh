@@ -56,7 +56,7 @@ auth=$(curl -sS --resolve "$REGISTRY_HOST:443:$REGISTRY_LB" --cacert "$d/ca.crt"
   --config <(printf 'user = "%s:%s"\n' "$metrics_user" "$metrics_password") \
   -o "$d/metrics" -w '%{http_code}' "https://$REGISTRY_HOST/metrics")
 [ "$auth" = 200 ] || { echo "ERROR: authenticated /metrics returned HTTP $auth" >&2; exit 1; }
-rg -q '^(# (HELP|TYPE) |zot_)' "$d/metrics" || { echo "ERROR: authenticated metrics body has no Prometheus/zot samples" >&2; exit 1; }
+grep -qE '^(# (HELP|TYPE) |zot_)' "$d/metrics" || { echo "ERROR: authenticated metrics body has no Prometheus/zot samples" >&2; exit 1; }
 echo "METRICS_AUTH: unauthenticated=$unauth authenticated=$auth"
 
 sm=$("$KUBECTL" --kubeconfig "$KUBECONFIG" get servicemonitor "$RELEASE" -n "$NAMESPACE" -o json)

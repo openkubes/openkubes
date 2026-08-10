@@ -27,12 +27,29 @@ NAMESPACE="$NAMESPACE" JOB_NAME="$job_name" REGISTRY_HOST="$REGISTRY_HOST" REGIS
   python3 -c 'import os,string,sys; print(string.Template(open(sys.argv[1]).read()).substitute(os.environ),end="")' \
   "$(dirname "$0")/../manifests/contract-job.template.yaml" > "$d/job.yaml"
 "$KUBECTL" --kubeconfig "$KUBECONFIG" apply -f "$d/job.yaml" >/dev/null
-if ! "$KUBECTL" --kubeconfig "$KUBECONFIG" wait --for=condition=Complete job/"$job_name" -n "$NAMESPACE" --timeout=5m; then
+# Poll for EITHER terminal condition. `kubectl wait --for=condition=Complete` alone sits out
+# the entire timeout when the Job fails, because Failed is never the condition it is waiting
+# for -- and with backoffLimit 0 a bad credential fails in seconds. Waiting 5m to print
+# diagnostics that were ready immediately is the difference between a usable check and one
+# people stop running.
+job_deadline=$((SECONDS + 300))
+job_state=pending
+while (( SECONDS < job_deadline )); do
+  conditions=$("$KUBECTL" --kubeconfig "$KUBECONFIG" get job "$job_name" -n "$NAMESPACE" \
+    -o jsonpath='{range .status.conditions[?(@.status=="True")]}{.type}{"\n"}{end}' 2>/dev/null || true)
+  case "$conditions" in
+    *Complete*) job_state=complete; break ;;
+    *Failed*)   job_state=failed;   break ;;
+  esac
+  sleep 3
+done
+if [ "$job_state" != complete ]; then
+  echo "ERROR: contract Job did not complete (state: $job_state)" >&2
   "$KUBECTL" --kubeconfig "$KUBECONFIG" describe job "$job_name" -n "$NAMESPACE" >&2
   "$KUBECTL" --kubeconfig "$KUBECONFIG" logs job/"$job_name" -n "$NAMESPACE" >&2 || true
   exit 1
 fi
 logs=$("$KUBECTL" --kubeconfig "$KUBECONFIG" logs job/"$job_name" -n "$NAMESPACE")
 printf '%s\n' "$logs"
-printf '%s\n' "$logs" | rg -q '^RESULT: PASS$' || { echo "ERROR: contract Job did not report PASS" >&2; exit 1; }
-printf '%s\n' "$logs" | rg -q '^BOUNDARY: in-cluster OCI contract proven; kubelet image pull NOT proven$' || { echo "ERROR: proof boundary missing" >&2; exit 1; }
+printf '%s\n' "$logs" | grep -qE '^RESULT: PASS$' || { echo "ERROR: contract Job did not report PASS" >&2; exit 1; }
+printf '%s\n' "$logs" | grep -qF 'BOUNDARY: in-cluster OCI contract proven; kubelet image pull NOT proven' || { echo "ERROR: proof boundary missing" >&2; exit 1; }

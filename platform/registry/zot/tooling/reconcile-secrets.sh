@@ -19,14 +19,32 @@ case $- in *x*) set +x ;; esac
 # The two are only meaningful as a pair (bcrypt is one-way, so a lone htpasswd cannot be
 # reassociated with its passwords). Reconcile them atomically: complete pair -> untouched;
 # anything else -> regenerate both, which rotates the machine credentials.
+# Fail closed on anything that is not a clean "absent". Swallowing every error into "absent"
+# would let a transient apiserver blip take the regenerate branch and rotate credentials the
+# running registry is still serving, which is a far worse outcome than stopping.
+secret_json() {
+  local name="$1" out rc
+  out=$("$KUBECTL" --kubeconfig "$KUBECONFIG" get secret "$name" -n "$NAMESPACE" -o json 2>"$err_file"); rc=$?
+  if [ "$rc" -eq 0 ]; then printf '%s' "$out"; return 0; fi
+  if grep -qF 'NotFound' "$err_file" || grep -qF 'not found' "$err_file"; then return 1; fi
+  echo "ERROR: reading Secret $NAMESPACE/$name failed for a reason other than absence:" >&2
+  cat "$err_file" >&2
+  exit 1
+}
+
+err_file=$(mktemp)
+trap 'rm -f -- "$err_file"' EXIT INT TERM
+
 htpasswd_ok=false
 machine_ok=false
-"$KUBECTL" --kubeconfig "$KUBECONFIG" get secret "$HTPASSWD_SECRET" -n "$NAMESPACE" -o json 2>/dev/null |
-  jq -e '.data.htpasswd' >/dev/null 2>&1 && htpasswd_ok=true
-"$KUBECTL" --kubeconfig "$KUBECONFIG" get secret "$MACHINE_SECRET" -n "$NAMESPACE" -o json 2>/dev/null |
-  jq -e '.data["machine-username"] and .data["machine-password"] and
+if json=$(secret_json "$HTPASSWD_SECRET"); then
+  printf '%s' "$json" | jq -e '.data.htpasswd' >/dev/null 2>&1 && htpasswd_ok=true
+fi
+if json=$(secret_json "$MACHINE_SECRET"); then
+  printf '%s' "$json" | jq -e '.data["machine-username"] and .data["machine-password"] and
     .data["puller-username"] and .data["puller-password"] and
     .data["metrics-username"] and .data["metrics-password"]' >/dev/null 2>&1 && machine_ok=true
+fi
 
 if [ "$htpasswd_ok" = true ] && [ "$machine_ok" = true ]; then
   echo "UNCHANGED: Secrets $NAMESPACE/$HTPASSWD_SECRET and $NAMESPACE/$MACHINE_SECRET contain the required identities"

@@ -65,16 +65,20 @@ help: ## Show registry-default lifecycle targets
 	@awk 'BEGIN {FS = ":.*## "}; /^[a-zA-Z_-]+:.*## / {printf "  %-24s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
 require-inputs:
+	@test "$(RELEASE)" = zot || { echo "ERROR: RELEASE must be 'zot' for Increment 1." >&2; \
+		echo "       The chart's fullname only collapses to the bare release name because 'zot' contains the chart name;" >&2; \
+		echo "       any other value desynchronises the StatefulSet name, the IngressRouteTCP target and the Service lookup." >&2; exit 2; }
 	@test "$(CLUSTER)" = ok-shared || { echo "ERROR: registry-default Increment 1 is scoped to CLUSTER=ok-shared" >&2; exit 2; }
-	@test -n "$(KUBECONFIG)" || { echo "ERROR: KUBECONFIG is required; use 'oks && make ... KUBECONFIG=$$$$KUBECONFIG'" >&2; exit 2; }
+	@test -n "$(KUBECONFIG)" || { echo 'ERROR: KUBECONFIG is required; run: oks && make ... KUBECONFIG="$$KUBECONFIG"' >&2; exit 2; }
 	@test -r "$(KUBECONFIG)" || { echo "ERROR: KUBECONFIG is not readable: $(KUBECONFIG)" >&2; exit 2; }
 	@context="$$($(KUBECTL) --kubeconfig "$(KUBECONFIG)" config current-context)"; cluster="$$($(KUBECTL) --kubeconfig "$(KUBECONFIG)" config view --minify -o jsonpath='{.clusters[0].name}')"; \
 		test "$$context" = ok-shared-admin@ok-shared || test "$$context" = ok-shared || test "$$cluster" = ok-shared || { echo "ERROR: kubeconfig identifies context '$$context' / cluster '$$cluster', not ok-shared" >&2; exit 2; }
 
 require-tools:
-	@for tool in "$(KUBECTL)" "$(HELM)" "$(PYTHON)" "$(JQ)" "$(TIMEOUT)" curl openssl htpasswd base64 sha256sum git realpath make rg sed; do \
+	@for tool in "$(KUBECTL)" "$(HELM)" "$(PYTHON)" "$(JQ)" "$(TIMEOUT)" curl openssl htpasswd base64 sha256sum git make grep sed; do \
 		command -v "$$tool" >/dev/null || { echo "ERROR: required tool not found: $$tool" >&2; exit 2; }; \
 	done
+	@$(PYTHON) -c 'import yaml' >/dev/null 2>&1 || { echo "ERROR: PyYAML is required by the values contract and the manifest renderer" >&2; exit 2; }
 
 require-chart:
 	@test -d "$(CHART_DIR)" || { echo "ERROR: pinned zot chart checkout is absent: $(CHART_DIR) (override CHART_DIR)" >&2; \
@@ -90,7 +94,7 @@ require-chart:
 
 require-values-contract:
 	@$(PYTHON) -c 'import json,sys,yaml; p,host,tls,htpasswd,oidc=sys.argv[1:]; v=yaml.safe_load(open(p,encoding="utf-8")); c=json.loads(v["configFiles"]["config.json"]); assert v["image"]["tag"].startswith("v2.1.20@sha256:"); assert v["service"]["type"]=="ClusterIP" and not v["ingress"]["enabled"]; assert v["persistence"] is True and v["pvc"]["storageClassName"]=="local-path"; assert c["http"]["externalUrl"]=="https://"+host; assert c["http"]["auth"]["apikey"] is True; assert c["http"]["auth"]["sessionKeysFile"]=="/oidc/session-keys.json"; provider=c["http"]["auth"]["openid"]["providers"]["oidc"]; assert provider["issuer"]=="https://keycloak.ok-shared.internal/realms/openkubes"; assert provider["claimMapping"]=={"username":"preferred_username","groups":"groups"}; assert c["http"]["accessControl"]["metrics"]["users"]==["zot-metrics"]; assert set(c["http"]["accessControl"]["repositories"]["openkubes/human/**"]["policies"][0]["groups"])=={"registry-writers"}; mounts={x["secretName"]:x["mountPath"] for x in v["externalSecrets"]}; assert mounts[tls]=="/tls" and mounts[htpasswd]=="/auth" and mounts[oidc]=="/oidc"' \
-		"$(VALUES_FILE)" "$(REGISTRY_HOST)" "$(TLS_SECRET)" "$(HTPASSWD_SECRET)" "$(OIDC_SECRET)" || { echo "ERROR: values/config contract mismatch" >&2; exit 2; }
+		"$(VALUES_FILE)" "$(REGISTRY_HOST)" "$(TLS_SECRET)" "$(HTPASSWD_SECRET)" "$(OIDC_SECRET)" || { echo "ERROR: values/config contract mismatch (the Python error above names the failing assertion)" >&2; exit 2; }
 
 require-oidc-approval:
 	@test "$(APPROVE_OIDC_CLIENT)" = yes || { \
@@ -106,7 +110,7 @@ require-lifecycle-approval:
 require-confirm:
 	@test "$(CONFIRM)" = yes || { echo "ERROR: teardown is destructive; rerun the reviewed target with CONFIRM=yes" >&2; exit 2; }
 
-render: require-chart require-values-contract ## Render every manifest and the pinned Helm release
+render: require-tools require-chart require-values-contract ## Render every manifest and the pinned Helm release
 	@set -Eeuo pipefail; for t in "$(NAMESPACE_TEMPLATE)" "$(IDENTITIES_TEMPLATE)" "$(REACHABILITY_TEMPLATE)" "$(METRICS_TEMPLATE)"; do \
 		echo "---"; NAMESPACE="$(NAMESPACE)" RELEASE="$(RELEASE)" REGISTRY_HOST="$(REGISTRY_HOST)" TLS_SECRET="$(TLS_SECRET)" TLS_ISSUER="$(TLS_ISSUER)" HTPASSWD_SECRET="$(HTPASSWD_SECRET)" MACHINE_SECRET="$(MACHINE_SECRET)" \
 		$(PYTHON) -c 'import os,string,sys; print(string.Template(open(sys.argv[1]).read()).substitute(os.environ),end="")' "$$t"; \
@@ -208,6 +212,7 @@ teardown-oidc-secret: require-inputs require-tools require-confirm ## Remove onl
 
 teardown-identities: require-inputs require-tools require-confirm ## Remove non-data identities and credential Secrets (requires CONFIRM=yes)
 	@$(KUBECTL) --kubeconfig "$(KUBECONFIG)" delete serviceaccount zot zot-contract -n "$(NAMESPACE)" --ignore-not-found
+	@$(KUBECTL) --kubeconfig "$(KUBECONFIG)" delete configmap zot-contract-script -n "$(NAMESPACE)" --ignore-not-found
 	@$(KUBECTL) --kubeconfig "$(KUBECONFIG)" delete secret "$(HTPASSWD_SECRET)" "$(MACHINE_SECRET)" "$(CONFORMANCE_SECRET)" -n "$(NAMESPACE)" --ignore-not-found
 
 teardown-data: require-inputs require-tools require-confirm ## IRREVERSIBLE: delete the registry PVC and artifact content (requires CONFIRM=yes)

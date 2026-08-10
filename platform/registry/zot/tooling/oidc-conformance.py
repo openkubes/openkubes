@@ -27,9 +27,11 @@ run_id = os.environ["RUN_ID"]
 ca_file = os.environ["CA_FILE"]
 admin_username = os.environ["KEYCLOAK_ADMIN_USERNAME"]
 
-admin_password = os.fdopen(3).read()
-writer_password = os.fdopen(4).read()
-reader_password = os.fdopen(5).read()
+# .strip() for parity with the shell tooling: $(cat <&3) and curl's password@file both
+# strip, so a VSO-materialised value ending in a newline would 401 here and nowhere else.
+admin_password = os.fdopen(3).read().strip()
+writer_password = os.fdopen(4).read().strip()
+reader_password = os.fdopen(5).read().strip()
 oidc_credentials = json.loads(os.fdopen(6).read())
 writer_username = os.environ["WRITER_USERNAME"]
 reader_username = os.environ["READER_USERNAME"]
