@@ -1,0 +1,36 @@
+{
+  "$id": "ok141-installation-closure/v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["apiVersion", "kind", "metadata", "spec"],
+  "properties": {
+    "apiVersion": {"const": "evidence.openkubes.io/v1alpha1"},
+    "kind": {"const": "InstallationClosureMatrix"},
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "ticket", "baseCommit"],
+      "properties": {
+        "name": {"const": "ok141-installation-gate-closure-v1"},
+        "ticket": {"const": "OK-141"},
+        "baseCommit": {"const": "f4b16b34c0d214083a343565e6fa7573d3284a75"}
+      }
+    },
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "state", "authorization", "sources", "classes", "blockers", "summary", "nextReadOnlyCandidates", "rules"],
+      "properties": {
+        "version": {"const": "ok141-installation-closure/v1"},
+        "state": {"const": "READ-ONLY-CLASSIFIED"},
+        "authorization": {"type": "object"},
+        "sources": {"type": "object"},
+        "classes": {"type": "object"},
+        "blockers": {"type": "array", "minItems": 17, "maxItems": 17, "items": {"type": "object"}},
+        "summary": {"type": "object"},
+        "nextReadOnlyCandidates": {"type": "array", "minItems": 9, "maxItems": 9, "items": {"type": "string"}},
+        "rules": {"type": "array", "minItems": 7, "items": {"type": "string"}}
+      }
+    }
+  }
+}
