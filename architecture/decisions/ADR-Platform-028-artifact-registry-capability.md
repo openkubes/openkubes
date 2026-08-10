@@ -123,7 +123,7 @@ Identity:    OpenKubes central OIDC capability (ADR-020)
 
 The profile SHALL use a curated zot configuration, not every available extension. Initial feature set: OCI core, authn/authz, metrics, storage-integrity checking, garbage collection, and required search/discovery. Synchronization and an optional UI are included only where a concrete use case exists. Registry-integrated vulnerability scanning MAY be added later; it is not required initially because release security evidence must not depend on an embedded scanner (§4.6).
 
-The profile is owned by an OpenKubes-Family repository (provisionally `ok-artifact-registry`) holding the profile configuration, policies, contract tests, air-gap tooling, and operational docs. It SHALL NOT fork or vendor a complete registry implementation without a separate recorded decision.
+The profile is owned at `openkubes/platform/registry/zot/`, which SHALL hold the profile configuration, policies, contract tests, air-gap tooling, and operational docs. It SHALL NOT fork or vendor a complete registry implementation without a separate recorded decision.
 
 ## 6. Anticipated implementation paths (not contracted, not maintained)
 

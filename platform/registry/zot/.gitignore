@@ -1,0 +1,4 @@
+# Per-run contract evidence is a local artifact, not source. It also captures the
+# operator's kubeconfig path in tool warnings, and this repository is public.
+# Durable evidence belongs in the ticket, not here.
+conformance/results-*/

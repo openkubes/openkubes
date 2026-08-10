@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: zot
+  namespace: ${NAMESPACE}
+  labels:
+    app.kubernetes.io/part-of: registry-default
+automountServiceAccountToken: false
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: zot-contract
+  namespace: ${NAMESPACE}
+  labels:
+    app.kubernetes.io/part-of: registry-default
+automountServiceAccountToken: false
