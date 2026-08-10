@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["apiVersion", "kind", "metadata", "spec"],
+  "properties": {
+    "apiVersion": {"const": "evidence.openkubes.io/v1alpha1"},
+    "kind": {"const": "GHCREvidencePreflight"},
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "ticket"],
+      "properties": {
+        "name": {"const": "ok141-ghcr-evidence-preflight-v1"},
+        "ticket": {"const": "OK-141"}
+      }
+    },
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "state", "observedAt", "operation", "sourceProtocol", "liveObservations", "officialCapabilityEvidence", "clockObservation", "proposedObserverRuntime", "retentionProposal", "remainingBlockers", "authorization", "summary", "rules"],
+      "properties": {
+        "version": {"const": "ok141-ghcr-evidence-preflight/v1"},
+        "state": {"const": "OBSERVED-BLOCKED-NO-GO"},
+        "observedAt": {"type": "string", "minLength": 20},
+        "operation": {"const": "READ-ONLY"},
+        "sourceProtocol": {"type": "object"},
+        "liveObservations": {"type": "object"},
+        "officialCapabilityEvidence": {"type": "object"},
+        "clockObservation": {"type": "object"},
+        "proposedObserverRuntime": {"type": "object"},
+        "retentionProposal": {"type": "object"},
+        "remainingBlockers": {"type": "array", "minItems": 8, "maxItems": 8, "items": {"type": "string", "minLength": 1}},
+        "authorization": {"type": "object"},
+        "summary": {"type": "object"},
+        "rules": {"type": "array", "minItems": 6, "items": {"type": "string", "minLength": 1}}
+      }
+    }
+  }
+}
