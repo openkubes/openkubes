@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["apiVersion", "kind", "metadata", "spec"],
+  "properties": {
+    "apiVersion": {"const": "evidence.openkubes.io/v1alpha1"},
+    "kind": {"const": "GHCROfflineObserverPrototype"},
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "ticket"],
+      "properties": {
+        "name": {"const": "ok141-ghcr-observer-offline-prototype-v1"},
+        "ticket": {"const": "OK-141"}
+      }
+    },
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "state", "sourceAlertDecision", "components", "workflowContract", "evaluatorContract", "proof", "remainingBlockers", "authorization", "summary", "rules"],
+      "properties": {
+        "version": {"const": "ok141-ghcr-observer-offline-prototype/v1"},
+        "state": {"const": "IMPLEMENTED-OFFLINE-INERT-NOT-DEPLOYED-NO-GO"},
+        "sourceAlertDecision": {"type": "object"},
+        "components": {"type": "object"},
+        "workflowContract": {"type": "object"},
+        "evaluatorContract": {"type": "object"},
+        "proof": {"type": "object"},
+        "remainingBlockers": {"type": "array", "minItems": 7, "maxItems": 7, "items": {"type": "string", "minLength": 1}},
+        "authorization": {"type": "object"},
+        "summary": {"type": "object"},
+        "rules": {"type": "array", "minItems": 6, "maxItems": 6, "items": {"type": "string", "minLength": 1}}
+      }
+    }
+  }
+}

@@ -1,0 +1,109 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: GHCROfflineObserverPrototype
+metadata:
+  name: ok141-ghcr-observer-offline-prototype-v1
+  ticket: OK-141
+spec:
+  version: ok141-ghcr-observer-offline-prototype/v1
+  state: IMPLEMENTED-OFFLINE-INERT-NOT-DEPLOYED-NO-GO
+  sourceAlertDecision:
+    path: ../ghcr-alert-destination-decision/ghcr-alert-destination-decision-v1.yaml
+    digest: sha256:d9efd41fd70147e99c912e747403470533e01b6548ccedbf6b9f709d2c7c4683
+    state: ACCEPTED-DESTINATION-IMPLEMENTATION-BLOCKED-NO-GO
+  components:
+    candidateWorkflow:
+      path: candidate/ok141-evidence-observer.workflow.yaml
+      digest: sha256:42a4bd4f775bc6b0a95e4b96e30b730c8e996887a02e03dbbe5099ad3aa7a951
+    evaluator:
+      path: observe_ghcr_evidence.py
+      digest: sha256:e10f7ad4f96284552d99385850710b8b204866e045dfb2437ca1ea05205b4ffd
+    offlineIndexFixture:
+      path: fixtures/active-index.json
+      digest: sha256:d419fdbe9840960d9e4c773a7abccf33c990a8ed5406c693e0ca5524b0ff6e71
+    offlineObservationFixture:
+      path: fixtures/present-observation.json
+      digest: sha256:83b21e4e0ddd4071d87838282681cd68b80d58502178b67d46112a3a3b5750dc
+  workflowContract:
+    inertCandidatePath: architecture/spikes/ADR-Platform-030/ghcr-observer-offline-prototype/candidate/ok141-evidence-observer.workflow.yaml
+    futureDeploymentPath: .github/workflows/ok141-evidence-observer.yaml
+    futureDeploymentPathPresent: false
+    triggers:
+      - workflow_dispatch
+      - schedule
+    scheduleCronUTC: 17 3 * * *
+    targetInterval: PT24H
+    permissions:
+      contents: read
+      packages: read
+    actions:
+      - repository: actions/checkout
+        fullCommitSHA: 11d5960a326750d5838078e36cf38b85af677262
+        observedRef: refs/tags/v4
+        observedAt: "2026-08-10"
+    checkoutCredentialsPersisted: false
+    activeIndexPath: architecture/spikes/ADR-Platform-030/ghcr-observer-runtime/active-evidence-index.json
+    activeIndexPresent: false
+    packageMutationPermissionPresent: false
+    issueOrWebhookPermissionPresent: false
+  evaluatorContract:
+    authoritativeRepository: ghcr.io/openkubes/ok141-evidence
+    authoritativeIdentity: OCI-MANIFEST-DIGEST
+    acceptedIndexVersion: ok141-active-evidence-index/v1
+    acceptedResultVersion: ok141-observer-result/v1
+    registryOperation: HEAD-MANIFEST-BY-DIGEST
+    registryScope: repository:openkubes/ok141-evidence:pull
+    trustedTokenRealm: https://ghcr.io/token
+    successOutcome: OBSERVED-PRESENT
+    failureExitCode: 2
+    mutationOperationsExposed: []
+    failClosedReasons:
+      - RequestedDigestMismatch
+      - DigestMissing
+      - PackageReadDenied
+      - EvidenceUnverifiable
+      - ObservedDigestMismatch
+      - RetentionWindowExpired
+  proof:
+    offlineTestsPassed: 9
+    liveRegistryCallPerformed: false
+    workflowDeployed: false
+    scheduleCreated: false
+    packageReadAccessProven: false
+    failedRunAlertProven: false
+    missedRunDetectionProven: false
+  remainingBlockers:
+    - Create the authoritative active evidence index only after first publication and pull-back proof.
+    - Review the exact deployment diff into .github/workflows under a separate mutation gate.
+    - Prove repository-linked least-privilege packages read access.
+    - Prove failed-run and bounded job-summary behavior on GitHub Actions.
+    - Define and prove independent freshness evaluation for missed or never-started runs.
+    - Repeat source-pin and cache-busted UTC observations in the exact deployment window.
+    - Prove first real digest observation only after package creation is separately authorized.
+  authorization:
+    decision: NO-GO
+    workflowDeploymentAuthorized: false
+    scheduleCreationAuthorized: false
+    activeIndexCreationAuthorized: false
+    packageReadCredentialAuthorized: false
+    packageWriteAuthorized: false
+    packageDeleteAuthorized: false
+    alertTestAuthorized: false
+    externalWriteAuthorized: false
+    infrastructureMutationAuthorized: false
+    m0aInstallationGranted: false
+    m0bInstallationGranted: false
+    go1Granted: false
+  summary:
+    evaluatorImplementedOffline: true
+    inertWorkflowCandidatePresent: true
+    activeWorkflowPresent: false
+    activeIndexPresent: false
+    liveReadProven: false
+    installationGatesGranted: 0
+  rules:
+    - The candidate path is inert and must not be interpreted as a deployed GitHub Actions workflow.
+    - The missing active index is intentional and prevents an authoritative observation before first publication evidence exists.
+    - Offline fixtures prove evaluator behavior but not GHCR access workflow execution scheduling alert delivery or availability.
+    - The observer exposes no restore repair republish package write package delete issue or webhook operation.
+    - Moving the candidate into .github/workflows requires a separate reviewed mutation gate and a new bound digest.
+    - Workflow deployment schedule credential external write M0a-I M0b-I GO-1 infrastructure mutation and failure injection remain NO-GO.
