@@ -1,0 +1,147 @@
+apiVersion: test.openkubes.io/v1alpha1
+kind: InstallationGateProtocol
+metadata:
+  name: ok141-m0a-i-caaph-v0.6.4
+  ticket: OK-141
+  baseCommit: 489903b9f84386cb5f2b904c917b9f6747ae3a61
+spec:
+  protocolVersion: ok141-m0a-i/v1
+  protocolState: BLOCKED
+  authorityBoundary:
+    gate: M0A-I
+    purpose: install-caaph-control-plane-on-ok-mgmt-only
+    mayAuthorizeTargetConvergence: false
+    mayAuthorizeGO1: false
+    maySubmitHelmChartProxy: false
+    maySubmitHelmReleaseProxy: false
+    mayAccessWorkloadCluster: false
+  references:
+    go1Protocol:
+      path: ../go1-v4/go1-protocol-v4.yaml
+      digest: sha256:2718d719c322190e36036f98730edcb9aaa679c434fb04f151f7f24fc2626705
+    gatePartition:
+      path: ../gate-partition/gate-partition-v1.yaml
+      digest: sha256:a12a5e30f5bd5479d502f0dbf80e709e14216702ba804f986afcb408f0c32be9
+    historicalM0a:
+      path: ../m0a-v2/m0a-protocol-v2.yaml
+      digest: sha256:c06f9c0d670f46f209ee5f540d6497e3dea34fa80b85ecc740db8ded6f68e5d0
+  authorization:
+    decision: NO-GO
+    mutationAuthorized: false
+    m0aInstallationGranted: false
+    m0aTargetConvergenceGranted: false
+    go1Granted: false
+    grantID: null
+    authorizedProtocolDigest: null
+    authority: UNASSIGNED
+    decidedAt: null
+  target:
+    plane: ok-mgmt
+    namespace: caaph-system
+    architecture: linux/amd64
+    kubeContextIdentity: UNRESOLVED
+  source:
+    repository: https://github.com/kubernetes-sigs/cluster-api-addon-provider-helm
+    tag: v0.6.4
+    commit: 825662962a26dc339f3871184c91ed4bd2f83a4f
+    releaseAssetURL: https://github.com/kubernetes-sigs/cluster-api-addon-provider-helm/releases/download/v0.6.4/addon-components.yaml
+    manifestPath: caaph-v0.6.4-addon-components.yaml
+    rawDigest: sha256:a70f4eb77eac626231daca1e2a046b4b069bb84320efa327cc8c56a9c4ca03e6
+    semanticDigest: sha256:01fc13d694da3304385a7bae0d1bd662d7c8c3d336b8a4d44da5324439d59095
+    sizeBytes: 55263
+    objectCount: 19
+    objectKinds:
+      Namespace: 1
+      CustomResourceDefinition: 2
+      ServiceAccount: 1
+      Role: 1
+      RoleBinding: 1
+      ClusterRole: 3
+      ClusterRoleBinding: 2
+      ConfigMap: 1
+      Service: 2
+      Deployment: 1
+      Certificate: 1
+      Issuer: 1
+      MutatingWebhookConfiguration: 1
+      ValidatingWebhookConfiguration: 1
+    controllerImage:
+      reference: registry.k8s.io/cluster-api-helm/cluster-api-helm-controller:v0.6.4
+      indexDigest: sha256:97d2a86f8e35d23bb4656b26f4564b35f109e47a0dc4860b71089e52eb6e6a24
+      linuxAmd64Digest: sha256:66344ab0107c0a3fcbce860697206ac7e6a2316a7af4a07f81a9f8d53e448e6a
+  submission:
+    operation: ApplyReviewedInstallationSet
+    enabled: false
+    targetPlane: ok-mgmt
+    installerIdentity: UNRESOLVED
+    installerArtifactDigest: UNRESOLVED
+    credentialModel: short-lived-least-privilege-required
+    freeFormShellEndpoint: false
+    expectedRawDigest: sha256:a70f4eb77eac626231daca1e2a046b4b069bb84320efa327cc8c56a9c4ca03e6
+    expectedSemanticDigest: sha256:01fc13d694da3304385a7bae0d1bd662d7c8c3d336b8a4d44da5324439d59095
+    exactObjectAdmission: UNRESOLVED
+    rule: RBAC alone cannot constrain create or update to this exact object-set digest.
+  securityReview:
+    path: ../m0a/caaph-rbac-review.yaml
+    controllerScope: cluster
+    sensitiveCapabilities:
+      - cluster-wide Secret read for workload kubeconfigs and repository credentials
+      - read-only wildcard resource visibility across CAPI provider groups
+      - TokenReview and SubjectAccessReview creation
+      - CAAPH HCP and HRP reconciliation writes
+    status: EXPLICIT-ACCEPTANCE-REQUIRED
+  preInstallationRequirements:
+    - {id: M0AI-AUTHORITY, status: BLOCKED, closure: Assign authority for exactly one reviewed installation protocol digest and test window.}
+    - {id: M0AI-BASELINE-FRESHNESS, status: BLOCKED, closure: Re-observe ok-mgmt Kubernetes CAPI cert-manager architecture existing CAAPH resources and conflicting writers.}
+    - {id: M0AI-INSTALLER-IDENTITY, status: BLOCKED, closure: Bind reviewed installer artifact and short-lived credential identity with issuance expiry revocation and audit evidence.}
+    - {id: M0AI-EXACT-OBJECT-SUBMISSION, status: BLOCKED, closure: Bind a trusted bounded operation or existing policy control that rejects any object set other than the reviewed digest.}
+    - {id: M0AI-CONTROLLER-RBAC-ACCEPTANCE, status: BLOCKED, closure: Explicitly accept or reduce the reviewed cluster-wide sensitive controller capabilities.}
+    - {id: M0AI-COMPATIBILITY, status: BLOCKED, closure: Prove the exact CAAPH release is compatible with the current ok-mgmt Kubernetes CAPI and cert-manager versions.}
+    - {id: M0AI-OBSERVERS-EVIDENCE, status: BLOCKED, closure: Bind independent management security and evidence observers plus immutable evidence destination redaction and UTC rules.}
+    - {id: M0AI-RECOVERY, status: BLOCKED, closure: Verify ok-mgmt recovery evidence out-of-band access abort authority and the bounded rollback decision path.}
+  runtimeObligations:
+    - {id: M0AI-INVENTORY-IDENTITY, phase: M0AI-G2, status: PENDING-RUNTIME, mayBeClosedBeforeRuntime: false, onFailure: STOP-NOT-SUCCESS}
+    - {id: M0AI-API-WEBHOOK-READY, phase: M0AI-G2, status: PENDING-RUNTIME, mayBeClosedBeforeRuntime: false, onFailure: STOP-NOT-SUCCESS}
+    - {id: M0AI-CONTROLLER-IMAGE-READY, phase: M0AI-G2, status: PENDING-RUNTIME, mayBeClosedBeforeRuntime: false, onFailure: STOP-NOT-SUCCESS}
+    - {id: M0AI-NO-TARGET-RESOURCES, phase: M0AI-G2, status: PENDING-RUNTIME, mayBeClosedBeforeRuntime: false, onFailure: STOP-NOT-SUCCESS}
+    - {id: M0AI-EVIDENCE-BUNDLE, phase: M0AI-G3, status: PENDING-RUNTIME, mayBeClosedBeforeRuntime: false, onFailure: STOP-NOT-SUCCESS}
+  phases:
+    - {id: M0AI-G0, name: preflight-baseline-and-digests, mutating: false, enabled: false}
+    - {id: M0AI-G1, name: apply-reviewed-installation-set, mutating: true, enabled: false}
+    - {id: M0AI-G2, name: verify-control-plane-only-readiness, mutating: false, enabled: false}
+    - {id: M0AI-G3, name: verify-evidence-and-close, mutating: false, enabled: false}
+  acceptance:
+    - exactly the reviewed 19-object inventory is accepted once on ok-mgmt
+    - both CAAPH CRDs are Established with expected schema identity
+    - webhook configurations services endpoints and certificates are current and available
+    - controller Deployment is Available using the bound linux-amd64 image digest
+    - runtime controller RBAC equals the reviewed inventory and accepted security boundary
+    - no HelmChartProxy or HelmReleaseProxy exists or is submitted by M0a-I
+    - independently retained evidence correlates accepted object UIDs to the exact manifest digest
+  rollback:
+    enabled: false
+    authorizationRequired: true
+    mode: exact-reviewed-object-set-only
+    preconditions:
+      - STOP has been declared by the assigned abort authority
+      - no HelmChartProxy or HelmReleaseProxy exists
+      - every candidate object UID belongs to the accepted M0a-I submission
+      - no foreign owner or dependent resource is observed
+      - raw evidence is retained before rollback
+    unsafeResponse: STOP-AND-TRANSFER-TO-RECOVERY-AUTHORITY
+    rule: Rollback is not exploratory cleanup and must never delete CRDs containing target resources.
+  stopConditions:
+    - source raw or semantic digest object membership target plane or image identity differs
+    - an object outside the exact reviewed installation set is proposed
+    - a HelmChartProxy HelmReleaseProxy workload credential or workload mutation is observed
+    - an API webhook certificate controller or evidence obligation is missing stale or conflicting
+    - ok-mgmt or an existing managed cluster unexpectedly degrades
+    - credential recovery or independent-observation confidence is lost
+    - timeout or any restart retry drift delete outage or other excluded scenario is proposed
+  excludedScenarios:
+    - HelmChartProxy and HelmReleaseProxy submission
+    - Cilium chart resolution E convergence and NetworkReady
+    - controller restart or Helm retry injection
+    - arbitrary drift injection
+    - GO-1 cluster creation
+    - deletion finalizer manipulation management outage break-glass or DR
