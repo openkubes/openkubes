@@ -1,5 +1,7 @@
 # Central Keycloak
 
+> **Operator procedure:** read the [central Keycloak runbook](RUNBOOK.md) before installing, rebuilding, rotating credentials, restoring, or tearing down this service.
+
 This directory provides the central OIDC identity capability on ok-shared. Keycloak serves TLS from a cert-manager certificate and is exposed through Traefik TLS passthrough; verification pins the stable SNI name to a local HTTPS port-forward and does not depend on DNS.
 
 The capability Makefile is the operational entry point:
@@ -12,7 +14,7 @@ make reachability CLUSTER=<name> NAMESPACE=<namespace> KUBECONFIG=<path>
 make vault-config CLUSTER=<name> NAMESPACE=<namespace> KUBECONFIG=<path> \
   MGMT_KUBECONFIG=<path> APPROVE_MGMT=yes
 make install CLUSTER=<name> NAMESPACE=<namespace> KUBECONFIG=<path> MGMT_KUBECONFIG=<path> \
-  APPROVE_CUTOVER=yes
+  APPROVE_CUTOVER=yes APPROVE_NETWORK_POLICY=yes
 ```
 
 RMF Web uses a dedicated application realm on the same central Keycloak instance. Provision it
@@ -36,11 +38,13 @@ untouched instead of pretending the built-in JBoss logger is format-compatible. 
 workload consumes `smart_cart`'s generated client secret, so the target neither reads nor escrows it.
 
 On an empty database the bootstrap environment wiring mints the first `admin` from the
-Vault-materialised `keycloak-admin` Secret. `install` requires `APPROVE_CUTOVER=yes` and an attended
-terminal up front, then promotes that temporary account to the permanent `admin` before running
-`verify`. The explicit approval prevents an aggregate install from silently rewriting admin
-identity; requiring it at entry also prevents a routine install from stopping in a no-login state.
-Credential rotation and break-glass recovery remain separate approved operations:
+Vault-materialised `keycloak-admin` Secret. `install` requires `APPROVE_CUTOVER=yes` and
+`APPROVE_NETWORK_POLICY=yes` in an attended terminal, then promotes that temporary account to the
+permanent `admin`, runs `verify`, and applies the required brute-force and NetworkPolicy hardening.
+The explicit approvals prevent an aggregate install from silently rewriting admin identity or
+changing live traffic isolation; requiring them at entry also prevents a routine install from
+stopping in a no-login or unhardened state. Credential rotation and break-glass recovery remain
+separate approved operations:
 
 ```bash
 make admin-cutover CLUSTER=<name> NAMESPACE=<namespace> KUBECONFIG=<path> APPROVE_CUTOVER=yes
@@ -88,10 +92,11 @@ existed when it started.
 `install` never applies the privileged management-plane configuration. Review and run
 the VSO and identity bootstrap targets first, then run `make vault-config ... APPROVE_MGMT=yes`
 separately. The aggregate `install` checks that `VaultConfig` is currently `Synced=True` and
-`Ready=True` and checks cutover approval before its first mutation. It then runs the bootstrap
-sequence, installs Keycloak, performs the idempotent admin cutover, verifies with the newly escrowed
-permanent credential, and runs the post-check. `verify` belongs after cutover: if it ran only before,
-a cutover or escrow failure could leave the final identity untested.
+`Ready=True` and checks cutover and NetworkPolicy approvals before its first mutation. It then runs
+the bootstrap sequence, installs Keycloak, performs the idempotent admin cutover, verifies with the
+newly escrowed permanent credential, applies hardening, and runs the post-check. `verify` belongs
+after cutover: if it ran only before, a cutover or escrow failure could leave the final identity
+untested.
 
 Teardown destroys the CNPG PVC and therefore all realm state. Back it up first, then use
 `make teardown ... CONFIRM=yes`. Normal teardown deliberately retains the ok-mgmt reviewer JWT,
