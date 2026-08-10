@@ -1,0 +1,8 @@
+{
+  "status": "PRESENT",
+  "repository": "ghcr.io/openkubes/ok141-evidence",
+  "requestedDigest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "observedDigest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "observedAtUTC": "2026-08-10T18:10:00Z",
+  "reason": "OfflineFixture"
+}

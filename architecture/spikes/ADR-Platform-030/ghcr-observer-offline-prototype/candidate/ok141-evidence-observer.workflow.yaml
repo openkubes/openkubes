@@ -1,0 +1,32 @@
+name: OK-141 evidence observer candidate
+
+"on":
+  workflow_dispatch:
+  schedule:
+    - cron: "17 3 * * *"
+
+permissions:
+  contents: read
+  packages: read
+
+concurrency:
+  group: ok141-evidence-observer
+  cancel-in-progress: false
+
+jobs:
+  observe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out the reviewed observer source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Observe the exact evidence digest
+        env:
+          GHCR_USERNAME: ${{ github.actor }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python3 architecture/spikes/ADR-Platform-030/ghcr-observer-offline-prototype/observe_ghcr_evidence.py \
+            --index architecture/spikes/ADR-Platform-030/ghcr-observer-runtime/active-evidence-index.json \
+            --summary "$GITHUB_STEP_SUMMARY"

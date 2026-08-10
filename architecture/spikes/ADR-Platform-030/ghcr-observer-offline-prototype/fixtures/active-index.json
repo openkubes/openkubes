@@ -1,0 +1,8 @@
+{
+  "version": "ok141-active-evidence-index/v1",
+  "repository": "ghcr.io/openkubes/ok141-evidence",
+  "ociManifestDigest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "internalBundleDigest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "retainedUntil": "2027-01-01T00:00:00Z",
+  "workflowSourceRevision": "cccccccccccccccccccccccccccccccccccccccc"
+}
