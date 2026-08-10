@@ -1,6 +1,6 @@
 # Bootstrap registry-default on ok-shared
 
-This is the Increment-1 bootstrap ceremony. Run it from the workspace root in an attended shell. Each cluster command uses `oks` in the same shell expression; never export `KUBECONFIG` manually.
+This is the Increment-1 bootstrap ceremony. Run it from the workspace root in an attended shell. Each cluster command uses `oks` in the same shell expression; never export `KUBECONFIG` manually. Backup and recovery are a separate ceremony in [zot-backup-restore.md](zot-backup-restore.md).
 
 Prerequisites:
 
@@ -16,7 +16,7 @@ Prerequisites:
   `make` refuses to run against a missing, mistagged or locally modified chart, so this is a hard prerequisite rather than a convenience;
 - `kubectl`, Helm, Python 3 with PyYAML, jq, curl, OpenSSL, `htpasswd`, GNU Make and `rg` are installed;
 - central Keycloak, ClusterIssuer `ok-shared-internal-ca`, Traefik and StorageClass `local-path` are live;
-- `registry.ok-shared.internal` is tested through `--resolve ...:192.168.100.207` (or an equivalent hosts entry). No LoadBalancer Service is created.
+- `registry.ok-shared.internal` is tested through `curl --resolve` against this cluster's ingress address. No LoadBalancer Service is created. The tooling discovers that address rather than carrying it: `tooling/registry-defaults.sh` takes an explicit `REGISTRY_LB` first, then DNS for the registry hostname (which is what OK-57 will provide, after which the rest is unnecessary), then the LoadBalancer address the infrastructure cluster publishes for this cluster's ingress Service. Point `REGISTRY_LB_KUBECONFIG` at that cluster's kubeconfig, or set `REGISTRY_LB` yourself.
 
 Set a shell-local shelf path and prove the target cluster:
 
@@ -55,7 +55,7 @@ Expected effects include:
 
 - `POD_READY ... Ready=True`;
 - `CERTIFICATE_READY ... Ready=True`;
-- `TLS_ROUTE: GET /v2/ HTTP 200 distribution=registry/2.0 running=v2.1.20 ...` using `registry.ok-shared.internal:443:192.168.100.207`;
+- `TLS_ROUTE: GET /v2/ HTTP 200 distribution=registry/2.0 running=v2.1.20 ...`, ending with the `registry.ok-shared.internal:443:<discovered address>` it used;
 - `METRICS_AUTH: unauthenticated=401|403 authenticated=200`;
 - ServiceMonitor selector matches Service labels and port `zot`;
 - Prometheus/PrometheusAgent count remains zero unless observability was installed separately.

@@ -171,13 +171,6 @@ resources:
     cpu: 750m
     memory: 768Mi
 
-# ok-shared's cluster DNS does not serve the internal external-service zone.
-# Keep the OIDC issuer canonical while following the proven shared ingress IP.
-hostAliases:
-  - ip: "192.168.100.207"
-    hostnames:
-      - keycloak.ok-shared.internal
-
 metrics:
   enabled: false
   serviceMonitor:

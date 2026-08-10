@@ -4,8 +4,9 @@ set -Eeuo pipefail
 : "${KUBECTL:=kubectl}"
 : "${KUBECONFIG:?KUBECONFIG is required}"
 : "${NAMESPACE:=zot}"
-: "${REGISTRY_HOST:=registry.ok-shared.internal}"
-: "${REGISTRY_LB:=192.168.100.207}"
+SCRIPT_SELF_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=./registry-defaults.sh
+. "$SCRIPT_SELF_DIR/./registry-defaults.sh"
 : "${TLS_SECRET:=zot-server-tls}"
 : "${MACHINE_SECRET:=zot-machine-identities}"
 

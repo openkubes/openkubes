@@ -5,8 +5,9 @@ case $- in *x*) set +x ;; esac
 : "${KUBECTL:=kubectl}"
 : "${KUBECONFIG:?KUBECONFIG is required}"
 : "${NAMESPACE:=zot}"
-: "${REGISTRY_HOST:=registry.ok-shared.internal}"
-: "${REGISTRY_LB:=192.168.100.207}"
+SCRIPT_SELF_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=./registry-defaults.sh
+. "$SCRIPT_SELF_DIR/./registry-defaults.sh"
 : "${KEYCLOAK_HOST:=keycloak.ok-shared.internal}"
 : "${KEYCLOAK_NAMESPACE:=keycloak}"
 : "${KEYCLOAK_ADMIN_SECRET:=keycloak-admin}"
