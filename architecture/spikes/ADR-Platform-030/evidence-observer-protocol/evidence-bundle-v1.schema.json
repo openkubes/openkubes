@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ok141-evidence-bundle/v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["apiVersion", "kind", "spec"],
+  "properties": {
+    "apiVersion": {"const": "evidence.openkubes.io/v1alpha1"},
+    "kind": {"const": "EvidenceBundle"},
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "runId", "createdAt", "bindings", "clock", "artifacts", "bundleDigest", "authorization"],
+      "properties": {
+        "version": {"const": "ok141-evidence-bundle/v1"},
+        "runId": {"type": "string", "minLength": 1},
+        "createdAt": {"type": "string", "minLength": 20},
+        "bindings": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["protocolDigest", "fixtureDigest", "decisionInputDigest", "targetIdentities"],
+          "properties": {
+            "protocolDigest": {"type": "string", "format": "sha256"},
+            "fixtureDigest": {"type": "string", "format": "sha256"},
+            "decisionInputDigest": {"type": "string", "format": "sha256"},
+            "targetIdentities": {"type": "object"}
+          }
+        },
+        "clock": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["observedFrom", "observedUntil", "source", "maximumSkewSeconds"],
+          "properties": {
+            "observedFrom": {"type": "string", "minLength": 20},
+            "observedUntil": {"type": "string", "minLength": 20},
+            "source": {"type": "string", "minLength": 1},
+            "maximumSkewSeconds": {"const": 5}
+          }
+        },
+        "artifacts": {
+          "type": "array",
+          "maxItems": 256,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["path", "digest", "size", "mediaType"],
+            "properties": {
+              "path": {"type": "string", "minLength": 1},
+              "digest": {"type": "string", "format": "sha256"},
+              "size": {"type": "integer"},
+              "mediaType": {"type": "string", "minLength": 1}
+            }
+          }
+        },
+        "bundleDigest": {"type": "string", "format": "sha256"},
+        "authorization": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["mutationAuthorized", "publicationAuthorized"],
+          "properties": {
+            "mutationAuthorized": {"const": false},
+            "publicationAuthorized": {"const": false}
+          }
+        }
+      }
+    }
+  }
+}

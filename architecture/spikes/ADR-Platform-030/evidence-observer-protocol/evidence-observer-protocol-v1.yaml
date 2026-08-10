@@ -1,0 +1,129 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: EvidenceObserverProtocol
+metadata:
+  name: ok141-evidence-observer-protocol-v1
+  ticket: OK-141
+spec:
+  version: ok141-evidence-observer-protocol/v1
+  state: DESTINATION-SELECTED-OFFLINE-DEFINED-NO-GO
+  sourceAuthorityInputs:
+    path: ../authority-decision-preflight/authority-inputs-v1.yaml
+    digest: sha256:4b618081517eb96ef1896b40a7f9f5556054ab2d029fbbf706e8630bb6b42c5c
+  destination:
+    decision: ACCEPTED
+    acceptedBy: github:arashkaffamanesh
+    registry: ghcr.io
+    repository: ghcr.io/openkubes/ok141-evidence
+    artifactType: application/vnd.openkubes.ok141.evidence.v1
+    authoritativeReference: OCI-DIGEST-ONLY
+    tagAuthority: NON-AUTHORITATIVE
+    externalToDevClusters: true
+    adminDeletionPossible: true
+    availabilityClaim: NOT-PROVEN
+    immutabilityClaim: CONTENT-INTEGRITY-BY-DIGEST-ONLY
+    retentionPolicy: UNRESOLVED
+    accessProof: UNPROVEN
+  bundleContract:
+    schema: evidence-bundle-v1.schema.json
+    implementation: evidence_bundle.py
+    canonicalization: RFC8785-JCS-COMPATIBLE-SORTED-JSON
+    digestAlgorithm: SHA-256
+    artifactOrdering: LEXICOGRAPHIC-PATH
+    symlinksAllowed: false
+    maximumFiles: 256
+    maximumArtifactBytes: 10485760
+    maximumBundleBytes: 52428800
+    requiredBindings:
+      - protocolDigest
+      - fixtureDigest
+      - decisionInputDigest
+      - runId
+      - targetIdentities
+      - observedFrom
+      - observedUntil
+      - clockSource
+      - maximumClockSkewSeconds
+    publication:
+      status: DISABLED
+      authorized: false
+      credentialStatus: NOT-AUTHORIZED
+      commandSurface: NOT-IMPLEMENTED
+      rule: A future publish gate must bind the exact verified bundle digest short-lived credential repository and window.
+  redactionPolicy:
+    mode: REJECT-NOT-AUTO-REDACT
+    kubernetesSecretObjectsAllowed: false
+    kubeconfigsAllowed: false
+    credentialsAllowed: false
+    privateKeysAllowed: false
+    bearerTokensAllowed: false
+    rawAuthorizationHeadersAllowed: false
+    forbiddenPathFragments:
+      - kubeconfig
+      - credentials
+      - private-key
+      - id_rsa
+      - id_ed25519
+    forbiddenStructuredKeys:
+      - client-certificate-data
+      - client-key-data
+      - password
+      - bearerToken
+      - accessToken
+      - refreshToken
+      - privateKey
+    secretEvidenceRule: Retain only separately constructed metadata projections with no data or stringData fields; never retain a Kubernetes Secret object.
+  observers:
+    security:
+      identity: ok-141-security-observer
+      type: AUTOMATED-FAIL-CLOSED-EVALUATOR
+      implementation: evidence_bundle.py
+      status: DEFINED-NOT-DEPLOYED
+      duties:
+        - reject forbidden paths and content
+        - reject unbound protocol fixture decision or target identity
+        - reject stale invalid or conflicting timestamps
+      claimBoundary: Automated verification is not independent human Security review.
+    evidence:
+      identity: ok-141-evidence-observer
+      type: AUTOMATED-CONTENT-ADDRESS-VERIFIER
+      implementation: evidence_bundle.py
+      status: DEFINED-NOT-DEPLOYED
+      duties:
+        - recompute every artifact digest and size
+        - recompute canonical bundle digest
+        - require later OCI manifest digest correlation
+      claimBoundary: Local verification does not prove GHCR access retention publication or availability.
+  timePolicy:
+    format: RFC3339-UTC
+    maximumClockSkewSeconds: 5
+    source: UNPROVEN
+    currentSkewEvidence: UNPROVEN
+    boundary: The five-second limit is a required future measurement not a current fact.
+  unresolvedPrerequisites:
+    - GHCR repository access and package visibility are not proven.
+    - Retention protection and deletion monitoring are not selected.
+    - GitHub Actions or another automated observer runtime is not deployed.
+    - No short-lived publication credential issuance or revocation protocol exists.
+    - UTC clock-source identity and measured skew are not evidenced.
+    - No real evidence bundle has been published or pulled back by digest.
+  authorization:
+    decision: NO-GO
+    externalWriteAuthorized: false
+    credentialMutationAuthorized: false
+    infrastructureMutationAuthorized: false
+    m0aInstallationGranted: false
+    m0bInstallationGranted: false
+    go1Granted: false
+  summary:
+    destinationSelected: true
+    offlineBundleMechanismDefined: true
+    automatedObserversDeployed: false
+    publicationProven: false
+    installationGatesGranted: 0
+  rules:
+    - Selecting GHCR records the destination class and repository but authorizes no push package creation credential or external write.
+    - Only the OCI manifest digest and the verified internal bundle digest may identify accepted evidence; tags are never authoritative.
+    - Redaction is fail closed by rejection and never silently edits retained evidence.
+    - Automated observers verify deterministic claims but cannot claim independent human Security review under DEV-SOLO.
+    - GHCR content integrity does not prove retention availability authenticity or protection from administrator deletion.
+    - M0a-I M0b-I GO-1 external writes infrastructure mutation and failure injection remain NO-GO.
