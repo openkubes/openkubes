@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["apiVersion", "kind", "metadata", "spec"],
+  "properties": {
+    "apiVersion": {"const": "evidence.openkubes.io/v1alpha1"},
+    "kind": {"const": "EvidenceObserverProtocol"},
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "ticket"],
+      "properties": {
+        "name": {"const": "ok141-evidence-observer-protocol-v1"},
+        "ticket": {"const": "OK-141"}
+      }
+    },
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "state", "sourceAuthorityInputs", "destination", "bundleContract", "redactionPolicy", "observers", "timePolicy", "unresolvedPrerequisites", "authorization", "summary", "rules"],
+      "properties": {
+        "version": {"const": "ok141-evidence-observer-protocol/v1"},
+        "state": {"const": "DESTINATION-SELECTED-OFFLINE-DEFINED-NO-GO"},
+        "sourceAuthorityInputs": {"type": "object"},
+        "destination": {"type": "object"},
+        "bundleContract": {"type": "object"},
+        "redactionPolicy": {"type": "object"},
+        "observers": {"type": "object"},
+        "timePolicy": {"type": "object"},
+        "unresolvedPrerequisites": {"type": "array", "minItems": 6, "maxItems": 6, "items": {"type": "string", "minLength": 1}},
+        "authorization": {"type": "object"},
+        "summary": {"type": "object"},
+        "rules": {"type": "array", "minItems": 6, "items": {"type": "string", "minLength": 1}}
+      }
+    }
+  }
+}
