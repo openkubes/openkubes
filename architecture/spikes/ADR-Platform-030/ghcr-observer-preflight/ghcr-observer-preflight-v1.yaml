@@ -1,0 +1,153 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: GHCREvidencePreflight
+metadata:
+  name: ok141-ghcr-evidence-preflight-v1
+  ticket: OK-141
+spec:
+  version: ok141-ghcr-evidence-preflight/v1
+  state: OBSERVED-BLOCKED-NO-GO
+  observedAt: "2026-08-10T17:10:23Z"
+  operation: READ-ONLY
+  sourceProtocol:
+    path: ../evidence-observer-protocol/evidence-observer-protocol-v1.yaml
+    digest: sha256:401fa5c5e13a867d5fb747efb5b51870942547b584cd82959a6d6d54f4964dad
+  liveObservations:
+    package:
+      repository: ghcr.io/openkubes/ok141-evidence
+      apiQuery: /orgs/openkubes/packages/container/ok141-evidence
+      result: NOT-FOUND
+      httpStatus: 404
+      packageCreated: false
+    packageListing:
+      apiQuery: /orgs/openkubes/packages?package_type=container
+      result: FORBIDDEN-MISSING-SCOPE
+      httpStatus: 403
+      requiredScope: read:packages
+      currentTokenProvesPackageRead: false
+    repositoryActions:
+      repository: openkubes/openkubes
+      enabled: true
+      allowedActions: all
+      organizationRequiresActionSHAPinning: false
+      defaultWorkflowPermissions: read
+      canApprovePullRequestReviews: false
+      evidencePublishEnvironmentPresent: false
+      observedEnvironments: [github-pages]
+  officialCapabilityEvidence:
+    observedAsOf: "2026-08-10"
+    containerRegistry:
+      supportsOCI: true
+      pullByDigestSupported: true
+      firstPublishDefaultVisibility: private
+      granularPackagePermissionsSupported: true
+      githubTokenMayPublishFromLinkedWorkflow: true
+      classicPATOtherwiseRequired: true
+    accessBoundary:
+      workflowRepositoryLinkRequired: true
+      proposedWorkflowPermissions:
+        contents: read
+        packages: write
+        attestations: write
+        id-token: write
+      actionReferencesMustUseFullCommitSHA: true
+      packageDeletePermissionGranted: false
+      boundary: The publishing repository may receive package admin rights; absence of delete commands is not WORM enforcement.
+    deletionBoundary:
+      administratorDeletionPossible: true
+      conditionalRestoreWindowDays: 30
+      restoreGuaranteed: false
+      namespaceReuseCanPreventRestore: true
+      workflowDeleteRestoreFeatureMaturity: PUBLIC-PREVIEW
+    attestationBoundary:
+      githubArtifactAttestationSupported: true
+      subjectMustBeOCIDigest: true
+      signatureTimestampAndSignerIdentityMustBeVerified: true
+      attestationDeletionPossible: true
+      attestationIsNotRetentionProof: true
+    references:
+      - https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry
+      - https://docs.github.com/en/packages/learn-github-packages/about-permissions-for-github-packages
+      - https://docs.github.com/en/packages/learn-github-packages/configuring-a-packages-access-control-and-visibility
+      - https://docs.github.com/en/packages/learn-github-packages/deleting-and-restoring-a-package
+      - https://docs.github.com/en/actions/how-tos/secure-your-work/use-artifact-attestations/use-artifact-attestations
+  clockObservation:
+    method: HTTPS-Date midpoint observation with unique cache-busting query
+    endpoint: https://api.github.com/rate_limit?ok141=1786381811
+    cacheControl: no-cache
+    localBefore: "2026-08-10T17:10:23Z"
+    remoteDate: "2026-08-10T17:10:22Z"
+    localAfter: "2026-08-10T17:10:23Z"
+    roundTripUpperBoundSeconds: 1
+    maximumObservedSkewSeconds: 1
+    requiredMaximumSkewSeconds: 5
+    result: OBSERVED-PASS-POINT-IN-TIME
+    rejectedObservation:
+      reason: A prior GitHub metadata response was cacheable and 23 seconds old and therefore cannot prove clock skew.
+      retainedAsClockEvidence: false
+    boundary: This point-in-time observation must be repeated with a non-cacheable response inside every authorized window.
+  proposedObserverRuntime:
+    platform: GitHub-Actions
+    repository: openkubes/openkubes
+    environment: ok-141-evidence-publish
+    environmentStatus: NOT-CREATED
+    workflowStatus: NOT-IMPLEMENTED
+    trigger: workflow_dispatch
+    executionIdentity: repository-scoped-GITHUB_TOKEN
+    publishSequence:
+      - checkout exact approved commit
+      - build and locally verify redacted bundle
+      - authenticate using short-lived GITHUB_TOKEN
+      - push OCI artifact and capture OCI manifest digest
+      - attest exact OCI subject digest
+      - pull artifact back by digest
+      - verify internal bundle digest and attestation signer identity
+      - retain digest correlation in reviewed repository evidence
+    restrictions:
+      - Every third-party Action reference must use a reviewed full commit SHA.
+      - No PAT repository secret is permitted for the normal publication path.
+      - No delete restore retag overwrite or package-settings operation is permitted.
+      - A tag is never accepted as evidence identity.
+      - The workflow may run only after a separate exact publish gate.
+  retentionProposal:
+    status: PROPOSED-NOT-ACCEPTED
+    model: DEV-BEST-EFFORT-NON-WORM
+    minimumRetentionDaysAfterOK141Closure: 90
+    primaryCopy: GHCR OCI artifact by digest
+    secondaryIndex: reviewed Git commit containing OCI digest internal bundle digest attestation identity and run URL
+    deletionMonitoring: REQUIRED-NOT-IMPLEMENTED
+    boundary: Git history preserves the correlation manifest but not the full evidence payload; GHCR administrator deletion can still destroy availability.
+  remainingBlockers:
+    - Create the package only through a separately authorized linked workflow.
+    - Prove read access with packages read permission and least-privilege target access.
+    - Create and review the ok-141-evidence-publish environment.
+    - Pin every selected third-party Action to a reviewed full commit SHA.
+    - Accept or replace the proposed 90-day best-effort non-WORM retention model.
+    - Implement deletion monitoring without granting the observer deletion authority.
+    - Repeat the no-cache clock observation inside the exact execution window.
+    - Publish attest and pull back one disposable evidence bundle under a separate mutation gate.
+  authorization:
+    decision: NO-GO
+    externalWriteAuthorized: false
+    packageCreationAuthorized: false
+    environmentCreationAuthorized: false
+    workflowDeploymentAuthorized: false
+    credentialMutationAuthorized: false
+    infrastructureMutationAuthorized: false
+    m0aInstallationGranted: false
+    m0bInstallationGranted: false
+    go1Granted: false
+  summary:
+    destinationSelected: true
+    packageExists: false
+    currentPackageReadProven: false
+    pointInTimeClockSkewPass: true
+    retentionAccepted: false
+    observerRuntimeDeployed: false
+    installationGatesGranted: 0
+  rules:
+    - A 404 package result and 403 package-list result are blockers and never evidence of usable GHCR access.
+    - Point-in-time clock evidence expires outside its exact observation and must not be reused for a later gate.
+    - GitHub Actions GITHUB_TOKEN publication is preferred over a long-lived PAT but still requires an exact separate write gate.
+    - Repository linkage attestation and digest verification improve provenance but do not make GHCR immutable or undeletable.
+    - Retention remains undecided until the DEV non-WORM loss boundary and monitoring are explicitly accepted.
+    - This preflight creates no package environment workflow credential attestation or external artifact and grants no installation or GO-1 authority.
