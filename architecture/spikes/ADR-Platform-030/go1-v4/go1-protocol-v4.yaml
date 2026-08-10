@@ -1,0 +1,156 @@
+apiVersion: test.openkubes.io/v1alpha3
+kind: GO1Protocol
+metadata:
+  name: ok141-create-converge-observe-v4
+  ticket: OK-141
+  baseCommit: 16b293781c47b4a1e3df120bee98f83b5fecc981
+spec:
+  protocolVersion: ok141-go1/v4
+  protocolState: BLOCKED
+  historicalProtocol:
+    path: ../go1-v3/go1-protocol-v3.yaml
+    draftDigest: sha256:9a8c62d09bc8cdd86b2488aed0e1cf43846321f37329cefe25fb9e260e1185fc
+    disposition: preserved-gate-semantics-superseded
+  gatePartition:
+    path: ../gate-partition/gate-partition-v1.yaml
+    digest: sha256:a12a5e30f5bd5479d502f0dbf80e709e14216702ba804f986afcb408f0c32be9
+    version: ok141-gate-partition/v1
+    rule: GO-1 v4 must reproduce the exact merged partition before it can be reviewed.
+  fixture:
+    version: phase-r-v4
+    path: ../harness/fixtures/execution/phase-r-v4.json
+    fixtureDigest: sha256:a2ae3437645db5a83426b89d36d00693d2600e4ef20dc1aba2650dcda7f936f6
+    R: sha256:636fe23404ac53109f44d6346534dcf1367ae91c572d5e18bd32cd0a3128a16e
+    E: sha256:2a849d69e9c64344e907c1bce3bb1abf3d8f77217377081a5be055d62c213300
+    P: sha256:b0f25c639a45d895b889997f5ecc2325db45dd5d51b0684998c94d5e17bd47bf
+  authorization:
+    decision: NO-GO
+    mutationAuthorized: false
+    goGranted: false
+    grantID: null
+    authorizedProtocolDigest: null
+    goAuthority: UNASSIGNED
+    decidedAt: null
+    rule: This draft and its digest grant no execution authority.
+  installationGates:
+    - id: M0A-I
+      status: NOT-GRANTED
+      scope: install-caaph-control-plane-on-ok-mgmt-only
+      mayAuthorizeTargetConvergence: false
+      mayAuthorizeGO1: false
+    - id: M0B-I
+      status: NOT-GRANTED
+      scope: install-argo-control-plane-at-reviewed-placement-only
+      mayAuthorizeTargetConvergence: false
+      mayAuthorizeGO1: false
+  scope:
+    operation: create-converge-observe
+    clusterCount: 1
+    disposableOnly: true
+    cluster:
+      namespace: disposable-ok141
+      name: disposable-ok141
+      controlPlaneReplicas: 1
+      workerReplicas: 1
+      kubernetesVersion: v1.36.2
+      infrastructureProvider: kubevirt
+    maximumBoundary:
+      wallClockMinutes: 120
+      clustersCreated: 1
+      controlPlanesCreated: 1
+      workerMachinesCreated: 1
+      reviewedSubmissionGroups: 2
+      reviewedObjects: 11
+  submission:
+    operation: ApplyReviewedObjectSet
+    enabled: false
+    executorIdentity: UNRESOLVED
+    executorArtifactDigest: UNRESOLVED
+    credentialModel: short-lived-least-privilege-required
+    freeFormShellEndpoint: false
+    groups:
+      - id: provider-prerequisites
+        order: 1
+        targetPlane: ok-infra
+        objectCount: 3
+        objectSetDigest: sha256:7482633570ad5a6cfe4a738d8f116367d013af4523398c79997fb00d404d1a37
+        capiLifecycleObjectsAllowed: false
+        enabled: false
+      - id: capi-lifecycle
+        order: 2
+        targetPlane: ok-mgmt
+        objectCount: 8
+        objectSetDigest: sha256:78bc25624dd52c172590c2d7fdef0df16c20459fe4464090a4190113e3a7cabe
+        capiLifecycleObjectsAllowed: true
+        enabled: false
+  preGoRequirements:
+    - {id: EXECUTOR-IDENTITY, sourceBlockers: [EXECUTOR-IDENTITY], status: BLOCKED, requiredBefore: GO1-DECISION}
+    - {id: SUBMISSION-CREDENTIAL-MODEL, sourceBlockers: [SUBMISSION-CREDENTIALS], status: BLOCKED, requiredBefore: GO1-DECISION}
+    - {id: M0A-I-INSTALLATION, sourceBlockers: [M0A-INSTALLATION], status: BLOCKED, requiredBefore: GO1-DECISION}
+    - {id: M0A-CHART-SOURCE, sourceBlockers: [M0A-CHART-SOURCE], status: BLOCKED, requiredBefore: GO1-DECISION}
+    - {id: M0A-HCP-PROJECTION, sourceBlockers: [M0A-PROJECTION], status: BLOCKED, requiredBefore: GO1-DECISION}
+    - {id: M0B-I-PLACEMENT, sourceBlockers: [M0B-PLACEMENT], status: BLOCKED, requiredBefore: GO1-DECISION}
+    - {id: M0B-REGISTRATION-MODEL, sourceBlockers: [M0B-REGISTRATION], status: BLOCKED, requiredBefore: GO1-DECISION}
+    - {id: M0B-RBAC-SPEC, sourceBlockers: [M0B-RBAC], status: BLOCKED, requiredBefore: GO1-DECISION}
+    - {id: M0B-TARGET-COMPATIBILITY, sourceBlockers: [M0B-TARGET-CAPABILITIES, M0B-RUNTIME-CAPABILITY], status: BLOCKED, requiredBefore: GO1-DECISION}
+    - {id: OBSERVERS, sourceBlockers: [OBSERVERS], status: BLOCKED, requiredBefore: GO1-DECISION}
+    - {id: HUMAN-AUTHORITIES, sourceBlockers: [HUMAN-AUTHORITIES], status: BLOCKED, requiredBefore: GO1-DECISION}
+    - {id: EVIDENCE-AND-RECOVERY, sourceBlockers: [EVIDENCE-DESTINATION, RECOVERY-EVIDENCE], status: BLOCKED, requiredBefore: GO1-DECISION}
+  runtimeObligations:
+    - {id: G2-LIFECYCLE-IDENTITY, sourceBlockers: [], phase: G2, status: PENDING-RUNTIME, mayBeClosedBeforeRuntime: false, onFailure: STOP-NOT-SUCCESS}
+    - {id: G3-M0A-TARGET-CORRELATION, sourceBlockers: [M0A-PROJECTION], phase: G3, status: PENDING-RUNTIME, mayBeClosedBeforeRuntime: false, onFailure: STOP-NOT-SUCCESS}
+    - {id: G3-ENABLEMENT-CONVERGENCE, sourceBlockers: [M0A-CHART-SOURCE], phase: G3, status: PENDING-RUNTIME, mayBeClosedBeforeRuntime: false, onFailure: STOP-NOT-SUCCESS}
+    - {id: G4-M0B-REGISTRATION-INSTANCE, sourceBlockers: [M0B-REGISTRATION], phase: G4, status: PENDING-RUNTIME, mayBeClosedBeforeRuntime: false, onFailure: STOP-NOT-SUCCESS}
+    - {id: G4-M0B-RBAC-BINDINGS, sourceBlockers: [M0B-RBAC], phase: G4, status: PENDING-RUNTIME, mayBeClosedBeforeRuntime: false, onFailure: STOP-NOT-SUCCESS}
+    - {id: G4-TARGET-CAPABILITIES, sourceBlockers: [M0B-TARGET-CAPABILITIES, M0B-RUNTIME-CAPABILITY], phase: G4, status: PENDING-RUNTIME, mayBeClosedBeforeRuntime: false, onFailure: STOP-NOT-SUCCESS}
+    - {id: G4-PLATFORM-CONVERGENCE, sourceBlockers: [M0B-RUNTIME-CAPABILITY], phase: G4, status: PENDING-RUNTIME, mayBeClosedBeforeRuntime: false, onFailure: STOP-NOT-SUCCESS}
+    - {id: G5-AGGREGATE-EVIDENCE, sourceBlockers: [EVIDENCE-DESTINATION], phase: G5, status: PENDING-RUNTIME, mayBeClosedBeforeRuntime: false, onFailure: STOP-NOT-SUCCESS}
+  deferredScenarios:
+    - {id: CAAPH-RESTART-RETRY-INJECTION, status: DEFERRED-SEPARATE-GATE, includedInGO1: false}
+    - {id: ARGO-RESTART-RETRY-INJECTION, status: DEFERRED-SEPARATE-GATE, includedInGO1: false}
+    - {id: EXECUTOR-CRASH-INJECTION, status: DEFERRED-SEPARATE-GATE, includedInGO1: false}
+    - {id: MANUAL-DRIFT-INJECTION, status: DEFERRED-SEPARATE-GATE, includedInGO1: false}
+    - {id: WORKER-FAILURE-INJECTION, status: DEFERRED-SEPARATE-GATE, includedInGO1: false}
+    - {id: DELETE-AND-FINALIZER, status: DEFERRED-SEPARATE-GATE, includedInGO1: false}
+    - {id: MANAGEMENT-OUTAGE, status: DEFERRED-SEPARATE-GATE, includedInGO1: false}
+    - {id: BREAK-GLASS-AND-DR, status: DEFERRED-SEPARATE-GATE, includedInGO1: false}
+  phases:
+    - {id: G0, name: preflight-and-baseline, mutating: false, enabled: false}
+    - {id: G1, name: apply-reviewed-object-sets, mutating: true, enabled: false}
+    - {id: G2, name: lifecycle-convergence, mutating: false, enabled: false}
+    - {id: G3, name: enablement-convergence, mutating: false, enabled: false}
+    - {id: G4, name: platform-convergence, mutating: false, enabled: false}
+    - {id: G5, name: aggregate-and-close, mutating: false, enabled: false}
+  preconditions:
+    - the exact FixtureDigest, gate-partition digest, and final protocol digest reproduce
+    - every pre-GO requirement is CLOSED in a newly canonicalized final protocol
+    - runtime obligations remain PENDING-RUNTIME before the GO decision
+    - M0a-I and M0b-I installation evidence is separately authorized and reviewed
+    - observers, human authorities, evidence destination, and recovery evidence are bound
+    - an explicit human GO decision names the final protocol digest and fixture digest
+  expectedEvidence:
+    G2: [current CAPI Cluster UID, provider and workload identity chain, current-generation lifecycle Conditions]
+    G3: [HCP and HRP owner chain, applied E, immutable artifact evidence, Cilium rollout, NetworkReady probes]
+    G4: [registration identity without secrets, exact runtime RBAC, target capabilities, applied P, Synced, Healthy]
+    G5: [current correlated evaluator result, raw artifact manifest, final bundle checksum, independent verification]
+  stopConditions:
+    - any bound fixture, revision, object-set, target-plane, or target identity differs
+    - any runtime obligation lacks current authoritative correlated evidence in its bound phase
+    - duplicate lifecycle writer, Machine, VM, VMI, endpoint, submission, or registration is observed
+    - independent observation, evidence integrity, credential confidence, or recovery confidence is lost
+    - any deferred scenario or other excluded mutation is proposed
+    - timeout or unexpected degradation occurs
+  stopResponse:
+    - announce STOP through the bound communication channel
+    - perform no further protocol mutation or exploratory diagnosis
+    - retain raw evidence before separately authorized diagnostic changes
+    - transfer control to assigned abort and recovery authorities
+    - do not delete or force-finalize disposable resources under GO-1
+  acceptance:
+    preGoRule: Every pre-GO requirement must be CLOSED before a GO-1 decision.
+    runtimeRule: Every runtime obligation must be accepted from current evidence in its bound phase; otherwise STOP-NOT-SUCCESS.
+    deferredRule: No deferred scenario may execute under GO-1.
+    executorExitIsLifecycleSuccess: false
+    historicalSuccessIsCurrentProof: false
+    allHistoricalBlockersMustBeClosedBeforeGoDecision: false
+    successRequiresAllRuntimeObligations: true

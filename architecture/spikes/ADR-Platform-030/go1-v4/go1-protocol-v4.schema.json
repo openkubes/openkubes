@@ -1,0 +1,45 @@
+{
+  "$id": "ok141-go1-protocol/v4",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["apiVersion", "kind", "metadata", "spec"],
+  "properties": {
+    "apiVersion": {"const": "test.openkubes.io/v1alpha3"},
+    "kind": {"const": "GO1Protocol"},
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "ticket", "baseCommit"],
+      "properties": {
+        "name": {"const": "ok141-create-converge-observe-v4"},
+        "ticket": {"const": "OK-141"},
+        "baseCommit": {"const": "16b293781c47b4a1e3df120bee98f83b5fecc981"}
+      }
+    },
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["protocolVersion", "protocolState", "historicalProtocol", "gatePartition", "fixture", "authorization", "installationGates", "scope", "submission", "preGoRequirements", "runtimeObligations", "deferredScenarios", "phases", "preconditions", "expectedEvidence", "stopConditions", "stopResponse", "acceptance"],
+      "properties": {
+        "protocolVersion": {"const": "ok141-go1/v4"},
+        "protocolState": {"const": "BLOCKED"},
+        "historicalProtocol": {"type": "object"},
+        "gatePartition": {"type": "object"},
+        "fixture": {"type": "object"},
+        "authorization": {"type": "object"},
+        "installationGates": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "object"}},
+        "scope": {"type": "object"},
+        "submission": {"type": "object"},
+        "preGoRequirements": {"type": "array", "minItems": 12, "maxItems": 12, "items": {"type": "object"}},
+        "runtimeObligations": {"type": "array", "minItems": 8, "maxItems": 8, "items": {"type": "object"}},
+        "deferredScenarios": {"type": "array", "minItems": 8, "maxItems": 8, "items": {"type": "object"}},
+        "phases": {"type": "array", "minItems": 6, "maxItems": 6, "items": {"type": "object"}},
+        "preconditions": {"type": "array", "minItems": 6, "items": {"type": "string"}},
+        "expectedEvidence": {"type": "object"},
+        "stopConditions": {"type": "array", "minItems": 6, "items": {"type": "string"}},
+        "stopResponse": {"type": "array", "minItems": 5, "items": {"type": "string"}},
+        "acceptance": {"type": "object"}
+      }
+    }
+  }
+}
