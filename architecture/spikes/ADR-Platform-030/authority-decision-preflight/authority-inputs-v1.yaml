@@ -1,0 +1,103 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: AuthorityDecisionInputs
+metadata:
+  name: ok141-authority-inputs-v1
+  ticket: OK-141
+spec:
+  version: ok141-authority-inputs/v1
+  state: RECORDED-PARTIAL-INPUTS-NO-GO
+  recordedAt: "2026-08-10T16:34:43Z"
+  sourcePackage:
+    path: ../authority-decision-package/authority-decisions-v1.yaml
+    digest: sha256:786c8e38c5b4c527b5809e3e9b7d500ccb4e8972ffb5ffedcf409fc7533a81c7
+    state: PREPARED-UNDECIDED-NO-GO
+  authorityPrincipal:
+    decision: CONFIRMED
+    principal: github:arashkaffamanesh
+    roles:
+      - ok-141-m0a-installation-authority
+      - ok-141-caaph-security-authority
+      - ok-141-mgmt-recovery-authority
+      - ok-141-m0b-installation-authority
+      - ok-141-gitops-placement-authority
+      - ok-141-argocd-security-authority
+      - ok-141-shared-recovery-authority
+    boundary: Role assignment identifies who may decide; it does not accept RBAC risk bind a window issue credentials grant a gate or authorize mutation.
+  governanceException:
+    decision: ACCEPTED
+    model: DEV-SOLO
+    acceptedBy: github:arashkaffamanesh
+    statement: Ich akzeptiere für OK-141 das DEV-Solo-Modell ohne unabhängigen menschlichen Security-Review und mit den dokumentierten Claim-Grenzen.
+    independentHumanSecurityReview: false
+    separationOfDuties: LIMITED
+    automatedVerificationRequired: true
+    allowedScope: OK-141-DEV-SPIKE-ONLY
+    claimBoundaries:
+      independentHumanReviewClaimAllowed: false
+      productionUseAllowed: false
+      highAvailabilityClaimAllowed: false
+      disasterRecoveryClaimAllowed: false
+      lifecycleContinuityClaimAllowed: false
+      automaticAdoptionClaimAllowed: false
+    compensatingControls:
+      - Exact content digests and target identities remain mandatory.
+      - Every gate remains fail closed and requires a separately bound decision.
+      - Installer credentials remain short-lived separate mutation gates.
+      - Read-only evidence and negative controls must be retained.
+      - Scope expansion requires a new protocol digest and decision.
+  gitOpsPlacementBoundary:
+    decision: ACCEPTED
+    acceptedBy: github:arashkaffamanesh
+    controlPlane: ok-shared
+    boundIncarnation:
+      kubeSystemNamespaceUID: 46b9ecf7-2e7a-48b1-a6eb-7d11df396efb
+      apiServer: https://192.168.100.206:6443
+      kubernetesVersion: v1.34.1
+      platform: linux/amd64
+    externalWorkloadClustersOnly: true
+    manageLocalOkSharedResources: false
+    selfManagementAllowed: false
+    existingHelmManagedResourcesRemainOutsideArgoOwnership: true
+    invalidationRule: Any ok-shared incarnation change or request for local ownership requires a new placement decision.
+  unresolvedInputs:
+    evidenceDestination:
+      status: UNDECIDED
+      candidate: ghcr.io/openkubes/ok141-evidence
+      candidateClass: CONTENT-ADDRESSED-OCI-ARTIFACT
+      boundary: A proposal is not destination approval and no artifact may be pushed under this input record.
+    executionWindow:
+      status: NOT-BOUND
+      proposedDurationMinutes: 180
+      validFrom: null
+      validUntil: null
+      boundary: The window begins only after a future explicit gate decision and cannot be inferred from anytime.
+    automatedObservers:
+      status: NOT-IMPLEMENTED
+      securityObserver: ok-141-security-observer
+      evidenceObserver: ok-141-evidence-observer
+      boundary: Role names are not evidence that independent automated observation exists.
+    rbacSecurityDecisions:
+      m0a: UNDECIDED
+      m0b: UNDECIDED
+    installerCredentials:
+      m0a: NOT-AUTHORIZED
+      m0b: NOT-AUTHORIZED
+  authorization:
+    decision: NO-GO
+    mutationAuthorized: false
+    m0aInstallationGranted: false
+    m0bInstallationGranted: false
+    go1Granted: false
+  summary:
+    confirmedInputGroups: 3
+    authorityRolesAssigned: 7
+    authorityDecisionOutcomesChanged: 0
+    installationGatesGranted: 0
+    unresolvedInputGroups: 5
+  rules:
+    - This record supplies inputs to a future decision package and does not alter the nine historical UNDECIDED outcomes.
+    - DEV-SOLO acceptance removes no technical control and permits no independent-human-review claim.
+    - Authority role assignment is not RBAC acceptance recovery acceptance credential authority installation authority or GO-1.
+    - The accepted Argo placement boundary permits management of external workload Clusters only and forbids local ok-shared ownership and self-management.
+    - A proposed evidence target or duration grants no permission and binds no window.
+    - M0a-I M0b-I GO-1 infrastructure mutation and failure injection remain NO-GO.
