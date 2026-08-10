@@ -31,7 +31,7 @@ test, not a convention.
 platform/ai/platform-diagnostics/
 ├── contract/
 │   ├── openapi.yaml           # normative Phase-1 HTTP contract (v1.1.0)
-│   ├── mcp-adapter/           # thin agent-facing adapter, DERIVED from openapi.yaml (optional)
+│   ├── mcp-adapter/           # generated agent-facing adapter, DERIVED from openapi.yaml (OK-93)
 │   └── tests/                 # executable provider-neutral ADR-021 tests 1–6
 └── profiles/
     ├── stub/                  # Profile B — deterministic backend-swap proof ← OK-91

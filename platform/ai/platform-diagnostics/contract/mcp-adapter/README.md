@@ -1,30 +1,58 @@
 # MCP adapter (agent-facing)
 
 Exposes the three contract functions as MCP tools over **streamable-http** and
-forwards each to the HTTP contract (the facade). Derived from the normative
-`../openapi.yaml` Phase-1 contract. Holds **no Kubernetes credentials** — it
-only talks to the facade; cluster access lives behind the contract in kagent's
-read-only SA.
+forwards each call to the HTTP provider. It is derived from the normative
+`../openapi.yaml` Phase-1 contract and holds **no Kubernetes credentials** —
+cluster access remains behind the contract in the selected provider profile.
+
+The MCP surface is generated from `../openapi.yaml`; tool names, descriptions,
+request parameters, defaults, and HTTP paths are not declared independently in
+`server.py`. This preserves the required direction of ownership:
+
+```text
+OpenAPI contract -> generated_contract.py -> MCP tools -> HTTP provider
+```
+
+`generated_contract.py` is committed so the runtime image needs no generator or
+OpenAPI parser. The generation check fails whenever the OpenAPI source changes
+without a corresponding adapter update.
 
 A consumer without an LLM (the `ok` CLI, OK-76) skips this and speaks HTTP directly.
 
 ## Tool mapping (1:1 with operationIds)
 
-| MCP tool | facade endpoint |
+| MCP tool | HTTP endpoint |
 |---|---|
 | `get_platform_health` | `POST /v1/get_platform_health` |
 | `investigate_workload` | `POST /v1/investigate_workload` |
 | `collect_diagnostic_evidence` | `POST /v1/collect_diagnostic_evidence` |
 
-The tool docstrings in `server.py` are the descriptions the agent uses to decide
-when to call each — so the agent picks them **autonomously**, no system-prompt
-steering needed (this is why MCP is cleaner than the Exec/CLI consumer).
+Descriptions exposed to the agent come from the OpenAPI operation summaries and
+descriptions. The adapter therefore cannot silently redefine contract semantics.
+
+## Generate and verify
+
+```bash
+make generate  # intentionally update generated_contract.py from openapi.yaml
+make verify    # drift check, unit/runtime tests, and Python syntax validation
+```
+
+The verification environment requires Python 3.10 or newer (the image uses
+Python 3.12). If the system `python3` is older, pass an explicit interpreter:
+
+```bash
+make verify PYTHON=/path/to/python3.12
+```
+
+The generated mapping includes every OpenAPI operation with an `operationId`.
+Only JSON `POST` operations are accepted because ADR-021 Phase 1 exposes
+read-only diagnostic requests and no mutation path.
 
 ## Build & deploy
 
 ```bash
 docker buildx build --platform linux/amd64,linux/arm64 --provenance=false \
-  -t ghcr.io/openkubes/platform-diagnostics-mcp-adapter:0.1.0 --push .
+  -t ghcr.io/openkubes/platform-diagnostics-mcp-adapter:0.2.0 --push .
 kubectl --kubeconfig ~/.kube/ok-ai.yaml apply -f deploy.yaml
 ```
 

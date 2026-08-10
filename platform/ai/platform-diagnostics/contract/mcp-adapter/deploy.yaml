@@ -26,7 +26,7 @@ spec:
         seccompProfile: { type: RuntimeDefault }
       containers:
         - name: adapter
-          image: "ghcr.io/openkubes/platform-diagnostics-mcp-adapter:0.1.0"
+          image: "ghcr.io/openkubes/platform-diagnostics-mcp-adapter:0.2.0"
           env:
             - name: FACADE_URL
               value: "http://platform-diagnostics.platform-diagnostics.svc.cluster.local:8080"
