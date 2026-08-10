@@ -15,20 +15,24 @@ from http.cookiejar import CookieJar
 registry_host = os.environ["REGISTRY_HOST"]
 keycloak_host = os.environ.get("KEYCLOAK_HOST", "keycloak.ok-shared.internal")
 lb_ip = os.environ["REGISTRY_LB"]
-realm = os.environ.get("PLATFORM_REALM", "openkubes")
-client_id = os.environ.get("CLIENT_ID", "registry-default")
-writer_group = os.environ.get("WRITER_GROUP", "registry-writers")
-reader_group = os.environ.get("READER_GROUP", "registry-readers")
+# Required, not defaulted: these identify realm objects that `make oidc-client` reconciled
+# from the same Makefile variables. A default here can silently disagree with what was
+# actually created, and asserting against a stale group that still exists passes while
+# testing something the registry no longer uses.
+realm = os.environ["PLATFORM_REALM"]
+client_id = os.environ["CLIENT_ID"]
+writer_group = os.environ["WRITER_GROUP"]
+reader_group = os.environ["READER_GROUP"]
 run_id = os.environ["RUN_ID"]
 ca_file = os.environ["CA_FILE"]
-admin_username = os.environ.get("KEYCLOAK_ADMIN_USERNAME", "admin")
+admin_username = os.environ["KEYCLOAK_ADMIN_USERNAME"]
 
 admin_password = os.fdopen(3).read()
 writer_password = os.fdopen(4).read()
 reader_password = os.fdopen(5).read()
 oidc_credentials = json.loads(os.fdopen(6).read())
-writer_username = "zot-writer"
-reader_username = "zot-reader"
+writer_username = os.environ["WRITER_USERNAME"]
+reader_username = os.environ["READER_USERNAME"]
 client_secret = oidc_credentials["clientsecret"]
 
 real_getaddrinfo = socket.getaddrinfo

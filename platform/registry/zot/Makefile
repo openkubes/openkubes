@@ -158,7 +158,7 @@ metrics: require-inputs require-tools ## Apply authenticated ServiceMonitor regi
 	@$(KUBECTL) --kubeconfig "$(KUBECONFIG)" get servicemonitor "$(RELEASE)" -n "$(NAMESPACE)" -o name
 
 post-check: require-inputs require-tools ## Read-only: assert live readiness, TLS route, auth, metrics and ServiceMonitor selector match
-	@KUBECTL="$(KUBECTL)" KUBECONFIG="$(KUBECONFIG)" NAMESPACE="$(NAMESPACE)" RELEASE="$(RELEASE)" REGISTRY_HOST="$(REGISTRY_HOST)" REGISTRY_LB="$(REGISTRY_LB)" TLS_SECRET="$(TLS_SECRET)" MACHINE_SECRET="$(MACHINE_SECRET)" bash "$(POST_CHECK_SCRIPT)"
+	@KUBECTL="$(KUBECTL)" KUBECONFIG="$(KUBECONFIG)" NAMESPACE="$(NAMESPACE)" RELEASE="$(RELEASE)" REGISTRY_HOST="$(REGISTRY_HOST)" REGISTRY_LB="$(REGISTRY_LB)" TLS_SECRET="$(TLS_SECRET)" MACHINE_SECRET="$(MACHINE_SECRET)" VALUES_FILE="$(VALUES_FILE)" bash "$(POST_CHECK_SCRIPT)"
 
 smoke: require-inputs require-tools ## Run the ported OCI smoke contract through TLS passthrough
 	@KUBECTL="$(KUBECTL)" KUBECONFIG="$(KUBECONFIG)" REGISTRY_NAMESPACE="$(NAMESPACE)" REGISTRY_HOST="$(REGISTRY_HOST)" REGISTRY_LB="$(REGISTRY_LB)" bash "$(CONFORMANCE)/smoke.sh"
@@ -170,7 +170,11 @@ contract-job: require-inputs require-tools ## Run in-cluster OCI 1.1 push/pull/d
 	@KUBECTL="$(KUBECTL)" KUBECONFIG="$(KUBECONFIG)" NAMESPACE="$(NAMESPACE)" REGISTRY_HOST="$(REGISTRY_HOST)" REGISTRY_LB="$(REGISTRY_LB)" TLS_SECRET="$(TLS_SECRET)" MACHINE_SECRET="$(MACHINE_SECRET)" bash "$(CONTRACT_JOB_SCRIPT)"
 
 oidc-conformance: require-inputs require-tools require-oidc-approval ## APPROVAL: prove human OIDC group authz including temporary membership removal and restoration
-	@KUBECTL="$(KUBECTL)" KUBECONFIG="$(KUBECONFIG)" NAMESPACE="$(NAMESPACE)" REGISTRY_HOST="$(REGISTRY_HOST)" REGISTRY_LB="$(REGISTRY_LB)" bash "$(OIDC_CONFORMANCE_SCRIPT)"
+	@KUBECTL="$(KUBECTL)" KUBECONFIG="$(KUBECONFIG)" NAMESPACE="$(NAMESPACE)" REGISTRY_HOST="$(REGISTRY_HOST)" REGISTRY_LB="$(REGISTRY_LB)" \
+		KEYCLOAK_HOST="$(KEYCLOAK_HOST)" KEYCLOAK_NAMESPACE="$(KEYCLOAK_NAMESPACE)" KEYCLOAK_ADMIN_SECRET="$(KEYCLOAK_ADMIN_SECRET)" \
+		KEYCLOAK_ADMIN_USERNAME="$(KEYCLOAK_ADMIN_USERNAME)" PLATFORM_REALM="$(PLATFORM_REALM)" CLIENT_ID="$(CLIENT_ID)" \
+		WRITER_GROUP="$(WRITER_GROUP)" READER_GROUP="$(READER_GROUP)" TLS_SECRET="$(TLS_SECRET)" \
+		CONFORMANCE_SECRET="$(CONFORMANCE_SECRET)" OIDC_SECRET="$(OIDC_SECRET)" bash "$(OIDC_CONFORMANCE_SCRIPT)"
 
 install: require-inputs require-tools require-chart require-values-contract require-oidc-approval ## APPROVAL: install Increment 1 end to end (requires APPROVE_OIDC_CLIENT=yes)
 	@$(MAKE) --no-print-directory namespace KUBECONFIG="$(KUBECONFIG)"

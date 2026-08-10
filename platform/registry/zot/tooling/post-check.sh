@@ -11,6 +11,7 @@ case $- in *x*) set +x ;; esac
 : "${TLS_SECRET:=zot-server-tls}"
 : "${HTPASSWD_SECRET:=zot-htpasswd}"
 : "${MACHINE_SECRET:=zot-machine-identities}"
+: "${VALUES_FILE:=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/values-ok-shared.yaml}"
 
 d=$(mktemp -d)
 test -d "$d"
@@ -39,7 +40,12 @@ distribution=$(awk 'BEGIN{IGNORECASE=1} /^docker-distribution-api-version:/ {sub
 release_tag=$("$KUBECTL" --kubeconfig "$KUBECONFIG" logs "$pod_name" -n "$NAMESPACE" | jq -r 'select(.message=="configuration settings") | .params.ReleaseTag' | head -n1)
 [ "$release_tag" = v2.1.20 ] || { echo "ERROR: live zot ReleaseTag=${release_tag:-<none>}, expected v2.1.20" >&2; exit 1; }
 image_id=$(printf '%s' "$pod_json" | jq -er '.items[0].status.containerStatuses[]|select(.name=="zot")|.imageID')
-[[ "$image_id" == *'sha256:542e25be4d32e7879c0cfad93492a93c81b1e059cbd2d30d485d4bd567318234' ]] || { echo "ERROR: live imageID is not the pinned zot digest" >&2; exit 1; }
+# Derived from the values file, never a second copy of the digest: a hardcoded expectation
+# here would fail against the OLD digest after a version bump and point the operator at the
+# wrong thing.
+expected_digest=$(VALUES_FILE="$VALUES_FILE" python3 -c 'import os,yaml; print(yaml.safe_load(open(os.environ["VALUES_FILE"],encoding="utf-8"))["image"]["tag"].split("@",1)[1])')
+[ -n "$expected_digest" ] || { echo "ERROR: could not read the pinned image digest from $VALUES_FILE" >&2; exit 1; }
+[[ "$image_id" == *"$expected_digest" ]] || { echo "ERROR: live imageID $image_id does not match the pinned digest $expected_digest from $VALUES_FILE" >&2; exit 1; }
 echo "TLS_ROUTE: GET /v2/ HTTP 200 distribution=$distribution running=$release_tag imageID=$image_id via $REGISTRY_HOST:443:$REGISTRY_LB"
 
 unauth=$(curl -sS --resolve "$REGISTRY_HOST:443:$REGISTRY_LB" --cacert "$d/ca.crt" -o /dev/null -w '%{http_code}' "https://$REGISTRY_HOST/metrics")
