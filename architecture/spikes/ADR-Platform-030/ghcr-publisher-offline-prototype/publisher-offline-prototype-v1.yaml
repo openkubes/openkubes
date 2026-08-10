@@ -1,0 +1,117 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: GHCROfflinePublisherPrototype
+metadata:
+  name: ok141-ghcr-publisher-offline-prototype-v1
+  ticket: OK-141
+spec:
+  version: ok141-ghcr-publisher-offline-prototype/v1
+  state: IMPLEMENTED-OFFLINE-INERT-WRITE-CAPABLE-NOT-DEPLOYED-NO-GO
+  sourceObserverPrototype:
+    path: ../ghcr-observer-offline-prototype/observer-offline-prototype-v1.yaml
+    digest: sha256:c41b191ffa930e8c0fbf9a0906fb0cc8a6935c31d663c3abe2b63e557aaa77d4
+    state: IMPLEMENTED-OFFLINE-INERT-NOT-DEPLOYED-NO-GO
+  components:
+    candidateWorkflow:
+      path: candidate/ok141-evidence-publisher.workflow.yaml
+      digest: sha256:ae6514766cdba993f3480d6445494d8134eefad447c7320c4b720ed57633de4e
+    plannerAndVerifier:
+      path: publish_evidence.py
+      digest: sha256:95eff6c7fd5f3bb3bbd152ed782ae4052236b9759d204d1353f95e6444880f1d
+  supplyChain:
+    checkout:
+      repository: actions/checkout
+      fullCommitSHA: 11d5960a326750d5838078e36cf38b85af677262
+      observedRef: refs/tags/v4
+    attestation:
+      repository: actions/attest
+      version: v4.2.2
+      fullCommitSHA: 1e69f48acb82d1966a394da916b4c1698aa569d6
+    oras:
+      repository: oras-project/oras
+      version: v1.3.3
+      asset: oras_1.3.3_linux_amd64.tar.gz
+      assetDigest: sha256:9ce999f8d2de03fc03968b29d743077a58783e545e5eaa53917ca177352d0e59
+    observationDate: "2026-08-10"
+  workflowContract:
+    inertCandidatePath: architecture/spikes/ADR-Platform-030/ghcr-publisher-offline-prototype/candidate/ok141-evidence-publisher.workflow.yaml
+    futureDeploymentPath: .github/workflows/ok141-evidence-publisher.yaml
+    futureDeploymentPathPresent: false
+    trigger: workflow_dispatch
+    environment: ok-141-evidence-publish
+    environmentPresent: false
+    permissions:
+      actions: read
+      artifact-metadata: write
+      attestations: write
+      contents: read
+      id-token: write
+      packages: write
+    packageDeletePermissionPresent: false
+    issueOrWebhookPermissionPresent: false
+    checkoutCredentialsPersisted: false
+    sourceArtifactName: ok141-evidence-bundle
+  publicationContract:
+    repository: ghcr.io/openkubes/ok141-evidence
+    artifactType: application/vnd.openkubes.ok141.evidence.v1
+    layerMediaType: application/vnd.openkubes.ok141.evidence.bundle.v1+tar
+    maximumTransportBytes: 62914560
+    internalIdentity: EVIDENCE-BUNDLE-DIGEST
+    registryIdentity: OCI-MANIFEST-DIGEST
+    tagAuthority: NON-AUTHORITATIVE
+    sourceRunIdRequired: true
+    deterministicTransport: true
+    attestationSubject: OCI-MANIFEST-DIGEST
+    signerWorkflow: openkubes/openkubes/.github/workflows/ok141-evidence-publisher.yaml
+    signerSourceRef: refs/heads/main
+    pullBackReference: OCI-DIGEST-ONLY
+  proof:
+    offlineTestsPassed: 9
+    deterministicTransportProven: true
+    changedEvidenceRejected: true
+    pullBackTamperingRejected: true
+    wrongAttestationSubjectRejected: true
+    livePackageWritePerformed: false
+    liveAttestationPerformed: false
+    livePullBackPerformed: false
+    workflowDeployed: false
+    environmentCreated: false
+    credentialAuthorized: false
+  remainingBlockers:
+    - Review and authorize the exact write-capable workflow deployment separately.
+    - Create and protect the ok-141-evidence-publish environment under a separate mutation gate.
+    - Re-resolve all action and tool pins and repeat the UTC observation in the exact window.
+    - Bind the exact source evidence run and artifact to the mutation authorization.
+    - Prove the repository-linked GITHUB_TOKEN can create the package without delete authority.
+    - Prove attestation creation signer identity and source-ref enforcement.
+    - Prove pull-back by OCI digest and re-verification of the exact transport and internal bundle digest.
+    - Create the authoritative active observer index only from an accepted publication receipt.
+  authorization:
+    decision: NO-GO
+    workflowDeploymentAuthorized: false
+    environmentCreationAuthorized: false
+    packageCreationAuthorized: false
+    packageWriteAuthorized: false
+    packageDeleteAuthorized: false
+    attestationWriteAuthorized: false
+    idTokenAuthorized: false
+    sourceArtifactReadAuthorized: false
+    activeIndexCreationAuthorized: false
+    externalWriteAuthorized: false
+    infrastructureMutationAuthorized: false
+    m0aInstallationGranted: false
+    m0bInstallationGranted: false
+    go1Granted: false
+  summary:
+    plannerImplementedOffline: true
+    pullBackVerifierImplementedOffline: true
+    inertWorkflowCandidatePresent: true
+    activeWorkflowPresent: false
+    livePublicationProven: false
+    installationGatesGranted: 0
+  rules:
+    - The candidate is inert but write capable by design and must never be interpreted as an authorized or deployed workflow.
+    - Only a separately authorized exact source run may be published through the protected environment.
+    - The run tag is non-authoritative and all pull-back verification uses the OCI manifest digest.
+    - Attestation verification must bind repository signer workflow source ref and exact OCI subject digest.
+    - Moving the candidate into .github/workflows or creating its environment package credential or active index requires a separate mutation gate.
+    - Workflow deployment environment package attestation credential external write M0a-I M0b-I GO-1 infrastructure mutation and failure injection remain NO-GO.
