@@ -1,0 +1,629 @@
+{
+  "apiVersion": "evidence.openkubes.io/v1alpha1",
+  "kind": "RBACAnalysis",
+  "metadata": {
+    "name": "ok141-m0b-i-rbac"
+  },
+  "spec": {
+    "bindings": [
+      {
+        "kind": "RoleBinding",
+        "name": "argocd-application-controller",
+        "namespace": null,
+        "roleRef": {
+          "apiGroup": "rbac.authorization.k8s.io",
+          "kind": "Role",
+          "name": "argocd-application-controller"
+        },
+        "subjects": [
+          {
+            "kind": "ServiceAccount",
+            "name": "argocd-application-controller",
+            "namespace": null
+          }
+        ]
+      },
+      {
+        "kind": "RoleBinding",
+        "name": "argocd-applicationset-controller",
+        "namespace": null,
+        "roleRef": {
+          "apiGroup": "rbac.authorization.k8s.io",
+          "kind": "Role",
+          "name": "argocd-applicationset-controller"
+        },
+        "subjects": [
+          {
+            "kind": "ServiceAccount",
+            "name": "argocd-applicationset-controller",
+            "namespace": null
+          }
+        ]
+      },
+      {
+        "kind": "RoleBinding",
+        "name": "argocd-dex-server",
+        "namespace": null,
+        "roleRef": {
+          "apiGroup": "rbac.authorization.k8s.io",
+          "kind": "Role",
+          "name": "argocd-dex-server"
+        },
+        "subjects": [
+          {
+            "kind": "ServiceAccount",
+            "name": "argocd-dex-server",
+            "namespace": null
+          }
+        ]
+      },
+      {
+        "kind": "RoleBinding",
+        "name": "argocd-notifications-controller",
+        "namespace": null,
+        "roleRef": {
+          "apiGroup": "rbac.authorization.k8s.io",
+          "kind": "Role",
+          "name": "argocd-notifications-controller"
+        },
+        "subjects": [
+          {
+            "kind": "ServiceAccount",
+            "name": "argocd-notifications-controller",
+            "namespace": null
+          }
+        ]
+      },
+      {
+        "kind": "RoleBinding",
+        "name": "argocd-redis-ha",
+        "namespace": null,
+        "roleRef": {
+          "apiGroup": "rbac.authorization.k8s.io",
+          "kind": "Role",
+          "name": "argocd-redis-ha"
+        },
+        "subjects": [
+          {
+            "kind": "ServiceAccount",
+            "name": "argocd-redis-ha",
+            "namespace": null
+          }
+        ]
+      },
+      {
+        "kind": "RoleBinding",
+        "name": "argocd-redis-ha-haproxy",
+        "namespace": null,
+        "roleRef": {
+          "apiGroup": "rbac.authorization.k8s.io",
+          "kind": "Role",
+          "name": "argocd-redis-ha-haproxy"
+        },
+        "subjects": [
+          {
+            "kind": "ServiceAccount",
+            "name": "argocd-redis-ha-haproxy",
+            "namespace": null
+          }
+        ]
+      },
+      {
+        "kind": "RoleBinding",
+        "name": "argocd-server",
+        "namespace": null,
+        "roleRef": {
+          "apiGroup": "rbac.authorization.k8s.io",
+          "kind": "Role",
+          "name": "argocd-server"
+        },
+        "subjects": [
+          {
+            "kind": "ServiceAccount",
+            "name": "argocd-server",
+            "namespace": null
+          }
+        ]
+      }
+    ],
+    "decision": "ANALYZED-NOT-ACCEPTED",
+    "findings": [
+      {
+        "finding": "SECRET-READ",
+        "reason": "Rule can read Secret data in its role scope.",
+        "roleKind": "Role",
+        "roleName": "argocd-application-controller",
+        "roleNamespace": null
+      },
+      {
+        "finding": "SECRET-READ",
+        "reason": "Rule can read Secret data in its role scope.",
+        "roleKind": "Role",
+        "roleName": "argocd-applicationset-controller",
+        "roleNamespace": null
+      },
+      {
+        "finding": "SECRET-READ",
+        "reason": "Rule can read Secret data in its role scope.",
+        "roleKind": "Role",
+        "roleName": "argocd-dex-server",
+        "roleNamespace": null
+      },
+      {
+        "finding": "SECRET-READ",
+        "reason": "Rule can read Secret data in its role scope.",
+        "roleKind": "Role",
+        "roleName": "argocd-notifications-controller",
+        "roleNamespace": null
+      },
+      {
+        "finding": "SECRET-READ",
+        "reason": "Rule can read Secret data in its role scope.",
+        "roleKind": "Role",
+        "roleName": "argocd-notifications-controller",
+        "roleNamespace": null
+      },
+      {
+        "finding": "SECRET-READ",
+        "reason": "Rule can read Secret data in its role scope.",
+        "roleKind": "Role",
+        "roleName": "argocd-redis-ha-haproxy",
+        "roleNamespace": null
+      },
+      {
+        "finding": "SECRET-READ",
+        "reason": "Rule can read Secret data in its role scope.",
+        "roleKind": "Role",
+        "roleName": "argocd-server",
+        "roleNamespace": null
+      },
+      {
+        "finding": "SECRET-WRITE",
+        "reason": "Rule can mutate Secrets in its role scope.",
+        "roleKind": "Role",
+        "roleName": "argocd-redis-ha-haproxy",
+        "roleNamespace": null
+      },
+      {
+        "finding": "SECRET-WRITE",
+        "reason": "Rule can mutate Secrets in its role scope.",
+        "roleKind": "Role",
+        "roleName": "argocd-server",
+        "roleNamespace": null
+      }
+    ],
+    "gate": "M0B-I",
+    "installationSemanticDigest": "sha256:811b07f7face5d56df3434d083b9efedc5f8b28f8a264985c4b9616f0b2fd9d8",
+    "mutationAuthorized": false,
+    "protocolDigest": "sha256:79feba3dc3b58d5065c47de894ca3d926fd0cdee134c7252f7df3c0f644d40a7",
+    "roles": [
+      {
+        "kind": "Role",
+        "name": "argocd-application-controller",
+        "namespace": null,
+        "rules": [
+          {
+            "apiGroups": [
+              ""
+            ],
+            "nonResourceURLs": [],
+            "resourceNames": [],
+            "resources": [
+              "configmaps",
+              "secrets"
+            ],
+            "verbs": [
+              "get",
+              "list",
+              "watch"
+            ]
+          },
+          {
+            "apiGroups": [
+              ""
+            ],
+            "nonResourceURLs": [],
+            "resourceNames": [],
+            "resources": [
+              "events"
+            ],
+            "verbs": [
+              "create",
+              "list"
+            ]
+          },
+          {
+            "apiGroups": [
+              "apps"
+            ],
+            "nonResourceURLs": [],
+            "resourceNames": [],
+            "resources": [
+              "deployments"
+            ],
+            "verbs": [
+              "get",
+              "list",
+              "watch"
+            ]
+          },
+          {
+            "apiGroups": [
+              "argoproj.io"
+            ],
+            "nonResourceURLs": [],
+            "resourceNames": [],
+            "resources": [
+              "applications",
+              "applicationsets",
+              "appprojects"
+            ],
+            "verbs": [
+              "create",
+              "delete",
+              "get",
+              "list",
+              "patch",
+              "update",
+              "watch"
+            ]
+          }
+        ]
+      },
+      {
+        "kind": "Role",
+        "name": "argocd-applicationset-controller",
+        "namespace": null,
+        "rules": [
+          {
+            "apiGroups": [
+              ""
+            ],
+            "nonResourceURLs": [],
+            "resourceNames": [],
+            "resources": [
+              "configmaps",
+              "secrets"
+            ],
+            "verbs": [
+              "get",
+              "list",
+              "watch"
+            ]
+          },
+          {
+            "apiGroups": [
+              ""
+            ],
+            "nonResourceURLs": [],
+            "resourceNames": [],
+            "resources": [
+              "events"
+            ],
+            "verbs": [
+              "create",
+              "get",
+              "list",
+              "patch",
+              "watch"
+            ]
+          },
+          {
+            "apiGroups": [
+              "argoproj.io"
+            ],
+            "nonResourceURLs": [],
+            "resourceNames": [],
+            "resources": [
+              "applications",
+              "applicationsets",
+              "applicationsets/finalizers"
+            ],
+            "verbs": [
+              "create",
+              "delete",
+              "get",
+              "list",
+              "patch",
+              "update",
+              "watch"
+            ]
+          },
+          {
+            "apiGroups": [
+              "argoproj.io"
+            ],
+            "nonResourceURLs": [],
+            "resourceNames": [],
+            "resources": [
+              "applicationsets/status"
+            ],
+            "verbs": [
+              "get",
+              "patch",
+              "update"
+            ]
+          },
+          {
+            "apiGroups": [
+              "argoproj.io"
+            ],
+            "nonResourceURLs": [],
+            "resourceNames": [],
+            "resources": [
+              "appprojects"
+            ],
+            "verbs": [
+              "get",
+              "list",
+              "watch"
+            ]
+          },
+          {
+            "apiGroups": [
+              "coordination.k8s.io"
+            ],
+            "nonResourceURLs": [],
+            "resourceNames": [
+              "58ac56fa.applicationsets.argoproj.io"
+            ],
+            "resources": [
+              "leases"
+            ],
+            "verbs": [
+              "create",
+              "get",
+              "update"
+            ]
+          },
+          {
+            "apiGroups": [
+              "coordination.k8s.io"
+            ],
+            "nonResourceURLs": [],
+            "resourceNames": [],
+            "resources": [
+              "leases"
+            ],
+            "verbs": [
+              "create"
+            ]
+          }
+        ]
+      },
+      {
+        "kind": "Role",
+        "name": "argocd-dex-server",
+        "namespace": null,
+        "rules": [
+          {
+            "apiGroups": [
+              ""
+            ],
+            "nonResourceURLs": [],
+            "resourceNames": [],
+            "resources": [
+              "configmaps",
+              "secrets"
+            ],
+            "verbs": [
+              "get",
+              "list",
+              "watch"
+            ]
+          }
+        ]
+      },
+      {
+        "kind": "Role",
+        "name": "argocd-notifications-controller",
+        "namespace": null,
+        "rules": [
+          {
+            "apiGroups": [
+              ""
+            ],
+            "nonResourceURLs": [],
+            "resourceNames": [
+              "argocd-notifications-cm"
+            ],
+            "resources": [
+              "configmaps"
+            ],
+            "verbs": [
+              "get"
+            ]
+          },
+          {
+            "apiGroups": [
+              ""
+            ],
+            "nonResourceURLs": [],
+            "resourceNames": [
+              "argocd-notifications-secret"
+            ],
+            "resources": [
+              "secrets"
+            ],
+            "verbs": [
+              "get"
+            ]
+          },
+          {
+            "apiGroups": [
+              ""
+            ],
+            "nonResourceURLs": [],
+            "resourceNames": [],
+            "resources": [
+              "configmaps",
+              "secrets"
+            ],
+            "verbs": [
+              "list",
+              "watch"
+            ]
+          },
+          {
+            "apiGroups": [
+              "argoproj.io"
+            ],
+            "nonResourceURLs": [],
+            "resourceNames": [],
+            "resources": [
+              "applications",
+              "appprojects"
+            ],
+            "verbs": [
+              "get",
+              "list",
+              "patch",
+              "update",
+              "watch"
+            ]
+          }
+        ]
+      },
+      {
+        "kind": "Role",
+        "name": "argocd-redis-ha",
+        "namespace": null,
+        "rules": [
+          {
+            "apiGroups": [
+              ""
+            ],
+            "nonResourceURLs": [],
+            "resourceNames": [],
+            "resources": [
+              "endpoints"
+            ],
+            "verbs": [
+              "get"
+            ]
+          }
+        ]
+      },
+      {
+        "kind": "Role",
+        "name": "argocd-redis-ha-haproxy",
+        "namespace": null,
+        "rules": [
+          {
+            "apiGroups": [
+              ""
+            ],
+            "nonResourceURLs": [],
+            "resourceNames": [
+              "argocd-redis"
+            ],
+            "resources": [
+              "secrets"
+            ],
+            "verbs": [
+              "get"
+            ]
+          },
+          {
+            "apiGroups": [
+              ""
+            ],
+            "nonResourceURLs": [],
+            "resourceNames": [],
+            "resources": [
+              "endpoints"
+            ],
+            "verbs": [
+              "get"
+            ]
+          },
+          {
+            "apiGroups": [
+              ""
+            ],
+            "nonResourceURLs": [],
+            "resourceNames": [],
+            "resources": [
+              "secrets"
+            ],
+            "verbs": [
+              "create"
+            ]
+          }
+        ]
+      },
+      {
+        "kind": "Role",
+        "name": "argocd-server",
+        "namespace": null,
+        "rules": [
+          {
+            "apiGroups": [
+              ""
+            ],
+            "nonResourceURLs": [],
+            "resourceNames": [],
+            "resources": [
+              "configmaps",
+              "secrets"
+            ],
+            "verbs": [
+              "create",
+              "delete",
+              "get",
+              "list",
+              "patch",
+              "update",
+              "watch"
+            ]
+          },
+          {
+            "apiGroups": [
+              ""
+            ],
+            "nonResourceURLs": [],
+            "resourceNames": [],
+            "resources": [
+              "events"
+            ],
+            "verbs": [
+              "create",
+              "list"
+            ]
+          },
+          {
+            "apiGroups": [
+              "argoproj.io"
+            ],
+            "nonResourceURLs": [],
+            "resourceNames": [],
+            "resources": [
+              "applications",
+              "applicationsets",
+              "appprojects"
+            ],
+            "verbs": [
+              "create",
+              "delete",
+              "get",
+              "list",
+              "patch",
+              "update",
+              "watch"
+            ]
+          }
+        ]
+      }
+    ],
+    "summary": {
+      "bindings": 7,
+      "byFinding": {
+        "SECRET-READ": 7,
+        "SECRET-WRITE": 2
+      },
+      "findings": 9,
+      "roles": 7
+    },
+    "toolDigest": "sha256:97feb05ae37fd399df34ece955dc17446de8d7186b6a8778f4750f96ad2fd107"
+  }
+}

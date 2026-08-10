@@ -1,0 +1,159 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: InstallationClosureMatrix
+metadata:
+  name: ok141-installation-gate-closure-v1
+  ticket: OK-141
+  baseCommit: f4b16b34c0d214083a343565e6fa7573d3284a75
+spec:
+  version: ok141-installation-closure/v1
+  state: READ-ONLY-CLASSIFIED
+  authorization:
+    decision: NO-GO
+    mutationAuthorized: false
+    m0aInstallationGranted: false
+    m0bInstallationGranted: false
+    go1Granted: false
+  sources:
+    m0aInstallation:
+      path: ../m0a-installation/m0a-installation-v1.yaml
+      digest: sha256:873d3aa3b15df53d3a4055675288c6d9acdf6c18d4f850e181a4eb7b93fc4a27
+    m0bInstallation:
+      path: ../m0b-installation/m0b-installation-v1.yaml
+      digest: sha256:79feba3dc3b58d5065c47de894ca3d926fd0cdee134c7252f7df3c0f644d40a7
+  classes:
+    OFFLINE-CLOSABLE:
+      requiredStatus: OPEN-READ-ONLY
+      definition: Deterministic analysis immutable-source reads rendering verification or implementation evidence without target-plane mutation.
+    LIVE-OBSERVATION:
+      requiredStatus: BLOCKED-LIVE
+      definition: Current read-only evidence from an existing plane or service; absence cannot be repaired under observation authority.
+    EXPLICIT-AUTHORITY:
+      requiredStatus: BLOCKED-AUTHORITY
+      definition: Named human architecture security or recovery authority bound to an exact digest scope and window.
+    SEPARATE-MUTATION-GATE:
+      requiredStatus: BLOCKED-GATE
+      definition: Prerequisite state change requiring its own protocol preflight digest and explicit authorization.
+  blockers:
+    - id: M0AI-AUTHORITY
+      gate: M0A-I
+      sourceStatus: BLOCKED
+      obligations:
+        - {id: M0AI-AUTHORITY-GRANT, class: EXPLICIT-AUTHORITY, status: BLOCKED-AUTHORITY, claim: Assign one M0a-I authority to an exact final digest scope and window.}
+    - id: M0AI-BASELINE-FRESHNESS
+      gate: M0A-I
+      sourceStatus: BLOCKED
+      obligations:
+        - {id: M0AI-BASELINE-LIVE, class: LIVE-OBSERVATION, status: BLOCKED-LIVE, claim: Re-observe ok-mgmt identity versions architecture CAAPH absence and competing writers immediately before decision.}
+    - id: M0AI-INSTALLER-IDENTITY
+      gate: M0A-I
+      sourceStatus: BLOCKED
+      obligations:
+        - {id: M0AI-INSTALLER-ARTIFACT, class: OFFLINE-CLOSABLE, status: OPEN-READ-ONLY, claim: Prove the bounded installer artifact exposes only materialize verify apply and evidence operations.}
+        - {id: M0AI-INSTALLER-CREDENTIAL, class: SEPARATE-MUTATION-GATE, status: BLOCKED-GATE, claim: Issue revoke and audit one short-lived ok-mgmt credential for the reviewed installer identity.}
+    - id: M0AI-EXACT-OBJECT-SUBMISSION
+      gate: M0A-I
+      sourceStatus: BLOCKED
+      obligations:
+        - {id: M0AI-SUBMISSION-INTEGRITY, class: OFFLINE-CLOSABLE, status: OPEN-READ-ONLY, claim: Prove the submission path rejects any object set whose raw semantic count kind or target identity differs.}
+    - id: M0AI-CONTROLLER-RBAC-ACCEPTANCE
+      gate: M0A-I
+      sourceStatus: BLOCKED
+      obligations:
+        - {id: M0AI-RBAC-ANALYSIS, class: OFFLINE-CLOSABLE, status: OPEN-READ-ONLY, claim: Reproduce exact controller RBAC and enumerate every sensitive capability and reduction option.}
+        - {id: M0AI-RBAC-SECURITY-DECISION, class: EXPLICIT-AUTHORITY, status: BLOCKED-AUTHORITY, claim: Accept or reject the exact residual controller security boundary for the reviewed installation.}
+    - id: M0AI-COMPATIBILITY
+      gate: M0A-I
+      sourceStatus: BLOCKED
+      obligations:
+        - {id: M0AI-COMPATIBILITY-EVIDENCE, class: OFFLINE-CLOSABLE, status: OPEN-READ-ONLY, claim: Bind authoritative CAAPH compatibility evidence for the exact Kubernetes CAPI and cert-manager version tuple.}
+        - {id: M0AI-COMPATIBILITY-CURRENT-TUPLE, class: LIVE-OBSERVATION, status: BLOCKED-LIVE, claim: Observe the current ok-mgmt version tuple and correlate it to the reviewed compatibility evidence.}
+    - id: M0AI-OBSERVERS-EVIDENCE
+      gate: M0A-I
+      sourceStatus: BLOCKED
+      obligations:
+        - {id: M0AI-OBSERVER-ASSIGNMENT, class: EXPLICIT-AUTHORITY, status: BLOCKED-AUTHORITY, claim: Assign independent management security and evidence observers for the exact window.}
+        - {id: M0AI-EVIDENCE-DESTINATION-LIVE, class: LIVE-OBSERVATION, status: BLOCKED-LIVE, claim: Verify the existing immutable evidence destination redaction policy access and UTC skew without writing test evidence.}
+    - id: M0AI-RECOVERY
+      gate: M0A-I
+      sourceStatus: BLOCKED
+      obligations:
+        - {id: M0AI-RECOVERY-EVIDENCE-LIVE, class: LIVE-OBSERVATION, status: BLOCKED-LIVE, claim: Verify current ok-mgmt backup restore and out-of-band evidence without performing recovery.}
+        - {id: M0AI-RECOVERY-AUTHORITY, class: EXPLICIT-AUTHORITY, status: BLOCKED-AUTHORITY, claim: Assign abort rollback and recovery authority for the exact installation window.}
+    - id: M0BI-AUTHORITY-PLACEMENT
+      gate: M0B-I
+      sourceStatus: BLOCKED
+      obligations:
+        - {id: M0BI-INSTALLATION-AUTHORITY, class: EXPLICIT-AUTHORITY, status: BLOCKED-AUTHORITY, claim: Assign one M0b-I authority to an exact final digest scope and window.}
+        - {id: M0BI-PLACEMENT-AUTHORITY, class: EXPLICIT-AUTHORITY, status: BLOCKED-AUTHORITY, claim: Record the architecture decision authorizing central GitOps placement on the exact ok-shared incarnation.}
+    - id: M0BI-BASELINE-CAPACITY
+      gate: M0B-I
+      sourceStatus: BLOCKED
+      obligations:
+        - {id: M0BI-BASELINE-LIVE, class: LIVE-OBSERVATION, status: BLOCKED-LIVE, claim: Re-observe ok-shared identity versions architecture Argo absence storage network and competing writers.}
+        - {id: M0BI-CAPACITY-TOPOLOGY-LIVE, class: LIVE-OBSERVATION, status: BLOCKED-LIVE, claim: Observe current allocatable capacity requests limits control-plane etcd topology and retain the no-production-HA boundary.}
+    - id: M0BI-SOURCE-MATERIALIZATION
+      gate: M0B-I
+      sourceStatus: BLOCKED
+      obligations:
+        - {id: M0BI-SOURCE-MATERIALIZATION-VERIFY, class: OFFLINE-CLOSABLE, status: OPEN-READ-ONLY, claim: Materialize the four immutable upstream files and prove raw semantic size membership and combined source-lock equality without apply.}
+    - id: M0BI-INSTALLER-IDENTITY
+      gate: M0B-I
+      sourceStatus: BLOCKED
+      obligations:
+        - {id: M0BI-INSTALLER-ARTIFACT, class: OFFLINE-CLOSABLE, status: OPEN-READ-ONLY, claim: Prove the bounded installer artifact exposes only materialize verify apply and evidence operations.}
+        - {id: M0BI-INSTALLER-CREDENTIAL, class: SEPARATE-MUTATION-GATE, status: BLOCKED-GATE, claim: Issue revoke and audit one short-lived ok-shared credential for the reviewed installer identity.}
+    - id: M0BI-EXACT-OBJECT-SUBMISSION
+      gate: M0B-I
+      sourceStatus: BLOCKED
+      obligations:
+        - {id: M0BI-SUBMISSION-INTEGRITY, class: OFFLINE-CLOSABLE, status: OPEN-READ-ONLY, claim: Prove the submission path rejects any object set whose source lock semantic count kind or target identity differs.}
+    - id: M0BI-CONTROLLER-RBAC-SECURITY
+      gate: M0B-I
+      sourceStatus: BLOCKED
+      obligations:
+        - {id: M0BI-RBAC-ANALYSIS, class: OFFLINE-CLOSABLE, status: OPEN-READ-ONLY, claim: Reproduce exact control-plane RBAC Secrets and cluster-visible capabilities plus reduction options.}
+        - {id: M0BI-RBAC-SECURITY-DECISION, class: EXPLICIT-AUTHORITY, status: BLOCKED-AUTHORITY, claim: Accept or reject the exact residual controller security boundary for the reviewed placement.}
+    - id: M0BI-IMAGE-COMPATIBILITY
+      gate: M0B-I
+      sourceStatus: BLOCKED
+      obligations:
+        - {id: M0BI-IMAGE-COMPATIBILITY-EVIDENCE, class: OFFLINE-CLOSABLE, status: OPEN-READ-ONLY, claim: Bind authoritative Argo and image compatibility evidence for the reviewed ok-shared Kubernetes version.}
+        - {id: M0BI-COMPATIBILITY-CURRENT-TUPLE, class: LIVE-OBSERVATION, status: BLOCKED-LIVE, claim: Observe the current ok-shared Kubernetes architecture and image-platform tuple and correlate it to the reviewed evidence.}
+    - id: M0BI-OBSERVERS-EVIDENCE
+      gate: M0B-I
+      sourceStatus: BLOCKED
+      obligations:
+        - {id: M0BI-OBSERVER-ASSIGNMENT, class: EXPLICIT-AUTHORITY, status: BLOCKED-AUTHORITY, claim: Assign independent placement security and evidence observers for the exact window.}
+        - {id: M0BI-EVIDENCE-DESTINATION-LIVE, class: LIVE-OBSERVATION, status: BLOCKED-LIVE, claim: Verify the existing immutable evidence destination redaction policy access and UTC skew without writing test evidence.}
+    - id: M0BI-RECOVERY
+      gate: M0B-I
+      sourceStatus: BLOCKED
+      obligations:
+        - {id: M0BI-RECOVERY-EVIDENCE-LIVE, class: LIVE-OBSERVATION, status: BLOCKED-LIVE, claim: Verify current ok-shared bootstrap backup recovery and out-of-band evidence independent of Argo without performing recovery.}
+        - {id: M0BI-RECOVERY-AUTHORITY, class: EXPLICIT-AUTHORITY, status: BLOCKED-AUTHORITY, claim: Assign abort rollback and recovery authority for the exact installation window.}
+  summary:
+    sourceBlockers: 17
+    atomicObligations: 29
+    byClass:
+      OFFLINE-CLOSABLE: 9
+      LIVE-OBSERVATION: 9
+      EXPLICIT-AUTHORITY: 9
+      SEPARATE-MUTATION-GATE: 2
+  nextReadOnlyCandidates:
+    - M0AI-INSTALLER-ARTIFACT
+    - M0AI-SUBMISSION-INTEGRITY
+    - M0AI-RBAC-ANALYSIS
+    - M0AI-COMPATIBILITY-EVIDENCE
+    - M0BI-SOURCE-MATERIALIZATION-VERIFY
+    - M0BI-INSTALLER-ARTIFACT
+    - M0BI-SUBMISSION-INTEGRITY
+    - M0BI-RBAC-ANALYSIS
+    - M0BI-IMAGE-COMPATIBILITY-EVIDENCE
+  rules:
+    - Classification does not close an obligation or grant any authority.
+    - Every source blocker closes only when all of its atomic obligations have independently accepted evidence.
+    - Live observation may report absence but may not create repair or configure missing state.
+    - Missing state discovered by live observation requires a new separate mutation gate.
+    - An authority decision must name the exact protocol digest scope target incarnation and time window.
+    - A separate mutation gate cannot inherit M0a-I M0b-I or GO-1 authority.
+    - M0a-I M0b-I GO-1 infrastructure mutation and failure injection remain NO-GO.

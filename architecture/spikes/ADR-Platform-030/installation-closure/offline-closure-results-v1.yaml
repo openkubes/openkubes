@@ -1,0 +1,83 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: OfflineClosureResults
+metadata:
+  name: ok141-installation-offline-closure-v1
+  ticket: OK-141
+spec:
+  version: ok141-installation-offline-closure/v1
+  state: EVALUATED-NO-GO
+  sourceMatrix:
+    path: installation-closure-v1.yaml
+    digest: sha256:0cd56a0fa6d4e483ea02cce795980100166ac47006b37defbf0ce8a4b1ff8d3c
+  artifacts:
+    boundedInstaller: {path: bounded_installer.py, digest: sha256:8b4ab9929c7bbea98366bc26a26a490f8153f50b3983ca19ee2c7fa74ee48e98}
+    rbacAnalyzer: {path: rbac_analyzer.py, digest: sha256:97feb05ae37fd399df34ece955dc17446de8d7186b6a8778f4750f96ad2fd107}
+    m0aRBAC: {path: evidence/m0ai-rbac-analysis.json, digest: sha256:d88d5f7cd060b479554046e624e420b433b04dc7165190610e98d2aaa62520c8}
+    m0bRBAC: {path: evidence/m0bi-rbac-analysis.json, digest: sha256:196af85614c1d4f3cfc4b273134e07b819499e408bf400e3d9a0fb4b8bc0d07c}
+    compatibility: {path: evidence/compatibility-evidence-v1.yaml, digest: sha256:09a4edc74fd7c6b1cfd6747702a2e0b74f36a4db3eeed7cdd32ffa3cc4fa8875}
+    m0bMaterialization: {path: evidence/m0bi-materialization-evidence-v1.yaml, digest: sha256:4ea58017beef35b6e33822dcf7c4ae7eb3c8fe10f075444be866dbb5781dfbe7}
+  results:
+    - id: M0AI-INSTALLER-ARTIFACT
+      result: PROVEN-OFFLINE
+      evidence: [boundedInstaller]
+      claim: The prototype exposes only materialize verify apply and evidence commands; apply uses a fixed kubectl argv and requires an exact authorized protocol.
+      boundary: Artifact behavior is proven offline; credential issuance and a real authorized transport run remain separately gated.
+    - id: M0AI-SUBMISSION-INTEGRITY
+      result: PROVEN-OFFLINE
+      evidence: [boundedInstaller]
+      claim: Wrong source raw semantic count kind or target-plane identity fails before an apply plan can be built.
+      boundary: Integrity depends on only the reviewed binary receiving the separately issued credential.
+    - id: M0AI-RBAC-ANALYSIS
+      result: PROVEN-OFFLINE
+      evidence: [rbacAnalyzer, m0aRBAC]
+      claim: Exact CAAPH RBAC normalizes to four roles three bindings and seven explicit sensitive findings.
+      boundary: Analysis is not acceptance; the residual security decision remains EXPLICIT-AUTHORITY.
+    - id: M0AI-COMPATIBILITY-EVIDENCE
+      result: PARTIAL-UNRESOLVED
+      evidence: [compatibility]
+      claim: CAPI v1beta2 contract CAPI v1.13 dependency Kubernetes client v0.35.3 and image identity are proven.
+      boundary: Upstream does not publish an authoritative tested matrix for the exact Kubernetes v1.34.1 and cert-manager v1.20.1 tuple.
+    - id: M0BI-SOURCE-MATERIALIZATION-VERIFY
+      result: PROVEN-REPEATABLE-PREFLIGHT
+      evidence: [boundedInstaller, m0bMaterialization]
+      claim: Four locked upstream files materialized to the exact 65-object combined semantic identity without cluster contact.
+      boundary: The materialization must be repeated immediately before a final M0b-I decision and cannot be reused as authorization.
+    - id: M0BI-INSTALLER-ARTIFACT
+      result: PROVEN-OFFLINE
+      evidence: [boundedInstaller]
+      claim: The same bounded prototype verifies the exact source lock and exposes no arbitrary command endpoint.
+      boundary: Artifact behavior is proven offline; credential issuance and a real authorized transport run remain separately gated.
+    - id: M0BI-SUBMISSION-INTEGRITY
+      result: PROVEN-OFFLINE
+      evidence: [boundedInstaller, m0bMaterialization]
+      claim: Missing or changed remote content combined semantic membership or target-plane identity fails before apply planning.
+      boundary: Integrity depends on only the reviewed binary receiving the separately issued credential.
+    - id: M0BI-RBAC-ANALYSIS
+      result: PROVEN-OFFLINE
+      evidence: [rbacAnalyzer, m0bRBAC]
+      claim: The namespace-install profile contains seven namespaced roles and seven bindings with nine explicit Secret findings and no ClusterRole.
+      boundary: Analysis is not acceptance; the residual security decision remains EXPLICIT-AUTHORITY.
+    - id: M0BI-IMAGE-COMPATIBILITY-EVIDENCE
+      result: PROVEN-OFFLINE
+      evidence: [compatibility]
+      claim: Argo CD 3.4 upstream tests Kubernetes v1.34 and all four linux-amd64 image digests equal the installation lock.
+      boundary: Current ok-shared identity remains LIVE-OBSERVATION; signatures and disposable target v1.36.2 compatibility are not claimed.
+  summary:
+    evaluated: 9
+    byResult:
+      PROVEN-OFFLINE: 7
+      PROVEN-REPEATABLE-PREFLIGHT: 1
+      PARTIAL-UNRESOLVED: 1
+    sourceBlockersClosed: 0
+    installationGatesGranted: 0
+  authorization:
+    decision: NO-GO
+    mutationAuthorized: false
+    m0aInstallationGranted: false
+    m0bInstallationGranted: false
+    go1Granted: false
+  rules:
+    - An offline result closes only its atomic analysis obligation and never its composite source blocker.
+    - PARTIAL-UNRESOLVED is not closure and must remain fail closed.
+    - PROVEN-REPEATABLE-PREFLIGHT requires a fresh rerun before an installation decision.
+    - Installer integrity does not authorize credential issuance installation target registration convergence or GO-1.

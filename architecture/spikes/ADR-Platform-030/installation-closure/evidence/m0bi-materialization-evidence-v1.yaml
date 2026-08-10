@@ -1,0 +1,22 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: SourceMaterializationEvidence
+metadata:
+  name: ok141-m0bi-source-materialization-v1
+spec:
+  observedReadOnlyAt: "2026-08-10"
+  protocolDigest: sha256:79feba3dc3b58d5065c47de894ca3d926fd0cdee134c7252f7df3c0f644d40a7
+  sourceLockDigest: sha256:6322722bd9abc788b99a0f9d57ac96ed610e0105f14e91279e14719cea9567a1
+  files:
+    - {id: ha-namespace-install, rawDigest: sha256:cfe6b1e3c0fc483d2c93822cac53bf2542fd5035161a3d30ba781486378bcc57, semanticDigest: sha256:c058afb0a8be119787b94433731ceec4647e5fb07ca32cbd4df27b070fc27fe6, sizeBytes: 139547, objectCount: 61}
+    - {id: application-crd, rawDigest: sha256:fa8a0c7f8127f85bbbf57467e7c659ec7d47e7d162cc76c1b07482ebf2b98f49, semanticDigest: sha256:a30d786c22f9895ab3fb70b169f3c870e226c083b4e56cfc001d1b413a9b7133, sizeBytes: 396773, objectCount: 1}
+    - {id: applicationset-crd, rawDigest: sha256:51f69883c692698fbcf3c82455c07c0f6413899ac9d96565a9e8395c0196f58d, semanticDigest: sha256:42a101f4c42f575d4634265aa6e02d176e1ff2d2ba60aa41197eab113689cdc5, sizeBytes: 1385775, objectCount: 1}
+    - {id: appproject-crd, rawDigest: sha256:7b99337686905b444864c84b1305938a7bfbca9b5f4e2c5d5d2de4acae16ceb3, semanticDigest: sha256:d89d247abcd91192feac0ea0d27b5da3673259fe1b9b950801de441481ea4542, sizeBytes: 16502, objectCount: 1}
+  combined:
+    objectCount: 65
+    semanticDigest: sha256:811b07f7face5d56df3434d083b9efedc5f8b28f8a264985c4b9616f0b2fd9d8
+    rawPayloadDigest: sha256:328e6a0e393e7e7b0f72e85d0790dbfeda158f3256c74e79a46a60ede56af055
+  result: PROVEN-REPEATABLE-PREFLIGHT
+  obligation: M0BI-SOURCE-MATERIALIZATION-VERIFY
+  freshnessRule: Materialization must be repeated against the same lock immediately before any final M0b-I decision; this observation cannot be reused as authorization.
+  clusterContacted: false
+  mutationAuthorized: false

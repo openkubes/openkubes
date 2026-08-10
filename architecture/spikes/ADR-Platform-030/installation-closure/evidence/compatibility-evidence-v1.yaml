@@ -1,0 +1,54 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: CompatibilityEvidence
+metadata:
+  name: ok141-installation-compatibility-v1
+spec:
+  observedReadOnlyAt: "2026-08-10"
+  caaph:
+    version: v0.6.4
+    commit: 825662962a26dc339f3871184c91ed4bd2f83a4f
+    sources:
+      - {path: ../upstream-evidence/caaph-v0.6.4-metadata.yaml, rawDigest: sha256:d50a44ee0db2f0368699d15ff011b9b5a61d9969483de1c4f6e4e6046390530f, claim: Release series 0.6 declares CAPI contract v1beta2.}
+      - {path: ../upstream-evidence/caaph-v0.6.4-go.mod, rawDigest: sha256:3bc8c1a2927de6d1b7b8e9fdb90db377393f20d35e11d8921084ba509b244570, claim: Build dependencies include CAPI v1.13.0 and Kubernetes client libraries v0.35.3.}
+      - {path: ../upstream-evidence/caaph-v0.6.4-README.md, rawDigest: sha256:db6a635741fdfc4a07882316551492ff724d0295a48f17eac8650dbde2faa124, claim: CAAPH is a management-cluster ClusterAddonProvider and delegates add-on internals to Helm.}
+    imageObservation:
+      reference: registry.k8s.io/cluster-api-helm/cluster-api-helm-controller:v0.6.4
+      observedIndexDigest: sha256:97d2a86f8e35d23bb4656b26f4564b35f109e47a0dc4860b71089e52eb6e6a24
+      observedLinuxAmd64Digest: sha256:66344ab0107c0a3fcbce860697206ac7e6a2316a7af4a07f81a9f8d53e448e6a
+      equalsInstallationLock: true
+    evaluatedTuple:
+      capi: v1.13.4
+      kubernetes: v1.34.1
+      certManager: v1.20.1
+    proven:
+      - CAAPH 0.6 declares CAPI contract v1beta2.
+      - The pinned build directly depends on CAPI v1.13.0.
+      - The controller linux-amd64 image resolves to the bound digest.
+    notProven:
+      - The pinned upstream sources do not publish a tested matrix for the exact Kubernetes v1.34.1 and cert-manager v1.20.1 tuple.
+      - Dependency versions are build evidence and are not by themselves an interoperability guarantee.
+    result: PARTIAL-UNRESOLVED
+    obligation: M0AI-COMPATIBILITY-EVIDENCE
+  argocd:
+    version: v3.4.2
+    commit: 0dc6b1b57dd5bb925d5b03c3d09419ab9fb4225e
+    sources:
+      - {path: ../upstream-evidence/argocd-v3.4.2-tested-kubernetes-versions.md, rawDigest: sha256:65f8a52ed28c494021cbde4458fd0e9e67650c36201122d901c04330977b0775, claim: Argo CD 3.4 is tested with Kubernetes v1.32 v1.33 v1.34 and v1.35.}
+    evaluatedControlPlaneKubernetes: v1.34.1
+    images:
+      - {reference: quay.io/argoproj/argocd:v3.4.2, observedIndexDigest: sha256:c612d570cb6d6ff29afb72932c1bfe98a1ecc234df50f8ea4873fb7066e760fc, observedLinuxAmd64Digest: sha256:a8679d1bbf7679ad27bf39fadbd30e486f59446eadd4f5c2c11ce6a41053a216, equalsInstallationLock: true}
+      - {reference: ghcr.io/dexidp/dex:v2.45.0, observedIndexDigest: sha256:b8469881d3cb3a73001506f0d3aaefecb9c45d2311c1e0f405d8ac538316c59d, observedLinuxAmd64Digest: sha256:8a9281c3a115180415b0726ca160e38fc40f9284bc9a2d1032c839a3a934695c, equalsInstallationLock: true}
+      - {reference: public.ecr.aws/docker/library/haproxy:3.0.8-alpine, observedIndexDigest: sha256:e11f034e651603f10a365e5ad5a0321825e18eded9620e40c4f4d6ae58419bfe, observedLinuxAmd64Digest: sha256:3ad414bdb5c94d712e0e9a7dc1517eca45cce652afc85a002fd7bb42b44d5dde, equalsInstallationLock: true}
+      - {reference: public.ecr.aws/docker/library/redis:8.2.3-alpine, observedIndexDigest: sha256:08ad0b1d280850169a790dba1393ff7a90aef951fc19632cf4d3ce4f78e679ba, observedLinuxAmd64Digest: sha256:e499175dfb27569cd40010c2eee346113db95fdd0efc88ab9fd70a9e807f4542, equalsInstallationLock: true}
+    proven:
+      - Kubernetes v1.34 is in the upstream tested matrix for Argo CD 3.4.
+      - All four image tags resolve to the index and linux-amd64 digests bound by M0b-I.
+    limitations:
+      - The current ok-shared tuple remains a separate live observation.
+      - Image authenticity signatures were not verified by this digest-only observation.
+      - This control-plane result does not claim compatibility with the disposable Kubernetes v1.36.2 target.
+    result: PROVEN-OFFLINE
+    obligation: M0BI-IMAGE-COMPATIBILITY-EVIDENCE
+  authorization:
+    decision: NO-GO
+    mutationAuthorized: false
