@@ -1,0 +1,89 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: GHCRDeletionMonitoringDecision
+metadata:
+  name: ok141-ghcr-deletion-monitoring-decision-v1
+  ticket: OK-141
+spec:
+  version: ok141-ghcr-deletion-monitoring-decision/v1
+  state: ACCEPTED-INTERVAL-IMPLEMENTATION-BLOCKED-NO-GO
+  recordedAt: "2026-08-10T17:55:15Z"
+  sourceRetentionDecision:
+    path: ../ghcr-retention-decision/ghcr-retention-decision-v1.yaml
+    digest: sha256:b314ee48ad88337b7340f20daef606305b3bc16d70db7b6367e30e3d9477e40b
+    state: ACCEPTED-POLICY-IMPLEMENTATION-BLOCKED-NO-GO
+  decision:
+    outcome: ACCEPTED
+    acceptedBy: github:arashkaffamanesh
+    acceptanceInput: fine, bitte weiter
+    interpretedDecision: Use a 24-hour target interval for DEV deletion monitoring with alert-and-fail-closed behavior and no mutation authority.
+    scope: OK-141-DEV-EVIDENCE-DELETION-MONITORING
+  monitoringPolicy:
+    targetInterval: PT24H
+    intervalHours: 24
+    lookupRepository: ghcr.io/openkubes/ok141-evidence
+    lookupIdentity: OCI-MANIFEST-DIGEST
+    expectedOutcomeWhenPresent: OBSERVED-PRESENT
+    outcomeWhenMissing: ALERT-AND-FAIL-CLOSED
+    outcomeWhenObserverLateOrUnavailable: UNKNOWN-AND-FAIL-CLOSED
+    maximumDetectionLatencyClaim: BEST-EFFORT-APPROXIMATELY-24H
+    detectionDeadlineGuaranteed: false
+    continuousAvailabilityGuaranteed: false
+    automaticRepairAllowed: false
+    automaticRestoreAllowed: false
+    automaticRepublishAllowed: false
+    deletePermissionAllowed: false
+    packageWritePermissionAllowed: false
+    boundary: The interval is a DEV observation target; delayed skipped or unavailable observations cannot establish continued evidence availability.
+  evidenceRequirements:
+    - Record the scheduled observation identity and intended observation time.
+    - Record actual start and completion timestamps in UTC.
+    - Record the exact OCI manifest digest queried and the observed result.
+    - Record observer workflow and immutable source revision identities.
+    - Record alert delivery evidence when the digest is missing.
+    - Treat absent stale delayed conflicting or unverifiable observations as UNKNOWN and fail closed.
+  operationalState:
+    monitoringWorkflowImplemented: false
+    monitoringWorkflowDeployed: false
+    scheduleConfigured: false
+    packageReadAccessProven: false
+    alertDestinationSelected: false
+    alertDeliveryProven: false
+    firstObservationCompleted: false
+    missedRunDetectionProven: false
+  remainingBlockers:
+    - Implement a full-SHA-pinned read-only observer workflow.
+    - Configure the PT24H schedule under a separately reviewed workflow change.
+    - Prove least-privilege package read access without write or delete permission.
+    - Select and authorize an alert destination.
+    - Prove missing-digest alert delivery and fail-closed evaluation.
+    - Prove delayed missed and unavailable observer handling.
+    - Repeat the cache-busted UTC skew observation inside the exact execution window.
+    - Run the first observation only after the package exists under a separate external-write gate.
+  authorization:
+    decision: NO-GO
+    workflowImplementationAuthorized: false
+    workflowDeploymentAuthorized: false
+    scheduleCreationAuthorized: false
+    packageReadCredentialAuthorized: false
+    packageWriteAuthorized: false
+    packageDeleteAuthorized: false
+    alertIntegrationMutationAuthorized: false
+    externalWriteAuthorized: false
+    infrastructureMutationAuthorized: false
+    m0aInstallationGranted: false
+    m0bInstallationGranted: false
+    go1Granted: false
+  summary:
+    intervalDecisionAccepted: true
+    targetIntervalHours: 24
+    detectionGuaranteed: false
+    monitoringImplemented: false
+    alertDestinationSelected: false
+    installationGatesGranted: 0
+  rules:
+    - Acceptance closes only the DEV target interval decision and creates no observer schedule workflow credential or alert integration.
+    - PT24H is a best-effort observation target and not a guaranteed deletion-detection deadline.
+    - Missing stale delayed conflicting or unavailable observations produce UNKNOWN and fail closed.
+    - The observer may read verify record and alert but may not restore repair republish write or delete packages.
+    - A different interval or stronger detection availability or recovery claim requires a new explicit decision and evidence.
+    - Workflow schedule credential alert mutation external write M0a-I M0b-I GO-1 infrastructure mutation and failure injection remain NO-GO.
