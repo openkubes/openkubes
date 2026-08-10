@@ -1,0 +1,101 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: GHCRAlertDestinationDecision
+metadata:
+  name: ok141-ghcr-alert-destination-decision-v1
+  ticket: OK-141
+spec:
+  version: ok141-ghcr-alert-destination-decision/v1
+  state: ACCEPTED-DESTINATION-IMPLEMENTATION-BLOCKED-NO-GO
+  recordedAt: "2026-08-10T18:02:49Z"
+  sourceMonitoringDecision:
+    path: ../ghcr-deletion-monitoring-decision/ghcr-deletion-monitoring-decision-v1.yaml
+    digest: sha256:95230100078e0159d3f8a5c7a8abbeb349b4a87705fd420dcfb7dfa98e0aa1c6
+    state: ACCEPTED-INTERVAL-IMPLEMENTATION-BLOCKED-NO-GO
+  decision:
+    outcome: ACCEPTED
+    acceptedBy: github:arashkaffamanesh
+    acceptanceInput: fine, weiter bitte.
+    interpretedDecision: Use a failed GitHub Actions run and its job summary as the DEV alert surface without an additional write-capable alert integration.
+    scope: OK-141-DEV-EVIDENCE-ALERT-DESTINATION
+  alertPolicy:
+    platform: GitHub-Actions
+    repository: openkubes/openkubes
+    primarySignal: FAILED-WORKFLOW-RUN
+    detailSurface: GITHUB-ACTIONS-JOB-SUMMARY
+    accountableRecipient: github:arashkaffamanesh
+    observerStartedRunFailureCoverage: true
+    missedOrNeverStartedRunCoverage: false
+    notificationDeliveryGuaranteed: false
+    acknowledgementRequired: false
+    issueCreationAllowed: false
+    pullRequestCreationAllowed: false
+    externalWebhookAllowed: false
+    emailIntegrationClaimAllowed: false
+    packageWritePermissionAllowed: false
+    packageDeletePermissionAllowed: false
+    additionalAPIMutationRequired: false
+    boundary: A failed started run is the alert surface; the same workflow cannot prove or alert on a scheduled run that never started.
+  requiredJobSummaryFields:
+    - observationStatus
+    - intendedObservationTimeUTC
+    - actualStartTimeUTC
+    - actualCompletionTimeUTC
+    - ociManifestDigest
+    - repository
+    - workflowSourceRevision
+    - remediationAuthority
+  failClosedOutcomes:
+    digestMissing: FAILED-RUN
+    digestMismatch: FAILED-RUN
+    packageReadDenied: FAILED-RUN
+    evidenceUnverifiable: FAILED-RUN
+    observerStartedThenFailed: FAILED-RUN
+    observerLateOrNeverStarted: UNKNOWN-REQUIRES-INDEPENDENT-FRESHNESS-EVALUATION
+  operationalState:
+    observerWorkflowImplemented: false
+    observerWorkflowDeployed: false
+    jobSummaryImplemented: false
+    failedRunAlertProven: false
+    recipientObservationProven: false
+    missedRunDetectionImplemented: false
+    packageReadAccessProven: false
+  remainingBlockers:
+    - Implement a full-SHA-pinned read-only observer workflow and bounded job summary.
+    - Prove failure exit behavior for missing mismatched denied and unverifiable evidence.
+    - Prove the accountable recipient can observe the failed run in the exact repository.
+    - Define an independent freshness evaluation for late skipped or never-started runs.
+    - Prove least-privilege package read access without write or delete permission.
+    - Deploy and schedule the workflow only under a separate reviewed mutation gate.
+    - Repeat the cache-busted UTC skew observation inside the exact execution window.
+    - Perform the first real alert test only after the package exists and a separate test gate is granted.
+  authorization:
+    decision: NO-GO
+    workflowImplementationAuthorized: false
+    workflowDeploymentAuthorized: false
+    scheduleCreationAuthorized: false
+    alertTestAuthorized: false
+    notificationMutationAuthorized: false
+    issueWriteAuthorized: false
+    webhookWriteAuthorized: false
+    packageReadCredentialAuthorized: false
+    packageWriteAuthorized: false
+    packageDeleteAuthorized: false
+    externalWriteAuthorized: false
+    infrastructureMutationAuthorized: false
+    m0aInstallationGranted: false
+    m0bInstallationGranted: false
+    go1Granted: false
+  summary:
+    alertDestinationSelected: true
+    additionalWriteIntegrationSelected: false
+    notificationGuaranteed: false
+    missedRunDetectionSolved: false
+    implementationProven: false
+    installationGatesGranted: 0
+  rules:
+    - Acceptance selects only the DEV alert surface and creates no workflow schedule notification issue webhook credential or package.
+    - Failed-run status and job summary are evidence surfaces not guaranteed human notification delivery.
+    - A never-started scheduled run cannot report its own absence and requires independent freshness evaluation.
+    - The observer may fail and report but may not repair restore republish write or delete packages.
+    - Any write-capable issue webhook or external notification integration requires a separate explicit decision and mutation gate.
+    - Workflow schedule credential alert test external write M0a-I M0b-I GO-1 infrastructure mutation and failure injection remain NO-GO.
