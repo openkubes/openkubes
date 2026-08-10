@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["apiVersion", "kind", "metadata", "spec"],
+  "properties": {
+    "apiVersion": {"const": "evidence.openkubes.io/v1alpha1"},
+    "kind": {"const": "GHCRAlertDestinationDecision"},
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "ticket"],
+      "properties": {
+        "name": {"const": "ok141-ghcr-alert-destination-decision-v1"},
+        "ticket": {"const": "OK-141"}
+      }
+    },
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "state", "recordedAt", "sourceMonitoringDecision", "decision", "alertPolicy", "requiredJobSummaryFields", "failClosedOutcomes", "operationalState", "remainingBlockers", "authorization", "summary", "rules"],
+      "properties": {
+        "version": {"const": "ok141-ghcr-alert-destination-decision/v1"},
+        "state": {"const": "ACCEPTED-DESTINATION-IMPLEMENTATION-BLOCKED-NO-GO"},
+        "recordedAt": {"type": "string", "minLength": 20},
+        "sourceMonitoringDecision": {"type": "object"},
+        "decision": {"type": "object"},
+        "alertPolicy": {"type": "object"},
+        "requiredJobSummaryFields": {"type": "array", "minItems": 8, "maxItems": 8, "items": {"type": "string", "minLength": 1}},
+        "failClosedOutcomes": {"type": "object"},
+        "operationalState": {"type": "object"},
+        "remainingBlockers": {"type": "array", "minItems": 8, "maxItems": 8, "items": {"type": "string", "minLength": 1}},
+        "authorization": {"type": "object"},
+        "summary": {"type": "object"},
+        "rules": {"type": "array", "minItems": 6, "maxItems": 6, "items": {"type": "string", "minLength": 1}}
+      }
+    }
+  }
+}
