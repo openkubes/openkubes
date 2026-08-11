@@ -33,6 +33,10 @@ ZOTCTL ?= $(TOOLING)/zotctl.py
 
 TAR ?= tar
 BACKUP_DIR ?=
+RELEASE_SET ?=
+TRANSFER_DIR ?=
+TRANSFER_ARTIFACT ?=
+TRANSFER_INTEGRITY_MANIFEST ?=
 RESTORE_ARTIFACT ?=
 INTEGRITY_MANIFEST ?=
 APPROVE_RESTORE_DRILL ?=
@@ -92,8 +96,8 @@ WRITER_GROUP ?= registry-writers
 READER_GROUP ?= registry-readers
 OIDC_REDIRECT_URI ?= $(REGISTRY_ORIGIN)/zot/auth/callback/oidc
 
-.PHONY: help render diff require-inputs require-tools require-backup-tools require-restore-tools require-chart require-values-contract require-oidc-approval require-lifecycle-approval require-restore-input require-restore-drill-approval require-confirm \
-	namespace identities reachability zot oidc-client metrics post-check smoke lifecycle contract-job oidc-conformance backup verify-backup restore-drill install \
+.PHONY: help render diff require-inputs require-tools require-backup-tools require-verify-tools require-restore-tools require-chart require-values-contract require-oidc-approval require-lifecycle-approval require-release-set require-transfer-input require-restore-input require-restore-drill-approval require-confirm \
+	namespace identities reachability zot oidc-client metrics post-check smoke lifecycle contract-job oidc-conformance backup verify-backup restore-drill release-export verify-release offline-transfer-drill install \
 	ship-check ship-scan-self-test \
 	teardown-metrics teardown-zot teardown-reachability teardown-oidc-secret teardown-identities teardown-data teardown
 
@@ -120,6 +124,9 @@ require-backup-tools:
 	@for tool in "$(KUBECTL)" "$(PYTHON)" "$(JQ)" "$(TAR)" curl base64 find sha256sum stat make; do \
 		command -v "$$tool" >/dev/null || { echo "ERROR: backup tool not found: $$tool" >&2; exit 2; }; \
 	done
+
+require-verify-tools:
+	@command -v "$(PYTHON)" >/dev/null || { echo "ERROR: verifier tool not found: $(PYTHON)" >&2; exit 2; }
 
 require-restore-tools: require-backup-tools
 	@for tool in "$(HELM)" cmp; do \
@@ -158,6 +165,18 @@ require-restore-input:
 	@test -r "$(RESTORE_ARTIFACT)" || { echo "ERROR: restore artifact is not readable: $(RESTORE_ARTIFACT)" >&2; exit 2; }
 	@test -n "$(INTEGRITY_MANIFEST)" || { echo "ERROR: INTEGRITY_MANIFEST is required" >&2; exit 2; }
 	@test -r "$(INTEGRITY_MANIFEST)" || { echo "ERROR: integrity manifest is not readable: $(INTEGRITY_MANIFEST)" >&2; exit 2; }
+
+require-release-set:
+	@test -n "$(RELEASE_SET)" || { echo "ERROR: RELEASE_SET is required" >&2; exit 2; }
+	@test -r "$(RELEASE_SET)" || { echo "ERROR: release set is not readable: $(RELEASE_SET)" >&2; exit 2; }
+	@test -n "$(TRANSFER_DIR)" || { echo "ERROR: TRANSFER_DIR is required" >&2; exit 2; }
+	@test -d "$(TRANSFER_DIR)" || { echo "ERROR: TRANSFER_DIR is not an existing directory: $(TRANSFER_DIR)" >&2; exit 2; }
+
+require-transfer-input:
+	@test -n "$(TRANSFER_ARTIFACT)" || { echo "ERROR: TRANSFER_ARTIFACT is required" >&2; exit 2; }
+	@test -r "$(TRANSFER_ARTIFACT)" || { echo "ERROR: transfer artifact is not readable: $(TRANSFER_ARTIFACT)" >&2; exit 2; }
+	@test -n "$(TRANSFER_INTEGRITY_MANIFEST)" || { echo "ERROR: TRANSFER_INTEGRITY_MANIFEST is required" >&2; exit 2; }
+	@test -r "$(TRANSFER_INTEGRITY_MANIFEST)" || { echo "ERROR: transfer integrity manifest is not readable: $(TRANSFER_INTEGRITY_MANIFEST)" >&2; exit 2; }
 
 require-restore-drill-approval:
 	@test "$(APPROVE_RESTORE_DRILL)" = yes || { \
@@ -243,9 +262,9 @@ oidc-conformance: require-inputs require-tools require-oidc-approval ## APPROVAL
 		CONFORMANCE_SECRET="$(CONFORMANCE_SECRET)" OIDC_SECRET="$(OIDC_SECRET)" bash "$(OIDC_CONFORMANCE_SCRIPT)"
 
 backup: require-inputs require-backup-tools ## Export OCI content and a verifiable integrity manifest to operator-supplied off-cluster storage
-	@$(PYTHON) "$(ZOTCTL)" backup --kubectl "$(KUBECTL)" --kubeconfig "$(KUBECONFIG)" \
+	@REGISTRY_LB_KUBECONFIG="$(REGISTRY_LB_KUBECONFIG)" $(PYTHON) "$(ZOTCTL)" backup --kubectl "$(KUBECTL)" --kubeconfig "$(KUBECONFIG)" \
 		--namespace "$(NAMESPACE)" --release "$(RELEASE)" \
-		--registry-host "$(REGISTRY_HOST)" --registry-lb "$(REGISTRY_LB)" \
+		--registry-host "$(REGISTRY_HOST)" $(if $(REGISTRY_LB),--registry-lb "$(REGISTRY_LB)",) \
 		--tls-secret "$(TLS_SECRET)" --machine-secret "$(MACHINE_SECRET)" \
 		--conformance-secret "$(CONFORMANCE_SECRET)" \
 		--keycloak-host "$(KEYCLOAK_HOST)" --page-size "$(OCI_PAGE_SIZE)" \
@@ -263,6 +282,28 @@ restore-drill: require-inputs require-restore-tools require-chart require-restor
 		$(if $(SCRATCH_NAMESPACE),--scratch-namespace "$(SCRATCH_NAMESPACE)",) \
 		$(if $(SCRATCH_RELEASE),--scratch-release "$(SCRATCH_RELEASE)",) \
 		"$(RESTORE_ARTIFACT)" "$(INTEGRITY_MANIFEST)"
+
+release-export: require-inputs require-backup-tools require-release-set ## Export one named immutable release and refuse an incomplete descriptor/referrer closure
+	@REGISTRY_LB_KUBECONFIG="$(REGISTRY_LB_KUBECONFIG)" $(PYTHON) "$(ZOTCTL)" release-export "$(RELEASE_SET)" --kubectl "$(KUBECTL)" --kubeconfig "$(KUBECONFIG)" \
+		--namespace "$(NAMESPACE)" --release "$(RELEASE)" \
+		--registry-host "$(REGISTRY_HOST)" $(if $(REGISTRY_LB),--registry-lb "$(REGISTRY_LB)",) \
+		--tls-secret "$(TLS_SECRET)" --machine-secret "$(MACHINE_SECRET)" \
+		--conformance-secret "$(CONFORMANCE_SECRET)" \
+		--keycloak-host "$(KEYCLOAK_HOST)" --page-size "$(OCI_PAGE_SIZE)" \
+		--backup-dir "$(TRANSFER_DIR)"
+
+verify-release: require-verify-tools require-transfer-input ## Verify release integrity and descriptor/referrer completeness with no cluster or source access
+	@$(PYTHON) "$(ZOTCTL)" verify "$(TRANSFER_ARTIFACT)" "$(TRANSFER_INTEGRITY_MANIFEST)"
+
+offline-transfer-drill: require-transfer-input ## APPROVAL: import a release into a fresh scratch zot and pull every member by digest
+	@$(MAKE) --no-print-directory restore-drill \
+		KUBECONFIG="$(KUBECONFIG)" \
+		RESTORE_ARTIFACT="$(TRANSFER_ARTIFACT)" \
+		INTEGRITY_MANIFEST="$(TRANSFER_INTEGRITY_MANIFEST)" \
+		APPROVE_RESTORE_DRILL="$(APPROVE_RESTORE_DRILL)" \
+		RETAIN_SCRATCH="$(RETAIN_SCRATCH)" \
+		SCRATCH_NAMESPACE="$(SCRATCH_NAMESPACE)" \
+		SCRATCH_RELEASE="$(SCRATCH_RELEASE)"
 
 install: require-inputs require-tools require-chart require-values-contract require-oidc-approval ## APPROVAL: install Increment 1 end to end (requires APPROVE_OIDC_CLIENT=yes)
 	@$(MAKE) --no-print-directory namespace KUBECONFIG="$(KUBECONFIG)"

@@ -1,0 +1,94 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: OkSharedTalosBaselineAmendment
+metadata:
+  name: ok141-ok-shared-talos-baseline-v1
+  ticket: OK-141
+spec:
+  version: ok141-ok-shared-talos-baseline/v1
+  state: SOURCE-BOUND-READ-ONLY-LIVE-REFRESH-REQUIRED-NO-GO
+  recordedAt: "2026-08-11T00:00:00Z"
+  source:
+    jira:
+      issue: OK-138
+      commentId: "13556"
+      url: https://kubernauts.atlassian.net/browse/OK-138?focusedCommentId=13556
+      evidenceClass: HISTORICAL-OPERATIONAL-REPORT
+      independentlyReobservedByOk141: false
+    repository:
+      name: openkubes/ok-cluster
+      revision: 16ba617d2a21578014df2506bcf5517ce4fb6550
+      implementationCommits: [a68b53a, c388b93, ec16e4d]
+      recoveryDocumentationCommit: 585a92d
+      files:
+        - {path: ok-shared/cluster-config.yaml, digest: sha256:48b96b31b823b9d6496a733195c4f042327df6b54ebbecd38d81d931d9c1885f}
+        - {path: scripts/talos_registry_trust.py, digest: sha256:c8515694f70ab70272434a6efc03623be96d92054dd879598cd82da23fafe208}
+        - {path: docs/registry-trust.md, digest: sha256:78c358454c1901327989106dfc9505bc2441bf592ee71dc1b683e67f5b30b504}
+        - {path: tests/ok138_registry_trust_test.py, digest: sha256:b578d81c5e82a30dd2aad0475a8782f9113c6f8bb835ac117334c4f958cd80d5}
+        - {path: templates/talos/patches/registry-trust.yaml.tpl, digest: sha256:4bac745211402bc50772fbdf3ea487bf5330abe699f13e245c4194f110a71220}
+  reportedRuntime:
+    cluster: ok-shared
+    expectedExistingNodes: 4
+    nodes:
+      - ok-shared-cp-z4gxn
+      - ok-shared-workers-tkrlw-9c2dx
+      - ok-shared-workers-tkrlw-9gs5z
+      - ok-shared-workers-tkrlw-ndzch
+    mutationMode: talosctl-patch-machineconfig-no-reboot
+    trust:
+      host: registry.ok-shared.internal
+      caSource: cert-manager/ok-shared-internal-ca
+      configuredOnExistingNodes: REPORTED-4-OF-4
+    resolution:
+      mechanism: machine.network.extraHostEntries
+      address: 192.168.100.207
+      addressClass: PRIVATE-DATACENTER-LOADBALANCER
+      publisherPlane: ok-infra
+      configuredOnExistingNodes: REPORTED-4-OF-4
+    acceptance:
+      uncachedKubeletPull: REPORTED-PASS
+      exactDigestImageId: REPORTED-MATCH
+      manifestFormat: OCI-REQUIRED
+      registryDigestReadbackRequired: true
+  ownership:
+    registryEndpointTls: registry-service
+    consumerTrustAndResolution: consuming-cluster
+    ciliumOrPlatformRevisionChanged: false
+    openKubesReconcilerRequired: false
+    platformWideTrustPolicyEstablished: false
+    adr020AmendmentRequired: false
+  recovery:
+    highAvailabilityRequired: false
+    totalStateLossAcceptedForDev: true
+    mode: rebuild-not-restore
+    fromScratchBootstrap: TWO-PHASE-REGISTRY-THEN-TRUST
+    replacementMachineInheritance: ABSENT
+    replacementClosure: rerun-bounded-trust-operation-after-workload-node-exists
+    addressRediscovery: required-each-run
+    automaticAdoptionClaimAllowed: false
+    productionRecoveryClaimAllowed: false
+    lifecycleContinuityClaimAllowed: false
+  ok141Impact:
+    semanticClass: OK-SHARED-HOST-PREREQUISITE
+    partOfPlatformRevisionP: false
+    fixtureIdentityChanged: false
+    placementDecisionInvalidated: false
+    m0bLiveRefreshRequired: true
+    registryTrustReadbackRequired: true
+    replacementRecoveryEvidenceRequired: true
+    externalWorkloadClustersOnly: true
+    okSharedSelfManagementAllowed: false
+    architectureClassificationChanged: false
+  authorization:
+    decision: NO-GO
+    mutationAuthorized: false
+    m0bInstallationGranted: false
+    go1Granted: false
+    failureInjectionGranted: false
+  rules:
+    - Historical Jira evidence is not a fresh independent OK-141 live observation.
+    - The current ok-shared incarnation and registry-trust readback must be refreshed before M0b-I.
+    - Replacement Machines do not inherit runtime-only Talos trust and require the bounded operation to be rerun.
+    - A matching content digest proves integrity but not publisher authenticity.
+    - Trust on ok-shared does not prove distinct consumer-Cluster onboarding.
+    - No general shared-services trust policy or ADR-020 amendment is inferred.
+    - M0b-I GO-1 infrastructure mutation and failure injection remain NO-GO.
