@@ -1,0 +1,118 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: GHCRPublisherDeploymentPreflight
+metadata:
+  name: ok141-ghcr-publisher-deployment-preflight-v2
+  ticket: OK-141
+spec:
+  version: ok141-ghcr-publisher-deployment-preflight/v2
+  state: OFFLINE-COMPLETE-E0-BLOCKED-NO-GO
+  baseline:
+    repository: openkubes/openkubes
+    commit: 2c71b1a944cb59199b3feb37b9cc90efc35d1ed7
+    release: v0.15.0
+  sourceCheckpoint:
+    path: ../ghcr-publisher-durable-correlation/publisher-durable-correlation-v1.yaml
+    digest: sha256:02d702cb629afc36094422a1e41c11553b1ba1a483183af184e902e72dec438a
+  candidate:
+    sourcePath: ../ghcr-publisher-durable-correlation/candidate/ok141-evidence-publisher-v3.workflow.yaml
+    sourceDigest: sha256:3de106067f2fdb70add382c1fa63a2749e032dda9f83442f9880d6e672a3aab2
+    deploymentPath: .github/workflows/ok141-evidence-publisher.yaml
+    deploymentPathPresent: false
+    trigger: workflow_dispatch
+    environment: ok-141-evidence-publish
+    packageRepository: ghcr.io/openkubes/ok141-evidence
+  readOnlyObservation:
+    observedAt: "2026-08-11T16:41:16Z"
+    environmentState: ABSENT-404
+    defaultBranch: main
+    mainBranchProtection:
+      present: true
+      requiredApprovingReviewCount: 0
+      requireLastPushApproval: false
+      enforceAdmins: false
+      requiredLinearHistory: true
+      allowForcePushes: false
+      allowDeletions: false
+  offlineClosure:
+    sourceRefGuard: PROVEN-IN-CANDIDATE
+    sourceRunMetadataGuard: PROVEN-IN-CANDIDATE
+    evidenceBindingGuard: PROVEN-IN-CANDIDATE
+    durableSourceCorrelation: PROVEN-IN-TRANSPORT
+    deterministicTransport: PROVEN-OFFLINE
+    digestOnlyPullBack: PROVEN-OFFLINE
+    activeWorkflowAbsent: true
+  environmentCandidate:
+    mustExistBeforeWorkflowDeployment: true
+    creationByWorkflowForbidden: true
+    waitTimerMinutes: 0
+    preventSelfReview: false
+    reviewers:
+      - type: User
+        login: arashkaffamanesh
+        id: 1782605
+    deploymentBranchPolicy:
+      protectedBranches: false
+      customBranchPolicies: true
+      exactPattern: main
+    environmentSecretsRequired: []
+    administratorBypassClaim: MUST-BE-OBSERVED-AFTER-E0
+    governanceBoundary: ACCEPTED-DEV-SOLO-NO-INDEPENDENT-HUMAN-REVIEW
+  gateSequence:
+    - id: E0
+      name: environment-create-protect-and-observe
+      mutationClass: GITHUB-REPOSITORY-ADMINISTRATION
+      status: NOT-GRANTED
+      acceptance:
+        - environment exists before the active workflow exists
+        - exact reviewer ID and exact main-only branch policy are observed
+        - no environment secret exists or is required
+        - administrator bypass behavior is recorded without a stronger claim
+    - id: W0
+      name: exact-v3-workflow-deployment
+      mutationClass: GIT-MERGE-ACTIVATES-WRITE-CAPABLE-WORKFLOW
+      status: NOT-GRANTED
+      dependsOn: [E0]
+      acceptance:
+        - deployed bytes equal sha256:3de106067f2fdb70add382c1fa63a2749e032dda9f83442f9880d6e672a3aab2
+        - the only trigger is workflow_dispatch and the job requires refs/heads/main
+        - no workflow run is dispatched by this gate
+    - id: P0
+      name: first-publication-attestation-and-pullback
+      mutationClass: GHCR-AND-ATTESTATION-WRITE
+      status: NOT-GRANTED
+      dependsOn: [E0, W0]
+      acceptance:
+        - a new authorization binds one exact successful source run workflow head SHA and protocol digest
+        - environment approval is recorded
+        - the digest-bound payload contains the accepted canonical source-run correlation
+        - package attestation and pull-back receipt preserve the exact OCI and correlation identities
+  nextDecision:
+    gate: E0
+    scope: Create protect and observe only ok-141-evidence-publish.
+    authorizesLaterGates: false
+    authorizationRequired: true
+  forbiddenByThisCheckpoint:
+    environmentCreation: true
+    workflowDeployment: true
+    workflowDispatch: true
+    packageCreation: true
+    packageWrite: true
+    packageDelete: true
+    attestationWrite: true
+    activeIndexCreation: true
+    infrastructureMutation: true
+    failureInjection: true
+  authorization:
+    decision: NO-GO
+    e0Granted: false
+    w0Granted: false
+    p0Granted: false
+    externalWriteAuthorized: false
+    infrastructureMutationAuthorized: false
+    go1Granted: false
+  rules:
+    - Offline completeness grants no external authority.
+    - E0 may only create protect and observe the named environment.
+    - E0 cannot deploy or dispatch a workflow and cannot create a package or attestation.
+    - W0 and P0 each require a later exact digest and explicit authorization.
+    - E0 W0 P0 GO-1 infrastructure mutation and failure injection remain NO-GO.
