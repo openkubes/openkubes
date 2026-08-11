@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["apiVersion", "kind", "metadata", "spec"],
+  "properties": {
+    "apiVersion": {"const": "evidence.openkubes.io/v1alpha1"},
+    "kind": {"const": "GHCRPublisherCandidateAmendment"},
+    "metadata": {
+      "type": "object",
+      "required": ["name", "ticket"],
+      "properties": {
+        "name": {"const": "ok141-ghcr-publisher-candidate-amendment-v1"},
+        "ticket": {"const": "OK-141"}
+      }
+    },
+    "spec": {
+      "type": "object",
+      "required": ["version", "state", "baseline", "sourcePrototype", "sourcePreflight", "candidate", "resolvedBlockers", "remainingBlockers", "authorization", "rules"]
+    }
+  }
+}
