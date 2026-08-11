@@ -1,0 +1,52 @@
+apiVersion: test.openkubes.io/v1alpha1
+kind: CombinedGateGrant
+metadata:
+  name: ok141-m0a-combined-grant-20260811-01
+  ticket: OK-141
+spec:
+  version: ok141-m0a-combined-grant/v1
+  candidatePath: ../m0a-execution/m0a-execution-candidate-v1.yaml
+  candidateDigest: sha256:67e2cb5fb2484292b4a8bfc3b138209af82f672fbc8ee0269421832d5a1a271a
+  authority: github:arashkaffamanesh
+  decision: GO
+  mutationAuthorized: true
+  decidedAt: "2026-08-11T18:57:12Z"
+  credentialGrant:
+    gate: M0A-C1
+    grantID: ok141-m0a-c1-20260811-01
+    granted: true
+    maximumRuns: 1
+    scope: one temporary credential bootstrap TokenRequest probe handoff and mandatory revocation
+  installationGrant:
+    gate: M0A-I
+    grantID: ok141-m0a-i-20260811-01
+    granted: true
+    maximumRuns: 1
+    scope: one application of the exact bound 19-object CAAPH control-plane set on ok-mgmt
+  validFrom: "2026-08-11T18:50:00Z"
+  validUntil: "2026-08-11T21:50:00Z"
+  maximumRuns: 1
+  rollbackGranted: false
+  targetConvergenceGranted: false
+  helmChartProxyGranted: false
+  helmReleaseProxyGranted: false
+  ciliumConvergenceGranted: false
+  m0bInstallationGranted: false
+  go1Granted: false
+  evidencePublicationGranted: false
+  failureInjectionGranted: false
+  statement: >-
+    Ich erteile für OK-141 gemäß Kandidat
+    sha256:67e2cb5fb2484292b4a8bfc3b138209af82f672fbc8ee0269421832d5a1a271a
+    getrennt M0A-C1 mit Grant-ID ok141-m0a-c1-20260811-01 für genau einen
+    temporären Credential-Lauf und M0a-I mit Grant-ID
+    ok141-m0a-i-20260811-01 für genau eine Installation des gebundenen
+    19-Objekt-CAAPH-Control-Plane-Sets auf ok-mgmt. Das gemeinsame Zeitfenster
+    ist 2026-08-11T18:50:00Z bis 2026-08-11T21:50:00Z. HCP/HRP-Submission,
+    Cilium-Konvergenz, automatischer CAAPH-Rollback, M0b-I, GO-1,
+    Evidence-Publication und Failure Injection bleiben ausdrücklich NOT GRANTED.
+  rules:
+    - This grant is consumed by at most one controlled executor invocation.
+    - The credential and installation grants remain distinct even though they share one window and candidate digest.
+    - Any digest target identity grant ID scope time or exclusion difference invalidates this grant.
+    - Publication requires a later separate grant after redaction and review of runtime evidence.
