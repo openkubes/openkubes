@@ -1,0 +1,88 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: EvidenceCollectorOfflinePrototype
+metadata:
+  name: ok141-evidence-collector-offline-prototype-v1
+  ticket: OK-141
+spec:
+  version: ok141-evidence-collector-offline-prototype/v1
+  state: IMPLEMENTED-OFFLINE-INERT-NO-GO
+  baseline:
+    repository: openkubes/openkubes
+    commit: 912e5bbcaf5a7b2667a675bf0adcd6eb05e97706
+    release: v0.15.0
+  sourcePublisherEvidence:
+    path: ../ghcr-publisher-w0-evidence/publisher-w0-evidence-v1.yaml
+    digest: sha256:7b72cefe9bbb8d4842ed21622ae856b576b69313205e43725949e22324444a02
+    publisherWorkflowID: 332090718
+    publisherStatus: ACTIVE-NOT-DISPATCHED
+  components:
+    candidateWorkflow:
+      path: candidate/ok141-evidence-collector.workflow.yaml
+      digest: sha256:5b7f6e021f951d8f460283caeed895c8ae4664abee2b363fb87af6d23d03bc15
+      futureDeploymentPath: .github/workflows/ok141-evidence-collector.yaml
+      futureDeploymentPathPresent: false
+    bundlePreparer:
+      path: prepare_collector_bundle.py
+      digest: sha256:bb931d4115d7b7a5eb13f657da1770bfd927582ad5a847a5f059220896faec57
+  intakeContract:
+    repository: openkubes/openkubes
+    commitMustBeFullSHA: true
+    commitMustBeAncestorOfDispatchMain: true
+    pathPattern: architecture/spikes/ADR-Platform-030/evidence/intake/<lowercase-name>
+    intakeFiles: [context.json, evidence/]
+    contextRawDigestRequired: true
+    protocolDigestRequired: true
+    fixtureDigestRequired: true
+    alreadyRedactedEvidenceRequired: true
+    clusterCredentialsAccepted: false
+    secretsAccepted: false
+    sourceDescriptorEmbeddedInBundle: true
+  workflowContract:
+    trigger: workflow_dispatch
+    sourceRefGuard: refs/heads/main
+    environment: ok-141-evidence-publish
+    permissions: {contents: read}
+    outputArtifactName: ok141-evidence-bundle
+    artifactRetentionDays: 7
+    uploadArtifactCommit: ea165f8d65b6e75b540449e92b4886f43607fa02
+    checkoutCommit: 11d5960a326750d5838078e36cf38b85af677262
+  proof:
+    offlineTestsPassed: 13
+    runIDBoundAtCollection: true
+    intakeCommitAndPathBoundInEvidence: true
+    changedContextRejected: true
+    wrongProtocolRejected: true
+    wrongFixtureRejected: true
+    secretEvidenceRejected: true
+    unreviewedPathRejected: true
+    workflowDeployed: false
+    workflowDispatched: false
+    artifactUploaded: false
+    publisherDispatched: false
+  claimBoundaries:
+    - The collector verifies committed intake identity and content integrity; it does not prove that the observation itself is truthful.
+    - Intake evidence remains in Git history and therefore exceeds the separate 90-day GHCR best-effort retention claim.
+    - Only already-redacted non-secret evidence may enter the reviewed intake path.
+    - No GitHub-hosted runner receives a Kubernetes credential or direct cluster access under this model.
+    - A successful collector run is only a P0 prerequisite and does not authorize the publisher.
+  remainingGates:
+    c0: Deploy and observe the exact collector workflow without dispatch.
+    c1: Commit one exact reviewed redacted evidence intake and dispatch the collector under a separate authorization.
+    p0: Bind the successful C1 run to an exact publisher authorization.
+  authorization:
+    decision: NO-GO
+    c0Granted: false
+    c1Granted: false
+    p0Granted: false
+    workflowDeploymentAuthorized: false
+    workflowDispatchAuthorized: false
+    artifactWriteAuthorized: false
+    publisherDispatchAuthorized: false
+    packageWriteAuthorized: false
+    infrastructureMutationAuthorized: false
+    go1Granted: false
+  rules:
+    - The collector candidate is inert and cannot access a cluster or publish to GHCR.
+    - C0 C1 and P0 are separate gates and no earlier gate authorizes a later gate.
+    - Only evidence already merged into main at the exact intake commit is eligible.
+    - C0 C1 P0 GO-1 infrastructure mutation and failure injection remain NO-GO.
