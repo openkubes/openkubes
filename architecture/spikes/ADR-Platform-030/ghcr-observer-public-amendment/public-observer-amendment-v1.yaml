@@ -1,0 +1,45 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: PublicObserverAmendment
+metadata:
+  name: ok141-public-observer-amendment-v1
+  ticket: OK-141
+spec:
+  state: IMPLEMENTED-OFFLINE-INERT-NO-GO
+  sourcePublication:
+    path: ../evidence-publication-p1-evidence/p1-publication-evidence-v1.yaml
+    digest: sha256:3b86a78a7a8f3baf7e8e335d7716061d20623c8761eed601755139bbda8c3a3a
+    ociManifestDigest: sha256:c9bdeadf1ee859c69ed0ab1136ec6b590139fe931eff44039265c144cea76dc8
+    publicAnonymousReadVerified: true
+  components:
+    evaluator:
+      path: observe_public_ghcr_evidence.py
+      digest: sha256:75887922eb9bb866d965446a76275c94fe825829b35e08b8b5f99dd60ec80f80
+    candidateWorkflow:
+      path: candidate/ok141-evidence-observer-v2.workflow.yaml
+      digest: sha256:748ad6ac649b73453456c5d1a6f0673a55eec49632b7bf54d76b842751245780
+  contract:
+    registryOperation: ANONYMOUS-HEAD-MANIFEST-BY-DIGEST
+    permissions:
+      contents: read
+    credentialRequired: false
+    packageReadPermissionRequired: false
+    packageWritePermissionAllowed: false
+    packageDeletePermissionAllowed: false
+    issueOrWebhookPermissionAllowed: false
+    successRequiresExactDigestHeader: true
+    failureExitCode: 2
+    scheduleTarget: PT24H
+    cronUTC: 17 3 * * *
+  proof:
+    offlineTestsPassed: 5
+    activeWorkflowPresent: false
+    activeIndexPresent: false
+    liveWorkflowRunPerformed: false
+  authorization:
+    decision: NO-GO
+    workflowDeploymentAuthorized: false
+    scheduleCreationAuthorized: false
+    observationRunAuthorized: false
+    packageMutationAuthorized: false
+    infrastructureMutationAuthorized: false
+    go1Granted: false
