@@ -1,0 +1,67 @@
+apiVersion: test.openkubes.io/v1alpha1
+kind: RiskAcceptanceCandidate
+metadata:
+  name: ok141-m0a-v2-security-risk-acceptance
+  ticket: OK-141
+spec:
+  version: ok141-m0a-v2-risk-acceptance/v1
+  state: AWAITING-EXPLICIT-ACCEPTANCE
+  authority: github:arashkaffamanesh
+  references:
+    securityBoundary:
+      path: ../m0a-execution-v2/m0a-v2-security-boundary.yaml
+      digest: sha256:f11b48b98f8d27b46b47966d00f373f067b6e55776d1320dfc4ce9e82b07d07c
+    firstRunEvidence:
+      path: ../m0a-execution-runtime/m0a-first-run-evidence-v1.yaml
+      digest: sha256:b4d6602f762230a16a45a36c3b3dca9af88e20a3645d566759b68eef8183963b
+  risks:
+    - id: M0A-V2-CREATE-CONTENT-BOUNDARY
+      statement: Top-level create is limited to exact resource types by RBAC and exact API identities by ValidatingAdmissionPolicy, but neither proves complete object-content equality; the digest-bound executor remains the payload-content control.
+      consequence: A compromise of the bounded executor during the short credential window could submit altered content under one of the permitted identities.
+      compensatingControls:
+        - all 19 targets must be absent immediately before submission
+        - source and semantic digests are reverified immediately before submission
+        - only create and exact-name get are permitted; patch update delete list and watch remain denied
+        - wrong-name wrong-namespace and wrong-resource server dry-run probes must fail closed
+    - id: M0A-V2-ADMISSION-BOOTSTRAP-BOUNDARY
+      statement: The temporary ValidatingAdmissionPolicy and binding are additional cluster-scoped security objects created and removed by the accepted administrator identity.
+      consequence: A malformed or unexpectedly broad policy could deny unrelated create requests or fail to constrain the installer as intended.
+      compensatingControls:
+        - exact policy and binding digests are bound before execution
+        - match condition is restricted to the exact temporary installer principal
+        - failurePolicy is Fail and validation action is Deny
+        - policy type-check status and positive and negative dry-run probes are mandatory before the credential may submit CAAPH
+        - policy and binding are deleted in finally and their absence is verified
+    - id: M0A-V2-REVOCATION-BOUNDARY
+      statement: A TokenRequest token cannot be individually revoked; deleting the temporary ServiceAccount invalidates its UID-bound tokens, but authentication rejection is observed by bounded polling rather than claimed immediately.
+      consequence: The token may continue authenticating transiently after cleanup and remains a risk until rejection is observed or its at-most-ten-minute expiry is reached.
+      compensatingControls:
+        - maximum requested token lifetime is ten minutes
+        - token is never logged persisted published or retained
+        - ServiceAccount RBAC and temporary kubeconfig are removed in finally
+        - authentication is polled for rejection for at most 90 seconds
+        - absent rejection produces STOP-NOT-SUCCESS and never a revocation-success claim
+  acceptanceText: I accept for OK-141/M0a-v2 the documented create-content, temporary admission-bootstrap, and bounded TokenRequest revocation risks bound to security candidate sha256:f11b48b98f8d27b46b47966d00f373f067b6e55776d1320dfc4ce9e82b07d07c. This acceptance grants no credential issuance, admission installation, CAAPH retry or installation, rollback, evidence publication, M0b-I, GO-1, target convergence, or failure injection.
+  acceptance:
+    accepted: false
+    acceptedBy: null
+    acceptedAt: null
+    acceptedCandidateDigest: null
+  authorization:
+    decision: NO-GO
+    mutationAuthorized: false
+    credentialBootstrapGranted: false
+    admissionBootstrapGranted: false
+    caaphInstallationGranted: false
+    retryGranted: false
+    rollbackGranted: false
+    evidencePublicationGranted: false
+    m0bInstallationGranted: false
+    go1Granted: false
+    targetConvergenceGranted: false
+    failureInjectionGranted: false
+  rules:
+    - Risk acceptance and execution authority are separate decisions.
+    - The consumed v1 grant cannot be reused.
+    - Editing any accepted risk statement or referenced digest requires a new acceptance.
+    - This candidate authorizes no cluster contact or mutation.
