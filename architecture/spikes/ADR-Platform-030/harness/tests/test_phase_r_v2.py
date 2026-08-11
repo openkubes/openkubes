@@ -122,6 +122,20 @@ class PhaseRV2Tests(unittest.TestCase):
         ok_linux = repository.parent / "ok-linux"
         if not ok_cluster.is_dir() or not ok_linux.is_dir():
             self.skipTest("pinned sibling sources are not available in this checkout")
+        source = self.fixture["projection"]["source"]
+        actual = {
+            "okClusterCommit": MODULE._git_head(ok_cluster),
+            "okLinuxCommit": MODULE._git_head(ok_linux),
+        }
+        expected = {
+            "okClusterCommit": source["okClusterCommit"],
+            "okLinuxCommit": source["okLinuxCommit"],
+        }
+        if actual != expected:
+            self.skipTest(
+                "sibling worktrees are available but are not checked out at the "
+                "historically pinned Phase-R v2 commits"
+            )
         digest = MODULE.validate_execution_fixture_v2(
             self.fixture, HARNESS_DIR, ok_cluster, ok_linux
         )
