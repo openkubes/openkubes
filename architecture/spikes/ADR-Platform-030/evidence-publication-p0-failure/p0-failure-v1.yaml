@@ -1,0 +1,70 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: EvidencePublicationFailureCheckpoint
+metadata:
+  name: ok141-p0-publication-failure-v1
+  ticket: OK-141
+spec:
+  state: P0-ATTEMPTED-FAILED-CLOSED-NO-RETRY
+  source:
+    collectorRunID: 31516921145
+    collectorWorkflowID: 332101848
+    intakeCommit: 9609225417c330451cd42ee6472743989d6b7aea
+    protocolDigest: sha256:c3db4493e52c07425f323e22d10c572bd1320295c10f3a001bcc4852b67cbc29
+  publisher:
+    runID: 31517187028
+    jobID: 93865167054
+    workflowID: 332090718
+    workflowDigest: sha256:3de106067f2fdb70add382c1fa63a2749e032dda9f83442f9880d6e672a3aab2
+    headSHA: 9609225417c330451cd42ee6472743989d6b7aea
+    event: workflow_dispatch
+    conclusion: failure
+    startedAt: "2026-08-11T17:22:03Z"
+    completedAt: "2026-08-11T17:22:53Z"
+    environment:
+      name: ok-141-evidence-publish
+      id: 19690057278
+      deploymentID: 5855263686
+  observations:
+    completedBeforeFailure:
+      - exact source run verified
+      - exact evidence artifact downloaded
+      - authorized evidence bindings verified
+      - correlated deterministic transport created
+      - reviewed ORAS binary checksum verified
+      - GHCR login succeeded
+    failedStep: Publish by a non-authoritative run tag
+    errorClass: ORAS-ABSOLUTE-LAYER-PATH-REJECTED
+    errorSummary: ORAS rejected the absolute evidence-bundle layer path before upload
+    skippedAfterFailure:
+      - OCI manifest attestation
+      - digest-only pull-back
+      - pull-back receipt verification
+    packageObservedAfterRun: false
+    packageLookupResult: HTTP-404
+    infrastructureMutation: false
+    clusterAccess: false
+  amendmentCandidate:
+    status: INERT-NOT-DEPLOYED
+    baseWorkflowDigest: sha256:3de106067f2fdb70add382c1fa63a2749e032dda9f83442f9880d6e672a3aab2
+    candidateWorkflowDigest: sha256:6837271e8929eac133d1f5f6fb1bbaba3b83f61a772f27a856b51e79d673a27b
+    exactTransform:
+      workingDirectory: runner temporary directory
+      layerPathBefore: $RUNNER_TEMP/evidence-bundle.tar
+      layerPathAfter: evidence-bundle.tar
+    unchangedClaims:
+      - transport content
+      - OCI artifact type
+      - GHCR repository and non-authoritative run tag
+      - source-run and protocol bindings
+      - workflow permissions and protected environment
+  gate:
+    originalMaximumActionsRuns: 2
+    consumedActionsRuns: 2
+    retryAuthorized: false
+    amendmentDeploymentAuthorized: false
+    packageCreated: false
+    attestationCreated: false
+    p0Complete: false
+    go1Granted: false
+    infrastructure: NO-GO
+    failureInjection: NO-GO
