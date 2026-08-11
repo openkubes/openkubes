@@ -86,6 +86,7 @@ def verify(path: Path) -> str:
 
     credential = spec["installerCredential"]
     expect(credential["maximumDuration"], "60m", "maximum token duration")
+    expect(credential["audience"], spec["target"]["apiAudience"], "TokenRequest audience")
     for claim in ("persisted", "emittedToLogs", "emittedToEvidence"):
         expect(credential[claim], False, claim)
 
