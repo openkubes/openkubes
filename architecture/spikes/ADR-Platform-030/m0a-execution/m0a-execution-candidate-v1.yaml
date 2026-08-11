@@ -1,0 +1,116 @@
+apiVersion: test.openkubes.io/v1alpha1
+kind: CombinedGateCandidate
+metadata:
+  name: ok141-m0a-c1-and-m0a-i-v1
+  ticket: OK-141
+spec:
+  version: ok141-m0a-combined-candidate/v1
+  state: READY-FOR-SEPARATE-EXPLICIT-GRANTS
+  baseCommit: 5f900404ff27eca451062554dbbc08291411a0d9
+  fixtureDigest: sha256:a2ae3437645db5a83426b89d36d00693d2600e4ef20dc1aba2650dcda7f936f6
+  references:
+    riskAcceptance:
+      path: ../m0a-risk-acceptance/m0a-risk-acceptance-v1.yaml
+      digest: sha256:fd6b432c424b8d172424d038e5267c61d9f2046c2605e750a6b3b4d0921f85e1
+    credentialProtocol:
+      path: ../m0a-installer-credential/m0a-installer-credential-v1.yaml
+      digest: sha256:cd30dad071aeefdc314c81eb838ae2f86812e0ea14f1bfcaab8c0a159f71e568
+    credentialManifest:
+      path: ../m0a-installer-credential/m0a-installer-rbac-v1.yaml
+      digest: sha256:d78c73dd3a22695c068c50574567aa5c412c1e41d64d698a42c655122460d514
+    installationProtocol:
+      path: ../m0a-installation/m0a-installation-v1.yaml
+      digest: sha256:873d3aa3b15df53d3a4055675288c6d9acdf6c18d4f850e181a4eb7b93fc4a27
+    boundedInstaller:
+      path: ../installation-closure/bounded_installer.py
+      digest: sha256:8b4ab9929c7bbea98366bc26a26a490f8153f50b3983ca19ee2c7fa74ee48e98
+    executor:
+      path: controlled_m0a_execution.py
+      digest: sha256:1f0f489577ceaa045fb5baef96bfd6489ece1a1a62f211998568f0ba7d87bbd8
+  target:
+    plane: ok-mgmt
+    apiServer: https://192.168.100.200:6443
+    apiAudience: https://192.168.100.200:6443
+    kubeSystemNamespaceUID: c3b45aab-d2a1-4e64-8f12-77b99186ad4a
+    kubernetesVersion: v1.34.1
+    platform: linux/amd64
+    adminKubeconfigPath: /Users/arash/.kube/ok-mgmt.yaml
+  credential:
+    gate: M0A-C1
+    fieldManager: openkubes-ok141-m0a-credential
+    maximumDurationMinutes: 60
+    temporaryKubeconfig: true
+    revokeInFinally: true
+    directInstallationWithAdminCredentialAllowed: false
+  installation:
+    gate: M0A-I
+    sourceRawDigest: sha256:a70f4eb77eac626231daca1e2a046b4b069bb84320efa327cc8c56a9c4ca03e6
+    semanticDigest: sha256:01fc13d694da3304385a7bae0d1bd662d7c8c3d336b8a4d44da5324439d59095
+    objectCount: 19
+    controllerImageDigest: sha256:66344ab0107c0a3fcbce860697206ac7e6a2316a7af4a07f81a9f8d53e448e6a
+    fieldManager: openkubes-ok141-m0ai
+    readinessTimeoutSeconds: 600
+    targetResourcesAllowed: false
+    helmChartProxyAllowed: false
+    helmReleaseProxyAllowed: false
+  executionWindow:
+    suppliedByExternalGrant: true
+    maximumDurationMinutes: 180
+    maximumClockSkewSeconds: 5
+    maximumRuns: 1
+    grantsRequired:
+      - M0A-C1
+      - M0A-I
+    distinctGrantIDsRequired: true
+  runtimeSequence:
+    - verify independent UTC skew then refresh bootstrap identity target UID Kubernetes version empty CAPI inventory same-name absence and exact source digests
+    - apply exactly three temporary credential objects
+    - issue one 60-minute audience-bound TokenRequest credential
+    - execute all positive and negative authorization probes
+    - apply exactly the reviewed 19-object CAAPH control-plane set once
+    - observe CRD certificate deployment service endpoints exact controller image and zero-target-resource readiness
+    - retain redacted object UID and condition evidence
+    - revoke the ServiceAccount token and temporary RBAC in finally and prove the token is rejected
+  failureBoundary:
+    credentialRevocationMandatory: true
+    automaticCaaphRollbackAllowed: false
+    failureOutcome: STOP-NOT-SUCCESS
+    recoveryMode: explicit-separate-decision-or-DEV-rebuild
+  evidence:
+    localOutputContainsSecrets: false
+    publicIntakeRequiredAfterRun: true
+    collectorWorkflow:
+      path: ../../../../.github/workflows/ok141-evidence-collector.yaml
+      digest: sha256:5b7f6e021f951d8f460283caeed895c8ae4664abee2b363fb87af6d23d03bc15
+    publisherWorkflow:
+      path: ../../../../.github/workflows/ok141-evidence-publisher.yaml
+      digest: sha256:26cd4a5c964159d5920a8bd0b1596ded1d9248e35f752878f409203f23917b7b
+    observerWorkflow:
+      path: ../../../../.github/workflows/ok141-evidence-observer.yaml
+      digest: sha256:6fed6d68998ce1d79e4465cf8c50ebf264535483e98ea33adca8e89adf06c5c7
+    collectorDispatchAuthorized: false
+    publicationAuthorized: false
+    rule: Installation runtime evidence must be redacted and reviewed before a separate collector and publisher authorization; this combined grant cannot dispatch or publish.
+  excluded:
+    - HelmChartProxy or HelmReleaseProxy submission
+    - Cilium installation or NetworkReady convergence
+    - workload Cluster creation
+    - Argo installation or target registration
+    - CAAPH rollback deletion or failure injection
+    - M0b-I GO-1 management outage or break-glass
+  authorization:
+    decision: NO-GO
+    mutationAuthorized: false
+    credentialGrantRequired: true
+    installationGrantRequired: true
+    m0bInstallationGranted: false
+    go1Granted: false
+    failureInjectionGranted: false
+  rules:
+    - The external grant must name two distinct grant IDs and explicitly grant both M0A-C1 and M0A-I against this exact candidate digest.
+    - Neither grant inherits authority from the other and both must be valid in the same exact window.
+    - The executor refuses mutation without the external grant and explicit execute flag.
+    - Credential bootstrap starts only after the target and exact object-set preflight pass.
+    - Credential revocation runs even when installation or readiness fails; automatic CAAPH rollback remains forbidden.
+    - Secrets tokens kubeconfigs private keys and certificate payloads are forbidden from Git logs evidence and stdout.
+    - M0b-I GO-1 evidence publication infrastructure changes outside this exact set and failure injection remain NO-GO.
