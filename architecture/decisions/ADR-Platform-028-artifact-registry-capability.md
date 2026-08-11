@@ -110,6 +110,62 @@ This ADR does **not** change ADR-Platform-012's selected golden-PVC flow for Tal
 
 The `registry-default` profile MUST expose enough signal to monitor service availability, push/pull failures, request latency, storage consumption, failed authn/authz, garbage-collection execution, storage-integrity/scrub failures, backup age, restore-test status, and certificate expiry. Mapping implementation metrics to OpenKubes alerts is part of the profile.
 
+### 4.11 Consumer trust and endpoint resolution
+
+The contract mandates TLS (§4.1) and authenticated machine access (§4.5) but has so far said
+nothing about how a consumer *obtains* trust in that endpoint or *resolves* its name. Onboarding
+is therefore recorded here, because it is a real cost the contract was silently omitting.
+
+**Contract boundary.** The registry SHALL publish a TLS endpoint with a certificate valid for its
+published name. Establishing trust in that certificate's issuer, and resolving that name, are the
+**consumer's** responsibility, not the registry's. The registry MUST NOT weaken TLS, offer a
+plaintext fallback, or assume any particular consumer trust mechanism.
+
+**`registry-default` choice.** The profile is served from the Shared Cluster's internal CA rather
+than a publicly-trusted certificate: the service is internal by design, and a public certificate
+would buy exposure and cost for no reachability the estate needs. Consumers integrate **opt-in per
+cluster**, at cluster-creation time, rather than by a fleet-wide trust-store push. Not every
+cluster will ever pull from this registry, and a blanket distribution would bake in an assumption
+that does not hold.
+
+This is deliberately scoped to the registry. It is **not** a general platform policy for shared
+services, and it does not resolve ADR-Platform-020's deferred PKI question. ADR-020 defers
+platform-wide trust management until a capability requires *platform-wide* trust; what this
+capability required was endpoint-scoped trust for individual opting-in consumers, so that trigger
+did not fire and no ADR-020 capability row is owed. Should a second shared service later need the
+same treatment, the generalisation should be argued from those two cases rather than anticipated
+from this one.
+
+Stated precisely, because a looser phrasing would mislead: the estate has a **central trust root
+and central issuance** — `ok-shared-internal-ca` is a cluster-wide issuer already reused by Vault,
+Keycloak and now the registry. What it does not have, and what this section declines to introduce,
+is **fleet-wide trust distribution**.
+
+**Mechanism.** The reusable building block lives in `ok-cluster` (`docs/registry-trust.md`),
+which owns the Talos specifics, the runtime procedure and the recreate/recovery considerations.
+Those mechanics are deliberately not restated here; this ADR records only the decision and its
+costs.
+
+**Costs**, none of which were previously written down:
+
+- The registry is offered to every cluster but usable only after that cluster opts in, so
+  availability and reachability are not the same property here.
+- The mechanism is Talos-specific. No equivalent is established for other node profiles.
+- Static host entries are interim resolution: every opted-in cluster needs reconciling whenever
+  the ingress address changes, until OK-57 delivers DNS for the internal zone.
+- CA rotation means redistributing the root to every opted-in consumer.
+- Because the Shared Cluster was patched at runtime rather than rebuilt, replacement Machines
+  (autoscaling, node replacement, reset) do not inherit trust and need the procedure rerun until
+  the cluster is recreated from an opted-in manifest.
+- Recreating the Shared Cluster *itself* with consumer trust enabled from the start cannot work in
+  one pass: the CA and the registry do not exist at first bootstrap. That case needs
+  bootstrap-then-apply; the building block serves a **new consumer** trusting an
+  **already-running** registry.
+
+**Proof boundary.** The kubelet-pull acceptance evidence (§8.3) was produced on the Shared Cluster
+itself. It proves the Talos runtime mechanism and the host/SNI path; it does **not** prove
+onboarding of a distinct consumer cluster, which remains unexercised.
+
 ## 5. `registry-default` profile
 
 ```text
@@ -168,7 +224,7 @@ After review of this evidence, the ADR MAY transition to `Accepted`.
 
 **Positive.** A shared OCI artifact-distribution capability with a small initial footprint; consumers independent of zot behaviour; offline artifact portability treated as a first-class contract concern, with future air-gapped guarantees qualified through the ADR-017 mechanism; reusable conformance tests; a future native implementation possible without changing consumer references or artifact formats.
 
-**Negative / cost.** OpenKubes must maintain provider-neutral contract tests; the zot profile needs OpenKubes-specific tooling for account lifecycle and promotion; the Shared Cluster takes on a critical supply-chain service, so bootstrap and disaster-recovery dependencies need explicit treatment.
+**Negative / cost.** OpenKubes must maintain provider-neutral contract tests; the zot profile needs OpenKubes-specific tooling for account lifecycle and promotion; the Shared Cluster takes on a critical supply-chain service, so bootstrap and disaster-recovery dependencies need explicit treatment; and each consuming cluster carries its own onboarding cost, because trust and name resolution are opt-in per cluster rather than fleet-wide (§4.11).
 
 **Risks.**
 
@@ -180,6 +236,7 @@ After review of this evidence, the ADR MAY transition to `Accepted`.
 | Tags mutated or removed | Digest-based release evidence; immutability policy (§4.7) |
 | Registry compromise affects the supply chain | Least privilege, signatures, audit, isolation, recovery |
 | Air-gap path diverges from ADR-012 | Reconcile transfer mechanism with ADR-012 during §8 criterion 8 |
+| Opted-in consumers drift as the ingress address or CA changes | Address discovery re-resolves on every run; CA rotation and replacement Machines require the onboarding procedure to be rerun (§4.11) |
 | Scope creep to multiple providers | One profile now; add another only for a forcing consumer (§7) |
 
 ## 11. Decision summary
