@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ok141-evidence-publication-smoke/v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["apiVersion", "kind", "metadata", "spec"],
+  "properties": {
+    "apiVersion": {"const": "test.openkubes.io/v1alpha1"},
+    "kind": {"const": "EvidencePublicationSmokeProtocol"},
+    "metadata": {"type": "object"},
+    "spec": {
+      "type": "object",
+      "required": ["version", "state", "baseline", "bindings", "scope", "phases", "expectedEvidence", "stopConditions", "authorization", "rules"],
+      "properties": {
+        "version": {"const": "ok141-evidence-publication-smoke/v1"},
+        "state": {"const": "READY-FOR-C1-P0-DECISION-NO-GO"}
+      }
+    }
+  }
+}
