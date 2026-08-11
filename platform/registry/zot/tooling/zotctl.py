@@ -1866,7 +1866,7 @@ def derive_scratch_values(values_file: Path, chart_dir: Path) -> dict[str, Any]:
     values = load_yaml(values_file, "production values")
     image = values.get("image") or {}
     repository = image.get("repository")
-    tag = image.get("tag")
+    tag = os.environ.get("SCRATCH_IMAGE_TAG") or image.get("tag")
     if not re.fullmatch(r"[A-Za-z0-9./_-]+", str(repository)):
         die("unsafe production image repository")
     if not re.fullmatch(r"[^\s]+@sha256:[0-9a-f]{64}", str(tag)):
@@ -1894,8 +1894,14 @@ def derive_scratch_values(values_file: Path, chart_dir: Path) -> dict[str, Any]:
     }
     if "resources" in values:
         carried["resources"] = values["resources"]
+    scratch_extensions = (
+        {"search": {"enable": True}, "ui": {"enable": True}}
+        if os.environ.get("SCRATCH_UI") == "yes"
+        else None
+    )
     scratch_config = json.dumps(
         {
+            **({"extensions": scratch_extensions} if scratch_extensions else {}),
             "storage": {"rootDirectory": "/var/lib/registry"},
             "http": {
                 "address": "0.0.0.0",
@@ -1915,7 +1921,8 @@ def derive_scratch_values(values_file: Path, chart_dir: Path) -> dict[str, Any]:
         "ingress": {"enabled": False},
         "httproute": {"enabled": False},
         "listenerset": {"enabled": False},
-        "persistence": False,
+        "persistence": os.environ.get("SCRATCH_PERSISTENCE") == "yes",
+        "pvc": {"create": True, "accessModes": ["ReadWriteOnce"], "storage": "2Gi"},
         "mountConfig": True,
         "mountSecret": False,
         "externalSecrets": [],
@@ -2061,10 +2068,21 @@ def assert_scratch_shape(
     ).get("items") or []
     if len(workloads) != 1:
         die(f"expected exactly one scratch Zot workload, got {len(workloads)}")
-    if workloads[0].get("kind") != "Deployment":
-        die("persistence=false did not produce a Deployment")
+    # The chart renders a Deployment when persistence is off and a StatefulSet when it is on, so
+    # the expected shape has to track the mode rather than being hardcoded. Still an assertion:
+    # the wrong kind for the requested mode means the scratch is not what was asked for.
+    persistent = os.environ.get("SCRATCH_PERSISTENCE") == "yes"
+    expected_kind = "StatefulSet" if persistent else "Deployment"
+    if workloads[0].get("kind") != expected_kind:
+        die(
+            f"SCRATCH_PERSISTENCE={'yes' if persistent else 'no'} should produce a "
+            f"{expected_kind}, got {workloads[0].get('kind')}"
+        )
     workload = (workloads[0].get("metadata") or {}).get("name")
-    kube.run("rollout", "status", f"deployment/{workload}", "-n", namespace, "--timeout=180s")
+    kube.run(
+        "rollout", "status", f"{expected_kind.lower()}/{workload}",
+        "-n", namespace, "--timeout=180s",
+    )
     services = kube.json("get", "services", "-n", namespace, "-o", "json").get("items") or []
     if len(services) != 1:
         die("scratch registry is not ClusterIP-only")
