@@ -1,0 +1,32 @@
+{
+  "schemaVersion": "openkubes.artifact-release/v1",
+  "release": {
+    "name": "ok-138-representative-v1"
+  },
+  "members": [
+    {
+      "name": "openkubes-contract-image",
+      "repository": "openkubes/machine/conformance-ok138-smoke-live3",
+      "digest": "sha256:23efd2c1ae875dac645390029d3d8513a768f141c2835710a8f6a42b17b8b43e",
+      "kind": "container-image",
+      "role": "workload"
+    },
+    {
+      "name": "openkubes-contract-chart",
+      "repository": "openkubes/machine/charts/demo-ok138-smoke-live3",
+      "digest": "sha256:73da6072ebb313ee19de6a94eddc92ab37d252cc0427a9ddc09773fb81323d8f",
+      "kind": "oci-helm-chart",
+      "role": "deployment-chart"
+    }
+  ],
+  "referrers": [
+    {
+      "name": "image-sbom",
+      "repository": "openkubes/machine/conformance-ok138-smoke-live3",
+      "subjectDigest": "sha256:23efd2c1ae875dac645390029d3d8513a768f141c2835710a8f6a42b17b8b43e",
+      "referrerDigest": "sha256:ee2f44dcd62dafc22d759c09047e5004c2fa107d3d1221509f72f9f9b85f762a",
+      "artifactType": "application/spdx+json",
+      "role": "sbom"
+    }
+  ]
+}
