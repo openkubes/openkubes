@@ -114,6 +114,8 @@ jobs:
           "$RUNNER_TEMP/oras" pull "ghcr.io/openkubes/ok141-evidence@${{ steps.publish.outputs.digest }}" --output "$RUNNER_TEMP/pulled"
           test -f "$RUNNER_TEMP/pulled/evidence-bundle.tar"
       - name: Verify pull-back receipt and durable correlation
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh attestation verify \
             "oci://ghcr.io/openkubes/ok141-evidence@${{ steps.publish.outputs.digest }}" \
