@@ -98,6 +98,7 @@ OIDC_REDIRECT_URI ?= $(REGISTRY_ORIGIN)/zot/auth/callback/oidc
 
 .PHONY: help render diff require-inputs require-tools require-backup-tools require-verify-tools require-restore-tools require-chart require-values-contract require-oidc-approval require-lifecycle-approval require-release-set require-transfer-input require-restore-input require-restore-drill-approval require-confirm \
 	namespace identities reachability zot oidc-client metrics post-check smoke lifecycle contract-job oidc-conformance backup verify-backup restore-drill release-export verify-release offline-transfer-drill install \
+	ship-check ship-scan-self-test \
 	teardown-metrics teardown-zot teardown-reachability teardown-oidc-secret teardown-identities teardown-data teardown
 
 help: ## Show registry-default lifecycle targets
@@ -349,3 +350,47 @@ teardown: require-inputs require-tools require-confirm ## Reverse Increment 1 bu
 	@$(MAKE) --no-print-directory teardown-oidc-secret KUBECONFIG="$(KUBECONFIG)" CONFIRM=yes
 	@$(MAKE) --no-print-directory teardown-identities KUBECONFIG="$(KUBECONFIG)" CONFIRM=yes
 	@echo "NOTICE: namespace, PVC/data, and central Keycloak objects were retained. Run teardown-data separately only after backup."
+
+# ------------------------------------------------------------------------------------
+# Pre-commit gate. Offline on purpose: no cluster, no credentials, no network, so it can
+# run before every commit. `render` and `diff` remain the cluster-side checks; this does
+# not replace them, and it deliberately does not run git commit.
+# ------------------------------------------------------------------------------------
+
+ship-scan-self-test: ## Prove the credential/address scanner flags and clears the right lines
+	@$(PYTHON) "$(TOOLING)/ship-scan.py" --self-test
+
+ship-check: ship-scan-self-test ## Offline pre-commit gate: generated files, syntax, tests, credential/address scan
+	@set -Eeuo pipefail; \
+	export PYTHONDONTWRITEBYTECODE=1; \
+	echo "== generated artifacts =="; \
+	found="$$( { git ls-files -- . ; git diff --cached --name-only -- . ; } \
+		| grep -E '(^|/)__pycache__/|\.pyc$$' | sort -u | head -20 )" || true; \
+	if [ -n "$$found" ]; then \
+		echo "ERROR: generated Python artifacts are tracked or staged; unstage before committing:" >&2; \
+		echo "$$found" >&2; exit 1; \
+	fi; \
+	echo "  none tracked or staged (untracked local bytecode is ignored)"; \
+	echo "== python syntax =="; \
+	for f in $(TOOLING)/*.py; do \
+		$(PYTHON) -c 'import ast,sys; ast.parse(open(sys.argv[1]).read())' "$$f" || exit 1; \
+	done; \
+	echo "  $$(ls $(TOOLING)/*.py | wc -l | tr -d ' ') file(s) parse"; \
+	echo "== shell syntax =="; \
+	for f in $(TOOLING)/*.sh conformance/*.sh; do [ -e "$$f" ] || continue; bash -n "$$f" || exit 1; done; \
+	echo "  ok"; \
+	echo "== unit tests =="; \
+	( cd "$(TOOLING)" && $(PYTHON) -m unittest zotctl_test ) ; \
+	echo "== credential / estate-address scan =="; \
+	if git diff --cached --quiet -- .; then \
+		echo "  nothing staged for this shelf; scanning the working diff plus untracked files"; \
+		{ git diff -- . ; \
+		  git ls-files --others --exclude-standard -- . | while read -r f; do \
+			git diff --no-index -- /dev/null "$$f" || true; \
+		  done ; } | $(PYTHON) "$(TOOLING)/ship-scan.py"; \
+	else \
+		echo "  scanning the staged diff (what a commit would actually contain)"; \
+		git diff --cached -- . | $(PYTHON) "$(TOOLING)/ship-scan.py"; \
+	fi; \
+	rm -rf "$(TOOLING)/__pycache__"; \
+	echo "RESULT: PASS - offline gate clean. Cluster-side checks (render, diff, post-check) are separate."
