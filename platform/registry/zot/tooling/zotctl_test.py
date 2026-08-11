@@ -1095,9 +1095,24 @@ class ZotctlOfflineTest(unittest.TestCase):
             lambda: machine_only.request("GET", "/v2/", identity="human"),
             "no human credential was established for this run",
         )
+        # An unnamed identity must not slip past on a registry that holds credentials: that
+        # would send an unauthenticated request and surface a bare 401 far from the cause.
+        self.assert_rejected(
+            lambda: machine_only.request("GET", "/v2/", identity=""),
+            "named no export identity on a registry that holds credentials",
+        )
+        self.assert_rejected(
+            lambda: machine_only.request("GET", "/v2/"),
+            "named no export identity on a registry that holds credentials",
+        )
         # The established identity gets past the guard, so it fails on the closed port instead.
         with self.assertRaises(OSError):
             machine_only.request("GET", "/v2/", identity="machine")
+        # The authless scratch registry carries no credentials, so an unnamed identity is
+        # legitimate there and must still reach the network.
+        scratch = zotctl.Registry(hostname="127.0.0.1", port=1, insecure_plain_http=True)
+        with self.assertRaises(OSError):
+            scratch.request("GET", "/v2/")
 
 
 if __name__ == "__main__":

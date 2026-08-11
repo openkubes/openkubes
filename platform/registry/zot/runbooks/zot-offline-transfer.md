@@ -157,31 +157,41 @@ commands printed by the drill and prove the namespace is gone.
 ## 5. Prove cleanup and live isolation
 
 ```bash
-oks && SCRATCH_REMAINS="$(kubectl get namespaces -o json | python3 -c \
-  'import json,sys; print("\\n".join(x["metadata"]["name"] for x in json.load(sys.stdin)["items"] if x["metadata"]["name"].startswith("zot-restore-drill-")))')"
+# ALL_NS must be non-empty on success, so a failed query cannot masquerade as
+# "no scratch namespaces". Never derive absence from an empty result alone.
+oks && ALL_NS="$(kubectl get namespaces -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}')"
+SCRATCH_REMAINS="$(printf '%s\n' "$ALL_NS" | grep '^zot-restore-drill-' || true)"
 oks && LIVE_POD_AFTER="$(kubectl -n zot get pod zot-0 \
   -o jsonpath='{.metadata.uid}{"  "}{.metadata.creationTimestamp}{"  "}{.status.containerStatuses[0].restartCount}')"
 oks && LIVE_PVC_AFTER="$(kubectl -n zot get pvc zot-pvc-zot-0 \
   -o jsonpath='{.metadata.uid}{"  "}{.metadata.creationTimestamp}')"
 oks && make -C "$ZOT_SHELF" post-check KUBECONFIG="$KUBECONFIG"
 
-# The assertions and the claim must be one statement: a bare `test` in an
-# unattended-safe interactive shell does not stop a following printf, so the
-# transcript would record UNCHANGED=yes for a pod that had in fact been replaced.
-if test -z "$SCRATCH_REMAINS" \
+# Two failure modes, both of which have produced false "verified" here before:
+#  - a bare `test` does not stop a following printf in a shell without set -e;
+#  - a failed kubectl leaves its variable EMPTY, and empty equals empty, so an
+#    unobserved before/after pair would compare equal and read as "unchanged".
+# Hence every observation must be non-empty AND equal, in one statement.
+if test -n "$LIVE_POD_BEFORE" && test -n "$LIVE_PVC_BEFORE" \
+  && test -n "$LIVE_POD_AFTER" && test -n "$LIVE_PVC_AFTER" \
+  && test -n "$ALL_NS" \
+  && test -z "$SCRATCH_REMAINS" \
   && test "$LIVE_POD_AFTER" = "$LIVE_POD_BEFORE" \
   && test "$LIVE_PVC_AFTER" = "$LIVE_PVC_BEFORE"; then
   printf 'SCRATCH_ABSENT=yes\nLIVE_POD_UNCHANGED=yes\nLIVE_PVC_UNCHANGED=yes\n'
 else
-  printf 'FAIL: live isolation NOT proven\n  SCRATCH_REMAINS=%s\n  POD  before=%s\n  POD  after =%s\n  PVC  before=%s\n  PVC  after =%s\n' \
+  printf 'FAIL: live isolation NOT proven (an empty value means the query itself failed)\n  NAMESPACES_QUERIED=%s\n  SCRATCH_REMAINS=%s\n  POD  before=%s\n  POD  after =%s\n  PVC  before=%s\n  PVC  after =%s\n' \
+    "$(test -n "$ALL_NS" && echo yes || echo NO)" \
     "${SCRATCH_REMAINS:-<none>}" \
-    "$LIVE_POD_BEFORE" "$LIVE_POD_AFTER" \
-    "$LIVE_PVC_BEFORE" "$LIVE_PVC_AFTER" >&2
+    "${LIVE_POD_BEFORE:-<unobserved>}" "${LIVE_POD_AFTER:-<unobserved>}" \
+    "${LIVE_PVC_BEFORE:-<unobserved>}" "${LIVE_PVC_AFTER:-<unobserved>}" >&2
+  (exit 1)
 fi
 ```
 
 `make post-check` is its own evidence and must print `RESULT: PASS`; the block above
-never reports success on its behalf.
+never reports success on its behalf. The block leaves `$?` non-zero when it fails, so a
+transcript can be checked by status rather than by reading its prose.
 
 Retain the release declaration, archive, detached manifest and full command transcript together.
 Do not tick or rewrite any ADR-Platform-028 §8 criterion from this procedure alone; acceptance and

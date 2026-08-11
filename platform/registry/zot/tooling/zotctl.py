@@ -420,6 +420,14 @@ class Registry:
         absolute: str = "",
         destination: Path | None = None,
     ) -> tuple[int, bytes, dict[str, str]]:
+        # The scratch registry is authless by construction and carries no auth_headers, so an
+        # unnamed identity is only legitimate there. On a registry that does hold credentials,
+        # an unnamed identity would silently send an unauthenticated request.
+        if self.auth_headers and not identity:
+            die(
+                f"{method} {absolute or path} named no export identity on a registry that "
+                "holds credentials"
+            )
         if identity and identity not in self.auth_headers:
             die(
                 f"no {identity} credential was established for this run, but "
