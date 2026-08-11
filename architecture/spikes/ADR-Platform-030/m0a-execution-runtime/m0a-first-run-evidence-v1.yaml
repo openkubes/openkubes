@@ -1,0 +1,111 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: M0aExecutionEvidence
+metadata:
+  name: ok141-m0a-first-run-20260811
+  ticket: OK-141
+spec:
+  version: ok141-m0a-execution-evidence/v1
+  state: STOP-NOT-SUCCESS
+  references:
+    candidate:
+      path: ../m0a-execution/m0a-execution-candidate-v1.yaml
+      digest: sha256:67e2cb5fb2484292b4a8bfc3b138209af82f672fbc8ee0269421832d5a1a271a
+    grant:
+      path: ../m0a-execution-grant/m0a-combined-grant-v1.yaml
+      digest: sha256:77eb275b9fcbaa3e601f3b9c7f6b0384705e469578f17f9ab521af554716397a
+  execution:
+    startedAt: "2026-08-11T18:59:20Z"
+    finishedAt: "2026-08-11T18:59:44Z"
+    maximumRuns: 1
+    runsConsumed: 1
+    retryAuthorized: false
+    result: STOP-NOT-SUCCESS
+  preflight:
+    clock:
+      source: github-api-date-header-no-cache
+      skewSeconds: 0.048
+      roundTripSeconds: 0.283
+    target:
+      plane: ok-mgmt
+      kubeSystemNamespaceUID: c3b45aab-d2a1-4e64-8f12-77b99186ad4a
+      kubernetesVersion: v1.34.1
+      bootstrapIdentity: kubernetes-admin/system:masters
+    source:
+      reviewedObjectCount: 19
+      semanticDigest: sha256:01fc13d694da3304385a7bae0d1bd662d7c8c3d336b8a4d44da5324439d59095
+    lifecycleInventory:
+      clusters: 0
+      machines: 0
+      machineDeployments: 0
+    sameNameCollisions: 0
+    result: PASS
+  credential:
+    bootstrapReached: true
+    tokenRequestReached: true
+    tokenMaximumDuration: 60m
+    tokenMaterialRetained: false
+    tokenMaterialPublished: false
+    temporaryKubeconfigRetained: false
+    bootstrapObjectsAfterRun:
+      serviceAccount: absent
+      clusterRole: absent
+      clusterRoleBinding: absent
+    immediateTokenRejectionProbe:
+      result: FAILED
+      observation: The token still authenticated immediately after ServiceAccount and RBAC deletion.
+      boundary: The token is not recoverable from logs evidence disk or the deleted ServiceAccount and is bounded by the original 60-minute TokenRequest lifetime.
+  authorizationProbes:
+    result: PASS-INFERRED-FROM-CONTROL-FLOW
+    positiveTargets: 19
+    verbsPerTarget: [get, patch]
+    negativeProbes: 8
+    boundary: The executor reached the subsequent apply call only after all probes returned successfully, but the original failure artifact did not persist the probe summary before apply.
+  installation:
+    attempted: true
+    operation: server-side-apply-exact-19-object-set
+    result: FAILED
+    failureType: CalledProcessError
+    responseBodyRetained: false
+    likelyCause:
+      classification: INFERRED-NOT-PROVEN
+      statement: The first absent object was not materialized; the temporary role granted get and patch but no create verb, so Kubernetes likely authorized the probe target while refusing creation through server-side apply.
+  postFailureObservation:
+    observedAt: "2026-08-11T19:01:05Z"
+    temporaryCredentialObjects: 0
+    caaphNamespacePresent: false
+    caaphCRDsPresent: 0
+    caaphInstallationObjectsPresent: 0
+    helmChartProxyAPIAvailable: false
+    helmReleaseProxyAPIAvailable: false
+    capiLifecycleObjects: 0
+    tokenSecretPresent: false
+    temporaryKubeconfigPresent: false
+    cleanupMutationPerformed: false
+    automaticRollbackPerformed: false
+  conclusion:
+    caaphInstalled: false
+    partialInstallationPresent: false
+    credentialObjectsRetained: false
+    grantReusable: false
+    retryAllowed: false
+    newCandidateRequired: true
+    proposedNextMechanism: temporary ValidatingAdmissionPolicy plus exact-name checks to constrain the create permission that server-side apply requires
+  authorization:
+    evidencePublicationGranted: false
+    cleanupGranted: false
+    retryGranted: false
+    m0bInstallationGranted: false
+    go1Granted: false
+    failureInjectionGranted: false
+  redaction:
+    secretsIncluded: false
+    tokensIncluded: false
+    kubeconfigsIncluded: false
+    privateKeysIncluded: false
+    certificatePayloadsIncluded: false
+    localTemporaryPathIncluded: false
+  rules:
+    - This evidence must never be relabeled as a successful installation or successful immediate token revocation.
+    - Absence of retained CAAPH and credential objects removes the need for cleanup but grants no retry.
+    - The inferred create-authorization cause requires a new offline design and new explicit risk and execution grants.
+    - Evidence collector dispatch publication M0b-I GO-1 rollback cleanup and failure injection remain NOT GRANTED.
