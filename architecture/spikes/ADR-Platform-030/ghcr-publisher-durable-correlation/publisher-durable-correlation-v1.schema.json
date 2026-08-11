@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ok141-publisher-durable-correlation/v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["apiVersion", "kind", "metadata", "spec"],
+  "properties": {
+    "apiVersion": {"const": "evidence.openkubes.io/v1alpha1"},
+    "kind": {"const": "GHCRPublisherDurableCorrelation"},
+    "metadata": {"type": "object"},
+    "spec": {
+      "type": "object",
+      "required": ["version", "state", "baseline", "sourceAmendment", "components", "correlationContract", "proof", "remainingGates", "authorization", "rules"],
+      "properties": {
+        "version": {"const": "ok141-publisher-durable-correlation/v1"},
+        "state": {"const": "IMPLEMENTED-OFFLINE-INERT-BLOCKED-NO-GO"}
+      }
+    }
+  }
+}
