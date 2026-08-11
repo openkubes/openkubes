@@ -139,6 +139,7 @@ Constraint Envelope qualification; ADR-Platform-017 defines no such envelope.
 | Backup/recovery runbook | Walk [runbooks/zot-backup-restore.md](runbooks/zot-backup-restore.md) and retain the artifact, detached manifest, restore output and cleanup proof |
 | Namespace/PVC disaster recovery | Walk [runbooks/zot-disaster-recovery.md](runbooks/zot-disaster-recovery.md); it labels the production sequence unexercised until a destructive rehearsal proves configuration, authorization, Secret recreation/rotation, content, same-name TLS, metrics and consumer trust effects |
 | Offline-transfer runbook | Walk [runbooks/zot-offline-transfer.md](runbooks/zot-offline-transfer.md) and retain the release declaration, transfer pair, offline verification, every-member pull and before/after isolation transcript |
+| Upgrade and rollback | Walk [runbooks/zot-upgrade-rollback.md](runbooks/zot-upgrade-rollback.md): a scratch registry restored onto the older version, upgraded, then rolled back with `helm rollback`, asserting at each transition that the marker still pulls by digest, the PVC UID is unchanged **and** the pod UID changed — a constant pod UID would mean nothing restarted and the drill proved nothing |
 | Phase-1 envelope mechanics | `conformance/smoke.sh`; Referrers are structurally asserted and run IDs make the negative auth repository repeatable. `conformance/lifecycle.sh` is **not** Increment 1 evidence — it restarts the registry and needs `gcDelay` lowered from the shipped production 1h |
 
 ## What this does not prove
@@ -155,6 +156,11 @@ Constraint Envelope qualification; ADR-Platform-017 defines no such envelope.
 - It does **not** authenticate the backup artifact. SHA-256 detects changed bytes against the detached manifest, but an attacker able to replace both files can create another self-consistent pair.
 - It does **not** prove complete disaster recovery of secret state. Git reconstructs the rendered zot/authz/route configuration; machine/OIDC secret values still need sanctioned escrow or approved recreation.
 - Release transfer does **not** prove an `air-gapped` Constraint Envelope or upgrade/rollback.
+- The upgrade/rollback drill does **not** prove the **live** release survives an upgrade. There is
+  currently no version to move it to: the newest zot release and the newest chart tag are both
+  already pinned here. It proves the chart's upgrade path, Helm's rollback mechanism and artifact
+  survival for the one version pair the drill was run with, on a scratch registry. Re-run it with
+  the new pair when upstream ships a release; do not substitute a downgrade of the live registry.
 - It does **not** escrow bootstrap credentials in Vault/VSO.
 - It does **not** run the OCI Distribution conformance suite. ADR-Platform-028 §4.1 requires validation against that tooling and §8.9 makes it an acceptance criterion; Phase 1's `conformance.sh` was deliberately not ported into Increment 1, so despite the directory name no official conformance run has happened against this deployment.
 - It does **not** meet ADR-Platform-028 §5's `Storage: Production-approved persistent or object storage` line merely by shipping this workflow. The live store remains `local-path`; the detached export meets that line only when the operator supplies a production-approved retained target. The interim decision is settled under OK-138 and re-points at OK-81's MinIO when available.
@@ -174,5 +180,6 @@ runbooks/zot-bootstrap.md   executable bootstrap ceremony
 runbooks/zot-backup-restore.md  interim export and isolated recovery ceremony
 runbooks/zot-disaster-recovery.md  namespace/PVC-loss recovery order, gates and proof boundary
 runbooks/zot-offline-transfer.md  named release export, offline verification and fresh import ceremony
+runbooks/zot-upgrade-rollback.md  scratch-registry upgrade and helm rollback with data-survival proof
 releases/*.json             explicit immutable OpenKubes release-set declarations
 ```
