@@ -1,0 +1,29 @@
+{
+  "cluster": "rke2-fixture",
+  "collected_at": "2026-08-11T07:03:04Z",
+  "evidence": [
+    {
+      "type": "host_journal",
+      "source": "kagent",
+      "status": "available",
+      "reason": null,
+      "uri": "journal://rke2-fixture/nodes/worker-1/system",
+      "collected_at": "2026-08-11T07:03:04Z"
+    },
+    {
+      "type": "node_shell",
+      "source": "kagent",
+      "status": "available",
+      "reason": null,
+      "uri": "node://rke2-fixture/nodes/worker-1/inspection",
+      "collected_at": "2026-08-11T07:03:04Z"
+    }
+  ],
+  "provider_capabilities": {
+    "workload_events": true,
+    "workload_logs": true,
+    "cilium_diagnostics": true,
+    "host_journal": true,
+    "node_shell": true
+  }
+}

@@ -1,0 +1,16 @@
+distribution: talos
+provider_capabilities:
+  workload_events: true
+  workload_logs: true
+  cilium_diagnostics: true
+  host_journal: false
+  node_shell: false
+evidence_expectations:
+  host_journal:
+    status: unavailable
+    reason_required: true
+    uri_required: false
+  node_shell:
+    status: unavailable
+    reason_required: true
+    uri_required: false
