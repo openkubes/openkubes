@@ -1,0 +1,90 @@
+apiVersion: test.openkubes.io/v1alpha1
+kind: M0aSecurityBoundaryCandidate
+metadata:
+  name: ok141-m0a-v2-security-boundary
+  ticket: OK-141
+spec:
+  version: ok141-m0a-security-boundary/v2
+  state: BLOCKED-OFFLINE-CANDIDATE
+  cause:
+    evidencePath: ../m0a-execution-runtime/m0a-first-run-evidence-v1.yaml
+    evidenceDigest: sha256:b4d6602f762230a16a45a36c3b3dca9af88e20a3645d566759b68eef8183963b
+    firstRunResult: STOP-NOT-SUCCESS
+    grantConsumed: true
+    classification: server-side-apply-create-authorization-gap
+    confidence: INFERRED-NOT-PROVEN
+  immutableInputs:
+    installationProtocolPath: ../m0a-installation/m0a-installation-v1.yaml
+    installationProtocolDigest: sha256:873d3aa3b15df53d3a4055675288c6d9acdf6c18d4f850e181a4eb7b93fc4a27
+    sourceSemanticDigest: sha256:01fc13d694da3304385a7bae0d1bd662d7c8c3d336b8a4d44da5324439d59095
+    objectCount: 19
+  credentialBoundary:
+    serviceAccount: openkubes-system/ok141-m0a-installer-v2
+    rbacPath: m0a-installer-rbac-v2.yaml
+    rbacDigest: sha256:0781697102c2c03652bb3f6d01a83d1431b1657d43f21c020aa97364701235bf
+    allowedVerbs: [create, get]
+    patchAllowed: false
+    updateAllowed: false
+    deleteAllowed: false
+    listAllowed: false
+    watchAllowed: false
+    tokenRequestDurationMaximum: 10m
+    tokenAudience: https://192.168.100.200:6443
+    tokenMaterialPersisted: false
+  admissionBoundary:
+    manifestPath: m0a-installer-admission-v2.yaml
+    manifestDigest: sha256:d690f71278e7986976069fc4bd1aa7e91c70dd40dc3f4eba26f1f7d65f7b2363
+    mode: fail-closed-exact-identity-allowlist
+    policyPrincipal: system:serviceaccount:openkubes-system:ok141-m0a-installer-v2
+    allowedIdentities: 19
+    operations: [CREATE]
+    payloadContentProvenByAdmission: false
+    payloadControl: digest-bound-executor-reverification-immediately-before-submit
+    limitation: The admission policy restricts exact API identity name and namespace but does not prove complete object-content equality.
+  raceBoundary:
+    precondition: all-19-targets-absent
+    effectIfTargetAppearsAfterPreflight: server-side-apply-becomes-patch-and-rbac-denies
+  revocationBoundary:
+    individualTokenRevocationAvailable: false
+    mechanism: delete-temporary-serviceaccount-and-rbac-then-poll-authentication
+    rejectionPollMaximumSeconds: 90
+    hardUpperExposureBound: token-expiry-at-most-10m
+    immediateRejectionClaim: false
+    failureOutcome: STOP-NOT-SUCCESS
+  requiredLiveProofs:
+    - validating admission policy API v1 is served and policy type-check status is healthy
+    - exact-name create dry-run succeeds for every reviewed identity
+    - wrong-name wrong-namespace and wrong-resource create dry-runs fail closed
+    - patch update delete list watch Secret TokenRequest impersonate bind and escalate remain denied
+    - all reviewed targets are absent immediately before submission
+    - the exact reviewed digest is reverified immediately before one submission
+    - credential objects admission objects and temporary kubeconfig are removed in finally
+    - authentication rejection is observed within the bounded poll or the run stops unsuccessful
+  newRiskAcceptanceRequired:
+    - top-level create is type-scoped by RBAC and identity-scoped by admission but not content-scoped by either
+    - temporary ValidatingAdmissionPolicy and binding are additional cluster-scoped security objects
+    - revocation rejection is bounded rather than immediate with token expiry as the hard upper bound
+  authorization:
+    decision: NO-GO
+    mutationAuthorized: false
+    credentialGrantRequired: true
+    admissionBootstrapGrantRequired: true
+    installationGrantRequired: true
+    retryGranted: false
+    m0bInstallationGranted: false
+    go1Granted: false
+    evidencePublicationGranted: false
+    failureInjectionGranted: false
+  exclusions:
+    - HelmChartProxy or HelmReleaseProxy submission
+    - Cilium convergence
+    - automatic CAAPH rollback
+    - M0b-I
+    - GO-1
+    - evidence publication
+    - failure injection
+  rules:
+    - This offline candidate supersedes no historical evidence and authorizes no mutation.
+    - The consumed v1 grant cannot be reused.
+    - A live candidate requires new digests new risk acceptance and new distinct explicit grants.
+    - A failed bounded revocation observation must never be relabeled as successful revocation.
