@@ -1,0 +1,53 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: ObserverRuntimeEvidence
+metadata:
+  name: ok141-public-observer-runtime-evidence-v1
+  ticket: OK-141
+spec:
+  state: FIRST-LIVE-OBSERVATION-VERIFIED-NO-GO
+  deployment:
+    pullRequest: 134
+    mergeCommit: b4eae9597f39f7c08cc9e066e58601a2654cb21f
+    workflowID: 332127849
+    workflowPath: .github/workflows/ok141-evidence-observer.yaml
+    workflowDigest: sha256:6fed6d68998ce1d79e4465cf8c50ebf264535483e98ea33adca8e89adf06c5c7
+    scheduleUTC: 17 3 * * *
+    permissions:
+      contents: read
+  run:
+    id: 31519905262
+    jobID: 93874109176
+    event: workflow_dispatch
+    headBranch: main
+    headSHA: b4eae9597f39f7c08cc9e066e58601a2654cb21f
+    status: completed
+    conclusion: success
+    createdAt: "2026-08-11T17:53:39Z"
+    completedAt: "2026-08-11T17:53:52Z"
+  observation:
+    version: ok141-observer-result/v1
+    status: OBSERVED-PRESENT
+    reason: ExactDigestPresent
+    repository: ghcr.io/openkubes/ok141-evidence
+    ociManifestDigest: sha256:c9bdeadf1ee859c69ed0ab1136ec6b590139fe931eff44039265c144cea76dc8
+    internalBundleDigest: sha256:8372a41284a69774f173c1037516f3dbba64fd19c5de3f1506f10386a6b2eab7
+    workflowSourceRevision: c177b56a9a925a64f78a56350822e6747a5f169b
+    observedAtUTC: "2026-08-11T17:53:49Z"
+    evaluatedAtUTC: "2026-08-11T17:53:49Z"
+  boundaries:
+    registryCredentialUsed: false
+    packageReadPermissionUsed: false
+    packageWritePermissionUsed: false
+    packageDeletePermissionUsed: false
+    clusterAccess: false
+    infrastructureMutation: false
+    scheduledRunDeliveryGuaranteed: false
+    alertNotificationGuaranteed: false
+  outcome:
+    publicDigestAccessProven: true
+    deployedEvaluatorProven: true
+    firstObservationCompleted: true
+    dailyScheduleActive: true
+    automaticRepairAllowed: false
+    go1Granted: false
+    failureInjectionAuthorized: false
