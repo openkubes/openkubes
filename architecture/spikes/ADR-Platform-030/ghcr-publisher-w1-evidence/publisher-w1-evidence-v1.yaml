@@ -1,0 +1,31 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: PublisherDeploymentEvidence
+metadata:
+  name: ok141-publisher-w1-evidence-v1
+  ticket: OK-141
+spec:
+  state: W1-COMPLETE-OBSERVED-P1-NO-GO
+  repository: openkubes/openkubes
+  deployment:
+    pullRequest: 128
+    mergeCommit: dc91bfd0443b5b1d84b107125922bdcc9ebd6931
+    mergedAt: "2026-08-11T17:29:19Z"
+    workflowID: 332090718
+    workflowPath: .github/workflows/ok141-evidence-publisher.yaml
+    workflowState: active
+    workflowDigest: sha256:6837271e8929eac133d1f5f6fb1bbaba3b83f61a772f27a856b51e79d673a27b
+    trigger: workflow_dispatch-only
+    automaticRunObserved: false
+  historicalRunBoundary:
+    runID: 31517187028
+    headSHA: 9609225417c330451cd42ee6472743989d6b7aea
+    conclusion: failure
+    newRunAfterW1Observed: false
+  authorization:
+    w1Complete: true
+    publisherRetryAuthorized: false
+    packageWriteAuthorized: false
+    attestationWriteAuthorized: false
+    go1Granted: false
+    infrastructureMutationAuthorized: false
+    failureInjectionAuthorized: false
