@@ -932,7 +932,12 @@ class ZotctlOfflineTest(unittest.TestCase):
             root = Path(temporary)
             destination = root / "blob"
             destination.write_bytes(b"occupied")
-            registry = zotctl.Registry("registry.invalid", 5000, insecure_plain_http=True)
+            registry = zotctl.Registry(
+                "registry.invalid",
+                5000,
+                insecure_plain_http=True,
+                auth_headers={"machine": {"Authorization": "Basic x"}},
+            )
             response = ChunkedResponse([b"tiny-", b"artifact"])
             with mock.patch.object(
                 registry, "_connection", return_value=FakeConnection(response)
@@ -1053,6 +1058,46 @@ class ZotctlOfflineTest(unittest.TestCase):
             valid_artifact, valid_detached = write_backup(root, "valid.tar")
             _inventory, _layout, count = self.verify(valid_artifact, valid_detached, root)
             self.assertEqual(count, 2)
+
+    def test_machine_only_release_needs_no_human_identity_then_human_member_requires_it(self) -> None:
+        machine_only = zotctl.validate_release_set(
+            release_set_for([release_member("tiny-image", "sha256:" + "1" * 64)])
+        )
+        self.assertEqual(zotctl.release_set_identities(machine_only), {"machine"})
+
+        human_digest = "sha256:" + "4" * 64
+        with_human = release_set_for(
+            [
+                release_member("tiny-image", "sha256:" + "1" * 64),
+                release_member("human-image", human_digest),
+            ]
+        )
+        with_human["members"][1]["repository"] = "openkubes/human/tiny"
+        identities = zotctl.release_set_identities(zotctl.validate_release_set(with_human))
+        self.assertEqual(identities, {"machine", "human"})
+
+        unreviewed = release_set_for([release_member("tiny-image", "sha256:" + "1" * 64)])
+        unreviewed["members"][0]["repository"] = "somebody-else/tiny"
+        self.assert_rejected(
+            lambda: zotctl.release_set_identities(zotctl.validate_release_set(unreviewed)),
+            "no reviewed export identity covers repository",
+        )
+
+    def test_unestablished_identity_is_rejected_before_any_connection_then_established_proceeds(self) -> None:
+        machine_only = zotctl.Registry(
+            hostname="registry.ok-shared.internal",
+            port=1,
+            insecure_plain_http=True,
+            auth_headers={"machine": {"Authorization": "Basic x"}},
+        )
+        # Fails closed on the missing credential rather than sending an unauthenticated request.
+        self.assert_rejected(
+            lambda: machine_only.request("GET", "/v2/", identity="human"),
+            "no human credential was established for this run",
+        )
+        # The established identity gets past the guard, so it fails on the closed port instead.
+        with self.assertRaises(OSError):
+            machine_only.request("GET", "/v2/", identity="machine")
 
 
 if __name__ == "__main__":

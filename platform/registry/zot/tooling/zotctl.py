@@ -420,6 +420,11 @@ class Registry:
         absolute: str = "",
         destination: Path | None = None,
     ) -> tuple[int, bytes, dict[str, str]]:
+        if identity and identity not in self.auth_headers:
+            die(
+                f"no {identity} credential was established for this run, but "
+                f"{method} {absolute or path} requires one"
+            )
         merged = dict(self.auth_headers.get(identity, {}))
         merged.update(headers or {})
         target = absolute or path
@@ -1272,6 +1277,22 @@ def identity_for_repository(repository: str) -> str:
     return ""  # unreachable
 
 
+def release_set_identities(release_set: dict[str, Any]) -> set[str]:
+    """Which export identities a declared release actually needs.
+
+    A machine-only release must not drag in the central identity plane: htpasswd covers
+    openkubes/machine/**, and making an export depend on Keycloak would put the identity
+    plane on the registry's own recovery path.
+    """
+    identities = {
+        identity_for_repository(member["repository"]) for member in release_set["members"]
+    }
+    identities.update(
+        identity_for_repository(referrer["repository"]) for referrer in release_set["referrers"]
+    )
+    return identities
+
+
 def validate_scratch_identity(
     namespace: str,
     release: str,
@@ -1727,30 +1748,48 @@ def command_backup(args: argparse.Namespace) -> int:
         ca_file.write_bytes(secret_bytes(tls_secret, args.tls_secret, "ca.crt"))
         machine_user = kube.secret_value(args.namespace, args.machine_secret, "machine-username")
         machine_password = kube.secret_value(args.namespace, args.machine_secret, "machine-password")
-        human_user = kube.secret_value(args.namespace, args.conformance_secret, "writer-username")
-        human_password = kube.secret_value(args.namespace, args.conformance_secret, "writer-password")
+        # A whole-registry backup walks the catalog, so it may meet openkubes/human/**. A declared
+        # release states its repositories up front, so it can say it needs only htpasswd.
+        release_input = (
+            read_json(Path(args.release_set), "release-set input") if args.release_set else None
+        )
+        if release_input is None:
+            needs_human = True
+        else:
+            needs_human = "human" in release_set_identities(validate_release_set(release_input))
         with PortForward(kube, args.namespace, f"service/{args.release}", 5000, work / "live-port-forward.log") as tunnel:
             assert tunnel.port is not None
             print(
                 f"source: asserted Service zot/zot through https://127.0.0.1:{tunnel.port} "
                 "(loopback tunnel)"
             )
-            cookie = oidc_session_cookie(
-                args.registry_host, args.keycloak_host, args.registry_lb,
-                ca_file, human_user, human_password,
-            )
             basic = base64.b64encode(f"{machine_user}:{machine_password}".encode()).decode()
+            auth_headers = {"machine": {"Authorization": f"Basic {basic}"}}
+            if needs_human:
+                human_user = kube.secret_value(
+                    args.namespace, args.conformance_secret, "writer-username"
+                )
+                human_password = kube.secret_value(
+                    args.namespace, args.conformance_secret, "writer-password"
+                )
+                cookie = oidc_session_cookie(
+                    args.registry_host, args.keycloak_host, args.registry_lb,
+                    ca_file, human_user, human_password,
+                )
+                auth_headers["human"] = {"Cookie": cookie, "X-ZOT-API-CLIENT": "zot-ui"}
+                print("export identities: machine (htpasswd) and human (central OIDC session)")
+            else:
+                print(
+                    "export identities: machine (htpasswd) only; no central OIDC session is "
+                    "established because the declared release is entirely openkubes/machine/**"
+                )
             registry = Registry(
                 hostname=args.registry_host,
                 port=tunnel.port,
                 ca_file=ca_file,
-                auth_headers={
-                    "machine": {"Authorization": f"Basic {basic}"},
-                    "human": {"Cookie": cookie, "X-ZOT-API-CLIENT": "zot-ui"},
-                },
+                auth_headers=auth_headers,
             )
-            if args.release_set:
-                release_input = read_json(Path(args.release_set), "release-set input")
+            if release_input is not None:
                 inventory = discover_release(registry, release_input, args.page_size)
                 print(
                     "release export: declared members plus full descriptor/child closure; "
