@@ -1,0 +1,96 @@
+name: OK-141 evidence collector candidate v1
+
+"on":
+  workflow_dispatch:
+    inputs:
+      intake-commit:
+        description: Reviewed full commit SHA already reachable from main
+        required: true
+        type: string
+      intake-path:
+        description: Reviewed evidence intake path under the fixed prefix
+        required: true
+        type: string
+      context-digest:
+        description: Exact raw SHA-256 digest of context.json
+        required: true
+        type: string
+      protocol-digest:
+        description: Exact authorized OK-141 protocol digest
+        required: true
+        type: string
+      fixture-digest:
+        description: Exact authorized execution fixture digest
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ok141-evidence-collector
+  cancel-in-progress: false
+
+jobs:
+  collect:
+    if: github.ref == 'refs/heads/main'
+    environment: ok-141-evidence-publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out the reviewed collector and full main history
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Validate and extract the reviewed intake commit
+        env:
+          INTAKE_COMMIT: ${{ inputs.intake-commit }}
+          INTAKE_PATH: ${{ inputs.intake-path }}
+          CONTEXT_DIGEST: ${{ inputs.context-digest }}
+          PROTOCOL_DIGEST: ${{ inputs.protocol-digest }}
+          FIXTURE_DIGEST: ${{ inputs.fixture-digest }}
+        run: |
+          python3 -c 'import os,re,sys; checks=(re.fullmatch(r"[0-9a-f]{40}",os.environ["INTAKE_COMMIT"]),re.fullmatch(r"architecture/spikes/ADR-Platform-030/evidence/intake/[a-z0-9][a-z0-9-]{0,62}",os.environ["INTAKE_PATH"]),re.fullmatch(r"sha256:[0-9a-f]{64}",os.environ["CONTEXT_DIGEST"]),re.fullmatch(r"sha256:[0-9a-f]{64}",os.environ["PROTOCOL_DIGEST"]),re.fullmatch(r"sha256:[0-9a-f]{64}",os.environ["FIXTURE_DIGEST"])); sys.exit(0 if all(checks) else 2)'
+          git cat-file -e "$INTAKE_COMMIT^{commit}"
+          git merge-base --is-ancestor "$INTAKE_COMMIT" "$GITHUB_SHA"
+          mkdir -p "$RUNNER_TEMP/intake"
+          git archive "$INTAKE_COMMIT" "$INTAKE_PATH" | tar -x -C "$RUNNER_TEMP/intake"
+          test -f "$RUNNER_TEMP/intake/$INTAKE_PATH/context.json"
+          test -d "$RUNNER_TEMP/intake/$INTAKE_PATH/evidence"
+      - name: Build and re-verify the run-bound bundle
+        env:
+          INTAKE_COMMIT: ${{ inputs.intake-commit }}
+          INTAKE_PATH: ${{ inputs.intake-path }}
+          CONTEXT_DIGEST: ${{ inputs.context-digest }}
+          PROTOCOL_DIGEST: ${{ inputs.protocol-digest }}
+          FIXTURE_DIGEST: ${{ inputs.fixture-digest }}
+        run: |
+          INTAKE_ROOT="$RUNNER_TEMP/intake/$INTAKE_PATH"
+          OUTPUT_ROOT="$RUNNER_TEMP/runtime-output"
+          mkdir -p "$OUTPUT_ROOT/evidence"
+          cp -a "$INTAKE_ROOT/evidence/." "$OUTPUT_ROOT/evidence/"
+          CREATED_AT="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+          python3 architecture/spikes/ADR-Platform-030/evidence-collector-offline-prototype/prepare_collector_bundle.py \
+            --evidence-root "$OUTPUT_ROOT/evidence" \
+            --context "$INTAKE_ROOT/context.json" \
+            --context-digest "$CONTEXT_DIGEST" \
+            --protocol-digest "$PROTOCOL_DIGEST" \
+            --fixture-digest "$FIXTURE_DIGEST" \
+            --run-id "$GITHUB_RUN_ID" \
+            --created-at "$CREATED_AT" \
+            --intake-commit "$INTAKE_COMMIT" \
+            --intake-path "$INTAKE_PATH" \
+            --manifest "$OUTPUT_ROOT/evidence-bundle.json" \
+            --receipt "$OUTPUT_ROOT/collector-receipt.json"
+          python3 architecture/spikes/ADR-Platform-030/evidence-observer-protocol/evidence_bundle.py verify \
+            --root "$OUTPUT_ROOT/evidence" \
+            --manifest "$OUTPUT_ROOT/evidence-bundle.json"
+      - name: Upload the exact verified source artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ok141-evidence-bundle
+          path: ${{ runner.temp }}/runtime-output
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 0
