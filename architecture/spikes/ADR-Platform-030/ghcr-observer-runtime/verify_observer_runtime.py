@@ -41,7 +41,7 @@ spec.loader.exec_module(module)
 index = module.load_index(INDEX)
 if index["ociManifestDigest"] != "sha256:c9bdeadf1ee859c69ed0ab1136ec6b590139fe931eff44039265c144cea76dc8":
     raise SystemExit("active manifest digest mismatch")
-if len(index["workflowSourceRevision"]) != 40:
-    raise SystemExit("observer source revision is not immutable")
+if index["workflowSourceRevision"] != "c177b56a9a925a64f78a56350822e6747a5f169b":
+    raise SystemExit("observer source revision mismatch")
 
 print("PASS: exact credential-free observer and active digest index")

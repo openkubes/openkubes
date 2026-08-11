@@ -20,7 +20,7 @@ bound timestamp.
 
 The source revision identifies the immutable reviewed commit that first
 contains this exact active workflow and runtime evaluator, not a mutable branch
-name. The active workflow digest is:
+name: `c177b56a9a925a64f78a56350822e6747a5f169b`. The active workflow digest is:
 
 ```text
 sha256:6fed6d68998ce1d79e4465cf8c50ebf264535483e98ea33adca8e89adf06c5c7
