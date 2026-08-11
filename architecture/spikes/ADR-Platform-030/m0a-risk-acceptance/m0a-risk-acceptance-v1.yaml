@@ -1,0 +1,67 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: M0aRiskAcceptance
+metadata:
+  name: ok141-m0a-risk-acceptance-v1
+  ticket: OK-141
+spec:
+  version: ok141-m0a-risk-acceptance/v1
+  state: ACCEPTED-NON-AUTHORIZING
+  recordedAt: "2026-08-11T18:24:08Z"
+  acceptedBy: github:arashkaffamanesh
+  references:
+    finalPreflight:
+      path: ../m0a-final-preflight/m0a-final-preflight-v1.yaml
+      digest: sha256:d4920eeef6671163189c40e49317ddb01474c34d1dc7debef15e46e4a8f39687
+    credentialProtocol:
+      path: ../m0a-installer-credential/m0a-installer-credential-v1.yaml
+      digest: sha256:cd30dad071aeefdc314c81eb838ae2f86812e0ea14f1bfcaab8c0a159f71e568
+    controllerRbacReview:
+      path: ../m0a/caaph-rbac-review.yaml
+      digest: sha256:d5f4eb88c0da502ee50100e5b7d08a6189b258c788eeb8e9c947911606b54509
+  decisions:
+    compatibilityRisk:
+      outcome: ACCEPTED-DEV-ONLY
+      statement: Ich akzeptiere für OK-141/M0a-I das dokumentierte DEV-Kompatibilitätsrisiko von CAAPH v0.6.4 mit Kubernetes v1.34.1, CAPI v1.13.4, CAPK v0.11.2 und cert-manager v1.20.1 ohne autoritative Upstream-Testmatrix für exakt diese Kombination.
+      exactTuple:
+        caaph: v0.6.4
+        kubernetes: v1.34.1
+        capi: v1.13.4
+        capk: v0.11.2
+        certManager: v1.20.1
+      productionClaimAllowed: false
+    controllerAndCredentialBoundary:
+      outcome: ACCEPTED-DEV-ONLY
+      statement: Ich akzeptiere außerdem die dokumentierte CAAPH-Controller-RBAC-Grenze sowie die M0A-C1-Credential-Grenzen, einschließlich serverseitiger Materialisierung über PATCH und der zeitlich begrenzten Same-Name-Namespace-Einschränkung.
+      acceptedControllerCapabilities:
+        - cluster-wide Secret read
+        - read-only CAPI provider-group visibility
+        - TokenReview and SubjectAccessReview creation
+        - HCP and HRP reconciliation writes
+      acceptedCredentialLimitations:
+        - server-side apply PATCH can materialize absent exact-named objects
+        - the temporary ClusterRole cannot namespace-limit same-named namespaced targets before caaph-system exists
+        - RBAC does not prove submitted object-content identity
+      compensatingControlsRemainMandatory:
+        - exact digest-bound bounded installer
+        - preflight absence checks and positive and negative authorization probes
+        - maximum 60-minute token
+        - immediate revocation and redacted evidence
+  claimBoundaries:
+    environment: DEV
+    independentHumanSecurityReviewClaimAllowed: false
+    compatibilityProvenClaimAllowed: false
+    leastPrivilegeProvenClaimAllowed: false
+    productionUseAllowed: false
+    disasterRecoveryClaimAllowed: false
+  authorization:
+    decision: NO-GO
+    mutationAuthorized: false
+    credentialIssuanceGranted: false
+    m0aInstallationGranted: false
+    m0bInstallationGranted: false
+    go1Granted: false
+  rules:
+    - Risk acceptance closes only the two named explicit decisions and grants no credential installation target convergence rollback or failure-injection authority.
+    - Exact target identity source digests credential protocol grant installation protocol grant and bounded window remain mandatory.
+    - Any version scope RBAC permission object membership credential behavior or target-incarnation change invalidates this acceptance.
+    - M0A-C1 M0a-I M0b-I GO-1 infrastructure mutation and failure injection remain NO-GO.
