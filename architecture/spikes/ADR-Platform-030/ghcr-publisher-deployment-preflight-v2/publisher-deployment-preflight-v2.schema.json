@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ok141-ghcr-publisher-deployment-preflight/v2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["apiVersion", "kind", "metadata", "spec"],
+  "properties": {
+    "apiVersion": {"const": "evidence.openkubes.io/v1alpha1"},
+    "kind": {"const": "GHCRPublisherDeploymentPreflight"},
+    "metadata": {"type": "object"},
+    "spec": {
+      "type": "object",
+      "required": ["version", "state", "baseline", "sourceCheckpoint", "candidate", "readOnlyObservation", "offlineClosure", "environmentCandidate", "gateSequence", "nextDecision", "forbiddenByThisCheckpoint", "authorization", "rules"],
+      "properties": {
+        "version": {"const": "ok141-ghcr-publisher-deployment-preflight/v2"},
+        "state": {"const": "OFFLINE-COMPLETE-E0-BLOCKED-NO-GO"}
+      }
+    }
+  }
+}
