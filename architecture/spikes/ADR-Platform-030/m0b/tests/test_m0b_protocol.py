@@ -1,6 +1,7 @@
 import hashlib
 import importlib.util
 import json
+import subprocess
 import unittest
 from pathlib import Path
 
@@ -126,6 +127,18 @@ class M0BProtocolTests(unittest.TestCase):
         source = SPIKE.parents[3] / "ok-observability"
         if not (source / ".git").is_dir():
             self.skipTest("ok-observability sibling source is not available")
+        source_head = subprocess.run(
+            ["git", "-C", str(source), "rev-parse", "HEAD"],
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+        expected_head = self.spec["sourceProjection"]["sourceCommit"]
+        if source_head != expected_head:
+            self.skipTest(
+                "ok-observability is available but is not checked out at the "
+                "historically pinned M0b source commit"
+            )
         module_path = ROOT / "render_platform_inventory.py"
         spec = importlib.util.spec_from_file_location("ok141_m0b_render", module_path)
         module = importlib.util.module_from_spec(spec)
