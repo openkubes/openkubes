@@ -163,8 +163,22 @@ costs.
   **already-running** registry.
 
 **Proof boundary.** The kubelet-pull acceptance evidence (§8.3) was produced on the Shared Cluster
-itself. It proves the Talos runtime mechanism and the host/SNI path; it does **not** prove
-onboarding of a distinct consumer cluster, which remains unexercised.
+itself, so it proves the Talos runtime mechanism and the host/SNI path but not consumer onboarding.
+That remaining gap has since been closed: `ok-ai` was onboarded as the first cluster other than the
+Shared Cluster to trust the registry, running the full review → dry-run → apply sequence across all
+four of its CAPI Machines with read-back confirmed on each, then pulling a digest-pinned image
+whose kubelet `Pulled` event and `imageID` matched exactly.
+
+Onboarding a genuinely distinct cluster is what made the gap worth recording, because it surfaced a
+defect that self-onboarding structurally could not: the trust tooling silently reused the CA
+kubeconfig as the workload-cluster kubeconfig for Node lookups. On the Shared Cluster those are the
+same file, so the bug was invisible there and would have stayed invisible for as long as the
+capability was only ever proven against itself. The tooling now requires an explicit workload
+kubeconfig and fails closed without one, and the repeatable procedure lives in `ok-cluster`
+(`docs/registry-onboard-cluster.md`) rather than being re-derived per cluster.
+
+Still unexercised: onboarding a node profile other than Talos, for which no equivalent mechanism is
+established.
 
 ## 5. `registry-default` profile
 
