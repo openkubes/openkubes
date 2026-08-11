@@ -1,8 +1,13 @@
 # Back up and restore registry-default
 
-This is the interim OK-138 recovery procedure for `registry-default` on `ok-shared`. It exports
+This is the interim OK-138 artifact-content recovery procedure for `registry-default` on `ok-shared`. It exports
 OCI content through the Distribution API while the live zot remains Ready. It never mounts,
 snapshots, scales, restarts or writes the live registry PVC.
+
+For production recovery after loss of the namespace or PVC, follow
+[zot-disaster-recovery.md](zot-disaster-recovery.md). That runbook reuses this export, verifier and
+restore implementation while adding the configuration, identity, certificate, authorization and
+consumer-trust sequence required by ADR-Platform-028 §4.8.
 
 The export target is an operator-supplied directory on storage outside the Kubernetes cluster.
 That separation protects the copy from deletion of zot's `local-path` PVC. The operator is still

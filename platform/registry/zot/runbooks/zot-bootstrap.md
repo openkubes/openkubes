@@ -1,10 +1,10 @@
 # Bootstrap registry-default on ok-shared
 
-This is the Increment-1 bootstrap ceremony. Run it from the workspace root in an attended shell. Each cluster command uses `oks` in the same shell expression; never export `KUBECONFIG` manually. Backup and recovery are a separate ceremony in [zot-backup-restore.md](zot-backup-restore.md).
+This is the Increment-1 bootstrap ceremony. Run it from the workspace root in an attended shell. Each cluster command uses `oks` in the same shell expression; never export `KUBECONFIG` manually. Artifact export and isolated restore are a separate ceremony in [zot-backup-restore.md](zot-backup-restore.md); recovery after loss of the namespace or PVC is sequenced in [zot-disaster-recovery.md](zot-disaster-recovery.md).
 
 Prerequisites:
 
-- branch `feat/ok-138-registry-default-ok-shared` is already checked out in `openkubes`;
+- the reviewed `openkubes` revision containing this shelf is checked out;
 - the local chart checkout exists at `zot/charts/zot` at exact tag `zot-0.1.122` with clean runtime files. It is a workspace-local prerequisite, a sibling of the repositories rather than part of any of them — the same arrangement as the Keycloak and CNPG chart checkouts. Create it once from the workspace root:
 
   ```bash
@@ -30,8 +30,10 @@ Expected effect: context `ok-shared-admin@ok-shared` and four Ready nodes. If th
 Render before mutation:
 
 ```bash
-make -C "$ZOT_SHELF" render >/tmp/ok138-zot-rendered.yaml
-python3 -c 'import sys,yaml; list(yaml.safe_load_all(open(sys.argv[1]))); print("rendered YAML parsed")' /tmp/ok138-zot-rendered.yaml
+RENDERED_ZOT="$(mktemp /tmp/ok138-zot-rendered.XXXXXX.yaml)"
+trap 'rm -f -- "$RENDERED_ZOT"' EXIT INT TERM
+make -C "$ZOT_SHELF" render >"$RENDERED_ZOT"
+python3 -c 'import sys,yaml; list(yaml.safe_load_all(open(sys.argv[1]))); print("rendered YAML parsed")' "$RENDERED_ZOT"
 ```
 
 Expected effect: the chart guard reports no error and the rendered stream parses. The rendered file contains Secret references, not values.
@@ -88,14 +90,17 @@ oks && RUN_ID="$RUN_ID" make -C "$ZOT_SHELF" contract-job KUBECONFIG="$KUBECONFI
 
 Expected effects: the Job mounts `ca.crt` and the machine Secret, then reports byte-equal digest pull, a structurally asserted Referrers result, and HTTP 403 outside its prefix. Its output must say: `in-cluster OCI contract proven; kubelet image pull NOT proven`.
 
-Inspect the registered scrape object and prove there is no consumer:
+Inspect the registered scrape object and identify its current consumers:
 
 ```bash
 oks && kubectl get servicemonitor zot -n zot -o yaml
 oks && kubectl get prometheus,prometheusagent -A
 ```
 
-Expected effect: the ServiceMonitor carries Secret-backed `basicAuth`, TLS CA/serverName, selector labels and named port `zot`; there are no Prometheus resources to scrape it. Do not claim a scrape.
+Expected effect: the ServiceMonitor carries Secret-backed `basicAuth`, TLS CA/serverName, selector
+labels and named port `zot`. If no Prometheus resources exist, record that collection is not
+configured. If consumers exist, query Prometheus for target Up and real `zot_*` series; object
+presence alone does not prove a scrape.
 
 Finish with a drift check:
 

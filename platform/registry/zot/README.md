@@ -2,7 +2,11 @@
 
 This shelf implements ADR-Platform-028's `registry-default` profile for the `datacenter` envelope. It deploys zot on `ok-shared` with TLS passthrough, central Keycloak OIDC, repository authorization, authenticated metrics registration, reproducible OCI conformance checks, interim backup/recovery, and named release-scoped offline transfer.
 
-Start with [runbooks/zot-bootstrap.md](runbooks/zot-bootstrap.md). The supported operator entrypoint is this directory's `Makefile`; it deliberately consumes the pinned local chart checkout at `../../../../zot/charts/zot` and never fetches a chart at runtime.
+Start with [runbooks/zot-bootstrap.md](runbooks/zot-bootstrap.md). Recover a lost namespace/PVC with
+[runbooks/zot-disaster-recovery.md](runbooks/zot-disaster-recovery.md), which sequences the
+existing [backup/restore machinery](runbooks/zot-backup-restore.md) rather than replacing it. The
+supported operator entrypoint is this directory's `Makefile`; it deliberately consumes the pinned
+local chart checkout at `../../../../zot/charts/zot` and never fetches a chart at runtime.
 
 ## Design choices
 
@@ -119,7 +123,7 @@ Constraint Envelope qualification; ADR-Platform-017 defines no such envelope.
 
 | Requirement | Executable proof |
 |---|---|
-| Pod and Certificate Ready; TLS passthrough reaches real zot | `make post-check` asserts Pod `Ready=True`, Certificate `Ready=True`, authenticated `GET /v2/` HTTP 200 with Distribution API `registry/2.0`, and binds it to the live pod's `ReleaseTag=v2.1.20` plus pinned image ID through `--resolve` |
+| Pod and Certificate Ready; TLS passthrough reaches real zot | `make post-check` asserts Pod `Ready=True`, Certificate `Ready=True`, authenticated `GET /v2/` HTTP 200 with Distribution API `registry/2.0`, and binds the complete Pod image pin plus runtime image ID to `values-ok-shared.yaml` through `--resolve` |
 | Central human OIDC and groups claim | `make oidc-client` decodes a real issued token; `make oidc-conformance` repeats it and prints only `preferred_username` and `groups` |
 | Repository-scoped human authz | `make oidc-conformance` proves writer push/pull, outside-prefix 403, reader pull/403 push, membership removal/new-token 403, restoration/new-token pull |
 | Machine immutable-digest contract and outside-prefix denial | `make contract-job` asserts byte/digest identity **and** 403 outside the machine prefix. `make smoke` asserts byte/digest identity and that a read-only identity is denied write *inside* the prefix — that is action scoping, not prefix scoping |
@@ -133,12 +137,16 @@ Constraint Envelope qualification; ADR-Platform-017 defines no such envelope.
 | Live-registry isolation and cleanup | `make restore-drill` rejects the live namespace/release before mutation, asserts a ClusterIP-only ephemeral scratch release, and by default proves the scratch namespace was removed; the post-drill procedure compares live PVC UID/creation timestamp and reruns `make post-check` |
 | Bootstrap runbook | Walk [runbooks/zot-bootstrap.md](runbooks/zot-bootstrap.md) top to bottom and retain the command transcript |
 | Backup/recovery runbook | Walk [runbooks/zot-backup-restore.md](runbooks/zot-backup-restore.md) and retain the artifact, detached manifest, restore output and cleanup proof |
+| Namespace/PVC disaster recovery | Walk [runbooks/zot-disaster-recovery.md](runbooks/zot-disaster-recovery.md); it labels the production sequence unexercised until a destructive rehearsal proves configuration, authorization, Secret recreation/rotation, content, same-name TLS, metrics and consumer trust effects |
 | Offline-transfer runbook | Walk [runbooks/zot-offline-transfer.md](runbooks/zot-offline-transfer.md) and retain the release declaration, transfer pair, offline verification, every-member pull and before/after isolation transcript |
 | Phase-1 envelope mechanics | `conformance/smoke.sh`; Referrers are structurally asserted and run IDs make the negative auth repository repeatable. `conformance/lifecycle.sh` is **not** Increment 1 evidence — it restarts the registry and needs `gcDelay` lowered from the shipped production 1h |
 
 ## What this does not prove
 
-- It does **not** prove a kubelet/containerd image pull. The in-cluster Job proves the OCI client contract with an explicitly mounted CA. Talos containerd trust (`machine.registries.config`) and a kubelet pull remain deferred by the ticket owner.
+- The shelf's in-cluster Job and smoke targets do **not** prove a kubelet/containerd image pull;
+  they prove OCI client behavior with an explicitly mounted CA. The separate uncached kubelet pull
+  and Talos trust proof is recorded by ADR-Platform-028 §4.11 and owned operationally by
+  `ok-cluster/docs/registry-trust.md`.
 - `make post-check` alone does **not** prove Prometheus scraped the ServiceMonitor; the separate Increment-2 live Prometheus query is that evidence. The backup/restore targets add no dashboard, log or alert coverage.
 - The interim export does **not** prove production-approved retained storage unless the operator's `BACKUP_DIR` actually resides on such storage. It provides no scheduler, retention policy, replication, object lock or MinIO/S3 integration. `local-path` remains the deliberate live-storage choice pending OK-81's MinIO target.
 - It does **not** provide a transactionally consistent snapshot across concurrent registry writes, and it cannot discover an untagged manifest that is neither a referrer nor otherwise exposed by the Distribution API catalog/tag surface.
@@ -164,6 +172,7 @@ tooling/                    credential reconciliation and live proof tooling
 conformance/                ported Phase-1 smoke and lifecycle contracts
 runbooks/zot-bootstrap.md   executable bootstrap ceremony
 runbooks/zot-backup-restore.md  interim export and isolated recovery ceremony
+runbooks/zot-disaster-recovery.md  namespace/PVC-loss recovery order, gates and proof boundary
 runbooks/zot-offline-transfer.md  named release export, offline verification and fresh import ceremony
 releases/*.json             explicit immutable OpenKubes release-set declarations
 ```

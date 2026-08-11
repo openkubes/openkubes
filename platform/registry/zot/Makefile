@@ -40,6 +40,9 @@ TRANSFER_INTEGRITY_MANIFEST ?=
 RESTORE_ARTIFACT ?=
 INTEGRITY_MANIFEST ?=
 APPROVE_RESTORE_DRILL ?=
+APPROVE_DISASTER_RECOVERY ?=
+APPROVE_INCOMPLETE_RECOVERY_RESET ?=
+EXPECTED_PVC_UID ?=
 RETAIN_SCRATCH ?= no
 SCRATCH_NAMESPACE ?=
 SCRATCH_RELEASE ?= zot-restore-drill
@@ -96,8 +99,8 @@ WRITER_GROUP ?= registry-writers
 READER_GROUP ?= registry-readers
 OIDC_REDIRECT_URI ?= $(REGISTRY_ORIGIN)/zot/auth/callback/oidc
 
-.PHONY: help render diff require-inputs require-tools require-backup-tools require-verify-tools require-restore-tools require-chart require-values-contract require-oidc-approval require-lifecycle-approval require-release-set require-transfer-input require-restore-input require-restore-drill-approval require-confirm \
-	namespace identities reachability zot oidc-client metrics post-check smoke lifecycle contract-job oidc-conformance backup verify-backup restore-drill release-export verify-release offline-transfer-drill install \
+.PHONY: help render diff require-inputs require-tools require-backup-tools require-verify-tools require-restore-tools require-chart require-values-contract require-oidc-approval require-lifecycle-approval require-release-set require-transfer-input require-restore-input require-restore-drill-approval require-disaster-recovery-approval require-incomplete-recovery-reset-approval require-confirm \
+	namespace identities reachability zot oidc-client metrics post-check smoke lifecycle contract-job oidc-conformance backup verify-backup restore-drill disaster-recovery reset-incomplete-disaster-recovery release-export verify-release offline-transfer-drill install \
 	ship-check ship-scan-self-test \
 	teardown-metrics teardown-zot teardown-reachability teardown-oidc-secret teardown-identities teardown-data teardown
 
@@ -183,6 +186,25 @@ require-restore-drill-approval:
 		echo "ERROR: restore-drill creates an isolated scratch registry on cluster $(CLUSTER)." >&2; \
 		echo "       Review the artifact, isolation guards and cleanup; rerun with APPROVE_RESTORE_DRILL=yes." >&2; exit 2; }
 	@test -t 0 || { echo "ERROR: restore-drill must be run attended from a terminal" >&2; exit 2; }
+
+require-disaster-recovery-approval:
+	@test "$(APPROVE_DISASTER_RECOVERY)" = yes || { \
+		echo "ERROR: disaster-recovery writes verified artifact content into the live zot/zot registry." >&2; \
+		echo "       Review the reconstructed target and artifact; rerun with APPROVE_DISASTER_RECOVERY=yes." >&2; exit 2; }
+	@test -t 0 || { echo "ERROR: disaster-recovery must be run attended from a terminal" >&2; exit 2; }
+	@test -n "$(EXPECTED_PVC_UID)" || { echo "ERROR: EXPECTED_PVC_UID is required for disaster-recovery" >&2; exit 2; }
+
+require-incomplete-recovery-reset-approval:
+	@test "$(APPROVE_INCOMPLETE_RECOVERY_RESET)" = yes || { \
+		echo "ERROR: reset-incomplete-disaster-recovery uninstalls zot/zot and irreversibly deletes only the exact approved replacement PVC." >&2; \
+		echo "       Review the incomplete target and rerun with APPROVE_INCOMPLETE_RECOVERY_RESET=yes." >&2; exit 2; }
+	@test -t 0 || { echo "ERROR: reset-incomplete-disaster-recovery must be run attended from a terminal" >&2; exit 2; }
+	@test -n "$(EXPECTED_PVC_UID)" || { echo "ERROR: EXPECTED_PVC_UID is required for reset-incomplete-disaster-recovery" >&2; exit 2; }
+	@test -n "$(INTEGRITY_MANIFEST)" || { \
+		echo "ERROR: INTEGRITY_MANIFEST is required for reset-incomplete-disaster-recovery." >&2; \
+		echo "       Its recovery point is what proves the PVC is a replacement created during" >&2; \
+		echo "       this recovery rather than the original claim. A UID alone cannot tell them apart." >&2; exit 2; }
+	@test -r "$(INTEGRITY_MANIFEST)" || { echo "ERROR: integrity manifest is not readable: $(INTEGRITY_MANIFEST)" >&2; exit 2; }
 
 require-confirm:
 	@test "$(CONFIRM)" = yes || { echo "ERROR: teardown is destructive; rerun the reviewed target with CONFIRM=yes" >&2; exit 2; }
@@ -282,6 +304,22 @@ restore-drill: require-inputs require-restore-tools require-chart require-restor
 		$(if $(SCRATCH_NAMESPACE),--scratch-namespace "$(SCRATCH_NAMESPACE)",) \
 		$(if $(SCRATCH_RELEASE),--scratch-release "$(SCRATCH_RELEASE)",) \
 		"$(RESTORE_ARTIFACT)" "$(INTEGRITY_MANIFEST)"
+
+disaster-recovery: require-inputs require-backup-tools require-values-contract require-restore-input require-disaster-recovery-approval ## APPROVAL: restore into reconstructed authenticated live zot/zot after exact PVC UID and empty-catalog guards
+	@REGISTRY_LB_KUBECONFIG="$(REGISTRY_LB_KUBECONFIG)" $(PYTHON) "$(ZOTCTL)" disaster-recovery --kubectl "$(KUBECTL)" --kubeconfig "$(KUBECONFIG)" \
+		--namespace "$(NAMESPACE)" --release "$(RELEASE)" --values-file "$(VALUES_FILE)" \
+		--expected-pvc-uid "$(EXPECTED_PVC_UID)" \
+		--registry-host "$(REGISTRY_HOST)" $(if $(REGISTRY_LB),--registry-lb "$(REGISTRY_LB)",) \
+		--tls-secret "$(TLS_SECRET)" --machine-secret "$(MACHINE_SECRET)" \
+		--conformance-secret "$(CONFORMANCE_SECRET)" --keycloak-host "$(KEYCLOAK_HOST)" \
+		$(if $(filter yes,$(APPROVE_DISASTER_RECOVERY)),--approve,) \
+		"$(RESTORE_ARTIFACT)" "$(INTEGRITY_MANIFEST)"
+
+reset-incomplete-disaster-recovery: require-inputs require-tools require-incomplete-recovery-reset-approval ## APPROVAL: uninstall an incomplete zot/zot and delete only its exact approved PVC UID
+	@$(PYTHON) "$(ZOTCTL)" reset-incomplete-disaster-recovery --kubectl "$(KUBECTL)" --helm "$(HELM)" --kubeconfig "$(KUBECONFIG)" \
+		--namespace "$(NAMESPACE)" --release "$(RELEASE)" --expected-pvc-uid "$(EXPECTED_PVC_UID)" \
+		$(if $(filter yes,$(APPROVE_INCOMPLETE_RECOVERY_RESET)),--approve,) \
+		"$(INTEGRITY_MANIFEST)"
 
 release-export: require-inputs require-backup-tools require-release-set ## Export one named immutable release and refuse an incomplete descriptor/referrer closure
 	@REGISTRY_LB_KUBECONFIG="$(REGISTRY_LB_KUBECONFIG)" $(PYTHON) "$(ZOTCTL)" release-export "$(RELEASE_SET)" --kubectl "$(KUBECTL)" --kubeconfig "$(KUBECONFIG)" \
