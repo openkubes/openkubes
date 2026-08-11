@@ -1,0 +1,69 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: EvidencePublicationOutcome
+metadata:
+  name: ok141-p1-publication-evidence-v1
+  ticket: OK-141
+spec:
+  state: P1-OBJECTIVE-VERIFIED-WORKFLOW-FAILED-NO-RETRY
+  authorization:
+    p1ProtocolDigest: sha256:4b215b1159ee07aa5a94b774f1487266f33e54e4353f1c1567bc27a4fb3edfdf
+    originalBundleProtocolDigest: sha256:c3db4493e52c07425f323e22d10c572bd1320295c10f3a001bcc4852b67cbc29
+    exactRunAuthorized: 31518242808
+    sourceRunAuthorized: 31516921145
+    environmentID: 19690057278
+    deploymentID: 5855451838
+  run:
+    id: 31518242808
+    jobID: 93868633202
+    workflowID: 332090718
+    workflowDigest: sha256:6837271e8929eac133d1f5f6fb1bbaba3b83f61a772f27a856b51e79d673a27b
+    headSHA: 7c6d8ce75992206c050de757090e653dfdd26a05
+    event: workflow_dispatch
+    conclusion: failure
+    startedAt: "2026-08-11T17:34:21Z"
+    completedAt: "2026-08-11T17:35:05Z"
+    successfulSteps:
+      - exact source run verification
+      - exact artifact download and bundle binding verification
+      - deterministic correlated transport creation
+      - reviewed ORAS installation
+      - OCI publication
+      - exact manifest attestation
+      - digest-only pull-back
+    failedStep: Verify pull-back receipt and durable correlation
+    failureClass: GH-CLI-TOKEN-ENV-MISSING
+    failureSummary: gh attestation verify exited before receipt creation because GH_TOKEN was not set in the final step
+  publication:
+    repository: ghcr.io/openkubes/ok141-evidence
+    tag: run-31516921145
+    publicAnonymousReadVerified: true
+    ociManifestDigest: sha256:c9bdeadf1ee859c69ed0ab1136ec6b590139fe931eff44039265c144cea76dc8
+    ociManifestSize: 625
+    transportDigest: sha256:1c419e42d8403073e6b7d93ae4829f3559b940d70365791b97a373e7a4ce6f05
+    internalBundleDigest: sha256:8372a41284a69774f173c1037516f3dbba64fd19c5de3f1506f10386a6b2eab7
+    sourceCorrelationDigest: sha256:4cc87594da0f09935352f4d351d99232464f3f0e3e038028a557558e7d0f0450
+  attestation:
+    verified: true
+    subjectDigest: sha256:c9bdeadf1ee859c69ed0ab1136ec6b590139fe931eff44039265c144cea76dc8
+    signerWorkflow: openkubes/openkubes/.github/workflows/ok141-evidence-publisher.yaml
+    sourceRef: refs/heads/main
+    sourceDigest: 7c6d8ce75992206c050de757090e653dfdd26a05
+    trigger: workflow_dispatch
+    runnerEnvironment: github-hosted
+    transparencyLogTimestamp: "2026-08-11T19:34:58+02:00"
+  independentVerification:
+    tagToDigest: PASS
+    digestPullBack: PASS
+    attestationPolicy: PASS
+    embeddedSourceCorrelation: PASS
+    existingReceiptVerifier: VERIFIED-PULL-BACK-WITH-SOURCE-CORRELATION
+  outcome:
+    publicationObjectiveVerified: true
+    workflowHealthy: false
+    p1RunBudgetConsumed: true
+    retryAuthorized: false
+    packageRecreationAuthorized: false
+    attestationRecreationAuthorized: false
+    go1Granted: false
+    infrastructureMutationAuthorized: false
+    failureInjectionAuthorized: false
