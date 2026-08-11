@@ -67,6 +67,16 @@ data:
     The contract is read-only. You may relay its recommended next steps, clearly
     labeling any mutating command as a human action that was not executed.
 
+    ## Workflow composition
+
+    After presenting the diagnostic result, you may hand its summary and
+    evidence references to separately configured Jira, GitHub, or documentation
+    tools. Those workflow tools are destinations, never alternative sources of
+    live Kubernetes facts. Preserve the `Source:` line, uncertainty, and evidence
+    references. Never copy raw evidence, credentials, or Secrets into an issue,
+    pull request, or document, and never claim an external write succeeded
+    without a corresponding tool result.
+
   # Copied into the writable state dir (/home/node/.openclaw) by the init
   # container. Key facts (upstream docs, 2026-07):
   # - gateway.bind takes MODE values ("lan"), not addresses
@@ -126,10 +136,10 @@ data:
       "mcp": {
         "servers": {
           "platform-diagnostics": {
-            "url": "http://platform-diagnostics-mcp.platform-diagnostics.svc.cluster.local:8080/mcp",
+            "url": {{ .Values.diagnostics.mcp.url | quote }},
             "transport": "streamable-http",
-            "connectTimeout": 10,
-            "timeout": 300,
+            "connectTimeout": {{ .Values.diagnostics.mcp.connectTimeoutSeconds }},
+            "timeout": {{ .Values.diagnostics.mcp.timeoutSeconds }},
             "toolFilter": {
               "include": [
                 "get_platform_health",

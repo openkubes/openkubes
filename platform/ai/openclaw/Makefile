@@ -10,7 +10,7 @@
 
 .PHONY: help preflight install upgrade uninstall status validate logs \
         token-show connect-info connect-openwebui fix-openwebui-ollama \
-        image-build image-push image-release verify-kubectl chart-release
+        verify-mcp-consumer verify-mcp-live chart-release
 .DEFAULT_GOAL := help
 
 CLUSTER     ?= ok-ai
@@ -45,11 +45,9 @@ help:
 	@echo "  make fix-openwebui-ollama  # apply OLLAMA_BASE_URL chart-bug workaround"
 	@echo "  make uninstall             # remove release + namespace"
 	@echo ""
-	@echo "Custom image (OpenClaw + kubectl, Cluster Inspection skill):"
-	@echo "  make image-build           # step A: build kubectl derivative locally"
-	@echo "  make image-release         # step B: build + push to \$$IMG ($(IMG))"
-	@echo "  make upgrade               # step C: roll out (image is the values.yaml default)"
-	@echo "  make verify-kubectl        # step D: kubectl + RBAC checks in the pod"
+	@echo "ADR-021 consumer verification:"
+	@echo "  make verify-mcp-consumer   # static Helm/MCP/credential-boundary checks"
+	@echo "  make verify-mcp-live       # post-deploy token/image/MCP checks"
 
 # ── step 1 ────────────────────────────────────────────────────────────────────
 preflight:
@@ -131,28 +129,6 @@ validate: $(TOKEN_FILE)
 	@echo ""
 	@echo "OK: contract endpoint works — proceed with 'make connect-info'"
 
-# ── custom image: OpenClaw + kubectl (Cluster Inspection skill) ──────────────
-# Registry decision (OK-15): GHCR is primary, Harbor is deferred. The Docker
-# Hub image (kubernautslabs/openclaw-kubectl) is bootstrap-only until the
-# first CI push lands on GHCR. Override: make image-release IMG=...
-OPENCLAW_VERSION ?= 2026.7.1
-# kubectl: match cluster minor (ok-ai: v1.34.x)
-KUBECTL_VERSION  ?= v1.34.1
-IMG              ?= ghcr.io/openkubes/openclaw-kubectl
-IMG_TAG          ?= $(OPENCLAW_VERSION)
-IMAGE_DIR        := $(dir $(lastword $(MAKEFILE_LIST)))images/openclaw-kubectl
-
-image-build:
-	docker build --platform linux/amd64 \
-		--build-arg OPENCLAW_VERSION=$(OPENCLAW_VERSION) \
-		--build-arg KUBECTL_VERSION=$(KUBECTL_VERSION) \
-		-t $(IMG):$(IMG_TAG) $(IMAGE_DIR)
-
-image-push:
-	docker push $(IMG):$(IMG_TAG)
-
-image-release: image-build image-push
-
 # Publish the chart as OCI to GHCR — required once before the Crossplane
 # Composition (crossplane/composition.yaml) can fetch it.
 CHART_OCI ?= oci://ghcr.io/openkubes/charts
@@ -160,21 +136,18 @@ chart-release:
 	helm package $(CHART) -d /tmp
 	helm push /tmp/openclaw-$$(helm show chart $(CHART) | awk '/^version:/{print $$2}').tgz $(CHART_OCI)
 
-verify-kubectl:
-	@echo "== kubectl present in the pod =="
-	@$(KUBECTL) -n $(NS) exec deploy/$(RELEASE) -- kubectl version --client
+verify-mcp-consumer:
+	@python3 scripts/verify-mcp-consumer.py
+
+verify-mcp-live:
+	@echo "== no Kubernetes credential or client in the consumer pod =="
+	@$(KUBECTL) -n $(NS) exec deploy/$(RELEASE) -- sh -c \
+		'test ! -e /var/run/secrets/kubernetes.io/serviceaccount/token && ! command -v kubectl'
+	@echo "OK: ServiceAccount token and kubectl are absent"
 	@echo ""
-	@echo "== positive: Cluster Inspection Contract (read) =="
-	@$(KUBECTL) -n $(NS) exec deploy/$(RELEASE) -- kubectl auth can-i list pods --all-namespaces
-	@$(KUBECTL) -n $(NS) exec deploy/$(RELEASE) -- kubectl get pods -n $(NS)
-	@echo ""
-	@echo "== negative: guardrails (must all be denied) =="
-	@$(KUBECTL) -n $(NS) exec deploy/$(RELEASE) -- kubectl auth can-i get secrets --all-namespaces \
-		&& (echo "FAIL: secrets readable — RBAC violates the guideline, STOP (Part C)"; exit 1) \
-		|| echo "OK: secrets denied"
-	@$(KUBECTL) -n $(NS) exec deploy/$(RELEASE) -- kubectl auth can-i delete pods --all-namespaces \
-		&& (echo "FAIL: write verb allowed — RBAC violates the guideline, STOP (Part C)"; exit 1) \
-		|| echo "OK: writes denied"
+	@echo "== restricted MCP registration and adapter connectivity =="
+	@$(KUBECTL) -n $(NS) exec deploy/$(RELEASE) -- \
+		node dist/index.js mcp probe platform-diagnostics
 
 # ── step 5 ────────────────────────────────────────────────────────────────────
 # Auto-register OpenClaw as an OpenAI connection in Open WebUI — same pattern

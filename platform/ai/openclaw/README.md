@@ -8,7 +8,12 @@ enterprise layer (multi-user, OIDC, chat persistence); OpenClaw is a
 replaceable implementation profile — any backend speaking Contract v1
 (e.g. kagent) can substitute it.
 
-**Status:** OK-15 Phase 1 (Makefile + Helm, PoC-grade).
+It is also the first conversational consumer of the ADR-021 Read-Only Platform
+Diagnostics Contract (OK-94). Kubernetes diagnostics enter OpenClaw only through
+the provider-neutral MCP adapter; the consumer has no Kubernetes credential,
+client binary, or RBAC.
+
+**Status:** OK-15 Phase 1 plus OK-94 MCP consumer integration.
 Phase 2 (Crossplane XRD `OpenClawInstance`, self-service) follows **only
 after a Go from the OK-14 PoC** — see the implementation order in
 [`docs/agentic-ai-poc-guideline.md`](../../../docs/agentic-ai-poc-guideline.md).
@@ -20,7 +25,9 @@ platform/ai/openclaw/
 ├── Makefile                     # deploy/operate targets (see `make help`)
 ├── charts/openclaw/             # minimal hand-rolled chart (no official chart upstream)
 ├── crossplane/                  # XRD + Composition + Claim examples (platform path)
-├── images/openclaw-kubectl/     # official image + pinned kubectl (Cluster Inspection skill)
+├── scripts/verify-mcp-consumer.py # rendered consumer boundary checks
+├── evidence/                    # dated, credential-free validation records
+├── images/openclaw-kubectl/     # historical OK-15 image; not used by the chart
 └── .gitignore                   # keeps the generated gateway token out of git
 ```
 
@@ -41,13 +48,9 @@ make status CLUSTER=ok-ai
 The direct-Helm Makefile targets in this directory remain the debug/dev
 path; Crossplane is how the platform installs the component.
 
-CI: `.github/workflows/build-openclaw-kubectl.yaml` builds and pushes the
-image to `ghcr.io/<owner>/openclaw-kubectl` on changes under `images/`
-(same pattern as the capi-platform-runner workflow). GHCR is the primary
-registry (OK-15 decision; Harbor deferred) and is the default in
-`charts/openclaw/values.yaml`. Until the first CI push lands, the manually
-pushed Docker Hub `kubernautslabs/openclaw-kubectl` serves as bootstrap:
-`--set image.repository=kubernautslabs/openclaw-kubectl`.
+The chart now uses `ghcr.io/openclaw/openclaw` directly. The historical
+OpenClaw+kubectl image and workflow remain only as OK-15 evidence and are not a
+supported diagnostics path.
 
 ## Provider Values (private — not in this repo)
 
@@ -70,7 +73,8 @@ make install   OLLAMA_URL=...   # token generated to .token (gitignored), helm i
 make validate                   # in-cluster /v1/models + completion test
 make connect-openwebui          # auto-register in Open WebUI (env seed, fresh instances)
 make connect-info               # or: manual values for the Admin UI
-make verify-kubectl             # RBAC guardrails: reads OK, secrets/writes denied
+make verify-mcp-consumer        # render chart and verify MCP-only/no-credential boundary
+make verify-mcp-live            # verify the same boundary after deployment
 ```
 
 `connect-openwebui` sets `OPENAI_API_BASE_URL`/`OPENAI_API_KEY` on the
@@ -80,9 +84,10 @@ instances already configured via the Admin UI, the DB value wins.
 
 ## Guardrails (ADR-015 / guideline — enforced in the chart)
 
-Single replica + `Recreate` (hardcoded) · token auth · read-only RBAC
-(`get/list/watch`, **secrets excluded**, verified by `make verify-kubectl`)
-· no PVC (stateless; emptyDir only — statelessness verified in OK-14) ·
+Single replica + `Recreate` (hardcoded) · token auth · no consumer RBAC ·
+ServiceAccount token automount disabled · upstream image without kubectl · Exec
+denied · exactly three allowlisted diagnostics tools through the MCP adapter ·
+no PVC (stateless; emptyDir only — statelessness verified in OK-14) ·
 `gateway.bind: lan` · `chatCompletions` endpoint explicitly enabled
 (upstream default-disabled).
 
@@ -92,7 +97,8 @@ escalate (new ADR + review), do not implement.
 
 ## References
 
-- [OK-14](https://kubernauts.atlassian.net/browse/OK-14) · [OK-15](https://kubernauts.atlassian.net/browse/OK-15) (source of truth for tasks/acceptance criteria)
+- [OK-14](https://kubernauts.atlassian.net/browse/OK-14) · [OK-15](https://kubernauts.atlassian.net/browse/OK-15) · [OK-94](https://kubernauts.atlassian.net/browse/OK-94)
 - [ADR-Platform-015 — Agentic AI](../../../architecture/decisions/ADR-Platform-015-agentic-ai.md)
+- [ADR-Platform-021 — Read-Only Platform Diagnostics Contract](../../../architecture/decisions/ADR-Platform-021-read-only-platform-diagnostics-contract.md)
 - [Implementation guideline](../../../docs/agentic-ai-poc-guideline.md)
 - [OpenClaw docs](https://docs.openclaw.ai) · [Open WebUI ↔ OpenClaw](https://docs.openwebui.com/getting-started/quick-start/connect-an-agent/openclaw/)

@@ -1,67 +1,37 @@
-# OpenClaw consumer — `platform-diag` (ADR-021)
+# OpenClaw consumer via MCP (OK-94)
 
-OpenClaw is the **first consumer** of the Read-Only Platform Diagnostics Contract.
-It reaches diagnostics ONLY through the HTTP contract (the facade); it holds no
-Kubernetes credentials (ADR-021 authorization model).
+OpenClaw is the first conversational consumer of the Read-Only Platform
+Diagnostics Contract. It uses only the thin MCP adapter and holds no Kubernetes
+credentials:
 
-## Why a CLI, not MCP
-
-Our OpenClaw deployment has **no MCP** wiring. Its shipped `openclaw.json` only has
-`gateway`/`models`/`agents`, and the original "Cluster Inspection skill" was just
-the **kubectl binary in the image** used through OpenClaw's built-in **Exec tool**
-(we saw `Exec failed: kubectl get ns` from the agent after the RBAC handoff).
-
-So the consistent, correct consumer is the same mechanism: a tiny `platform-diag`
-CLI on PATH that calls the HTTP contract, invoked by the agent's Exec tool. This
-keeps OpenClaw credential-less and is exactly what ADR-021 means by "OpenClaw is a
-consumer, restricted to the contract, no cluster access." (The `ok` CLI, OK-76, is
-another HTTP consumer of the same contract.)
-
-```
-Open WebUI → OpenClaw (agent) --Exec--> platform-diag --HTTP--> facade
-             (no kube creds)                                     → kagent (read-only SA) → cluster
+```text
+Open WebUI -> OpenClaw -> platform-diagnostics MCP adapter -> HTTP contract
+                                                               -> provider
 ```
 
-## The CLI
+The OpenClaw chart owns the concrete consumer wiring:
 
-```
-platform-diag health      [--clusters ok-ai,ok2]
-platform-diag investigate --cluster ok-ai --namespace kube-system --workload coredns [--time-range PT1H]
-platform-diag collect     --cluster ok-ai --namespace kube-system --workload coredns
-```
+- the `platform-diagnostics` MCP server points to the adapter, never directly to
+  kagent or the facade;
+- the tool filter exposes exactly `get_platform_health`,
+  `investigate_workload`, and `collect_diagnostic_evidence`;
+- the Exec tool is denied;
+- the upstream OpenClaw image replaces the former kubectl derivative;
+- ServiceAccount token automount is disabled on both the ServiceAccount and Pod;
+- no Role, ClusterRole, or binding is rendered for the consumer; and
+- the agent instructions preserve provenance and allow sanitized handoff to
+  separately configured Jira, GitHub, or documentation tools.
 
-Endpoint from env `PLATFORM_DIAGNOSTICS_URL` (default: the in-cluster facade svc).
-Output is the raw ADR-021 JSON, for the agent to read and summarize.
+The removed `platform-diag` CLI/Exec path was an early implementation scaffold.
+It bypassed the MCP adapter required by ADR-021 and must not be reintroduced.
 
-## Deploy
-
-Build the image (multi-arch) and point the OpenClaw release at it:
+## Verify
 
 ```bash
-docker buildx build --platform linux/amd64,linux/arm64 --provenance=false \
-  -t ghcr.io/openkubes/openclaw-diag:2026.7.1 --push .
-
-# switch the openclaw release to this image + inject the facade endpoint,
-# keep RBAC OFF (consumer holds no creds):
-helm upgrade openclaw <openclaw-chart> -n openclaw --reuse-values \
-  --set image.repository=ghcr.io/openkubes/openclaw-diag \
-  --set rbac.create=false \
-  --set-string extraEnv.PLATFORM_DIAGNOSTICS_URL=http://platform-diagnostics.platform-diagnostics.svc.cluster.local:8080
+cd platform/ai/openclaw
+make verify-mcp-consumer
 ```
 
-(If the openclaw chart has no `extraEnv`, set `PLATFORM_DIAGNOSTICS_URL` via
-`kubectl -n openclaw set env deploy/openclaw ...`; the CLI also has a sane default.)
-
-## Autonomous use — the one OpenClaw-config detail to confirm
-
-The Exec tool lets the agent *run* `platform-diag`; to make it do so **on its own**
-when a user asks a cluster question, the agent needs a system-prompt instruction
-naming the CLI and when to use it. Our `openclaw.json` validates `agents.defaults`
-**strictly** (only schema-supported keys), so the exact prompt field must be
-confirmed against OpenClaw's config schema before adding it — do not guess the key.
-
-Until then, the path is verifiable immediately by asking the agent in chat to run
-it, e.g. *"run `platform-diag investigate --cluster ok-ai --namespace kube-system
---workload coredns` and summarize"* — the Exec tool executes it through the
-contract, and the facade log confirms the call arrived via the contract (not via
-any OpenClaw cluster access, which no longer exists).
+After deploying chart 0.2.0, run `make verify-mcp-live` to confirm the pod has no
+ServiceAccount token or kubectl binary and that OpenClaw reports the restricted
+MCP registration.

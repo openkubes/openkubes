@@ -29,6 +29,8 @@ test, not a convention.
 
 ```
 platform/ai/platform-diagnostics/
+├── consumer/
+│   └── openclaw/             # first consumer, MCP-only and credential-less  ← OK-94
 ├── contract/
 │   ├── openapi.yaml           # Draft implementation scaffold — finalization in OK-89/OK-90
 │   ├── mcp-adapter/           # thin agent-facing adapter, DERIVED from openapi.yaml (optional)
@@ -52,7 +54,7 @@ platform/ai/platform-diagnostics/
 |---|---|---|
 | `contract/` (OpenAPI, MCP adapter, contract tests) | **OK-89 / OK-90** (normative finalization and validation) | `openkubes` (this repo) |
 | `profiles/kagent/` (Profile A implementation) | **OK-92** (integrate kagent as first provider profile) | `openkubes` (generic) + `ok-cluster` (provider values) |
-| OpenClaw as first **consumer** (diagnostics skill via MCP adapter) | ADR-021 Consumers | `ok-cluster/openclaw` |
+| OpenClaw as first **consumer** (diagnostics via MCP adapter only) | **OK-94** | `openkubes` chart + `ok-cluster/openclaw` values |
 
 OK-92 needs a concrete interface for Profile A. The included
 `contract/openapi.yaml` is therefore explicitly a **Draft implementation
@@ -81,4 +83,4 @@ chat backend.
 - [ADR-Platform-015 — Agentic AI](../../../architecture/decisions/ADR-Platform-015-agentic-ai.md)
 - [Implementation guideline](../../../docs/agentic-ai-poc-guideline.md)
 - [Problem statement](../../../docs/problem-statement-platform-diagnostics-contract.md)
-- [OK-89](https://kubernauts.atlassian.net/browse/OK-89) · [OK-92](https://kubernauts.atlassian.net/browse/OK-92) · [OK-14](https://kubernauts.atlassian.net/browse/OK-14)
+- [OK-89](https://kubernauts.atlassian.net/browse/OK-89) · [OK-92](https://kubernauts.atlassian.net/browse/OK-92) · [OK-94](https://kubernauts.atlassian.net/browse/OK-94) · [OK-14](https://kubernauts.atlassian.net/browse/OK-14)

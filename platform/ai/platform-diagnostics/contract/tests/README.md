@@ -8,7 +8,8 @@ Owned by OK-89; Profile A (OK-92) must pass all six before it can be called done
    with zero references to a specific runtime or frontend.
 2. **RBAC audit** — the Phase-1 provider identity has **no verbs beyond
    `get`/`list`/`watch`**, and no access to `secrets` in any apiGroup.
-   (Mirrors `openclaw`'s `make verify-kubectl`; reused for kagent's SA.)
+   This applies to the provider identity only; consumers receive no Kubernetes
+   credential or RBAC.
 3. **Evidence hygiene** — output contains references (`EvidenceRef.uri`), never
    embedded secrets/credentials or raw payloads.
 4. **Backend-swap** — the consumer test suite passes unchanged against a stub
@@ -22,5 +23,5 @@ Owned by OK-89; Profile A (OK-92) must pass all six before it can be called done
 
 > Status: specification only. Executable tests land with OK-89. Recommended shape:
 > schema/tests 1,3,5,6 as OpenAPI + JSON-Schema assertions over recorded provider
-> responses; test 2 as the in-cluster RBAC probe (see `profiles/kagent/rbac.yaml`
-> and the reused `verify-kubectl` target); test 4 against `profiles/_stub-b`.
+> responses; test 2 as the in-cluster RBAC probe for `profiles/kagent/rbac.yaml`;
+> test 4 against `profiles/_stub-b`.
