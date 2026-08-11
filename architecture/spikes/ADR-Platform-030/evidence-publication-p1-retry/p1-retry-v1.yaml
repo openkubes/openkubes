@@ -1,0 +1,65 @@
+apiVersion: test.openkubes.io/v1alpha1
+kind: EvidencePublicationRetryProtocol
+metadata:
+  name: ok141-evidence-publication-p1-retry-v1
+  ticket: OK-141
+spec:
+  version: ok141-evidence-publication-retry/v1
+  state: READY-FOR-P1-DECISION-NO-GO
+  baseline:
+    repository: openkubes/openkubes
+    commit: 50dd37cdab0a1c32bc53d7024dd0e5543b02791b
+  source:
+    collectorRunID: 31516921145
+    collectorWorkflowID: 332101848
+    collectorHeadSHA: 9609225417c330451cd42ee6472743989d6b7aea
+    artifactID: 9111441766
+    artifactName: ok141-evidence-bundle
+    bundleDigest: sha256:8372a41284a69774f173c1037516f3dbba64fd19c5de3f1506f10386a6b2eab7
+    publisherInputProtocolDigest: sha256:c3db4493e52c07425f323e22d10c572bd1320295c10f3a001bcc4852b67cbc29
+  publisher:
+    workflowID: 332090718
+    workflowPath: .github/workflows/ok141-evidence-publisher.yaml
+    workflowDigest: sha256:6837271e8929eac133d1f5f6fb1bbaba3b83f61a772f27a856b51e79d673a27b
+    environment:
+      name: ok-141-evidence-publish
+      id: 19690057278
+    destination: ghcr.io/openkubes/ok141-evidence
+    tag: run-31516921145
+  scope:
+    operation: retry-synthetic-redacted-evidence-publication
+    maximumPublisherRuns: 1
+    maximumGHCRArtifacts: 1
+    maximumAttestations: 1
+    clusterAccess: false
+    clusterCredential: false
+    infrastructureMutation: false
+    syntheticEvidenceOnly: true
+  authorizationCorrelation:
+    bundleProtocolDigestCarriedByWorkflow: true
+    p1ProtocolDigestCarriedByWorkflow: false
+    p1Enforcement: exact protected-environment approval recorded with run ID and P1 digest
+    finalEvidenceMustRetainBothDigests: true
+  expectedEvidence:
+    - exact publisher run and protected-environment deployment approval
+    - source run metadata and immutable bundle verification
+    - one OCI manifest digest under the fixed non-authoritative tag
+    - attestation subject equal to the OCI manifest digest
+    - digest-only pull-back with verified receipt and source correlation
+  stopConditions:
+    - active publisher workflow digest or workflow ID differs
+    - source collector run artifact or original protocol binding differs
+    - package tag already exists before the authorized retry
+    - environment approval does not cite the exact P1 protocol digest and run ID
+    - more than one publisher run package or attestation is proposed
+    - any secret kubeconfig token private key cluster access or infrastructure mutation appears
+    - any attestation or pull-back claim is made after an earlier failed step
+  authorization:
+    decision: NO-GO
+    p1Granted: false
+    publisherDispatchAuthorized: false
+    packageWriteAuthorized: false
+    attestationWriteAuthorized: false
+    go1Granted: false
+    infrastructureMutationAuthorized: false
+    failureInjectionAuthorized: false
