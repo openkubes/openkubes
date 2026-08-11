@@ -1,0 +1,16 @@
+distribution: rke2
+provider_capabilities:
+  workload_events: true
+  workload_logs: true
+  cilium_diagnostics: true
+  host_journal: true
+  node_shell: true
+evidence_expectations:
+  host_journal:
+    status: available
+    reason_required: false
+    uri_required: true
+  node_shell:
+    status: available
+    reason_required: false
+    uri_required: true
