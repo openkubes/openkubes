@@ -1,0 +1,78 @@
+apiVersion: test.openkubes.io/v1alpha1
+kind: EvidencePublicationSmokeProtocol
+metadata:
+  name: ok141-evidence-publication-smoke-v1
+  ticket: OK-141
+spec:
+  version: ok141-evidence-publication-smoke/v1
+  state: READY-FOR-C1-P0-DECISION-NO-GO
+  baseline:
+    repository: openkubes/openkubes
+    commit: 083f6988ceed82e73fc1394b1038030d6e08f34b
+    release: v0.15.0
+  bindings:
+    fixtureDigest: sha256:a2ae3437645db5a83426b89d36d00693d2600e4ef20dc1aba2650dcda7f936f6
+    decisionInputDigest: sha256:4b618081517eb96ef1896b40a7f9f5556054ab2d029fbbf706e8630bb6b42c5c
+    environment:
+      name: ok-141-evidence-publish
+      id: 19690057278
+    collector:
+      workflowID: 332101848
+      path: .github/workflows/ok141-evidence-collector.yaml
+      digest: sha256:5b7f6e021f951d8f460283caeed895c8ae4664abee2b363fb87af6d23d03bc15
+    publisher:
+      workflowID: 332090718
+      path: .github/workflows/ok141-evidence-publisher.yaml
+      digest: sha256:3de106067f2fdb70add382c1fa63a2749e032dda9f83442f9880d6e672a3aab2
+  scope:
+    operation: synthetic-redacted-evidence-pipeline-smoke
+    intakePath: architecture/spikes/ADR-Platform-030/evidence/intake/ok141-publication-smoke
+    requiredFiles: [context.json, evidence/status.json, evidence/claims.md]
+    clusterAccess: false
+    clusterCredential: false
+    infrastructureMutation: false
+    syntheticEvidenceOnly: true
+    publicGitRetentionAccepted: true
+    maximumActionsRuns: 2
+    maximumArtifacts: 1
+    maximumGHCRPackages: 1
+    maximumAttestations: 1
+  phases:
+    - id: C1
+      operation: merge exact redacted intake and dispatch collector once
+      status: NOT-GRANTED
+      expectedOutput: one successful ok141-evidence-bundle Actions artifact
+    - id: P0
+      operation: dispatch publisher once for the exact successful C1 run
+      status: NOT-GRANTED
+      dependsOn: [C1]
+      expectedOutput: one digest-addressed GHCR artifact plus attestation and verified pull-back
+  expectedEvidence:
+    - collector run repository workflow head SHA conclusion and inputs
+    - intake commit path context digest protocol digest and fixture digest
+    - internal evidence bundle digest and seven-day Actions artifact
+    - OCI manifest digest matching the attestation subject
+    - digest-only pull-back matching transport bundle and correlation digests
+  stopConditions:
+    - any workflow environment action pin digest input or intake identity differs
+    - evidence scanning detects a Secret kubeconfig token private key bearer header or unsafe path
+    - collector or publisher requests cluster access or infrastructure credentials
+    - more than one run artifact package or attestation is proposed per bound maximum
+    - an automatic workflow trigger or package-delete authority appears
+    - any infrastructure mutation or failure injection is proposed
+  authorization:
+    decision: NO-GO
+    c1Granted: false
+    p0Granted: false
+    collectorDispatchAuthorized: false
+    publisherDispatchAuthorized: false
+    artifactWriteAuthorized: false
+    packageWriteAuthorized: false
+    attestationWriteAuthorized: false
+    infrastructureMutationAuthorized: false
+    go1Granted: false
+  rules:
+    - The protocol digest identifies the exact smoke experiment but grants no authority.
+    - C1 and P0 each bind one exact run and cannot authorize infrastructure work.
+    - Synthetic smoke success proves transport mechanics only and is not GO-1 execution evidence.
+    - C1 P0 GO-1 infrastructure mutation and failure injection remain NO-GO.
