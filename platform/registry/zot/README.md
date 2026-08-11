@@ -1,6 +1,6 @@
 # registry-default — zot on ok-shared
 
-This shelf implements ADR-Platform-028's `registry-default` profile for the `datacenter` envelope. It deploys zot on `ok-shared` with TLS passthrough, central Keycloak OIDC, repository authorization, authenticated metrics registration, reproducible OCI conformance checks and an interim off-cluster OCI export/isolated restore drill.
+This shelf implements ADR-Platform-028's `registry-default` profile for the `datacenter` envelope. It deploys zot on `ok-shared` with TLS passthrough, central Keycloak OIDC, repository authorization, authenticated metrics registration, reproducible OCI conformance checks, interim backup/recovery, and named release-scoped offline transfer.
 
 Start with [runbooks/zot-bootstrap.md](runbooks/zot-bootstrap.md). The supported operator entrypoint is this directory's `Makefile`; it deliberately consumes the pinned local chart checkout at `../../../../zot/charts/zot` and never fetches a chart at runtime.
 
@@ -94,6 +94,27 @@ retention. This is explicitly interim under OK-138's storage decision; point the
 the sanctioned MinIO-backed storage when OK-81 delivers it, without introducing another object
 store. See [runbooks/zot-backup-restore.md](runbooks/zot-backup-restore.md).
 
+## Release-scoped offline transfer
+
+`make release-export RELEASE_SET=... TRANSFER_DIR=...` reuses the backup OCI layout, embedded
+inventory and detached integrity manifest; it does not introduce a second transfer format. The
+separately versioned release-set JSON is necessary because it defines a different fact: the exact
+named `repository@digest` roots that constitute a release. Prefix selection and mutable tags are
+not release definitions.
+
+The exporter starts only from those roots, requires the declaration's named SPDX referrer, follows
+index children plus config/layer/blob descriptors, and follows OCI referrers recursively,
+including referrers of referrers. Publication is refused unless the closure is complete and the
+declared image/chart/artifact media types match the stored manifests. `make verify-release`
+recomputes the closure using only local layout bytes, and `make offline-transfer-drill
+APPROVE_RESTORE_DRILL=yes` imports it into the same fresh, isolated scratch shape used by
+restore-drill before pulling and hashing every member, referrer and descriptor payload by digest.
+The concrete two-member image/chart release and operator ceremony are in
+[runbooks/zot-offline-transfer.md](runbooks/zot-offline-transfer.md).
+
+This is operational offline portability under ADR-Platform-028. It is not an `air-gapped`
+Constraint Envelope qualification; ADR-Platform-017 defines no such envelope.
+
 ## Requirement-to-test mapping
 
 | Requirement | Executable proof |
@@ -106,10 +127,13 @@ store. See [runbooks/zot-backup-restore.md](runbooks/zot-backup-restore.md).
 | Authenticated metrics and moving push counter | `make post-check` proves unauthenticated 401/403 and authenticated 200; `make smoke` asserts this run's `zot_repo_uploads_total{repo=...}` increased |
 | ServiceMonitor registration | `make metrics` admits it; `make post-check` resolves its selector against the actual Service labels and named port |
 | Off-cluster artifact content and integrity | `make backup BACKUP_DIR=...` exports discovered OCI manifests/blobs and publishes a detached size/SHA-256/inventory manifest only after both detached and per-blob verification pass; `make verify-backup ...` repeats that verifier without cluster access |
+| Named release completeness without source access | `make release-export RELEASE_SET=... TRANSFER_DIR=...` exports only declared roots plus their recursive descriptor/referrer closure; `make verify-release ...` rejects any absent child/config/layer/blob from local bytes alone |
+| Operational offline transfer | `make offline-transfer-drill ... APPROVE_RESTORE_DRILL=yes` requires a new scratch namespace, imports the verified release, reasserts Referrers edges, pulls every declared member by digest and cleans the scratch registry by default |
 | Isolated recovery and immutable identity | `make restore-drill ... APPROVE_RESTORE_DRILL=yes` restores only through a loopback port-forward to a unique scratch zot, then pulls the digest recorded before backup and hashes the returned bytes to that same digest |
 | Live-registry isolation and cleanup | `make restore-drill` rejects the live namespace/release before mutation, asserts a ClusterIP-only ephemeral scratch release, and by default proves the scratch namespace was removed; the post-drill procedure compares live PVC UID/creation timestamp and reruns `make post-check` |
 | Bootstrap runbook | Walk [runbooks/zot-bootstrap.md](runbooks/zot-bootstrap.md) top to bottom and retain the command transcript |
 | Backup/recovery runbook | Walk [runbooks/zot-backup-restore.md](runbooks/zot-backup-restore.md) and retain the artifact, detached manifest, restore output and cleanup proof |
+| Offline-transfer runbook | Walk [runbooks/zot-offline-transfer.md](runbooks/zot-offline-transfer.md) and retain the release declaration, transfer pair, offline verification, every-member pull and before/after isolation transcript |
 | Phase-1 envelope mechanics | `conformance/smoke.sh`; Referrers are structurally asserted and run IDs make the negative auth repository repeatable. `conformance/lifecycle.sh` is **not** Increment 1 evidence — it restarts the registry and needs `gcDelay` lowered from the shipped production 1h |
 
 ## What this does not prove
@@ -122,7 +146,7 @@ store. See [runbooks/zot-backup-restore.md](runbooks/zot-backup-restore.md).
 - The interim backup process reuses the write-capable machine publisher and conformance writer because zot cannot load a new htpasswd/policy identity without the forbidden live restart. The script performs only GETs, but this does **not** satisfy ADR-Platform-028 §4.5's distinct read-only exporter identity separation.
 - It does **not** authenticate the backup artifact. SHA-256 detects changed bytes against the detached manifest, but an attacker able to replace both files can create another self-consistent pair.
 - It does **not** prove complete disaster recovery of secret state. Git reconstructs the rendered zot/authz/route configuration; machine/OIDC secret values still need sanctioned escrow or approved recreation.
-- It does **not** prove offline transfer or upgrade/rollback.
+- Release transfer does **not** prove an `air-gapped` Constraint Envelope or upgrade/rollback.
 - It does **not** escrow bootstrap credentials in Vault/VSO.
 - It does **not** run the OCI Distribution conformance suite. ADR-Platform-028 §4.1 requires validation against that tooling and §8.9 makes it an acceptance criterion; Phase 1's `conformance.sh` was deliberately not ported into Increment 1, so despite the directory name no official conformance run has happened against this deployment.
 - It does **not** meet ADR-Platform-028 §5's `Storage: Production-approved persistent or object storage` line merely by shipping this workflow. The live store remains `local-path`; the detached export meets that line only when the operator supplies a production-approved retained target. The interim decision is settled under OK-138 and re-points at OK-81's MinIO when available.
@@ -140,4 +164,6 @@ tooling/                    credential reconciliation and live proof tooling
 conformance/                ported Phase-1 smoke and lifecycle contracts
 runbooks/zot-bootstrap.md   executable bootstrap ceremony
 runbooks/zot-backup-restore.md  interim export and isolated recovery ceremony
+runbooks/zot-offline-transfer.md  named release export, offline verification and fresh import ceremony
+releases/*.json             explicit immutable OpenKubes release-set declarations
 ```

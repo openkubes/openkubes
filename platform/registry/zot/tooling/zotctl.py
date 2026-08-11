@@ -42,6 +42,7 @@ from typing import Any, BinaryIO, Iterable
 
 INTEGRITY_SCHEMA = "openkubes.zot-backup.integrity/v1"
 INVENTORY_SCHEMA = "openkubes.zot-backup.inventory/v1"
+RELEASE_SET_SCHEMA = "openkubes.artifact-release/v1"
 LAYOUT_DIRECTORY = "zot-oci-layout"
 INVENTORY_NAME = "inventory.json"
 
@@ -63,6 +64,27 @@ LAYOUT_REF_RE = re.compile(r"^entry-[0-9]{6}$")
 DNS_RE = re.compile(r"^[A-Za-z0-9.-]+$")
 SCRATCH_RELEASE = "zot-restore-drill"
 SCRATCH_NAMESPACE_RE = re.compile(r"^zot-restore-drill-[a-z0-9]([-a-z0-9]*[a-z0-9])?$")
+RELEASE_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
+RELEASE_ROLE_RE = re.compile(r"^[a-z][a-z0-9._-]{0,63}$")
+ARTIFACT_TYPE_RE = re.compile(
+    r"^[A-Za-z0-9][A-Za-z0-9!#$&^_.+-]*/[A-Za-z0-9][A-Za-z0-9!#$&^_.+-]*$"
+)
+RELEASE_MEMBER_KINDS = frozenset(("container-image", "oci-helm-chart"))
+OCI_IMAGE_CONFIG_MEDIA_TYPE = "application/vnd.oci.image.config.v1+json"
+OCI_IMAGE_LAYER_MEDIA_TYPES = frozenset(
+    (
+        "application/vnd.oci.image.layer.v1.tar",
+        "application/vnd.oci.image.layer.v1.tar+gzip",
+        "application/vnd.oci.image.layer.v1.tar+zstd",
+    )
+)
+HELM_CONFIG_MEDIA_TYPE = "application/vnd.cncf.helm.config.v1+json"
+HELM_LAYER_MEDIA_TYPES = frozenset(
+    (
+        "application/vnd.cncf.helm.chart.content.v1.tar+gzip",
+        "application/vnd.cncf.helm.chart.provenance.v1.prov",
+    )
+)
 
 DISCOVERY_LIMITATION = (
     "Catalog and tags plus recursive referrers cannot discover unattached, untagged manifests; "
@@ -398,6 +420,19 @@ class Registry:
         absolute: str = "",
         destination: Path | None = None,
     ) -> tuple[int, bytes, dict[str, str]]:
+        # The scratch registry is authless by construction and carries no auth_headers, so an
+        # unnamed identity is only legitimate there. On a registry that does hold credentials,
+        # an unnamed identity would silently send an unauthenticated request.
+        if self.auth_headers and not identity:
+            die(
+                f"{method} {absolute or path} named no export identity on a registry that "
+                "holds credentials"
+            )
+        if identity and identity not in self.auth_headers:
+            die(
+                f"no {identity} credential was established for this run, but "
+                f"{method} {absolute or path} requires one"
+            )
         merged = dict(self.auth_headers.get(identity, {}))
         merged.update(headers or {})
         target = absolute or path
@@ -541,9 +576,11 @@ class Inventory:
     digests: list[dict[str, str]] = field(default_factory=list)
     referrer_edges: list[dict[str, str]] = field(default_factory=list)
     representative: dict[str, str] = field(default_factory=dict)
+    release_set: dict[str, Any] | None = None
+    release_closure: dict[str, Any] | None = None
 
     def document(self) -> dict[str, Any]:
-        return {
+        document = {
             "schemaVersion": INVENTORY_SCHEMA,
             "createdAt": utc_now(),
             "source": {
@@ -560,6 +597,124 @@ class Inventory:
             "scopeLimitation": SCOPE_LIMITATION,
             "identityLimitation": IDENTITY_LIMITATION,
         }
+        if self.release_set is not None:
+            document["releaseSet"] = self.release_set
+            document["releaseClosure"] = self.release_closure
+        return document
+
+
+def validate_release_set(document: Any) -> dict[str, Any]:
+    """Validate and normalize the separately versioned release-selection input."""
+    if (
+        not isinstance(document, dict)
+        or set(document) != {"schemaVersion", "release", "members", "referrers"}
+        or document.get("schemaVersion") != RELEASE_SET_SCHEMA
+    ):
+        die("release-set schema or required fields are invalid")
+    release = document.get("release")
+    if not isinstance(release, dict) or set(release) != {"name"}:
+        die("release-set release must contain exactly one name")
+    if not isinstance(release.get("name"), str) or not RELEASE_NAME_RE.fullmatch(release["name"]):
+        die("release-set release name is invalid")
+    members = document.get("members")
+    if not isinstance(members, list) or not members:
+        die("release-set members must be a non-empty list")
+    normalized: list[dict[str, str]] = []
+    seen: set[tuple[str, str]] = set()
+    seen_names: set[str] = set()
+    for position, member in enumerate(members, 1):
+        if not isinstance(member, dict) or set(member) != {
+            "name", "repository", "digest", "kind", "role"
+        }:
+            die(f"release-set member {position} has invalid fields")
+        name = member.get("name")
+        repository = member.get("repository")
+        digest = member.get("digest")
+        kind = member.get("kind")
+        role = member.get("role")
+        if not isinstance(name, str) or not RELEASE_NAME_RE.fullmatch(name):
+            die(f"release-set member {position} has an invalid name")
+        if not isinstance(repository, str) or not REPOSITORY_RE.fullmatch(repository):
+            die(f"release-set member {position} has an unsafe repository")
+        if not isinstance(digest, str) or not DIGEST_RE.fullmatch(digest):
+            die(f"release-set member {position} has an invalid immutable digest")
+        if kind not in RELEASE_MEMBER_KINDS:
+            die(f"release-set member {position} has an unsupported kind: {kind}")
+        if not isinstance(role, str) or not RELEASE_ROLE_RE.fullmatch(role):
+            die(f"release-set member {position} has an invalid role")
+        key = (repository, digest)
+        if key in seen:
+            die(f"duplicate release-set member: {repository}@{digest}")
+        if name in seen_names:
+            die(f"duplicate release-set member name: {name}")
+        seen.add(key)
+        seen_names.add(name)
+        normalized.append(
+            {
+                "name": name,
+                "repository": repository,
+                "digest": digest,
+                "kind": kind,
+                "role": role,
+            }
+        )
+    referrers = document.get("referrers")
+    if not isinstance(referrers, list) or not referrers:
+        die("release-set referrers must be a non-empty list")
+    normalized_referrers: list[dict[str, str]] = []
+    seen_referrer_names: set[str] = set()
+    seen_edges: set[tuple[str, str, str]] = set()
+    for position, referrer in enumerate(referrers, 1):
+        if not isinstance(referrer, dict) or set(referrer) != {
+            "name",
+            "repository",
+            "subjectDigest",
+            "referrerDigest",
+            "artifactType",
+            "role",
+        }:
+            die(f"release-set referrer {position} has invalid fields")
+        name = referrer.get("name")
+        repository = referrer.get("repository")
+        subject = referrer.get("subjectDigest")
+        digest = referrer.get("referrerDigest")
+        artifact_type = referrer.get("artifactType")
+        role = referrer.get("role")
+        if not isinstance(name, str) or not RELEASE_NAME_RE.fullmatch(name):
+            die(f"release-set referrer {position} has an invalid name")
+        if not isinstance(repository, str) or not REPOSITORY_RE.fullmatch(repository):
+            die(f"release-set referrer {position} has an unsafe repository")
+        if not isinstance(subject, str) or not DIGEST_RE.fullmatch(subject):
+            die(f"release-set referrer {position} has an invalid subject digest")
+        if not isinstance(digest, str) or not DIGEST_RE.fullmatch(digest):
+            die(f"release-set referrer {position} has an invalid referrer digest")
+        if not isinstance(artifact_type, str) or not ARTIFACT_TYPE_RE.fullmatch(artifact_type):
+            die(f"release-set referrer {position} has an invalid artifactType")
+        if not isinstance(role, str) or not RELEASE_ROLE_RE.fullmatch(role):
+            die(f"release-set referrer {position} has an invalid role")
+        edge = (repository, subject, digest)
+        if edge in seen_edges:
+            die(f"duplicate release-set referrer edge: {repository}|{subject}|{digest}")
+        if name in seen_referrer_names:
+            die(f"duplicate release-set referrer name: {name}")
+        seen_edges.add(edge)
+        seen_referrer_names.add(name)
+        normalized_referrers.append(
+            {
+                "name": name,
+                "repository": repository,
+                "subjectDigest": subject,
+                "referrerDigest": digest,
+                "artifactType": artifact_type,
+                "role": role,
+            }
+        )
+    return {
+        "schemaVersion": RELEASE_SET_SCHEMA,
+        "release": {"name": release["name"]},
+        "members": normalized,
+        "referrers": normalized_referrers,
+    }
 
 
 def validate_inventory(document: Any) -> None:
@@ -573,7 +728,8 @@ def validate_inventory(document: Any) -> None:
     for key in ("references", "digests", "referrerEdges"):
         if not isinstance(document.get(key), list):
             die(f"embedded backup inventory field {key} is not a list")
-    if not document["references"] or not document["digests"]:
+    is_release = document.get("releaseSet") is not None
+    if not document["digests"] or (not is_release and not document["references"]):
         die("embedded backup inventory records no digests")
     representative = document.get("representativePreBackup") or {}
     representative_key = (
@@ -581,7 +737,7 @@ def validate_inventory(document: Any) -> None:
         representative.get("tag"),
         representative.get("digest"),
     )
-    if not (
+    if not is_release and not (
         REPOSITORY_RE.match(str(representative_key[0]))
         and TAG_RE.match(str(representative_key[1]))
         and DIGEST_RE.match(str(representative_key[2]))
@@ -609,7 +765,7 @@ def validate_inventory(document: Any) -> None:
     references = {
         (item["repository"], item["tag"], item["digest"]) for item in document["references"]
     }
-    if representative_key not in references:
+    if not is_release and representative_key not in references:
         die("representative pre-backup reference is not in the recorded references")
     for edge in document["referrerEdges"]:
         repository = edge.get("repository")
@@ -617,6 +773,45 @@ def validate_inventory(document: Any) -> None:
         referrer = edge.get("referrer")
         if (repository, subject) not in seen or (repository, referrer) not in seen:
             die("referrer edge points to an unrecorded digest")
+    release_set = document.get("releaseSet")
+    release_closure = document.get("releaseClosure")
+    if (release_set is None) != (release_closure is None):
+        die("embedded release definition and closure must appear together")
+    if release_set is not None:
+        normalized = validate_release_set(release_set)
+        if release_set != normalized:
+            die("embedded release-set is not in canonical form")
+        member_keys = {
+            (member["repository"], member["digest"]) for member in normalized["members"]
+        }
+        if not member_keys.issubset(seen):
+            die("release-set member points to an unrecorded digest")
+        if not isinstance(release_closure, dict):
+            die("embedded release closure is invalid")
+        if release_closure.get("recursiveReferrers") is not True:
+            die("embedded release closure does not assert recursive referrer traversal")
+        for key in ("manifests", "blobs"):
+            if not isinstance(release_closure.get(key), list):
+                die(f"embedded release closure field {key} is not a list")
+        closure_manifests: set[tuple[str, str]] = set()
+        for item in release_closure["manifests"]:
+            if not isinstance(item, dict) or set(item) != {"repository", "digest"}:
+                die("embedded release closure has an invalid manifest entry")
+            key = (item.get("repository"), item.get("digest"))
+            if not REPOSITORY_RE.fullmatch(str(key[0])) or not DIGEST_RE.fullmatch(str(key[1])):
+                die("embedded release closure has an invalid manifest entry")
+            if key in closure_manifests:
+                die("embedded release closure has a duplicate manifest")
+            closure_manifests.add(key)
+        if closure_manifests != seen:
+            die("embedded release closure manifests differ from inventory digests")
+        closure_blobs = release_closure["blobs"]
+        if any(not isinstance(digest, str) for digest in closure_blobs):
+            die("embedded release closure blobs are invalid or duplicated")
+        if len(set(closure_blobs)) != len(closure_blobs) or any(
+            not DIGEST_RE.fullmatch(digest) for digest in closure_blobs
+        ):
+            die("embedded release closure blobs are invalid or duplicated")
 
 
 def validate_integrity_document(document: Any) -> None:
@@ -682,16 +877,20 @@ def verify_layout(layout: Path, inventory: dict[str, Any]) -> int:
     if count == 0:
         die("OCI layout has no blobs")
 
-    by_ref = {
-        (entry.get("digest"), (entry.get("annotations") or {}).get("org.opencontainers.image.ref.name"))
-        for entry in index["manifests"]
-    }
     for item in inventory["digests"]:
         blob = layout / "blobs" / "sha256" / item["digest"].removeprefix("sha256:")
         if not blob.is_file():
             die(f"recorded manifest blob is absent: {item['digest']}")
-        if (item["digest"], item["layoutRef"]) not in by_ref:
+        matches = [
+            entry for entry in index["manifests"]
+            if entry.get("digest") == item["digest"]
+            and (entry.get("annotations") or {}).get("org.opencontainers.image.ref.name")
+            == item["layoutRef"]
+        ]
+        if len(matches) != 1:
             die(f"recorded OCI entry is absent: {item['layoutRef']}")
+        verify_declared_size(matches[0], blob, f"OCI layout entry {item['layoutRef']}")
+    verify_inventory_completeness(layout, inventory)
     return count
 
 
@@ -700,6 +899,100 @@ def manifest_media_type(document: dict[str, Any]) -> str:
     if declared:
         return str(declared)
     return INDEX_MEDIA_TYPE if "manifests" in document else MANIFEST_MEDIA_TYPE
+
+
+def validate_release_member_kinds(
+    release_set: dict[str, Any],
+    load: Any,
+) -> None:
+    """Bind declared release kinds to OCI image or Helm descriptor semantics."""
+
+    def validate_image(repository: str, digest: str, name: str, visiting: set[str]) -> None:
+        if digest in visiting:
+            die(f"container image member {name} has a cyclic manifest graph")
+        visiting.add(digest)
+        document = load(repository, digest)
+        media_type = document.get("mediaType")
+        if media_type == INDEX_MEDIA_TYPE:
+            children = document.get("manifests")
+            if not isinstance(children, list) or not children:
+                die(f"container image member {name} index records no child manifests")
+            for child in children:
+                child_digest = child.get("digest") if isinstance(child, dict) else None
+                child_media_type = child.get("mediaType") if isinstance(child, dict) else None
+                if child_media_type not in (INDEX_MEDIA_TYPE, MANIFEST_MEDIA_TYPE):
+                    die(f"container image member {name} index has a non-image child mediaType")
+                if not DIGEST_RE.fullmatch(str(child_digest)):
+                    die(f"container image member {name} index has an invalid child digest")
+                validate_image(repository, child_digest, name, visiting)
+        elif media_type == MANIFEST_MEDIA_TYPE:
+            config = document.get("config")
+            if not isinstance(config, dict) or config.get("mediaType") != OCI_IMAGE_CONFIG_MEDIA_TYPE:
+                die(f"container image member {name} does not use OCI image config semantics")
+            layers = document.get("layers")
+            if not isinstance(layers, list) or any(
+                not isinstance(layer, dict)
+                or layer.get("mediaType") not in OCI_IMAGE_LAYER_MEDIA_TYPES
+                for layer in layers
+            ):
+                die(f"container image member {name} has a non-image layer mediaType")
+        else:
+            die(f"container image member {name} has a non-image root mediaType: {media_type}")
+        visiting.remove(digest)
+
+    for member in release_set["members"]:
+        repository = member["repository"]
+        digest = member["digest"]
+        name = member["name"]
+        if member["kind"] == "container-image":
+            validate_image(repository, digest, name, set())
+            continue
+        document = load(repository, digest)
+        if manifest_media_type(document) != MANIFEST_MEDIA_TYPE:
+            die(f"OCI Helm chart member {name} root is not an OCI image manifest")
+        config = document.get("config")
+        if not isinstance(config, dict) or config.get("mediaType") != HELM_CONFIG_MEDIA_TYPE:
+            die(f"OCI Helm chart member {name} does not use Helm config mediaType")
+        layers = document.get("layers")
+        if (
+            not isinstance(layers, list)
+            or not layers
+            or not any(
+                isinstance(layer, dict)
+                and layer.get("mediaType") == "application/vnd.cncf.helm.chart.content.v1.tar+gzip"
+                for layer in layers
+            )
+            or any(
+                not isinstance(layer, dict) or layer.get("mediaType") not in HELM_LAYER_MEDIA_TYPES
+                for layer in layers
+            )
+        ):
+            die(f"OCI Helm chart member {name} does not use Helm chart layer mediaTypes")
+
+
+def validate_required_referrers(
+    release_set: dict[str, Any],
+    edges: Iterable[tuple[str, str, str]],
+    load: Any,
+) -> None:
+    discovered = set(edges)
+    for required in release_set["referrers"]:
+        edge = (
+            required["repository"],
+            required["subjectDigest"],
+            required["referrerDigest"],
+        )
+        if edge not in discovered:
+            die(
+                f"required release referrer {required['name']} is absent from recursive "
+                "Referrers API discovery"
+            )
+        document = load(required["repository"], required["referrerDigest"])
+        subject = document.get("subject")
+        if not isinstance(subject, dict) or subject.get("digest") != required["subjectDigest"]:
+            die(f"required release referrer {required['name']} has a mismatched subject")
+        if document.get("artifactType") != required["artifactType"]:
+            die(f"required release referrer {required['name']} has a mismatched artifactType")
 
 
 def restore_order(layout: Path, inventory: dict[str, Any]) -> list[tuple[str, str, str]]:
@@ -761,6 +1054,17 @@ def manifest_descriptors(document: dict[str, Any], repository: str, digest: str)
     return result
 
 
+def verify_declared_size(descriptor: dict[str, Any], path: Path, label: str) -> None:
+    """When an OCI descriptor declares size, bind it to the locally verified bytes."""
+    if "size" not in descriptor:
+        return
+    size = descriptor["size"]
+    if type(size) is not int or size < 0:
+        die(f"{label} has an invalid declared size")
+    if not path.is_file() or path.is_symlink() or path.stat().st_size != size:
+        die(f"{label} declared size does not match OCI layout bytes")
+
+
 def repository_blob_requirements(
     layout: Path, inventory: dict[str, Any]
 ) -> dict[str, set[str]]:
@@ -776,6 +1080,180 @@ def repository_blob_requirements(
             manifest_descriptors(manifest, repository, digest)
         )
     return requirements
+
+
+def verify_inventory_completeness(layout: Path, inventory: dict[str, Any]) -> None:
+    """Re-assert manifest/config/layer/child completeness using only extracted layout bytes."""
+    recorded = {(item["repository"], item["digest"]) for item in inventory["digests"]}
+    for repository, digest in sorted(recorded):
+        manifest = load_manifest(
+            layout / "blobs" / "sha256" / digest.removeprefix("sha256:"),
+            repository,
+            digest,
+        )
+        children = manifest.get("manifests", [])
+        if not isinstance(children, list):
+            die(f"manifest {repository}@{digest} field manifests is not a list")
+        for child in children:
+            child_digest = child.get("digest") if isinstance(child, dict) else None
+            if not DIGEST_RE.fullmatch(str(child_digest)):
+                die(f"manifest {repository}@{digest} has an invalid child digest")
+            if (repository, child_digest) not in recorded:
+                die(
+                    f"manifest {repository}@{digest} references an unrecorded child manifest: "
+                    f"{child_digest}"
+                )
+            child_blob = layout / "blobs" / "sha256" / child_digest.removeprefix("sha256:")
+            verify_declared_size(
+                child, child_blob, f"child manifest {repository}@{child_digest}"
+            )
+        for blob_digest in manifest_descriptors(manifest, repository, digest):
+            blob = layout / "blobs" / "sha256" / blob_digest.removeprefix("sha256:")
+            if not blob.is_file() or blob.is_symlink():
+                die(
+                    f"manifest-referenced OCI blob is absent: "
+                    f"{repository}@{digest} -> {blob_digest}"
+                )
+        descriptors: list[Any] = []
+        if "config" in manifest:
+            descriptors.append(manifest["config"])
+        descriptors.extend(manifest.get("layers", []))
+        descriptors.extend(manifest.get("blobs", []))
+        for descriptor in descriptors:
+            blob_digest = descriptor["digest"]
+            verify_declared_size(
+                descriptor,
+                layout / "blobs" / "sha256" / blob_digest.removeprefix("sha256:"),
+                f"descriptor {repository}@{digest} -> {blob_digest}",
+            )
+    for edge in inventory["referrerEdges"]:
+        repository = edge["repository"]
+        referrer = edge["referrer"]
+        manifest = load_manifest(
+            layout / "blobs" / "sha256" / referrer.removeprefix("sha256:"),
+            repository,
+            referrer,
+        )
+        subject = manifest.get("subject")
+        if not isinstance(subject, dict) or subject.get("digest") != edge["subject"]:
+            die(
+                f"referrer manifest {repository}@{referrer} subject does not match "
+                f"recorded edge {edge['subject']}"
+            )
+        verify_declared_size(
+            subject,
+            layout / "blobs" / "sha256" / edge["subject"].removeprefix("sha256:"),
+            f"referrer subject {repository}@{edge['subject']}",
+        )
+    if inventory.get("releaseSet") is not None:
+        def load_release_manifest(repository: str, digest: str) -> dict[str, Any]:
+            return load_manifest(
+                layout / "blobs" / "sha256" / digest.removeprefix("sha256:"),
+                repository,
+                digest,
+            )
+
+        validate_required_referrers(
+            inventory["releaseSet"],
+            (
+                (edge["repository"], edge["subject"], edge["referrer"])
+                for edge in inventory["referrerEdges"]
+            ),
+            load_release_manifest,
+        )
+        validate_release_member_kinds(inventory["releaseSet"], load_release_manifest)
+        verify_release_closure(layout, inventory)
+
+
+def _walk_release_closure(
+    layout: Path,
+    release_set: dict[str, Any],
+    recorded: set[tuple[str, str]],
+    edges: list[dict[str, str]],
+) -> tuple[set[tuple[str, str]], set[str]]:
+    """Walk members, child indexes, and referrers recursively from layout metadata."""
+    referrers: dict[tuple[str, str], set[str]] = {}
+    for edge in edges:
+        referrers.setdefault((edge["repository"], edge["subject"]), set()).add(
+            edge["referrer"]
+        )
+    queue = [
+        (member["repository"], member["digest"]) for member in release_set["members"]
+    ]
+    visited: set[tuple[str, str]] = set()
+    blobs: set[str] = set()
+    cursor = 0
+    while cursor < len(queue):
+        repository, digest = queue[cursor]
+        cursor += 1
+        key = (repository, digest)
+        if key in visited:
+            continue
+        if key not in recorded:
+            die(f"release closure references an unrecorded manifest: {repository}@{digest}")
+        visited.add(key)
+        manifest = load_manifest(
+            layout / "blobs" / "sha256" / digest.removeprefix("sha256:"),
+            repository,
+            digest,
+        )
+        blobs.update(manifest_descriptors(manifest, repository, digest))
+        children = manifest.get("manifests", [])
+        if not isinstance(children, list):
+            die(f"manifest {repository}@{digest} field manifests is not a list")
+        for child in children:
+            child_digest = child.get("digest") if isinstance(child, dict) else None
+            if not DIGEST_RE.fullmatch(str(child_digest)):
+                die(f"manifest {repository}@{digest} has an invalid child digest")
+            queue.append((repository, child_digest))
+        for referrer in sorted(referrers.get(key, set())):
+            queue.append((repository, referrer))
+    return visited, blobs
+
+
+def release_closure_document(layout: Path, inventory: Inventory) -> dict[str, Any]:
+    if inventory.release_set is None:
+        die("cannot build a release closure without a release-set")
+    recorded = {
+        (item["repository"], item["digest"]) for item in inventory.digests
+    }
+    manifests, blobs = _walk_release_closure(
+        layout, inventory.release_set, recorded, inventory.referrer_edges
+    )
+    if manifests != recorded:
+        die("exported inventory contains manifests outside the declared release closure")
+    return {
+        "recursiveReferrers": True,
+        "manifests": [
+            {"repository": repository, "digest": digest}
+            for repository, digest in sorted(manifests)
+        ],
+        "blobs": sorted(blobs),
+    }
+
+
+def verify_release_closure(layout: Path, inventory: dict[str, Any]) -> None:
+    recorded = {(item["repository"], item["digest"]) for item in inventory["digests"]}
+    manifests, blobs = _walk_release_closure(
+        layout, inventory["releaseSet"], recorded, inventory["referrerEdges"]
+    )
+    if manifests != recorded:
+        die("release closure is incomplete or contains unrelated manifests")
+    closure = inventory["releaseClosure"]
+    declared_manifests = {
+        (item["repository"], item["digest"]) for item in closure["manifests"]
+    }
+    if declared_manifests != manifests:
+        die("embedded release manifest closure does not match layout traversal")
+    if set(closure["blobs"]) != blobs:
+        die("embedded release blob closure does not match layout traversal")
+    actual_blobs = {
+        f"sha256:{path.name}" for path in (layout / "blobs" / "sha256").iterdir()
+        if path.is_file() and not path.is_symlink()
+    }
+    expected_blobs = blobs | {digest for _repository, digest in manifests}
+    if actual_blobs != expected_blobs:
+        die("OCI layout contains missing or unrelated content outside the release closure")
 
 
 def validate_restore_order(
@@ -805,6 +1283,22 @@ def identity_for_repository(repository: str) -> str:
         return "human"
     die(f"no reviewed export identity covers repository: {repository}")
     return ""  # unreachable
+
+
+def release_set_identities(release_set: dict[str, Any]) -> set[str]:
+    """Which export identities a declared release actually needs.
+
+    A machine-only release must not drag in the central identity plane: htpasswd covers
+    openkubes/machine/**, and making an export depend on Keycloak would put the identity
+    plane on the registry's own recovery path.
+    """
+    identities = {
+        identity_for_repository(member["repository"]) for member in release_set["members"]
+    }
+    identities.update(
+        identity_for_repository(referrer["repository"]) for referrer in release_set["referrers"]
+    )
+    return identities
 
 
 def validate_scratch_identity(
@@ -986,6 +1480,93 @@ def discover(registry: Registry, page_size: int) -> Inventory:
         for repository, subject, referrer in sorted(edges)
     ]
     inventory.representative = dict(references[0])
+    return inventory
+
+
+def discover_release(
+    registry: Registry, release_set_document: Any, page_size: int
+) -> Inventory:
+    """Resolve only declared members, their descriptor/child closure, and recursive referrers."""
+    release_set = validate_release_set(release_set_document)
+    identities = {
+        identity_for_repository(member["repository"]) for member in release_set["members"]
+    }
+    for identity in sorted(identities):
+        registry.request("GET", "/v2/", identity=identity)
+
+    queue: list[tuple[str, str]] = []
+    queued: set[tuple[str, str]] = set()
+
+    def enqueue(repository: str, digest: str) -> None:
+        if not DIGEST_RE.fullmatch(str(digest)):
+            die(f"registry returned an unsupported manifest digest: {digest}")
+        key = (repository, digest)
+        if key not in queued:
+            queued.add(key)
+            queue.append(key)
+
+    for member in release_set["members"]:
+        enqueue(member["repository"], member["digest"])
+
+    edges: set[tuple[str, str, str]] = set()
+    visited: set[tuple[str, str]] = set()
+    documents: dict[tuple[str, str], dict[str, Any]] = {}
+    cursor = 0
+    while cursor < len(queue):
+        repository, subject = queue[cursor]
+        cursor += 1
+        if (repository, subject) in visited:
+            continue
+        visited.add((repository, subject))
+        identity = identity_for_repository(repository)
+        _, actual, document = get_manifest(registry, repository, subject, identity)
+        if actual != subject:
+            die(f"manifest bytes do not reproduce declared closure {repository}@{subject}")
+        documents[(repository, subject)] = document
+        children = document.get("manifests", [])
+        if not isinstance(children, list):
+            die(f"manifest {repository}@{subject} field manifests is not a list")
+        for child in children:
+            child_digest = child.get("digest") if isinstance(child, dict) else None
+            if not DIGEST_RE.fullmatch(str(child_digest)):
+                die(f"manifest {repository}@{subject} has an invalid child digest")
+            enqueue(repository, child_digest)
+        descriptors = registry.paginate_descriptors(
+            f"/v2/{repository}/referrers/{subject}?n={page_size}",
+            identity,
+            page_size,
+            f"recursive Referrers API for {repository}@{subject}",
+        )
+        for descriptor in descriptors:
+            referrer = descriptor["digest"]
+            edges.add((repository, subject, referrer))
+            enqueue(repository, referrer)
+    if visited != queued:
+        die("recursive release referrer traversal did not visit every queued digest")
+
+    def load_discovered(repository: str, digest: str) -> dict[str, Any]:
+        document = documents.get((repository, digest))
+        if document is None:
+            die(f"release declaration references unavailable manifest {repository}@{digest}")
+        return document
+
+    validate_required_referrers(release_set, edges, load_discovered)
+    validate_release_member_kinds(release_set, load_discovered)
+
+    inventory = Inventory(
+        source_host=registry.hostname,
+        source_namespace="zot",
+        source_release="zot",
+        release_set=release_set,
+    )
+    inventory.digests = [
+        {"repository": repository, "digest": digest, "layoutRef": f"entry-{index:06d}"}
+        for index, (repository, digest) in enumerate(queue, 1)
+    ]
+    inventory.referrer_edges = [
+        {"repository": repository, "subject": subject, "referrer": referrer}
+        for repository, subject, referrer in sorted(edges)
+    ]
     return inventory
 
 
@@ -1175,41 +1756,76 @@ def command_backup(args: argparse.Namespace) -> int:
         ca_file.write_bytes(secret_bytes(tls_secret, args.tls_secret, "ca.crt"))
         machine_user = kube.secret_value(args.namespace, args.machine_secret, "machine-username")
         machine_password = kube.secret_value(args.namespace, args.machine_secret, "machine-password")
-        human_user = kube.secret_value(args.namespace, args.conformance_secret, "writer-username")
-        human_password = kube.secret_value(args.namespace, args.conformance_secret, "writer-password")
+        # A whole-registry backup walks the catalog, so it may meet openkubes/human/**. A declared
+        # release states its repositories up front, so it can say it needs only htpasswd.
+        release_input = (
+            read_json(Path(args.release_set), "release-set input") if args.release_set else None
+        )
+        if release_input is None:
+            needs_human = True
+        else:
+            needs_human = "human" in release_set_identities(validate_release_set(release_input))
         with PortForward(kube, args.namespace, f"service/{args.release}", 5000, work / "live-port-forward.log") as tunnel:
             assert tunnel.port is not None
             print(
                 f"source: asserted Service zot/zot through https://127.0.0.1:{tunnel.port} "
                 "(loopback tunnel)"
             )
-            cookie = oidc_session_cookie(
-                args.registry_host, args.keycloak_host, args.registry_lb,
-                ca_file, human_user, human_password,
-            )
             basic = base64.b64encode(f"{machine_user}:{machine_password}".encode()).decode()
+            auth_headers = {"machine": {"Authorization": f"Basic {basic}"}}
+            if needs_human:
+                human_user = kube.secret_value(
+                    args.namespace, args.conformance_secret, "writer-username"
+                )
+                human_password = kube.secret_value(
+                    args.namespace, args.conformance_secret, "writer-password"
+                )
+                cookie = oidc_session_cookie(
+                    args.registry_host, args.keycloak_host, args.registry_lb,
+                    ca_file, human_user, human_password,
+                )
+                auth_headers["human"] = {"Cookie": cookie, "X-ZOT-API-CLIENT": "zot-ui"}
+                print("export identities: machine (htpasswd) and human (central OIDC session)")
+            else:
+                print(
+                    "export identities: machine (htpasswd) only; no central OIDC session is "
+                    "established because the declared release is entirely openkubes/machine/**"
+                )
             registry = Registry(
                 hostname=args.registry_host,
                 port=tunnel.port,
                 ca_file=ca_file,
-                auth_headers={
-                    "machine": {"Authorization": f"Basic {basic}"},
-                    "human": {"Cookie": cookie, "X-ZOT-API-CLIENT": "zot-ui"},
-                },
+                auth_headers=auth_headers,
             )
-            inventory = discover(registry, args.page_size)
+            if release_input is not None:
+                inventory = discover_release(registry, release_input, args.page_size)
+                print(
+                    "release export: declared members plus full descriptor/child closure; "
+                    "OCI referrers are followed recursively"
+                )
+            else:
+                inventory = discover(registry, args.page_size)
             layout = export_layout(registry, inventory, work)
+            if inventory.release_set is not None:
+                inventory.release_closure = release_closure_document(layout, inventory)
         verify_layout(layout, inventory.document())
         artifact, manifest = publish_backup(work, Path(args.backup_dir), inventory, layout)
-        representative = inventory.representative
-        print("RESULT: PASS — discoverable OCI content exported and detached integrity fully verified")
+        print("RESULT: PASS — selected OCI content exported and detached integrity fully verified")
         print(f"BACKUP_ARTIFACT={artifact}")
         print(f"INTEGRITY_MANIFEST={manifest}")
-        print(
-            f"REPRESENTATIVE_PRE_BACKUP={args.registry_host}/{representative['repository']}"
-            f"@{representative['digest']}"
+        if inventory.release_set is not None:
+            print(f"RELEASE={inventory.release_set['release']['name']}")
+            print(f"RELEASE_MEMBERS={len(inventory.release_set['members'])}")
+        else:
+            representative = inventory.representative
+            print(
+                f"REPRESENTATIVE_PRE_BACKUP={args.registry_host}/{representative['repository']}"
+                f"@{representative['digest']}"
+            )
+        warnings = (IDENTITY_LIMITATION, STORAGE_LIMITATION) if inventory.release_set else (
+            DISCOVERY_LIMITATION, SCOPE_LIMITATION, IDENTITY_LIMITATION, STORAGE_LIMITATION
         )
-        for warning in (DISCOVERY_LIMITATION, SCOPE_LIMITATION, IDENTITY_LIMITATION, STORAGE_LIMITATION):
+        for warning in warnings:
             print(f"WARNING: {warning}")
         return 0
     finally:
@@ -1478,6 +2094,189 @@ def assert_scratch_shape(
     return (services[0].get("metadata") or {}).get("name", "")
 
 
+def assert_empty_registry(registry: Registry) -> None:
+    repositories = registry.paginate(
+        "/v2/_catalog?n=1000", "", "repositories", 0, "scratch pre-import catalog"
+    )
+    if repositories:
+        die(
+            "scratch registry is not empty before import; repositories present: "
+            + ", ".join(sorted(repositories))
+        )
+    print("SCRATCH_PREIMPORT_REPOSITORIES=0")
+
+
+def pull_release_members(registry: Registry, release_set: dict[str, Any]) -> None:
+    """Pull every member and its child/config/layer/blob closure by immutable digest."""
+    members = release_set["members"]
+    manifest_sizes: dict[tuple[str, str], int] = {}
+    blob_sizes: dict[tuple[str, str], int] = {}
+
+    def assert_size(descriptor: dict[str, Any], actual: int, label: str) -> None:
+        if "size" not in descriptor:
+            return
+        declared = descriptor["size"]
+        if type(declared) is not int or declared < 0:
+            die(f"{label} has an invalid declared size")
+        if declared != actual:
+            die(f"{label} declared size does not match scratch bytes")
+
+    def pull_blob(repository: str, descriptor: dict[str, Any], owner: str) -> None:
+        digest = descriptor.get("digest")
+        if not DIGEST_RE.fullmatch(str(digest)):
+            die(f"release member {owner} has an invalid blob descriptor")
+        key = (repository, digest)
+        if key not in blob_sizes:
+            _, payload, _ = registry.request("GET", f"/v2/{repository}/blobs/{digest}")
+            pulled = f"sha256:{hashlib.sha256(payload).hexdigest()}"
+            if pulled != digest:
+                die(
+                    f"pulled release member {owner} blob hashes to {pulled}, expected {digest}"
+                )
+            blob_sizes[key] = len(payload)
+        assert_size(descriptor, blob_sizes[key], f"release member {owner} blob {digest}")
+
+    def pull_manifest(
+        repository: str,
+        digest: str,
+        owner: str,
+        descriptor: dict[str, Any] | None = None,
+    ) -> None:
+        key = (repository, digest)
+        if key not in manifest_sizes:
+            _, payload, _ = registry.request(
+                "GET",
+                f"/v2/{repository}/manifests/{digest}",
+                headers={"Accept": MANIFEST_ACCEPT},
+            )
+            pulled = f"sha256:{hashlib.sha256(payload).hexdigest()}"
+            if pulled != digest:
+                die(
+                    f"pulled release member {owner} manifest hashes to {pulled}, "
+                    f"expected {digest}"
+                )
+            try:
+                document = json.loads(payload)
+            except json.JSONDecodeError as exc:
+                die(f"pulled release member {owner} manifest is not valid JSON: {exc}")
+            if not isinstance(document, dict) or document.get("schemaVersion") != 2:
+                die(f"pulled release member {owner} manifest is not schemaVersion 2 JSON")
+            manifest_sizes[key] = len(payload)
+            children = document.get("manifests", [])
+            if not isinstance(children, list):
+                die(f"pulled release member {owner} field manifests is not a list")
+            for child in children:
+                child_digest = child.get("digest") if isinstance(child, dict) else None
+                if not DIGEST_RE.fullmatch(str(child_digest)):
+                    die(f"pulled release member {owner} has an invalid child manifest")
+                pull_manifest(repository, child_digest, owner, child)
+            descriptors: list[Any] = []
+            if "config" in document:
+                descriptors.append(document["config"])
+            descriptors.extend(document.get("layers", []))
+            descriptors.extend(document.get("blobs", []))
+            for blob_descriptor in descriptors:
+                if not isinstance(blob_descriptor, dict):
+                    die(f"pulled release member {owner} has an invalid blob descriptor")
+                pull_blob(repository, blob_descriptor, owner)
+        if descriptor is not None:
+            assert_size(
+                descriptor,
+                manifest_sizes[key],
+                f"release member {owner} child manifest {digest}",
+            )
+
+    for member in members:
+        pull_manifest(member["repository"], member["digest"], member["name"])
+        print(
+            f"PULLED_RELEASE_MEMBER={member['name']} KIND={member['kind']} "
+            f"ROLE={member['role']} REFERENCE={member['repository']}@{member['digest']}"
+        )
+    print(
+        f"PULLED_RELEASE_MEMBERS={len(members)} "
+        f"MEMBER_CLOSURE_MANIFESTS={len(manifest_sizes)} "
+        f"MEMBER_DESCRIPTOR_BLOBS={len(blob_sizes)} ALL_EXACT_RECORDED_DIGESTS=yes"
+    )
+
+
+def pull_referrer_content(registry: Registry, inventory: dict[str, Any]) -> None:
+    """Pull/hash every discovered referrer manifest and its descriptor/child closure."""
+    manifest_sizes: dict[tuple[str, str], int] = {}
+    blob_sizes: dict[tuple[str, str], int] = {}
+
+    def assert_size(descriptor: dict[str, Any], actual: int, label: str) -> None:
+        if "size" in descriptor and (
+            type(descriptor["size"]) is not int or descriptor["size"] != actual
+        ):
+            die(f"{label} declared size does not match scratch bytes")
+
+    def pull_blob(repository: str, descriptor: dict[str, Any], owner: str) -> None:
+        digest = descriptor.get("digest")
+        if not DIGEST_RE.fullmatch(str(digest)):
+            die(f"referrer {owner} has an invalid blob descriptor")
+        key = (repository, digest)
+        if key not in blob_sizes:
+            _, payload, _ = registry.request("GET", f"/v2/{repository}/blobs/{digest}")
+            pulled = f"sha256:{hashlib.sha256(payload).hexdigest()}"
+            if pulled != digest:
+                die(f"pulled referrer {owner} blob hashes to {pulled}, expected {digest}")
+            blob_sizes[key] = len(payload)
+        assert_size(descriptor, blob_sizes[key], f"referrer {owner} blob {digest}")
+
+    def pull_manifest(
+        repository: str,
+        digest: str,
+        descriptor: dict[str, Any] | None = None,
+    ) -> None:
+        key = (repository, digest)
+        if key not in manifest_sizes:
+            _, payload, _ = registry.request(
+                "GET",
+                f"/v2/{repository}/manifests/{digest}",
+                headers={"Accept": MANIFEST_ACCEPT},
+            )
+            pulled = f"sha256:{hashlib.sha256(payload).hexdigest()}"
+            if pulled != digest:
+                die(f"pulled referrer manifest hashes to {pulled}, expected {digest}")
+            try:
+                document = json.loads(payload)
+            except json.JSONDecodeError as exc:
+                die(f"pulled referrer {repository}@{digest} is not valid JSON: {exc}")
+            if not isinstance(document, dict) or document.get("schemaVersion") != 2:
+                die(f"pulled referrer {repository}@{digest} is not schemaVersion 2 JSON")
+            manifest_sizes[key] = len(payload)
+            children = document.get("manifests", [])
+            if not isinstance(children, list):
+                die(f"pulled referrer {repository}@{digest} field manifests is not a list")
+            for child in children:
+                child_digest = child.get("digest") if isinstance(child, dict) else None
+                if not DIGEST_RE.fullmatch(str(child_digest)):
+                    die(f"pulled referrer {repository}@{digest} has an invalid child manifest")
+                pull_manifest(repository, child_digest, child)
+            descriptors: list[Any] = []
+            if "config" in document:
+                descriptors.append(document["config"])
+            descriptors.extend(document.get("layers", []))
+            descriptors.extend(document.get("blobs", []))
+            for blob_descriptor in descriptors:
+                if not isinstance(blob_descriptor, dict):
+                    die(f"pulled referrer {repository}@{digest} has an invalid blob descriptor")
+                pull_blob(repository, blob_descriptor, digest)
+        if descriptor is not None:
+            assert_size(
+                descriptor,
+                manifest_sizes[key],
+                f"referrer child manifest {repository}@{digest}",
+            )
+
+    for edge in inventory["referrerEdges"]:
+        pull_manifest(edge["repository"], edge["referrer"])
+    print(
+        f"PULLED_REFERRER_MANIFESTS={len(manifest_sizes)} "
+        f"REFERRER_DESCRIPTOR_BLOBS={len(blob_sizes)} ALL_EXACT_RECORDED_DIGESTS=yes"
+    )
+
+
 def restore_content(registry: Registry, layout: Path, inventory: dict[str, Any], work: Path) -> None:
     order = restore_order(layout, inventory)
     validate_restore_order(layout, order)
@@ -1524,24 +2323,31 @@ def restore_content(registry: Registry, layout: Path, inventory: dict[str, Any],
                 f"{edge['repository']}@{edge['subject']}"
             )
     print(f"restored referrer relationships: {len(inventory['referrerEdges'])}")
+    pull_referrer_content(registry, inventory)
 
-    representative = inventory["representativePreBackup"]
-    _, payload, _ = registry.request(
-        "GET",
-        f"/v2/{representative['repository']}/manifests/{representative['digest']}",
-        headers={"Accept": MANIFEST_ACCEPT},
-    )
-    pulled = f"sha256:{hashlib.sha256(payload).hexdigest()}"
-    if pulled != representative["digest"]:
-        die(
-            f"pulled representative manifest hashes to {pulled}, expected "
-            f"{representative['digest']}"
+    if inventory.get("releaseSet") is not None:
+        pull_release_members(registry, inventory["releaseSet"])
+    else:
+        representative = inventory["representativePreBackup"]
+        _, payload, _ = registry.request(
+            "GET",
+            f"/v2/{representative['repository']}/manifests/{representative['digest']}",
+            headers={"Accept": MANIFEST_ACCEPT},
         )
-    print(
-        f"CURL_PULL=http://127.0.0.1:{registry.port}/v2/{representative['repository']}"
-        f"/manifests/{representative['digest']} HTTP 200"
-    )
-    print(f"PULLED_MANIFEST_SHA256={pulled} EXACT_RECORDED_DIGEST={representative['digest']}")
+        pulled = f"sha256:{hashlib.sha256(payload).hexdigest()}"
+        if pulled != representative["digest"]:
+            die(
+                f"pulled representative manifest hashes to {pulled}, expected "
+                f"{representative['digest']}"
+            )
+        print(
+            f"CURL_PULL=http://127.0.0.1:{registry.port}/v2/{representative['repository']}"
+            f"/manifests/{representative['digest']} HTTP 200"
+        )
+        print(
+            f"PULLED_MANIFEST_SHA256={pulled} "
+            f"EXACT_RECORDED_DIGEST={representative['digest']}"
+        )
 
 
 def command_restore(args: argparse.Namespace) -> int:
@@ -1617,6 +2423,7 @@ def command_restore(args: argparse.Namespace) -> int:
             hostname="127.0.0.1", port=tunnel.port, insecure_plain_http=True
         )
         registry.request("GET", "/v2/")
+        assert_empty_registry(registry)
         print(
             f"restore destination: locally constructed kubectl port-forward at "
             f"127.0.0.1:{tunnel.port} only"
@@ -1628,12 +2435,21 @@ def command_restore(args: argparse.Namespace) -> int:
             if not teardown_scratch(kube, args.scratch_namespace, args.scratch_release):
                 die("default scratch cleanup could not be proven")
             namespace_created = False
-        print(
-            "RESULT: PASS — OCI export restored and representative manifest reproduced "
-            "byte-for-byte by immutable digest"
-        )
-        print(f"WARNING: the backup discovery limitation remains: {inventory['discoveryLimitation']}")
-        print(f"WARNING: the backup scope limitation remains: {inventory['scopeLimitation']}")
+        if inventory.get("releaseSet") is not None:
+            print(
+                "RESULT: PASS — OCI release export restored and every declared member "
+                "reproduced byte-for-byte by immutable digest"
+            )
+        else:
+            print(
+                "RESULT: PASS — OCI export restored and representative manifest reproduced "
+                "byte-for-byte by immutable digest"
+            )
+            print(
+                f"WARNING: the backup discovery limitation remains: "
+                f"{inventory['discoveryLimitation']}"
+            )
+            print(f"WARNING: the backup scope limitation remains: {inventory['scopeLimitation']}")
         print(f"WARNING: the backup identity limitation remains: {inventory['identityLimitation']}")
         return 0
     finally:
@@ -1704,11 +2520,20 @@ def command_verify(args: argparse.Namespace) -> int:
     work = Path(tempfile.mkdtemp(prefix="zotctl-verify."))
     os.chmod(work, 0o700)
     try:
-        load_and_verify(Path(args.artifact), Path(args.manifest), work)
-        print(
-            "RESULT: PASS — detached size/SHA-256 and every OCI blob digest verified "
-            "without cluster mutation"
+        inventory, _layout, _count = load_and_verify(
+            Path(args.artifact), Path(args.manifest), work
         )
+        if inventory.get("releaseSet") is not None:
+            print(
+                "RESULT: PASS — detached size/SHA-256, every OCI blob digest and the "
+                "complete release descriptor/referrer closure verified without cluster "
+                "or source-registry access"
+            )
+        else:
+            print(
+                "RESULT: PASS — detached size/SHA-256 and every OCI blob digest verified "
+                "without cluster mutation"
+            )
         return 0
     finally:
         print(f"work dir RETAINED (mode 700; contains no registry credential): {work}")
@@ -1767,30 +2592,42 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = parser.add_subparsers(dest="command", required=True)
 
-    backup = sub.add_parser("backup", help="export every discoverable tagged manifest and referrer")
-    backup.add_argument("--kubectl", default=os.environ.get("KUBECTL", "kubectl"))
-    backup.add_argument("--kubeconfig", default=os.environ.get("KUBECONFIG", ""))
-    backup.add_argument("--namespace", default=os.environ.get("NAMESPACE", "zot"))
-    backup.add_argument("--release", default=os.environ.get("RELEASE", "zot"))
-    backup.add_argument(
+    export_options = argparse.ArgumentParser(add_help=False)
+    export_options.add_argument("--kubectl", default=os.environ.get("KUBECTL", "kubectl"))
+    export_options.add_argument("--kubeconfig", default=os.environ.get("KUBECONFIG", ""))
+    export_options.add_argument("--namespace", default=os.environ.get("NAMESPACE", "zot"))
+    export_options.add_argument("--release", default=os.environ.get("RELEASE", "zot"))
+    export_options.add_argument(
         "--machine-secret", default=os.environ.get("MACHINE_SECRET", "zot-machine-identities")
     )
-    backup.add_argument(
+    export_options.add_argument(
         "--conformance-secret",
         default=os.environ.get("CONFORMANCE_SECRET", "zot-conformance-identities"),
     )
-    backup.add_argument("--tls-secret", default=os.environ.get("TLS_SECRET", "zot-server-tls"))
-    backup.add_argument("--registry-host", default=os.environ.get("REGISTRY_HOST"))
-    backup.add_argument("--registry-lb", default=os.environ.get("REGISTRY_LB"))
-    backup.add_argument("--backup-dir", default=os.environ.get("BACKUP_DIR", ""))
-    backup.add_argument(
+    export_options.add_argument("--tls-secret", default=os.environ.get("TLS_SECRET", "zot-server-tls"))
+    export_options.add_argument("--registry-host", default=os.environ.get("REGISTRY_HOST"))
+    export_options.add_argument("--registry-lb", default=os.environ.get("REGISTRY_LB"))
+    export_options.add_argument("--backup-dir", default=os.environ.get("BACKUP_DIR", ""))
+    export_options.add_argument(
         "--keycloak-host",
         default=os.environ.get("KEYCLOAK_HOST", "keycloak.ok-shared.internal"),
     )
-    backup.add_argument(
-        "--page-size", type=int, default=None
+    export_options.add_argument("--page-size", type=int, default=None)
+
+    backup = sub.add_parser(
+        "backup",
+        parents=[export_options],
+        help="export every discoverable tagged manifest and recursive referrer",
     )
-    backup.set_defaults(func=command_backup)
+    backup.set_defaults(func=command_backup, release_set=None)
+
+    release_export = sub.add_parser(
+        "release-export",
+        parents=[export_options],
+        help="export declared release members, descriptor closure and recursive referrers",
+    )
+    release_export.add_argument("release_set", help="versioned release-set JSON input")
+    release_export.set_defaults(func=command_backup)
 
     verify = sub.add_parser("verify", help="verify a backup artifact without any cluster access")
     verify.add_argument("artifact")
