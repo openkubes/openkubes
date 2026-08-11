@@ -24,6 +24,7 @@ import http.client
 import json
 import os
 import re
+import select
 import shutil
 import socket
 import ssl
@@ -60,10 +61,14 @@ MANIFEST_MEDIA_TYPE = "application/vnd.oci.image.manifest.v1+json"
 REPOSITORY_RE = re.compile(r"^[a-z0-9]+([._-][a-z0-9]+)*(/[a-z0-9]+([._-][a-z0-9]+)*)*$")
 TAG_RE = re.compile(r"^[A-Za-z0-9_][A-Za-z0-9._-]{0,127}$")
 DIGEST_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
+# RFC3339 UTC, the one format both this tool and Kubernetes emit. Same shape both sides is what
+# makes a plain string comparison of two timestamps correct.
+TIMESTAMP_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
 LAYOUT_REF_RE = re.compile(r"^entry-[0-9]{6}$")
 DNS_RE = re.compile(r"^[A-Za-z0-9.-]+$")
 SCRATCH_RELEASE = "zot-restore-drill"
 SCRATCH_NAMESPACE_RE = re.compile(r"^zot-restore-drill-[a-z0-9]([-a-z0-9]*[a-z0-9])?$")
+LIVE_PVC = "zot-pvc-zot-0"
 RELEASE_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
 RELEASE_ROLE_RE = re.compile(r"^[a-z][a-z0-9._-]{0,63}$")
 ARTIFACT_TYPE_RE = re.compile(
@@ -204,6 +209,86 @@ class Kube:
         if "\n" in value or "\r" in value:
             die(f"Secret {namespace}/{name} key {key} contains a newline")
         return value
+
+    def delete_pvc_with_uid_precondition(
+        self, namespace: str, name: str, expected_uid: str
+    ) -> None:
+        """DELETE one PVC through the API with an atomic UID precondition.
+
+        kubectl's resource-name delete has no UID-precondition flag. A loopback-only kubectl
+        proxy supplies the already reviewed kubeconfig transport while this method sends the
+        standard DeleteOptions body directly to the API server.
+        """
+        argv = self._base(self.kubectl) + [
+            "proxy",
+            "--address=127.0.0.1",
+            "--accept-hosts=^127\\.0\\.0\\.1$",
+            "--port=0",
+        ]
+        process = subprocess.Popen(
+            argv,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+        )
+        output: list[str] = []
+        connection: http.client.HTTPConnection | None = None
+        try:
+            if process.stdout is None:
+                die("kubectl proxy did not expose its startup output")
+            port: int | None = None
+            deadline = time.monotonic() + 30
+            pattern = re.compile(r"Starting to serve on 127\.0\.0\.1:(\d+)")
+            while time.monotonic() < deadline:
+                if process.poll() is not None:
+                    die("kubectl proxy exited before the UID-preconditioned delete")
+                ready, _, _ = select.select(
+                    [process.stdout], [], [], max(0.0, deadline - time.monotonic())
+                )
+                if not ready:
+                    break
+                line = process.stdout.readline()
+                if not line:
+                    continue
+                output.append(line.rstrip())
+                match = pattern.search(line)
+                if match:
+                    port = int(match.group(1))
+                    break
+            if port is None:
+                detail = "; ".join(output[-3:]) or "no startup output"
+                die(f"could not determine kubectl proxy port: {detail}")
+
+            body = json.dumps(
+                {
+                    "apiVersion": "v1",
+                    "kind": "DeleteOptions",
+                    "preconditions": {"uid": expected_uid},
+                    "propagationPolicy": "Background",
+                },
+                separators=(",", ":"),
+            ).encode()
+            path = f"/api/v1/namespaces/{namespace}/persistentvolumeclaims/{name}"
+            connection = http.client.HTTPConnection("127.0.0.1", port, timeout=30)
+            connection.request(
+                "DELETE", path, body=body, headers={"Content-Type": "application/json"}
+            )
+            response = connection.getresponse()
+            payload = response.read(1000)
+            if response.status not in (200, 202):
+                die(
+                    f"UID-preconditioned PVC delete returned HTTP {response.status}: "
+                    f"{payload.decode('utf-8', 'replace')}"
+                )
+        finally:
+            if connection is not None:
+                connection.close()
+            if process.poll() is None:
+                process.terminate()
+                try:
+                    process.wait(timeout=10)
+                except subprocess.TimeoutExpired:
+                    process.kill()
 
 
 class PortForward:
@@ -1285,6 +1370,13 @@ def identity_for_repository(repository: str) -> str:
     return ""  # unreachable
 
 
+def restore_identity(registry: Registry, repository: str) -> str:
+    """Choose the repository's reviewed identity only when the target is authenticated."""
+    if not getattr(registry, "auth_headers", {}):
+        return ""
+    return identity_for_repository(repository)
+
+
 def release_set_identities(release_set: dict[str, Any]) -> set[str]:
     """Which export identities a declared release actually needs.
 
@@ -1719,6 +1811,33 @@ def publish_backup(
     return artifact, manifest
 
 
+def live_auth_headers(
+    kube: Kube, args: argparse.Namespace, ca_file: Path, needs_human: bool
+) -> dict[str, dict[str, str]]:
+    """Load the profile's machine credential and optional process-scoped human OIDC session."""
+    machine_user = kube.secret_value(args.namespace, args.machine_secret, "machine-username")
+    machine_password = kube.secret_value(args.namespace, args.machine_secret, "machine-password")
+    basic = base64.b64encode(f"{machine_user}:{machine_password}".encode()).decode()
+    auth_headers = {"machine": {"Authorization": f"Basic {basic}"}}
+    if needs_human:
+        human_user = kube.secret_value(
+            args.namespace, args.conformance_secret, "writer-username"
+        )
+        human_password = kube.secret_value(
+            args.namespace, args.conformance_secret, "writer-password"
+        )
+        cookie = oidc_session_cookie(
+            args.registry_host,
+            args.keycloak_host,
+            args.registry_lb,
+            ca_file,
+            human_user,
+            human_password,
+        )
+        auth_headers["human"] = {"Cookie": cookie, "X-ZOT-API-CLIENT": "zot-ui"}
+    return auth_headers
+
+
 def command_backup(args: argparse.Namespace) -> int:
     require_commands(args.kubectl)
     if args.registry_host is None or args.registry_lb is None:
@@ -1754,8 +1873,6 @@ def command_backup(args: argparse.Namespace) -> int:
             "get", "secret", args.tls_secret, "-n", args.namespace, "-o", "json"
         )
         ca_file.write_bytes(secret_bytes(tls_secret, args.tls_secret, "ca.crt"))
-        machine_user = kube.secret_value(args.namespace, args.machine_secret, "machine-username")
-        machine_password = kube.secret_value(args.namespace, args.machine_secret, "machine-password")
         # A whole-registry backup walks the catalog, so it may meet openkubes/human/**. A declared
         # release states its repositories up front, so it can say it needs only htpasswd.
         release_input = (
@@ -1771,20 +1888,8 @@ def command_backup(args: argparse.Namespace) -> int:
                 f"source: asserted Service zot/zot through https://127.0.0.1:{tunnel.port} "
                 "(loopback tunnel)"
             )
-            basic = base64.b64encode(f"{machine_user}:{machine_password}".encode()).decode()
-            auth_headers = {"machine": {"Authorization": f"Basic {basic}"}}
+            auth_headers = live_auth_headers(kube, args, ca_file, needs_human)
             if needs_human:
-                human_user = kube.secret_value(
-                    args.namespace, args.conformance_secret, "writer-username"
-                )
-                human_password = kube.secret_value(
-                    args.namespace, args.conformance_secret, "writer-password"
-                )
-                cookie = oidc_session_cookie(
-                    args.registry_host, args.keycloak_host, args.registry_lb,
-                    ca_file, human_user, human_password,
-                )
-                auth_headers["human"] = {"Cookie": cookie, "X-ZOT-API-CLIENT": "zot-ui"}
                 print("export identities: machine (htpasswd) and human (central OIDC session)")
             else:
                 print(
@@ -1845,7 +1950,7 @@ def load_yaml(path: Path, label: str) -> dict[str, Any]:
     try:
         import yaml
     except ImportError:
-        die("PyYAML is required for restore-drill")
+        die("PyYAML is required for restore operations")
     try:
         document = yaml.safe_load(path.read_text())
     except (OSError, yaml.YAMLError) as exc:
@@ -1945,13 +2050,14 @@ def normalize_upload_location(registry: Registry, raw: str) -> str:
 
 
 def put_blob(registry: Registry, repository: str, path: Path, digest: str) -> None:
+    identity = restore_identity(registry, repository)
     status, _, _ = registry.request(
-        "HEAD", f"/v2/{repository}/blobs/{digest}", expect=(200, 404)
+        "HEAD", f"/v2/{repository}/blobs/{digest}", identity=identity, expect=(200, 404)
     )
     if status == 200:
         return
     _, _, headers = registry.request(
-        "POST", f"/v2/{repository}/blobs/uploads/", expect=(202,)
+        "POST", f"/v2/{repository}/blobs/uploads/", identity=identity, expect=(202,)
     )
     location = normalize_upload_location(registry, headers.get("location", ""))
     separator = "&" if "?" in location else "?"
@@ -1959,6 +2065,7 @@ def put_blob(registry: Registry, repository: str, path: Path, digest: str) -> No
         registry.request(
             "PUT",
             f"{location}{separator}digest={urllib.parse.quote(digest, safe=':')}",
+            identity=identity,
             headers={
                 "Content-Type": "application/octet-stream",
                 "Content-Length": str(path.stat().st_size),
@@ -1979,10 +2086,18 @@ def put_manifest(
     registry.request(
         "PUT",
         f"/v2/{repository}/manifests/{reference}",
+        identity=restore_identity(registry, repository),
         headers={"Content-Type": media_type, "Content-Length": str(len(payload))},
         body=payload,
         expect=(201,),
     )
+
+
+def restore_manifest_reference(registry: Registry, digest: str) -> str:
+    """Use diagnostic tags only in authless scratch; production metadata stays faithful."""
+    if registry.auth_headers:
+        return digest
+    return f"ok138-restore-{digest.removeprefix('sha256:')}"
 
 
 def assert_live_restore_boundary(kube: Kube, namespace: str, release: str) -> None:
@@ -2001,6 +2116,243 @@ def assert_live_restore_boundary(kube: Kube, namespace: str, release: str) -> No
         and labels.get("app.kubernetes.io/name") == "zot"
     ):
         die("live Service does not belong to release zot/zot")
+
+
+def reviewed_live_settings(values_file: Path) -> tuple[str, str, dict[str, Any]]:
+    """Return the image pin and Zot configuration from reviewed production values."""
+    values = load_yaml(values_file, "production values")
+    image = values.get("image") or {}
+    repository = image.get("repository")
+    tag = image.get("tag")
+    if not isinstance(repository, str) or not re.fullmatch(r"[A-Za-z0-9./_-]+", repository):
+        die("production values image repository is unsafe")
+    if not isinstance(tag, str) or not re.fullmatch(
+        r"[^\s]+@sha256:[0-9a-f]{64}", tag
+    ):
+        die("production values Zot image is not digest pinned")
+    raw_config = (values.get("configFiles") or {}).get("config.json")
+    if not isinstance(raw_config, str):
+        die("production values have no Zot config.json")
+    try:
+        config = json.loads(raw_config)
+    except json.JSONDecodeError as exc:
+        die(f"production values Zot config.json is invalid: {exc}")
+    if not isinstance(config, dict):
+        die("production values Zot config.json is not an object")
+    return f"{repository}:{tag}", tag.rsplit("@", 1)[1], config
+
+
+def assert_disaster_recovery_boundary(
+    kube: Kube,
+    namespace: str,
+    release: str,
+    expected_pvc_uid: str,
+    expected_image: str,
+    expected_image_digest: str,
+    expected_config: dict[str, Any],
+) -> None:
+    """Bind the live Service endpoint and storage path to one reviewed Zot pod."""
+    if namespace != "zot":
+        die(f"disaster-recovery namespace must be exactly zot, got: {namespace}")
+    if release != "zot":
+        die(f"disaster-recovery release must be exactly zot, got: {release}")
+    if not expected_pvc_uid:
+        die("EXPECTED_PVC_UID is required for disaster-recovery")
+    assert_live_restore_boundary(kube, namespace, release)
+    statefulset = kube.json("get", "statefulset", release, "-n", namespace, "-o", "json")
+    metadata = statefulset.get("metadata") or {}
+    spec = statefulset.get("spec") or {}
+    status = statefulset.get("status") or {}
+    statefulset_uid = metadata.get("uid")
+    if not (
+        metadata.get("namespace") == "zot"
+        and metadata.get("name") == "zot"
+        and (metadata.get("labels") or {}).get("app.kubernetes.io/instance") == "zot"
+        and (metadata.get("labels") or {}).get("app.kubernetes.io/name") == "zot"
+        and isinstance(statefulset_uid, str)
+        and statefulset_uid
+        and spec.get("serviceName", "") == ""
+        and spec.get("replicas") == 1
+        and status.get("readyReplicas") == 1
+    ):
+        die("StatefulSet zot/zot is not the exact reconstructed live target")
+
+    service = kube.json("get", "service", release, "-n", namespace, "-o", "json")
+    service_spec = service.get("spec") or {}
+    selector = service_spec.get("selector") or {}
+    ports = service_spec.get("ports") or []
+    if not (
+        selector == {
+            "app.kubernetes.io/instance": "zot",
+            "app.kubernetes.io/name": "zot",
+        }
+        and service_spec.get("type") == "ClusterIP"
+        and service_spec.get("clusterIP") not in (None, "", "None")
+        and len(ports) == 1
+        and ports[0].get("name") == "zot"
+        and ports[0].get("port") == 5000
+        and ports[0].get("targetPort") == "zot"
+        and ports[0].get("protocol", "TCP") == "TCP"
+    ):
+        die("Service zot/zot is not the exact ClusterIP selector and named-port target")
+
+    pods = kube.json(
+        "get",
+        "pods",
+        "-n",
+        namespace,
+        "-l",
+        "app.kubernetes.io/instance=zot,app.kubernetes.io/name=zot",
+        "-o",
+        "json",
+    ).get("items") or []
+    if len(pods) != 1:
+        die(f"Service zot/zot selector must resolve to exactly one pod, got {len(pods)}")
+    pod = pods[0]
+    pod_metadata = pod.get("metadata") or {}
+    pod_spec = pod.get("spec") or {}
+    pod_status = pod.get("status") or {}
+    pod_uid = pod_metadata.get("uid")
+    pod_ip = pod_status.get("podIP")
+    owners = pod_metadata.get("ownerReferences") or []
+    ready = any(
+        condition.get("type") == "Ready" and condition.get("status") == "True"
+        for condition in (pod_status.get("conditions") or [])
+    )
+    if not (
+        pod_metadata.get("namespace") == "zot"
+        and pod_metadata.get("name") == "zot-0"
+        and all((pod_metadata.get("labels") or {}).get(key) == value for key, value in selector.items())
+        and isinstance(pod_uid, str)
+        and pod_uid
+        and isinstance(pod_ip, str)
+        and pod_ip
+        and len(owners) == 1
+        and owners[0].get("apiVersion") == "apps/v1"
+        and owners[0].get("kind") == "StatefulSet"
+        and owners[0].get("name") == "zot"
+        and owners[0].get("uid") == statefulset_uid
+        and owners[0].get("controller") is True
+        and pod_status.get("phase") == "Running"
+        and ready
+    ):
+        die("Service zot/zot does not select the exact Ready zot-0 owned by StatefulSet zot")
+
+    containers = pod_spec.get("containers") or []
+    container_statuses = pod_status.get("containerStatuses") or []
+    if not (
+        len(containers) == 1
+        and containers[0].get("name") == "zot"
+        and containers[0].get("image") == expected_image
+        and len(container_statuses) == 1
+        and container_statuses[0].get("name") == "zot"
+        and container_statuses[0].get("ready") is True
+        and str(container_statuses[0].get("imageID", "")).endswith(expected_image_digest)
+    ):
+        die(
+            "live zot-0 image or runtime imageID does not match the digest-pinned production values"
+        )
+
+    mounts = containers[0].get("volumeMounts") or []
+    required_mounts = {
+        "/var/lib/registry": "zot-pvc",
+        "/etc/zot": "zot-config",
+        "/tls": "zot-server-tls",
+        "/auth": "zot-htpasswd",
+        "/oidc": "zot-oidc",
+    }
+    actual_mounts = {mount.get("mountPath"): mount.get("name") for mount in mounts}
+    if len(mounts) != len(required_mounts) or actual_mounts != required_mounts:
+        die("live zot-0 does not have the exact registry/config/TLS/auth/OIDC volume mounts")
+
+    volumes = {item.get("name"): item for item in (pod_spec.get("volumes") or [])}
+    if not (
+        set(volumes) == {"zot-pvc", "zot-config", "zot-server-tls", "zot-htpasswd", "zot-oidc"}
+        and ((volumes.get("zot-pvc") or {}).get("persistentVolumeClaim") or {}).get("claimName")
+        == LIVE_PVC
+        and ((volumes.get("zot-config") or {}).get("configMap") or {}).get("name")
+        == "zot-config"
+        and ((volumes.get("zot-server-tls") or {}).get("secret") or {}).get("secretName")
+        == "zot-server-tls"
+        and ((volumes.get("zot-htpasswd") or {}).get("secret") or {}).get("secretName")
+        == "zot-htpasswd"
+        and ((volumes.get("zot-oidc") or {}).get("secret") or {}).get("secretName")
+        == "zot-oidc"
+    ):
+        die("live zot-0 volumes do not bind the exact PVC, config and authentication Secrets")
+
+    config_map = kube.json("get", "configmap", "zot-config", "-n", namespace, "-o", "json")
+    raw_live_config = (config_map.get("data") or {}).get("config.json")
+    try:
+        live_config = json.loads(raw_live_config) if isinstance(raw_live_config, str) else None
+    except json.JSONDecodeError:
+        live_config = None
+    if live_config != expected_config:
+        die("live ConfigMap zot/zot-config does not match reviewed production config.json")
+
+    pvc = kube.json("get", "pvc", LIVE_PVC, "-n", namespace, "-o", "json")
+    pvc_metadata = pvc.get("metadata") or {}
+    actual_uid = pvc_metadata.get("uid")
+    if not (
+        pvc_metadata.get("namespace") == "zot"
+        and pvc_metadata.get("name") == LIVE_PVC
+        and isinstance(actual_uid, str)
+        and actual_uid
+        and (pvc.get("status") or {}).get("phase") == "Bound"
+    ):
+        die(f"PVC zot/{LIVE_PVC} is not the exact live content target")
+    if actual_uid != expected_pvc_uid:
+        die(
+            f"PVC zot/{LIVE_PVC} UID is {actual_uid}, not operator-supplied "
+            f"EXPECTED_PVC_UID {expected_pvc_uid}"
+        )
+
+    endpoint_slices = kube.json(
+        "get",
+        "endpointslices",
+        "-n",
+        namespace,
+        "-l",
+        "kubernetes.io/service-name=zot",
+        "-o",
+        "json",
+    ).get("items") or []
+    if len(endpoint_slices) != 1:
+        die(f"Service zot/zot must have exactly one EndpointSlice, got {len(endpoint_slices)}")
+    endpoint_slice = endpoint_slices[0]
+    endpoint_ports = endpoint_slice.get("ports") or []
+    endpoints = endpoint_slice.get("endpoints") or []
+    if not (
+        (endpoint_slice.get("metadata") or {}).get("namespace") == "zot"
+        and ((endpoint_slice.get("metadata") or {}).get("labels") or {}).get(
+            "kubernetes.io/service-name"
+        )
+        == "zot"
+        and len(endpoint_ports) == 1
+        and endpoint_ports[0].get("name") == "zot"
+        and endpoint_ports[0].get("port") == 5000
+        and endpoint_ports[0].get("protocol", "TCP") == "TCP"
+        and len(endpoints) == 1
+    ):
+        die("Service zot/zot EndpointSlice shape or named port is not exact")
+    endpoint = endpoints[0]
+    conditions = endpoint.get("conditions") or {}
+    target_ref = endpoint.get("targetRef") or {}
+    if not (
+        endpoint.get("addresses") == [pod_ip]
+        and conditions.get("ready") is True
+        and conditions.get("serving") is True
+        and conditions.get("terminating", False) is False
+        and target_ref.get("kind") == "Pod"
+        and target_ref.get("namespace") == "zot"
+        and target_ref.get("name") == "zot-0"
+        and target_ref.get("uid") == pod_uid
+    ):
+        die("Service zot/zot EndpointSlice is not bound to the exact ready nonterminating zot-0")
+    print(
+        f"LIVE_TARGET=zot/zot POD=zot-0 POD_UID={pod_uid} IMAGE_DIGEST={expected_image_digest} "
+        f"PVC={LIVE_PVC} PVC_UID={actual_uid} ENDPOINT={pod_ip}:5000 EXACT_CHAIN=yes"
+    )
 
 
 def scratch_absent(kube: Kube, namespace: str, release: str) -> None:
@@ -2095,15 +2447,28 @@ def assert_scratch_shape(
 
 
 def assert_empty_registry(registry: Registry) -> None:
-    repositories = registry.paginate(
-        "/v2/_catalog?n=1000", "", "repositories", 0, "scratch pre-import catalog"
-    )
-    if repositories:
-        die(
-            "scratch registry is not empty before import; repositories present: "
-            + ", ".join(sorted(repositories))
+    identities = ("machine", "human") if getattr(registry, "auth_headers", {}) else ("",)
+    visible: dict[str, list[str]] = {}
+    for identity in identities:
+        visible[identity or "authless"] = registry.paginate(
+            "/v2/_catalog?n=1000",
+            identity,
+            "repositories",
+            0,
+            f"{identity or 'authless'} pre-import catalog",
         )
-    print("SCRATCH_PREIMPORT_REPOSITORIES=0")
+    repositories = sorted({repository for catalog in visible.values() for repository in catalog})
+    if repositories:
+        target = "scratch registry" if identities == ("",) else "registry"
+        views = "authless catalog view" if identities == ("",) else "visible machine/human catalog views"
+        die(
+            f"{target} is not empty before import in the {views}; "
+            "repositories present: " + ", ".join(repositories)
+        )
+    if identities == ("",):
+        print("SCRATCH_PREIMPORT_REPOSITORIES=0")
+    else:
+        print("LIVE_PREIMPORT_MACHINE_REPOSITORIES=0 LIVE_PREIMPORT_HUMAN_REPOSITORIES=0")
 
 
 def pull_release_members(registry: Registry, release_set: dict[str, Any]) -> None:
@@ -2127,7 +2492,11 @@ def pull_release_members(registry: Registry, release_set: dict[str, Any]) -> Non
             die(f"release member {owner} has an invalid blob descriptor")
         key = (repository, digest)
         if key not in blob_sizes:
-            _, payload, _ = registry.request("GET", f"/v2/{repository}/blobs/{digest}")
+            _, payload, _ = registry.request(
+                "GET",
+                f"/v2/{repository}/blobs/{digest}",
+                identity=restore_identity(registry, repository),
+            )
             pulled = f"sha256:{hashlib.sha256(payload).hexdigest()}"
             if pulled != digest:
                 die(
@@ -2147,6 +2516,7 @@ def pull_release_members(registry: Registry, release_set: dict[str, Any]) -> Non
             _, payload, _ = registry.request(
                 "GET",
                 f"/v2/{repository}/manifests/{digest}",
+                identity=restore_identity(registry, repository),
                 headers={"Accept": MANIFEST_ACCEPT},
             )
             pulled = f"sha256:{hashlib.sha256(payload).hexdigest()}"
@@ -2216,7 +2586,11 @@ def pull_referrer_content(registry: Registry, inventory: dict[str, Any]) -> None
             die(f"referrer {owner} has an invalid blob descriptor")
         key = (repository, digest)
         if key not in blob_sizes:
-            _, payload, _ = registry.request("GET", f"/v2/{repository}/blobs/{digest}")
+            _, payload, _ = registry.request(
+                "GET",
+                f"/v2/{repository}/blobs/{digest}",
+                identity=restore_identity(registry, repository),
+            )
             pulled = f"sha256:{hashlib.sha256(payload).hexdigest()}"
             if pulled != digest:
                 die(f"pulled referrer {owner} blob hashes to {pulled}, expected {digest}")
@@ -2233,6 +2607,7 @@ def pull_referrer_content(registry: Registry, inventory: dict[str, Any]) -> None
             _, payload, _ = registry.request(
                 "GET",
                 f"/v2/{repository}/manifests/{digest}",
+                identity=restore_identity(registry, repository),
                 headers={"Accept": MANIFEST_ACCEPT},
             )
             pulled = f"sha256:{hashlib.sha256(payload).hexdigest()}"
@@ -2290,15 +2665,18 @@ def restore_content(registry: Registry, layout: Path, inventory: dict[str, Any],
 
     for repository, digest, media_type in order:
         manifest = layout / "blobs" / "sha256" / digest.removeprefix("sha256:")
-        synthetic_tag = f"ok138-restore-{digest.removeprefix('sha256:')}"
-        put_manifest(registry, repository, synthetic_tag, manifest, media_type)
+        # Scratch keeps the diagnostic tags used by the drill. Production must restore only
+        # immutable digest references plus the original recorded tags -- never DR-only metadata.
+        temporary_reference = restore_manifest_reference(registry, digest)
+        put_manifest(registry, repository, temporary_reference, manifest, media_type)
         _, payload, _ = registry.request(
             "GET",
-            f"/v2/{repository}/manifests/{synthetic_tag}",
+            f"/v2/{repository}/manifests/{temporary_reference}",
+            identity=restore_identity(registry, repository),
             headers={"Accept": MANIFEST_ACCEPT},
         )
         if f"sha256:{hashlib.sha256(payload).hexdigest()}" != digest:
-            die(f"scratch changed restored manifest bytes for {repository}@{digest}")
+            die(f"destination changed restored manifest bytes for {repository}@{digest}")
 
     for item in inventory["references"]:
         manifest = layout / "blobs" / "sha256" / item["digest"].removeprefix("sha256:")
@@ -2311,6 +2689,7 @@ def restore_content(registry: Registry, layout: Path, inventory: dict[str, Any],
         _, payload, _ = registry.request(
             "GET",
             f"/v2/{edge['repository']}/referrers/{edge['subject']}",
+            identity=restore_identity(registry, edge["repository"]),
             headers={"Accept": INDEX_MEDIA_TYPE},
         )
         try:
@@ -2332,6 +2711,7 @@ def restore_content(registry: Registry, layout: Path, inventory: dict[str, Any],
         _, payload, _ = registry.request(
             "GET",
             f"/v2/{representative['repository']}/manifests/{representative['digest']}",
+            identity=restore_identity(registry, representative["repository"]),
             headers={"Accept": MANIFEST_ACCEPT},
         )
         pulled = f"sha256:{hashlib.sha256(payload).hexdigest()}"
@@ -2340,9 +2720,10 @@ def restore_content(registry: Registry, layout: Path, inventory: dict[str, Any],
                 f"pulled representative manifest hashes to {pulled}, expected "
                 f"{representative['digest']}"
             )
+        scheme = "http" if registry.insecure_plain_http else "https"
         print(
-            f"CURL_PULL=http://127.0.0.1:{registry.port}/v2/{representative['repository']}"
-            f"/manifests/{representative['digest']} HTTP 200"
+            f"CURL_PULL={scheme}://{registry.hostname}:{registry.port}/v2/"
+            f"{representative['repository']}/manifests/{representative['digest']} HTTP 200"
         )
         print(
             f"PULLED_MANIFEST_SHA256={pulled} "
@@ -2474,6 +2855,259 @@ def command_restore(args: argparse.Namespace) -> int:
                 print("FAIL: scratch cleanup could not be proven", file=sys.stderr)
         print(f"work dir RETAINED (mode 700; contains no registry credential): {work}")
         print("WARNING: delete the retained work dir manually after reviewing this result.")
+
+
+def command_disaster_recovery(args: argparse.Namespace) -> int:
+    """Restore verified content into a newly reconstructed, empty live zot/zot."""
+    if args.approve is None:
+        args.approve = env_choice("APPROVE_DISASTER_RECOVERY")
+    if args.namespace != "zot":
+        die(f"disaster-recovery namespace must be exactly zot, got: {args.namespace}")
+    if args.release != "zot":
+        die(f"disaster-recovery release must be exactly zot, got: {args.release}")
+    if not args.expected_pvc_uid:
+        die("EXPECTED_PVC_UID is required for disaster-recovery")
+    if not args.values_file:
+        die("VALUES_FILE is required for disaster-recovery")
+    if not args.kubeconfig:
+        die("KUBECONFIG is required for disaster-recovery")
+    if not args.approve:
+        gate(
+            "disaster-recovery writes verified artifact content into the live zot/zot registry.\n"
+            "       Review the reconstructed target and artifact; rerun with "
+            "APPROVE_DISASTER_RECOVERY=yes."
+        )
+    if not sys.stdin.isatty():
+        gate("disaster-recovery must be run attended from a terminal")
+    require_commands(args.kubectl)
+    if args.registry_host is None or args.registry_lb is None:
+        defaults = registry_defaults()
+        args.registry_host = args.registry_host or defaults["REGISTRY_HOST"]
+        args.registry_lb = args.registry_lb or defaults["REGISTRY_LB"]
+    if not DNS_RE.fullmatch(args.registry_host):
+        die(f"REGISTRY_HOST is not a safe DNS name: {args.registry_host}")
+    if not args.registry_lb:
+        die("REGISTRY_LB must not be empty")
+    expected_image, expected_image_digest, expected_config = reviewed_live_settings(
+        Path(args.values_file)
+    )
+
+    artifact = Path(args.artifact)
+    manifest = Path(args.manifest)
+    work = Path(tempfile.mkdtemp(prefix="zot-disaster-recovery."))
+    os.chmod(work, 0o700)
+    try:
+        print(f"work dir: {work}")
+        inventory, layout, _ = load_and_verify(artifact, manifest, work)
+        kube = Kube(kubectl=args.kubectl, kubeconfig=args.kubeconfig)
+        assert_disaster_recovery_boundary(
+            kube,
+            args.namespace,
+            args.release,
+            args.expected_pvc_uid,
+            expected_image,
+            expected_image_digest,
+            expected_config,
+        )
+        ca_file = work / "ca.crt"
+        tls_secret = kube.json(
+            "get", "secret", args.tls_secret, "-n", args.namespace, "-o", "json"
+        )
+        ca_file.write_bytes(secret_bytes(tls_secret, args.tls_secret, "ca.crt"))
+        auth_headers = live_auth_headers(kube, args, ca_file, needs_human=True)
+        print("restore identities: machine (htpasswd) and human (central OIDC session)")
+        with PortForward(
+            kube,
+            args.namespace,
+            "service/zot",
+            5000,
+            work / "live-port-forward.log",
+        ) as tunnel:
+            assert tunnel.port is not None
+            registry = Registry(
+                hostname=args.registry_host,
+                port=tunnel.port,
+                ca_file=ca_file,
+                auth_headers=auth_headers,
+            )
+            for identity in ("machine", "human"):
+                registry.request("GET", "/v2/", identity=identity)
+            print(
+                "WARNING: the empty-target guard covers only repositories visible to the "
+                "machine openkubes/machine/** and human openkubes/human/** identities; "
+                "repositories outside those prefixes are not observable."
+            )
+            assert_empty_registry(registry)
+            print(
+                f"restore destination: authenticated live Service zot/zot through "
+                f"https://127.0.0.1:{tunnel.port} (loopback tunnel)"
+            )
+            print("LIVE_WRITE_PHASE=started EMPTY_TARGET_REQUIRED_FOR_RETRY=yes")
+            try:
+                restore_content(registry, layout, inventory, work)
+            except (Fail, OSError, KeyboardInterrupt):
+                print(
+                    "INCOMPLETE_LIVE_RESTORE=possible RETRY_SAME_PVC=forbidden; reconstruct an "
+                    "empty replacement registry/PVC under separate destructive approval, record "
+                    "its new UID, and rerun",
+                    file=sys.stderr,
+                )
+                raise
+            print("LIVE_WRITE_PHASE=complete")
+        print(
+            "RESULT: PASS — verified OCI content restored into authenticated live zot/zot and "
+            "pulled by immutable digest with exact returned bytes"
+        )
+        return 0
+    finally:
+        print(f"work dir RETAINED (mode 700; contains no registry credential): {work}")
+        print("WARNING: delete the retained work dir manually after reviewing this result.")
+
+
+def validate_recovery_point(manifest: Path) -> str:
+    """Read the recovery point (createdAt) from a detached integrity manifest.
+
+    Deliberately strict: an unreadable or malformed manifest must not degrade into an empty
+    string, because an empty recovery point would make every PVC look newer than it.
+    """
+    document = read_json(manifest, "detached integrity manifest")
+    validate_integrity_document(document)
+    created = document.get("createdAt")
+    if not isinstance(created, str) or not TIMESTAMP_RE.fullmatch(created):
+        die(f"detached integrity manifest has no usable createdAt: {created!r}")
+    return created
+
+
+def assert_reset_pvc(
+    kube: Kube, namespace: str, expected_pvc_uid: str, not_before: str
+) -> None:
+    """Bind destructive incomplete-recovery cleanup to one exact retained claim.
+
+    The UID precondition guarantees "delete exactly the object you named". It cannot tell a
+    replacement claim from the production one, and the runbook hands the operator that UID in
+    the step before this: if the PVC was never actually lost -- a misdiagnosis is entirely
+    possible mid-outage -- `make zot` rebinds the ORIGINAL claim and its UID is what reaches
+    here. Prose saying "never run this against a healthy PVC" is not a guard.
+
+    So require an independent fact: a genuine replacement is created DURING the recovery, and
+    therefore after the recovery point being restored. The original predates the backup.
+    """
+    pvc = kube.json("get", "pvc", LIVE_PVC, "-n", namespace, "-o", "json")
+    metadata = pvc.get("metadata") or {}
+    if (
+        metadata.get("namespace") != namespace
+        or metadata.get("name") != LIVE_PVC
+        or metadata.get("uid") != expected_pvc_uid
+        or (pvc.get("status") or {}).get("phase") != "Bound"
+    ):
+        die(
+            f"PVC {namespace}/{LIVE_PVC} is not the Bound operator-approved "
+            f"EXPECTED_PVC_UID {expected_pvc_uid}"
+        )
+    created = metadata.get("creationTimestamp")
+    # Both sides must be the same RFC3339 UTC shape, or comparing them as strings is meaningless.
+    if not isinstance(created, str) or not TIMESTAMP_RE.fullmatch(created):
+        die(
+            f"PVC {namespace}/{LIVE_PVC} creationTimestamp is missing or not RFC3339 UTC "
+            f"({created!r}); refusing to delete it"
+        )
+    if not isinstance(not_before, str) or not TIMESTAMP_RE.fullmatch(not_before):
+        die(f"recovery point is missing or not RFC3339 UTC ({not_before!r})")
+    if created <= not_before:
+        die(
+            f"refusing to delete PVC {namespace}/{LIVE_PVC}: it was created {created}, at or "
+            f"before the recovery point {not_before}, so it is NOT a replacement claim created "
+            "during this recovery -- it looks like the original. If the original really was "
+            "lost, the replacement will postdate the backup you are restoring."
+        )
+
+
+def reset_incomplete_disaster_recovery(
+    kube: Kube, namespace: str, release: str, expected_pvc_uid: str, not_before: str
+) -> None:
+    """Uninstall only zot/zot, prove its workload absent, then delete one exact PVC UID."""
+    if namespace != "zot":
+        die(f"reset namespace must be exactly zot, got: {namespace}")
+    if release != "zot":
+        die(f"reset release must be exactly zot, got: {release}")
+    if not expected_pvc_uid:
+        die("EXPECTED_PVC_UID is required for incomplete-recovery reset")
+    assert_reset_pvc(kube, namespace, expected_pvc_uid, not_before)
+
+    releases = kube.helm_json(
+        "list", "--all", "--filter", f"^{release}$", "-n", namespace, "-o", "json"
+    )
+    if not isinstance(releases, list) or len(releases) > 1 or any(
+        item.get("name") != release or item.get("namespace") not in (None, namespace)
+        for item in releases
+    ):
+        die(f"exact Helm release lookup for {namespace}/{release} returned an unexpected result")
+    if releases:
+        kube.run(
+            "uninstall", release, "-n", namespace, "--wait", "--timeout", "5m",
+            binary=kube.helm,
+        )
+
+    for kind, name in (("statefulset", release), ("pod", f"{release}-0")):
+        remaining = kube.run(
+            "get", kind, name, "-n", namespace, "--ignore-not-found", "-o", "name"
+        ).strip()
+        if remaining:
+            die(
+                f"refusing to delete PVC while workload remains after uninstall: {remaining}"
+            )
+
+    # Re-read immediately before deletion so a stale approval or replacement claim fails closed.
+    assert_reset_pvc(kube, namespace, expected_pvc_uid, not_before)
+    kube.delete_pvc_with_uid_precondition(namespace, LIVE_PVC, expected_pvc_uid)
+    kube.run(
+        "wait", "--for=delete", f"pvc/{LIVE_PVC}", "-n", namespace, "--timeout=5m"
+    )
+    remaining = kube.run(
+        "get", "pvc", LIVE_PVC, "-n", namespace, "--ignore-not-found", "-o", "name"
+    ).strip()
+    if remaining:
+        die(f"PVC deletion did not complete: {remaining}")
+    print(
+        f"RESULT: PASS — uninstalled incomplete {namespace}/{release}, proved its workload "
+        f"absent and deleted only {LIVE_PVC} with UID {expected_pvc_uid}"
+    )
+
+
+def command_reset_incomplete_disaster_recovery(args: argparse.Namespace) -> int:
+    if args.approve is None:
+        args.approve = env_choice("APPROVE_INCOMPLETE_RECOVERY_RESET")
+    if args.namespace != "zot":
+        die(f"reset namespace must be exactly zot, got: {args.namespace}")
+    if args.release != "zot":
+        die(f"reset release must be exactly zot, got: {args.release}")
+    if not args.expected_pvc_uid:
+        die("EXPECTED_PVC_UID is required for incomplete-recovery reset")
+    if not args.kubeconfig:
+        die("KUBECONFIG is required for incomplete-recovery reset")
+    if not args.approve:
+        gate(
+            "reset-incomplete-disaster-recovery uninstalls zot/zot and irreversibly deletes "
+            "only the exact approved replacement PVC.\n"
+            "       Review the incomplete target and rerun with "
+            "APPROVE_INCOMPLETE_RECOVERY_RESET=yes."
+        )
+    if not sys.stdin.isatty():
+        gate("reset-incomplete-disaster-recovery must be run attended from a terminal")
+    # After the approval gates on purpose: an operator should meet the approval requirement
+    # first, not a missing-argument error that hides what this target does.
+    if not args.manifest:
+        die(
+            "INTEGRITY_MANIFEST is required: its recovery point is what proves the PVC about to "
+            "be deleted is a replacement created during this recovery, not the original"
+        )
+    recovery_point = validate_recovery_point(Path(args.manifest))
+    require_commands(args.kubectl, args.helm)
+    kube = Kube(kubectl=args.kubectl, helm=args.helm, kubeconfig=args.kubeconfig)
+    reset_incomplete_disaster_recovery(
+        kube, args.namespace, args.release, args.expected_pvc_uid, recovery_point
+    )
+    return 0
 
 
 # --------------------------------------------------------------------------------------
@@ -2660,6 +3294,57 @@ def build_parser() -> argparse.ArgumentParser:
     )
     restore.add_argument("--verify-only", action="store_true", default=None)
     restore.set_defaults(func=command_restore)
+
+    recovery = sub.add_parser(
+        "disaster-recovery",
+        help="restore verified content into a newly reconstructed authenticated live zot/zot",
+    )
+    recovery.add_argument("artifact")
+    recovery.add_argument("manifest")
+    recovery.add_argument("--kubectl", default=os.environ.get("KUBECTL", "kubectl"))
+    recovery.add_argument("--kubeconfig", default=os.environ.get("KUBECONFIG", ""))
+    recovery.add_argument("--namespace", default=os.environ.get("NAMESPACE", "zot"))
+    recovery.add_argument("--release", default=os.environ.get("RELEASE", "zot"))
+    recovery.add_argument("--values-file", default=os.environ.get("VALUES_FILE", ""))
+    recovery.add_argument(
+        "--expected-pvc-uid", default=os.environ.get("EXPECTED_PVC_UID", "")
+    )
+    recovery.add_argument(
+        "--machine-secret", default=os.environ.get("MACHINE_SECRET", "zot-machine-identities")
+    )
+    recovery.add_argument(
+        "--conformance-secret",
+        default=os.environ.get("CONFORMANCE_SECRET", "zot-conformance-identities"),
+    )
+    recovery.add_argument(
+        "--tls-secret", default=os.environ.get("TLS_SECRET", "zot-server-tls")
+    )
+    recovery.add_argument("--registry-host", default=os.environ.get("REGISTRY_HOST"))
+    recovery.add_argument("--registry-lb", default=os.environ.get("REGISTRY_LB"))
+    recovery.add_argument(
+        "--keycloak-host",
+        default=os.environ.get("KEYCLOAK_HOST", "keycloak.ok-shared.internal"),
+    )
+    recovery.add_argument("--approve", action="store_true", default=None)
+    recovery.set_defaults(func=command_disaster_recovery)
+
+    reset = sub.add_parser(
+        "reset-incomplete-disaster-recovery",
+        help="uninstall incomplete zot/zot and delete only the exact approved replacement PVC",
+    )
+    reset.add_argument("--kubectl", default=os.environ.get("KUBECTL", "kubectl"))
+    reset.add_argument("--helm", default=os.environ.get("HELM", "helm"))
+    reset.add_argument("--kubeconfig", default=os.environ.get("KUBECONFIG", ""))
+    reset.add_argument("--namespace", default=os.environ.get("NAMESPACE", "zot"))
+    reset.add_argument("--release", default=os.environ.get("RELEASE", "zot"))
+    reset.add_argument(
+        "--expected-pvc-uid", default=os.environ.get("EXPECTED_PVC_UID", "")
+    )
+    # The recovery point the replacement must postdate. Not optional: without it the UID is the
+    # only thing between this target and the production PVC.
+    reset.add_argument("manifest", nargs="?", default=os.environ.get("INTEGRITY_MANIFEST", ""))
+    reset.add_argument("--approve", action="store_true", default=None)
+    reset.set_defaults(func=command_reset_incomplete_disaster_recovery)
 
     return parser
 
