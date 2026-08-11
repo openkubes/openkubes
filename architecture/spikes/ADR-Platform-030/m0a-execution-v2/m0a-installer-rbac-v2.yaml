@@ -1,0 +1,116 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ok141-m0a-installer-v2
+  namespace: openkubes-system
+  labels:
+    openkubes.io/ticket: OK-141
+    openkubes.io/gate: M0A-C1-v2
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: ok141-m0a-installer-v2
+  labels:
+    openkubes.io/ticket: OK-141
+    openkubes.io/gate: M0A-C1-v2
+rules:
+  - apiGroups: [""]
+    resources: ["namespaces", "serviceaccounts", "configmaps", "services"]
+    verbs: ["create"]
+  - apiGroups: ["apiextensions.k8s.io"]
+    resources: ["customresourcedefinitions"]
+    verbs: ["create"]
+  - apiGroups: ["rbac.authorization.k8s.io"]
+    resources: ["roles", "rolebindings", "clusterroles", "clusterrolebindings"]
+    verbs: ["create"]
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["create"]
+  - apiGroups: ["cert-manager.io"]
+    resources: ["certificates", "issuers"]
+    verbs: ["create"]
+  - apiGroups: ["admissionregistration.k8s.io"]
+    resources: ["mutatingwebhookconfigurations", "validatingwebhookconfigurations"]
+    verbs: ["create"]
+  - apiGroups: [""]
+    resources: ["namespaces"]
+    resourceNames: ["caaph-system"]
+    verbs: ["get"]
+  - apiGroups: ["apiextensions.k8s.io"]
+    resources: ["customresourcedefinitions"]
+    resourceNames:
+      - helmchartproxies.addons.cluster.x-k8s.io
+      - helmreleaseproxies.addons.cluster.x-k8s.io
+    verbs: ["get"]
+  - apiGroups: [""]
+    resources: ["serviceaccounts"]
+    resourceNames: ["caaph-controller-manager"]
+    verbs: ["get"]
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    resourceNames: ["caaph-manager-config"]
+    verbs: ["get"]
+  - apiGroups: [""]
+    resources: ["services"]
+    resourceNames:
+      - caaph-controller-manager-metrics-service
+      - caaph-webhook-service
+    verbs: ["get"]
+  - apiGroups: ["rbac.authorization.k8s.io"]
+    resources: ["roles"]
+    resourceNames: ["caaph-leader-election-role"]
+    verbs: ["get"]
+  - apiGroups: ["rbac.authorization.k8s.io"]
+    resources: ["rolebindings"]
+    resourceNames: ["caaph-leader-election-rolebinding"]
+    verbs: ["get"]
+  - apiGroups: ["rbac.authorization.k8s.io"]
+    resources: ["clusterroles"]
+    resourceNames:
+      - caaph-manager-role
+      - caaph-metrics-auth-role
+      - caaph-metrics-reader
+    verbs: ["get"]
+  - apiGroups: ["rbac.authorization.k8s.io"]
+    resources: ["clusterrolebindings"]
+    resourceNames:
+      - caaph-manager-rolebinding
+      - caaph-metrics-auth-rolebinding
+    verbs: ["get"]
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    resourceNames: ["caaph-controller-manager"]
+    verbs: ["get"]
+  - apiGroups: ["cert-manager.io"]
+    resources: ["certificates"]
+    resourceNames: ["caaph-serving-cert"]
+    verbs: ["get"]
+  - apiGroups: ["cert-manager.io"]
+    resources: ["issuers"]
+    resourceNames: ["caaph-selfsigned-issuer"]
+    verbs: ["get"]
+  - apiGroups: ["admissionregistration.k8s.io"]
+    resources: ["mutatingwebhookconfigurations"]
+    resourceNames: ["caaph-mutating-webhook-configuration"]
+    verbs: ["get"]
+  - apiGroups: ["admissionregistration.k8s.io"]
+    resources: ["validatingwebhookconfigurations"]
+    resourceNames: ["caaph-validating-webhook-configuration"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: ok141-m0a-installer-v2
+  labels:
+    openkubes.io/ticket: OK-141
+    openkubes.io/gate: M0A-C1-v2
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: ok141-m0a-installer-v2
+subjects:
+  - kind: ServiceAccount
+    name: ok141-m0a-installer-v2
+    namespace: openkubes-system
