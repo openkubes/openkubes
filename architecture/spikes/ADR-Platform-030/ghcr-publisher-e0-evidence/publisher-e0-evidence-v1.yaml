@@ -1,0 +1,81 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: GHCRPublisherE0Evidence
+metadata:
+  name: ok141-ghcr-publisher-e0-evidence-v1
+  ticket: OK-141
+spec:
+  version: ok141-ghcr-publisher-e0-evidence/v1
+  state: E0-COMPLETE-OBSERVED-W0-P0-NO-GO
+  baseline:
+    repository: openkubes/openkubes
+    commit: a137ed9697f44cc1f065f0e935c856147e856786
+    release: v0.15.0
+  sourcePreflight:
+    path: ../ghcr-publisher-deployment-preflight-v2/publisher-deployment-preflight-v2.yaml
+    digest: sha256:69284a91386a82218a7a8cfb667d76e380867a2e7fa4177c24089e96230307f8
+  authorizationRecord:
+    gate: E0
+    exactScope: Create protect and verify GitHub Environment ok-141-evidence-publish.
+    grantedBy: github:arashkaffamanesh
+    w0Granted: false
+    p0Granted: false
+  execution:
+    environmentCreatedAt: "2026-08-11T16:45:45Z"
+    observationCompletedAt: "2026-08-11T16:46:31Z"
+    environmentID: 19690057278
+    environmentNodeID: EN_kwDOSmCQ7c8AAAAElZ5uPg
+    mutationScopeExceeded: false
+  observedState:
+    environmentName: ok-141-evidence-publish
+    environmentPresent: true
+    canAdminsBypass: true
+    protectionRules:
+      requiredReviewerRuleID: 62411328
+      branchPolicyRuleID: 62411329
+    reviewer:
+      type: User
+      login: arashkaffamanesh
+      id: 1782605
+      preventSelfReview: false
+    deploymentBranchPolicy:
+      protectedBranches: false
+      customBranchPolicies: true
+      totalCount: 1
+      policyID: 57078674
+      name: main
+      type: branch
+    environmentSecretsCount: 0
+    activePublisherWorkflow:
+      path: .github/workflows/ok141-evidence-publisher.yaml
+      state: ABSENT-404
+    packageCreated: false
+    attestationCreated: false
+    workflowDispatched: false
+  claimBoundaries:
+    governanceModel: ACCEPTED-DEV-SOLO-NO-INDEPENDENT-HUMAN-REVIEW
+    adminBypassObserved: true
+    independentApprovalProven: false
+    selfApprovalPrevented: false
+    environmentIsDefenseInDepthNotSoleAuthorization: true
+  nextGates:
+    w0:
+      status: NOT-GRANTED
+      scope: Deploy exact inert-reviewed v3 candidate to the active workflow path without dispatch.
+    p0:
+      status: NOT-GRANTED
+      scope: First publication attestation and digest-only pull-back for one exact source run.
+  authorization:
+    decision: NO-GO
+    w0Granted: false
+    p0Granted: false
+    workflowDeploymentAuthorized: false
+    workflowDispatchAuthorized: false
+    packageWriteAuthorized: false
+    attestationWriteAuthorized: false
+    infrastructureMutationAuthorized: false
+    go1Granted: false
+  rules:
+    - E0 is complete and cannot be reused as W0 or P0 authorization.
+    - Admin bypass is an observed DEV-Solo limitation and not independent review evidence.
+    - The active publisher workflow package and attestation remain absent.
+    - W0 P0 GO-1 infrastructure mutation and failure injection remain NO-GO.
