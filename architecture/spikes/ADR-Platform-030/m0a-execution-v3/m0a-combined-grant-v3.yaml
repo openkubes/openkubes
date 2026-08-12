@@ -1,0 +1,49 @@
+apiVersion: authorization.openkubes.io/v1alpha1
+kind: CombinedGateGrant
+metadata:
+  name: ok141-m0a-v3-20260812-01
+  ticket: OK-141
+spec:
+  version: ok141-m0a-combined-grant/v3
+  candidateDigest: sha256:34d99f4d0763db3cc36f91768d70703700482b4048dbfb8c6b04038089eaa272
+  authority: github:arashkaffamanesh
+  decision: GO
+  mutationAuthorized: true
+  credentialGrant:
+    gate: M0A-C1-v3
+    granted: true
+    grantID: ok141-m0a-c1-v3-20260812-01
+    scope: exactly-one-temporary-credential-run
+  admissionGrant:
+    gate: M0A-A1-v3
+    granted: true
+    grantID: ok141-m0a-a1-v3-20260812-01
+    scope: exactly-one-temporary-admission-bootstrap
+  installationGrant:
+    gate: M0a-I-v3
+    granted: true
+    grantID: ok141-m0a-i-v3-20260812-01
+    scope: exactly-one-bound-19-object-caaph-control-plane-installation-on-ok-mgmt
+  validFrom: "2026-08-12T16:45:00Z"
+  validUntil: "2026-08-12T19:45:00Z"
+  maximumRuns: 1
+  rollbackGranted: false
+  targetConvergenceGranted: false
+  m0bInstallationGranted: false
+  go1Granted: false
+  evidencePublicationGranted: false
+  failureInjectionGranted: false
+  exclusions:
+    - HelmChartProxy or HelmReleaseProxy submission
+    - Cilium convergence
+    - automatic CAAPH rollback
+    - evidence publication
+    - M0b-I
+    - GO-1
+    - target convergence
+    - failure injection
+  rules:
+    - This grant is valid only for the exact candidate digest and common window above.
+    - All three grant IDs are distinct and authorize one combined run only.
+    - The grant is consumed when the executor starts its first mutating bootstrap operation.
+    - Failure does not grant retry rollback cleanup publication or any excluded operation.
