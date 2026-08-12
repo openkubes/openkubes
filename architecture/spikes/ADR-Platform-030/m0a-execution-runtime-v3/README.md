@@ -25,9 +25,11 @@ still authenticated at `expirationTimestamp + 30s`. No token or temporary
 kubeconfig was retained. The evidence makes no claim that expiry-based API
 rejection was proven.
 
-At capture time this directory is local preparation only. It grants no retry,
-publication, cleanup, rollback, M0b-I, GO-1, target convergence, or failure
-injection.
+At capture time this directory was local preparation only and granted no
+publication. A later explicit grant permits publication of this exact reviewed
+and redacted checkpoint while the raw local evidence remains excluded. That
+grant does not alter the runtime authorization record and grants no retry,
+cleanup, rollback, M0b-I, GO-1, target convergence, or failure injection.
 
 Verify with:
 
