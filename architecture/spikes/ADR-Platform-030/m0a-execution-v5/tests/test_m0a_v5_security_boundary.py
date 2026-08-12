@@ -37,7 +37,8 @@ def test_candidate_and_digest_verify() -> None:
     [
         (("spec", "cause", "createFailureCause"), "PROVEN"),
         (("spec", "toolchain", "clientVersionMustEqualServerVersion"), False),
-        (("spec", "submissionBoundary", "positiveServerDryRunRequired"), False),
+        (("spec", "submissionBoundary", "positiveServerDryRunRequired"), True),
+        (("spec", "submissionBoundary", "fullStreamServerDryRunFeasible"), True),
         (("spec", "submissionBoundary", "maximumRealSubmissions"), 2),
         (("spec", "submissionBoundary", "automaticRetryAllowed"), True),
         (("spec", "submissionBoundary", "automaticRollbackAllowed"), True),

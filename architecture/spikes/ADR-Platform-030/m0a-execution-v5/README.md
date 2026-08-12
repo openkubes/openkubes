@@ -12,8 +12,6 @@ requiring:
 
 - the official darwin/amd64 kubectl v1.34.1 binary, verified against the
   published SHA-256 and exact Kubernetes commit;
-- a full server-side dry-run of the reviewed 19-object stream before the one
-  real create submission;
 - bounded, sanitized capture of the failed kubectl operation, exit code, and
   API error text without command paths, tokens, kubeconfigs, or payloads;
 - an exact post-submit inventory on any attempted real create; and
@@ -25,3 +23,23 @@ non-idempotent, payload equality is not proven by RBAC/admission, and the
 temporary admission bootstrap remains cluster-scoped. V5 adds compensating
 controls and diagnostic precision; it grants no retry or mutation and requires
 a new digest-bound grant before any executable run.
+
+The initial v5 boundary hypothesized a full-stream server dry-run before real
+create. Implementation analysis rejected that hypothesis: the required
+`caaph-system` Namespace is intentionally absent, and a dry-run Namespace is
+not persisted for validation of subsequent namespaced objects. V5 therefore
+does not treat full-stream dry-run success as a valid gate. The matched client,
+existing authorization/admission probes, exact absence, sanitized failure
+capture, and exact post-submit inventory remain the applicable controls.
+
+## Executable candidate
+
+`m0a-execution-candidate-v5.yaml` binds the amended diagnostic boundary, the
+unchanged v4 risk acceptance and 19-object payload, and the checksum-pinned
+kubectl binary. `controlled_m0a_execution_v5.py` refuses cluster contact until
+the binary path, size, digest, release, commit, and platform all match.
+
+The read-only live preflight passed with the matched client and proved all 19
+identities absent. The `NO-GO` grant template still requires three new,
+distinct, exact grants, one UTC window, one run, and one absent raw evidence
+path. This checkpoint grants none of them.
