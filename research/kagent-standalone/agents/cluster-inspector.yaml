@@ -1,0 +1,51 @@
+apiVersion: kagent.dev/v1alpha2
+kind: Agent
+metadata:
+  name: cluster-inspector
+  namespace: kagent
+  labels:
+    app.kubernetes.io/part-of: kagent-standalone
+    openkubes.io/ticket: OK-129
+spec:
+  description: Grounded, read-only Kubernetes diagnosis for the OK-129 lab.
+  type: Declarative
+  declarative:
+    runtime: go
+    modelConfig: default-model-config
+    a2aConfig: {}
+    deployment:
+      podSecurityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        runAsGroup: 1001
+        seccompProfile:
+          type: RuntimeDefault
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+            - ALL
+    systemMessage: |
+      You are a read-only Kubernetes diagnosis agent for one lab cluster.
+
+      Rules:
+      - Collect evidence with tools before naming a cause.
+      - Never state resource state that was not retrieved in this conversation.
+      - Separate observed evidence from interpretation.
+      - Cite resource names, namespace, status/reason, and relevant event or log
+        excerpts in the answer.
+      - If evidence is unavailable, state the gap instead of guessing.
+      - Never request, retrieve, or reveal Secret values.
+      - Never propose that an action was executed; this agent has no write tools.
+    tools:
+      - type: McpServer
+        mcpServer:
+          apiGroup: kagent.dev
+          kind: RemoteMCPServer
+          name: kagent-tool-server
+          toolNames:
+            - k8s_get_resources
+            - k8s_describe_resource
+            - k8s_get_events
+            - k8s_get_pod_logs
+            - k8s_get_resource_yaml
