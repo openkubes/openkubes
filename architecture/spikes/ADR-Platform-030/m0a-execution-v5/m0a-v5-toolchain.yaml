@@ -1,0 +1,23 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: ToolchainIdentity
+metadata:
+  name: ok141-m0a-v5-kubectl
+  ticket: OK-141
+spec:
+  version: ok141-m0a-v5-toolchain/v1
+  state: OFFLINE-VERIFIED
+  tool: kubectl
+  release: v1.34.1
+  gitCommit: 93248f9ae092f571eb870b7664c534bfc7d00f03
+  platform: darwin/amd64
+  downloadURL: https://dl.k8s.io/release/v1.34.1/bin/darwin/amd64/kubectl
+  checksumURL: https://dl.k8s.io/release/v1.34.1/bin/darwin/amd64/kubectl.sha256
+  binaryDigest: sha256:bb211f2b31f2b3bc60562b44cc1e3b712a16a98e9072968ba255beb04cefcfdf
+  binarySizeBytes: 61851632
+  localCandidatePath: /private/tmp/ok141-kubectl-v1.34.1/kubectl
+  verifiedAt: "2026-08-12T19:47:03Z"
+  rules:
+    - The binary is not committed to Git.
+    - A future executor must verify digest version commit platform and path before cluster contact.
+    - A missing or changed binary fails closed.
+    - This toolchain record grants no cluster contact or mutation.
