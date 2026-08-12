@@ -1,0 +1,32 @@
+apiVersion: authorization.openkubes.io/v1alpha1
+kind: CombinedGateGrant
+metadata:
+  name: ok141-m0a-v2-grant-template
+  ticket: OK-141
+spec:
+  version: ok141-m0a-combined-grant/v2
+  candidateDigest: REPLACE_WITH_EXACT_CANDIDATE_DIGEST
+  authority: github:arashkaffamanesh
+  decision: NO-GO
+  mutationAuthorized: false
+  credentialGrant:
+    gate: M0A-C1-v2
+    granted: false
+    grantID: null
+  admissionGrant:
+    gate: M0A-A1-v2
+    granted: false
+    grantID: null
+  installationGrant:
+    gate: M0a-I-v2
+    granted: false
+    grantID: null
+  validFrom: null
+  validUntil: null
+  maximumRuns: 1
+  rollbackGranted: false
+  targetConvergenceGranted: false
+  m0bInstallationGranted: false
+  go1Granted: false
+  evidencePublicationGranted: false
+  failureInjectionGranted: false
