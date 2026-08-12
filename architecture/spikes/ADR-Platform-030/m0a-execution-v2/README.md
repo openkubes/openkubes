@@ -43,6 +43,11 @@ The read-only preflight in `m0a-v2-live-preflight-v1.yaml` passed against the
 bound `ok-mgmt` identity. It is historical observation only; the executor must
 repeat the same preflight inside any future authorized run.
 
+`m0a-combined-grant-v2.yaml` records the three explicit, distinct grants for
+candidate `sha256:539d07de…04d7c585`. It authorizes one combined run only in
+the recorded UTC window and keeps all target convergence, rollback,
+publication, M0b-I, GO-1, and failure-injection operations excluded.
+
 Primary references:
 
 - <https://kubernetes.io/docs/reference/using-api/api-concepts/#patch-and-update>
