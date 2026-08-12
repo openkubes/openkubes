@@ -1,0 +1,76 @@
+apiVersion: test.openkubes.io/v1alpha1
+kind: RiskAcceptanceCandidate
+metadata:
+  name: ok141-m0a-v4-security-risk-acceptance
+  ticket: OK-141
+spec:
+  version: ok141-m0a-v4-risk-acceptance/v1
+  state: AWAITING-EXPLICIT-ACCEPTANCE
+  authority: github:arashkaffamanesh
+  references:
+    securityBoundary:
+      path: m0a-v4-security-boundary.yaml
+      digest: sha256:ba2f854b2ce7d5e1528bd8d490a67dc8d163ad7548238117275c0b1d7db0dadd
+    v3RuntimeEvidence:
+      path: ../m0a-execution-runtime-v3/m0a-v3-first-run-evidence-v1.yaml
+      digest: sha256:1515ca4f2015d20398ff0e3cda4b2403f153e63d8a146faf4614c804628c5dce
+  risks:
+    - id: M0A-V4-CREATE-ONLY-PARTIAL-STATE
+      statement: The reviewed 19-object CAAPH stream is submitted once with create rather than server-side apply; create is non-idempotent and a later failure can leave an installed prefix without apply field ownership.
+      consequence: A failed submission can require a separately authorized rollback before a retry and cannot be treated as atomic installation.
+      compensatingControls:
+        - all 19 exact identities must be absent immediately before submission
+        - the exact reviewed semantic digest is reverified immediately before submission
+        - maximum submissions is one and automatic retry is forbidden
+        - exact post-submit inventory is retained as redacted evidence
+        - partial state is preserved for review and automatic rollback is forbidden
+    - id: M0A-V4-EXPIRY-PLUS-100S-OBSERVATION
+      statement: Kubernetes v1.34.1 JWT validation uses a 60-second default expiry leeway and successful token authentication has a 10-second default cache; the rejection deadline is therefore expirationTimestamp plus 100 seconds.
+      consequence: The credential may continue authenticating after cleanup and after exp while the bounded leeway cache and observation tolerance elapse.
+      compensatingControls:
+        - the administrator issues exactly one audience-bound token with at-most-ten-minute lifetime
+        - the installer is proven unable to create the serviceaccounts/token subresource
+        - token kubeconfig RBAC and admission bootstrap are removed in finally
+        - token material and temporary kubeconfig are never retained
+        - success requires observed rejection by expirationTimestamp plus 100 seconds
+        - missing rejection remains STOP-NOT-SUCCESS
+    - id: M0A-V4-CREATE-CONTENT-BOUNDARY
+      statement: The retained create permission is type-scoped by RBAC and exact-identity-scoped by ValidatingAdmissionPolicy, but neither mechanism proves complete payload equality.
+      consequence: A compromised bounded executor could alter content under one of the 19 permitted identities during the credential lifetime.
+      compensatingControls:
+        - source and semantic digests are reverified immediately before submission
+        - patch update delete list watch Secret TokenRequest impersonate bind and escalate are denied
+        - wrong identity server dry-run probes fail closed
+    - id: M0A-V4-ADMISSION-BOOTSTRAP-BOUNDARY
+      statement: The retained temporary ValidatingAdmissionPolicy and binding are additional cluster-scoped security objects created and removed by the administrator identity.
+      consequence: An incorrect policy could affect unrelated creates or fail to constrain the installer.
+      compensatingControls:
+        - exact policy and binding digests remain bound
+        - matching is restricted to the exact temporary installer principal
+        - failurePolicy is Fail and validation action is Deny
+        - policy type-check and positive and negative probes precede submission
+        - all temporary objects are removed in finally and absence is verified
+  acceptanceText: I accept for OK-141/M0a-v4 the documented one-shot create-only submission with possible partial installation state, the retained create-content and temporary admission-bootstrap boundaries, and the token-rejection observation bound through expirationTimestamp plus 100 seconds, bound to security candidate sha256:ba2f854b2ce7d5e1528bd8d490a67dc8d163ad7548238117275c0b1d7db0dadd. This acceptance grants no credential issuance, admission installation, CAAPH retry or installation, rollback, evidence publication, M0b-I, GO-1, target convergence, or failure injection.
+  acceptance:
+    accepted: false
+    acceptedBy: null
+    acceptedAt: null
+    acceptedCandidateDigest: null
+  authorization:
+    decision: NO-GO
+    mutationAuthorized: false
+    credentialBootstrapGranted: false
+    admissionBootstrapGranted: false
+    caaphInstallationGranted: false
+    retryGranted: false
+    rollbackGranted: false
+    evidencePublicationGranted: false
+    m0bInstallationGranted: false
+    go1Granted: false
+    targetConvergenceGranted: false
+    failureInjectionGranted: false
+  rules:
+    - Risk acceptance and execution authority are separate decisions.
+    - The consumed v1 v2 and v3 grants remain unusable.
+    - Editing any risk statement or referenced digest requires a new acceptance.
+    - This candidate authorizes no cluster contact or mutation.

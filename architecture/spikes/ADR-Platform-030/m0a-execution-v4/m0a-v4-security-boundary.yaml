@@ -1,0 +1,127 @@
+apiVersion: test.openkubes.io/v1alpha1
+kind: M0aSecurityBoundaryCandidate
+metadata:
+  name: ok141-m0a-v4-security-boundary
+  ticket: OK-141
+spec:
+  version: ok141-m0a-security-boundary/v4
+  state: BLOCKED-OFFLINE-CANDIDATE
+  cause:
+    evidencePath: ../m0a-execution-runtime-v3/m0a-v3-first-run-evidence-v1.yaml
+    evidenceDigest: sha256:1515ca4f2015d20398ff0e3cda4b2403f153e63d8a146faf4614c804628c5dce
+    firstRunResult: STOP-NOT-SUCCESS
+    grantConsumed: true
+    installationFailure:
+      classification: server-side-apply-requires-patch-denied-by-bound-role
+      confidence: HIGH-CONFIDENCE-UPSTREAM-CONFIRMED-NOT-RESPONSE-PROVEN
+    tokenObservationFailure:
+      classification: expiration-plus-30s-precedes-upstream-leeway-cache-bound
+      confidence: UPSTREAM-CONFIRMED
+  upstreamSemantics:
+    path: m0a-v4-upstream-semantics.yaml
+    digest: sha256:1dc2c1eac061ae84c0e5636d9b03c1280be1a0c1ed836ce64efb1cd336005957
+  immutableInputs:
+    installationProtocolPath: ../m0a-installation/m0a-installation-v1.yaml
+    installationProtocolDigest: sha256:873d3aa3b15df53d3a4055675288c6d9acdf6c18d4f850e181a4eb7b93fc4a27
+    sourceSemanticDigest: sha256:01fc13d694da3304385a7bae0d1bd662d7c8c3d336b8a4d44da5324439d59095
+    objectCount: 19
+  retainedSecurityControls:
+    rbacPath: ../m0a-execution-v2/m0a-installer-rbac-v2.yaml
+    rbacDigest: sha256:0781697102c2c03652bb3f6d01a83d1431b1657d43f21c020aa97364701235bf
+    admissionPath: ../m0a-execution-v2/m0a-installer-admission-v2.yaml
+    admissionDigest: sha256:d690f71278e7986976069fc4bd1aa7e91c70dd40dc3f4eba26f1f7d65f7b2363
+    exactInstallerPrincipal: system:serviceaccount:openkubes-system:ok141-m0a-installer-v2
+    allowedObjectIdentities: 19
+    allowedInstallerVerbs: [create, get]
+    patchAllowed: false
+    updateAllowed: false
+    deleteAllowed: false
+    listAllowed: false
+    watchAllowed: false
+    payloadContentProvenByAdmission: false
+  submissionBoundary:
+    operation: kubectl-create-exact-19-object-stream
+    verb: create
+    serverSideApply: false
+    precondition: all-19-reviewed-identities-absent
+    maximumSubmissions: 1
+    idempotent: false
+    fieldOwnershipEstablished: false
+    partialMaterializationPossible: true
+    successCondition: all-19-reviewed-identities-created-and-observed
+    failureOutcome: STOP-NOT-SUCCESS
+    automaticRetryAllowed: false
+    automaticRollbackAllowed: false
+    partialStateDisposition: preserve-observe-and-require-separate-rollback-decision
+  tokenRequestAuthorizationProof:
+    requiredResource: serviceaccounts
+    requiredSubresource: token
+    requiredVerb: create
+    expectedInstallerDecision: deny
+    administratorIssuesBoundedToken: true
+    installerMayIssueToken: false
+  credentialBoundary:
+    serviceAccount: openkubes-system/ok141-m0a-installer-v2
+    tokenRequestDurationMaximum: 10m
+    tokenAudience: https://192.168.100.200:6443
+    tokenMaterialPersisted: false
+    temporaryKubeconfigPersisted: false
+  revocationBoundary:
+    individualTokenRevocationAvailable: false
+    immediateRejectionClaim: false
+    cleanupBeforeObservation: true
+    jwtLeewaySeconds: 60
+    successAuthenticationCacheSeconds: 10
+    observationAndClockToleranceSeconds: 30
+    observationDeadline: token-expirationTimestamp-plus-100s
+    hardUpperExposureBound: token-expiry-at-most-10m-plus-100s-observation-bound
+    successCondition: API rejects the exact temporary credential no later than the observation deadline
+    failureCondition: token still authenticates after expirationTimestamp plus 100 seconds
+    failureOutcome: STOP-NOT-SUCCESS
+  requiredLiveProofs:
+    - the exact TokenRequest subresource SubjectAccessReview returns deny for the temporary installer
+    - the administrator creates exactly one audience-bound TokenRequest with at-most-ten-minute lifetime
+    - all existing exact identity and wrong identity admission probes pass fail closed
+    - all 19 reviewed targets are absent immediately before submission
+    - the exact reviewed semantic digest is reverified immediately before one create submission
+    - the create response and post-submit inventory identify success or exact partial state without retaining secrets
+    - credential objects admission objects and temporary kubeconfig are removed in finally
+    - authentication rejection is observed no later than expirationTimestamp plus 100 seconds
+  newRiskAcceptanceRequired:
+    - server-side apply is replaced by a non-idempotent one-shot create operation
+    - a failed create stream may leave a subset of reviewed CAAPH objects installed and no rollback is automatic
+    - token rejection may legitimately occur after expirationTimestamp plus 30 seconds and is observed through plus 100 seconds
+    - deletion of ServiceAccount and RBAC is cleanup but is not claimed as immediate individual token revocation
+    - create remains type-scoped by RBAC and identity-scoped but not complete-content-scoped by admission
+    - the temporary ValidatingAdmissionPolicy remains an additional short-lived cluster-scoped security mechanism
+  authorization:
+    decision: NO-GO
+    mutationAuthorized: false
+    credentialGrantRequired: true
+    admissionBootstrapGrantRequired: true
+    installationGrantRequired: true
+    retryGranted: false
+    rollbackGranted: false
+    evidencePublicationGranted: false
+    m0bInstallationGranted: false
+    go1Granted: false
+    targetConvergenceGranted: false
+    failureInjectionGranted: false
+  exclusions:
+    - credential creation
+    - temporary admission installation
+    - CAAPH retry or installation
+    - HelmChartProxy or HelmReleaseProxy submission
+    - Cilium or target convergence
+    - automatic rollback
+    - evidence publication
+    - M0b-I
+    - GO-1
+    - failure injection
+  rules:
+    - This offline candidate supersedes no historical evidence and authorizes no mutation.
+    - The consumed v1 v2 and v3 grants cannot be reused.
+    - A new explicit risk acceptance is mandatory before an executable v4 candidate may be prepared.
+    - A future executable candidate requires new digests preflight and three distinct exact grants.
+    - Failure to observe rejection by the plus-100-second deadline must never be relabeled as successful revocation.
+    - Partial create state must never be silently deleted or relabeled as successful installation.

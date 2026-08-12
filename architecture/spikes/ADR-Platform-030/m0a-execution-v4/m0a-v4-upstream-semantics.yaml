@@ -1,0 +1,59 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: UpstreamSemanticsEvidence
+metadata:
+  name: ok141-m0a-v4-kubernetes-semantics
+  ticket: OK-141
+spec:
+  version: ok141-m0a-v4-upstream-semantics/v1
+  state: OFFLINE-PRIMARY-SOURCE-EVIDENCE
+  upstream:
+    repository: https://github.com/kubernetes/kubernetes
+    tag: v1.34.1
+    commit: 93248f9ae092f571eb870b7664c534bfc7d00f03
+  serverSideApply:
+    claim: kubectl server-side apply submits ApplyPatchType and therefore requires PATCH authorization.
+    sources:
+      - path: staging/src/k8s.io/kubectl/pkg/cmd/apply/apply.go
+        fileDigest: sha256:78d9deec5eee8d3206fd56a566ffcef7f9c70b08059305bd6efb7fc38d409037
+        relevantSymbol: types.ApplyPatchType
+      - path: staging/src/k8s.io/apimachinery/pkg/types/patch.go
+        fileDigest: sha256:89f33a9d09be319ad831bb2e539d5afaec29ca7e76ec8ab04064de65829d9977
+        relevantSymbol: ApplyPatchType
+    v3RolePatchAllowed: false
+    v3FailureClassification: HIGH-CONFIDENCE-INFERRED-NOT-RESPONSE-PROVEN
+  tokenExpiry:
+    claim: A service-account JWT may authenticate after exp because validation has a 60-second default leeway and successful token authentication has a 10-second default cache.
+    jwtValidation:
+      path: vendor/gopkg.in/go-jose/go-jose.v2/jwt/validation.go
+      fileDigest: sha256:f94beffcd3e4d1adbafbdd19027ac2632f7477a1a76cfc1e6ed657a929522d28
+      relevantSymbol: DefaultLeeway
+      defaultLeewaySeconds: 60
+    serviceAccountClaims:
+      path: pkg/serviceaccount/claims.go
+      fileDigest: sha256:55172a6b9115887752682fb4e23b6660414ad8ed671c0395cc5acf7d81bd25c1
+      relevantCall: "public.Validate(jwt.Expected{Time: nowTime})"
+    authenticationOptions:
+      path: pkg/kubeapiserver/options/authentication.go
+      fileDigest: sha256:a8dd9b0f1ec1213b7ff5806c83612f020d54c73b9ad1c09765f6a71210b1fb89
+      relevantSymbol: TokenSuccessCacheTTL
+      defaultSuccessCacheSeconds: 10
+    authenticationWiring:
+      path: pkg/kubeapiserver/authenticator/config.go
+      fileDigest: sha256:a55b2ef73274ea5117381d2a3aaebb7713c1d3e30b7856b4e112611a543e0dad
+      relevantCall: tokencache.New
+    cacheImplementation:
+      path: staging/src/k8s.io/apiserver/pkg/authentication/token/cache/cached_token_authenticator.go
+      fileDigest: sha256:e77736c74014daa1d774d8073ab72246a596a9df8dad921de0203e95548ca6cc
+      relevantType: cachedTokenAuthenticator
+  derivedObservationBoundary:
+    jwtLeewaySeconds: 60
+    successCacheSeconds: 10
+    observationAndClockToleranceSeconds: 30
+    rejectionDeadlineOffsetSeconds: 100
+    formula: 60+10+30
+    immediateRevocationClaim: false
+  rules:
+    - Source-file digests bind these claims to the exact Kubernetes v1.34.1 tree.
+    - The v3 apply failure remains inferred because its API response body was not retained.
+    - The v3 post-expiry authentication result is consistent with documented upstream semantics and is not evidence of an unbounded token.
+    - This evidence grants no cluster access mutation retry or rollback.
