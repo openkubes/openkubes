@@ -56,6 +56,13 @@ candidate still requires a fresh read-only live preflight and three new,
 distinct, exact grants before one run can be considered. Neither the accepted
 risk nor this checkpoint grants a retry.
 
+`m0a-combined-grant-v4.yaml` records the later three explicit grants for
+candidate `sha256:3fc1fee9…db7da8`. It authorizes exactly one combined run in
+the recorded UTC window, binds raw evidence to one path below `/private/tmp`,
+and leaves HCP/HRP submission, Cilium convergence, retry, CAAPH rollback,
+evidence publication, M0b-I, GO-1, target convergence, and failure injection
+excluded.
+
 Verify with:
 
 ```bash
