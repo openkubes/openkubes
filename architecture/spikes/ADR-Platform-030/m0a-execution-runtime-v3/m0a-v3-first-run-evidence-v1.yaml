@@ -1,0 +1,125 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: M0aExecutionEvidence
+metadata:
+  name: ok141-m0a-v3-first-run-20260812
+  ticket: OK-141
+spec:
+  version: ok141-m0a-execution-evidence/v3
+  state: STOP-NOT-SUCCESS
+  references:
+    candidate:
+      path: ../m0a-execution-v3/m0a-execution-candidate-v3.yaml
+      digest: sha256:34d99f4d0763db3cc36f91768d70703700482b4048dbfb8c6b04038089eaa272
+    grant:
+      path: ../m0a-execution-v3/m0a-combined-grant-v3.yaml
+      digest: sha256:32ebd2c52542a11d5671ab38d0658baf3e9be4985d6629c51b6e8960d02a2b3a
+  execution:
+    startedAt: "2026-08-12T16:45:34.453978Z"
+    finishedAt: "2026-08-12T16:56:07.266973Z"
+    maximumRuns: 1
+    runsConsumed: 1
+    retryAuthorized: false
+    result: STOP-NOT-SUCCESS
+    rawLocalEvidenceDigest: sha256:0f328adce58fdb694db1fb378f895e3702854294c8b9d674be8bf4402091f9d4
+    rawLocalEvidencePublishable: false
+  preflight:
+    clock:
+      source: github-api-date-header-no-cache
+      observedAt: "2026-08-12T16:45:25.555238Z"
+      skewSeconds: 0.555
+      roundTripSeconds: 0.346
+    target:
+      plane: ok-mgmt
+      kubeSystemNamespaceUID: c3b45aab-d2a1-4e64-8f12-77b99186ad4a
+      kubernetesVersion: v1.34.1
+      bootstrapIdentity: kubernetes-admin/system:masters
+    source:
+      reviewedObjectCount: 19
+      semanticDigest: sha256:01fc13d694da3304385a7bae0d1bd662d7c8c3d336b8a4d44da5324439d59095
+    lifecycleInventory:
+      clusters: 0
+      machines: 0
+      machineDeployments: 0
+    result: PASS
+  authorizationProbes:
+    result: PASS
+    createResourceTypes: 14
+    exactGetTargets: 19
+    negativeAuthorizationProbes: 11
+    negativeAdmissionProbes: 1
+    tokenRequestSubresourceDenied: true
+  bootstrap:
+    temporaryObjectCount: 5
+    policyObservedGeneration: 1
+    policyExpressionWarnings: 0
+    cleanupRemovedAllObjects: true
+  credential:
+    tokenRequestReached: true
+    audience: https://192.168.100.200:6443
+    requestedAt: "2026-08-12T16:45:36.674294Z"
+    expiresAt: "2026-08-12T16:55:36Z"
+    tokenMaterialRetained: false
+    temporaryKubeconfigRetained: false
+    expiryBoundRejectionProbe:
+      toleranceSeconds: 30
+      result: FAILED
+      observation: The exact temporary credential still authenticated after expirationTimestamp plus 30 seconds.
+      boundary: API rejection after expiry was not proven and must not be inferred.
+  installation:
+    attempted: true
+    operation: server-side-apply-exact-19-object-set
+    result: FAILED
+    failureType: CalledProcessError
+    responseBodyRetained: false
+    reviewedObjectsMaterialized: 0
+    likelyCause:
+      classification: HIGH-CONFIDENCE-INFERRED-NOT-RESPONSE-PROVEN
+      statement: The bound operation uses server-side apply while the temporary v3 role denies patch; the command failed before any reviewed object materialized.
+      proposedCorrection: Use the already accepted create-only boundary with an exact one-shot create operation instead of server-side apply.
+  postFailureObservation:
+    observedAt: "2026-08-12T16:58:13Z"
+    postFailurePreflightResult: PASS
+    temporaryBootstrapObjects: 0
+    caaphNamespacePresent: false
+    caaphCRDsPresent: 0
+    caaphInstallationObjectsPresent: 0
+    hcpObjectsPresent: 0
+    hrpObjectsPresent: 0
+    capiLifecycleObjects: 0
+    cleanupMutationPerformedByFollowup: false
+    automaticRollbackPerformed: false
+  conclusion:
+    correctedTokenRequestAuthorizationProbeProven: true
+    caaphInstalled: false
+    partialInstallationPresent: false
+    bootstrapObjectsRetained: false
+    secretMaterialRetained: false
+    grantReusable: false
+    retryAllowed: false
+    rollbackNeeded: false
+    newCandidateRequired: true
+    createOnlySubmissionCandidateRequired: true
+    expiryToleranceDecisionRequired: true
+  authorization:
+    evidencePublicationGranted: false
+    retryGranted: false
+    cleanupGranted: false
+    rollbackGranted: false
+    m0bInstallationGranted: false
+    go1Granted: false
+    targetConvergenceGranted: false
+    failureInjectionGranted: false
+  redaction:
+    secretsIncluded: false
+    tokensIncluded: false
+    kubeconfigsIncluded: false
+    privateKeysIncluded: false
+    certificatePayloadsIncluded: false
+    localTemporaryPathIncluded: false
+  rules:
+    - This evidence must never be relabeled as successful CAAPH installation or expiry-bound token rejection.
+    - The corrected TokenRequest authorization denial may be retained as proven evidence.
+    - The likely apply cause remains inferred because the API response body was not retained.
+    - Absence of retained objects removes the need for rollback but grants no retry.
+    - A corrected candidate requires new review risk evaluation and exact grants.
+    - Publication M0b-I GO-1 target convergence rollback and failure injection remain NOT GRANTED.
