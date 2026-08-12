@@ -1,0 +1,122 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: M0aExecutionEvidence
+metadata:
+  name: ok141-m0a-v4-first-run-20260812
+  ticket: OK-141
+spec:
+  version: ok141-m0a-execution-evidence/v4-redacted
+  state: STOP-NOT-SUCCESS
+  references:
+    candidate:
+      path: ../m0a-execution-v4/m0a-execution-candidate-v4.yaml
+      digest: sha256:3fc1fee9338bca1f1ad9901bb4c0bf83d52eac56ff8b60c0579bea4415db7da8
+    grant:
+      path: ../m0a-execution-v4/m0a-combined-grant-v4.yaml
+      digest: sha256:6a76ca763b2e3bb2ad558b0c80cc8510d9b9526b8138182763d070dcf97a201e
+  execution:
+    startedAt: "2026-08-12T18:01:29.127843Z"
+    finishedAt: "2026-08-12T18:13:11.944644Z"
+    maximumRuns: 1
+    runsConsumed: 1
+    retryAuthorized: false
+    result: STOP-NOT-SUCCESS
+    rawLocalEvidenceDigest: sha256:af41fb79987c46ce918277db92ec82448e842313136d9b200070bbaee21b5a66
+    rawLocalEvidencePublishable: false
+  preflight:
+    target:
+      plane: ok-mgmt
+      kubeSystemNamespaceUID: c3b45aab-d2a1-4e64-8f12-77b99186ad4a
+      kubernetesVersion: v1.34.1
+    source:
+      reviewedObjectCount: 19
+      semanticDigest: sha256:01fc13d694da3304385a7bae0d1bd662d7c8c3d336b8a4d44da5324439d59095
+      exactIdentityAbsence: 19
+    lifecycleInventory:
+      clusters: 0
+      machines: 0
+      machineDeployments: 0
+    result: PASS
+  authorizationProbes:
+    result: PASS
+    createResourceTypes: 14
+    exactGetTargets: 19
+    negativeAuthorizationProbes: 11
+    negativeAdmissionProbes: 1
+    tokenRequestSubresourceDenied: true
+  bootstrap:
+    temporaryObjectCount: 5
+    policyObservedGeneration: 1
+    policyExpressionWarnings: 0
+    cleanupRemovedAllObjects: true
+  credential:
+    tokenRequestReached: true
+    audience: https://192.168.100.200:6443
+    requestedAt: "2026-08-12T18:01:31.509743Z"
+    expiresAt: "2026-08-12T18:11:31Z"
+    tokenMaterialRetained: false
+    temporaryKubeconfigRetained: false
+    rejectionProbe:
+      configuredDeadline: expirationTimestamp-plus-100s
+      result: NOT-PROVEN
+      observation: The exact temporary credential authenticated on the final sample taken at or before the configured deadline.
+      implementationBoundary: No mandatory first post-deadline sample was performed.
+      claimBoundary: This result does not prove authentication continued after expirationTimestamp plus 100 seconds.
+  installation:
+    attempted: true
+    operation: create-exact-19-object-stream
+    maximumSubmissions: 1
+    submissionsConsumed: 1
+    result: FAILED
+    failureType: CalledProcessError
+    responseBodyRetained: false
+    causeClassification: UNKNOWN-NOT-RESPONSE-PROVEN
+    postSubmissionInventory:
+      expected: 19
+      present: 0
+      absent: 19
+  postFailureObservation:
+    observedAt: "2026-08-12T18:16:59Z"
+    readOnlyPreflightResult: PASS
+    exactIdentityAbsence: 19
+    caaphInstallationObjectsPresent: 0
+    temporaryBootstrapObjectsPresent: 0
+    cleanupMutationPerformedByFollowup: false
+    automaticRollbackPerformed: false
+  conclusion:
+    createOnlySubmissionAttempted: true
+    caaphInstalled: false
+    partialInstallationPresent: false
+    bootstrapObjectsRetained: false
+    secretMaterialRetained: false
+    tokenRejectionProven: false
+    tokenAuthenticationAfterConfiguredDeadlineProven: false
+    grantReusable: false
+    retryAllowed: false
+    rollbackNeeded: false
+    newCandidateRequired: true
+    createFailureResponseCaptureRequired: true
+    firstPostDeadlineTokenProbeRequired: true
+  authorization:
+    evidencePublicationGranted: false
+    retryGranted: false
+    cleanupGranted: false
+    rollbackGranted: false
+    m0bInstallationGranted: false
+    go1Granted: false
+    targetConvergenceGranted: false
+    failureInjectionGranted: false
+  redaction:
+    secretsIncluded: false
+    tokensIncluded: false
+    kubeconfigsIncluded: false
+    privateKeysIncluded: false
+    certificatePayloadsIncluded: false
+    localTemporaryPathIncluded: false
+    temporaryObjectUIDsIncluded: false
+  rules:
+    - This evidence must never be relabeled as successful CAAPH installation or token rejection.
+    - The create failure cause remains unknown because the API response body was not retained.
+    - Zero retained CAAPH objects removes the need for rollback but grants no retry.
+    - The configured deadline result proves neither rejection nor authentication after that deadline.
+    - All three v4 grants are consumed and cannot be reused.
+    - Publication retry rollback M0b-I GO-1 target convergence and failure injection remain NOT GRANTED.
