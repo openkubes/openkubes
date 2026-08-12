@@ -25,8 +25,10 @@ token or temporary kubeconfig was retained; expiry at
 `2026-08-12T12:50:57Z` remained the hard exposure bound. This evidence makes
 no immediate-revocation claim.
 
-This directory is local preparation only. Its existence grants no retry,
-publication, cleanup, rollback, M0b-I, GO-1, target convergence, or failure
+At capture time this directory was local preparation only and granted no
+publication. A later explicit publication grant may publish this reviewed,
+redacted checkpoint; it does not alter the runtime authorization record and
+grants no retry, cleanup, rollback, M0b-I, GO-1, target convergence, or failure
 injection.
 
 Verify with:
