@@ -1,0 +1,49 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: M0aV3LivePreflight
+metadata:
+  name: ok141-m0a-v3-live-preflight-v1
+  ticket: OK-141
+spec:
+  version: ok141-m0a-v3-live-preflight/v1
+  observedAt: "2026-08-12T16:33:07Z"
+  result: PASS
+  mutationPerformed: false
+  candidateDigest: sha256:34d99f4d0763db3cc36f91768d70703700482b4048dbfb8c6b04038089eaa272
+  target:
+    plane: ok-mgmt
+    kubeSystemNamespaceUID: c3b45aab-d2a1-4e64-8f12-77b99186ad4a
+    kubernetesVersion: v1.34.1
+    admissionAPIAvailable: true
+  bootstrapIdentity:
+    username: kubernetes-admin
+    group: system:masters
+    certificateNotAfter: "Jul 22 13:18:40 2027 GMT"
+  reviewedInstallation:
+    objectCount: 19
+    semanticDigest: sha256:01fc13d694da3304385a7bae0d1bd662d7c8c3d336b8a4d44da5324439d59095
+  lifecycleInventory:
+    clusters: 0
+    machines: 0
+    machineDeployments: 0
+  absence:
+    temporaryCredentialObjects: 0
+    temporaryAdmissionObjects: 0
+    caaphNamespacePresent: false
+    caaphCRDsPresent: 0
+  authorization:
+    decision: NO-GO
+    mutationAuthorized: false
+    retryGranted: false
+    credentialBootstrapGranted: false
+    admissionBootstrapGranted: false
+    caaphInstallationGranted: false
+    rollbackGranted: false
+    m0bInstallationGranted: false
+    go1Granted: false
+    evidencePublicationGranted: false
+    targetConvergenceGranted: false
+    failureInjectionGranted: false
+  rules:
+    - This observation proves only the read-only preflight state at the recorded time.
+    - It grants no retry or mutation and is not reusable as an execution grant.
+    - A fresh preflight remains mandatory inside any later authorized run.

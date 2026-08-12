@@ -32,9 +32,27 @@ This changes the previously accepted revocation-observation behavior. The
 included risk-acceptance candidate must receive a new explicit acceptance
 before any executable v3 candidate or grant can exist.
 
-This checkpoint authorizes no cluster contact, credential, admission object,
-CAAPH installation, retry, rollback, publication, M0b-I, GO-1, target
-convergence, or failure injection.
+## Executable candidate
+
+The risk was explicitly accepted and is recorded in
+`../m0a-v3-risk-acceptance/m0a-v3-risk-acceptance-v1.yaml`. The additive
+`m0a-execution-candidate-v3.yaml` now binds that record, the corrected
+authorization-probe helper, the unchanged 19-object CAAPH payload, and
+`controlled_m0a_execution_v3.py`.
+
+The executor keeps the v2 bootstrap manifests and their exact identities. It
+changes only the control logic required by the v3 boundary: the installer is
+checked against the real `serviceaccounts/token` subresource, and credential
+rejection is observed through the bound expiration timestamp plus 30 seconds.
+
+`m0a-combined-grant-v3.template.yaml` is deliberately `NO-GO`. The executable
+candidate still requires a fresh read-only live preflight and three new,
+distinct, exact grants before one run can be considered. Neither the risk
+acceptance nor this checkpoint grants a retry.
+
+This checkpoint authorizes no credential, admission object, CAAPH installation,
+retry, rollback, publication, M0b-I, GO-1, target convergence, or failure
+injection.
 
 Verify with:
 
@@ -42,5 +60,7 @@ Verify with:
 python3 verify_m0a_v3_security_boundary.py \
   --candidate m0a-v3-security-boundary.yaml \
   --digest-file m0a-v3-security-boundary.sha256
+python3 controlled_m0a_execution_v3.py verify \
+  --candidate m0a-execution-candidate-v3.yaml
 pytest -q tests
 ```
