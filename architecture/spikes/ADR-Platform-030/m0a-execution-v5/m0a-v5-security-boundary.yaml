@@ -1,0 +1,81 @@
+apiVersion: test.openkubes.io/v1alpha1
+kind: M0aSecurityBoundaryCandidate
+metadata:
+  name: ok141-m0a-v5-security-boundary
+  ticket: OK-141
+spec:
+  version: ok141-m0a-security-boundary/v5
+  state: BLOCKED-OFFLINE-CANDIDATE
+  cause:
+    evidencePath: ../m0a-execution-runtime-v4/m0a-v4-first-run-evidence-v1.yaml
+    evidenceDigest: sha256:03007163ea510a0613cc776f6c7d93061a2319a8a7998923016382f263fd7c61
+    firstRunResult: STOP-NOT-SUCCESS
+    grantConsumed: true
+    createFailureCause: UNKNOWN-NOT-RESPONSE-PROVEN
+    retainedCaaphObjects: 0
+    tokenRejectionProven: false
+  retainedAcceptedRisk:
+    path: ../m0a-v4-risk-acceptance/m0a-v4-risk-acceptance-v1.yaml
+    digest: sha256:063556f9b92755eb1d3b92a293690794ac55f182b38e06adcf6b27f12c1edb92
+    risksChanged: false
+  toolchain:
+    path: m0a-v5-toolchain.yaml
+    digest: sha256:0e6d043da174b4e8aacc095d63fb12cce91fcd7ffbdf5d7834b1fbc03536ce59
+    clientVersionMustEqualServerVersion: true
+    binaryDigestVerifiedBeforeClusterContact: true
+  submissionBoundary:
+    reviewedObjectCount: 19
+    semanticDigest: sha256:01fc13d694da3304385a7bae0d1bd662d7c8c3d336b8a4d44da5324439d59095
+    precondition: all-19-reviewed-identities-absent
+    positiveServerDryRunRequired: true
+    positiveServerDryRunUsesExactPayload: true
+    realOperation: kubectl-create-exact-19-object-stream
+    maximumRealSubmissions: 1
+    idempotent: false
+    atomic: false
+    partialStatePossible: true
+    automaticRetryAllowed: false
+    automaticRollbackAllowed: false
+  diagnosticBoundary:
+    failedOperationRecorded: true
+    exitCodeRecorded: true
+    stdoutMaximumBytes: 4096
+    stderrMaximumBytes: 4096
+    pathsRedacted: true
+    bearerTokensRedacted: true
+    kubeconfigContentRetained: false
+    submittedPayloadRetained: false
+    responseBodyClaim: bounded-kubectl-output-not-complete-apiserver-audit-record
+  credentialBoundary:
+    maximumDurationMinutes: 10
+    rejectionBoundarySecondsAfterExpiration: 100
+    mandatoryFirstPostBoundaryProbe: true
+    probeNotBefore: expirationTimestamp-plus-100s
+    immediateRevocationClaim: false
+    missingRejectionOutcome: STOP-NOT-SUCCESS
+  requiredLiveProofs:
+    - exact toolchain digest version commit and platform pass before cluster contact
+    - all temporary bootstrap and 19 reviewed identities are absent in a fresh preflight
+    - all authorization and admission probes pass fail closed
+    - the exact full payload passes server-side dry-run before real create
+    - one real create is attempted only after the dry-run succeeds
+    - any failed real create records sanitized operation exit code and bounded API error text
+    - exact post-submit inventory is recorded whenever real create is attempted
+    - all temporary bootstrap objects are removed in finally
+    - the first decisive token probe occurs no earlier than expirationTimestamp plus 100 seconds
+  authorization:
+    decision: NO-GO
+    mutationAuthorized: false
+    retryGranted: false
+    rollbackGranted: false
+    evidencePublicationGranted: false
+    m0bInstallationGranted: false
+    go1Granted: false
+    targetConvergenceGranted: false
+    failureInjectionGranted: false
+  rules:
+    - This offline boundary grants no retry credential admission bootstrap installation or publication.
+    - The consumed v1 through v4 grants cannot be reused.
+    - V5 must use a new candidate digest preflight and exact grants.
+    - Failure to capture a sanitized error or decisive post-boundary token sample remains STOP-NOT-SUCCESS.
+    - No v4 failure cause may be inferred from a future v5 result.
