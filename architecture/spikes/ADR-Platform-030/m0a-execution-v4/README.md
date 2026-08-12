@@ -36,6 +36,26 @@ acceptance is required before an executable v4 candidate may be prepared, and
 that later candidate requires new exact grants before any cluster contact or
 mutation.
 
+## Executable candidate
+
+The risk was explicitly accepted and is recorded in
+`../m0a-v4-risk-acceptance/m0a-v4-risk-acceptance-v1.yaml`. The additive
+`m0a-execution-candidate-v4.yaml` binds that record, the primary-source
+semantics evidence, the unchanged admission/RBAC and 19-object payload, and
+`controlled_m0a_execution_v4.py`.
+
+The executor uses one `kubectl create -f -` submission. It records the exact
+19-object inventory even when creation fails, preserves any partial CAAPH state
+for a separate decision, and never performs automatic retry or rollback. Raw
+runtime evidence must be written to one previously absent path below
+`/private/tmp` bound by the future grant. Token rejection is observed through
+the bound expiry-plus-100-second deadline.
+
+`m0a-combined-grant-v4.template.yaml` is deliberately `NO-GO`. The executable
+candidate still requires a fresh read-only live preflight and three new,
+distinct, exact grants before one run can be considered. Neither the accepted
+risk nor this checkpoint grants a retry.
+
 Verify with:
 
 ```bash
@@ -48,5 +68,7 @@ python3 verify_m0a_v4_security_boundary.py \
 python3 verify_m0a_v4_risk_candidate.py \
   --candidate m0a-v4-risk-acceptance-candidate.yaml \
   --digest-file m0a-v4-risk-acceptance-candidate.sha256
+python3 controlled_m0a_execution_v4.py verify \
+  --candidate m0a-execution-candidate-v4.yaml
 pytest -q tests
 ```

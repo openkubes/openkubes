@@ -1,0 +1,161 @@
+apiVersion: test.openkubes.io/v1alpha1
+kind: CombinedGateCandidate
+metadata:
+  name: ok141-m0a-c1-a1-i-v4
+  ticket: OK-141
+spec:
+  version: ok141-m0a-combined-candidate/v4
+  state: READY-FOR-THREE-SEPARATE-EXPLICIT-GRANTS
+  baseCommit: 00dc742aba9b9cf6fb5d76ed4d8849ffac155cbb
+  fixtureDigest: sha256:a2ae3437645db5a83426b89d36d00693d2600e4ef20dc1aba2650dcda7f936f6
+  references:
+    v3RuntimeEvidence:
+      path: ../m0a-execution-runtime-v3/m0a-v3-first-run-evidence-v1.yaml
+      digest: sha256:1515ca4f2015d20398ff0e3cda4b2403f153e63d8a146faf4614c804628c5dce
+    securityBoundary:
+      path: m0a-v4-security-boundary.yaml
+      digest: sha256:ba2f854b2ce7d5e1528bd8d490a67dc8d163ad7548238117275c0b1d7db0dadd
+    upstreamSemantics:
+      path: m0a-v4-upstream-semantics.yaml
+      digest: sha256:1dc2c1eac061ae84c0e5636d9b03c1280be1a0c1ed836ce64efb1cd336005957
+    riskAcceptance:
+      path: ../m0a-v4-risk-acceptance/m0a-v4-risk-acceptance-v1.yaml
+      digest: sha256:063556f9b92755eb1d3b92a293690794ac55f182b38e06adcf6b27f12c1edb92
+    credentialManifest:
+      path: ../m0a-execution-v2/m0a-installer-rbac-v2.yaml
+      digest: sha256:0781697102c2c03652bb3f6d01a83d1431b1657d43f21c020aa97364701235bf
+    admissionManifest:
+      path: ../m0a-execution-v2/m0a-installer-admission-v2.yaml
+      digest: sha256:d690f71278e7986976069fc4bd1aa7e91c70dd40dc3f4eba26f1f7d65f7b2363
+    installationProtocol:
+      path: ../m0a-installation/m0a-installation-v1.yaml
+      digest: sha256:873d3aa3b15df53d3a4055675288c6d9acdf6c18d4f850e181a4eb7b93fc4a27
+    authorizationProbe:
+      path: ../m0a-execution-v3/authorization_probe_v3.py
+      digest: sha256:a6a41e284513267629fd1c99013bc183d7b77c006004103a3238451f4b8e6132
+    executor:
+      path: controlled_m0a_execution_v4.py
+      digest: sha256:95679ba535ba822738ef47ef350e5e8a91afd8e963f6e04889801cb42821b9a5
+  target:
+    plane: ok-mgmt
+    apiServer: https://192.168.100.200:6443
+    apiAudience: https://192.168.100.200:6443
+    kubeSystemNamespaceUID: c3b45aab-d2a1-4e64-8f12-77b99186ad4a
+    kubernetesVersion: v1.34.1
+    platform: linux/amd64
+    adminKubeconfigPath: /Users/arash/.kube/ok-mgmt.yaml
+  credential:
+    gate: M0A-C1-v4
+    serviceAccount: openkubes-system/ok141-m0a-installer-v2
+    maximumDurationMinutes: 10
+    jwtLeewaySeconds: 60
+    successAuthenticationCacheSeconds: 10
+    observationAndClockToleranceSeconds: 30
+    rejectionDeadlineOffsetSeconds: 100
+    rejectionDeadline: expirationTimestamp-plus-100s
+    temporaryKubeconfig: true
+    temporaryKubeconfigDeleteAfterRun: true
+    directInstallationWithAdminCredentialAllowed: false
+  admission:
+    gate: M0A-A1-v4
+    policy: ok141-m0a-installer-v2.openkubes.io
+    binding: ok141-m0a-installer-v2.openkubes.io
+    allowedPrincipal: system:serviceaccount:openkubes-system:ok141-m0a-installer-v2
+    allowedObjectIdentities: 19
+    operations: [CREATE]
+    failurePolicy: Fail
+    validationAction: Deny
+    payloadEqualityClaimed: false
+  authorizationProbe:
+    tokenRequestSubresourceArgs: [auth, can-i, create, serviceaccounts, --subresource, token, --namespace, openkubes-system]
+    expectedInstallerDecision: deny
+    oldTypeNameFormForbidden: true
+  installation:
+    gate: M0a-I-v4
+    sourceRawDigest: sha256:a70f4eb77eac626231daca1e2a046b4b069bb84320efa327cc8c56a9c4ca03e6
+    semanticDigest: sha256:01fc13d694da3304385a7bae0d1bd662d7c8c3d336b8a4d44da5324439d59095
+    objectCount: 19
+    controllerImageDigest: sha256:66344ab0107c0a3fcbce860697206ac7e6a2316a7af4a07f81a9f8d53e448e6a
+    submissionMethod: create
+    maximumSubmissions: 1
+    allObjectsAbsentPrecondition: true
+    idempotent: false
+    partialStatePossible: true
+    readinessTimeoutSeconds: 600
+    allowedInstallerVerbs: [create, get]
+    serverSideApplyAllowed: false
+    patchAllowed: false
+    updateAllowed: false
+    deleteAllowed: false
+    automaticRetryAllowed: false
+    automaticRollbackAllowed: false
+    targetResourcesAllowed: false
+  executionWindow:
+    suppliedByExternalGrant: true
+    maximumDurationMinutes: 180
+    maximumClockSkewSeconds: 5
+    maximumRuns: 1
+    grantsRequired: [M0A-C1-v4, M0A-A1-v4, M0a-I-v4]
+    distinctGrantIDsRequired: true
+  runtimeSequence:
+    - verify clock target identity versions empty CAPI inventory exact source digests and absence of all temporary and CAAPH objects
+    - create exactly three credential and two admission-bootstrap objects with the accepted administrator identity
+    - wait for current-generation admission type checking with zero expression warnings
+    - issue one audience-bound TokenRequest credential with at-most-ten-minute lifetime
+    - prove create and exact-name get authorization and unambiguous TokenRequest subresource denial
+    - prove all remaining forbidden authorization and wrong-name admission probes
+    - reverify the exact reviewed 19-object semantic digest immediately before one create submission
+    - record the exact 19-object post-submission inventory including partial state on failure
+    - observe CAAPH control-plane-only readiness and zero HCP or HRP targets
+    - remove all five temporary bootstrap objects in finally
+    - observe authentication rejection until expirationTimestamp plus 100 seconds and retain only local raw evidence
+  failureBoundary:
+    temporaryBootstrapCleanupMandatory: true
+    tokenRejectionObservationMandatory: true
+    tokenRejectionDeadline: expirationTimestamp-plus-100s
+    immediateTokenRevocationClaimed: false
+    automaticCaaphRollbackAllowed: false
+    failureOutcome: STOP-NOT-SUCCESS
+    partialCaaphObjectsOnFailurePreserved: true
+    partialCaaphObjectsOnFailureRequireSeparateDecision: true
+  evidence:
+    rawOutputDirectory: /private/tmp
+    rawOutputMustBeGrantBound: true
+    rawOutputMustBeAbsentBeforeRun: true
+    localOutputContainsSecrets: false
+    publicIntakeAuthorized: false
+    publicationAuthorized: false
+    rule: Runtime evidence must be redacted and reviewed before any separate collector or publication authorization.
+  excluded:
+    - HelmChartProxy or HelmReleaseProxy submission
+    - Cilium installation or NetworkReady convergence
+    - workload Cluster creation
+    - Argo installation or target registration
+    - automatic CAAPH rollback
+    - M0b-I
+    - GO-1
+    - evidence publication
+    - target convergence
+    - failure injection
+  authorization:
+    decision: NO-GO
+    mutationAuthorized: false
+    credentialGrantRequired: true
+    admissionBootstrapGrantRequired: true
+    installationGrantRequired: true
+    retryGranted: false
+    rollbackGranted: false
+    m0bInstallationGranted: false
+    go1Granted: false
+    evidencePublicationGranted: false
+    targetConvergenceGranted: false
+    failureInjectionGranted: false
+  rules:
+    - The consumed v1 v2 and v3 grants cannot be reused.
+    - Risk acceptance grants no execution authority.
+    - The external grant must bind this exact candidate digest and contain three distinct explicit grant IDs in one bounded window.
+    - The external grant must bind one previously absent raw evidence path below /private/tmp.
+    - The executor refuses mutation without the exact grant and explicit execute flag.
+    - Temporary bootstrap cleanup is authorized only by a future exact grant and is not CAAPH rollback.
+    - CAAPH partial-install cleanup or rollback always requires a separate decision.
+    - Secrets tokens kubeconfigs private keys and certificate payloads are forbidden from Git logs stdout and retained public evidence.
