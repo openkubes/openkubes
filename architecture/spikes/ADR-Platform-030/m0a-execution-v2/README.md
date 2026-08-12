@@ -31,6 +31,18 @@ This checkpoint grants no credential creation, policy installation, CAAPH
 installation, retry, rollback, publication, target convergence, GO-1, or
 failure injection.
 
+## Executable candidate
+
+`m0a-execution-candidate-v2.yaml` binds the accepted security boundary to a
+three-grant executor. The three independently named gates are temporary
+credential bootstrap (`M0A-C1-v2`), temporary admission bootstrap
+(`M0A-A1-v2`), and one CAAPH control-plane installation (`M0a-I-v2`). The
+included grant file is a `NO-GO` template, not authority.
+
+The read-only preflight in `m0a-v2-live-preflight-v1.yaml` passed against the
+bound `ok-mgmt` identity. It is historical observation only; the executor must
+repeat the same preflight inside any future authorized run.
+
 Primary references:
 
 - <https://kubernetes.io/docs/reference/using-api/api-concepts/#patch-and-update>
