@@ -27,8 +27,9 @@ spec:
     reviewedObjectCount: 19
     semanticDigest: sha256:01fc13d694da3304385a7bae0d1bd662d7c8c3d336b8a4d44da5324439d59095
     precondition: all-19-reviewed-identities-absent
-    positiveServerDryRunRequired: true
-    positiveServerDryRunUsesExactPayload: true
+    positiveServerDryRunRequired: false
+    fullStreamServerDryRunFeasible: false
+    infeasibilityReason: dry-run namespace creation is not persisted for subsequent namespaced-object validation
     realOperation: kubectl-create-exact-19-object-stream
     maximumRealSubmissions: 1
     idempotent: false
@@ -57,8 +58,8 @@ spec:
     - exact toolchain digest version commit and platform pass before cluster contact
     - all temporary bootstrap and 19 reviewed identities are absent in a fresh preflight
     - all authorization and admission probes pass fail closed
-    - the exact full payload passes server-side dry-run before real create
-    - one real create is attempted only after the dry-run succeeds
+    - the absent namespace dependency prevents full-stream server dry-run from being used as a success gate
+    - one real create is attempted only after exact absence authorization admission and digest checks succeed
     - any failed real create records sanitized operation exit code and bounded API error text
     - exact post-submit inventory is recorded whenever real create is attempted
     - all temporary bootstrap objects are removed in finally

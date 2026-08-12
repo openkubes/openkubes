@@ -55,8 +55,9 @@ def verify(path: Path) -> str:
     expect(spec["toolchain"]["clientVersionMustEqualServerVersion"], True, "version equality")
     submission = spec["submissionBoundary"]
     expect(submission["reviewedObjectCount"], 19, "object count")
-    expect(submission["positiveServerDryRunRequired"], True, "positive dry-run")
-    expect(submission["positiveServerDryRunUsesExactPayload"], True, "dry-run payload")
+    expect(submission["positiveServerDryRunRequired"], False, "positive dry-run")
+    expect(submission["fullStreamServerDryRunFeasible"], False, "full-stream dry-run feasibility")
+    expect(submission["infeasibilityReason"], "dry-run namespace creation is not persisted for subsequent namespaced-object validation", "dry-run dependency")
     expect(submission["maximumRealSubmissions"], 1, "real submissions")
     expect(submission["idempotent"], False, "idempotency")
     expect(submission["atomic"], False, "atomicity")
