@@ -1,0 +1,67 @@
+apiVersion: test.openkubes.io/v1alpha1
+kind: RiskAcceptanceCandidate
+metadata:
+  name: ok141-m0a-v3-security-risk-acceptance
+  ticket: OK-141
+spec:
+  version: ok141-m0a-v3-risk-acceptance/v1
+  state: AWAITING-EXPLICIT-ACCEPTANCE
+  authority: github:arashkaffamanesh
+  references:
+    securityBoundary:
+      path: m0a-v3-security-boundary.yaml
+      digest: sha256:d3c6d3336486594da39ad380edbbd7b753a417a662283529d9bca4fd26af777e
+    v2RuntimeEvidence:
+      path: ../m0a-execution-runtime-v2/m0a-v2-first-run-evidence-v1.yaml
+      digest: sha256:45859c79a82f42f3488ffe2792ae6c2fc9622069aaab9bbad1be27769af7b7c9
+  risks:
+    - id: M0A-V3-EXPIRY-BOUND-REVOCATION-OBSERVATION
+      statement: A TokenRequest token cannot be individually revoked; after temporary ServiceAccount and RBAC cleanup the executor may need to wait until the at-most-ten-minute expirationTimestamp plus 30 seconds before rejection is authoritative.
+      consequence: The credential may continue authenticating after cleanup until expiry, and the test may remain active for that bounded interval.
+      compensatingControls:
+        - the administrator issues exactly one audience-bound token with at-most-ten-minute lifetime
+        - the installer is separately proven unable to create the serviceaccounts/token subresource
+        - token kubeconfig and RBAC are removed in finally and token material is never retained
+        - success requires observed API rejection no later than expirationTimestamp plus 30 seconds
+        - missing rejection remains STOP-NOT-SUCCESS
+    - id: M0A-V3-CREATE-CONTENT-BOUNDARY
+      statement: The retained top-level create permission is type-scoped by RBAC and exact-identity-scoped by ValidatingAdmissionPolicy, but neither mechanism proves complete payload equality.
+      consequence: A compromised bounded executor could alter content under one of the 19 permitted identities during the credential lifetime.
+      compensatingControls:
+        - all 19 targets are absent immediately before submission
+        - source and semantic digests are reverified immediately before submission
+        - patch update delete list watch Secret TokenRequest impersonate bind and escalate are denied
+        - wrong identity server dry-run probes fail closed
+    - id: M0A-V3-ADMISSION-BOOTSTRAP-BOUNDARY
+      statement: The retained temporary ValidatingAdmissionPolicy and binding are additional cluster-scoped security objects created and removed by the administrator identity.
+      consequence: An incorrect policy could affect unrelated creates or fail to constrain the installer.
+      compensatingControls:
+        - exact policy and binding digests remain bound
+        - matching is restricted to the exact temporary installer principal
+        - failurePolicy is Fail and validation action is Deny
+        - policy type-check and positive and negative probes precede CAAPH submission
+        - all temporary objects are removed in finally and absence is verified
+  acceptanceText: I accept for OK-141/M0a-v3 the documented expiry-bound TokenRequest rejection observation, retained create-content boundary, and temporary admission-bootstrap boundary, bound to security candidate sha256:d3c6d3336486594da39ad380edbbd7b753a417a662283529d9bca4fd26af777e. This acceptance grants no credential issuance, admission installation, CAAPH retry or installation, rollback, evidence publication, M0b-I, GO-1, target convergence, or failure injection.
+  acceptance:
+    accepted: false
+    acceptedBy: null
+    acceptedAt: null
+    acceptedCandidateDigest: null
+  authorization:
+    decision: NO-GO
+    mutationAuthorized: false
+    credentialBootstrapGranted: false
+    admissionBootstrapGranted: false
+    caaphInstallationGranted: false
+    retryGranted: false
+    rollbackGranted: false
+    evidencePublicationGranted: false
+    m0bInstallationGranted: false
+    go1Granted: false
+    targetConvergenceGranted: false
+    failureInjectionGranted: false
+  rules:
+    - Risk acceptance and execution authority are separate decisions.
+    - The consumed v1 and v2 grants remain unusable.
+    - Editing any risk statement or referenced digest requires a new acceptance.
+    - This candidate authorizes no cluster contact or mutation.

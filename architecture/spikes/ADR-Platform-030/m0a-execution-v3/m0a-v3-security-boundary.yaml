@@ -1,0 +1,105 @@
+apiVersion: test.openkubes.io/v1alpha1
+kind: M0aSecurityBoundaryCandidate
+metadata:
+  name: ok141-m0a-v3-security-boundary
+  ticket: OK-141
+spec:
+  version: ok141-m0a-security-boundary/v3
+  state: BLOCKED-OFFLINE-CANDIDATE
+  cause:
+    evidencePath: ../m0a-execution-runtime-v2/m0a-v2-first-run-evidence-v1.yaml
+    evidenceDigest: sha256:45859c79a82f42f3488ffe2792ae6c2fc9622069aaab9bbad1be27769af7b7c9
+    firstRunResult: STOP-NOT-SUCCESS
+    grantConsumed: true
+    classification: invalid-kubectl-subresource-authorization-probe
+    confidence: PROVEN
+  immutableInputs:
+    installationProtocolPath: ../m0a-installation/m0a-installation-v1.yaml
+    installationProtocolDigest: sha256:873d3aa3b15df53d3a4055675288c6d9acdf6c18d4f850e181a4eb7b93fc4a27
+    sourceSemanticDigest: sha256:01fc13d694da3304385a7bae0d1bd662d7c8c3d336b8a4d44da5324439d59095
+    objectCount: 19
+  retainedSecurityControls:
+    rbacPath: ../m0a-execution-v2/m0a-installer-rbac-v2.yaml
+    rbacDigest: sha256:0781697102c2c03652bb3f6d01a83d1431b1657d43f21c020aa97364701235bf
+    admissionPath: ../m0a-execution-v2/m0a-installer-admission-v2.yaml
+    admissionDigest: sha256:d690f71278e7986976069fc4bd1aa7e91c70dd40dc3f4eba26f1f7d65f7b2363
+    exactInstallerPrincipal: system:serviceaccount:openkubes-system:ok141-m0a-installer-v2
+    allowedObjectIdentities: 19
+    allowedInstallerVerbs: [create, get]
+    patchAllowed: false
+    updateAllowed: false
+    deleteAllowed: false
+    listAllowed: false
+    watchAllowed: false
+    payloadContentProvenByAdmission: false
+  tokenRequestAuthorizationProof:
+    helperPath: authorization_probe_v3.py
+    helperDigest: sha256:a6a41e284513267629fd1c99013bc183d7b77c006004103a3238451f4b8e6132
+    oldAmbiguousForm: [auth, can-i, create, serviceaccounts/token, --namespace, openkubes-system]
+    oldFormMeaning: resource-serviceaccounts-name-token
+    requiredForm: [auth, can-i, create, serviceaccounts, --subresource, token, --namespace, openkubes-system]
+    requiredResource: serviceaccounts
+    requiredSubresource: token
+    requiredVerb: create
+    expectedInstallerDecision: deny
+    administratorIssuesBoundedToken: true
+    installerMayIssueToken: false
+  credentialBoundary:
+    serviceAccount: openkubes-system/ok141-m0a-installer-v2
+    tokenRequestDurationMaximum: 10m
+    tokenAudience: https://192.168.100.200:6443
+    tokenMaterialPersisted: false
+    temporaryKubeconfigPersisted: false
+  revocationBoundary:
+    individualTokenRevocationAvailable: false
+    immediateRejectionClaim: false
+    cleanupBeforeObservation: true
+    observationDeadline: token-expirationTimestamp-plus-30s
+    clockSkewToleranceSeconds: 30
+    hardUpperExposureBound: token-expiry-at-most-10m-plus-30s-observation-tolerance
+    successCondition: API rejects the exact temporary credential no later than the observation deadline
+    failureCondition: token still authenticates after expirationTimestamp plus 30 seconds
+    failureOutcome: STOP-NOT-SUCCESS
+  requiredLiveProofs:
+    - the exact TokenRequest subresource SubjectAccessReview returns deny for the temporary installer
+    - the administrator creates exactly one audience-bound TokenRequest with at-most-ten-minute lifetime
+    - all existing exact identity and wrong identity admission probes pass fail closed
+    - all reviewed targets are absent immediately before submission
+    - the exact reviewed digest is reverified immediately before one submission
+    - credential objects admission objects and temporary kubeconfig are removed in finally
+    - authentication rejection is observed no later than expirationTimestamp plus 30 seconds
+  newRiskAcceptanceRequired:
+    - the v2 fixed 90-second rejection poll is replaced by an expiry-bound observation that can keep the test active for the remaining token lifetime
+    - deletion of ServiceAccount and RBAC is cleanup but is not claimed as immediate individual token revocation
+    - the unchanged create permission remains type-scoped by RBAC and identity-scoped but not content-scoped by admission
+    - the unchanged temporary ValidatingAdmissionPolicy remains an additional short-lived cluster-scoped security mechanism
+  authorization:
+    decision: NO-GO
+    mutationAuthorized: false
+    credentialGrantRequired: true
+    admissionBootstrapGrantRequired: true
+    installationGrantRequired: true
+    retryGranted: false
+    rollbackGranted: false
+    evidencePublicationGranted: false
+    m0bInstallationGranted: false
+    go1Granted: false
+    targetConvergenceGranted: false
+    failureInjectionGranted: false
+  exclusions:
+    - credential creation
+    - temporary admission installation
+    - CAAPH retry or installation
+    - HelmChartProxy or HelmReleaseProxy submission
+    - Cilium or target convergence
+    - automatic rollback
+    - evidence publication
+    - M0b-I
+    - GO-1
+    - failure injection
+  rules:
+    - This offline candidate supersedes no historical evidence and authorizes no mutation.
+    - The consumed v1 and v2 grants cannot be reused.
+    - A new explicit risk acceptance is mandatory before an executable v3 candidate may be prepared.
+    - A future executable candidate requires new digests preflight and three distinct exact grants.
+    - Failure to observe rejection by the expiry-bound deadline must never be relabeled as successful revocation.
