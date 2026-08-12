@@ -50,6 +50,12 @@ candidate still requires a fresh read-only live preflight and three new,
 distinct, exact grants before one run can be considered. Neither the risk
 acceptance nor this checkpoint grants a retry.
 
+`m0a-combined-grant-v3.yaml` records the later three explicit grants for
+candidate `sha256:34d99f4d…eaa272`. It authorizes exactly one combined run in
+the recorded UTC window and leaves HCP/HRP submission, Cilium convergence,
+automatic rollback, evidence publication, M0b-I, GO-1, target convergence,
+and failure injection excluded.
+
 This checkpoint authorizes no credential, admission object, CAAPH installation,
 retry, rollback, publication, M0b-I, GO-1, target convergence, or failure
 injection.
