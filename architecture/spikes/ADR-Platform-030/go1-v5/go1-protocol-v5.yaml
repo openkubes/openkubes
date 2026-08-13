@@ -1,0 +1,291 @@
+apiVersion: test.openkubes.io/v1alpha4
+kind: GO1Protocol
+metadata:
+  name: ok141-create-converge-observe-v5
+  ticket: OK-141
+  baseCommit: c2fc1c7d9900c414278cc1aa8b6868e238cc0057
+spec:
+  protocolVersion: ok141-go1/v5
+  protocolState: BLOCKED
+  supersedesForFutureExecution:
+    protocol: ../go1-v4/go1-protocol-v4.yaml
+    digest: sha256:2718d719c322190e36036f98730edcb9aaa679c434fb04f151f7f24fc2626705
+    historicalEvidencePreserved: true
+    reason: v4 partitioned pre-GO and runtime obligations but did not bind the installed M0a/M0b closures or the explicit runtime identity pause required before target registration.
+  fixture:
+    version: phase-r-v4
+    path: ../harness/fixtures/execution/phase-r-v4.json
+    fixtureDigest: sha256:a2ae3437645db5a83426b89d36d00693d2600e4ef20dc1aba2650dcda7f936f6
+    R: sha256:636fe23404ac53109f44d6346534dcf1367ae91c572d5e18bd32cd0a3128a16e
+    E: sha256:2a849d69e9c64344e907c1bce3bb1abf3d8f77217377081a5be055d62c213300
+    P: sha256:b0f25c639a45d895b889997f5ecc2325db45dd5d51b0684998c94d5e17bd47bf
+  authorization:
+    decision: NO-GO
+    go1LifecycleEnablementGranted: false
+    runtimePauseReleased: false
+    targetAccessGranted: false
+    tokenRequestGranted: false
+    registrationGranted: false
+    platformSubmissionGranted: false
+    go1Granted: false
+    retryGranted: false
+    rollbackOrCleanupGranted: false
+    evidencePublicationGranted: false
+    failureInjectionGranted: false
+    grantIDs: []
+    authorizedProtocolDigest: null
+    rule: This protocol specifies ordered gates; its digest and merge grant no execution authority.
+  scope:
+    operation: create-converge-runtime-bind-platform-observe
+    clusterCount: 1
+    disposableOnly: true
+    cluster:
+      contractNamespace: disposable-ok141
+      contractName: disposable-ok141
+      managementNamespace: disposable-ok141
+      infrastructureNamespace: disposable-ok141
+      workloadName: disposable-ok141
+      controlPlaneReplicas: 1
+      workerReplicas: 1
+      kubernetesVersion: v1.36.2
+      infrastructureProvider: kubevirt
+    connectivity:
+      profile: datacenter-isolated-v1
+      requestedControlPlaneEndpoint: provider-allocated
+      allocationAuthority: CAPK-and-MetalLB
+      podCIDR: 10.40.0.0/16
+      serviceCIDR: 10.100.0.0/20
+      forbiddenCIDRs: [192.168.100.0/24]
+    maximumBoundary:
+      wallClockMinutes: 120
+      lifecycleEnablementMinutes: 70
+      runtimePauseDecisionMinutes: 15
+      platformAndClosureMinutes: 35
+      clustersCreated: 1
+      controlPlanesCreated: 1
+      workerMachinesCreated: 1
+      lifecycleSubmissionGroups: 2
+      lifecycleSubmissionObjects: 11
+      hcpObjects: 1
+      targetAccessObjects: 8
+      registrationObjects: 2
+      platformApplications: 3
+      prohibitedMutations:
+        - worker executor or management failure injection
+        - manual drift injection
+        - delete or finalizer manipulation
+        - break-glass action
+        - ok-mgmt outage shadow promotion or disaster recovery
+        - upgrade scaling retry rollback cleanup or exploratory mutation
+  lifecycleSubmission:
+    operation: ApplyReviewedObjectSet
+    executorIdentity: UNRESOLVED
+    executorArtifactDigest: UNRESOLVED
+    credentialModel: short-lived-least-privilege-required
+    freeFormShellEndpoint: false
+    enabled: false
+    groups:
+      - id: provider-prerequisites
+        order: 1
+        targetPlane: ok-infra
+        path: ../harness/projections/phase-r-v4/ok-infra-prerequisites.yaml
+        objectCount: 3
+        objectSetDigest: sha256:7482633570ad5a6cfe4a738d8f116367d013af4523398c79997fb00d404d1a37
+        capiLifecycleObjectsAllowed: false
+        enabled: false
+      - id: capi-lifecycle
+        order: 2
+        targetPlane: ok-mgmt
+        path: ../harness/projections/phase-r-v4/ok-mgmt-lifecycle.yaml
+        objectCount: 8
+        objectSetDigest: sha256:78bc25624dd52c172590c2d7fdef0df16c20459fe4464090a4190113e3a7cabe
+        capiLifecycleObjectsAllowed: true
+        enabled: false
+    correlation:
+      projectionManifestPath: ../harness/projections/phase-r-v4/projection-manifest.json
+      projectionManifestDigest: sha256:73d36ce5f89508f7cbea4c78de452291b7e8708d7cb50041fb464f38a7e3fafe
+      authorityMapPath: ../harness/projections/phase-r-v4/authority-map.json
+      requireRCarrierOnEveryObject: true
+  enablement:
+    controlPlaneOwner: cluster-api-addon-provider-helm
+    controlPlaneVersion: v0.6.4
+    managementPlane: ok-mgmt
+    readinessEvidence:
+      path: ../m0a-runtime-v7-2-closure/m0a-v7-2-readiness-closure-v1.yaml
+      digest: sha256:5b445b91f16f1b791c28d637e84d65c5b5c0bb5d05214aa0968341b373c441b0
+      state: CAAPH-CONTROL-PLANE-READY
+    currentReadinessCandidate:
+      path: ../m0a-readiness-v7-3/m0a-readiness-candidate-v7-3.yaml
+      digest: sha256:ec5457aba5729a45973dbf276f6fef324da782cef718469e2e81d59143b91bc5
+    hcpCandidate:
+      path: ../m0a-v2/helmchartproxy-v4-candidate.yaml
+      digest: sha256:7fd0a0831ddccac1b2ca4beb3f5ca968e48ba446de104876897180a768e257fb
+      objectCount: 1
+      repoURL: oci://quay.io/cilium/charts
+      chart: cilium
+      version: 1.19.6
+      ociManifestDigest: sha256:b8d600c542c97dc8652429e12487ecce922d73de9785505457a8f653833e75f9
+      chartContentDigest: sha256:21c43cf53841f9ab0375047d95aa4c64051ea52bbd2c679416e6408f5f1c9179
+      digestEnforcement: external-evidence-required
+      submitEnabled: false
+    ownership:
+      hcpWriter: bounded-go1-submitter
+      hrpWriter: caaph-controller-only
+      helmReleaseOwner: caaph-and-helm
+      networkRuntimeOwner: cilium-and-kubernetes
+      networkReadyOwner: bounded-evaluator
+      openKubesPackageReconcilerRequired: false
+  runtimePause:
+    id: GO1-RUNTIME-PAUSE
+    state: BLOCKED-NOT-ENTERED
+    automaticAdvanceAllowed: false
+    maximumDecisionMinutes: 15
+    onTimeout: STOP-PRESERVE-STATE-NO-CLEANUP
+    entryRequires:
+      - current-generation CAPI lifecycle Conditions are Ready for exact R
+      - exactly one current control-plane and one current worker identity chain are Ready
+      - exactly one HCP and its controller-owned HRP correlate to the current CAPI Cluster UID and E
+      - Cilium artifact and config identities match E and current NetworkReady is True
+      - no STOP condition has occurred and at least 35 minutes remain in the test boundary
+    runtimeBinding:
+      templatePath: runtime-binding-v1.template.yaml
+      templateDigest: sha256:a03353ace0cfed9c800dcf0972614a91f20160b19631102659ffe4f7c46b8da2
+      completedArtifact: RUNTIME-NOT-YET-AVAILABLE
+      completedArtifactDigest: null
+      placeholdersAllowedAtRelease: false
+      independentReviewRequired: true
+    releaseRequires:
+      - exact completed runtime-binding digest
+      - exact target-access grant for eight reviewed objects
+      - exact paired token and materializer grants bound to the bridge candidate and runtime-binding digest
+      - exact Platform-submission grant bound to three Applications and the same runtime-binding digest
+      - all grants are current single-run mutually correlated and within the remaining protocol window
+  platform:
+    controlPlaneOwner: argo-cd
+    controlPlaneVersion: v3.4.2
+    controlPlane: ok-shared
+    installationClosure:
+      path: ../m0b-execution-v2/m0b-v2-runtime-closure-v1.yaml
+      digest: sha256:48d9d43c1c51338982a6143d7e6f04e77256682424172531ce0cdb224355f8ba
+      state: COMPLETE-LOCALLY-PUBLICATION-NOT-GRANTED
+    registrationBridge:
+      path: ../m0b-registration-bridge-v1/m0b-registration-bridge-candidate-v1.yaml
+      digest: sha256:f219c5d1e0524db317fb8c807b2083198f19e39cf684ba9eead0bbefe605d924
+      state: OFFLINE-PROVEN-BLOCKED-NO-GO
+      executeEnabled: false
+    targetAccess:
+      path: ../m0b-target-registration-v1/target-access-v1.template.yaml
+      digest: sha256:aeb7d1f65a1553bf8b004f0789f705d3c70b330d878bf6032b410491571fe29a
+      objectCount: 8
+      applyEnabled: false
+    applications:
+      path: ../harness/profiles/platform/minimal-observability-v4/applications.yaml
+      rawDigest: sha256:7738d9501c0b19d26b51111d818251d6308994b51678aa6a9322ef54f7567392
+      semanticDigest: sha256:2502e8ec4310004d26bb7ec89cf5484d4cd301ff4385b888a22c724d3b7c2921
+      objectCount: 3
+      sourceCommit: b5f7be6a7ddab798f31f32197fcbb9e86a9798b6
+      submitEnabled: false
+    ownership:
+      platformDesiredState: P-triple-prime
+      convergenceOwner: argo-cd
+      platformReadyOwner: bounded-evaluator
+      openKubesPlatformReconcilerRequired: false
+  stageGates:
+    - id: GO1-L
+      scope: provider-prerequisites-plus-capi-lifecycle-plus-one-hcp
+      state: NOT-GRANTED
+      runtimeIdentityRequiredBeforeGrant: false
+      grantsLaterStages: false
+    - id: M0B-R-TA
+      scope: exact-eight-object-target-access-set
+      state: NOT-GRANTED
+      runtimeBindingDigestRequired: true
+      grantsLaterStages: false
+    - id: M0B-R-TR
+      scope: one-tokenrequest-plus-exclusive-consumption-receipt
+      state: NOT-GRANTED
+      runtimeBindingDigestRequired: true
+      grantsLaterStages: false
+    - id: M0B-R-RM
+      scope: exact-appproject-plus-project-scoped-registration-secret
+      state: NOT-GRANTED
+      runtimeBindingDigestRequired: true
+      grantsLaterStages: false
+    - id: GO1-P
+      scope: exact-three-application-submission
+      state: NOT-GRANTED
+      runtimeBindingDigestRequired: true
+      grantsLaterStages: false
+  blockers:
+    - {id: GO1-L-EXECUTOR, class: technical, status: BLOCKED, closure: Bind one reviewed lifecycle and HCP submitter artifact plus exact short-lived credentials for ok-infra and ok-mgmt.}
+    - {id: GO1-L-GRANT, class: authorization, status: BLOCKED, closure: Create a fresh preflight and one exact GO1-L grant for the protocol digest and test window.}
+    - {id: RUNTIME-BINDING, class: runtime, status: BLOCKED-BY-DESIGN, closure: Complete and independently review the runtime-binding artifact only after lifecycle and NetworkReady.}
+    - {id: TARGET-ACCESS-GRANT, class: authorization, status: BLOCKED-BY-RUNTIME, closure: Bind the exact eight-object target-access grant to the completed runtime-binding digest.}
+    - {id: TOKEN-MATERIALIZER-GRANTS, class: authorization, status: BLOCKED-BY-RUNTIME, closure: Bind reciprocal single-run token and materializer grants to the bridge and completed runtime-binding digests.}
+    - {id: PLATFORM-GRANT, class: authorization, status: BLOCKED-BY-RUNTIME, closure: Bind one exact three-Application grant to P and the completed runtime-binding digest.}
+    - {id: TARGET-CAPABILITIES, class: runtime, status: BLOCKED-BY-RUNTIME, closure: Prove local-path availability and every required runtime Secret dependency before Platform submission.}
+    - {id: RUNTIME-CAPABILITY, class: runtime, status: BLOCKED-BY-RUNTIME, closure: Bind OpenSearch retention and real alert-delivery acceptance evidence before PlatformReady.}
+    - {id: OBSERVERS-AUTHORITIES, class: operational, status: BLOCKED, closure: Assign the exact test operator GO abort recovery and evidence-review authorities plus independent observers.}
+    - {id: EVIDENCE-DESTINATION, class: operational, status: BLOCKED, closure: Bind the accepted redacted DEV evidence path timestamp limits and local raw evidence files for the exact window.}
+    - {id: RECOVERY-ACCESS, class: operational, status: BLOCKED, closure: Reverify out-of-band access and the accepted rebuild-on-loss DEV boundary immediately before GO1-L.}
+  phases:
+    - {id: G0, name: preflight-and-baseline, mutating: false, gate: GO1-L, enabled: false}
+    - {id: G1, name: apply-provider-and-capi-object-sets, mutating: true, gate: GO1-L, enabled: false}
+    - {id: G2, name: observe-lifecycle-convergence, mutating: false, gate: GO1-L, enabled: false}
+    - {id: G3, name: submit-exact-hcp, mutating: true, gate: GO1-L, enabled: false}
+    - {id: G4, name: observe-enablement-and-networkready, mutating: false, gate: GO1-L, enabled: false}
+    - {id: G5, name: capture-and-review-runtime-binding, mutating: false, gate: GO1-RUNTIME-PAUSE, enabled: false}
+    - {id: G6, name: create-exact-target-access-set, mutating: true, gate: M0B-R-TA, enabled: false}
+    - {id: G7, name: issue-token-and-create-registration, mutating: true, gate: M0B-R-TR-plus-M0B-R-RM, enabled: false}
+    - {id: G8, name: verify-registration-and-runtime-correlation, mutating: false, gate: GO1-RUNTIME-PAUSE, enabled: false}
+    - {id: G9, name: submit-exact-three-applications, mutating: true, gate: GO1-P, enabled: false}
+    - {id: G10, name: observe-platform-convergence-and-capabilities, mutating: false, gate: GO1-P, enabled: false}
+    - {id: G11, name: aggregate-verify-evidence-and-close, mutating: false, gate: GO1-P, enabled: false}
+  expectedEvidence:
+    lifecycle: [accepted object UIDs, field managers, current CAPI generations and Conditions, provider VM/VMI identity graph, endpoint allocation]
+    workload: [kube-system UID, API endpoint and CA fingerprint, Node UIDs and providerIDs, exact Ready control-plane and worker count]
+    enablement: [HCP and HRP UIDs plus owner chain, desired and observed E, registry and chart identity, Cilium rollout, current NetworkReady probes]
+    runtimeBinding: [canonical completed artifact, digest, independent review, remaining wall-clock budget]
+    registration: [target-access UIDs, consumption receipt digest, token expiration without token bytes, registration Secret UID, correlated target identity]
+    platform: [exact Application UIDs and membership, desired and applied P, Synced and Healthy, local-path and capability evidence]
+    aggregate: [bounded evaluator input digest, source freshness decisions, Ready result]
+    bundle: [redacted artifact manifest, correlation manifest, final checksum, independent verification]
+  stopConditions:
+    - any FixtureDigest R E P object digest target plane runtime identity or grant correlation differs
+    - any phase runs without its exact gate or any one-run grant receipt is reused
+    - any unexpected object Application ApplicationSet target credential or lifecycle writer is observed
+    - runtime binding contains a placeholder stale source conflict or different Cluster incarnation
+    - less than 35 minutes remain upon entry to the runtime pause or its 15-minute decision deadline expires
+    - any credential byte enters arguments environment Git logs stdout stderr or retained evidence
+    - ok-mgmt ok-infra ok-shared storage network or an existing workload unexpectedly degrades
+    - independent observation evidence timestamp credential or recovery confidence is lost
+  stopResponse:
+    - announce STOP through the bound communication channel
+    - perform no later stage no retry no exploratory diagnosis and no cleanup
+    - retain only allowed local raw evidence and verified redacted evidence
+    - preserve the disposable object graph for a separately authorized decision
+    - transfer control to assigned abort and recovery authorities
+  recovery:
+    preExistingPlanes: Rebuild-on-loss is accepted for DEV; out-of-band access must be freshly verified before GO1-L.
+    disposableCluster: Preserve state on STOP because GO-1 v5 does not authorize deletion or finalizer changes.
+    partialRegistration: Preserve target access AppProject registration and receipt evidence; cleanup requires a separate protocol and grant.
+    executorFailure: Accepted desired-state transitions remain authoritative and controller reconciliation may continue.
+  acceptance:
+    successRequires:
+      - exactly one GO1-L run creates the reviewed 3-plus-8 lifecycle set and one HCP
+      - current CAPI CAPK CAAPH Cilium and workload evidence converges to R and E
+      - one completed current runtime binding is independently reviewed before any M0b-R mutation
+      - exact target access TokenRequest registration and three Applications run once under separate current gates
+      - Argo converges exact P and independent Platform capabilities pass
+      - bounded aggregation returns Ready=True from current correlated sources
+      - the redacted evidence bundle verifies and contains no secret material
+    processExitIsLifecycleSuccess: false
+    historicalSuccessIsCurrentProof: false
+    automaticPauseReleaseAllowed: false
+    allPreRuntimeBlockersMustCloseBeforeGO1L: true
+    allRuntimeBlockersMustCloseBeforePauseRelease: true
+  exclusions:
+    - failure injection drift retry rollback cleanup deletion upgrade scale or outage testing
+    - long-lived production GitOps credential or native Argo TokenRequest rotation claim
+    - OpenKubes repair of CAPI CAAPH Cilium Argo or Platform resources
+    - accepting names endpoints annotations or historical success as current identity proof
