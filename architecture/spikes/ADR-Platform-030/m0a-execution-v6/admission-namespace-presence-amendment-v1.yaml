@@ -1,0 +1,27 @@
+apiVersion: test.openkubes.io/v1alpha1
+kind: AdmissionExpressionAmendment
+metadata:
+  name: ok141-m0a-v6-namespace-presence
+  ticket: OK-141
+spec:
+  version: ok141-m0a-admission-expression-amendment/v1
+  base:
+    path: ../m0a-execution-v2/m0a-installer-admission-v2.yaml
+    digest: sha256:d690f71278e7986976069fc4bd1aa7e91c70dd40dc3f4eba26f1f7d65f7b2363
+  exactReplacement:
+    occurrencesRequired: 1
+    old: request.namespace == x.namespace
+    new: "(has(request.namespace) ? request.namespace : '') == x.namespace"
+  expectedClaims:
+    clusterScopedNamespaceValue: ""
+    namespacedNamespaceValue: request.namespace
+    identitySetUnchanged: true
+    failurePolicyUnchanged: Fail
+  expectedRenderedIdentity:
+    digest: sha256:c6ea2bd8459b462d0ed65f42696b11931f136565b58ff4d04e7932399dc3d4f7
+    sizeBytes: 4506
+  authorization:
+    mutationAuthorized: false
+    retryGranted: false
+    admissionBootstrapGranted: false
+    caaphInstallationGranted: false
