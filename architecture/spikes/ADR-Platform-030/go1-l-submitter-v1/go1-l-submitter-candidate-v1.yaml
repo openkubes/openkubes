@@ -1,0 +1,112 @@
+apiVersion: execution.openkubes.io/v1alpha1
+kind: GO1LSubmitterCandidate
+metadata:
+  name: ok141-go1-l-submitter-v1
+  ticket: OK-141
+  baseCommit: f5b2a20291692fb4ef03c098a12257ecb86ac857
+spec:
+  version: ok141-go1-l-submitter/v1
+  state: OFFLINE-PROVEN-BLOCKED-NO-GO
+  sourceProtocol:
+    path: ../go1-v5/go1-protocol-v5.yaml
+    digest: sha256:685b7e142e9b2e67dcee89ef091df93e4b9aa5d43ff32c7becf6df743e3df2b9
+    fixtureDigest: sha256:a2ae3437645db5a83426b89d36d00693d2600e4ef20dc1aba2650dcda7f936f6
+    R: sha256:636fe23404ac53109f44d6346534dcf1367ae91c572d5e18bd32cd0a3128a16e
+    E: sha256:2a849d69e9c64344e907c1bce3bb1abf3d8f77217377081a5be055d62c213300
+  tool:
+    path: bounded_go1_l_submitter_v1.py
+    digest: sha256:0d9c59f5b0279fc72d6100e78f654383f2132c66535691cd6f976dc1e8f3c17b
+    arbitraryManifestPathAllowed: false
+    arbitraryCommandAllowed: false
+  authorization:
+    decision: NO-GO
+    currentGrantBound: false
+    runtimeGrantMayAuthorizeOneOperation: true
+    mutationAuthorized: false
+    go1LGranted: false
+    retryGranted: false
+    rollbackOrCleanupGranted: false
+  transport:
+    operation: CreateReviewedObjectSet
+    createOnly: true
+    serverSideApply: false
+    stdinPayloadOnly: true
+    freeFormArgumentsAllowed: false
+    automaticRetryAllowed: false
+    automaticRollbackAllowed: false
+    partialStateOnFailure: STOP-PRESERVE-NO-CLEANUP
+  operations:
+    - id: provider-prerequisites
+      stage: G1
+      sequence: 1
+      targetPlane: ok-infra
+      path: ../harness/projections/phase-r-v4/ok-infra-prerequisites.yaml
+      rawDigest: sha256:63dec65a4db486ce7813531eb8ddff851066703c835ac7ec1e1092dd989eb6b6
+      semanticDigest: sha256:7482633570ad5a6cfe4a738d8f116367d013af4523398c79997fb00d404d1a37
+      objectCount: 3
+      predecessorEvidenceRequired: false
+      objectIdentities:
+        - v1|Namespace|_|disposable-ok141
+        - rbac.authorization.k8s.io/v1|Role|ok-images|disposable-ok141-talos-golden-image-cloner
+        - rbac.authorization.k8s.io/v1|RoleBinding|ok-images|disposable-ok141-talos-golden-image-cloner
+    - id: capi-lifecycle
+      stage: G1
+      sequence: 2
+      targetPlane: ok-mgmt
+      path: ../harness/projections/phase-r-v4/ok-mgmt-lifecycle.yaml
+      rawDigest: sha256:eee0c57eb8bd0b175219be0afca3a4099882ae46e7433e21469b7a20e9485c32
+      semanticDigest: sha256:78bc25624dd52c172590c2d7fdef0df16c20459fe4464090a4190113e3a7cabe
+      objectCount: 8
+      predecessorEvidenceRequired: true
+      objectIdentities:
+        - v1|Namespace|_|disposable-ok141
+        - cluster.x-k8s.io/v1beta2|Cluster|disposable-ok141|disposable-ok141
+        - infrastructure.cluster.x-k8s.io/v1alpha1|KubevirtCluster|disposable-ok141|disposable-ok141
+        - controlplane.cluster.x-k8s.io/v1alpha3|TalosControlPlane|disposable-ok141|disposable-ok141-cp
+        - bootstrap.cluster.x-k8s.io/v1alpha3|TalosConfigTemplate|disposable-ok141|disposable-ok141-workers-v1-9-6
+        - cluster.x-k8s.io/v1beta2|MachineDeployment|disposable-ok141|disposable-ok141-workers
+        - infrastructure.cluster.x-k8s.io/v1alpha1|KubevirtMachineTemplate|disposable-ok141|disposable-ok141-cp-7f5dd4276432
+        - infrastructure.cluster.x-k8s.io/v1alpha1|KubevirtMachineTemplate|disposable-ok141|disposable-ok141-workers-7f5dd4276432
+    - id: helmchartproxy
+      stage: G3
+      sequence: 3
+      targetPlane: ok-mgmt
+      path: ../m0a-v2/helmchartproxy-v4-candidate.yaml
+      rawDigest: sha256:7fd0a0831ddccac1b2ca4beb3f5ca968e48ba446de104876897180a768e257fb
+      semanticDigest: sha256:d3e996f323c3f5565a9297ca045b15756b9c941ef9a63fe3905f0e7eda195c91
+      objectCount: 1
+      predecessorEvidenceRequired: true
+      objectIdentities:
+        - addons.cluster.x-k8s.io/v1alpha1|HelmChartProxy|disposable-ok141|disposable-ok141-cilium
+  ordering:
+    - provider-prerequisites requires a fresh operation grant and proves absence before create
+    - capi-lifecycle requires the accepted provider submission receipt and a fresh operation grant
+    - helmchartproxy requires current lifecycle identity evidence for exact R and a fresh operation grant
+    - no operation grant authorizes a later operation
+  credentialContract:
+    model: separate-short-lived-kubeconfig-per-operation
+    maximumGrantMinutes: 20
+    tokenBytesInArgumentsAllowed: false
+    tokenBytesInEnvironmentAllowed: false
+    tokenBytesInLogsOrEvidenceAllowed: false
+    credentialFileMode: "0600"
+    symlinkAllowed: false
+    credentialReceiptRequired: true
+    issuanceAndRevocation: BLOCKED-SEPARATE-CREDENTIAL-GATE
+  evidence:
+    requiredPerOperation:
+      - grant ID and authorized candidate/protocol/operation digests
+      - credential receipt digest without token bytes
+      - exact object UIDs or a partial-state inventory
+      - transport exit code and timestamps
+      - predecessor receipt or current lifecycle evidence where required
+    secretMaterialAllowed: false
+  stopConditions:
+    - any candidate protocol manifest semantic identity target-plane credential or predecessor mismatch
+    - any reviewed object already exists or an unexpected same-name object appears
+    - any create produces partial state or a nonzero transport exit
+    - any grant or credential is missing expired reused over-scoped or uncorrelated
+  exclusions:
+    - automatic retry rollback cleanup update patch server-side apply or deletion
+    - lifecycle observation HCP-to-HRP evaluation NetworkReady Platform registration or GO-1 closure
+    - any free-form shell command manifest path kubectl argument context or credential material
