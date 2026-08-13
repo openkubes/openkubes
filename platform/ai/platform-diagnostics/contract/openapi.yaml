@@ -289,6 +289,20 @@ components:
         ticket.
       examples: [inv-2026-08-06-7f3a91c4]
 
+    EvidenceId:
+      type: string
+      minLength: 1
+      maxLength: 128
+      pattern: '^[A-Za-z0-9][A-Za-z0-9._:-]*$'
+      description: |
+        Provider-assigned opaque identifier for one EvidenceRef. It is unique
+        within an invocation and remains stable wherever that evidence is
+        referenced across the invocation's audit artifacts. Unlike `uri`, it is
+        always present, including when evidence is unavailable. Consumers must
+        compare it as an opaque string and must not derive source information
+        from its shape.
+      examples: [ev-inv-2026-08-06-7f3a91c4-01]
+
     LogicalClusterName:
       type: string
       minLength: 1
@@ -411,7 +425,12 @@ components:
           $ref: '#/components/schemas/LogicalClusterName'
         status:
           type: string
-          enum: [healthy, degraded, unavailable]
+          enum: [healthy, degraded, unavailable, unknown]
+          description: |
+            Normalized health of this cluster. `unknown` means that the provider
+            could not determine a reliable health state; it must not be coerced
+            to `unavailable`. Other requested clusters may still carry valid
+            health results in the same response.
         summary:
           type: string
         signals:
@@ -473,6 +492,10 @@ components:
         evidence:
           type: array
           maxItems: 500
+          description: |
+            EvidenceRef objects whose `id` values are unique within this
+            invocation. Referential-integrity checks are part of the executable
+            OK-91 contract suite.
           items:
             $ref: '#/components/schemas/EvidenceRef'
         probable_causes:
@@ -529,6 +552,9 @@ components:
         evidence:
           type: array
           maxItems: 500
+          description: |
+            EvidenceRef objects whose `id` values are unique within this
+            invocation.
           items:
             $ref: '#/components/schemas/EvidenceRef'
         provider_capabilities:
@@ -555,18 +581,21 @@ components:
           minItems: 1
           maxItems: 50
           uniqueItems: true
-          description: URIs of supporting EvidenceRef objects returned with the result.
+          description: |
+            IDs of supporting EvidenceRef objects returned with this result.
+            Every ID must resolve to exactly one item in `evidence`, including
+            when that evidence is unavailable and therefore has no `uri`.
           items:
-            type: string
-            format: uri-reference
+            $ref: '#/components/schemas/EvidenceId'
         contradicting_evidence_refs:
           type: array
           maxItems: 50
           uniqueItems: true
-          description: URIs of contradicting EvidenceRef objects returned with the result.
+          description: |
+            IDs of contradicting EvidenceRef objects returned with this result.
+            Every ID must resolve to exactly one item in `evidence`.
           items:
-            type: string
-            format: uri-reference
+            $ref: '#/components/schemas/EvidenceId'
         counter_evidence_status:
           type: string
           enum: [found, none_found, not_checked]
@@ -588,8 +617,10 @@ components:
     EvidenceRef:
       type: object
       additionalProperties: false
-      required: [type, source, status, collected_at]
+      required: [id, type, source, status, collected_at]
       properties:
+        id:
+          $ref: '#/components/schemas/EvidenceId'
         type:
           type: string
           minLength: 1
