@@ -1,0 +1,82 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: M0aExecutionAndRollbackEvidence
+metadata: {name: ok141-m0a-v6-runtime-and-rollback-20260813, ticket: OK-141}
+spec:
+  version: ok141-m0a-v6-runtime-and-rollback-evidence/v1-redacted
+  state: BASELINE-RESTORED
+  execution:
+    candidateDigest: sha256:27ce10b948b281ea54f7ba52399d0fd5e761f769f39a379b9b01ded576729e68
+    grantDigest: sha256:28e88c79b35e4b1712214d806a612e0be45bb798753eb62c9b98abdf86ea718d
+    startedAt: "2026-08-13T08:00:46.432932Z"
+    finishedAt: "2026-08-13T08:12:29.411331Z"
+    runsConsumed: 1
+    result: STOP-NOT-SUCCESS
+    rawLocalEvidenceDigest: sha256:0232da93052f15c02c06647aaf44edb5578c62e8e3f52c62acddcf9f7febad9a
+    rawLocalEvidencePublishable: false
+    admissionTypeChecking:
+      observedGeneration: 1
+      expressionWarnings: 0
+    tokenRejection:
+      result: PROVEN
+      notBeforeBoundary: true
+    submission:
+      attempts: 1
+      expectedObjects: 19
+      objectsCreated: 4
+      partialState: true
+      causeClasses:
+        - CLUSTER_SCOPED-IDENTITY-EXPRESSION-MISMATCH
+        - RBAC-PRIVILEGE-ESCALATION-PROTECTION
+      retainedObjectClasses:
+        customResourceDefinitions: 2
+        webhookConfigurations: 2
+  rollback:
+    candidateDigest: sha256:494798348d0d1604ab9ac1848febbd5aab613ee177ac76c07605995d98e74b19
+    grantDigest: sha256:543feb79037aba63ebe3766fc604a8639367f8bfa4857257311b3ad4cc242c96
+    grantID: ok141-m0a-r-v6-20260813-01
+    startedAt: "2026-08-13T08:21:30.136528Z"
+    finishedAt: "2026-08-13T08:21:39.496629Z"
+    runsConsumed: 1
+    result: SUCCESS
+    exactObjectsDeleted: 4
+    rawLocalEvidenceDigest: sha256:8538fab0e474b746ffd0beb960a3634efb0ad35bdab85cf26c5ed85d774347b5
+    rawLocalEvidencePublishable: false
+  postRollbackPreflight:
+    observedAt: "2026-08-13T08:22:35Z"
+    result: PASS
+    exactIdentityAbsence: 19
+    temporaryBootstrapObjectsPresent: 0
+    lifecycleInventory: {clusters: 0, machines: 0, machineDeployments: 0}
+    mutationPerformed: false
+  conclusion:
+    caaphInstalled: false
+    partialStatePresent: false
+    baselineRestored: true
+    tokenRejectionProven: true
+    executionGrantReusable: false
+    rollbackGrantReusable: false
+    retryAllowed: false
+    newCandidateRequired: true
+  authorization:
+    evidencePublicationGranted: false
+    retryGranted: false
+    forwardInstallationGranted: false
+    rollbackGranted: false
+    m0bInstallationGranted: false
+    go1Granted: false
+    targetConvergenceGranted: false
+    failureInjectionGranted: false
+  redaction:
+    secretsIncluded: false
+    tokensIncluded: false
+    kubeconfigsIncluded: false
+    privateKeysIncluded: false
+    certificatePayloadsIncluded: false
+    localPathsIncluded: false
+    objectUIDsIncluded: false
+    rawResponseBodiesIncluded: false
+  rules:
+    - The v6 execution and rollback grants are consumed and cannot be reused.
+    - This evidence must not be relabeled as a successful CAAPH installation.
+    - Raw local evidence remains excluded from Git.
+    - Publication retry forward installation M0b-I GO-1 target convergence and failure injection remain NOT GRANTED.
