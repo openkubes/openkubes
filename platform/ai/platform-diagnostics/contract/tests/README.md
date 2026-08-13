@@ -12,15 +12,17 @@ before their conformance can be claimed.
 2. **RBAC audit** — the Phase-1 provider identity has **no verbs beyond
    `get`/`list`/`watch`**, and no access to `secrets` in any apiGroup.
    (Mirrors `openclaw`'s `make verify-kubectl`; reused for kagent's SA.)
-3. **Evidence hygiene** — output contains references (`EvidenceRef.uri`), never
-   embedded secrets/credentials or raw payloads.
+3. **Evidence hygiene** — every item has an opaque, stable `EvidenceRef.id`;
+   available/partial evidence also carries a `uri`, while output never embeds
+   secrets, credentials, or raw payloads.
 4. **Backend-swap** — the consumer test suite passes unchanged against a stub
    Profile B. If a swap breaks a consumer, a provider value leaked into the contract.
 5. **Capability delta** — a provider that declares a capability absent MUST return
    `EvidenceRef.status: unavailable` + `reason` for affected evidence. Silent
    omission is a failure.
 6. **Counter-evidence discipline** — every `RankedHypothesis` carries `confidence`,
-   `contradicting_evidence_refs`, and `counter_evidence_status`; `not_checked`
+   `contradicting_evidence_refs`, and `counter_evidence_status`; all supporting
+   and contradicting IDs resolve to exactly one `EvidenceRef`, and `not_checked`
    fails a finalized diagnostic result.
 
 > Status: specification only in this branch. Executable tests land with OK-91.
