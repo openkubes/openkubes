@@ -1,0 +1,63 @@
+apiVersion: openkubes.io/v1alpha1
+kind: OK141M0aAuthorityPartition
+metadata:
+  name: ok141-m0a-v7
+spec:
+  version: ok141-m0a-authority-partition/v1
+  state: OFFLINE-ONLY-NO-GO
+  source:
+    path: ../m0a-installation/caaph-v0.6.4-addon-components.yaml
+    rawDigest: sha256:a70f4eb77eac626231daca1e2a046b4b069bb84320efa327cc8c56a9c4ca03e6
+    semanticDigest: sha256:01fc13d694da3304385a7bae0d1bd662d7c8c3d336b8a4d44da5324439d59095
+    objectCount: 19
+  authorityDomains:
+    administrator:
+      purpose: Create the Namespace and reviewed RBAC without delegating escalate or bind.
+      expectedCount: 8
+      expectedSemanticDigest: sha256:bf08ade19f9842e8854dc16c5b24167cd1c2eca08c2c0e5847790bb545185af3
+      identities:
+        - {group: "", resource: namespaces, namespace: "", name: caaph-system}
+        - {group: rbac.authorization.k8s.io, resource: roles, namespace: caaph-system, name: caaph-leader-election-role}
+        - {group: rbac.authorization.k8s.io, resource: clusterroles, namespace: "", name: caaph-manager-role}
+        - {group: rbac.authorization.k8s.io, resource: clusterroles, namespace: "", name: caaph-metrics-auth-role}
+        - {group: rbac.authorization.k8s.io, resource: clusterroles, namespace: "", name: caaph-metrics-reader}
+        - {group: rbac.authorization.k8s.io, resource: rolebindings, namespace: caaph-system, name: caaph-leader-election-rolebinding}
+        - {group: rbac.authorization.k8s.io, resource: clusterrolebindings, namespace: "", name: caaph-manager-rolebinding}
+        - {group: rbac.authorization.k8s.io, resource: clusterrolebindings, namespace: "", name: caaph-metrics-auth-rolebinding}
+    temporaryInstaller:
+      purpose: Create the non-RBAC CAAPH objects using type-scoped RBAC and exact-identity admission.
+      expectedCount: 11
+      expectedSemanticDigest: sha256:050447266e12d24e382fa837fab3ca82dd722dd82ce185aaad6e2e6f1a0136aa
+      identities:
+        - {group: apiextensions.k8s.io, resource: customresourcedefinitions, namespace: "", name: helmchartproxies.addons.cluster.x-k8s.io}
+        - {group: apiextensions.k8s.io, resource: customresourcedefinitions, namespace: "", name: helmreleaseproxies.addons.cluster.x-k8s.io}
+        - {group: "", resource: serviceaccounts, namespace: caaph-system, name: caaph-controller-manager}
+        - {group: "", resource: configmaps, namespace: caaph-system, name: caaph-manager-config}
+        - {group: "", resource: services, namespace: caaph-system, name: caaph-controller-manager-metrics-service}
+        - {group: "", resource: services, namespace: caaph-system, name: caaph-webhook-service}
+        - {group: apps, resource: deployments, namespace: caaph-system, name: caaph-controller-manager}
+        - {group: cert-manager.io, resource: certificates, namespace: caaph-system, name: caaph-serving-cert}
+        - {group: cert-manager.io, resource: issuers, namespace: caaph-system, name: caaph-selfsigned-issuer}
+        - {group: admissionregistration.k8s.io, resource: mutatingwebhookconfigurations, namespace: "", name: caaph-mutating-webhook-configuration}
+        - {group: admissionregistration.k8s.io, resource: validatingwebhookconfigurations, namespace: "", name: caaph-validating-webhook-configuration}
+  admission:
+    path: m0a-installer-admission-v7.yaml
+    rawDigest: sha256:fbf00b562d97083b3e96f33c1b2ff1802c6133e5c46bd2a3660515218c42ebb1
+    principal: system:serviceaccount:openkubes-system:ok141-m0a-installer-v7
+  invariants:
+    - the two authority domains are disjoint and their union is the reviewed 19-object source
+    - the administrator domain contains exactly the Namespace and all reviewed RBAC objects
+    - the temporary installer domain contains no Namespace or RBAC object
+    - temporary installer RBAC must not include escalate or bind
+    - admission permits only the eleven temporary-installer identities
+    - admission evaluates cluster-scoped and namespaced identities separately
+  authorization:
+    decision: NO-GO
+    mutationAuthorized: false
+    publicationGranted: false
+    retryGranted: false
+    rollbackGranted: false
+    m0bInstallationGranted: false
+    go1Granted: false
+    targetConvergenceGranted: false
+    failureInjectionGranted: false
