@@ -1,0 +1,57 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: M0aV7RiskAcceptance
+metadata:
+  name: ok141-m0a-v7-risk-acceptance-v1
+  ticket: OK-141
+spec:
+  version: ok141-m0a-v7-risk-acceptance-record/v1
+  state: ACCEPTED-NON-AUTHORIZING
+  recordedAt: "2026-08-13T11:02:04+02:00"
+  acceptedBy: github:arashkaffamanesh
+  references:
+    acceptanceCandidate:
+      path: ../m0a-execution-v7/m0a-v7-risk-acceptance-candidate.yaml
+      digest: sha256:c70f207fb6323ca11fd25317e0b1c027c53cc679274ea2794f5413e5b9e2d295
+    securityBoundary:
+      path: ../m0a-execution-v7/m0a-v7-security-boundary.yaml
+      digest: sha256:1f6afda15207c76d9562a8f95bc7422a7d2f23b528695c567c781abe9fdeb8a5
+  decision:
+    outcome: ACCEPTED-DEV-ONLY
+    exactStatement: Ich akzeptiere für OK-141/M0a-v7 die dokumentierte Admin-Content-Grenze, die nicht-atomare Split-Authority-Installation mit möglichem partiellem Zustand, die fortbestehende Installer-Content- und temporäre Admission-Bootstrap-Grenze sowie die bis expirationTimestamp+100s gebundene Token-Ablehnungsbeobachtung, gebunden an Security-Kandidat sha256:1f6afda15207c76d9562a8f95bc7422a7d2f23b528695c567c781abe9fdeb8a5. Diese Akzeptanz erteilt keine Freigabe für Admin-Prerequisites, Credentials, Admission-Installation, CAAPH-Installation oder -Retry, Rollback, Evidence-Publication, M0b-I, GO-1, Target-Konvergenz oder Failure Injection.
+    acceptedRisks:
+      - M0A-V7-ADMIN-CONTENT-BOUNDARY
+      - M0A-V7-SPLIT-AUTHORITY-PARTIAL-STATE
+      - M0A-V7-INSTALLER-CONTENT-BOUNDARY
+      - M0A-V7-ADMISSION-BOOTSTRAP-BOUNDARY
+      - M0A-V7-EXPIRY-PLUS-100S-OBSERVATION
+  claimBoundaries:
+    environment: DEV
+    administratorAdmissionConstrained: false
+    splitAuthoritySubmissionAtomic: false
+    splitAuthoritySubmissionIdempotent: false
+    partialInstallationPossible: true
+    installerPayloadProvenByRbacOrAdmission: false
+    automaticRetryAllowed: false
+    automaticRollbackAllowed: false
+    immediateTokenRevocationProven: false
+    tokenRejectionMustBeObservedAtBoundDeadline: true
+    productionUseAllowed: false
+  authorization:
+    decision: NO-GO
+    mutationAuthorized: false
+    administratorPrerequisiteGranted: false
+    credentialBootstrapGranted: false
+    admissionBootstrapGranted: false
+    caaphInstallationGranted: false
+    retryGranted: false
+    rollbackGranted: false
+    evidencePublicationGranted: false
+    m0bInstallationGranted: false
+    go1Granted: false
+    targetConvergenceGranted: false
+    failureInjectionGranted: false
+  rules:
+    - This record closes only the five named DEV risk decisions and grants no execution authority.
+    - The consumed v1 through v6 grants remain unusable.
+    - A new executable candidate, fresh preflight, and four distinct explicit grants remain mandatory.
+    - Editing the accepted statement, security boundary, authority partition, or observation deadline invalidates this acceptance.
