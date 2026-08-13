@@ -1,0 +1,114 @@
+apiVersion: test.openkubes.io/v1alpha1
+kind: M0bRegistrationBridgeCandidate
+metadata:
+  name: ok141-m0b-registration-bridge-v1
+  ticket: OK-141
+  baseCommit: 8879ef0441e634f4a42774b68ba9813f100dde46
+spec:
+  version: ok141-m0b-registration-bridge/v1
+  state: OFFLINE-PROVEN-BLOCKED-NO-GO
+  references:
+    tokenRequestAntiReplay:
+      path: ../m0b-tokenrequest-antireplay-v1/m0b-tokenrequest-antireplay-candidate-v1.yaml
+      digest: sha256:7a642144a73ea2ce4df7b64152b5bf3af386885274fe440cfcb4a7545f86c33f
+    registrationMaterializer:
+      path: ../m0b-registration-materializer-v1/m0b-registration-materializer-candidate-v1.yaml
+      digest: sha256:1922f8c6a73e00b6278b870d379f2123eb223070719da145d16b730b47cfb21d
+    executable:
+      path: registration_bridge_v1.py
+      digest: sha256:deffbd6c99bf79485db412278f486d02dfca0a94f04f991a669cc09c56dab1f4
+    offlineTests:
+      path: test_registration_bridge_v1.py
+      digest: sha256:37ebb7e7af6e571a3fb45145757ffa6316d0d57209b0d741402105a0535ebc03
+      result: 10-PASS
+      credentialClass: SYNTHETIC-ONLY
+  purpose: Join the two separately proven runtime components without changing their authority or persistence boundaries.
+  pairedGrantModel:
+    tokenGrantIDPrefix: ok141-m0b-tr1-
+    materializerGrantIDPrefix: ok141-m0b-rm1-
+    reciprocalPairedGrantIDsRequired: true
+    exactCandidateDigestShared: true
+    exactWindowShared: true
+    maximumRunsShared: 1
+    tokenReceiptBurnsBeforeTokenRequest: true
+    materializerGrantHasIndependentConsumptionReceipt: false
+    effectiveReplayBoundary: A new materializer attempt cannot obtain a new token because the paired token grant is already consumed; externally retained token bytes remain outside this claim.
+  runtimeFlow:
+    - validate paired grants and current runtime identity envelope
+    - start the exact token utility with an anonymous token pipe
+    - consume the token grant before one TokenRequest
+    - receive the token into bridge memory only
+    - add token and authoritative expiration to the exact materializer stdin envelope
+    - invoke the exact materializer with the paired materializer grant
+    - suppress all raw child stdout and stderr except parsed redacted JSON
+    - emit only grant identities receipt digest expiration object count and non-retention claims
+  credentialHandling:
+    tokenUtilityToBridge: anonymous-pipe
+    bridgeToMaterializer: subprocess-stdin
+    commandLineCredentialBytesAllowed: false
+    environmentCredentialBytesAllowed: false
+    newCredentialFilesCreated: false
+    rawChildOutputForwarded: false
+    shellExecution: false
+    tokenHashRetained: false
+    tokenReferenceDroppedAfterMaterializerInvocation: best-effort
+    cryptographicMemoryErasureClaimed: false
+  externalCredentialDependencies:
+    targetAdministratorKubeconfig:
+      required: true
+      acquisitionOwnedByBridge: false
+      newFileCreatedByBridge: false
+      identity: RUNTIME-UNBOUND
+    okSharedAdministratorKubeconfig:
+      required: true
+      acquisitionOwnedByBridge: false
+      newFileCreatedByBridge: false
+      identity: RUNTIME-REVERIFY
+  executionSemantics:
+    targetTokenRequestCount: 1
+    okSharedCreateObjectCount: 2
+    atomicAcrossPlanes: false
+    partialStatePossible: true
+    failedPostReceiptAttemptConsumesGrant: true
+    retryAllowed: false
+    rollbackOrCleanupAllowed: false
+    applicationSubmissionIncluded: false
+  offlineEvidence:
+    pairedGrantValidation: PASS
+    unpairedGrantFailsClosed: PASS
+    runtimeIdentityMismatchFailsClosed: PASS
+    tokenUtilityInvokedAsExactChild: PASS
+    tokenTraversesAnonymousPipe: PASS
+    materializerReceivesEnvelopeThroughStdin: PASS
+    syntheticTokenAbsentFromBridgeOutputAndReceipt: PASS
+    syntheticCAAbsentFromBridgeOutputAndReceipt: PASS
+    replayFailsBeforeNewTokenDelivery: PASS
+    noShellOrTempCredentialFile: PASS
+  remainingRuntimeBlockers:
+    - disposable-ok141 does not exist and therefore has no current runtime identity or NetworkReady evidence
+    - target administrator kubeconfig acquisition and redaction are not defined by this bridge
+    - exact target API audience is unobserved
+    - exact paired grants and test window do not exist
+    - target-access object creation remains separately ungranted
+    - local-path capability OpenSearch retention and real alert delivery remain unproven
+    - Application submission Platform convergence GO-1 cleanup and failure injection remain excluded
+  authorization:
+    decision: NO-GO
+    mutationAuthorized: false
+    bridgeExecutionGranted: false
+    targetCredentialUseGranted: false
+    targetAccessGranted: false
+    antiReplayReceiptGranted: false
+    tokenRequestGranted: false
+    materializerExecutionGranted: false
+    registrationGranted: false
+    applicationSubmissionGranted: false
+    retryGranted: false
+    rollbackOrCleanupGranted: false
+    evidencePublicationGranted: false
+    go1Granted: false
+    failureInjectionGranted: false
+  rules:
+    - This integration proof uses synthetic credentials and performs no cluster contact.
+    - Paired grants do not grant authority until a later exact execution candidate is explicitly authorized.
+    - The bridge is a bounded executor helper and owns no lifecycle Enablement or Platform reconciliation.
