@@ -1,0 +1,113 @@
+apiVersion: test.openkubes.io/v1alpha1
+kind: M0aSecurityBoundaryCandidate
+metadata:
+  name: ok141-m0a-v7-1-security-boundary
+  ticket: OK-141
+spec:
+  version: ok141-m0a-security-boundary/v7.1
+  state: BLOCKED-OFFLINE-CANDIDATE
+  supersedesForExecution:
+    invalidationPath: m0a-v7-execution-invalidation-v1.yaml
+    invalidationDigest: sha256:70a7585544d1d7d168280d12a929e35c5629453996738bce278c61b5b9518ab6
+    priorSecurityDigest: sha256:1f6afda15207c76d9562a8f95bc7422a7d2f23b528695c567c781abe9fdeb8a5
+    priorAcceptanceRemainsHistorical: true
+  evidence:
+    path: ../m0a-execution-runtime-v6/m0a-v6-runtime-and-rollback-evidence-v1.yaml
+    digest: sha256:42f9021e0c01d89f6f54a377a03d26fcdc02a32f538b97c5f081ed074fed5949
+    result: BASELINE-RESTORED
+  partition:
+    path: ../m0a-execution-v7/m0a-v7-authority-partition-v1.yaml
+    digest: sha256:fcc762dfe000b97445df999b0913e4128f14ab304b95c2141bdf99f8ade7ea58
+    sourceObjectCount: 19
+    administratorObjectCount: 8
+    temporaryInstallerObjectCount: 11
+    disjoint: true
+    complete: true
+  correctedAdmission:
+    path: m0a-installer-admission-v7-1.yaml
+    digest: sha256:cb25c2dd098105b3141aa15acc01a98aa9c319d753c4bfa9e6d078a409db303c
+    failurePolicy: Fail
+    principal: system:serviceaccount:openkubes-system:ok141-m0a-installer-v7-1
+    validationEntries: 1
+    branchSemantics: exact-cluster-identity OR exact-presence-guarded-namespaced-identity
+    clusterScopedIdentities: 4
+    namespacedIdentities: 7
+  authorityDomains:
+    administratorPrerequisite:
+      gate: M0A-AP1-v7.1
+      objects: exact-namespace-plus-seven-reviewed-rbac-objects
+      operation: create-only
+      maximumRuns: 1
+      admissionConstrained: false
+    temporaryCredential:
+      gate: M0A-C1-v7.1
+      maximumDurationMinutes: 10
+      rejectionBoundarySecondsAfterExpiration: 100
+    temporaryAdmission:
+      gate: M0A-A1-v7.1
+      objects: exact-policy-and-binding
+      principalScoped: true
+    temporaryInstaller:
+      gate: M0a-I-v7.1
+      objects: exact-eleven-reviewed-non-rbac-caaph-objects
+      operation: create-only
+      maximumRuns: 1
+      escalateAllowed: false
+      bindAllowed: false
+      patchUpdateDeleteListWatchAllowed: false
+  submissionBoundary:
+    reviewedObjectCount: 19
+    semanticDigest: sha256:01fc13d694da3304385a7bae0d1bd662d7c8c3d336b8a4d44da5324439d59095
+    precondition: all-19-reviewed-identities-absent
+    operations:
+      - accepted-administrator-creates-exact-eight-object-prerequisite-stream
+      - temporary-installer-creates-exact-eleven-object-stream
+    atomic: false
+    idempotent: false
+    partialStatePossible: true
+    automaticRetryAllowed: false
+    automaticRollbackAllowed: false
+  riskClaims:
+    - id: M0A-V7.1-ADMIN-CONTENT-BOUNDARY
+      statement: The administrator prerequisite stream is digest-bound but is not independently constrained by the temporary principal-scoped admission policy.
+    - id: M0A-V7.1-SPLIT-AUTHORITY-PARTIAL-STATE
+      statement: Ordered create-only operations cross two authority domains and can leave partial state after a later failure.
+    - id: M0A-V7.1-INSTALLER-CONTENT-BOUNDARY
+      statement: Type-scoped RBAC and exact-identity admission constrain the eleven installer requests but do not prove complete payload equality.
+    - id: M0A-V7.1-ADMISSION-BOOTSTRAP-BOUNDARY
+      statement: The temporary fail-closed policy and binding are administrator-created cluster-scoped objects whose correctness requires type-check and positive and negative live probes.
+    - id: M0A-V7.1-EXPIRY-PLUS-100S-OBSERVATION
+      statement: TokenRequest rejection remains authoritative only when sampled no earlier than expirationTimestamp plus 100 seconds.
+  requiredOfflineProofs:
+    - old v7 is explicitly invalidated for execution without altering its accepted digest
+    - one corrected validation expresses the OR relationship and contains exactly one namespace presence guard
+    - the unchanged 8/11 partition is disjoint complete and derived from the reviewed 19-object source
+    - installer RBAC excludes Namespace RBAC escalate and bind permissions
+  requiredLiveProofs:
+    - fresh preflight proves all 19 reviewed identities and all temporary bootstrap identities absent
+    - all four separate grants bind the same candidate digest window and single run
+    - exact administrator stream is created and inventoried before token issuance
+    - corrected admission type-check and positive and negative probes pass fail closed
+    - exactly one eleven-object installer create is attempted after immediate digest verification
+    - exact 19-object post-operation inventory is retained even after failure
+    - bootstrap cleanup and bound post-expiry token rejection are proven
+  authorization:
+    decision: NO-GO
+    mutationAuthorized: false
+    administratorPrerequisiteGranted: false
+    credentialBootstrapGranted: false
+    admissionBootstrapGranted: false
+    caaphInstallationGranted: false
+    retryGranted: false
+    rollbackGranted: false
+    evidencePublicationGranted: false
+    m0bInstallationGranted: false
+    go1Granted: false
+    targetConvergenceGranted: false
+    failureInjectionGranted: false
+  rules:
+    - This candidate performs no cluster contact and grants no mutation or publication authority.
+    - The accepted v7 risk record does not accept this corrected security digest.
+    - A new exact v7.1 risk acceptance is mandatory before an executable candidate may be prepared.
+    - All v1 through v6 grants are consumed and all v7 gates remain ungranted.
+
