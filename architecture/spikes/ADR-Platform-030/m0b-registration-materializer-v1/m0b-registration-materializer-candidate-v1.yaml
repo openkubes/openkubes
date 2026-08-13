@@ -1,0 +1,118 @@
+apiVersion: test.openkubes.io/v1alpha1
+kind: M0bRegistrationMaterializerCandidate
+metadata:
+  name: ok141-m0b-registration-materializer-v1
+  ticket: OK-141
+  baseCommit: bf5d0158bf0ee335394ebaef9e32e794a94978d4
+spec:
+  version: ok141-m0b-registration-materializer/v1
+  state: OFFLINE-PROVEN-BLOCKED-NO-GO
+  references:
+    riskAcceptance:
+      path: ../m0b-target-registration-risk-acceptance-v1/m0b-runtime-registration-risk-acceptance-v1.yaml
+      digest: sha256:e434233da0a53e18a34121b8d3e2b583f522f9c7d50290456839bff51f8e1beb
+    runtimeProtocol:
+      path: ../m0b-target-registration-v1/m0b-runtime-registration-protocol-v1.yaml
+      digest: sha256:fde90d77c4ba8b82c86c7b0d3977b4c6ca4799807431c73098d83984177a004b
+    appProject:
+      path: ../m0b-target-registration-v1/appproject-v5-candidate.yaml
+      digest: sha256:9e689020d139a5811f6784ca768cf5b7228ff3844aed31ef6196d2c4916b5f72
+    registrationTemplate:
+      path: ../m0b-target-registration-v1/cluster-registration-v5.template.yaml
+      digest: sha256:fd989de0e4d97ffe333571e82ad91e796899de0c2ed03a18bc1f695ec1e7aadf
+    executable:
+      path: materialize_registration_v1.py
+      digest: sha256:ad045fb914e6eead0448593e11a9a3e20e5162f31114bb31ec3cd65dfba0a52d
+    offlineTests:
+      path: test_materialize_registration_v1.py
+      digest: sha256:a29f80cab0d0bdba1716e8c176c464dedd3653819d2b7f66bde97a02eea6d87b
+      result: 9-PASS
+      credentialClass: SYNTHETIC-ONLY
+  scope:
+    included:
+      - validate exact runtime identity and credential envelope from stdin
+      - validate one exact external grant document and execution window
+      - construct the reviewed AppProject and project-scoped Argo cluster Secret in memory
+      - submit exactly two objects with kubectl create over stdin
+      - emit only redacted identities counts exit code and stdout/stderr digests
+    excluded:
+      - obtain a workload administrator credential
+      - create the eight target-access objects
+      - issue the TokenRequest
+      - persist or rotate the TokenRequest credential
+      - submit Applications or ApplicationSets
+      - retry rollback cleanup Platform convergence GO-1 or failure injection
+  credentialHandling:
+    runtimeInput: stdin-json-only
+    commandLineCredentialBytesAllowed: false
+    environmentCredentialBytesAllowed: false
+    localCredentialFilesCreated: false
+    shellExecution: false
+    kubectlPayloadTransport: stdin-only
+    kubectlRawOutputPublished: false
+    stdoutAndStderrEvidence: sha256-digests-only
+    credentialBytesInGitLogsOrEvidence: forbidden
+    inClusterPersistence: exact-project-scoped-argocd-secret-only
+  runtimeValidation:
+    exactName: disposable-ok141
+    exactProject: openkubes-disposable
+    exactNamespaces: ok-observability,kube-system
+    serverScheme: https
+    capiClusterUIDRequired: true
+    workloadKubeSystemUIDRequired: true
+    caFingerprintMustMatchDecodedCA: true
+    maximumTokenLifetimeSeconds: 10800
+    exactR: sha256:636fe23404ac53109f44d6346534dcf1367ae91c572d5e18bd32cd0a3128a16e
+    exactP: sha256:b0f25c639a45d895b889997f5ecc2325db45dd5d51b0684998c94d5e17bd47bf
+    exactFixtureDigest: sha256:a2ae3437645db5a83426b89d36d00693d2600e4ef20dc1aba2650dcda7f936f6
+  grantValidation:
+    decision: GO-required
+    materializerGranted: true-required
+    exactCandidateDigest: required
+    exactWindow: required
+    maximumRuns: 1
+    antiReplayPersistenceProvidedByMaterializer: false
+    antiReplayOwner: later-bounded-executor-and-evidence
+  executionSemantics:
+    operation: create-only
+    objects: [AppProject/argocd/openkubes-disposable, Secret/argocd/disposable-ok141-cluster]
+    objectCount: 2
+    atomic: false
+    idempotent: false
+    retryAllowed: false
+    rollbackOrCleanupAllowed: false
+    partialStatePossible: true
+  offlineEvidence:
+    exactProjectAndSecretConstruction: PASS
+    CAContentMatchesFingerprint: PASS
+    wrongProjectFailsClosed: PASS
+    wrongCAFailsClosed: PASS
+    excessiveTokenLifetimeFailsClosed: PASS
+    multiRunGrantFailsClosed: PASS
+    shellDisabled: PASS
+    localTempCredentialFileAbsent: PASS
+    syntheticTokenAndCAAbsentFromProcessOutput: PASS
+  unresolvedBeforeExecutionCandidate:
+    - bind the exact target-bootstrap and ok-shared administrator identities
+    - produce a runtime TokenRequest acquisition candidate and redaction proof
+    - bind anti-replay evidence outside this stateless materializer
+    - reobserve target CAPI UID workload UID endpoint CA and NetworkReady
+    - build a newly canonicalized execution and grant candidate for the exact window
+  authorization:
+    decision: NO-GO
+    mutationAuthorized: false
+    materializerExecutionGranted: false
+    targetAccessGranted: false
+    tokenRequestGranted: false
+    registrationGranted: false
+    applicationSubmissionGranted: false
+    platformConvergenceGranted: false
+    retryGranted: false
+    rollbackOrCleanupGranted: false
+    evidencePublicationGranted: false
+    go1Granted: false
+    failureInjectionGranted: false
+  rules:
+    - Offline proof of secret redaction does not authorize handling a real credential.
+    - This materializer is non-authoritative and does not create or reconcile lifecycle desired state.
+    - The accepted security risks remain bounded to DEV and do not make this model production-suitable.
