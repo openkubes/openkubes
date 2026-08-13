@@ -1,0 +1,159 @@
+{
+  "format": "ok141-execution-fixture/v5",
+  "fixtureVersion": "phase-r-v5",
+  "fixtureDigest": "sha256:7536456a762880a78a37dcba76a5f3f0628140bd37b55d5fd62273c64e4cc3eb",
+  "fixtureSchema": {
+    "path": "schema/execution-fixture-v5.schema.json",
+    "digest": "sha256:64f168934ffcb290c4ee140ddb35011fd8eb608a8437ef91cabf792f5ed54612"
+  },
+  "authorizationState": "NO-GO",
+  "supersedes": {
+    "fixtureVersion": "phase-r-v4",
+    "fixtureDigest": "sha256:a2ae3437645db5a83426b89d36d00693d2600e4ef20dc1aba2650dcda7f936f6",
+    "disposition": "valid-historical-superseded-not-mutated",
+    "reason": "GO1-L runtime evidence proved that Phase-R v4 omitted the external CAPK provider-authority reference, causing CAPK to target the management cluster instead of ok-infra."
+  },
+  "contractIdentity": {
+    "namespace": "disposable-ok141",
+    "name": "disposable-ok141"
+  },
+  "contract": {
+    "path": "fixtures/contracts-v5/base.yaml",
+    "schemaPath": "schema/contract-v3.schema.json",
+    "canonicalizationProfile": "openkubes-contract-c14n/v1",
+    "rawArtifactDigest": "sha256:33aebd9f88a694444939f092c2856b695944d727603ff9f8c994e12699430116",
+    "schemaDigest": "sha256:5cb4e07136b2484d8082d4c7aebee24a50a859f69ccae61ff1b34060c3a12d35",
+    "R": "sha256:166504ae61fd558d391daedde50986cbc7a28f5f4e9d57f4acbd0433b448aa0f"
+  },
+  "clusterSemantics": {
+    "kubernetesVersion": "v1.36.2",
+    "infrastructure": {
+      "provider": "kubevirt",
+      "profile": {
+        "name": "ok-infra",
+        "identity": "sha256:60fc84a67c33a41661c68ffadd646a13fd5ffd09f2a3d536f0eac1b909befc89",
+        "nodeSelector": "ok-infra",
+        "cloneTargetStorageClass": "ok-storage-block",
+        "replicaCount": 2,
+        "snapshotClass": "ok-storage-block-snapshot"
+      },
+      "providerAccess": {
+        "mode": "external-cluster-secret",
+        "managementPlane": "ok-mgmt",
+        "providerPlane": "ok-infra",
+        "secretRef": {
+          "apiVersion": "v1",
+          "kind": "Secret",
+          "name": "external-infra-kubeconfig-disposable-ok141",
+          "namespace": "disposable-ok141"
+        },
+        "targetNamespace": "disposable-ok141"
+      },
+      "controlPlaneEndpoint": {
+        "mode": "provider-allocated",
+        "serviceType": "LoadBalancer",
+        "addressFamily": "IPv4",
+        "allocationAuthority": "CAPK+MetalLB"
+      }
+    },
+    "operatingSystem": {
+      "distribution": "ok-linux",
+      "profile": "kubevirt",
+      "version": "v1.9.6",
+      "architecture": "amd64",
+      "schematicID": "ce4c980550dd2ab1b17bbf2b08801c7eb59418eafe8f279833297925d67c7515",
+      "imageDigest": "sha256:461d72d30750b9e18cf0656239e0274764b1e391bde5bbc41084a887b8a55ed5",
+      "identity": "sha256:7f5dd4276432f522727a50e604538b6befc0cac51ee2b90d4b1ccbfcac774a2d",
+      "goldenImage": {
+        "namespace": "ok-images",
+        "claim": "talos-v1-9-6-ce4c980550dd-461d72d30750-amd64",
+        "storageClass": "ok-storage-block"
+      }
+    },
+    "topology": {
+      "controlPlane": {"replicas": 1, "machine": {"cores": 2, "memory": "4Gi", "disk": "20Gi"}},
+      "workers": {"replicas": 1, "machine": {"cores": 2, "memory": "4Gi", "disk": "15Gi"}}
+    },
+    "connectivity": {
+      "profile": "datacenter-isolated-v1",
+      "podCIDR": "10.40.0.0/16",
+      "serviceCIDR": "10.100.0.0/20",
+      "forbiddenCIDRs": ["192.168.100.0/24"]
+    }
+  },
+  "projection": {
+    "format": "ok141-contract-to-capi-projection/v2",
+    "manifestPath": "projections/phase-r-v5/projection-manifest.json",
+    "manifestDigest": "sha256:37b65b7ff1f7f46e5809000d8a469f423943c6b7f4f043a7bc6123d033ee765b",
+    "authorityMapPath": "projections/phase-r-v5/authority-map.json",
+    "managementObjectsPath": "projections/phase-r-v5/ok-mgmt-lifecycle.yaml",
+    "infrastructurePrerequisitesPath": "projections/phase-r-v5/ok-infra-prerequisites.yaml",
+    "objectSets": {
+      "rendererSource": {"count": 10, "digest": "sha256:3710f04235df6466febf313b6f1202fbc50b075db71e30b14299dac2b5d9d97a"},
+      "okMgmtLifecycle": {"count": 8, "digest": "sha256:585c5c4f6cfdeb8915954b193874c4cb23714e1214034b52886150101038ee6d"},
+      "okInfraPrerequisites": {"count": 3, "digest": "sha256:48280ac428d1f0c18bdcdbae7a8e12ab966ce0f57a0381f72ab51b4cb68e9e85"}
+    }
+  },
+  "enablement": {
+    "profilePath": "profiles/enablement/cilium-fixture-v2/profile.json",
+    "valuesPath": "profiles/enablement/cilium-fixture-v2/values.yaml",
+    "E": "sha256:2a849d69e9c64344e907c1bce3bb1abf3d8f77217377081a5be055d62c213300",
+    "convergenceOwnerCandidate": "cluster-api-addon-provider-helm",
+    "candidateStatus": "configurable-not-proven"
+  },
+  "platform": {
+    "profilePath": "profiles/platform/minimal-observability-v4/profile.json",
+    "applicationsPath": "profiles/platform/minimal-observability-v4/applications.yaml",
+    "providerValuesPath": "profiles/platform/minimal-observability-v4/provider-values.yaml",
+    "profile": "minimal-observability-v4",
+    "P": "sha256:b0f25c639a45d895b889997f5ecc2325db45dd5d51b0684998c94d5e17bd47bf",
+    "applicationSetDigest": "sha256:2502e8ec4310004d26bb7ec89cf5484d4cd301ff4385b888a22c724d3b7c2921",
+    "providerValuesDigest": "sha256:7b134ad97acb9f026fe94ff40a90dd811267c1ffe31183e52dc877a012684d1d",
+    "sourceCommit": "b5f7be6a7ddab798f31f32197fcbb9e86a9798b6",
+    "immutableTargetIdentityScheme": "capi-cluster-uid/v1",
+    "convergenceOwnerCandidate": "argo-cd",
+    "candidateStatus": "configurable-not-proven",
+    "registrationAndRBAC": "outside-P-blocked-for-M0b"
+  },
+  "conditions": {
+    "profilePath": "profiles/conditions/disposable-ready-v1.json",
+    "profileDigest": "sha256:69bef08a6ff04b940844439d81554828dea83cde84450a6602c508834271d9a3"
+  },
+  "tools": {
+    "canonicalizerVersion": "openkubes-contract-c14n/v1",
+    "evaluatorVersion": "ok141-evaluator/v1",
+    "projectionVersion": "ok141-contract-to-capi-projection/v2",
+    "phaseRV5ToolDigest": "sha256:5423124e471ad0f963b78b1c34c9394a811cc6101e012ca92163c105bcab9823"
+  },
+  "evidence": {
+    "schemaId": "ok141-evidence/v1",
+    "schemaPath": "schema/evidence-manifest-v1.schema.json",
+    "schemaDigest": "sha256:97442f98e85bb2d5975ba028209331a4b017cb8492fe0f791fa29da6ee721ad1",
+    "finalBundleChecksumRequired": true
+  },
+  "positiveAssertions": [
+    {"id": "PA-R", "claim": "The authority-routing-amended Cluster contract reproduces R-four-prime."},
+    {"id": "PA-PROJECTION", "claim": "Every projected lifecycle and prerequisite object carries R-four-prime."},
+    {"id": "PA-PROVIDER-AUTHORITY", "claim": "The KubevirtCluster explicitly references the per-cluster external ok-infra credential identity while credential material remains outside the fixture."},
+    {"id": "PA-E", "claim": "The historical target-bound Enablement profile still reproduces E-prime."},
+    {"id": "PA-P", "claim": "The complete Platform profile and authoritative vendored source closure still reproduce P-triple-prime."},
+    {"id": "PA-BOUNDARY", "claim": "Provider credential materialization, registration credentials and AppProject RBAC remain separately gated prerequisites."}
+  ],
+  "negativeControls": [
+    {"id": "NC-R-WRONG", "expectedReady": "Unknown"},
+    {"id": "NC-E-WRONG", "expectedReady": "Unknown"},
+    {"id": "NC-P-WRONG", "expectedReady": "Unknown"},
+    {"id": "NC-STALE-GENERATION", "expectedReady": "Unknown"},
+    {"id": "NC-MISSING-SOURCE", "expectedReady": "Unknown"},
+    {"id": "NC-CONFLICTING-AUTHORITY", "expectedReady": "Unknown"},
+    {"id": "NC-HISTORICAL-SUCCESS", "expectedReady": "False"},
+    {"id": "NC-TAMPERED-EVIDENCE", "expectedReady": "NotEvaluated"}
+  ],
+  "expectedEvidence": {
+    "providerAccess": ["exact Secret reference on KubevirtCluster", "separately gated credential materialization receipt", "provider-plane identity ok-infra", "no credential bytes in public fixture or evidence"],
+    "platform": ["exact three-Application membership", "P-triple-prime", "authoritative package closure", "current applied commit", "current Synced and Healthy", "current capability-check evidence"],
+    "target": ["registration Secret UID", "current CAPI Cluster UID", "live kube-system Namespace UID", "workload API CA fingerprint"],
+    "securityPrerequisites": ["redacted registration proof", "least-privilege AppProject/RBAC inventory", "no credential material retained"],
+    "bundle": ["artifact hashes", "correlation manifest", "final bundle checksum"]
+  }
+}

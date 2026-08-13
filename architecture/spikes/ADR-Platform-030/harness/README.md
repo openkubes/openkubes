@@ -102,3 +102,17 @@ Phase-R v4 binds the package closure committed by `ok-observability` source
 amendment `b5f7be6`. It supersedes v3 only for future protocol planning,
 preserves v1-v3 as historical evidence, performs no submission, and remains
 `NO-GO`.
+
+Verify the additive external-provider authority amendment and Phase-R v5 fixture:
+
+```bash
+python3 architecture/spikes/ADR-Platform-030/harness/ok141_phase_r_v5.py \
+  validate \
+  --root architecture/spikes/ADR-Platform-030/harness \
+  --input architecture/spikes/ADR-Platform-030/harness/fixtures/execution/phase-r-v5.json
+```
+
+Phase-R v5 binds the exact external `ok-infra` provider identity through
+`KubevirtCluster.spec.infraClusterSecretRef`, but deliberately excludes the Secret
+and all credential bytes. Credential materialization remains separately gated.
+The fixture performs no cluster contact or submission and remains `NO-GO`.
