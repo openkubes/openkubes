@@ -1,0 +1,78 @@
+apiVersion: observation.openkubes.io/v1alpha1
+kind: GO1LRecoverySnapshotCandidate
+metadata:
+  name: ok141-go1-l-recovery-snapshot-v1
+  ticket: OK-141
+spec:
+  version: ok141-go1-l-recovery-snapshot/v1
+  state: READY-FOR-EXPLICIT-READ-ONLY-GRANT
+  protocolDigest: sha256:0be2957f7c417e9c7c25f2595b5168a95f11e72c76508d83f774719045df8bd9
+  tool:
+    executorPath: observe_recovery_snapshot_v1.py
+    executorDigest: sha256:2389447b9f6ab677a61b67b6507e892da2b2f5a87b58b577d4b85c679ea1ef93
+    kubectlPath: /private/tmp/ok141-kubectl-v1.34.1-darwin-amd64
+    kubectlDigest: sha256:bb211f2b31f2b3bc60562b44cc1e3b712a16a98e9072968ba255beb04cefcfdf
+    shellAllowed: false
+    discoveryAllowed: false
+    watchAllowed: false
+  planes:
+    ok-mgmt:
+      kubeconfigPath: /Users/arash/.kube/ok-mgmt.yaml
+      queries:
+        - {id: mgmt-namespace, mode: exact, rawURI: /api/v1/namespaces/disposable-ok141}
+        - {id: cluster, mode: exact, rawURI: /apis/cluster.x-k8s.io/v1beta2/namespaces/disposable-ok141/clusters/disposable-ok141}
+        - {id: kubevirt-cluster, mode: exact, rawURI: /apis/infrastructure.cluster.x-k8s.io/v1alpha1/namespaces/disposable-ok141/kubevirtclusters/disposable-ok141}
+        - {id: talos-control-plane, mode: exact, rawURI: /apis/controlplane.cluster.x-k8s.io/v1alpha3/namespaces/disposable-ok141/taloscontrolplanes/disposable-ok141-cp}
+        - {id: talos-worker-template, mode: exact, rawURI: /apis/bootstrap.cluster.x-k8s.io/v1alpha3/namespaces/disposable-ok141/talosconfigtemplates/disposable-ok141-workers-v1-9-6}
+        - {id: machine-deployment, mode: exact, rawURI: /apis/cluster.x-k8s.io/v1beta2/namespaces/disposable-ok141/machinedeployments/disposable-ok141-workers}
+        - {id: control-plane-machine-template, mode: exact, rawURI: /apis/infrastructure.cluster.x-k8s.io/v1alpha1/namespaces/disposable-ok141/kubevirtmachinetemplates/disposable-ok141-cp-7f5dd4276432}
+        - {id: worker-machine-template, mode: exact, rawURI: /apis/infrastructure.cluster.x-k8s.io/v1alpha1/namespaces/disposable-ok141/kubevirtmachinetemplates/disposable-ok141-workers-7f5dd4276432}
+        - {id: misrouted-load-balancer, mode: exact, rawURI: /api/v1/namespaces/disposable-ok141/services/disposable-ok141-lb}
+        - {id: machines, mode: collection, rawURI: /apis/cluster.x-k8s.io/v1beta2/namespaces/disposable-ok141/machines, labelSelector: cluster.x-k8s.io/cluster-name=disposable-ok141}
+        - {id: machine-sets, mode: collection, rawURI: /apis/cluster.x-k8s.io/v1beta2/namespaces/disposable-ok141/machinesets, labelSelector: cluster.x-k8s.io/cluster-name=disposable-ok141}
+        - {id: kubevirt-machines, mode: collection, rawURI: /apis/infrastructure.cluster.x-k8s.io/v1alpha1/namespaces/disposable-ok141/kubevirtmachines, labelSelector: cluster.x-k8s.io/cluster-name=disposable-ok141}
+        - {id: local-provider-vms, mode: collection, rawURI: /apis/kubevirt.io/v1/namespaces/disposable-ok141/virtualmachines, labelSelector: cluster.x-k8s.io/cluster-name=disposable-ok141}
+        - {id: local-provider-vmis, mode: collection, rawURI: /apis/kubevirt.io/v1/namespaces/disposable-ok141/virtualmachineinstances, labelSelector: cluster.x-k8s.io/cluster-name=disposable-ok141}
+    ok-infra:
+      kubeconfigPath: /Users/arash/.kube/ok-infra.yaml
+      queries:
+        - {id: infra-namespace, mode: exact, rawURI: /api/v1/namespaces/disposable-ok141}
+        - {id: golden-image-cloner-role, mode: exact, rawURI: /apis/rbac.authorization.k8s.io/v1/namespaces/ok-images/roles/disposable-ok141-talos-golden-image-cloner}
+        - {id: golden-image-cloner-binding, mode: exact, rawURI: /apis/rbac.authorization.k8s.io/v1/namespaces/ok-images/rolebindings/disposable-ok141-talos-golden-image-cloner}
+        - {id: intended-provider-load-balancer, mode: exact, rawURI: /api/v1/namespaces/disposable-ok141/services/disposable-ok141-lb}
+        - {id: provider-vms, mode: collection, rawURI: /apis/kubevirt.io/v1/namespaces/disposable-ok141/virtualmachines, labelSelector: cluster.x-k8s.io/cluster-name=disposable-ok141}
+        - {id: provider-vmis, mode: collection, rawURI: /apis/kubevirt.io/v1/namespaces/disposable-ok141/virtualmachineinstances, labelSelector: cluster.x-k8s.io/cluster-name=disposable-ok141}
+  evidence:
+    outputPath: /private/tmp/ok141-go1-l-recovery-snapshot-v1-evidence.json
+    outputMustBeAbsent: true
+    fileMode: "0600"
+    rawAPIResponsesRetained: false
+    retainedFields:
+      - apiVersion
+      - kind
+      - metadata.name
+      - metadata.namespace
+      - metadata.uid
+      - metadata.resourceVersion
+      - metadata.generation
+      - metadata.deletionTimestamp
+      - metadata.finalizers
+      - metadata.ownerReferences
+      - metadata.annotations.openkubes.io/intent-revision
+    credentialsRetained: false
+    publicationAuthorized: false
+  authorization:
+    readOnlyGranted: false
+    credentialUseGranted: false
+    mutationAuthorized: false
+    cleanupAuthorized: false
+    retryAuthorized: false
+    secretReadAuthorized: false
+    go1LAuthorized: false
+    go1Authorized: false
+    failureInjectionAuthorized: false
+  exclusions:
+    - Secrets ConfigMaps Pods logs TokenRequests discovery watch and unbounded collections
+    - credential content output retention copying modification or rotation
+    - create update patch apply delete retry rollback cleanup or finalizer mutation
+    - provider credential materialization recreation HCP HRP Cilium Platform GO1-L GO-1 or failure injection

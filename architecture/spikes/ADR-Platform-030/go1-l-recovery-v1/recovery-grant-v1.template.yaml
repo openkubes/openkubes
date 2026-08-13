@@ -1,0 +1,23 @@
+apiVersion: authorization.openkubes.io/v1alpha1
+kind: GO1LRecoveryGrant
+metadata:
+  name: ok141-go1-l-recovery-grant-v1
+  ticket: OK-141
+spec:
+  state: TEMPLATE-NOT-GRANTED
+  protocolDigest: REPLACE_WITH_PROTOCOL_DIGEST
+  privateRuntimeBindingDigest: null
+  grantID: null
+  notBefore: null
+  notAfter: null
+  maximumRuns: 0
+  authorizedStages: []
+  destructiveCleanupAuthorized: false
+  retryAuthorized: false
+  forceDeleteAuthorized: false
+  finalizerRemovalAuthorized: false
+  secretMaterializationAuthorized: false
+  recreateAuthorized: false
+  go1LAuthorized: false
+  go1Authorized: false
+  failureInjectionAuthorized: false
