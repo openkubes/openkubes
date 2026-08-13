@@ -1,0 +1,107 @@
+apiVersion: test.openkubes.io/v1alpha1
+kind: CombinedGateCandidate
+metadata: {name: ok141-m0a-ap1-c1-a1-i-v7-1, ticket: OK-141}
+spec:
+  version: ok141-m0a-combined-candidate/v7.1
+  state: READY-FOR-FOUR-SEPARATE-EXPLICIT-GRANTS
+  baseCommit: 8218e86
+  references:
+    baseCandidate: {path: ../m0a-execution-v6/m0a-execution-candidate-v6.yaml, digest: sha256:27ce10b948b281ea54f7ba52399d0fd5e761f769f39a379b9b01ded576729e68}
+    v6RuntimeEvidence: {path: ../m0a-execution-runtime-v6/m0a-v6-runtime-and-rollback-evidence-v1.yaml, digest: sha256:42f9021e0c01d89f6f54a377a03d26fcdc02a32f538b97c5f081ed074fed5949}
+    securityBoundary: {path: m0a-v7-1-security-boundary.yaml, digest: sha256:41f3feebee02d625759bbaeba06dc8a0a2d10ef4345263e169fee01f02ec26d2}
+    riskAcceptance: {path: ../m0a-v7-1-risk-acceptance/m0a-v7-1-risk-acceptance-v1.yaml, digest: sha256:636a7186a783eb1c0c01a711536f61befed5315d68f5f413af8f5fdfbd925794}
+    partition: {path: ../m0a-execution-v7/m0a-v7-authority-partition-v1.yaml, digest: sha256:fcc762dfe000b97445df999b0913e4128f14ab304b95c2141bdf99f8ade7ea58}
+    credentialManifest: {path: m0a-installer-rbac-v7-1.yaml, digest: sha256:cdc81b5dda881310473d18a703a4f4a2bf12d91fc9068d1e84dbcf73c3489d4f}
+    admissionManifest: {path: m0a-installer-admission-v7-1.yaml, digest: sha256:cb25c2dd098105b3141aa15acc01a98aa9c319d753c4bfa9e6d078a409db303c}
+    payloadDerivation: {path: m0a_v7_1_payloads.py, digest: sha256:d11dd1a41c569c03782d197763329ea8c85752cb89ffb7b8a0ef4b4dd5fb8862}
+    executor: {path: controlled_m0a_execution_v7_1.py, digest: sha256:03274c66a3d03c1daf6769f50f03367cd581050e56e8b595fb4af07cb4004f84}
+  target:
+    plane: ok-mgmt
+    apiServer: https://192.168.100.200:6443
+    apiAudience: https://192.168.100.200:6443
+    kubeSystemNamespaceUID: c3b45aab-d2a1-4e64-8f12-77b99186ad4a
+    kubernetesVersion: v1.34.1
+    adminKubeconfigPath: /Users/arash/.kube/ok-mgmt.yaml
+  submission:
+    sourceObjectCount: 19
+    sourceSemanticDigest: sha256:01fc13d694da3304385a7bae0d1bd662d7c8c3d336b8a4d44da5324439d59095
+    administratorObjectCount: 8
+    administratorSemanticDigest: sha256:bf08ade19f9842e8854dc16c5b24167cd1c2eca08c2c0e5847790bb545185af3
+    installerObjectCount: 11
+    installerSemanticDigest: sha256:050447266e12d24e382fa837fab3ca82dd722dd82ce185aaad6e2e6f1a0136aa
+    derivation: single-reviewed-source-plus-digest-bound-partition
+    operations: [create-exact-admin-8, create-exact-installer-11]
+    maximumRuns: 1
+    atomic: false
+    idempotent: false
+    partialStatePossible: true
+    automaticRetryAllowed: false
+    automaticRollbackAllowed: false
+  credential:
+    gate: M0A-C1-v7.1
+    serviceAccount: openkubes-system/ok141-m0a-installer-v7-1
+    manifestObjects: 5
+    manifestDigest: sha256:cdc81b5dda881310473d18a703a4f4a2bf12d91fc9068d1e84dbcf73c3489d4f
+    maximumDurationMinutes: 10
+    rejectionDeadlineOffsetSeconds: 100
+    namespacedAuthority: Role/caaph-system
+    clusterAuthority: ClusterRole/exact-non-rbac-types
+    bindAllowed: false
+    escalateAllowed: false
+  admission:
+    gate: M0A-A1-v7.1
+    policy: ok141-m0a-installer-v7-1.openkubes.io
+    allowedPrincipal: system:serviceaccount:openkubes-system:ok141-m0a-installer-v7-1
+    validationEntries: 1
+    exactIdentityBranches: 2
+    namespacePresenceGuarded: true
+    allowedObjectIdentities: 11
+    payloadEqualityClaimed: false
+  administratorPrerequisite:
+    gate: M0A-AP1-v7.1
+    objectCount: 8
+    includesNamespace: true
+    includesAllReviewedRbac: true
+    admissionConstrained: false
+  installation:
+    gate: M0a-I-v7.1
+    objectCount: 11
+    includesNamespace: false
+    includesRbac: false
+    readinessTimeoutSeconds: 600
+  diagnostic:
+    stdoutMaximumBytes: 4096
+    stderrMaximumBytes: 4096
+    pathsRedacted: true
+    tokensRedacted: true
+    payloadRetained: false
+  executionWindow:
+    maximumDurationMinutes: 180
+    maximumClockSkewSeconds: 5
+    maximumRuns: 1
+    grantsRequired: [M0A-AP1-v7.1, M0A-C1-v7.1, M0A-A1-v7.1, M0a-I-v7.1]
+  evidence:
+    rawOutputDirectory: /private/tmp
+    fileMode: "0600"
+    rawOutputMustBeGrantBoundAndAbsent: true
+    publicationAuthorized: false
+  authorization:
+    decision: NO-GO
+    mutationAuthorized: false
+    administratorPrerequisiteGrantRequired: true
+    credentialGrantRequired: true
+    admissionBootstrapGrantRequired: true
+    installationGrantRequired: true
+    retryGranted: false
+    rollbackGranted: false
+    m0bInstallationGranted: false
+    go1Granted: false
+    evidencePublicationGranted: false
+    targetConvergenceGranted: false
+    failureInjectionGranted: false
+  rules:
+    - This candidate and verify command perform no cluster contact or mutation.
+    - Execution requires four new distinct explicit grants bound to this exact digest, one UTC window, and one absent raw evidence path.
+    - Any run consumes all four grants regardless of outcome.
+    - Partial state is retained for review; retry and rollback require new separate authority.
+    - HCP HRP Cilium convergence M0b-I GO-1 target convergence publication and failure injection remain excluded.
