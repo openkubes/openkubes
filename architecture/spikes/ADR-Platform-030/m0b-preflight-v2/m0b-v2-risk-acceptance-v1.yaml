@@ -1,0 +1,41 @@
+apiVersion: governance.openkubes.io/v1alpha1
+kind: RiskAcceptance
+metadata:
+  name: ok141-m0b-v2-risk-acceptance-v1
+  ticket: OK-141
+spec:
+  version: ok141-m0b-risk-acceptance/v2
+  state: ACCEPTED-NON-AUTHORIZING
+  recordedAt: "2026-08-13T11:19:19Z"
+  candidate:
+    path: m0b-v2-risk-acceptance-candidate.yaml
+    digest: sha256:fc9afe142830be902196dfcf961fa7a0b1084bbe37c984a6cf2da5c5f8fbc273
+  securityCandidate:
+    path: m0b-v2-security-candidate.yaml
+    digest: sha256:4191096d70a0bb7d0ca60598cd4303ea7bf65be7d976d9d56ce53d706804d353
+  decision:
+    accepted: true
+    acceptedBy: github:arashkaffamanesh
+    acceptedAt: "2026-08-13T11:19:19Z"
+    exactStatement: >-
+      Ich akzeptiere für OK-141/M0b-v2 die dokumentierte direkte Create-only-Installation
+      mit dem lang lebenden system:masters-Administrator-Zertifikat, die nicht-atomare
+      Zwei-Phasen-Ausführung mit möglichem partiellem Argo-Zustand ohne automatischen
+      Retry oder Rollback, die sieben Secret-Read- und zwei Secret-Write-Findings im
+      argocd-Namespace, die fehlenden vollständigen Ressourcen-Requests des
+      Upstream-Profils sowie die unmittelbar vor Ausführung erneut erforderliche
+      Remote-Source-Materialisierung, gebunden an Security-Kandidat
+      sha256:4191096d70a0bb7d0ca60598cd4303ea7bf65be7d976d9d56ce53d706804d353.
+      Diese Akzeptanz erteilt keine Freigabe für die Argo-Installation, Rollback,
+      Target-Credentials oder -Registrierung, AppProject/Application/ApplicationSet,
+      Platform-Konvergenz, GO-1 oder Failure Injection.
+  effects:
+    permitsInstallationCandidatePreparation: true
+    grantsMutation: false
+    grantsM0bInstallation: false
+    grantsRollback: false
+    grantsTargetRegistration: false
+    grantsTargetConvergence: false
+    grantsGO1: false
+    grantsFailureInjection: false
+  rule: This immutable record accepts only the named v2 risks and cannot be reused as an installation grant.
