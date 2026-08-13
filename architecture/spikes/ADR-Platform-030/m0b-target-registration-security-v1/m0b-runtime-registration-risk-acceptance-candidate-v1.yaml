@@ -1,0 +1,44 @@
+apiVersion: test.openkubes.io/v1alpha1
+kind: RiskAcceptanceCandidate
+metadata:
+  name: ok141-m0b-runtime-registration-risk-acceptance-v1
+  ticket: OK-141
+spec:
+  version: ok141-m0b-runtime-registration-risk-acceptance/v1
+  state: AWAITING-EXPLICIT-ACCEPTANCE
+  authority: github:arashkaffamanesh
+  references:
+    securityBoundary:
+      path: m0b-runtime-registration-security-v1.yaml
+      digest: sha256:3def094077184842e0d1f73292043b8d882e9ad7ba73d09e086ca8f291c1ff81
+    runtimeProtocol:
+      path: ../m0b-target-registration-v1/m0b-runtime-registration-protocol-v1.yaml
+      digest: sha256:fde90d77c4ba8b82c86c7b0d3977b4c6ca4799807431c73098d83984177a004b
+  risks:
+    - M0B-R1-TARGET-BOOTSTRAP-ADMIN-CONTENT
+    - M0B-R1-ARGO-CREATE-CONTENT
+    - M0B-R1-CLUSTER-SCOPED-PLATFORM-AUTHORITY
+    - M0B-R1-PRIVILEGED-POD-SECURITY
+    - M0B-R1-STATIC-TOKENREQUEST
+    - M0B-R1-CROSS-PLANE-PARTIAL-STATE
+    - M0B-R1-TARGET-COMPATIBILITY
+    - M0B-R1-MATERIALIZER-SECRET-EXPOSURE
+  acceptanceText: Ich akzeptiere für OK-141/M0b-R-v1 die dokumentierte Administrator- und Create-Content-Grenze des achtteiligen Target-Access-Sets, die clusterweite Argo-Autorität für CRDs, Webhooks und Cluster-RBAC, das privilegierte Pod-Security-Profil, den statischen maximal dreistündigen TokenRequest ohne native Rotation, möglichen nicht-atomaren Partial-State ohne Retry, Rollback oder Cleanup, das unbewiesene Kompatibilitätsrisiko von Argo CD v3.4.2 mit Kubernetes v1.36.2 sowie die Secret-Exposure-Grenze des noch zu prüfenden Runtime-Materializers, gebunden an Security-Kandidat sha256:3def094077184842e0d1f73292043b8d882e9ad7ba73d09e086ca8f291c1ff81. Diese Akzeptanz erteilt keine Freigabe für Target-Access, TokenRequest, Credentials, Target-Registrierung, AppProject, Applications, Platform-Konvergenz, Retry, Rollback, Cleanup, Evidence-Publication, GO-1 oder Failure Injection.
+  acceptance:
+    accepted: false
+    acceptedBy: null
+    acceptedAt: null
+    acceptedCandidateDigest: null
+  authorization:
+    decision: NO-GO
+    mutationAuthorized: false
+    targetAccessGranted: false
+    tokenRequestGranted: false
+    registrationGranted: false
+    applicationSubmissionGranted: false
+    platformConvergenceGranted: false
+    retryGranted: false
+    rollbackOrCleanupGranted: false
+    evidencePublicationGranted: false
+    go1Granted: false
+    failureInjectionGranted: false
