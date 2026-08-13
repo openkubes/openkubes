@@ -1,0 +1,38 @@
+apiVersion: governance.openkubes.io/v1alpha1
+kind: RiskAcceptanceCandidate
+metadata:
+  name: ok141-m0b-v2-risk-acceptance-candidate
+  ticket: OK-141
+spec:
+  version: ok141-m0b-risk-acceptance/v2
+  state: AWAITING-EXPLICIT-DECISION-NO-GO
+  securityCandidate:
+    path: m0b-v2-security-candidate.yaml
+    digest: sha256:4191096d70a0bb7d0ca60598cd4303ea7bf65be7d976d9d56ce53d706804d353
+  authority: github:arashkaffamanesh
+  acceptanceText: >-
+    Ich akzeptiere für OK-141/M0b-v2 die dokumentierte direkte Create-only-Installation
+    mit dem lang lebenden system:masters-Administrator-Zertifikat, die nicht-atomare
+    Zwei-Phasen-Ausführung mit möglichem partiellem Argo-Zustand ohne automatischen
+    Retry oder Rollback, die sieben Secret-Read- und zwei Secret-Write-Findings im
+    argocd-Namespace, die fehlenden vollständigen Ressourcen-Requests des
+    Upstream-Profils sowie die unmittelbar vor Ausführung erneut erforderliche
+    Remote-Source-Materialisierung, gebunden an Security-Kandidat
+    sha256:4191096d70a0bb7d0ca60598cd4303ea7bf65be7d976d9d56ce53d706804d353.
+    Diese Akzeptanz erteilt keine Freigabe für die Argo-Installation, Rollback,
+    Target-Credentials oder -Registrierung, AppProject/Application/ApplicationSet,
+    Platform-Konvergenz, GO-1 oder Failure Injection.
+  decision:
+    accepted: false
+    acceptedBy: null
+    acceptedAt: null
+  effects:
+    permitsInstallationCandidatePreparation: true
+    grantsMutation: false
+    grantsM0bInstallation: false
+    grantsRollback: false
+    grantsTargetRegistration: false
+    grantsTargetConvergence: false
+    grantsGO1: false
+    grantsFailureInjection: false
+  rule: Only the exact acceptance text or an unambiguous statement citing the exact security-candidate digest can change this decision in a new immutable record.

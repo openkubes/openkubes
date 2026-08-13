@@ -1,0 +1,161 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: M0bLivePreflight
+metadata:
+  name: ok141-m0b-v2-live-preflight-v1
+  ticket: OK-141
+spec:
+  version: ok141-m0b-live-preflight/v2
+  state: READ-ONLY-COMPLETE-MUTATION-NO-GO
+  baseCommit: ee229500a5f9622ff48fd330572f30ee7de035d8
+  observedAt: "2026-08-13T10:51:30.449098Z"
+  references:
+    authorityInputs:
+      path: ../authority-decision-preflight/authority-inputs-v1.yaml
+      digest: sha256:4b618081517eb96ef1896b40a7f9f5556054ab2d029fbbf706e8630bb6b42c5c
+    talosBaseline:
+      path: ../ok-shared-talos-baseline-amendment/ok-shared-talos-baseline-v1.yaml
+      digest: sha256:b71b0aada174cc4dc338dfab927bd9e4e7510c38324c8a735e9084f7e72cd345
+    evidenceObserver:
+      path: ../ghcr-observer-runtime-evidence/observer-runtime-evidence-v1.yaml
+      digest: sha256:b14b83e9358a98f0991610acfa7a75228d82b68b30bb7337a7e32f7d74f66888
+    historicalInstallationProtocol:
+      path: ../m0b-installation/m0b-installation-v1.yaml
+      digest: sha256:79feba3dc3b58d5065c47de894ca3d926fd0cdee134c7252f7df3c0f644d40a7
+      state: SUPERSEDED-NOT-EXECUTABLE
+    sourceLock:
+      path: argocd-installation-source-lock-v2.yaml
+      digest: sha256:f715fed2f1e5a7c80aa5838b1f9ac243e2a2de8cec711e324f223dde8298f6e9
+  acceptedBoundaries:
+    authorityPrincipal: github:arashkaffamanesh
+    governance: DEV-SOLO-NO-INDEPENDENT-HUMAN-SECURITY-REVIEW
+    placement: ok-shared
+    externalWorkloadClustersOnly: true
+    manageLocalOkSharedResources: false
+    selfManagementAllowed: false
+    productionUseAllowed: false
+    productionHAClaimAllowed: false
+    disasterRecoveryClaimAllowed: false
+    stateLossModel: DEV-REBUILD-NOT-RESTORE
+  liveTarget:
+    plane: ok-shared
+    kubeconfigContext: ok-shared-admin@ok-shared
+    apiServer: https://192.168.100.206:6443
+    kubeSystemNamespaceUID: 46b9ecf7-2e7a-48b1-a6eb-7d11df396efb
+    kubeSystemCreatedAt: "2026-07-22T12:57:46Z"
+    kubernetesVersion: v1.34.1
+    kubernetesCommit: 93248f9ae092f571eb870b7664c534bfc7d00f03
+    platform: linux/amd64
+    nodeShape:
+      controlPlane: 1
+      workers: 3
+      ready: 4
+      expected: 4
+    nodes:
+      - {name: ok-shared-cp-z4gxn, uid: a05eb57a-fba8-4922-807e-18d950531c8b, role: control-plane, ready: true}
+      - {name: ok-shared-workers-tkrlw-9c2dx, uid: b8f7f4b8-ab02-4673-8804-26d408470c30, role: worker, ready: true}
+      - {name: ok-shared-workers-tkrlw-9gs5z, uid: 4ff8e1a0-6355-483f-bed5-5790f8084cc8, role: worker, ready: true}
+      - {name: ok-shared-workers-tkrlw-ndzch, uid: a7d9c33c-3571-48db-98e4-a36e578276ba, role: worker, ready: true}
+    podObservation:
+      includedNonTerminalScheduledPods: 36
+      unscheduledPods: 0
+      allObservedWorkloadsReady: true
+      utilizationMetricsObserved: false
+    existingArgo:
+      namespacePresent: false
+      argoprojCRDs: 0
+      controllerWorkloads: 0
+      conflictingWritersObserved: false
+    hostPrerequisites:
+      ciliumReady: 4/4
+      localPathStoragePresent: true
+      registryTrustSourceBound: true
+      registryTrustLiveReadbackRequiredBeforeGrant: true
+    observationDigests:
+      sourceProjection: sha256:957de696ddf22ebea9fba39e69069d5cdae414af5cb3307385177c1f0f43b8a0
+      redactedSummary: sha256:cf87a0e12c873283c80673506441fb2ed8e95cef8718e008ec8a0eba9d7b91cd
+  candidate:
+    argoVersion: v3.4.2
+    installationProfile: namespace-install-non-ha
+    targetNamespace: argocd
+    sourceObjectCount: 54
+    sourceSemanticDigest: sha256:60da7edffcc0ccf46f6952ceab2c9ec615b00415689888cd88363388682914ed
+    targetProjectedSemanticDigest: sha256:9664b22ac554c3e470484ce3319f302e53e332f9d2b46e7d78b4fc47eb865b0b
+    rawPayloadDigest: sha256:77488aab8b4d998f5029b2085952d41901a831b58f6f668d5db0f55ffdca1f44
+    desiredPods: 7
+    resourcesDeclaredForAllContainers: false
+    namespaceTransportRequired: true
+    futureTransportPrefix:
+      - kubectl
+      - --kubeconfig
+      - /Users/arash/.kube/ok-shared.yaml
+      - --namespace
+      - argocd
+    sourceMaterialization:
+      result: PROVEN-REPEATABLE-POINT-IN-TIME
+      clusterContacted: false
+      mutationAuthorized: false
+  historicalCandidateInvalidation:
+    status: INVALIDATED-FOR-FUTURE-M0B-I
+    reasons:
+      - code: HA-PROFILE-CONFLICTS-WITH-ACCEPTED-DEV-SOLO
+        detail: The historical candidate binds the 65-object HA namespace installation while the accepted DEV placement makes no HA claim.
+      - code: TARGET-NAMESPACE-MISSING-FROM-TRANSPORT
+        detail: The historical bounded installer does not pass --namespace argocd although upstream namespace-install objects omit metadata.namespace.
+    preservationRule: The historical protocol and source lock remain reproducible evidence and must not be rewritten.
+  rbacObservation:
+    targetProjectedRoles: 6
+    targetProjectedBindings: 6
+    findings:
+      SECRET-READ: 7
+      SECRET-WRITE: 2
+    decision: ANALYZED-NOT-ACCEPTED
+  evidenceDestination:
+    repository: ghcr.io/openkubes/ok141-evidence
+    model: DEV-BEST-EFFORT-NON-WORM
+    publicDigestAccessProven: true
+    deployedEvaluatorProven: true
+    referenceManifestDigest: sha256:c9bdeadf1ee859c69ed0ab1136ec6b590139fe931eff44039265c144cea76dc8
+    rawEvidenceMayBePublished: false
+  obligations:
+    closedPointInTime:
+      - M0BI-PLACEMENT-IDENTITY
+      - M0BI-DEV-SOLO-BOUNDARY
+      - M0BI-SOURCE-MATERIALIZATION
+      - M0BI-LIVE-BASELINE
+      - M0BI-EVIDENCE-CAPABILITY
+    openBeforeInstallationDecision:
+      - M0BI-NON-HA-SECURITY-BOUNDARY
+      - M0BI-EXACT-NAMESPACE-PROJECTION
+      - M0BI-EXACT-OBJECT-SUBMISSION
+      - M0BI-INSTALLER-CREDENTIAL
+      - M0BI-FINAL-IMAGE-IDENTITY
+      - M0BI-FINAL-LIVE-AND-REGISTRY-TRUST-REFRESH
+      - M0BI-RISK-ACCEPTANCE
+      - M0BI-EXACT-GRANT-WINDOW
+    pendingRuntime:
+      - M0BI-INVENTORY-IDENTITY
+      - M0BI-CRD-API-READY
+      - M0BI-CONTROL-PLANE-READY
+      - M0BI-IMAGE-IDENTITY
+      - M0BI-NO-TARGET-STATE
+      - M0BI-EVIDENCE-BUNDLE
+  authorization:
+    decision: NO-GO
+    mutationAuthorized: false
+    credentialIssuanceGranted: false
+    admissionBootstrapGranted: false
+    m0bInstallationGranted: false
+    targetRegistrationGranted: false
+    targetConvergenceGranted: false
+    go1Granted: false
+    failureInjectionGranted: false
+  nextStep:
+    name: bind-non-ha-security-and-submission-boundary
+    mutating: false
+    readyToStart: true
+  rules:
+    - This preflight records current facts and corrects candidate selection; it grants no mutation.
+    - Non-HA means no availability claim; it does not waive exact content identity RBAC review or fail-closed runtime verification.
+    - Missing resource requests make capacity an execution risk; scheduling or host degradation must stop the run rather than weaken acceptance.
+    - M0b-I may install only the Argo control plane and must not create target credentials AppProjects Applications or ApplicationSets.
+    - Any changed ok-shared incarnation source byte target projection or accepted boundary requires a new digest.
