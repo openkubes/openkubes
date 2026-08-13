@@ -1,0 +1,23 @@
+apiVersion: authorization.openkubes.io/v1alpha1
+kind: GO1LRecoverySnapshotGrant
+metadata:
+  name: ok141-go1-l-recovery-snapshot-grant-v1
+  ticket: OK-141
+spec:
+  state: TEMPLATE-NOT-GRANTED
+  candidateDigest: REPLACE_WITH_CANDIDATE_DIGEST
+  grantID: null
+  notBefore: null
+  notAfter: null
+  maximumRuns: 0
+  consumed: false
+  outputPath: /private/tmp/ok141-go1-l-recovery-snapshot-v1-evidence.json
+  readOnlyAuthorized: false
+  credentialUseAuthorized: false
+  mutationAuthorized: false
+  cleanupAuthorized: false
+  retryAuthorized: false
+  secretReadAuthorized: false
+  go1LAuthorized: false
+  go1Authorized: false
+  failureInjectionAuthorized: false
