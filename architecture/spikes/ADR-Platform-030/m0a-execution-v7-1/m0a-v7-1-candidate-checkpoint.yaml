@@ -1,0 +1,48 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: M0aCandidateCheckpoint
+metadata: {name: ok141-m0a-v7-1-candidate-checkpoint, ticket: OK-141}
+spec:
+  version: ok141-m0a-candidate-checkpoint/v7.1
+  state: READY-FOR-REVIEW-NOT-AUTHORIZED
+  historicalV7:
+    authorityPartition: sha256:fcc762dfe000b97445df999b0913e4128f14ab304b95c2141bdf99f8ade7ea58
+    securityCandidate: sha256:1f6afda15207c76d9562a8f95bc7422a7d2f23b528695c567c781abe9fdeb8a5
+    acceptedRiskRecord: sha256:046dc53a39c6b8c6aa25f80f7862f39aed8721ae815148add05a0bc55fd5686b
+    executionInvalidation: sha256:70a7585544d1d7d168280d12a929e35c5629453996738bce278c61b5b9518ab6
+    executionAllowed: false
+  correctedV71:
+    securityCandidate: sha256:41f3feebee02d625759bbaeba06dc8a0a2d10ef4345263e169fee01f02ec26d2
+    acceptedRiskRecord: sha256:636a7186a783eb1c0c01a711536f61befed5315d68f5f413af8f5fdfbd925794
+    admissionManifest: sha256:cb25c2dd098105b3141aa15acc01a98aa9c319d753c4bfa9e6d078a409db303c
+    credentialManifest: sha256:cdc81b5dda881310473d18a703a4f4a2bf12d91fc9068d1e84dbcf73c3489d4f
+    executionCandidate: sha256:314ba6303c61a18234c8946d4152181fc3bf139e9faa04bcc8eb629f6cb4be3b
+    livePreflight: sha256:8fd70e285c9ffdeef508979c90e7eae695a4c6a2e7a0b1662082f91abf642b8e
+  proofs:
+    reviewedObjects: 19
+    administratorObjects: 8
+    temporaryInstallerObjects: 11
+    temporaryCredentialObjects: 5
+    temporaryAdmissionObjects: 2
+    grantDomains: 4
+    livePreflightResult: PASS-READ-ONLY
+    candidateMutationAuthorized: false
+    testsPassed: 11
+  authorization:
+    decision: NO-GO
+    mutationAuthorized: false
+    publicationGranted: false
+    administratorPrerequisiteGranted: false
+    credentialBootstrapGranted: false
+    admissionBootstrapGranted: false
+    caaphInstallationGranted: false
+    retryGranted: false
+    rollbackGranted: false
+    m0bInstallationGranted: false
+    go1Granted: false
+    targetConvergenceGranted: false
+    failureInjectionGranted: false
+  rules:
+    - This checkpoint is redacted but not yet authorized for publication.
+    - Raw evidence, tokens, kubeconfigs, private keys, certificate payloads, and object UIDs remain excluded.
+    - Review or publication does not grant any of the four execution gates.
+
