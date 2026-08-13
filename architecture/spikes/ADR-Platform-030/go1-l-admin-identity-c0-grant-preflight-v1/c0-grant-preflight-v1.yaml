@@ -1,0 +1,93 @@
+apiVersion: authorization.openkubes.io/v1alpha1
+kind: LocalCredentialInspectionGrantPreflight
+metadata:
+  name: ok141-go1-l-admin-identity-c0-grant-preflight-v1
+  ticket: OK-141
+  baseCommit: 7e4646a66f77b68ccd6796a11de5ac6a600b7693
+spec:
+  version: ok141-go1-l-admin-identity-c0-grant-preflight/v1
+  state: TECHNICALLY-COMPLETE-WINDOW-UNRESOLVED-NO-GO
+  sourceCandidate:
+    path: ../go1-l-admin-identity-c0-v1/go1-l-admin-identity-c0-candidate-v1.yaml
+    digest: sha256:3ed89d8f9792e53068f424d23f609ba3cad31620d7ce4f1a8001a9bf3089db89
+    state: OFFLINE-PROVEN-BLOCKED-NO-GO
+  sourceAcceptance:
+    path: ../go1-l-admin-risk-acceptance-v1/go1-l-admin-risk-acceptance-v1.yaml
+    digest: sha256:1bedab96f582b3ca31f67c81b948263560c36fd0a113ec317442cb9c65d25fed
+    state: ACCEPTED-NON-AUTHORIZING
+  requestedAuthority:
+    authority: github:arashkaffamanesh
+    grantIDPrefix: ok141-go1-l-c0
+    scope: inspect-two-local-admin-kubeconfig-identities
+    singleRun: true
+    maximumWindowMinutes: 10
+    windowStart: UNRESOLVED
+    windowEnd: UNRESOLVED
+    grantReady: false
+  exactScope:
+    credentialFiles:
+      - /Users/arash/.kube/ok-infra.yaml
+      - /Users/arash/.kube/ok-mgmt.yaml
+    localReadOnly: true
+    allowedDerivedFields:
+      - target plane
+      - HTTPS API server
+      - CA SHA-256 fingerprint
+      - credential identity digest
+    forbiddenOutputs:
+      - context cluster or user names
+      - tokens certificates private keys passwords raw CA or kubeconfig bytes
+      - kubeconfig file digest
+    rawEvidencePath: /private/tmp/ok141-go1-l-admin-identity-c0-evidence.json
+    rawEvidenceMode: "0600"
+    publicEvidenceAllowed: false
+  runtimeGrantTemplate:
+    apiVersion: authorization.openkubes.io/v1alpha1
+    kind: LocalCredentialInspectionGrant
+    decision: GO
+    credentialInspectionGranted: true
+    clusterContactGranted: false
+    mutationAuthorized: false
+    candidateDigest: sha256:3ed89d8f9792e53068f424d23f609ba3cad31620d7ce4f1a8001a9bf3089db89
+    scope: inspect-two-local-admin-kubeconfig-identities
+    grantID: UNRESOLVED
+    singleRun: true
+    issuedAt: UNRESOLVED
+    expiresAt: UNRESOLVED
+  executionBoundary:
+    localKubeconfigInspectionOnly: true
+    kubectlOrKubernetesClientAllowed: false
+    networkDNSOrTCPContactAllowed: false
+    credentialCopyModificationRotationRevocationAllowed: false
+    preflightOrSubmissionAllowed: false
+    mutationAllowed: false
+  authorization:
+    decision: NO-GO
+    c0Granted: false
+    credentialInspectionGranted: false
+    preflightGranted: false
+    submissionGranted: false
+    go1LGranted: false
+    go1Granted: false
+    grantIDs: []
+    authorizedDigest: null
+  completionEvidence:
+    expectedState: COMPLETE-LOCAL-IDENTITIES-REDACTED
+    mustBind:
+      - candidate digest grant ID and exact timestamps
+      - both target planes with server CA fingerprint and credential identity digest
+      - no forbidden output no cluster contact and no mutation
+    identityOutputMayFeedFutureGrantCandidate: true
+    identityOutputIsCredentialUseOrMutationAuthority: false
+  conclusions:
+    technicalScopeComplete: true
+    windowResolved: false
+    grantCandidateComplete: false
+    c0ReadyForDecision: false
+    credentialInspected: false
+    clusterContacted: false
+    mutationAuthorized: false
+    nextStep: Bind one future maximum-ten-minute UTC window and new candidate digest, then request a separate C0 grant.
+  exclusions:
+    - credential inspection before a finalized digest and explicit C0 grant
+    - any cluster contact absence preflight object submission retry rollback cleanup GO1-L GO-1 or failure injection
