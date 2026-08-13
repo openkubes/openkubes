@@ -1,0 +1,34 @@
+[
+  {
+    "op": "test",
+    "path": "/metadata/uid",
+    "value": "a9d08c01-6033-4685-9927-b19f25ca2fdc"
+  },
+  {
+    "op": "test",
+    "path": "/spec/template/spec/containers/0/name",
+    "value": "manager"
+  },
+  {
+    "op": "test",
+    "path": "/spec/template/spec/containers/0/args",
+    "value": [
+      "--leader-elect",
+      "--diagnostics-address=${CAAPH_DIAGNOSTICS_ADDRESS:=:8443}",
+      "--insecure-diagnostics=${CAAPH_INSECURE_DIAGNOSTICS:=false}",
+      "--sync-period=${CAAPH_SYNC_PERIOD:=10m}",
+      "--v=2"
+    ]
+  },
+  {
+    "op": "replace",
+    "path": "/spec/template/spec/containers/0/args",
+    "value": [
+      "--leader-elect",
+      "--diagnostics-address=:8443",
+      "--insecure-diagnostics=false",
+      "--sync-period=10m",
+      "--v=2"
+    ]
+  }
+]

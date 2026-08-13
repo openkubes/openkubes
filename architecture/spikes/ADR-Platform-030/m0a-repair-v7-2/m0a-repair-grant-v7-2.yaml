@@ -1,0 +1,23 @@
+apiVersion: authorization.openkubes.io/v1alpha1
+kind: ExactDeploymentRepairGrant
+metadata: {name: ok141-m0a-f1-v7-2-20260813-01, ticket: OK-141}
+spec:
+  version: ok141-m0a-v7-2-exact-repair-grant/v1
+  state: GO
+  candidateDigest: sha256:45b69ab040ec0a90582f6b19824db8d7d488872a495cb78c362a9925fe74758a
+  authority: github:arashkaffamanesh
+  decision: GO
+  repairAuthorized: true
+  repairGrant: {gate: M0A-F1-v7.2, grantID: ok141-m0a-f1-v7-2-20260813-01}
+  validFrom: "2026-08-13T10:15:00Z"
+  validUntil: "2026-08-13T11:15:00Z"
+  maximumRuns: 1
+  evidenceOutputPath: /private/tmp/ok141-m0a-v7-2-repair-evidence-20260813.json
+  retryGranted: false
+  rollbackGranted: false
+  evidencePublicationGranted: false
+  hcpHrpSubmissionGranted: false
+  m0bInstallationGranted: false
+  go1Granted: false
+  targetConvergenceGranted: false
+  failureInjectionGranted: false

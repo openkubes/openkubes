@@ -1,0 +1,62 @@
+apiVersion: test.openkubes.io/v1alpha1
+kind: ReadOnlyReadinessCandidate
+metadata: {name: ok141-m0a-readiness-v7-3, ticket: OK-141}
+spec:
+  version: ok141-m0a-readiness/v7.3
+  state: READY-READ-ONLY
+  references:
+    installationLock: {path: ../m0a-installation/m0a-installation-v1.yaml, digest: sha256:873d3aa3b15df53d3a4055675288c6d9acdf6c18d4f850e181a4eb7b93fc4a27}
+    repairCandidate: {path: ../m0a-repair-v7-2/m0a-repair-candidate-v7-2.yaml, digest: sha256:45b69ab040ec0a90582f6b19824db8d7d488872a495cb78c362a9925fe74758a}
+    evaluator: {path: evaluate_m0a_readiness_v7_3.py, digest: sha256:bb1f8d47a0ed3250f63de78d30c0622b6c517ce6db485d232999d10440d97c53}
+  sourceEvidence:
+    v72RawLocalEvidenceDigest: sha256:128b03c32ed4d278d83ebbde7cfd555b69160e6e8bf4f904a55d4d737479adc4
+    v72PatchResult: SUCCESS
+    v72HistoricalCheckerResult: STOP-NOT-SUCCESS
+    historicalFailureLimitedTo: podImage
+  target:
+    plane: ok-mgmt
+    kubeSystemNamespaceUID: c3b45aab-d2a1-4e64-8f12-77b99186ad4a
+    architecture: linux/amd64
+    deploymentUID: a9d08c01-6033-4685-9927-b19f25ca2fdc
+    expectedGeneration: 2
+  imageIdentity:
+    reference: registry.k8s.io/cluster-api-helm/cluster-api-helm-controller:v0.6.4
+    runtimeImageIDKind: OCI-INDEX-DIGEST
+    expectedRuntimeImageID: registry.k8s.io/cluster-api-helm/cluster-api-helm-controller@sha256:97d2a86f8e35d23bb4656b26f4564b35f109e47a0dc4860b71089e52eb6e6a24
+    indexDigest: sha256:97d2a86f8e35d23bb4656b26f4564b35f109e47a0dc4860b71089e52eb6e6a24
+    linuxAmd64ChildManifestDigest: sha256:66344ab0107c0a3fcbce860697206ac7e6a2316a7af4a07f81a9f8d53e448e6a
+    claimBoundary:
+      runtimeImageIDEqualsIndex: required
+      installationLockCarriesPlatformChild: required
+      runtimeImageIDEqualsPlatformChild: not-required-and-not-claimed
+  expectedArguments:
+    - --leader-elect
+    - "--diagnostics-address=:8443"
+    - "--insecure-diagnostics=false"
+    - "--sync-period=10m"
+    - --v=2
+  assertions:
+    reviewedObjectsPresent: 19
+    deploymentAvailable: true
+    certificateReady: true
+    crdsEstablished: 2
+    serviceEndpointsReady: 2
+    readyControllerPods: 1
+    controllerRestarts: 0
+    caaphCustomResources: 0
+    capiLifecycleInventory: {clusters: 0, machines: 0, machineDeployments: 0}
+  evidence:
+    localOutputPath: /private/tmp/ok141-m0a-v7-3-readiness-evidence-20260813.json
+    fileMode: "0600"
+    publicationAuthorized: false
+  authorization:
+    mutationAuthorized: false
+    repairGranted: false
+    retryGranted: false
+    rollbackGranted: false
+    evidencePublicationGranted: false
+    hcpHrpSubmissionGranted: false
+    m0bInstallationGranted: false
+    go1Granted: false
+    targetConvergenceGranted: false
+    failureInjectionGranted: false

@@ -1,0 +1,41 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: M0aRepairLivePreflight
+metadata: {name: ok141-m0a-v7-2-repair-preflight, ticket: OK-141}
+spec:
+  version: ok141-m0a-v7-2-repair-live-preflight/v1
+  state: PASS-READ-ONLY
+  observedAt: "2026-08-13T10:10:41Z"
+  candidateDigest: sha256:45b69ab040ec0a90582f6b19824db8d7d488872a495cb78c362a9925fe74758a
+  target:
+    plane: ok-mgmt
+    kubeSystemNamespaceUID: c3b45aab-d2a1-4e64-8f12-77b99186ad4a
+    deploymentUID: a9d08c01-6033-4685-9927-b19f25ca2fdc
+    deploymentGeneration: 1
+  partialState:
+    reviewedObjectsPresent: 19
+    temporaryBootstrapObjectsPresent: 0
+    caaphCustomResources: 0
+    capiLifecycleInventory: {clusters: 0, machines: 0, machineDeployments: 0}
+    exactOldArgumentsMatch: true
+  serverDryRun:
+    observedAt: "2026-08-13T10:12:17Z"
+    accepted: true
+    deploymentUIDUnchanged: true
+    projectedGeneration: 2
+    projectedArgumentsMatch: true
+  mutationPerformed: false
+  authorization:
+    decision: NO-GO
+    repairGranted: false
+    retryGranted: false
+    rollbackGranted: false
+    evidencePublicationGranted: false
+    hcpHrpSubmissionGranted: false
+    m0bInstallationGranted: false
+    go1Granted: false
+    targetConvergenceGranted: false
+    failureInjectionGranted: false
+  rules:
+    - This observation is read-only and grants no repair authority.
+    - A fresh preflight must pass immediately before any authorized patch.
+    - Any changed UID generation argument inventory or lifecycle state invalidates this observation.

@@ -1,0 +1,82 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: M0aReadinessClosureEvidence
+metadata: {name: ok141-m0a-v7-2-readiness-closure-20260813, ticket: OK-141}
+spec:
+  version: ok141-m0a-v7-2-readiness-closure/v1-redacted
+  state: CAAPH-CONTROL-PLANE-READY
+  repair:
+    candidateDigest: sha256:45b69ab040ec0a90582f6b19824db8d7d488872a495cb78c362a9925fe74758a
+    grantCandidateDigest: sha256:f13ee4269c951b68e139339a1d8d6e6aa91b7e74af2dbb4389b1f33633d0a808
+    grantDigest: sha256:24958e4207fac719949794672db01d6ac0a657e6b7c159b7a5d9765e2f36359a
+    grantID: ok141-m0a-f1-v7-2-20260813-01
+    rawLocalEvidenceDigest: sha256:128b03c32ed4d278d83ebbde7cfd555b69160e6e8bf4f904a55d4d737479adc4
+    rawLocalEvidencePublishable: false
+    runsConsumed: 1
+    patchResult: SUCCESS
+    patchedDeploymentUID: a9d08c01-6033-4685-9927-b19f25ca2fdc
+    generationBefore: 1
+    generationAfter: 2
+    historicalEvaluatorResult: STOP-NOT-SUCCESS
+    historicalEvaluatorFailure: OCI-INDEX-AND-PLATFORM-DIGEST-CONFLATED
+  correctedEvaluation:
+    candidateDigest: sha256:ec5457aba5729a45973dbf276f6fef324da782cef718469e2e81d59143b91bc5
+    rawLocalEvidenceDigest: sha256:fb2dbff9d013f8b1967e5742b38a2bbaf37f2311ee8178aa48ef071351be8a4d
+    rawLocalEvidencePublishable: false
+    observedAt: "2026-08-13T10:32:59.812978Z"
+    result: PASS
+    mutationPerformed: false
+  readiness:
+    reviewedObjectsPresent: 19
+    deploymentAvailable: true
+    deploymentGeneration: 2
+    deploymentObservedGeneration: 2
+    readyControllerPods: 1
+    controllerRestarts: 0
+    certificateReady: true
+    crdsEstablished: 2
+    serviceEndpointsReady: 2
+  imageIdentity:
+    reference: registry.k8s.io/cluster-api-helm/cluster-api-helm-controller:v0.6.4
+    runtimeImageID: registry.k8s.io/cluster-api-helm/cluster-api-helm-controller@sha256:97d2a86f8e35d23bb4656b26f4564b35f109e47a0dc4860b71089e52eb6e6a24
+    lockedIndexDigest: sha256:97d2a86f8e35d23bb4656b26f4564b35f109e47a0dc4860b71089e52eb6e6a24
+    lockedLinuxAmd64ChildManifestDigest: sha256:66344ab0107c0a3fcbce860697206ac7e6a2316a7af4a07f81a9f8d53e448e6a
+    runtimeImageIDEqualsLockedIndex: true
+    runtimeImageIDEqualsPlatformChild: false
+    platformChildIdentityRetainedInSourceLock: true
+  zeroTargetBoundary:
+    helmChartProxies: 0
+    helmReleaseProxies: 0
+    capiClusters: 0
+    capiMachines: 0
+    capiMachineDeployments: 0
+    targetConvergencePerformed: false
+  conclusion:
+    caaphControlPlaneInstalled: true
+    caaphControlPlaneReady: true
+    retainedPartialState: false
+    repairGrantReusable: false
+    additionalClusterMutationRequiredForM0aReadiness: false
+    targetConvergenceAuthorized: false
+  authorization:
+    retryGranted: false
+    rollbackGranted: false
+    evidencePublicationGranted: false
+    hcpHrpSubmissionGranted: false
+    m0bInstallationGranted: false
+    go1Granted: false
+    targetConvergenceGranted: false
+    failureInjectionGranted: false
+  redaction:
+    secretsIncluded: false
+    tokensIncluded: false
+    kubeconfigsIncluded: false
+    privateKeysIncluded: false
+    certificatePayloadsIncluded: false
+    localPathsIncluded: false
+    rawResponseBodiesIncluded: false
+  rules:
+    - The v7.2 repair grant is consumed and cannot be reused.
+    - The historical v7.2 evaluator result remains STOP-NOT-SUCCESS and is not rewritten.
+    - The additive v7.3 evaluation closes only the incorrect image identity assertion.
+    - Raw local evidence remains excluded from Git.
+    - Publication retry rollback HCP HRP M0b-I GO-1 target convergence and failure injection remain NOT GRANTED.

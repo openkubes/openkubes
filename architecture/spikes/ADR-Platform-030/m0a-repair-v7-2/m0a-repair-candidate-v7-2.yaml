@@ -1,0 +1,86 @@
+apiVersion: recovery.openkubes.io/v1alpha1
+kind: ExactDeploymentRepairCandidate
+metadata: {name: ok141-m0a-v7-2-caaph-args, ticket: OK-141}
+spec:
+  version: ok141-m0a-v7-2-exact-repair/v1
+  state: READY-FOR-ONE-EXPLICIT-REPAIR-GRANT
+  references:
+    v71Candidate: {path: ../m0a-execution-v7-1/m0a-execution-candidate-v7-1.yaml, digest: sha256:314ba6303c61a18234c8946d4152181fc3bf139e9faa04bcc8eb629f6cb4be3b}
+    v71RuntimeEvidence: {path: ../m0a-execution-runtime-v7-1/m0a-v7-1-runtime-evidence-v1.yaml, digest: sha256:4868e8452447f7288e3b8d2d096a19e2b87c401e308974b93e609d23f369e0be}
+    jsonPatch: {path: deployment-args-json-patch-v7-2.json, digest: sha256:44e1d2712b7d5226d3dcc6e367b2ff6c26754f6dab33ae44a93793fa501f6b54}
+    executor: {path: controlled_m0a_repair_v7_2.py, digest: sha256:fa31d29318cd15c8e77023b80e29815f1828f94e34497db5e87d2d62a57900fb}
+  source:
+    failedCandidateDigest: sha256:314ba6303c61a18234c8946d4152181fc3bf139e9faa04bcc8eb629f6cb4be3b
+    rawEvidenceDigest: sha256:397ad1578e77a027d8b30b42fb28bdc41522e6fe870cca1dfdaa52ed865f7049
+    failure: LITERAL-PROVIDER-VARIABLE-SYNTAX-IN-CONTAINER-ARGS
+    grantsConsumed: true
+  target:
+    plane: ok-mgmt
+    apiServer: https://192.168.100.200:6443
+    kubeSystemNamespaceUID: c3b45aab-d2a1-4e64-8f12-77b99186ad4a
+    namespace: caaph-system
+    deployment: caaph-controller-manager
+    deploymentUID: a9d08c01-6033-4685-9927-b19f25ca2fdc
+    expectedGeneration: 1
+    image: registry.k8s.io/cluster-api-helm/cluster-api-helm-controller:v0.6.4
+  repair:
+    gate: M0A-F1-v7.2
+    operation: one-exact-json-patch
+    maximumRuns: 1
+    oldArguments:
+      - --leader-elect
+      - "--diagnostics-address=${CAAPH_DIAGNOSTICS_ADDRESS:=:8443}"
+      - "--insecure-diagnostics=${CAAPH_INSECURE_DIAGNOSTICS:=false}"
+      - "--sync-period=${CAAPH_SYNC_PERIOD:=10m}"
+      - --v=2
+    newArguments:
+      - --leader-elect
+      - "--diagnostics-address=:8443"
+      - "--insecure-diagnostics=false"
+      - "--sync-period=10m"
+      - --v=2
+    patchPreconditions:
+      immutableDeploymentUID: true
+      exactContainerIndexAndName: true
+      completeOldArgumentVector: true
+    patchAtomicAtApiObject: true
+    rolloutCanFailAfterPatch: true
+    automaticRetryAllowed: false
+    automaticRollbackAllowed: false
+  preconditions:
+    reviewedObjectsPresent: 19
+    temporaryBootstrapObjectsPresent: 0
+    caaphCustomResources: 0
+    capiLifecycleInventory: {clusters: 0, machines: 0, machineDeployments: 0}
+  success:
+    deploymentAvailable: true
+    certificateReady: true
+    crdsEstablished: true
+    webhookEndpointsReady: true
+    expectedPodImageReady: true
+    deploymentUIDUnchanged: true
+    newArgumentsMatch: true
+  executionWindow:
+    maximumDurationMinutes: 60
+    maximumRuns: 1
+  evidence:
+    rawOutputPath: /private/tmp/ok141-m0a-v7-2-repair-evidence-20260813.json
+    fileMode: "0600"
+    outputMustBeAbsent: true
+    publicationAuthorized: false
+  authorization:
+    decision: NO-GO
+    repairGranted: false
+    retryGranted: false
+    rollbackGranted: false
+    evidencePublicationGranted: false
+    hcpHrpSubmissionGranted: false
+    m0bInstallationGranted: false
+    go1Granted: false
+    targetConvergenceGranted: false
+    failureInjectionGranted: false
+  rules:
+    - Any target UID generation image argument or inventory mismatch stops before patching.
+    - The candidate may replace only the complete manager argument vector of the exact Deployment.
+    - A failed rollout is retained for review and requires a new grant for any further mutation.
+    - This candidate grants no repair retry rollback publication HCP HRP M0b-I GO-1 target convergence or failure injection.
