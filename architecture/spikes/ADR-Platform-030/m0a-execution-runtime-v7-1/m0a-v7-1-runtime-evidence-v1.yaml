@@ -1,0 +1,80 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: M0aExecutionEvidence
+metadata: {name: ok141-m0a-v7-1-runtime-20260813, ticket: OK-141}
+spec:
+  version: ok141-m0a-v7-1-runtime-evidence/v1-redacted
+  state: PARTIAL-STATE-RETAINED
+  execution:
+    candidateDigest: sha256:314ba6303c61a18234c8946d4152181fc3bf139e9faa04bcc8eb629f6cb4be3b
+    grantDigest: sha256:10662d29b018bf74c32e240e50edff007f59681583d927e1b37d25c5bb46a1ee
+    grantIDs:
+      - ok141-m0a-ap1-v7-1-20260813-01
+      - ok141-m0a-c1-v7-1-20260813-01
+      - ok141-m0a-a1-v7-1-20260813-01
+      - ok141-m0a-i-v7-1-20260813-01
+    startedAt: "2026-08-13T09:50:46.485604Z"
+    finishedAt: "2026-08-13T10:02:39.283791Z"
+    runsConsumed: 1
+    result: STOP-NOT-SUCCESS
+    rawLocalEvidenceDigest: sha256:397ad1578e77a027d8b30b42fb28bdc41522e6fe870cca1dfdaa52ed865f7049
+    rawLocalEvidencePublishable: false
+  submission:
+    administratorObjectsCreated: 8
+    installerObjectsCreated: 11
+    reviewedObjectsPresent: 19
+    temporaryBootstrapObjectsRemoved: 7
+    tokenRejection:
+      result: PROVEN
+      notBeforeBoundary: true
+    credentialMaterialRetained: false
+  readiness:
+    result: FAILED
+    cause: LITERAL-PROVIDER-VARIABLE-SYNTAX-IN-CONTAINER-ARGS
+    deploymentReady: false
+    certificateReady: true
+    crdsEstablished: true
+    webhookEndpointsReady: false
+    expectedPodImageReady: false
+    invalidArgument: "--insecure-diagnostics=${CAAPH_INSECURE_DIAGNOSTICS:=false}"
+    additionallyAffectedArguments:
+      - "--diagnostics-address=${CAAPH_DIAGNOSTICS_ADDRESS:=:8443}"
+      - "--sync-period=${CAAPH_SYNC_PERIOD:=10m}"
+  retainedState:
+    caaphObjectCount: 19
+    controllerReplicas: 1
+    controllerReadyReplicas: 0
+    controllerUnavailableReplicas: 1
+    caaphCustomResources: 0
+    capiLifecycleObjects: 0
+    ordinaryClusterWorkloadsAffected: false
+    helmChartAndReleaseCreateUpdateBlockedByFailClosedWebhooks: true
+  conclusion:
+    caaphInstalled: false
+    partialStatePresent: true
+    grantsReusable: false
+    tokenRejectionProven: true
+    exactRepairCandidateRequired: true
+  authorization:
+    repairGranted: false
+    retryGranted: false
+    rollbackGranted: false
+    evidencePublicationGranted: false
+    hcpHrpSubmissionGranted: false
+    m0bInstallationGranted: false
+    go1Granted: false
+    targetConvergenceGranted: false
+    failureInjectionGranted: false
+  redaction:
+    secretsIncluded: false
+    tokensIncluded: false
+    kubeconfigsIncluded: false
+    privateKeysIncluded: false
+    certificatePayloadsIncluded: false
+    localPathsIncluded: false
+    objectUIDsIncluded: false
+    rawResponseBodiesIncluded: false
+  rules:
+    - The four v7.1 grants are consumed and cannot be reused.
+    - This evidence must not be relabeled as a successful CAAPH installation.
+    - Raw local evidence remains excluded from Git.
+    - Repair retry rollback publication HCP HRP M0b-I GO-1 target convergence and failure injection remain NOT GRANTED.

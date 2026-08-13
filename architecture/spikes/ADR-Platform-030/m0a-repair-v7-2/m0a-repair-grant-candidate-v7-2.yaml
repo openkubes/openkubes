@@ -1,0 +1,46 @@
+apiVersion: authorization.openkubes.io/v1alpha1
+kind: ExactDeploymentRepairGrantCandidate
+metadata: {name: ok141-m0a-f1-v7-2-20260813-01, ticket: OK-141}
+spec:
+  version: ok141-m0a-v7-2-exact-repair-grant-candidate/v1
+  state: AWAITING-EXPLICIT-RISK-ACCEPTANCE-AND-REPAIR-GRANT
+  repairCandidateDigest: sha256:45b69ab040ec0a90582f6b19824db8d7d488872a495cb78c362a9925fe74758a
+  livePreflight:
+    digest: sha256:ea09766f2de150589df20fd31bc975e471d0a726c3848f703650bb02829010e2
+    result: PASS-READ-ONLY
+    observedAt: "2026-08-13T10:10:41Z"
+    freshPreflightRequiredImmediatelyBeforeMutation: true
+  proposedGrant:
+    gate: M0A-F1-v7.2
+    grantID: ok141-m0a-f1-v7-2-20260813-01
+    maximumRuns: 1
+    validFrom: "2026-08-13T10:15:00Z"
+    validUntil: "2026-08-13T11:15:00Z"
+  rawEvidence:
+    outputPath: /private/tmp/ok141-m0a-v7-2-repair-evidence-20260813.json
+    mustBeAbsent: true
+    mode: "0600"
+    publicationAllowed: false
+  exactMutation:
+    target: Deployment/caaph-system/caaph-controller-manager
+    targetUID: a9d08c01-6033-4685-9927-b19f25ca2fdc
+    operation: one-json-patch-with-three-test-preconditions-and-one-argument-vector-replacement
+    expectedGenerationBeforePatch: 1
+    expectedGenerationAfterPatch: 2
+  acceptedOnlyIfExplicitlyStated:
+    - direct administrator patch of one existing Deployment
+    - API-object patch is atomic but the resulting rollout is not atomic
+    - readiness may still fail after a successful patch
+    - failed rollout remains as retained partial state because automatic rollback is excluded
+    - the repair does not authorize HCP HRP Cilium target convergence or any other lifecycle operation
+  authorization:
+    decision: NO-GO
+    repairGranted: false
+    retryGranted: false
+    rollbackGranted: false
+    evidencePublicationGranted: false
+    hcpHrpSubmissionGranted: false
+    m0bInstallationGranted: false
+    go1Granted: false
+    targetConvergenceGranted: false
+    failureInjectionGranted: false
