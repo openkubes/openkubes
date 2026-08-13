@@ -30,7 +30,7 @@ test, not a convention.
 ```
 platform/ai/platform-diagnostics/
 ├── contract/
-│   ├── openapi.yaml           # normative Phase-1 HTTP contract (v1.0.0)
+│   ├── openapi.yaml           # normative Phase-1 HTTP contract (v1.1.0)
 │   ├── mcp-adapter/           # thin agent-facing adapter, DERIVED from openapi.yaml (optional)
 │   └── tests/                 # the 6 contract tests from ADR-021 (schema, RBAC audit, backend-swap, …)
 └── profiles/
@@ -50,9 +50,11 @@ platform/ai/platform-diagnostics/
 
 | Piece | Ticket | Repo |
 |---|---|---|
-| `contract/` (OpenAPI, MCP adapter, contract tests) | **OK-89 / OK-90** (normative finalization and validation) | `openkubes` (this repo) |
+| `contract/openapi.yaml` | **OK-90** (normative finalization) | `openkubes` (this repo) |
+| `contract/tests/` + Profile B stub | **OK-91** (executable provider-neutral conformance suite) | `openkubes` (this repo) |
+| `contract/mcp-adapter/` | **OK-93** (adapter derived from the accepted OpenAPI) | `openkubes` (this repo) |
 | `profiles/kagent/` (Profile A implementation) | **OK-92** (integrate kagent as first provider profile) | `openkubes` (generic) + `ok-cluster` (provider values) |
-| OpenClaw as first **consumer** (diagnostics skill via MCP adapter) | ADR-021 Consumers | `ok-cluster/openclaw` |
+| OpenClaw as first **consumer** (diagnostics skill via MCP adapter) | **OK-94** | `openkubes` + `ok-cluster` |
 
 `contract/openapi.yaml` is the **normative, machine-readable Phase-1 contract**.
 It defines the three public operations and their input, output, evidence,
@@ -81,4 +83,4 @@ chat backend.
 - [ADR-Platform-015 — Agentic AI](../../../architecture/decisions/ADR-Platform-015-agentic-ai.md)
 - [Implementation guideline](../../../docs/agentic-ai-poc-guideline.md)
 - [Problem statement](../../../docs/problem-statement-platform-diagnostics-contract.md)
-- [OK-89](https://kubernauts.atlassian.net/browse/OK-89) · [OK-92](https://kubernauts.atlassian.net/browse/OK-92) · [OK-14](https://kubernauts.atlassian.net/browse/OK-14)
+- [OK-89](https://kubernauts.atlassian.net/browse/OK-89) · [OK-90](https://kubernauts.atlassian.net/browse/OK-90) · [OK-91](https://kubernauts.atlassian.net/browse/OK-91) · [OK-92](https://kubernauts.atlassian.net/browse/OK-92) · [OK-93](https://kubernauts.atlassian.net/browse/OK-93) · [OK-94](https://kubernauts.atlassian.net/browse/OK-94)
