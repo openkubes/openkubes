@@ -1,0 +1,53 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: GO1RuntimeBinding
+metadata:
+  name: ok141-disposable-runtime-binding-v1
+  ticket: OK-141
+  protocol: ok141-go1/v5
+spec:
+  version: ok141-go1-runtime-binding/v1
+  state: TEMPLATE-NO-GO
+  fixtureDigest: sha256:a2ae3437645db5a83426b89d36d00693d2600e4ef20dc1aba2650dcda7f936f6
+  R: sha256:636fe23404ac53109f44d6346534dcf1367ae91c572d5e18bd32cd0a3128a16e
+  E: sha256:2a849d69e9c64344e907c1bce3bb1abf3d8f77217377081a5be055d62c213300
+  P: sha256:b0f25c639a45d895b889997f5ecc2325db45dd5d51b0684998c94d5e17bd47bf
+  target:
+    name: disposable-ok141
+    capiClusterUID: RUNTIME-REQUIRED
+    capiObservedGeneration: RUNTIME-REQUIRED
+    workloadKubeSystemUID: RUNTIME-REQUIRED
+    workloadAPIServer: RUNTIME-REQUIRED
+    workloadAPICAFingerprint: RUNTIME-REQUIRED
+    tokenAudience: RUNTIME-REQUIRED
+  lifecycleEvidence:
+    capiConditionsArtifactDigest: RUNTIME-REQUIRED
+    providerIdentityArtifactDigest: RUNTIME-REQUIRED
+    workloadNodeIdentityArtifactDigest: RUNTIME-REQUIRED
+    controlPlaneReplicasReady: RUNTIME-REQUIRED
+    workerReplicasReady: RUNTIME-REQUIRED
+  enablementEvidence:
+    helmChartProxyUID: RUNTIME-REQUIRED
+    helmReleaseProxyUID: RUNTIME-REQUIRED
+    observedE: RUNTIME-REQUIRED
+    ciliumArtifactIdentityDigest: RUNTIME-REQUIRED
+    networkReadyArtifactDigest: RUNTIME-REQUIRED
+    networkReady: RUNTIME-REQUIRED
+  targetCapabilities:
+    localPathStorageClassObserved: RUNTIME-REQUIRED
+    requiredSecretDependenciesResolved: RUNTIME-REQUIRED
+  correlation:
+    allSourcesCurrent: RUNTIME-REQUIRED
+    allSourcesSameClusterIncarnation: RUNTIME-REQUIRED
+    staleOrHistoricalEvidenceAccepted: false
+  authorization:
+    runtimePauseReleased: false
+    targetAccessGranted: false
+    tokenRequestGranted: false
+    registrationGranted: false
+    platformSubmissionGranted: false
+    go1Granted: false
+  rules:
+    - Every RUNTIME-REQUIRED field must be replaced from current authoritative observations after NetworkReady.
+    - The completed artifact must be canonicalized hashed independently reviewed and named by every runtime grant.
+    - A target name endpoint annotation or historical success is not immutable identity proof.
+    - This template grants no authority and must fail closed if any placeholder remains.

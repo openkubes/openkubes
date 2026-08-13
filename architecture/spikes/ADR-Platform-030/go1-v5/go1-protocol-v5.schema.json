@@ -1,0 +1,52 @@
+{
+  "$id": "ok141-go1-protocol/v5",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["apiVersion", "kind", "metadata", "spec"],
+  "properties": {
+    "apiVersion": {"const": "test.openkubes.io/v1alpha4"},
+    "kind": {"const": "GO1Protocol"},
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "ticket", "baseCommit"],
+      "properties": {
+        "name": {"const": "ok141-create-converge-observe-v5"},
+        "ticket": {"const": "OK-141"},
+        "baseCommit": {"const": "c2fc1c7d9900c414278cc1aa8b6868e238cc0057"}
+      }
+    },
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "protocolVersion", "protocolState", "supersedesForFutureExecution",
+        "fixture", "authorization", "scope", "lifecycleSubmission",
+        "enablement", "runtimePause", "platform", "stageGates", "blockers",
+        "phases", "expectedEvidence", "stopConditions", "stopResponse",
+        "recovery", "acceptance", "exclusions"
+      ],
+      "properties": {
+        "protocolVersion": {"const": "ok141-go1/v5"},
+        "protocolState": {"const": "BLOCKED"},
+        "supersedesForFutureExecution": {"type": "object"},
+        "fixture": {"type": "object"},
+        "authorization": {"type": "object"},
+        "scope": {"type": "object"},
+        "lifecycleSubmission": {"type": "object"},
+        "enablement": {"type": "object"},
+        "runtimePause": {"type": "object"},
+        "platform": {"type": "object"},
+        "stageGates": {"type": "array", "minItems": 5, "maxItems": 5, "items": {"type": "object"}},
+        "blockers": {"type": "array", "minItems": 11, "items": {"type": "object"}},
+        "phases": {"type": "array", "minItems": 12, "maxItems": 12, "items": {"type": "object"}},
+        "expectedEvidence": {"type": "object"},
+        "stopConditions": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+        "stopResponse": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+        "recovery": {"type": "object"},
+        "acceptance": {"type": "object"},
+        "exclusions": {"type": "array", "minItems": 1, "items": {"type": "string"}}
+      }
+    }
+  }
+}
