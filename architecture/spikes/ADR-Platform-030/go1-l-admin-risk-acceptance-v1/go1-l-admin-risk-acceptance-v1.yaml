@@ -1,0 +1,50 @@
+apiVersion: security.openkubes.io/v1alpha1
+kind: GO1LAdminRiskAcceptance
+metadata:
+  name: ok141-go1-l-dev-admin-risk-acceptance-v1
+  ticket: OK-141
+  recordedAt: "2026-08-13"
+  baseCommit: 83d2975a7f7137125587a0af682b2c8ba64ad048
+spec:
+  version: ok141-go1-l-admin-risk-acceptance/v1
+  state: ACCEPTED-NON-AUTHORIZING
+  authority: github:arashkaffamanesh
+  sourceCandidate:
+    path: ../go1-l-admin-risk-v1/go1-l-admin-risk-candidate-v1.yaml
+    digest: sha256:fad8675a362e78d81356b430bcbb1cedb701739d772bc07292801f735ed8da84
+    priorState: RISK-ACCEPTANCE-REQUIRED-NO-GO
+  acceptance:
+    accepted: true
+    acceptedCandidateDigest: sha256:fad8675a362e78d81356b430bcbb1cedb701739d772bc07292801f735ed8da84
+    exactStatement: "Ich akzeptiere für OK-141/GO1-L das dokumentierte DEV-ADMIN-CREATE-Risiko: die Administrator- und Create-Content-Grenze, die nur prozedurale Zeitbegrenzung eines möglicherweise langlebigen Admin-Credentials, das Absence-to-Create-TOCTOU-Fenster, nicht-atomaren Partial-State mit fortlaufender Controller-Reconciliation sowie den akzeptierten DEV-Rebuild-on-Loss-Pfad. Diese Akzeptanz erteilt keine Credential-Nutzung, keinen Preflight-Lauf, keine Objekt-Submission, keinen Retry oder Rollback und weder GO1-L noch GO-1."
+    scope:
+      - administrator authority and Create-content boundary
+      - procedural grant lifetime versus possible long-lived credential validity
+      - absence-to-Create race
+      - non-atomic partial state and continuing controller reconciliation
+      - DEV rebuild-on-loss boundary
+  authorization:
+    decision: NO-GO
+    credentialUseGranted: false
+    preflightGranted: false
+    submissionGranted: false
+    retryGranted: false
+    rollbackOrCleanupGranted: false
+    go1LGranted: false
+    go1Granted: false
+    failureInjectionGranted: false
+    grantIDs: []
+    authorizedDigest: null
+  conclusions:
+    riskAcceptanceComplete: true
+    credentialIdentityResolved: false
+    runtimeGrantCandidatesComplete: false
+    credentialUseReadyForDecision: false
+    go1LReadyForDecision: false
+    clusterContacted: false
+    mutationAuthorized: false
+    nextStep: Prepare non-authorizing preflight and operation grant templates with runtime identity placeholders; do not inspect or use a credential.
+  exclusions:
+    - credential inspection creation materialization use or revocation
+    - preflight execution cluster contact object submission retry rollback cleanup or failure injection
+    - GO1-L GO-1 target registration Platform convergence or evidence publication
