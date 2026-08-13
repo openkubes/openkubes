@@ -1,0 +1,60 @@
+apiVersion: authorization.openkubes.io/v1alpha1
+kind: CombinedGateGrantCandidate
+metadata: {name: ok141-m0a-v7-1-20260813-01, ticket: OK-141}
+spec:
+  version: ok141-m0a-combined-grant-candidate/v7.1
+  state: AWAITING-FOUR-EXPLICIT-GRANTS
+  executionCandidateDigest: sha256:314ba6303c61a18234c8946d4152181fc3bf139e9faa04bcc8eb629f6cb4be3b
+  acceptedSecurityDigest: sha256:41f3feebee02d625759bbaeba06dc8a0a2d10ef4345263e169fee01f02ec26d2
+  acceptedRiskRecordDigest: sha256:636a7186a783eb1c0c01a711536f61befed5315d68f5f413af8f5fdfbd925794
+  livePreflight:
+    digest: sha256:8fd70e285c9ffdeef508979c90e7eae695a4c6a2e7a0b1662082f91abf642b8e
+    result: PASS-READ-ONLY
+    observedAt: "2026-08-13T09:39:40Z"
+    freshPreflightRequiredImmediatelyBeforeMutation: true
+  proposedGrants:
+    administratorPrerequisiteGrant: {gate: M0A-AP1-v7.1, grantID: ok141-m0a-ap1-v7-1-20260813-01, maximumRuns: 1}
+    credentialGrant: {gate: M0A-C1-v7.1, grantID: ok141-m0a-c1-v7-1-20260813-01, maximumRuns: 1}
+    admissionGrant: {gate: M0A-A1-v7.1, grantID: ok141-m0a-a1-v7-1-20260813-01, maximumRuns: 1}
+    installationGrant: {gate: M0a-I-v7.1, grantID: ok141-m0a-i-v7-1-20260813-01, maximumRuns: 1}
+  proposedWindow:
+    validFrom: "2026-08-13T09:45:00Z"
+    validUntil: "2026-08-13T12:45:00Z"
+    maximumRuns: 1
+  rawEvidence:
+    outputPath: /private/tmp/ok141-m0a-v7-1-execution-evidence-20260813.json
+    mustBeAbsent: true
+    mode: "0600"
+    publicationAllowed: false
+  includedOperations:
+    - one create-only administrator prerequisite stream of exactly 8 objects
+    - one temporary five-object credential bootstrap
+    - one temporary two-object admission bootstrap
+    - one create-only installer stream of exactly 11 objects
+    - readiness observation
+    - temporary bootstrap cleanup
+    - token rejection observation no earlier than expirationTimestamp plus 100 seconds
+  excludedOperations:
+    - retry
+    - automatic rollback
+    - HCP or HRP submission
+    - Cilium or target convergence
+    - evidence publication
+    - M0b-I
+    - GO-1
+    - failure injection
+  authorization:
+    decision: NO-GO
+    mutationAuthorized: false
+    administratorPrerequisiteGranted: false
+    credentialBootstrapGranted: false
+    admissionBootstrapGranted: false
+    caaphInstallationGranted: false
+    retryGranted: false
+    rollbackGranted: false
+    evidencePublicationGranted: false
+    m0bInstallationGranted: false
+    go1Granted: false
+    targetConvergenceGranted: false
+    failureInjectionGranted: false
+
