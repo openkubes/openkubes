@@ -1,0 +1,123 @@
+apiVersion: test.openkubes.io/v1alpha1
+kind: M0aSecurityBoundaryCandidate
+metadata:
+  name: ok141-m0a-v7-security-boundary
+  ticket: OK-141
+spec:
+  version: ok141-m0a-security-boundary/v7
+  state: BLOCKED-OFFLINE-CANDIDATE
+  cause:
+    evidencePath: ../m0a-execution-runtime-v6/m0a-v6-runtime-and-rollback-evidence-v1.yaml
+    evidenceDigest: sha256:42f9021e0c01d89f6f54a377a03d26fcdc02a32f538b97c5f081ed074fed5949
+    firstRunResult: STOP-NOT-SUCCESS
+    grantConsumed: true
+    failureClasses:
+      - CLUSTER_SCOPED-IDENTITY-EXPRESSION-MISMATCH
+      - RBAC-PRIVILEGE-ESCALATION-PROTECTION
+    rollbackResult: SUCCESS
+    baselineRestored: true
+  partition:
+    path: m0a-v7-authority-partition-v1.yaml
+    digest: sha256:fcc762dfe000b97445df999b0913e4128f14ab304b95c2141bdf99f8ade7ea58
+    sourceObjectCount: 19
+    administratorObjectCount: 8
+    temporaryInstallerObjectCount: 11
+    disjoint: true
+    complete: true
+  authorityDomains:
+    administratorPrerequisite:
+      gate: M0A-AP1-v7
+      principal: accepted-administrator-identity
+      objects: namespace-plus-seven-reviewed-rbac-objects
+      realOperation: create-only
+      maximumRuns: 1
+      admissionConstrained: false
+      contentControl: digest-bound-executor-and-exact-object-partition
+    temporaryCredential:
+      gate: M0A-C1-v7
+      maximumDurationMinutes: 10
+      rejectionBoundarySecondsAfterExpiration: 100
+      serviceAccount: openkubes-system/ok141-m0a-installer-v7
+    temporaryAdmission:
+      gate: M0A-A1-v7
+      policyPath: m0a-installer-admission-v7.yaml
+      policyDigest: sha256:fbf00b562d97083b3e96f33c1b2ff1802c6133e5c46bd2a3660515218c42ebb1
+      failurePolicy: Fail
+      principalScoped: true
+      clusterScopedIdentities: 4
+      namespacedIdentities: 7
+    temporaryInstaller:
+      gate: M0a-I-v7
+      principal: system:serviceaccount:openkubes-system:ok141-m0a-installer-v7
+      objects: eleven-reviewed-non-rbac-caaph-objects
+      realOperation: create-only
+      maximumRuns: 1
+      escalateAllowed: false
+      bindAllowed: false
+      patchUpdateDeleteListWatchAllowed: false
+  submissionBoundary:
+    reviewedObjectCount: 19
+    semanticDigest: sha256:01fc13d694da3304385a7bae0d1bd662d7c8c3d336b8a4d44da5324439d59095
+    precondition: all-19-reviewed-identities-absent
+    orderedRealOperations:
+      - accepted-administrator-creates-exact-namespace
+      - accepted-administrator-creates-exact-seven-rbac-objects
+      - temporary-installer-creates-exact-eleven-non-rbac-objects
+    idempotent: false
+    atomic: false
+    crossAuthorityPartialStatePossible: true
+    automaticRetryAllowed: false
+    automaticRollbackAllowed: false
+    exactPostOperationInventoryRequired: true
+  riskClaims:
+    - id: M0A-V7-ADMIN-CONTENT-BOUNDARY
+      statement: The accepted administrator creates the exact Namespace and seven RBAC objects, but the temporary principal-scoped admission policy does not constrain that administrator credential.
+      consequence: The correctness of those eight requests relies on the digest-bound executor and reviewed partition rather than an independent server-side payload-equality control.
+    - id: M0A-V7-SPLIT-AUTHORITY-PARTIAL-STATE
+      statement: Three ordered create-only operations cross two authority domains and are neither atomic nor idempotent.
+      consequence: A later failure can leave an exact prefix from either domain and requires review plus separately authorized UID-bound rollback before retry.
+    - id: M0A-V7-INSTALLER-CONTENT-BOUNDARY
+      statement: Type-scoped RBAC and exact-identity admission constrain the eleven installer requests but do not prove complete payload equality.
+      consequence: A compromised bounded executor could alter content under one of the eleven permitted identities during the credential lifetime.
+    - id: M0A-V7-ADMISSION-BOOTSTRAP-BOUNDARY
+      statement: The temporary ValidatingAdmissionPolicy and binding are cluster-scoped objects created and removed by the administrator identity.
+      consequence: An incorrect policy could affect unrelated creates or fail to constrain the installer.
+    - id: M0A-V7-EXPIRY-PLUS-100S-OBSERVATION
+      statement: TokenRequest rejection remains authoritative only when sampled no earlier than expirationTimestamp plus 100 seconds.
+      consequence: The credential may continue authenticating during the bounded expiry leeway cache and observation interval.
+  requiredOfflineProofs:
+    - the administrator and temporary-installer partitions are disjoint and cover all 19 reviewed objects
+    - the administrator partition contains exactly Namespace plus all seven RBAC objects
+    - the temporary-installer partition contains no Namespace or RBAC object
+    - admission enumerates exactly four cluster-scoped and seven namespaced installer identities
+    - the cluster-scoped admission expression never reads request.namespace
+    - no installer RBAC rule grants escalate or bind
+  requiredLiveProofs:
+    - a fresh preflight proves all 19 reviewed identities and all bootstrap identities absent
+    - exact administrator and installer grants are separately bound and valid
+    - administrator objects are created and inventoried before temporary installer issuance
+    - admission type-check and positive and negative probes pass fail closed
+    - exactly one installer create-only attempt occurs after digest re-verification
+    - every attempted operation records exact post-operation inventory
+    - temporary bootstrap is removed and token rejection is observed at the bound deadline
+  authorization:
+    decision: NO-GO
+    mutationAuthorized: false
+    administratorPrerequisiteGranted: false
+    credentialBootstrapGranted: false
+    admissionBootstrapGranted: false
+    caaphInstallationGranted: false
+    retryGranted: false
+    rollbackGranted: false
+    evidencePublicationGranted: false
+    m0bInstallationGranted: false
+    go1Granted: false
+    targetConvergenceGranted: false
+    failureInjectionGranted: false
+  rules:
+    - This boundary authorizes no cluster contact mutation publication retry or rollback.
+    - The consumed v1 through v6 grants cannot be reused.
+    - Administrator prerequisite credential admission and installer gates require four distinct explicit grant IDs.
+    - Any partial state is STOP-NOT-SUCCESS and must not be retried automatically.
+    - A future executor must consume the exact partition rather than maintain a second handwritten object list.
+
