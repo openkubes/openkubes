@@ -1,0 +1,47 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: M0aLivePreflight
+metadata: {name: ok141-m0a-v7-1-live-preflight, ticket: OK-141}
+spec:
+  version: ok141-m0a-live-preflight/v7.1
+  state: PASS-READ-ONLY
+  observedAt: "2026-08-13T09:39:40Z"
+  candidateDigest: sha256:314ba6303c61a18234c8946d4152181fc3bf139e9faa04bcc8eb629f6cb4be3b
+  target:
+    plane: ok-mgmt
+    kubeSystemNamespaceUID: c3b45aab-d2a1-4e64-8f12-77b99186ad4a
+    kubernetesVersion: v1.34.1
+    bootstrapIdentity: {username: kubernetes-admin, group: system:masters}
+    administratorCertificateNotAfter: "Jul 22 13:18:40 2027 GMT"
+  source:
+    reviewedObjectCount: 19
+    reviewedSemanticDigest: sha256:01fc13d694da3304385a7bae0d1bd662d7c8c3d336b8a4d44da5324439d59095
+    exactIdentityAbsence: 19
+    v71BootstrapAbsence: 7
+  lifecycleInventory: {clusters: 0, machines: 0, machineDeployments: 0}
+  admissionAPIAvailable: true
+  toolchain:
+    release: v1.34.1
+    commit: 93248f9ae092f571eb870b7664c534bfc7d00f03
+    platform: darwin/amd64
+    digest: sha256:bb211f2b31f2b3bc60562b44cc1e3b712a16a98e9072968ba255beb04cefcfdf
+  mutationPerformed: false
+  rawCredentialMaterialRetained: false
+  authorization:
+    decision: NO-GO
+    mutationAuthorized: false
+    administratorPrerequisiteGranted: false
+    credentialBootstrapGranted: false
+    admissionBootstrapGranted: false
+    caaphInstallationGranted: false
+    retryGranted: false
+    rollbackGranted: false
+    evidencePublicationGranted: false
+    m0bInstallationGranted: false
+    go1Granted: false
+    targetConvergenceGranted: false
+    failureInjectionGranted: false
+  rules:
+    - This observation is read-only and grants no authority.
+    - A later execution decision must bind this candidate digest and assess preflight freshness.
+    - Any changed target identity, object presence, lifecycle inventory, toolchain, or candidate requires a new preflight.
+
