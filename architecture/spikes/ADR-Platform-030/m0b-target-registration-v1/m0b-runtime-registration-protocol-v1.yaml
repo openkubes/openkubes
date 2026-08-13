@@ -1,0 +1,110 @@
+apiVersion: test.openkubes.io/v1alpha1
+kind: RuntimeRegistrationProtocol
+metadata:
+  name: ok141-m0b-runtime-registration-v1
+  ticket: OK-141
+  baseCommit: 78023ccb31a7c3f2e568b9dd789bb6f45716d574
+spec:
+  protocolVersion: ok141-m0b-runtime-registration/v1
+  protocolState: BLOCKED
+  purpose: Specify a bounded runtime registration bridge after target creation without authorizing it.
+  fixture:
+    fixtureDigest: sha256:a2ae3437645db5a83426b89d36d00693d2600e4ef20dc1aba2650dcda7f936f6
+    R: sha256:636fe23404ac53109f44d6346534dcf1367ae91c572d5e18bd32cd0a3128a16e
+    P: sha256:b0f25c639a45d895b889997f5ecc2325db45dd5d51b0684998c94d5e17bd47bf
+    targetName: disposable-ok141
+    targetKubernetesVersion: v1.36.2
+  installationPrerequisite:
+    plane: ok-shared
+    component: argocd
+    version: v3.4.2
+    state: COMPLETE
+    closureDigest: sha256:48d9d43c1c51338982a6143d7e6f04e77256682424172531ce0cdb224355f8ba
+  liveBaseline:
+    path: live-baseline-observation-v1.yaml
+    digest: sha256:a80ebe2376f9ebccf0c8ee7ee029af7834958cf5198957d66b0cc412cab55181
+    targetExists: false
+    clusterCredentialSecrets: 0
+    applications: 0
+    applicationSets: 0
+  authorization:
+    decision: NO-GO
+    runtimeRegistrationGranted: false
+    targetCredentialsGranted: false
+    platformSubmissionGranted: false
+    go1Granted: false
+    authorizedProtocolDigest: null
+    rule: This protocol and its digest identify a blocked proposal and grant no mutation authority.
+  candidates:
+    appProject: {path: appproject-v5-candidate.yaml, digest: sha256:9e689020d139a5811f6784ca768cf5b7228ff3844aed31ef6196d2c4916b5f72, applyEnabled: false}
+    targetAccess: {path: target-access-v1.template.yaml, digest: sha256:aeb7d1f65a1553bf8b004f0789f705d3c70b330d878bf6032b410491571fe29a, applyEnabled: false, objectCount: 8}
+    registration: {path: cluster-registration-v5.template.yaml, digest: sha256:fd989de0e4d97ffe333571e82ad91e796899de0c2ed03a18bc1f695ec1e7aadf, applyEnabled: false, containsCredential: false}
+  ordering:
+    predecessorConditions:
+      - current CAPI Cluster UID is observable on ok-mgmt
+      - current workload kube-system UID and API CA fingerprint are observable
+      - current target endpoint belongs to the same CAPI Cluster incarnation
+      - Enablement revision is current and NetworkReady is True
+    platformSubmissionAfterRegistrationOnly: true
+  identityChain:
+    required:
+      - CAPI Cluster UID
+      - workload kube-system UID
+      - workload API CA SHA-256
+      - workload API endpoint
+      - ServiceAccount token expiration timestamp
+      - Argo cluster Secret UID
+    nameOrEndpointAloneIsProof: false
+  credentialModel:
+    class: bounded-dev-tokenrequest-static-registration
+    serviceAccount: kube-system/ok141-argocd-manager
+    tokenRequestMaximumLifetimeSeconds: 10800
+    go1MaximumWallClockSeconds: 7200
+    nativeArgoRotationClaimed: false
+    productionSuitable: false
+    materialization: server-side-or-in-memory-only
+    secretBytesInGitOrEvidence: forbidden
+    expirationRetainedInEvidence: true
+    cleanupOrRevocationAuthorized: false
+    limitation: Argo CD does not refresh this static TokenRequest bearer token; expiry ends usability but is not a production credential lifecycle.
+  authorityBoundary:
+    project: openkubes-disposable
+    projectScopedClusterRequired: true
+    permitOnlyProjectScopedClusters: true
+    nativeDefaultProjectMustRemainUnused: true
+    namespaces: [ok-observability, kube-system]
+    namespacePrecreated: ok-observability
+    wildcardRBACAllowed: false
+    openKubesLifecycleWriterIntroduced: false
+  phases:
+    - {id: M0B-R0, name: verify-current-target-and-network-identity, mutating: false, enabled: false}
+    - {id: M0B-R1, name: create-reviewed-target-access-object-set, mutating: true, enabled: false}
+    - {id: M0B-R2, name: request-bounded-serviceaccount-token, mutating: true, enabled: false}
+    - {id: M0B-R3, name: materialize-project-and-project-scoped-registration, mutating: true, enabled: false}
+    - {id: M0B-R4, name: verify-registration-and-immutable-correlation, mutating: false, enabled: false}
+    - {id: M0B-R5, name: submit-exact-three-application-set, mutating: true, enabled: false}
+    - {id: M0B-R6, name: observe-platform-convergence-and-platformready, mutating: false, enabled: false}
+  blockers:
+    - {id: TARGET-NOT-YET-CREATED, status: BLOCKED, closure: A later GO-1 must create the exact disposable target before registration identity can be bound.}
+    - {id: TARGET-KUBERNETES-COMPATIBILITY, status: BLOCKED, closure: Accept or prove Argo CD v3.4.2 behavior against the fixture target Kubernetes v1.36.2.}
+    - {id: TARGET-ACCESS-CONTENT-BOUNDARY, status: BLOCKED, closure: Review and accept the create-content boundary of the exact eight-object target access set.}
+    - {id: TOKEN-LIFETIME-BOUNDARY, status: BLOCKED, closure: Review and accept bounded static TokenRequest expiry without native Argo rotation.}
+    - {id: SECRET-MATERIALIZER, status: BLOCKED, closure: Implement and review a redacting in-memory or server-side materializer that never persists credential bytes.}
+    - {id: TARGET-CAPABILITIES, status: BLOCKED, closure: Prove local-path availability and every required runtime Secret dependency on the disposable target.}
+    - {id: RUNTIME-ACCEPTANCE, status: BLOCKED, closure: Bind OpenSearch retention and real alert-delivery acceptance to the exact platform profile.}
+    - {id: GO1-AUTHORIZATION, status: BLOCKED, closure: Rebind this runtime subphase into a newly canonicalized GO-1 protocol and obtain an explicit grant.}
+  stopConditions:
+    - any runtime identity component is missing stale conflicting or does not correlate
+    - any candidate digest object count project namespace or exact resource scope differs
+    - any credential byte would be written to Git logs or retained evidence
+    - the requested token lifetime exceeds the bound maximum
+    - any Application or ApplicationSet exists before registration verification
+    - the native default project would become a consumer of the disposable target
+  exclusions:
+    - target access creation
+    - TokenRequest or credential materialization
+    - AppProject or cluster Secret creation
+    - Application or ApplicationSet submission
+    - Platform convergence
+    - GO-1 lifecycle submission
+    - rollback cleanup failure injection or outage testing

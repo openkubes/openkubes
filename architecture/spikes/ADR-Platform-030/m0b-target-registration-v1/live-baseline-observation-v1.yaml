@@ -1,0 +1,25 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: ReadOnlyObservation
+metadata:
+  name: ok141-m0b-target-registration-baseline-v1
+  ticket: OK-141
+  observedAt: "2026-08-13T12:39:00Z"
+spec:
+  mutationPerformed: false
+  managementPlane:
+    name: ok-mgmt
+    capiClusters: 0
+    machines: 0
+    machineDeployments: 0
+    disposableClusterExists: false
+  gitOpsPlane:
+    name: ok-shared
+    namespace: argocd
+    clusterCredentialSecrets: 0
+    applications: 0
+    applicationSets: 0
+    appProjects: [default]
+  conclusion:
+    targetIdentityPrebindable: false
+    reason: The disposable workload Cluster and its immutable runtime identity do not exist before a later GO-1 lifecycle transition.
+    requiredOrder: lifecycle-and-network-ready-before-runtime-target-registration
