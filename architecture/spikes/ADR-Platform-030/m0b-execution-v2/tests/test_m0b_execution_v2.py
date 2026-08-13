@@ -26,6 +26,7 @@ def load(name: str, path: Path):
 VERIFY = load("ok141_verify_m0b_execution_v2_test", HERE / "verify_m0b_execution_v2.py")
 EXECUTION = load("ok141_controlled_m0b_execution_v2_test", HERE / "controlled_m0b_execution_v2.py")
 READINESS = load("ok141_evaluate_m0b_readiness_v2_test", HERE / "evaluate_m0b_readiness_v2.py")
+READINESS_V22 = load("ok141_evaluate_m0b_readiness_v22_test", HERE / "evaluate_m0b_readiness_v2_2.py")
 
 
 class M0bExecutionV2Tests(unittest.TestCase):
@@ -63,6 +64,13 @@ class M0bExecutionV2Tests(unittest.TestCase):
         self.assertIsNone(grant["explicitGrantFields"]["grantID"])
         self.assertIsNone(grant["explicitGrantFields"]["validFrom"])
         self.assertIsNone(grant["explicitGrantFields"]["validUntil"])
+
+    def test_v22_binds_index_and_platform_child_separately(self) -> None:
+        candidate, _ = READINESS_V22.verify_candidate(HERE / "m0b-v2-2-readiness-candidate.yaml")
+        for image in candidate["spec"]["runtimeImageIdentity"]:
+            self.assertNotEqual(image["indexDigest"], image["linuxAmd64ChildManifestDigest"])
+        self.assertEqual(candidate["spec"]["nativeDefaultProject"]["riskState"], "PENDING-EXPLICIT-ACCEPTANCE")
+        self.assertFalse(any(candidate["spec"]["authorization"].values()))
 
 
 if __name__ == "__main__":
