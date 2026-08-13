@@ -1,0 +1,122 @@
+apiVersion: test.openkubes.io/v1alpha1
+kind: M0bTokenRequestAntiReplayCandidate
+metadata:
+  name: ok141-m0b-tokenrequest-antireplay-v1
+  ticket: OK-141
+  baseCommit: 8cb43ec42806668d335a52f61cbb22c9345588b9
+spec:
+  version: ok141-m0b-tokenrequest-antireplay/v1
+  state: OFFLINE-PROVEN-BLOCKED-NO-GO
+  references:
+    materializer:
+      path: ../m0b-registration-materializer-v1/m0b-registration-materializer-candidate-v1.yaml
+      digest: sha256:1922f8c6a73e00b6278b870d379f2123eb223070719da145d16b730b47cfb21d
+    riskAcceptance:
+      path: ../m0b-target-registration-risk-acceptance-v1/m0b-runtime-registration-risk-acceptance-v1.yaml
+      digest: sha256:e434233da0a53e18a34121b8d3e2b583f522f9c7d50290456839bff51f8e1beb
+    executable:
+      path: tokenrequest_antireplay_v1.py
+      digest: sha256:06f22e760188df331a49781319ead5b9a1d1e38f97d61008e36bae0be40eaf7c
+    offlineTests:
+      path: test_tokenrequest_antireplay_v1.py
+      digest: sha256:67c60ace866e258456d27ffbb1d82e69c3ddcfacce3b6cb2010d85f88bc2aa15
+      result: 12-PASS
+      credentialClass: SYNTHETIC-ONLY
+  scope:
+    included:
+      - validate an exact one-run grant and runtime target identity
+      - create a mode-0600 consumption receipt with O_EXCL before issuing a token
+      - send one bounded TokenRequest through kubectl standard input
+      - capture the TokenRequest response without printing raw subprocess output
+      - transfer the bearer token only through an inherited anonymous pipe or socket
+      - emit redacted expiration identity and receipt digest
+    excluded:
+      - obtain or persist a workload administrator kubeconfig
+      - create target RBAC or registration objects
+      - invoke the registration materializer
+      - store hash print log or publish the bearer token
+      - rotate revoke retry rollback cleanup submit Applications or execute GO-1
+  tokenRequest:
+    serviceAccount: kube-system/ok141-argocd-manager
+    endpoint: /api/v1/namespaces/kube-system/serviceaccounts/ok141-argocd-manager/token
+    apiVersion: authentication.k8s.io/v1
+    audience: RUNTIME-EXACT-GRANT-BOUND
+    expirationSeconds: 10800
+    responseExpirationValidated: true
+    nativeArgoRotationClaimed: false
+    tokenDigestRetained: false
+  antiReplay:
+    model: burn-before-use-exclusive-consumption-receipt
+    receiptCreation: O_CREAT-O_EXCL
+    receiptMode: "0600"
+    stateWrittenBeforeTokenRequest: CONSUMED-BEFORE-TOKENREQUEST
+    tokenOrCAInReceipt: false
+    secondAttemptWithSameReceipt: fail-closed
+    failedAttemptConsumesGrant: true
+    receiptDeletionPreventedByUtility: false
+    productionDurabilityClaimed: false
+    limitation: The receipt proves one attempt only while the bounded external evidence location remains intact; deletion or replacement is outside this utility's authority.
+  credentialHandling:
+    kubectlResponseCapturedInMemory: true
+    rawKubectlOutputPrinted: false
+    shellExecution: false
+    tokenSink: inherited-anonymous-pipe-or-socket-only
+    regularFileTokenSinkAccepted: false
+    stdoutOrStderrTokenSinkAccepted: false
+    tokenBytesInGitLogsReceiptOrEvidence: forbidden
+    tokenBytesZeroedAfterPipeWrite: best-effort-python-reference-drop
+    cryptographicMemoryErasureClaimed: false
+  grantRequirements:
+    decision: GO
+    tokenRequestGranted: true
+    antiReplayReceiptGranted: true
+    exactCandidateDigest: required
+    maximumRuns: 1
+    exactWindow: required
+    exactServiceAccount: required
+    exactAudience: required
+    exactExpirationSeconds: required
+    capiClusterUID: required-runtime-bound
+    workloadKubeSystemUID: required-runtime-bound
+    workloadAPICAFingerprint: required-runtime-bound
+  offlineEvidence:
+    exactGrantPasses: PASS
+    multiRunGrantFailsClosed: PASS
+    unboundRuntimeIdentityFailsClosed: PASS
+    wrongAudienceFailsClosed: PASS
+    receiptCreatedMode0600: PASS
+    receiptContainsNoToken: PASS
+    duplicateReceiptFailsClosed: PASS
+    tokenResponseParsedInMemory: PASS
+    tokenTransferredThroughPipe: PASS
+    tokenAbsentFromStdoutStderrReceipt: PASS
+    replayProducesNoToken: PASS
+    shellAndTokenDigestAbsent: PASS
+  unresolvedBeforeExecutionCandidate:
+    - bind and obtain the exact target workload administrator credential without publishing it
+    - observe the target API audience and bind it in the exact grant
+    - bind a local independent evidence directory and its DEV non-WORM retention claim
+    - wire the anonymous token pipe directly to the reviewed registration materializer
+    - add execution evidence proving exactly one receipt and one TokenRequest attempt
+    - reobserve CAPI UID workload UID CA endpoint NetworkReady and test-window authority
+  authorization:
+    decision: NO-GO
+    mutationAuthorized: false
+    antiReplayReceiptGranted: false
+    targetCredentialUseGranted: false
+    tokenRequestGranted: false
+    tokenPipeGranted: false
+    materializerExecutionGranted: false
+    targetAccessGranted: false
+    registrationGranted: false
+    applicationSubmissionGranted: false
+    retryGranted: false
+    rollbackOrCleanupGranted: false
+    evidencePublicationGranted: false
+    go1Granted: false
+    failureInjectionGranted: false
+  rules:
+    - Offline proof uses synthetic credentials only and grants no runtime or cluster authority.
+    - A failed post-consumption attempt burns the one-run grant and requires a new reviewed grant; retry is forbidden.
+    - Best-effort Python reference dropping is not a claim of cryptographic memory erasure.
+    - This utility issues a bounded credential but owns no lifecycle or Platform reconciliation semantics.
