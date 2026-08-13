@@ -1,0 +1,45 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: M0aV5LivePreflight
+metadata:
+  name: ok141-m0a-v5-live-preflight-v2
+  ticket: OK-141
+spec:
+  version: ok141-m0a-v5-live-preflight/v2
+  observedAt: "2026-08-13T06:44:15Z"
+  result: PASS
+  mutationPerformed: false
+  candidateDigest: sha256:a9c4a5e782b0d7a54d0dfb1f89a24914ad41d15d64977e07ab0a008c1bae2067
+  toolchain:
+    release: v1.34.1
+    commit: 93248f9ae092f571eb870b7664c534bfc7d00f03
+    platform: darwin/amd64
+    digest: sha256:bb211f2b31f2b3bc60562b44cc1e3b712a16a98e9072968ba255beb04cefcfdf
+  target:
+    plane: ok-mgmt
+    kubeSystemNamespaceUID: c3b45aab-d2a1-4e64-8f12-77b99186ad4a
+    kubernetesVersion: v1.34.1
+    admissionAPIAvailable: true
+  reviewedInstallation:
+    objectCount: 19
+    semanticDigest: sha256:01fc13d694da3304385a7bae0d1bd662d7c8c3d336b8a4d44da5324439d59095
+    exactIdentityAbsence: 19
+  lifecycleInventory:
+    clusters: 0
+    machines: 0
+    machineDeployments: 0
+  authorization:
+    decision: NO-GO
+    mutationAuthorized: false
+    retryGranted: false
+    credentialBootstrapGranted: false
+    admissionBootstrapGranted: false
+    caaphInstallationGranted: false
+    rollbackGranted: false
+    m0bInstallationGranted: false
+    go1Granted: false
+    evidencePublicationGranted: false
+    targetConvergenceGranted: false
+    failureInjectionGranted: false
+  rules:
+    - This fresh read-only observation does not revive or extend the expired grant.
+    - A fresh preflight remains mandatory inside any newly authorized run.

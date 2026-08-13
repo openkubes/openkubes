@@ -43,3 +43,21 @@ The read-only live preflight passed with the matched client and proved all 19
 identities absent. The `NO-GO` grant template still requires three new,
 distinct, exact grants, one UTC window, one run, and one absent raw evidence
 path. This checkpoint grants none of them.
+
+## Expired grant record (2026-08-12)
+
+The received v5 grant bound the UTC window `2026-08-12T20:10:00Z` through
+`2026-08-12T23:10:00Z`. It was received and evaluated only after that window
+had ended. It therefore authorized no mutation and consumed none of its three
+single-run grants.
+
+The fail-closed record is
+`m0a-expired-grant-v5-20260812.yaml`. A fresh read-only preflight is retained as
+`m0a-v5-live-preflight-v2.yaml`; it observed all 19 reviewed identities absent,
+zero CAPI lifecycle objects, the expected management-plane identity, and the
+bound kubectl toolchain. That observation does not revive or extend the expired
+grant.
+
+Any future v5 execution requires a new explicit UTC window, new grant IDs, and
+a newly bound raw-evidence path. Until then M0a remains `NOT GRANTED` and no
+infrastructure mutation is authorized.
