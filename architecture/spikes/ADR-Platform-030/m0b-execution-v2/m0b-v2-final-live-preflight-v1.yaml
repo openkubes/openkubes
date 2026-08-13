@@ -1,0 +1,58 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: M0bFinalLivePreflight
+metadata:
+  name: ok141-m0b-v2-final-live-preflight
+  ticket: OK-141
+spec:
+  version: ok141-m0b-final-live-preflight/v1
+  candidateDigest: sha256:2a3370b46fc70d7eeafb455dfa13fb4cbdf37d1189e801b581539e1ebec2ef3c
+  observations:
+    cluster:
+      observedAt: "2026-08-13T11:34:21.588453Z"
+      targetPlane: ok-shared
+      kubeSystemNamespaceUID: 46b9ecf7-2e7a-48b1-a6eb-7d11df396efb
+      kubernetesVersion: v1.34.1
+      reviewedTargetIdentities: 54
+      existingReviewedTargetIdentities: 0
+      nodes:
+        - {name: ok-shared-cp-z4gxn, uid: a05eb57a-fba8-4922-807e-18d950531c8b, architecture: amd64, ready: "True"}
+        - {name: ok-shared-workers-tkrlw-9c2dx, uid: b8f7f4b8-ab02-4673-8804-26d408470c30, architecture: amd64, ready: "True"}
+        - {name: ok-shared-workers-tkrlw-9gs5z, uid: 4ff8e1a0-6355-483f-bed5-5790f8084cc8, architecture: amd64, ready: "True"}
+        - {name: ok-shared-workers-tkrlw-ndzch, uid: a7d9c33c-3571-48db-98e4-a36e578276ba, architecture: amd64, ready: "True"}
+    administrator:
+      observedAt: "2026-08-13T11:34:34Z"
+      certificateSubject: O=system:masters,CN=kubernetes-admin
+      certificateIssuer: O=kubernetes
+      certificateSha256Fingerprint: D9:3D:53:56:E4:13:2D:54:D3:9B:74:10:C5:A2:61:79:0F:D0:49:A1:63:62:B7:76:77:D3:A3:C2:92:81:C4:BE
+      certificateNotBefore: "2026-07-22T12:55:37Z"
+      certificateNotAfter: "2027-07-22T12:55:42Z"
+      wildcardAuthorizationObserved: true
+    images:
+      observedAt: "2026-08-13T11:34:34Z"
+      platform: linux/amd64
+      identities:
+        - {reference: quay.io/argoproj/argocd:v3.4.2, digest: sha256:a8679d1bbf7679ad27bf39fadbd30e486f59446eadd4f5c2c11ce6a41053a216}
+        - {reference: ghcr.io/dexidp/dex:v2.45.0, digest: sha256:8a9281c3a115180415b0726ca160e38fc40f9284bc9a2d1032c839a3a934695c}
+        - {reference: public.ecr.aws/docker/library/redis:8.2.3-alpine, digest: sha256:e499175dfb27569cd40010c2eee346113db95fdd0efc88ab9fd70a9e807f4542}
+  closedRequirements:
+    M0B2-SOURCE-REFRESH: PASS-POINT-IN-TIME
+    M0B2-LIVE-INCARNATION: PASS-POINT-IN-TIME
+    M0B2-ADMIN-IDENTITY: PASS-POINT-IN-TIME
+    M0B2-OBJECT-ABSENCE: PASS-POINT-IN-TIME
+    M0B2-IMAGE-IDENTITY: PASS-POINT-IN-TIME
+  result: PASS-POINT-IN-TIME-NO-GO
+  operation: READ-ONLY
+  clusterContacted: true
+  mutationPerformed: false
+  authorization:
+    mutationAuthorized: false
+    m0bInstallationGranted: false
+    rollbackGranted: false
+    targetRegistrationGranted: false
+    targetConvergenceGranted: false
+    go1Granted: false
+    failureInjectionGranted: false
+  rules:
+    - This evidence is point-in-time and must be refreshed if the target, sources, images, administrator identity, or candidate changes.
+    - It closes no grant window and authorizes no mutation.
+    - Raw Secret data, credentials, kubeconfig bytes, tokens, and private keys are absent.

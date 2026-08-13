@@ -1,0 +1,49 @@
+apiVersion: test.openkubes.io/v1alpha1
+kind: M0bReadinessCandidate
+metadata:
+  name: ok141-m0b-v2-runtime-readiness
+  ticket: OK-141
+spec:
+  version: ok141-m0b-readiness/v2
+  state: READY-READ-ONLY-NO-GO
+  references:
+    executionCandidate:
+      path: m0b-v2-execution-candidate.yaml
+      digest: sha256:2a3370b46fc70d7eeafb455dfa13fb4cbdf37d1189e801b581539e1ebec2ef3c
+    finalLivePreflight:
+      path: m0b-v2-final-live-preflight-v1.yaml
+      digest: sha256:6b58e3ddce017732155276288f028f6f1b7ac74155d4dddd52c78d02e495f6e3
+    evaluator:
+      path: evaluate_m0b_readiness_v2.py
+      digest: sha256:e8e2f1b843a88a81a5a12c2b85063839c4a0b14f113167a32a3733aa34ae3130
+  target:
+    plane: ok-shared
+    kubeSystemNamespaceUID: 46b9ecf7-2e7a-48b1-a6eb-7d11df396efb
+    namespace: argocd
+  assertions:
+    reviewedObjectsPresent: 54
+    establishedCRDs: 3
+    readyWorkloads: 7
+    readyPods: 7
+    exactRuntimeImageIdentityRequired: true
+    applicationsAcrossAllNamespaces: 0
+    applicationSetsAcrossAllNamespaces: 0
+    appProjectsAcrossAllNamespaces: 0
+  evidence:
+    localOutputPath: /private/tmp/ok141-m0b-v2-readiness-evidence-20260813.json
+    createMode: O_EXCL-0600
+    rawSecretDataRetained: false
+    rawEvidenceCommittedOrPublished: false
+    redactedPublicationRequiresSeparateGrant: true
+  claimBoundary:
+    - Create acceptance is not runtime readiness.
+    - This evaluator observes and fails closed; it does not create patch retry repair or roll back resources.
+    - Argo installation readiness is not target registration Platform convergence PlatformReady or GO-1.
+  authorization:
+    mutationAuthorized: false
+    retryGranted: false
+    rollbackGranted: false
+    targetRegistrationGranted: false
+    targetConvergenceGranted: false
+    go1Granted: false
+    failureInjectionGranted: false
