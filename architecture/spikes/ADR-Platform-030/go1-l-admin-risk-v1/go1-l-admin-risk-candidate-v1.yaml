@@ -1,0 +1,78 @@
+apiVersion: security.openkubes.io/v1alpha1
+kind: GO1LAdminRiskCandidate
+metadata:
+  name: ok141-go1-l-dev-admin-risk-v1
+  ticket: OK-141
+  baseCommit: 0717f5bfee769a94662278f9e5def2eb3152f15f
+spec:
+  version: ok141-go1-l-admin-risk/v1
+  state: RISK-ACCEPTANCE-REQUIRED-NO-GO
+  sourceDecision:
+    path: ../go1-l-dev-admin-decision-v1/go1-l-dev-admin-decision-v1.yaml
+    digest: sha256:f5cebe20bfe8059cec2bbf55324d753821df0cb439568495194242d253595c5c
+  sourcePreflight:
+    path: ../go1-l-admin-preflight-v1/go1-l-admin-preflight-candidate-v1.yaml
+    digest: sha256:3a3187c79779e048337fd2d6c35473a3c97f900330082721e3b318a5c9e6a12f
+  sourceSubmitter:
+    path: ../go1-l-submitter-v1/go1-l-submitter-candidate-v1.yaml
+    digest: sha256:e5b4185b7dcd4f1e3fb026d03ce29b5b35e0b6c5c6e51f29d921a240636b73cc
+  riskClaims:
+    administratorAuthority:
+      claim: The selected credential may hold full administrator authority on its target plane; Kubernetes RBAC does not constrain the exact Create names or content.
+      consequence: Credential misuse, submitter compromise, or operator error could mutate resources outside the reviewed set.
+      mitigation: Fixed digest-bound tool and object sets, separate exact grants, local mode-0600 material, no free-form CLI, and redacted evidence.
+      residualRisk: ACCEPTANCE-REQUIRED
+    grantVersusCredentialLifetime:
+      claim: A 15- or 20-minute protocol grant limits authorized use but does not cryptographically expire or revoke an existing long-lived administrator certificate or token.
+      consequence: Deleting a temporary local kubeconfig copy ends the bounded workflow but may not invalidate the underlying credential.
+      mitigation: Use only the approved local copy during the exact window, prohibit persistence in arguments/environment/evidence, and verify local removal after the run.
+      residualRisk: ACCEPTANCE-REQUIRED
+    absenceCreateRace:
+      claim: Object-absence evidence and Create are separate API operations; another writer could create a reviewed identity between them.
+      consequence: Create may fail or encounter unexpected state despite a fresh five-minute preflight result.
+      mitigation: Freeze parallel lifecycle changes, run immediately after preflight, stop on any AlreadyExists or identity conflict, and perform no retry or overwrite.
+      residualRisk: ACCEPTANCE-REQUIRED
+    nonAtomicOperations:
+      claim: The 3-object, 8-object, and 1-object Create groups are not atomic, and the three groups are separately authorized.
+      consequence: Transport or API failure may leave a partial object graph while controllers begin reconciliation.
+      mitigation: Record exact UIDs and partial inventory, stop immediately, preserve state, and require a separate rollback/cleanup protocol and grant.
+      residualRisk: ACCEPTANCE-REQUIRED
+    controllerContinuation:
+      claim: Once accepted desired-state objects exist, CAPI/CAPK or CAAPH may continue reconciling after submitter exit or STOP.
+      consequence: Preserved partial state can continue changing without another submitter process.
+      mitigation: Independent observers remain active and abort/recovery authority decides any later separately authorized action.
+      residualRisk: ACCEPTANCE-REQUIRED
+    devRebuildBoundary:
+      claim: The DEV planes have no required point-in-time VM snapshot/restore safety net for this experiment; rebuild-on-loss was previously accepted.
+      consequence: Severe failure may require reinstalling DEV infrastructure rather than restoring exact prior machine state.
+      mitigation: Out-of-band access, known declarative sources, captured redacted evidence, and immediate stop on unrelated degradation.
+      residualRisk: ACCEPTANCE-REQUIRED
+  requiredAcceptance:
+    authority: github:arashkaffamanesh
+    accepted: false
+    acceptedCandidateDigest: null
+    exactStatement: "Ich akzeptiere für OK-141/GO1-L das dokumentierte DEV-ADMIN-CREATE-Risiko: die Administrator- und Create-Content-Grenze, die nur prozedurale Zeitbegrenzung eines möglicherweise langlebigen Admin-Credentials, das Absence-to-Create-TOCTOU-Fenster, nicht-atomaren Partial-State mit fortlaufender Controller-Reconciliation sowie den akzeptierten DEV-Rebuild-on-Loss-Pfad. Diese Akzeptanz erteilt keine Credential-Nutzung, keinen Preflight-Lauf, keine Objekt-Submission, keinen Retry oder Rollback und weder GO1-L noch GO-1."
+  authorization:
+    decision: NO-GO
+    credentialUseGranted: false
+    preflightGranted: false
+    submissionGranted: false
+    retryGranted: false
+    rollbackOrCleanupGranted: false
+    go1LGranted: false
+    go1Granted: false
+    failureInjectionGranted: false
+    grantIDs: []
+    authorizedDigest: null
+  conclusions:
+    technicalCandidateComplete: true
+    riskAcceptanceComplete: false
+    credentialUseReadyForDecision: false
+    go1LReadyForDecision: false
+    clusterContacted: false
+    mutationAuthorized: false
+    nextStep: Obtain exact acceptance of this candidate digest, then separately prepare runtime identity and grant candidates without using a credential.
+  exclusions:
+    - credential creation materialization use or revocation
+    - cluster contact preflight execution object submission retry rollback cleanup deletion or failure injection
+    - GO1-L GO-1 target registration Platform convergence or evidence publication
