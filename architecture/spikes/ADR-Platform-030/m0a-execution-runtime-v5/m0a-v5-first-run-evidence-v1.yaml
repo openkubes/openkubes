@@ -1,0 +1,134 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: M0aExecutionEvidence
+metadata:
+  name: ok141-m0a-v5-first-run-20260813
+  ticket: OK-141
+spec:
+  version: ok141-m0a-execution-evidence/v5-redacted
+  state: STOP-NOT-SUCCESS
+  references:
+    candidate:
+      path: ../m0a-execution-v5/m0a-execution-candidate-v5.yaml
+      digest: sha256:a9c4a5e782b0d7a54d0dfb1f89a24914ad41d15d64977e07ab0a008c1bae2067
+    grantDigest: sha256:1e153dfe4354b3d023e3f0cfcd14c38f7a342ea6ba5f403e3dece3f67a597370
+    grantIDs:
+      - ok141-m0a-c1-v5-20260813-02
+      - ok141-m0a-a1-v5-20260813-02
+      - ok141-m0a-i-v5-20260813-02
+  execution:
+    startedAt: "2026-08-13T07:00:48.721625Z"
+    finishedAt: "2026-08-13T07:12:30.999924Z"
+    maximumRuns: 1
+    runsConsumed: 1
+    retryAuthorized: false
+    result: STOP-NOT-SUCCESS
+    rawLocalEvidenceDigest: sha256:97c8f5fc2d36e30700ef7462f540f809bd5c8852f54707487efd52242594573b
+    rawLocalEvidencePublishable: false
+  preflight:
+    target:
+      plane: ok-mgmt
+      kubeSystemNamespaceUID: c3b45aab-d2a1-4e64-8f12-77b99186ad4a
+      kubernetesVersion: v1.34.1
+    toolchain:
+      release: v1.34.1
+      commit: 93248f9ae092f571eb870b7664c534bfc7d00f03
+      platform: darwin/amd64
+      digest: sha256:bb211f2b31f2b3bc60562b44cc1e3b712a16a98e9072968ba255beb04cefcfdf
+    source:
+      reviewedObjectCount: 19
+      semanticDigest: sha256:01fc13d694da3304385a7bae0d1bd662d7c8c3d336b8a4d44da5324439d59095
+      exactIdentityAbsence: 19
+    lifecycleInventory:
+      clusters: 0
+      machines: 0
+      machineDeployments: 0
+    result: PASS
+  authorizationProbes:
+    result: PASS
+    createResourceTypes: 14
+    exactGetTargets: 19
+    negativeAuthorizationProbes: 11
+    negativeAdmissionProbes: 1
+    tokenRequestSubresourceDenied: true
+  bootstrap:
+    temporaryObjectCount: 5
+    policyObservedGeneration: 1
+    policyExpressionWarnings: 0
+    cleanupRemovedAllObjects: true
+  credential:
+    tokenRequestReached: true
+    audience: https://192.168.100.200:6443
+    requestedAt: "2026-08-13T07:00:51.684514Z"
+    expiresAt: "2026-08-13T07:10:51Z"
+    tokenMaterialRetained: false
+    temporaryKubeconfigRetained: false
+    rejectionProbe:
+      configuredDeadline: expirationTimestamp-plus-100s
+      result: NOT-PROVEN
+      apiContactAttempted: false
+      causeClassification: LOCAL-SUBSECOND-BOUNDARY-RACE
+      observation: The local fail-closed guard sampled immediately before the exact whole-second boundary after sleep returned early.
+      claimBoundary: This run proves neither rejection nor authentication after expirationTimestamp plus 100 seconds.
+  installation:
+    attempted: true
+    operation: create-exact-19-object-stream
+    maximumSubmissions: 1
+    submissionsConsumed: 1
+    result: FAILED
+    failureType: ExecutionError
+    responseBodyRetained: true
+    responseBodyBounded: true
+    responseBodyTruncated: true
+    payloadRetained: false
+    causeClassification: ADMISSION-OPTIONAL-NAMESPACE-FIELD-ACCESS
+    cause: The identity CEL expression accessed request.namespace without guarding its absence on cluster-scoped requests.
+    postSubmissionInventory:
+      expected: 19
+      present: 0
+      absent: 19
+  postFailureObservation:
+    observedAt: "2026-08-13T07:14:43Z"
+    exactIdentityAbsence: 19
+    caaphInstallationObjectsPresent: 0
+    temporaryBootstrapObjectsPresent: 0
+    lifecycleObjectsPresent: 0
+    cleanupMutationPerformedByFollowup: false
+    automaticRollbackPerformed: false
+  conclusion:
+    createOnlySubmissionAttempted: true
+    caaphInstalled: false
+    partialInstallationPresent: false
+    bootstrapObjectsRetained: false
+    secretMaterialRetained: false
+    tokenRejectionProven: false
+    tokenAuthenticationAfterConfiguredDeadlineProven: false
+    grantReusable: false
+    retryAllowed: false
+    rollbackNeeded: false
+    newCandidateRequired: true
+    admissionNamespacePresenceGuardRequired: true
+    monotonicPostBoundaryWaitRequired: true
+  authorization:
+    evidencePublicationGranted: false
+    retryGranted: false
+    cleanupGranted: false
+    rollbackGranted: false
+    m0bInstallationGranted: false
+    go1Granted: false
+    targetConvergenceGranted: false
+    failureInjectionGranted: false
+  redaction:
+    secretsIncluded: false
+    tokensIncluded: false
+    kubeconfigsIncluded: false
+    privateKeysIncluded: false
+    certificatePayloadsIncluded: false
+    localTemporaryPathIncluded: false
+    temporaryObjectUIDsIncluded: false
+    rawResponseBodyIncluded: false
+  rules:
+    - This evidence must never be relabeled as successful CAAPH installation or token rejection.
+    - Zero retained CAAPH objects removes the need for rollback but grants no retry.
+    - All three v5 grants are consumed and cannot be reused.
+    - The raw local evidence and local grant remain excluded from Git.
+    - Publication retry rollback M0b-I GO-1 target convergence and failure injection remain NOT GRANTED.
