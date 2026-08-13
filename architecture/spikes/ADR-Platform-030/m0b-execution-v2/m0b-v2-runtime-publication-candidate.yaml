@@ -1,0 +1,48 @@
+apiVersion: authorization.openkubes.io/v1alpha1
+kind: EvidencePublicationCandidate
+metadata:
+  name: ok141-m0b-v2-runtime-redacted
+  ticket: OK-141
+spec:
+  version: ok141-m0b-runtime-publication-candidate/v1
+  state: READY-FOR-SEPARATE-PUBLICATION-GRANT
+  closureDigest: sha256:48d9d43c1c51338982a6143d7e6f04e77256682424172531ce0cdb224355f8ba
+  proposedFiles:
+    - {path: README.md, digest: sha256:5a41e39487eecf46bfbd34283b8983ffe93bc6aa7fa72553552a1d5c126f1bd2}
+    - {path: m0b-v2-installation-grant-v1.yaml, digest: sha256:f01757496a4b6b4c3af088b20ec901702e53b7f90114431311f6b877f84ea37e}
+    - {path: evaluate_m0b_readiness_v2_2.py, digest: sha256:ef8467930470d0d197edf938905917d2900af82ed85e9c4c34a6a4e34b1d0476}
+    - {path: m0b-v2-2-readiness-candidate.yaml, digest: sha256:28f787bbeacf68345392826a0f651540591b6fd42d6c17f96071d3ec9bfd976a}
+    - {path: m0b-v2-2-readiness-observation-grant-candidate.yaml, digest: sha256:1356f4c4be1912b32df2558cbe0602d0ce86478dfc770482227e757cda0f84ad}
+    - {path: m0b-v2-2-default-project-risk-acceptance-v1.yaml, digest: sha256:2ec1617e08e79f6047dd65d974135a26ec65c4bc591cbcc3dcec04d879a338fb}
+    - {path: m0b-v2-2-readiness-observation-grant-v1.yaml, digest: sha256:cfa5ebb924bbc5268d6730f5df5b89e280c9a95dcf58f7f4cd4f05598f1d9f40}
+    - {path: m0b-v2-runtime-evidence-redacted-v1.yaml, digest: sha256:cbb4902fef1b34b88a9acbb7453bafc916f7b6a0239245184acd1b56cc42bdc0}
+    - {path: m0b-v2-runtime-closure-v1.yaml, digest: sha256:48d9d43c1c51338982a6143d7e6f04e77256682424172531ce0cdb224355f8ba}
+    - {path: verify_m0b_v2_runtime_closure.py, digest: sha256:0e9647df2e953f5d88c39bf4382f7c9bc8734908fe68f155d12cfaad77a7aea6}
+    - {path: tests/test_m0b_execution_v2.py, digest: sha256:7c66019c8ce6d6febbb9c267e1e16544a9b39142053cb0d962c7c0cdc932864e}
+    - {path: tests/test_m0b_v2_runtime_closure.py, digest: sha256:1b9b35ceb13bafc1ce93325884a9481e9401f13b8d4def54cff6cdac321f1336}
+  explicitlyExcluded:
+    - /private/tmp/ok141-m0b-v2-execution-evidence-20260813.json
+    - /private/tmp/ok141-m0b-v2-readiness-evidence-20260813.json
+    - /private/tmp/ok141-m0b-v2-2-readiness-evidence-20260813.json
+    - credentials kubeconfigs tokens private keys and Secret data
+    - architecture/spikes/ADR-Platform-030/go1/
+  redactionReview:
+    secretDataIncluded: false
+    credentialsIncluded: false
+    kubeconfigsIncluded: false
+    tokensIncluded: false
+    privateKeysIncluded: false
+    rawEvidenceIncluded: false
+  authorization:
+    decision: NO-GO
+    commitGranted: false
+    pushGranted: false
+    pullRequestGranted: false
+    evidencePublicationGranted: false
+    targetRegistrationGranted: false
+    targetConvergenceGranted: false
+    go1Granted: false
+    failureInjectionGranted: false
+  rules:
+    - This candidate authorizes no commit push pull request publication or infrastructure action.
+    - A publication grant must cite the exact candidate digest and may publish only the listed files.

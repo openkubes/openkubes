@@ -1,0 +1,41 @@
+apiVersion: authorization.openkubes.io/v1alpha1
+kind: M0bReadinessObservationGrant
+metadata:
+  name: ok141-m0b-v2-2-runtime-readiness
+  ticket: OK-141
+spec:
+  version: ok141-m0b-readiness-observation-grant/v2.2
+  state: GRANTED
+  grantCandidateDigest: sha256:1356f4c4be1912b32df2558cbe0602d0ce86478dfc770482227e757cda0f84ad
+  readinessCandidateDigest: sha256:28f787bbeacf68345392826a0f651540591b6fd42d6c17f96071d3ec9bfd976a
+  decision: GO-READ-ONLY
+  authority: github:arashkaffamanesh
+  grantID: ok141-m0b-r1-v2-2-20260813-01
+  validFrom: "2026-08-13T12:05:00Z"
+  validUntil: "2026-08-13T13:05:00Z"
+  maximumRuns: 1
+  operation: READ-ONLY-M0B-RUNTIME-EVALUATION
+  rawEvidencePath: /private/tmp/ok141-m0b-v2-2-readiness-evidence-20260813.json
+  exclusions:
+    - installation-retry
+    - rollback
+    - evidence-publication
+    - target-registration
+    - target-credentials
+    - target-convergence
+    - platform-convergence
+    - go-1
+    - failure-injection
+  authorization:
+    readOnlyObservationGranted: true
+    mutationAuthorized: false
+    evidencePublicationGranted: false
+    rollbackGranted: false
+    targetRegistrationGranted: false
+    targetConvergenceGranted: false
+    go1Granted: false
+    failureInjectionGranted: false
+  rules:
+    - Exactly one evaluator invocation is authorized during the active UTC window.
+    - The evaluator may only read Kubernetes state and create the exact local O_EXCL evidence file.
+    - No retry overwrite publication or Kubernetes mutation is authorized.

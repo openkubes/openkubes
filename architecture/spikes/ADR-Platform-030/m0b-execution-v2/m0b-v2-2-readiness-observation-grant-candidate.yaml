@@ -1,0 +1,50 @@
+apiVersion: authorization.openkubes.io/v1alpha1
+kind: M0bReadinessObservationGrantCandidate
+metadata:
+  name: ok141-m0b-v2-2-runtime-readiness
+  ticket: OK-141
+spec:
+  version: ok141-m0b-readiness-observation-grant-candidate/v2.2
+  state: READY-FOR-EXPLICIT-READ-ONLY-GRANT
+  readinessCandidateDigest: sha256:28f787bbeacf68345392826a0f651540591b6fd42d6c17f96071d3ec9bfd976a
+  supersededFailedEvidence:
+    path: /private/tmp/ok141-m0b-v2-readiness-evidence-20260813.json
+    digest: sha256:edc0fda2e7db92071a41f177eef2dd4a072296929061548b31c00b07e5b71115
+    result: FAIL-CLOSED
+    retainedLocally: true
+    overwriteAllowed: false
+  requestedObservation:
+    targetPlane: ok-shared
+    operation: READ-ONLY-M0B-RUNTIME-EVALUATION
+    maximumRuns: 1
+    rawEvidencePath: /private/tmp/ok141-m0b-v2-2-readiness-evidence-20260813.json
+    clusterMutationAllowed: false
+  explicitGrantFields:
+    authority: github:arashkaffamanesh
+    grantID: null
+    validFrom: null
+    validUntil: null
+  exclusions:
+    - installation-retry
+    - rollback
+    - target-registration
+    - target-credentials
+    - target-convergence
+    - platform-convergence
+    - evidence-publication
+    - go-1
+    - failure-injection
+  authorization:
+    decision: NO-GO
+    readOnlyObservationGranted: false
+    mutationAuthorized: false
+    evidencePublicationGranted: false
+    rollbackGranted: false
+    targetRegistrationGranted: false
+    targetConvergenceGranted: false
+    go1Granted: false
+    failureInjectionGranted: false
+  rules:
+    - This candidate authorizes no read or write operation by itself.
+    - A future grant must cite this document digest and bind exactly one active UTC window and the exact new O_EXCL evidence path.
+    - The corrected evaluator may only observe; it may not repair retry roll back or publish.

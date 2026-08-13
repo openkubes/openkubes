@@ -1,0 +1,45 @@
+apiVersion: authorization.openkubes.io/v1alpha1
+kind: M0bInstallationGrant
+metadata:
+  name: ok141-m0b-v2-direct-admin-create-only
+  ticket: OK-141
+spec:
+  version: ok141-m0b-installation-grant/v2
+  state: GRANTED
+  grantCandidateDigest: sha256:72c375736a6061440a21a8c9ee891ef25ba482f2fc545a9ccf783a953063a9ee
+  candidateDigest: sha256:2a3370b46fc70d7eeafb455dfa13fb4cbdf37d1189e801b581539e1ebec2ef3c
+  decision: GO
+  authority: github:arashkaffamanesh
+  grantID: ok141-m0b-i-v2-20260813-01
+  validFrom: "2026-08-13T11:50:00Z"
+  validUntil: "2026-08-13T14:50:00Z"
+  maximumRuns: 1
+  m0bInstallationGranted: true
+  rawEvidencePath: /private/tmp/ok141-m0b-v2-execution-evidence-20260813.json
+  operation:
+    targetPlane: ok-shared
+    mode: DIRECT-ADMIN-TWO-PHASE-CREATE-ONLY
+    phase1Objects: 4
+    phase2Objects: 50
+  exclusions:
+    - retry
+    - rollback
+    - target-registration
+    - target-credentials
+    - AppProject-Application-ApplicationSet-submission
+    - target-convergence
+    - platform-convergence
+    - go-1
+    - failure-injection
+  authorization:
+    retryGranted: false
+    rollbackGranted: false
+    targetRegistrationGranted: false
+    targetConvergenceGranted: false
+    go1Granted: false
+    failureInjectionGranted: false
+  rules:
+    - The grant authorizes exactly one invocation of the bound execution candidate during the active UTC window.
+    - Source materialization and the read-only live preflight must pass immediately before execution.
+    - Any create failure stops the run without retry or automatic rollback.
+    - Create acceptance is not runtime readiness, target registration, or platform convergence.

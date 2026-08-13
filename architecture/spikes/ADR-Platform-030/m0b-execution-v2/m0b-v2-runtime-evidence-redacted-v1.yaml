@@ -1,0 +1,81 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: M0bRuntimeEvidenceCheckpoint
+metadata:
+  name: ok141-m0b-v2-runtime-redacted
+  ticket: OK-141
+spec:
+  version: ok141-m0b-runtime-evidence/v2.2
+  evidenceClass: VERIFIED-REDACTED-DEV
+  target:
+    plane: ok-shared
+    kubeSystemNamespaceUID: 46b9ecf7-2e7a-48b1-a6eb-7d11df396efb
+    namespace: argocd
+    kubernetesVersion: v1.34.1
+  bindings:
+    executionCandidateDigest: sha256:2a3370b46fc70d7eeafb455dfa13fb4cbdf37d1189e801b581539e1ebec2ef3c
+    installationGrantCandidateDigest: sha256:72c375736a6061440a21a8c9ee891ef25ba482f2fc545a9ccf783a953063a9ee
+    installationGrantDigest: sha256:f01757496a4b6b4c3af088b20ec901702e53b7f90114431311f6b877f84ea37e
+    installationGrantID: ok141-m0b-i-v2-20260813-01
+    readinessCandidateDigest: sha256:28f787bbeacf68345392826a0f651540591b6fd42d6c17f96071d3ec9bfd976a
+    readinessObservationGrantCandidateDigest: sha256:1356f4c4be1912b32df2558cbe0602d0ce86478dfc770482227e757cda0f84ad
+    readinessObservationGrantDigest: sha256:cfa5ebb924bbc5268d6730f5df5b89e280c9a95dcf58f7f4cd4f05598f1d9f40
+    readinessObservationGrantID: ok141-m0b-r1-v2-2-20260813-01
+    defaultProjectRiskAcceptanceDigest: sha256:2ec1617e08e79f6047dd65d974135a26ec65c4bc591cbcc3dcec04d879a338fb
+  rawLocalEvidence:
+    committedOrPublished: false
+    files:
+      - path: /private/tmp/ok141-m0b-v2-execution-evidence-20260813.json
+        digest: sha256:3d32e197f4cedcf8a11b66c595bb00ec76893fdf6a60e30f76d7f83f00dfdecc
+        mode: "0600"
+        result: CREATE-PHASES-ACCEPTED-RUNTIME-READINESS-PENDING
+      - path: /private/tmp/ok141-m0b-v2-readiness-evidence-20260813.json
+        digest: sha256:edc0fda2e7db92071a41f177eef2dd4a072296929061548b31c00b07e5b71115
+        mode: "0600"
+        result: FAIL-CLOSED-RUNTIME-INDEX-SEMANTICS
+      - path: /private/tmp/ok141-m0b-v2-2-readiness-evidence-20260813.json
+        digest: sha256:7901c18015df5a6498b56afd9f0f374408447f71dc76b6b98d7fd2a4fcc1735f
+        mode: "0600"
+        result: PASS-RUNTIME-NATIVE-DEFAULT-PROJECT-RISK-PENDING
+  installation:
+    observedAt: "2026-08-13T11:52:03.555104Z"
+    operation: DIRECT-ADMIN-TWO-PHASE-CREATE-ONLY
+    phase1: {objects: 4, result: CREATE-ACCEPTED, transportDigest: sha256:c997fdc9c533d71e86815086563cab4b62a837beb67bacff9944d3f0080dceec}
+    phase2: {objects: 50, result: CREATE-ACCEPTED, transportDigest: sha256:80549258ced8b0d7f5e4524a2fb196aa471527c758ac4d28d6955aca1003fae3}
+    retryPerformed: false
+    rollbackPerformed: false
+  readiness:
+    observedAt: "2026-08-13T12:19:04.143250Z"
+    reviewedObjectsPresent: 54
+    crdsEstablished: 3
+    deploymentsReady: 6
+    statefulSetsReady: 1
+    podsReady: 7
+    podRestartsObservedAtEvaluation: 0
+    runtimeIndexDigests:
+      quay.io/argoproj/argocd:v3.4.2: sha256:c612d570cb6d6ff29afb72932c1bfe98a1ecc234df50f8ea4873fb7066e760fc
+      ghcr.io/dexidp/dex:v2.45.0: sha256:b8469881d3cb3a73001506f0d3aaefecb9c45d2311c1e0f405d8ac538316c59d
+      public.ecr.aws/docker/library/redis:8.2.3-alpine: sha256:08ad0b1d280850169a790dba1393ff7a90aef951fc19632cf4d3ce4f78e679ba
+  targetState:
+    openKubesSubmittedObjects: 0
+    applications: 0
+    applicationSets: 0
+    appProjects: 1
+    nativeDefaultProject:
+      identity: AppProject/argocd/default
+      uid: fb4415ce-5303-4526-8616-833ebf54b900
+      generation: 1
+      origin: Argo CD v3.4.2 initializeDefaultProject
+      wildcardBoundaryAccepted: true
+  redaction:
+    secretDataIncluded: false
+    credentialsIncluded: false
+    kubeconfigsIncluded: false
+    tokensIncluded: false
+    privateKeysIncluded: false
+  authorization:
+    evidencePublicationGranted: false
+    targetRegistrationGranted: false
+    targetConvergenceGranted: false
+    go1Granted: false
+    failureInjectionGranted: false
+

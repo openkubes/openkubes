@@ -19,19 +19,24 @@ digests. The executor writes raw local evidence with `O_EXCL` and mode `0600`
 before the first create and after each accepted phase. It never retries or rolls
 back automatically.
 
-Create acceptance is deliberately distinct from readiness. The separate
-read-only evaluator requires all 54 reviewed objects, three Established CRDs,
-seven Ready workloads and Pods, exact runtime image identities, and zero Argo
-target-state custom resources. Runtime evidence remains local under
-`/private/tmp`; publication requires a separate grant.
+Create acceptance is deliberately distinct from readiness. The initial v2
+evaluator failed closed because Kubernetes CRI reports the pulled multi-arch
+index digest, not the selected platform-child digest. Runtime also proved that
+Argo CD natively creates `AppProject/argocd/default` during server bootstrap.
+The additive v2.2 evaluator binds both image identities and accepts exactly that
+native object while requiring zero OpenKubes-submitted target-state objects.
+Runtime evidence remains local under `/private/tmp`; publication requires a
+separate grant.
 
 Current state:
 
 ```text
-Execution candidate:  READY-FOR-FINAL-PREFLIGHT-NO-GO
-Final preflight:      PASS-POINT-IN-TIME-NO-GO
-Grant candidate:      READY-FOR-EXPLICIT-GRANT / NO-GO
-M0b-I:                NOT GRANTED
+Execution candidate:  CONSUMED-EXACTLY-ONCE
+Create phases:        4 + 50 ACCEPTED
+Runtime readiness:    PASS (v2.2)
+M0b-I:                COMPLETE LOCALLY
+Native default project risk: ACCEPTED WHILE NO TARGET STATE IS SUBMITTED
+Evidence publication: NOT GRANTED
 Target registration: NOT GRANTED
 Platform convergence: NOT GRANTED
 GO-1:                 NOT GRANTED
@@ -42,6 +47,7 @@ Offline verification:
 
 ```bash
 python3 architecture/spikes/ADR-Platform-030/m0b-execution-v2/verify_m0b_execution_v2.py
+python3 architecture/spikes/ADR-Platform-030/m0b-execution-v2/verify_m0b_v2_runtime_closure.py --with-raw
 python3 -m unittest discover \
   -s architecture/spikes/ADR-Platform-030/m0b-execution-v2/tests \
   -p 'test_*.py'

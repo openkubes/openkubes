@@ -1,0 +1,37 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: M0bRuntimeClosure
+metadata:
+  name: ok141-m0b-v2-runtime-closure
+  ticket: OK-141
+spec:
+  version: ok141-m0b-runtime-closure/v2.2
+  state: COMPLETE-LOCALLY-PUBLICATION-NOT-GRANTED
+  redactedEvidence:
+    path: m0b-v2-runtime-evidence-redacted-v1.yaml
+    digest: sha256:cbb4902fef1b34b88a9acbb7453bafc916f7b6a0239245184acd1b56cc42bdc0
+  conclusions:
+    installationSetCreatedExactlyOnce: true
+    reviewedObjectsPresent: 54
+    runtimeReady: true
+    runtimeImageIdentityVerified: true
+    nativeDefaultProjectObserved: true
+    nativeDefaultProjectRiskAccepted: true
+    openKubesSubmittedTargetStateObjects: 0
+    m0bInstallationComplete: true
+    m0bTargetRegistrationComplete: false
+    platformConvergenceComplete: false
+    go1Complete: false
+  ownership:
+    argoControlPlaneConvergence: Argo CD native workloads
+    targetDesiredState: NOT-SUBMITTED
+    openKubesReconcilerRequiredByThisEvidence: false
+  authorization:
+    evidencePublicationGranted: false
+    targetRegistrationGranted: false
+    targetConvergenceGranted: false
+    go1Granted: false
+    failureInjectionGranted: false
+  rules:
+    - The raw local Evidence remains excluded from Git and every publication target.
+    - This closure does not authorize using the native default project or registering any target.
+    - Any future target registration must replace or explicitly constrain the wildcard default-project boundary before use.

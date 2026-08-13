@@ -1,0 +1,89 @@
+apiVersion: test.openkubes.io/v1alpha1
+kind: M0bReadinessCandidate
+metadata:
+  name: ok141-m0b-v2-2-runtime-readiness
+  ticket: OK-141
+spec:
+  version: ok141-m0b-readiness/v2.2
+  state: READY-READ-ONLY-CORRECTION-NO-GO
+  references:
+    executionCandidate:
+      path: m0b-v2-execution-candidate.yaml
+      digest: sha256:2a3370b46fc70d7eeafb455dfa13fb4cbdf37d1189e801b581539e1ebec2ef3c
+    finalLivePreflight:
+      path: m0b-v2-final-live-preflight-v1.yaml
+      digest: sha256:6b58e3ddce017732155276288f028f6f1b7ac74155d4dddd52c78d02e495f6e3
+    supersededEvaluator:
+      path: evaluate_m0b_readiness_v2.py
+      digest: sha256:e8e2f1b843a88a81a5a12c2b85063839c4a0b14f113167a32a3733aa34ae3130
+    evaluator:
+      path: evaluate_m0b_readiness_v2_2.py
+      digest: sha256:ef8467930470d0d197edf938905917d2900af82ed85e9c4c34a6a4e34b1d0476
+  failedV2EvidenceDigest: sha256:edc0fda2e7db92071a41f177eef2dd4a072296929061548b31c00b07e5b71115
+  correction:
+    finding: Kubernetes CRI status.imageID reports the pulled multi-arch index digest for all three images on this target, not the selected linux-amd64 child-manifest digest.
+    semanticBoundary: Both the immutable index and linux-amd64 child remain bound; runtime imageID is compared to the index while the target architecture remains amd64.
+    installationChanged: false
+    clusterMutationRequired: false
+    additionalFinding: Argo CD server natively creates AppProject/argocd/default with wildcard source destination and cluster-resource permissions during bootstrap.
+  target:
+    plane: ok-shared
+    kubeSystemNamespaceUID: 46b9ecf7-2e7a-48b1-a6eb-7d11df396efb
+    namespace: argocd
+    architecture: amd64
+  runtimeImageIdentity:
+    - reference: quay.io/argoproj/argocd:v3.4.2
+      indexDigest: sha256:c612d570cb6d6ff29afb72932c1bfe98a1ecc234df50f8ea4873fb7066e760fc
+      linuxAmd64ChildManifestDigest: sha256:a8679d1bbf7679ad27bf39fadbd30e486f59446eadd4f5c2c11ce6a41053a216
+    - reference: ghcr.io/dexidp/dex:v2.45.0
+      indexDigest: sha256:b8469881d3cb3a73001506f0d3aaefecb9c45d2311c1e0f405d8ac538316c59d
+      linuxAmd64ChildManifestDigest: sha256:8a9281c3a115180415b0726ca160e38fc40f9284bc9a2d1032c839a3a934695c
+    - reference: public.ecr.aws/docker/library/redis:8.2.3-alpine
+      indexDigest: sha256:08ad0b1d280850169a790dba1393ff7a90aef951fc19632cf4d3ce4f78e679ba
+      linuxAmd64ChildManifestDigest: sha256:e499175dfb27569cd40010c2eee346113db95fdd0efc88ab9fd70a9e807f4542
+  nativeDefaultProject:
+    source:
+      repository: https://github.com/argoproj/argo-cd
+      tag: v3.4.2
+      commit: 0dc6b1b57dd5bb925d5b03c3d09419ab9fb4225e
+      path: server/server.go
+      blobSha: 33d13112e422497a2c5e2efb558da71ba191badc
+      function: initializeDefaultProject
+    uid: fb4415ce-5303-4526-8616-833ebf54b900
+    createdAt: "2026-08-13T11:52:51Z"
+    redactedLiveSemanticDigest: sha256:c5d00372f95f4a9a5c437779015c4f9e4fc1acf3f8a288cd333990a0c979ff26
+    spec:
+      clusterResourceWhitelist:
+        - {group: "*", kind: "*"}
+      destinations:
+        - {namespace: "*", server: "*"}
+      sourceRepos: ["*"]
+    riskState: PENDING-EXPLICIT-ACCEPTANCE
+  assertions:
+    reviewedObjectsPresent: 54
+    establishedCRDs: 3
+    readyWorkloads: 7
+    readyPods: 7
+    exactRuntimeIndexIdentityRequired: true
+    applicationsAcrossAllNamespaces: 0
+    applicationSetsAcrossAllNamespaces: 0
+    appProjectsAcrossAllNamespaces: 1
+    openKubesSubmittedTargetStateObjects: 0
+  evidence:
+    localOutputPath: /private/tmp/ok141-m0b-v2-2-readiness-evidence-20260813.json
+    createMode: O_EXCL-0600
+    rawSecretDataRetained: false
+    rawEvidenceCommittedOrPublished: false
+    redactedPublicationRequiresSeparateGrant: true
+  authorization:
+    mutationAuthorized: false
+    retryGranted: false
+    rollbackGranted: false
+    targetRegistrationGranted: false
+    targetConvergenceGranted: false
+    go1Granted: false
+    failureInjectionGranted: false
+  rules:
+    - This correction authorizes no mutation and does not alter the installed object set.
+    - The failed v2 observation remains immutable local Evidence and is not overwritten.
+    - PASS proves Argo runtime readiness and exactly one native default project but cannot close M0b until its wildcard boundary is explicitly accepted or separately remediated.
