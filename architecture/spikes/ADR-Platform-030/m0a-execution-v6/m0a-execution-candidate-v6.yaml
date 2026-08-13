@@ -1,0 +1,37 @@
+apiVersion: test.openkubes.io/v1alpha1
+kind: CombinedGateCandidate
+metadata: {name: ok141-m0a-c1-a1-i-v6, ticket: OK-141}
+spec:
+  version: ok141-m0a-combined-candidate/v6
+  state: READY-FOR-THREE-SEPARATE-EXPLICIT-GRANTS
+  baseCommit: 35c9421ae4b4070512423e1103a33c6c550c7964
+  references:
+    baseCandidate: {path: ../m0a-execution-v5/m0a-execution-candidate-v5.yaml, digest: sha256:a9c4a5e782b0d7a54d0dfb1f89a24914ad41d15d64977e07ab0a008c1bae2067}
+    v5RuntimeEvidence: {path: ../m0a-execution-runtime-v5/m0a-v5-first-run-evidence-v1.yaml, digest: sha256:27db9338dce61bf676e7608c76f36f36adc0bf40a903a683b5e08c1a300f2bda}
+    admissionAmendment: {path: admission-namespace-presence-amendment-v1.yaml, digest: sha256:c6f3f5eac1f1b81b5e35fc795fe6c82dae5a9514b77f1928157cdf2c748ac5b8}
+    fixes: {path: m0a_v6_fixes.py, digest: sha256:a674a8c11795dd2f9fce360ca06fb4c5f74b5aa18c0c1fb30d1a9a3bfa63d519}
+    executor: {path: controlled_m0a_execution_v6.py, digest: sha256:df54a9e012d791eb4175fe0489002551a0aac2c027b68ec969374cb86c711a01}
+  admission:
+    renderedDigest: sha256:c6ea2bd8459b462d0ed65f42696b11931f136565b58ff4d04e7932399dc3d4f7
+    namespacePresenceGuarded: true
+    identitySetChanged: false
+  credential:
+    postBoundaryWait: RECHECK-UNTIL-NOT-BEFORE
+    mandatoryAPIProbe: true
+  authorization:
+    decision: NO-GO
+    mutationAuthorized: false
+    credentialGrantRequired: true
+    admissionBootstrapGrantRequired: true
+    installationGrantRequired: true
+    retryGranted: false
+    rollbackGranted: false
+    m0bInstallationGranted: false
+    go1Granted: false
+    evidencePublicationGranted: false
+    targetConvergenceGranted: false
+    failureInjectionGranted: false
+  rules:
+    - All v1 through v5 grants are consumed or invalid and cannot be reused.
+    - This candidate and its verification perform no cluster contact or mutation.
+    - Any execution requires three new distinct grants one UTC window and one absent raw evidence path.
