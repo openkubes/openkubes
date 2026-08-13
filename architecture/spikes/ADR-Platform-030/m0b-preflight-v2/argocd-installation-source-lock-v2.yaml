@@ -1,0 +1,90 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: RemoteSourceLock
+metadata:
+  name: argocd-v3.4.2-dev-solo-namespace-install
+  ticket: OK-141
+spec:
+  repository: https://github.com/argoproj/argo-cd
+  tag: v3.4.2
+  commit: 0dc6b1b57dd5bb925d5b03c3d09419ab9fb4225e
+  observedReadOnlyAt: "2026-08-13T10:52:00Z"
+  installationProfile: namespace-install-non-ha
+  targetNamespace: argocd
+  files:
+    - id: namespace-install
+      path: manifests/namespace-install.yaml
+      url: https://raw.githubusercontent.com/argoproj/argo-cd/v3.4.2/manifests/namespace-install.yaml
+      rawDigest: sha256:c05df13f7ee8ad8faa56090f0bdd4d1c3a738ad155ae9d7281460b1fd5706b06
+      semanticDigest: sha256:edac0e3ffe3459ce1a895b807d9cbe293eecbb34cffbb6de6632c77af0a998a9
+      sizeBytes: 88049
+      objectCount: 50
+    - id: application-crd
+      path: manifests/crds/application-crd.yaml
+      url: https://raw.githubusercontent.com/argoproj/argo-cd/v3.4.2/manifests/crds/application-crd.yaml
+      rawDigest: sha256:fa8a0c7f8127f85bbbf57467e7c659ec7d47e7d162cc76c1b07482ebf2b98f49
+      semanticDigest: sha256:a30d786c22f9895ab3fb70b169f3c870e226c083b4e56cfc001d1b413a9b7133
+      sizeBytes: 396773
+      objectCount: 1
+    - id: applicationset-crd
+      path: manifests/crds/applicationset-crd.yaml
+      url: https://raw.githubusercontent.com/argoproj/argo-cd/v3.4.2/manifests/crds/applicationset-crd.yaml
+      rawDigest: sha256:51f69883c692698fbcf3c82455c07c0f6413899ac9d96565a9e8395c0196f58d
+      semanticDigest: sha256:42a101f4c42f575d4634265aa6e02d176e1ff2d2ba60aa41197eab113689cdc5
+      sizeBytes: 1385775
+      objectCount: 1
+    - id: appproject-crd
+      path: manifests/crds/appproject-crd.yaml
+      url: https://raw.githubusercontent.com/argoproj/argo-cd/v3.4.2/manifests/crds/appproject-crd.yaml
+      rawDigest: sha256:7b99337686905b444864c84b1305938a7bfbca9b5f4e2c5d5d2de4acae16ceb3
+      semanticDigest: sha256:d89d247abcd91192feac0ea0d27b5da3673259fe1b9b950801de441481ea4542
+      sizeBytes: 16502
+      objectCount: 1
+  localNamespace:
+    path: ../m0b-installation/argocd-namespace.yaml
+    rawDigest: sha256:0a2c5ac85283184d1392ae712f7e8bd4b8d19f837e28055664399046532f7844
+    objectCount: 1
+  sourceSet:
+    objectCount: 54
+    semanticDigest: sha256:60da7edffcc0ccf46f6952ceab2c9ec615b00415689888cd88363388682914ed
+    rawPayloadDigest: sha256:77488aab8b4d998f5029b2085952d41901a831b58f6f668d5db0f55ffdca1f44
+  targetProjection:
+    operation: kubectl-namespace-defaulting
+    namespaceArgument: argocd
+    clusterScopedKinds:
+      - Namespace
+      - CustomResourceDefinition
+    namespacedObjectCount: 50
+    projectedSemanticDigest: sha256:9664b22ac554c3e470484ce3319f302e53e332f9d2b46e7d78b4fc47eb865b0b
+    rule: Every namespaced object must resolve to argocd; projection into default or any other Namespace fails closed.
+  inventory:
+    ConfigMap: 7
+    CustomResourceDefinition: 3
+    Deployment: 6
+    Namespace: 1
+    NetworkPolicy: 7
+    Role: 6
+    RoleBinding: 6
+    Secret: 2
+    Service: 8
+    ServiceAccount: 7
+    StatefulSet: 1
+  workloads:
+    desiredPods: 7
+    productionHAClaimAllowed: false
+    resourcesDeclaredForAllContainers: false
+  controllerImages:
+    - reference: quay.io/argoproj/argocd:v3.4.2
+      linuxAmd64Digest: sha256:a8679d1bbf7679ad27bf39fadbd30e486f59446eadd4f5c2c11ce6a41053a216
+    - reference: ghcr.io/dexidp/dex:v2.45.0
+      linuxAmd64Digest: sha256:8a9281c3a115180415b0726ca160e38fc40f9284bc9a2d1032c839a3a934695c
+    - reference: public.ecr.aws/docker/library/redis:8.2.3-alpine
+      linuxAmd64Digest: sha256:e499175dfb27569cd40010c2eee346113db95fdd0efc88ab9fd70a9e807f4542
+  contentMaterialization: REQUIRED-IMMEDIATELY-BEFORE-GRANT
+  authorization:
+    mutationAuthorized: false
+    m0bInstallationGranted: false
+    go1Granted: false
+  rules:
+    - The historical 65-object HA source lock remains reproducible evidence but is superseded for future M0b-I planning.
+    - Source identity and target-projected identity are distinct and both must verify.
+    - This lock authorizes no download credential installation registration convergence or failure injection.

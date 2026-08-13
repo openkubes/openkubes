@@ -1,0 +1,113 @@
+apiVersion: security.openkubes.io/v1alpha1
+kind: M0bSecurityCandidate
+metadata:
+  name: ok141-m0b-v2-direct-admin-create-only
+  ticket: OK-141
+spec:
+  version: ok141-m0b-security/v2
+  state: READY-FOR-RISK-DECISION-NO-GO
+  references:
+    livePreflight:
+      path: m0b-v2-live-preflight-v1.yaml
+      digest: sha256:abd0a8599c3ad159a8d8cd84ab6e8e982e45bdb6f5ab64480d8118aa03acb4b4
+    sourceLock:
+      path: argocd-installation-source-lock-v2.yaml
+      digest: sha256:f715fed2f1e5a7c80aa5838b1f9ac243e2a2de8cec711e324f223dde8298f6e9
+  target:
+    plane: ok-shared
+    kubeSystemNamespaceUID: 46b9ecf7-2e7a-48b1-a6eb-7d11df396efb
+    kubeconfig: /Users/arash/.kube/ok-shared.yaml
+    namespace: argocd
+  administratorIdentity:
+    certificateSubject: O=system:masters,CN=kubernetes-admin
+    certificateIssuer: O=kubernetes
+    certificateSha256Fingerprint: D9:3D:53:56:E4:13:2D:54:D3:9B:74:10:C5:A2:61:79:0F:D0:49:A1:63:62:B7:76:77:D3:A3:C2:92:81:C4:BE
+    certificateNotBefore: "2026-07-22T12:55:37Z"
+    certificateNotAfter: "2027-07-22T12:55:42Z"
+    wildcardAuthorizationObserved: true
+    observation: kubectl-auth-can-i-star-star-all-namespaces
+    credentialClass: LONG-LIVED-CLUSTER-ADMIN
+    shortLivedCredentialClaimAllowed: false
+  submissionModel:
+    operation: DIRECT-ADMIN-TWO-PHASE-CREATE-ONLY
+    freeFormShellEndpoint: false
+    serverSideApplyAllowed: false
+    updatePatchReplaceAllowed: false
+    automaticRetryAllowed: false
+    automaticRollbackAllowed: false
+    phase1:
+      name: cluster-prerequisites
+      objectCount: 4
+      semanticDigest: sha256:f01f351beba7552a1c609ecb1a2063e4d8f55f50c18ac8c7a78a54e113f1aec3
+      kinds: {CustomResourceDefinition: 3, Namespace: 1}
+    phase2:
+      name: namespaced-control-plane
+      objectCount: 50
+      semanticDigest: sha256:ee1f38402a19b79384e86aee4df708a0953c30ef637204a177884043b78c7dd9
+      targetNamespace: argocd
+      namespaceMustBeExplicitInPayload: true
+      kinds: {ConfigMap: 7, Deployment: 6, NetworkPolicy: 7, Role: 6, RoleBinding: 6, Secret: 2, Service: 8, ServiceAccount: 7, StatefulSet: 1}
+    combinedTargetSemanticDigest: sha256:9664b22ac554c3e470484ce3319f302e53e332f9d2b46e7d78b4fc47eb865b0b
+    transport:
+      verb: create
+      namespaceArgument: argocd
+      stdinOnly: true
+    preCreateRule: Every one of the 54 exact target identities must be absent before phase 1.
+    postCreateRule: Capture every accepted UID and reject missing additional or conflicting objects.
+  controllerBoundary:
+    scope: argocd-namespace-only
+    clusterRolesInstalled: 0
+    clusterRoleBindingsInstalled: 0
+    roles: 6
+    roleBindings: 6
+    findings:
+      SECRET-READ: 7
+      SECRET-WRITE: 2
+    wildcardFindingObserved: false
+    interactivePodSubresourceFindingObserved: false
+    escalationVerbFindingObserved: false
+    boundary: These findings concern Argo control-plane access inside argocd; later target credentials and target RBAC are excluded.
+  risksRequiringAcceptance:
+    - id: DIRECT-ADMIN-CONTENT
+      statement: The bounded operation uses a long-lived system:masters administrator credential; correctness depends on local digest verification and reviewed executor bytes rather than least-privilege credentials or admission enforcement.
+    - id: NON-ATOMIC-TWO-PHASE-CREATE
+      statement: A failure after any accepted create may leave a partial Argo installation; no automatic retry or rollback is authorized.
+    - id: NAMESPACE-SECRET-ACCESS
+      statement: The reviewed Argo Roles include seven Secret-read and two Secret-write findings inside the argocd Namespace.
+    - id: UNDECLARED-RESOURCE-REQUESTS
+      statement: The upstream non-HA workloads do not declare requests and limits for every container; scheduling success is runtime evidence and host degradation is a STOP condition.
+    - id: REMOTE-SOURCE-MATERIALIZATION
+      statement: Upstream bytes are not retained in Git and must be materialized and verified again immediately before execution.
+  compensatingControls:
+    - Exact raw source source-semantic split-semantic and target-projected digests are verified before any create.
+    - The executor accepts no arbitrary input path URL namespace verb or object set.
+    - Create-only transport rejects pre-existing identities and forbids silent mutation of existing resources.
+    - The baseline and all UIDs are observed before and after each phase.
+    - Target registration credentials AppProjects Applications and ApplicationSets are rejected from the installation payload.
+    - Raw evidence remains local; only verified redacted evidence may be published separately.
+  stopConditions:
+    - any target identity already exists before phase 1
+    - any source split projection image target or administrator identity differs
+    - any submitted object is not one of the reviewed 54 identities
+    - any namespaced object resolves outside argocd
+    - any Argo CR target credential AppProject Application or ApplicationSet is proposed
+    - any Node existing workload storage network or registry-trust signal degrades
+    - any create returns partial ambiguous or conflicting evidence
+  excluded:
+    - target registration and target credentials
+    - AppProject Application and ApplicationSet submission
+    - Platform P convergence and PlatformReady
+    - retry rollback restart drift deletion outage and failure injection
+    - GO-1 cluster creation and CAAPH HCP or HRP submission
+  authorization:
+    securityRiskAccepted: false
+    mutationAuthorized: false
+    m0bInstallationGranted: false
+    rollbackGranted: false
+    targetRegistrationGranted: false
+    go1Granted: false
+  nextDecision:
+    required: true
+    authority: github:arashkaffamanesh
+    mustCiteThisCandidateDigest: true
+    effectWhenNotAccepted: M0B-I-REMAINS-NOT-GRANTED
