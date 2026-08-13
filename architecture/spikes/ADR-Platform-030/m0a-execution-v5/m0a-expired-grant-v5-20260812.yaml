@@ -1,0 +1,57 @@
+apiVersion: authorization.openkubes.io/v1alpha1
+kind: ExpiredCombinedGateGrantRecord
+metadata:
+  name: ok141-m0a-c1-a1-i-v5-20260812-01
+  ticket: OK-141
+spec:
+  version: ok141-m0a-expired-combined-grant/v5
+  state: EXPIRED-NOT-RUN
+  recordedAt: "2026-08-13T06:44:15Z"
+  candidateDigest: sha256:a9c4a5e782b0d7a54d0dfb1f89a24914ad41d15d64977e07ab0a008c1bae2067
+  authority: github:arashkaffamanesh
+  requestedDecision: GO
+  effectiveDecision: NO-GO
+  mutationAuthorized: false
+  credentialGrant:
+    gate: M0A-C1-v5
+    grantID: ok141-m0a-c1-v5-20260812-01
+    runsAuthorizedInWindow: 1
+    runsConsumed: 0
+  admissionGrant:
+    gate: M0A-A1-v5
+    grantID: ok141-m0a-a1-v5-20260812-01
+    runsAuthorizedInWindow: 1
+    runsConsumed: 0
+  installationGrant:
+    gate: M0a-I-v5
+    grantID: ok141-m0a-i-v5-20260812-01
+    runsAuthorizedInWindow: 1
+    runsConsumed: 0
+  validFrom: "2026-08-12T20:10:00Z"
+  validUntil: "2026-08-12T23:10:00Z"
+  evaluatedAt: "2026-08-13T06:43:20Z"
+  maximumRuns: 1
+  actualRuns: 0
+  evidenceOutputPath: /private/tmp/ok141-m0a-v5-execution-evidence-20260812.json
+  evidenceCreated: false
+  expired: true
+  reusable: false
+  retryGranted: false
+  rollbackGranted: false
+  targetConvergenceGranted: false
+  m0bInstallationGranted: false
+  go1Granted: false
+  evidencePublicationGranted: false
+  failureInjectionGranted: false
+  exactStatement: >-
+    Ich erteile für OK-141 gemäß Kandidat sha256:a9c4a5e782b0d7a54d0dfb1f89a24914ad41d15d64977e07ab0a008c1bae2067 getrennt:
+    M0A-C1-v5, Grant-ID ok141-m0a-c1-v5-20260812-01;
+    M0A-A1-v5, Grant-ID ok141-m0a-a1-v5-20260812-01;
+    M0a-I-v5, Grant-ID ok141-m0a-i-v5-20260812-01;
+    jeweils für genau einen gebundenen Lauf.
+    Das Zeitfenster ist 2026-08-12T20:10:00Z bis 2026-08-12T23:10:00Z. Raw Evidence darf ausschließlich nach /private/tmp/ok141-m0a-v5-execution-evidence-20260812.json geschrieben werden. Retry, automatischer Rollback, Evidence-Publication, M0b-I, GO-1, Target-Konvergenz und Failure Injection bleiben NOT GRANTED.
+  rules:
+    - The requested UTC window had ended before this grant was received and evaluated.
+    - No credential admission object CAAPH object or raw evidence was created under this record.
+    - An expired grant cannot be shifted extended or reused.
+    - A new explicit UTC window and new grant IDs are required for any future run.
