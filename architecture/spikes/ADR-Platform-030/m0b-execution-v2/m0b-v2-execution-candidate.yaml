@@ -1,0 +1,121 @@
+apiVersion: test.openkubes.io/v1alpha1
+kind: M0bExecutionCandidate
+metadata:
+  name: ok141-m0b-v2-direct-admin-create-only
+  ticket: OK-141
+spec:
+  version: ok141-m0b-execution/v2
+  state: READY-FOR-FINAL-PREFLIGHT-NO-GO
+  baseCommit: 93a23366c0f0b03f7c532360d395e00a3a67c2d5
+  references:
+    livePreflight:
+      path: ../m0b-preflight-v2/m0b-v2-live-preflight-v1.yaml
+      digest: sha256:abd0a8599c3ad159a8d8cd84ab6e8e982e45bdb6f5ab64480d8118aa03acb4b4
+    sourceLock:
+      path: ../m0b-preflight-v2/argocd-installation-source-lock-v2.yaml
+      digest: sha256:f715fed2f1e5a7c80aa5838b1f9ac243e2a2de8cec711e324f223dde8298f6e9
+    securityCandidate:
+      path: ../m0b-preflight-v2/m0b-v2-security-candidate.yaml
+      digest: sha256:4191096d70a0bb7d0ca60598cd4303ea7bf65be7d976d9d56ce53d706804d353
+    riskAcceptance:
+      path: ../m0b-preflight-v2/m0b-v2-risk-acceptance-v1.yaml
+      digest: sha256:c5fc2177df93cf4b65c07570e1043c9803d0ef35901f74acb2821ebd4ac762fd
+    executionTool:
+      path: controlled_m0b_execution_v2.py
+      digest: sha256:52c80c1ae3a302a8027fd69be8cb480293d61c0dd37c578daa2831d60f4c84e6
+  target:
+    plane: ok-shared
+    kubeconfig: /Users/arash/.kube/ok-shared.yaml
+    kubeSystemNamespaceUID: 46b9ecf7-2e7a-48b1-a6eb-7d11df396efb
+    kubernetesVersion: v1.34.1
+    platform: linux/amd64
+    namespace: argocd
+    externalWorkloadClustersOnly: true
+    localSelfManagementAllowed: false
+  sourceMaterialization:
+    observedAt: "2026-08-13T11:25:17Z"
+    result: PASS-POINT-IN-TIME
+    files: 4
+    sourceObjects: 54
+    sourceSemanticDigest: sha256:60da7edffcc0ccf46f6952ceab2c9ec615b00415689888cd88363388682914ed
+    targetProjectedSemanticDigest: sha256:9664b22ac554c3e470484ce3319f302e53e332f9d2b46e7d78b4fc47eb865b0b
+    repeatImmediatelyBeforeExecution: true
+  submission:
+    operation: DIRECT-ADMIN-TWO-PHASE-CREATE-ONLY
+    phase1:
+      name: cluster-prerequisites
+      objectCount: 4
+      semanticDigest: sha256:f01f351beba7552a1c609ecb1a2063e4d8f55f50c18ac8c7a78a54e113f1aec3
+      transportDigest: sha256:c997fdc9c533d71e86815086563cab4b62a837beb67bacff9944d3f0080dceec
+      kinds: {CustomResourceDefinition: 3, Namespace: 1}
+    phase2:
+      name: namespaced-control-plane
+      objectCount: 50
+      semanticDigest: sha256:ee1f38402a19b79384e86aee4df708a0953c30ef637204a177884043b78c7dd9
+      transportDigest: sha256:80549258ced8b0d7f5e4524a2fb196aa471527c758ac4d28d6955aca1003fae3
+      targetNamespace: argocd
+    combinedTargetSemanticDigest: sha256:9664b22ac554c3e470484ce3319f302e53e332f9d2b46e7d78b4fc47eb865b0b
+    expectedObjects: 54
+    expectedDesiredPods: 7
+    updatePatchReplaceAllowed: false
+    retryAllowed: false
+    automaticRollbackAllowed: false
+  controllerImages:
+    - {reference: quay.io/argoproj/argocd:v3.4.2, linuxAmd64Digest: sha256:a8679d1bbf7679ad27bf39fadbd30e486f59446eadd4f5c2c11ce6a41053a216}
+    - {reference: ghcr.io/dexidp/dex:v2.45.0, linuxAmd64Digest: sha256:8a9281c3a115180415b0726ca160e38fc40f9284bc9a2d1032c839a3a934695c}
+    - {reference: public.ecr.aws/docker/library/redis:8.2.3-alpine, linuxAmd64Digest: sha256:e499175dfb27569cd40010c2eee346113db95fdd0efc88ab9fd70a9e807f4542}
+  finalPreflightRequirements:
+    - id: M0B2-SOURCE-REFRESH
+      status: PENDING-FINAL-PREFLIGHT
+      acceptance: All four files reproduce the locked raw semantic size and object-count claims immediately before execution.
+    - id: M0B2-LIVE-INCARNATION
+      status: PENDING-FINAL-PREFLIGHT
+      acceptance: The exact kube-system UID Kubernetes tuple four Ready Nodes and Argo absence are re-observed.
+    - id: M0B2-ADMIN-IDENTITY
+      status: PENDING-FINAL-PREFLIGHT
+      acceptance: The exact system:masters certificate fingerprint and wildcard authorization remain current.
+    - id: M0B2-OBJECT-ABSENCE
+      status: PENDING-FINAL-PREFLIGHT
+      acceptance: Every one of the 54 projected target identities is absent.
+    - id: M0B2-IMAGE-IDENTITY
+      status: PENDING-FINAL-PREFLIGHT
+      acceptance: All three linux-amd64 image identities still equal the candidate.
+    - id: M0B2-EVIDENCE-PATH
+      status: PENDING-FINAL-PREFLIGHT
+      acceptance: One exact /private/tmp raw-evidence path is bound to the grant.
+    - id: M0B2-GRANT-WINDOW
+      status: PENDING-EXPLICIT-GRANT
+      acceptance: One exact candidate digest grant ID authority run budget and active UTC window are bound.
+  runtimeObligations:
+    - {id: M0B2-PHASE1-UIDS, status: PENDING-RUNTIME, onFailure: STOP-NOT-SUCCESS}
+    - {id: M0B2-PHASE2-UIDS, status: PENDING-RUNTIME, onFailure: STOP-NOT-SUCCESS}
+    - {id: M0B2-CRDS-ESTABLISHED, status: PENDING-RUNTIME, onFailure: STOP-NOT-SUCCESS}
+    - {id: M0B2-WORKLOADS-READY, status: PENDING-RUNTIME, onFailure: STOP-NOT-SUCCESS}
+    - {id: M0B2-IMAGE-IDS, status: PENDING-RUNTIME, onFailure: STOP-NOT-SUCCESS}
+    - {id: M0B2-NO-TARGET-STATE, status: PENDING-RUNTIME, onFailure: STOP-NOT-SUCCESS}
+    - {id: M0B2-REDACTED-EVIDENCE, status: PENDING-RUNTIME, onFailure: STOP-NOT-SUCCESS}
+  evidence:
+    rawEvidenceDirectory: /private/tmp
+    rawEvidenceCommittedOrPublished: false
+    redactedPublicationRequiresSeparateGrant: true
+    secretsKubeconfigsTokensPrivateKeysAllowed: false
+  authorization:
+    decision: NO-GO
+    mutationAuthorized: false
+    m0bInstallationGranted: false
+    rollbackGranted: false
+    targetRegistrationGranted: false
+    targetConvergenceGranted: false
+    go1Granted: false
+    failureInjectionGranted: false
+  exclusions:
+    - rollback and automatic retry
+    - target-registration and target-credentials
+    - AppProject Application and ApplicationSet submission
+    - platform-convergence and PlatformReady
+    - go-1 cluster creation and CAAPH HCP or HRP submission
+    - restart drift deletion outage and failure-injection
+  rules:
+    - This candidate and its future digest authorize no mutation.
+    - All final preflight requirements must be closed in a new grant candidate; this document is not edited to close them.
+    - Any source target identity namespace object split tool risk boundary or image change requires a new execution candidate.
