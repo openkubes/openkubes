@@ -29,6 +29,11 @@ info:
     subject, the effective time window, and the time of generation, so that a
     stored result remains attributable after it leaves the HTTP exchange
     (incident handoff, audit, offline expert review).
+
+    The `/v1` path prefix is the compatibility-major API version. The
+    `info.version` value versions this contract document within that API major;
+    backward-compatible additions may increment it, while incompatible public
+    surface changes require a new path major.
   license:
     name: Apache License 2.0
     identifier: Apache-2.0

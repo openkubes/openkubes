@@ -2,7 +2,10 @@
 
 Six tests. They run against **any** provider profile and must reference no
 specific runtime or frontend — that is what makes a backend swap detectable.
-Owned by OK-89; Profile A (OK-92) must pass all six before it can be called done.
+The contract requirements are owned by OK-89/OK-90; the executable,
+provider-neutral suite and Profile B stub are delivered by OK-91. Existing
+provider profiles must be checked against the accepted normative specification
+before their conformance can be claimed.
 
 1. **Schema conformance** — all three functions validate against `../openapi.yaml`,
    with zero references to a specific runtime or frontend.
@@ -20,7 +23,8 @@ Owned by OK-89; Profile A (OK-92) must pass all six before it can be called done
    `contradicting_evidence_refs`, and `counter_evidence_status`; `not_checked`
    fails a finalized diagnostic result.
 
-> Status: specification only. Executable tests land with OK-89. Recommended shape:
+> Status: specification only in this branch. Executable tests land with OK-91.
+> Recommended shape:
 > schema/tests 1,3,5,6 as OpenAPI + JSON-Schema assertions over recorded provider
 > responses; test 2 as the in-cluster RBAC probe (see `profiles/kagent/rbac.yaml`
 > and the reused `verify-kubectl` target); test 4 against `profiles/_stub-b`.
