@@ -46,6 +46,11 @@ remains unchanged as evidence.
 The exact non-authorizing decision text is retained in
 `m0b-v2-risk-acceptance-candidate.yaml`.
 
+The exact statement was accepted by `github:arashkaffamanesh` at
+`2026-08-13T11:19:19Z` and is retained additively in
+`m0b-v2-risk-acceptance-v1.yaml`. The acceptance permits preparation of an
+installation candidate but grants no mutation.
+
 ## Verify
 
 ```bash
@@ -54,6 +59,8 @@ python3 architecture/spikes/ADR-Platform-030/m0b-preflight-v2/verify_m0b_preflig
 python3 architecture/spikes/ADR-Platform-030/m0b-preflight-v2/verify_m0b_security_v2.py
 
 python3 architecture/spikes/ADR-Platform-030/m0b-preflight-v2/verify_m0b_risk_candidate_v2.py
+
+python3 architecture/spikes/ADR-Platform-030/m0b-preflight-v2/verify_m0b_risk_acceptance_v2.py
 
 python3 -m unittest discover \
   -s architecture/spikes/ADR-Platform-030/m0b-preflight-v2/tests \
