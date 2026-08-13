@@ -1,0 +1,82 @@
+apiVersion: security.openkubes.io/v1alpha1
+kind: GO1LAdminIdentityInspectionCandidate
+metadata:
+  name: ok141-go1-l-admin-identity-c0-v1
+  ticket: OK-141
+  baseCommit: 5f40287eedae7ce1c9724bfff9d226b2043882d7
+spec:
+  version: ok141-go1-l-admin-identity-c0/v1
+  state: OFFLINE-PROVEN-BLOCKED-NO-GO
+  sourceAcceptance:
+    path: ../go1-l-admin-risk-acceptance-v1/go1-l-admin-risk-acceptance-v1.yaml
+    digest: sha256:1bedab96f582b3ca31f67c81b948263560c36fd0a113ec317442cb9c65d25fed
+  sourcePreflight:
+    path: ../go1-l-admin-preflight-v1/go1-l-admin-preflight-candidate-v1.yaml
+    digest: sha256:3a3187c79779e048337fd2d6c35473a3c97f900330082721e3b318a5c9e6a12f
+  tool:
+    path: inspect_admin_identity_c0_v1.py
+    digest: sha256:379787a7e7cc31b718bac784039c70e8c15c9af6ffccc2a600f9abb54d6bf23e
+    liveClusterClientIncluded: false
+    executeCLIExposed: false
+  credentialFiles:
+    - targetPlane: ok-infra
+      path: /Users/arash/.kube/ok-infra.yaml
+      identityState: UNRESOLVED
+      inspectionComplete: false
+    - targetPlane: ok-mgmt
+      path: /Users/arash/.kube/ok-mgmt.yaml
+      identityState: UNRESOLVED
+      inspectionComplete: false
+  inspectionContract:
+    operation: inspect-two-local-admin-kubeconfig-identities
+    maximumGrantMinutes: 10
+    singleRun: true
+    readFileContentLocally: true
+    allowedDerivedFields:
+      - targetPlane
+      - HTTPS API server
+      - CA SHA-256 fingerprint
+      - digest of context cluster user server and CA identity tuple
+    forbiddenDerivedFields:
+      - context cluster or user names
+      - token client certificate private key password or raw CA bytes
+      - credential file content or digest
+    kubeconfigRestrictions:
+      fileMode: "0600"
+      symlinkAllowed: false
+      repositoryLocalAllowed: false
+      insecureTLSAllowed: false
+      proxyURLAllowed: false
+      execAuthProviderOrTokenFileAllowed: false
+      embeddedCertificateKeyOrTokenRequired: true
+  authorization:
+    decision: NO-GO
+    credentialInspectionGranted: false
+    clusterContactGranted: false
+    mutationGranted: false
+    preflightGranted: false
+    submissionGranted: false
+    go1LGranted: false
+    go1Granted: false
+    grantIDs: []
+    authorizedDigest: null
+  outputContract:
+    secretBytesAllowed: false
+    contextClusterOrUserNamesAllowed: false
+    clusterContactAllowed: false
+    mutationAllowed: false
+    rawEvidencePath: /private/tmp/ok141-go1-l-admin-identity-c0-evidence.json
+    publicEvidenceAllowed: false
+  conclusions:
+    candidateOfflineComplete: true
+    credentialInspectionReadyForDecision: true
+    credentialInspectionPerformed: false
+    identitiesResolved: false
+    preflightReadyForDecision: false
+    clusterContacted: false
+    mutationAuthorized: false
+    nextStep: Obtain one exact C0 grant for this candidate digest and time window; only then derive the redacted local identities.
+  exclusions:
+    - kubectl API calls DNS probes TCP probes or any cluster contact
+    - credential modification copying persistence rotation revocation or output
+    - absence preflight object submission retry rollback cleanup GO1-L GO-1 or failure injection
