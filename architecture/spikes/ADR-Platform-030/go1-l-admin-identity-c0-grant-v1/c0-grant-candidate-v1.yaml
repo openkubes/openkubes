@@ -1,0 +1,77 @@
+apiVersion: authorization.openkubes.io/v1alpha1
+kind: LocalCredentialInspectionGrantCandidate
+metadata:
+  name: ok141-go1-l-admin-identity-c0-grant-v1
+  ticket: OK-141
+  baseCommit: 2bcad0c29e430ce1c4cc5334ee6518ef9280ce8e
+spec:
+  version: ok141-go1-l-admin-identity-c0-grant/v1
+  state: READY-FOR-C0-DECISION-NO-GO
+  sourcePreflight:
+    path: ../go1-l-admin-identity-c0-grant-preflight-v1/c0-grant-preflight-v1.yaml
+    digest: sha256:0b1495ed3c216eb3246d9a43e98ce76eb664a9c6ed81241d866c4df33118b037
+    state: TECHNICALLY-COMPLETE-WINDOW-UNRESOLVED-NO-GO
+  sourceInspectionCandidate:
+    path: ../go1-l-admin-identity-c0-v1/go1-l-admin-identity-c0-candidate-v1.yaml
+    digest: sha256:3ed89d8f9792e53068f424d23f609ba3cad31620d7ce4f1a8001a9bf3089db89
+  sourceRiskAcceptance:
+    path: ../go1-l-admin-risk-acceptance-v1/go1-l-admin-risk-acceptance-v1.yaml
+    digest: sha256:1bedab96f582b3ca31f67c81b948263560c36fd0a113ec317442cb9c65d25fed
+  requestedGrant:
+    authority: github:arashkaffamanesh
+    decision: GO
+    grantID: ok141-go1-l-c0-20260813-01
+    scope: inspect-two-local-admin-kubeconfig-identities
+    singleRun: true
+    issuedAt: "2026-08-13T16:00:00Z"
+    expiresAt: "2026-08-13T16:10:00Z"
+    maximumWindowMinutes: 10
+    credentialInspectionGranted: true
+    clusterContactGranted: false
+    mutationAuthorized: false
+  exactScope:
+    credentialFiles:
+      - /Users/arash/.kube/ok-infra.yaml
+      - /Users/arash/.kube/ok-mgmt.yaml
+    localReadOnly: true
+    allowedDerivedFields:
+      - target plane
+      - HTTPS API server
+      - CA SHA-256 fingerprint
+      - credential identity digest
+    forbiddenOutputs:
+      - context cluster or user names
+      - tokens certificates private keys passwords raw CA or kubeconfig bytes
+      - kubeconfig file digest
+    rawEvidencePath: /private/tmp/ok141-go1-l-admin-identity-c0-evidence.json
+    rawEvidenceMode: "0600"
+    publicEvidenceAllowed: false
+  executionBoundary:
+    localKubeconfigInspectionOnly: true
+    kubectlOrKubernetesClientAllowed: false
+    networkDNSOrTCPContactAllowed: false
+    credentialCopyModificationRotationRevocationAllowed: false
+    preflightOrSubmissionAllowed: false
+    mutationAllowed: false
+  authorization:
+    decision: NO-GO
+    c0Granted: false
+    credentialInspectionGranted: false
+    clusterContactGranted: false
+    preflightGranted: false
+    submissionGranted: false
+    go1LGranted: false
+    go1Granted: false
+    authorizedCandidateDigest: null
+    authorityStatement: null
+  conclusions:
+    windowResolved: true
+    grantCandidateComplete: true
+    c0ReadyForDecision: true
+    credentialInspected: false
+    clusterContacted: false
+    mutationAuthorized: false
+    nextStep: Request one explicit C0 grant bound to this candidate digest and exact window.
+  exclusions:
+    - any action outside the exact local read-only inspection
+    - cluster contact absence preflight object submission retry rollback cleanup GO1-L GO-1 or failure injection
