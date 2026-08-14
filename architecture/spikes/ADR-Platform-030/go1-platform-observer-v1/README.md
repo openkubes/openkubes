@@ -18,5 +18,5 @@ authority.
 Candidate digest:
 
 ```text
-sha256:0cf9fb378652893de8dcb999cc1f8e2bbad0113c6e5db049fd902c44f63c4509
+sha256:abea5179e1ea7a310f68cdd8ae6d51949e48bf2f0d1e60b6736646d028348724
 ```

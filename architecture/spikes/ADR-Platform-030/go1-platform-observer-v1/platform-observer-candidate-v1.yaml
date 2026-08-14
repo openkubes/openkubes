@@ -67,7 +67,7 @@ spec:
     forbids: [credential values, kubeconfig bytes, endpoint addresses, raw capability output]
   tool:
     path: bounded_platform_observer_v1.py
-    digest: sha256:85a1d5b0e1077a86fd94acc1381edf776e22f498707a338928594ac94bdc18bb
+    digest: sha256:e9b329932f7affa9493dc2fe54cf2e57ce8a648a0b96fc38e940c93eb7935be8
     arbitraryApplicationAllowed: false
     arbitraryScriptAllowed: false
     arbitraryCredentialAllowed: false

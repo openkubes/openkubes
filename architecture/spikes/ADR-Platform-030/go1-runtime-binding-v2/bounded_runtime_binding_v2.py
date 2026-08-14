@@ -89,6 +89,7 @@ def validate_candidate(candidate_path: Path = CANDIDATE) -> dict[str, Any]:
         "kubeSystem": "/api/v1/namespaces/kube-system",
         "localPath": "/apis/storage.k8s.io/v1/storageclasses/local-path",
     }, "workload query boundary")
+    expect(spec["workload"]["tokenAudience"], "https://kubernetes.default.svc.cluster.local", "TokenRequest audience")
     if any(spec["authorization"].get(key) for key in spec["authorization"] if key.endswith("Granted")):
         raise BindingError("candidate grants authority")
     return candidate
@@ -201,7 +202,7 @@ def execute(candidate_path: Path, grant_path: Path, lifecycle_path: Path, networ
             "version": "ok141-go1-runtime-binding/v2", "state": "CURRENT-RUNTIME-BOUND-NO-GO",
             "protocolDigest": spec["protocol"]["protocolDigest"], "fixtureDigest": spec["protocol"]["fixtureDigest"],
             "R": spec["protocol"]["R"], "E": spec["protocol"]["E"], "P": spec["protocol"]["P"],
-            "target": {"name": "disposable-ok141", "capiClusterUID": cluster["uid"], "capiObservedGeneration": cluster["observedGeneration"], "workloadKubeSystemUID": kube_system["metadata"]["uid"], "workloadAPIServer": server, "workloadAPICAFingerprint": ca_fingerprint, "caData": ca_data, "tokenAudience": server},
+            "target": {"name": "disposable-ok141", "capiClusterUID": cluster["uid"], "capiObservedGeneration": cluster["observedGeneration"], "workloadKubeSystemUID": kube_system["metadata"]["uid"], "workloadAPIServer": server, "workloadAPICAFingerprint": ca_fingerprint, "caData": ca_data, "tokenAudience": spec["workload"]["tokenAudience"]},
             "evidence": {"lifecycleDigest": lifecycle["semanticDigest"], "networkDigest": network["semanticDigest"], "NetworkReady": True, "localPathStorageClassUID": storage["metadata"]["uid"], "localPathProvisioner": storage["provisioner"]},
             "authorization": {"registrationGranted": False, "platformSubmissionGranted": False, "go1Granted": False},
         },

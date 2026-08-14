@@ -24,5 +24,5 @@ python3 -m unittest discover -s . -p 'test_*.py' -v
 Candidate digest:
 
 ```text
-sha256:2f44cd8682691b0d6d22629e8bd75bc398c05c2492cc9e56460cbe1ef3e2dc96
+sha256:100ce0ed046e3b42399b9164a24ead29aa9feefeac71ff21ed965d4ec01f073d
 ```
