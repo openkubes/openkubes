@@ -50,6 +50,22 @@ R0 v2 candidate: sha256:4cc18693b948844a0516492395e7943cd1f1925d66b35f25d35977c9
 All other API errors still stop fail-closed. Candidate v2 requires a new grant;
 the consumed v1 grant cannot be reused.
 
+R0-v2 was successfully consumed and its redacted closure was published. It is
+valid historical evidence, but it cannot be reused for destructive cleanup: a
+runtime binding is valid for at most ten minutes. The additive R0-v3 candidate
+therefore uses a new private output path and binds v2 as preserved history:
+
+```text
+R0 v2 candidate:          sha256:4cc18693b948844a0516492395e7943cd1f1925d66b35f25d35977c989bac71f
+R0 v2 private evidence:   sha256:33c617b54d6de4e31fd15335487102a229150d9210a7cd4ee1fd0f302b8c10c3
+R0 v2 redacted closure:   sha256:42e9da5225e02f551c12ea4a14a85eeef73de2b6462b4e9bd9b9855b367e439d
+R0 v3 candidate:          sha256:cc16cd21ae73948b1db83d1fa3490d545fd1b0616ecf81776281b36aa21df435
+R0 v3 private output:      /private/tmp/ok141-go1-l-recovery-snapshot-v3-evidence.json
+```
+
+R0-v3 carries no read or credential authority. Its output must be absent before
+a separately granted run.
+
 The cleanup mechanism is prepared offline but remains blocked. A deterministic
 materializer converts only a successful, fresh R0-v2 snapshot into a private
 ten-minute UID/resourceVersion binding. The bounded executor then exposes two
@@ -75,6 +91,18 @@ The cleanup candidate carries no authority:
 Cleanup candidate: sha256:b49375ae04357a16835f57bf4f224fa7ab8038b17da9a3b1157e5953e9527478
 R1:                NOT GRANTED
 R3:                NOT GRANTED
+```
+
+The additive cleanup candidate for R0-v3 uses a v2 executor and materializer.
+Besides the historical v1 checks, they require the exact R0-v3 observation
+candidate identity and binding version. An R0-v1/v2 binding cannot be passed to
+the additive candidate, even if its object inventory would otherwise match.
+The v1 executor and candidate remain unchanged historical evidence.
+
+```text
+R0-v3 cleanup candidate: sha256:b47453ee2d318648b3fa6a6dffa5a2471cb40c97b41cca245488fcfca45b4f1c
+R1:                      NOT GRANTED
+R3:                      NOT GRANTED
 ```
 
 Patch-in-place is rejected because it would mix resources created from `R'''`
@@ -103,9 +131,17 @@ python3 architecture/spikes/ADR-Platform-030/go1-l-recovery-v1/observe_recovery_
   verify \
   --candidate architecture/spikes/ADR-Platform-030/go1-l-recovery-v1/recovery-snapshot-candidate-v2.yaml
 python3 architecture/spikes/ADR-Platform-030/go1-l-recovery-v1/test_recovery_snapshot_v2.py -v
+python3 architecture/spikes/ADR-Platform-030/go1-l-recovery-v1/observe_recovery_snapshot_v3.py \
+  verify \
+  --candidate architecture/spikes/ADR-Platform-030/go1-l-recovery-v1/recovery-snapshot-candidate-v3.yaml
+python3 architecture/spikes/ADR-Platform-030/go1-l-recovery-v1/test_recovery_snapshot_v3.py -v
 python3 architecture/spikes/ADR-Platform-030/go1-l-recovery-v1/test_materialize_recovery_binding_v1.py -v
+python3 architecture/spikes/ADR-Platform-030/go1-l-recovery-v1/test_materialize_recovery_binding_v2.py -v
 python3 architecture/spikes/ADR-Platform-030/go1-l-recovery-v1/bounded_recovery_cleanup_v1.py verify
 python3 architecture/spikes/ADR-Platform-030/go1-l-recovery-v1/test_bounded_recovery_cleanup_v1.py -v
+python3 architecture/spikes/ADR-Platform-030/go1-l-recovery-v1/bounded_recovery_cleanup_v2.py \
+  verify \
+  --candidate architecture/spikes/ADR-Platform-030/go1-l-recovery-v1/recovery-cleanup-candidate-v1-r0-v3.yaml
 ```
 
 ```text
