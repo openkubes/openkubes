@@ -1,0 +1,70 @@
+apiVersion: execution.openkubes.io/v1alpha1
+kind: GO1HappyRunResumeCandidateV7
+metadata:
+  name: ok141-go1-happy-run-resume-v7
+  ticket: OK-141
+  baseCommit: 3bfbb50
+spec:
+  version: ok141-go1-happy-run-resume/v7
+  state: OFFLINE-PROVEN-BLOCKED-NO-GO
+  stopSemantics: STOP-PRESERVE-NO-RETRY
+  predecessors:
+    happyRunCandidate: {path: ../go1-happy-run-v1/happy-run-candidate-v1.yaml, digest: sha256:2792206fca811633ec7f30cc5fd04814802fe4cf20645bb888cb9e13aca784e6}
+    runtimeBindingResumeCandidate: {path: ../go1-runtime-binding-resume-v1/runtime-binding-resume-candidate-v1.yaml, digest: sha256:3c36ac75f1550faf5bcf0555f7dd68b1d0a36c1f2c2d47ccecb34152a9037103}
+    platformProjectionCandidate: {path: ../go1-platform-projection-v1/platform-projection-candidate-v1.yaml, digest: sha256:4294218b8032ab5292c44bb1a10ef220099a944619649903f3bc0105d13a4c11}
+    platformObserverCandidate: {path: ../go1-platform-observer-v1/platform-observer-candidate-v1.yaml, digest: sha256:abea5179e1ea7a310f68cdd8ae6d51949e48bf2f0d1e60b6736646d028348724}
+  privateRuntimeBinding:
+    path: /private/tmp/ok141-go1-runtime-binding-v2.json
+    digestBoundByGrant: true
+    semanticDigestBoundByGrant: true
+    requiredState: CURRENT-RUNTIME-BOUND-NO-GO
+  resumeBoundary:
+    startsAfter: CURRENT-RUNTIME-BOUND-NO-GO
+    earlierStagesReexecutionAllowed: false
+    nextStage: TARGET-ACCESS
+  absencePreflight:
+    workload:
+      - /api/v1/namespaces/ok-observability
+      - /api/v1/namespaces/kube-system/serviceaccounts/ok141-argocd-manager
+      - /apis/rbac.authorization.k8s.io/v1/clusterroles/ok141-argocd-platform-cluster
+      - /apis/rbac.authorization.k8s.io/v1/clusterrolebindings/ok141-argocd-platform-cluster
+      - /apis/rbac.authorization.k8s.io/v1/namespaces/ok-observability/roles/ok141-argocd-platform
+      - /apis/rbac.authorization.k8s.io/v1/namespaces/ok-observability/rolebindings/ok141-argocd-platform
+      - /apis/rbac.authorization.k8s.io/v1/namespaces/kube-system/roles/ok141-argocd-kube-system
+      - /apis/rbac.authorization.k8s.io/v1/namespaces/kube-system/rolebindings/ok141-argocd-kube-system
+      - /api/v1/namespaces/ok-observability/secrets/ok-observability-credentials
+    shared:
+      - /apis/argoproj.io/v1alpha1/namespaces/argocd/appprojects/openkubes-disposable
+      - /api/v1/namespaces/argocd/secrets/disposable-ok141-cluster
+      - /apis/argoproj.io/v1alpha1/namespaces/argocd/applications/disposable-ok141-observability-core
+      - /apis/argoproj.io/v1alpha1/namespaces/argocd/applications/disposable-ok141-observability-alerting
+      - /apis/argoproj.io/v1alpha1/namespaces/argocd/applications/disposable-ok141-observability-dashboards
+  sequence: [ABSENCE-PREFLIGHT, TARGET-ACCESS, PLATFORM-CREDENTIALS, TOKEN-REGISTRATION, APPLICATIONS, PLATFORM-READY]
+  runtimeDirectory: /private/tmp/ok141-happy-run-resume-v7
+  capabilityScript: /Users/arash/temp/kubernauts/ok/ok-observability/tests/contract-test.sh
+  capabilityScriptDigest: sha256:bd68328f35de960bfc291880dd7f85274021c0cce8d7b69ccecde0a459ead648
+  tool:
+    path: bounded_happy_run_resume_v7.py
+    digest: sha256:3066e51d9ec70627d739438925f651df62017e0fd258dff25236289ff8b1e4b5
+  authorization:
+    decision: NO-GO
+    credentialUseGranted: false
+    runtimeBindingReuseGranted: false
+    exactAbsencePreflightGranted: false
+    targetAccessGranted: false
+    tokenRequestGranted: false
+    registrationGranted: false
+    credentialSecretGranted: false
+    applicationSubmissionGranted: false
+    platformObserverGranted: false
+    capabilityTestGranted: false
+    capabilityTestCleanupGranted: false
+    happyRunResumeGranted: false
+    go1Granted: false
+    earlierStageReexecutionGranted: false
+    retryGranted: false
+    rollbackOrBroadCleanupGranted: false
+    evidencePublicationGranted: false
+    outageGranted: false
+    failureInjectionGranted: false
+    grantIDs: []

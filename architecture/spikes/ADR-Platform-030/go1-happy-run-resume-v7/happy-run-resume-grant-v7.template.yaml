@@ -1,0 +1,36 @@
+apiVersion: authorization.openkubes.io/v1alpha1
+kind: GO1HappyRunResumeGrantV7
+metadata:
+  name: FILL
+spec:
+  decision: NO-GO
+  authority: github:arashkaffamanesh
+  candidateDigest: FILL
+  grantID: FILL
+  runID: FILL
+  singleRun: true
+  consumed: false
+  issuedAt: FILL
+  expiresAt: FILL
+  runtimeBindingPath: /private/tmp/ok141-go1-runtime-binding-v2.json
+  runtimeBindingDigest: FILL
+  runtimeBindingSemanticDigest: FILL
+  credentialUseGranted: false
+  runtimeBindingReuseGranted: false
+  exactAbsencePreflightGranted: false
+  targetAccessGranted: false
+  tokenRequestGranted: false
+  registrationGranted: false
+  credentialSecretGranted: false
+  applicationSubmissionGranted: false
+  platformObserverGranted: false
+  capabilityTestGranted: false
+  capabilityTestCleanupGranted: false
+  happyRunResumeGranted: false
+  go1Granted: false
+  earlierStageReexecutionGranted: false
+  retryGranted: false
+  rollbackOrBroadCleanupGranted: false
+  evidencePublicationGranted: false
+  outageGranted: false
+  failureInjectionGranted: false
