@@ -52,10 +52,38 @@ PATHS = {
 
 
 class ProviderClient:
-    def __init__(self, base_url: str) -> None:
+    def __init__(self, base_url: str, bearer_token: str) -> None:
         self.base_url = base_url.rstrip("/")
+        self.bearer_token = bearer_token
+        self.response_headers: dict[str, dict[str, str]] = {}
 
     def call(self, operation: str, payload: dict[str, Any]) -> dict[str, Any]:
+        request = Request(
+            self.base_url + PATHS[operation],
+            data=json.dumps(payload).encode("utf-8"),
+            headers={
+                "Authorization": f"Bearer {self.bearer_token}",
+                "Content-Type": "application/json",
+                "X-Request-Id": f"contract-test-{operation}",
+            },
+            method="POST",
+        )
+        try:
+            with urlopen(request, timeout=10) as response:
+                self.last_status = response.status
+                self.response_headers[operation] = dict(response.headers.items())
+                return json.loads(response.read())
+        except HTTPError as exc:
+            body = exc.read().decode("utf-8", errors="replace")
+            raise AssertionError(
+                f"{operation} returned HTTP {exc.code}: {body}"
+            ) from exc
+
+    def call_without_identity(
+        self,
+        operation: str,
+        payload: dict[str, Any],
+    ) -> tuple[int, dict[str, str], dict[str, Any]]:
         request = Request(
             self.base_url + PATHS[operation],
             data=json.dumps(payload).encode("utf-8"),
@@ -64,13 +92,12 @@ class ProviderClient:
         )
         try:
             with urlopen(request, timeout=10) as response:
-                self.last_status = response.status
-                return json.loads(response.read())
+                raise AssertionError(
+                    f"{operation} accepted a request without consumer identity "
+                    f"with HTTP {response.status}"
+                )
         except HTTPError as exc:
-            body = exc.read().decode("utf-8", errors="replace")
-            raise AssertionError(
-                f"{operation} returned HTTP {exc.code}: {body}"
-            ) from exc
+            return exc.code, dict(exc.headers.items()), json.loads(exc.read())
 
 
 def _schema_validator(spec: dict[str, Any], schema: dict[str, Any]) -> Draft202012Validator:
@@ -109,23 +136,44 @@ def _walk(value: Any):
             yield from _walk(child)
 
 
+def _assert_evidence_integrity(
+    testcase: unittest.TestCase,
+    response: dict[str, Any],
+) -> None:
+    evidence_ids = [item["id"] for item in response["evidence"]]
+    testcase.assertEqual(
+        len(evidence_ids),
+        len(set(evidence_ids)),
+        "EvidenceRef.id values must be unique within an invocation",
+    )
+    known_ids = set(evidence_ids)
+    for hypothesis in response.get("probable_causes", []):
+        testcase.assertLessEqual(set(hypothesis["evidence_refs"]), known_ids)
+        testcase.assertLessEqual(
+            set(hypothesis["contradicting_evidence_refs"]), known_ids
+        )
+
+
 class DiagnosticsContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         spec_path = Path(os.getenv("OPENAPI_SPEC", DEFAULT_SPEC))
         cls.spec = yaml.safe_load(spec_path.read_text())
         cls.rbac_path = Path(os.getenv("DIAGNOSTICS_RBAC_PATH", DEFAULT_RBAC))
+        bearer_token = os.getenv(
+            "DIAGNOSTICS_BEARER_TOKEN", "profile-b-contract-test"
+        )
         external_url = os.getenv("DIAGNOSTICS_BASE_URL")
         cls.httpd = None
         cls.thread = None
         if external_url:
-            cls.client = ProviderClient(external_url)
+            cls.client = ProviderClient(external_url, bearer_token)
         else:
             cls.httpd = ThreadingHTTPServer(("127.0.0.1", 0), ProfileBHandler)
             cls.thread = threading.Thread(target=cls.httpd.serve_forever, daemon=True)
             cls.thread.start()
             host, port = cls.httpd.server_address
-            cls.client = ProviderClient(f"http://{host}:{port}")
+            cls.client = ProviderClient(f"http://{host}:{port}", bearer_token)
         cls.responses = {
             operation: cls.client.call(operation, payload)
             for operation, payload in REQUESTS.items()
@@ -147,6 +195,7 @@ class DiagnosticsContractTests(unittest.TestCase):
         }
         self.assertEqual(expected_operations, actual_operations)
         self.assertEqual(set(PATHS.values()), set(self.spec["paths"]))
+        self.assertEqual([{"bearerAuth": []}], self.spec["security"])
 
         public_surface = json.dumps(
             {
@@ -163,6 +212,33 @@ class DiagnosticsContractTests(unittest.TestCase):
             response_schema = post["responses"]["200"]["content"]["application/json"]["schema"]
             _assert_schema(self, self.spec, request_schema, payload)
             _assert_schema(self, self.spec, response_schema, self.responses[operation])
+            invocation_id = self.responses[operation]["invocation_id"]
+            self.assertEqual(
+                invocation_id,
+                self.client.response_headers[operation]["X-Invocation-Id"],
+            )
+
+        status, headers, error = self.client.call_without_identity(
+            "get_platform_health",
+            REQUESTS["get_platform_health"],
+        )
+        self.assertEqual(401, status)
+        unauthorized_schema = self.spec["components"]["responses"]["Unauthorized"][
+            "content"
+        ]["application/json"]["schema"]
+        _assert_schema(self, self.spec, unauthorized_schema, error)
+        self.assertEqual(error["invocation_id"], headers["X-Invocation-Id"])
+
+        investigation = self.responses["investigate_workload"]
+        evidence_bundle = self.responses["collect_diagnostic_evidence"]
+        for response in (investigation, evidence_bundle):
+            self.assertEqual("contract-test", response["cluster"])
+            self.assertEqual("fixtures", response["namespace"])
+            self.assertEqual("checkout-api", response["workload"])
+            self.assertLessEqual(
+                response["effective_time_range"]["start"],
+                response["effective_time_range"]["end"],
+            )
 
     def test_2_provider_rbac_is_read_only_and_secret_free(self) -> None:
         documents = [
@@ -214,6 +290,7 @@ class DiagnosticsContractTests(unittest.TestCase):
         forbidden_key_fragments = {"payload", "secret", "credential", "password", "token"}
         forbidden_fragments = ("begin private key", "bearer ", "password=", "token=")
         for item in evidence:
+            self.assertTrue(item.get("id"))
             self.assertTrue(item.get("type"))
             self.assertTrue(item.get("source"))
             self.assertIn(item.get("status"), {"available", "unavailable", "partial"})
@@ -260,10 +337,8 @@ class DiagnosticsContractTests(unittest.TestCase):
 
     def test_6_final_hypotheses_include_counter_evidence(self) -> None:
         response = self.responses["investigate_workload"]
-        known_uris = {
-            item["uri"] for item in response["evidence"]
-            if item["status"] == "available" and item.get("uri")
-        }
+        known_ids = {item["id"] for item in response["evidence"]}
+        _assert_evidence_integrity(self, response)
         for hypothesis in response["probable_causes"]:
             self.assertTrue(hypothesis.get("confidence"))
             self.assertIn("contradicting_evidence_refs", hypothesis)
@@ -272,10 +347,20 @@ class DiagnosticsContractTests(unittest.TestCase):
                 {"found", "none_found"},
             )
             self.assertTrue(hypothesis.get("evidence_refs"))
-            self.assertLessEqual(set(hypothesis["evidence_refs"]), known_uris)
+            self.assertLessEqual(set(hypothesis["evidence_refs"]), known_ids)
             self.assertLessEqual(
-                set(hypothesis["contradicting_evidence_refs"]), known_uris
+                set(hypothesis["contradicting_evidence_refs"]), known_ids
             )
+
+        duplicate = json.loads(json.dumps(response))
+        duplicate["evidence"][1]["id"] = duplicate["evidence"][0]["id"]
+        with self.assertRaises(AssertionError):
+            _assert_evidence_integrity(self, duplicate)
+
+        dangling = json.loads(json.dumps(response))
+        dangling["probable_causes"][0]["evidence_refs"] = ["ev-does-not-exist"]
+        with self.assertRaises(AssertionError):
+            _assert_evidence_integrity(self, dangling)
 
 
 if __name__ == "__main__":
