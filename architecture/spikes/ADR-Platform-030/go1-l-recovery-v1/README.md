@@ -50,6 +50,33 @@ R0 v2 candidate: sha256:4cc18693b948844a0516492395e7943cd1f1925d66b35f25d35977c9
 All other API errors still stop fail-closed. Candidate v2 requires a new grant;
 the consumed v1 grant cannot be reused.
 
+The cleanup mechanism is prepared offline but remains blocked. A deterministic
+materializer converts only a successful, fresh R0-v2 snapshot into a private
+ten-minute UID/resourceVersion binding. The bounded executor then exposes two
+strictly separate stages:
+
+```text
+R1: ok-mgmt Namespace only
+    exact GET
+    UID + resourceVersion equality
+    foreground DELETE with both preconditions
+    STOP; no automatic observation or continuation
+
+R3: ok-infra RoleBinding -> Role -> Namespace
+    requires a separately proven R2 closure
+    same exact GET and DELETE preconditions per object
+    persist partial-state evidence before and after each attempt
+    STOP on first error; no retry or rollback
+```
+
+The cleanup candidate carries no authority:
+
+```text
+Cleanup candidate: sha256:b49375ae04357a16835f57bf4f224fa7ab8038b17da9a3b1157e5953e9527478
+R1:                NOT GRANTED
+R3:                NOT GRANTED
+```
+
 Patch-in-place is rejected because it would mix resources created from `R'''`
 with the corrected `R''''`. Force deletion, finalizer removal, automatic retry,
 rollback, Secret materialization, and recreation are also excluded.
@@ -76,6 +103,9 @@ python3 architecture/spikes/ADR-Platform-030/go1-l-recovery-v1/observe_recovery_
   verify \
   --candidate architecture/spikes/ADR-Platform-030/go1-l-recovery-v1/recovery-snapshot-candidate-v2.yaml
 python3 architecture/spikes/ADR-Platform-030/go1-l-recovery-v1/test_recovery_snapshot_v2.py -v
+python3 architecture/spikes/ADR-Platform-030/go1-l-recovery-v1/test_materialize_recovery_binding_v1.py -v
+python3 architecture/spikes/ADR-Platform-030/go1-l-recovery-v1/bounded_recovery_cleanup_v1.py verify
+python3 architecture/spikes/ADR-Platform-030/go1-l-recovery-v1/test_bounded_recovery_cleanup_v1.py -v
 ```
 
 ```text
