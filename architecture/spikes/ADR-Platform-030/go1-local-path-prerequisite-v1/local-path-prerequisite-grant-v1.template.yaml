@@ -1,0 +1,34 @@
+apiVersion: authorization.openkubes.io/v1alpha1
+kind: GO1LocalPathPrerequisiteGrant
+metadata:
+  name: FILL
+spec:
+  decision: NO-GO
+  authority: github:arashkaffamanesh
+  candidateDigest: FILL
+  grantID: FILL
+  runID: FILL
+  singleRun: true
+  consumed: false
+  issuedAt: FILL
+  expiresAt: FILL
+  riskAcceptance: DEV-LOCAL-PATH-BOUNDARY-ACCEPTED
+  diagnosticEvidencePath: /private/tmp/ok141-runtime-binding-diagnostic-v1-evidence.json
+  diagnosticEvidenceDigest: FILL
+  workloadTargetIdentityDigest: FILL
+  rawEvidencePath: /private/tmp/ok141-local-path-prerequisite-v1-evidence.json
+  riskAcceptanceGranted: false
+  clusterContactGranted: false
+  managementCredentialUseGranted: false
+  exactSecretReadGranted: false
+  ephemeralCredentialMaterializationGranted: false
+  workloadCredentialUseGranted: false
+  exactAbsencePreflightGranted: false
+  exactCreateOnlyGranted: false
+  readinessObservationGranted: false
+  runtimeBindingGranted: false
+  happyRunResumeGranted: false
+  retryGranted: false
+  rollbackOrCleanupGranted: false
+  evidencePublicationGranted: false
+  failureInjectionGranted: false
