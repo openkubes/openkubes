@@ -11,4 +11,3 @@ the existing authoritative Runtime Binding implementation unchanged. It
 creates only the local private binding artifact; it performs no Kubernetes
 mutation and grants no Target RBAC, TokenRequest, Argo registration,
 Application submission, Platform convergence, cleanup, or publication.
-
