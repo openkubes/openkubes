@@ -40,8 +40,13 @@ provider. To test another provider without changing the suite:
 ```bash
 DIAGNOSTICS_BASE_URL=http://127.0.0.1:8080 \
 DIAGNOSTICS_RBAC_PATH=profiles/kagent/rbac.yaml \
+DIAGNOSTICS_BEARER_TOKEN=<consumer-token> \
 make verify
 ```
+
+The in-process Profile B run uses a synthetic consumer token. External runs
+must provide the provider's consumer bearer token; it is sent only to the
+configured diagnostics endpoint and is never printed by the suite.
 
 `OPENAPI_SPEC` may point at another checkout of the normative specification;
 this is useful while a contract change and its conformance implementation are

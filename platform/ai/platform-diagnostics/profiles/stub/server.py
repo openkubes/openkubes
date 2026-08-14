@@ -8,8 +8,10 @@ provider-specific dependencies. Responses are synthetic and deterministic.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
-from datetime import datetime, timezone
+import threading
+from datetime import datetime, timedelta, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
 from urllib.parse import quote, urlsplit
@@ -25,6 +27,8 @@ CAPABILITIES = {
 SUPPORTED_EVIDENCE = {"events", "logs", "describe"}
 DEFAULT_EVIDENCE = ["events", "logs", "describe"]
 MAX_REQUEST_BYTES = 1_048_576
+_INVOCATION_LOCK = threading.Lock()
+_INVOCATION_SEQUENCE = 0
 
 
 class RequestError(ValueError):
@@ -33,6 +37,22 @@ class RequestError(ValueError):
 
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def _next_invocation_id() -> str:
+    global _INVOCATION_SEQUENCE
+    with _INVOCATION_LOCK:
+        _INVOCATION_SEQUENCE += 1
+        return f"inv-profile-b-{_INVOCATION_SEQUENCE:08d}"
+
+
+def _effective_time_range(end: str) -> dict[str, str]:
+    end_time = datetime.fromisoformat(end.replace("Z", "+00:00"))
+    start_time = end_time - timedelta(hours=1)
+    return {
+        "start": start_time.isoformat().replace("+00:00", "Z"),
+        "end": end,
+    }
 
 
 def _validate_object(
@@ -71,9 +91,14 @@ def _evidence_ref(
     payload: dict[str, Any],
     evidence_type: str,
     collected_at: str,
+    invocation_id: str,
+    index: int,
 ) -> dict[str, Any]:
+    type_digest = hashlib.sha256(evidence_type.encode("utf-8")).hexdigest()[:12]
+    evidence_id = f"{invocation_id}-ev-{index:03d}-{type_digest}"
     if evidence_type in SUPPORTED_EVIDENCE:
         return {
+            "id": evidence_id,
             "type": evidence_type,
             "source": "profile-b-runbook",
             "status": "available",
@@ -81,6 +106,7 @@ def _evidence_ref(
             "collected_at": collected_at,
         }
     return {
+        "id": evidence_id,
         "type": evidence_type,
         "source": "profile-b-runbook",
         "status": "unavailable",
@@ -89,7 +115,7 @@ def _evidence_ref(
     }
 
 
-def get_platform_health(payload: Any) -> dict[str, Any]:
+def get_platform_health(payload: Any, invocation_id: str) -> dict[str, Any]:
     body = _validate_object(payload, required=set(), allowed={"clusters"})
     clusters = body.get("clusters") or ["stub-cluster"]
     if not isinstance(clusters, list) or any(
@@ -98,6 +124,7 @@ def get_platform_health(payload: Any) -> dict[str, Any]:
         raise RequestError("clusters must be an array of non-empty strings")
     generated_at = _now()
     return {
+        "invocation_id": invocation_id,
         "generated_at": generated_at,
         "clusters": [
             {
@@ -112,7 +139,7 @@ def get_platform_health(payload: Any) -> dict[str, Any]:
     }
 
 
-def investigate_workload(payload: Any) -> dict[str, Any]:
+def investigate_workload(payload: Any, invocation_id: str) -> dict[str, Any]:
     body = _validate_object(
         payload,
         required={"cluster", "namespace", "workload"},
@@ -120,11 +147,17 @@ def investigate_workload(payload: Any) -> dict[str, Any]:
     )
     collected_at = _now()
     evidence = [
-        _evidence_ref(body, "events", collected_at),
-        _evidence_ref(body, "logs", collected_at),
+        _evidence_ref(body, "events", collected_at, invocation_id, 1),
+        _evidence_ref(body, "logs", collected_at, invocation_id, 2),
     ]
-    supporting_uri = evidence[0]["uri"]
+    supporting_id = evidence[0]["id"]
     return {
+        "invocation_id": invocation_id,
+        "cluster": body["cluster"],
+        "namespace": body["namespace"],
+        "workload": body["workload"],
+        "generated_at": collected_at,
+        "effective_time_range": _effective_time_range(collected_at),
         "summary": (
             f"Deterministic fixture diagnosis for {body['namespace']}/"
             f"{body['workload']} on {body['cluster']}."
@@ -135,7 +168,7 @@ def investigate_workload(payload: Any) -> dict[str, Any]:
             {
                 "hypothesis": "The fixture dependency is unavailable.",
                 "confidence": "high",
-                "evidence_refs": [supporting_uri],
+                "evidence_refs": [supporting_id],
                 "contradicting_evidence_refs": [],
                 "counter_evidence_status": "none_found",
             }
@@ -148,7 +181,7 @@ def investigate_workload(payload: Any) -> dict[str, Any]:
     }
 
 
-def collect_diagnostic_evidence(payload: Any) -> dict[str, Any]:
+def collect_diagnostic_evidence(payload: Any, invocation_id: str) -> dict[str, Any]:
     body = _validate_object(
         payload,
         required={"cluster", "namespace", "workload"},
@@ -167,11 +200,15 @@ def collect_diagnostic_evidence(payload: Any) -> dict[str, Any]:
         raise RequestError("evidence_types must be an array of non-empty strings")
     collected_at = _now()
     return {
+        "invocation_id": invocation_id,
         "cluster": body["cluster"],
+        "namespace": body["namespace"],
+        "workload": body["workload"],
         "collected_at": collected_at,
+        "effective_time_range": _effective_time_range(collected_at),
         "evidence": [
-            _evidence_ref(body, evidence_type, collected_at)
-            for evidence_type in dict.fromkeys(evidence_types)
+            _evidence_ref(body, evidence_type, collected_at, invocation_id, index)
+            for index, evidence_type in enumerate(dict.fromkeys(evidence_types), 1)
         ],
         "provider_capabilities": dict(CAPABILITIES),
     }
@@ -187,14 +224,38 @@ OPERATIONS = {
 class ProfileBHandler(BaseHTTPRequestHandler):
     """Small HTTP transport wrapper around the deterministic operations."""
 
-    server_version = "OpenKubesProfileB/1.0"
+    server_version = "OpenKubesProfileB/1.1"
 
     def do_POST(self) -> None:  # noqa: N802 - BaseHTTPRequestHandler API
+        invocation_id = _next_invocation_id()
         operation = OPERATIONS.get(urlsplit(self.path).path)
         if operation is None:
-            self._write_json(404, {"code": "not_found", "message": "unknown operation"})
+            self._write_json(
+                404,
+                {
+                    "code": "not_found",
+                    "message": "unknown operation",
+                    "invocation_id": invocation_id,
+                },
+                invocation_id,
+            )
+            return
+        authorization = self.headers.get("Authorization", "")
+        if not authorization.startswith("Bearer ") or not authorization[7:].strip():
+            self._write_json(
+                401,
+                {
+                    "code": "unauthorized",
+                    "message": "a consumer bearer identity is required",
+                    "invocation_id": invocation_id,
+                },
+                invocation_id,
+            )
             return
         try:
+            request_id = self.headers.get("X-Request-Id")
+            if request_id is not None and (not request_id or len(request_id) > 128):
+                raise RequestError("X-Request-Id must contain 1 to 128 characters")
             try:
                 length = int(self.headers.get("Content-Length", "0"))
             except ValueError as exc:
@@ -204,17 +265,31 @@ class ProfileBHandler(BaseHTTPRequestHandler):
             if length > MAX_REQUEST_BYTES:
                 raise RequestError("request body exceeds 1 MiB")
             payload = json.loads(self.rfile.read(length) or b"{}")
-            result = operation(payload)
+            result = operation(payload, invocation_id)
         except (json.JSONDecodeError, RequestError) as exc:
-            self._write_json(400, {"code": "invalid_request", "message": str(exc)})
+            self._write_json(
+                400,
+                {
+                    "code": "invalid_request",
+                    "message": str(exc),
+                    "invocation_id": invocation_id,
+                },
+                invocation_id,
+            )
             return
-        self._write_json(200, result)
+        self._write_json(200, result, invocation_id)
 
-    def _write_json(self, status: int, payload: dict[str, Any]) -> None:
+    def _write_json(
+        self,
+        status: int,
+        payload: dict[str, Any],
+        invocation_id: str,
+    ) -> None:
         body = json.dumps(payload, separators=(",", ":")).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "application/json")
         self.send_header("Content-Length", str(len(body)))
+        self.send_header("X-Invocation-Id", invocation_id)
         self.end_headers()
         self.wfile.write(body)
 

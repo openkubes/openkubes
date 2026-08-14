@@ -21,6 +21,11 @@ docker build -t openkubes/platform-diagnostics-profile-b:dev .
 docker run --rm -p 8080:8080 openkubes/platform-diagnostics-profile-b:dev
 ```
 
+Profile B accepts any non-empty bearer token as a synthetic consumer identity.
+Every response includes the provider-assigned `X-Invocation-Id`, and successful
+payloads repeat the same value as `invocation_id`. This exercises the normative
+authentication and audit-correlation surface without introducing credentials.
+
 The default RBAC manifest grants the ServiceAccount **no Kubernetes API
 permissions** (`rules: []`). This is stricter than the Phase-1 maximum of
 `get`/`list`/`watch` and makes the absence of a hidden cluster dependency
@@ -40,5 +45,6 @@ same tests against another provider:
 ```bash
 DIAGNOSTICS_BASE_URL=http://127.0.0.1:8080 \
 DIAGNOSTICS_RBAC_PATH=profiles/kagent/rbac.yaml \
+DIAGNOSTICS_BEARER_TOKEN=profile-b-contract-test \
 make verify
 ```
