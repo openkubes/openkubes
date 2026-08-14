@@ -1,0 +1,17 @@
+apiVersion: publication.openkubes.io/v1alpha1
+kind: GO1PlatformAuthorizationCausePublicationCandidate
+metadata: {name: ok141-platform-authorization-cause-publication-v1, ticket: OK-141}
+spec:
+  decision: BLOCKED-NO-PUBLICATION
+  scope:
+    directory: architecture/spikes/ADR-Platform-030/go1-platform-authorization-cause-v1
+    files:
+      README.md: sha256:968a32f164c3cf0394b19dfe89a17e97605782a558eecc54adbf65d5dc1e7b92
+      platform-observer-closure.json: sha256:3baced70c56506a896e7aac569b1e13d107eefc6da6599fa6a0e955fc4ad9b99
+      platform-authorization-cause-candidate-v1.yaml: sha256:516d5a35778d0ef4cac82e1f0d8fe7f0b36102c4fb59bed3d27c2b1f398cca5e
+      platform-authorization-cause-grant-v1.template.yaml: sha256:f4ccf73ca6d1cefb0ed481ee935c9210b299e0ab058a9ccb4eeabdd0616c2166
+      bounded_platform_authorization_cause_v1.py: sha256:0c52c293481b3b2686da33509f0a4e7ae6286c208d97343805ee307ef8942fc1
+      test_platform_authorization_cause_v1.py: sha256:edf738dc7a4e10aec6e39fdf74d971770a7f45ea71e3fa43b549a594a452a439
+  validation: {testsPassed: 5, candidateDigest: sha256:516d5a35778d0ef4cac82e1f0d8fe7f0b36102c4fb59bed3d27c2b1f398cca5e}
+  permitsAfterSeparateGrant: [commit, push, draft-pr, review, merge]
+  excludes: [private Evidence under /private/tmp, raw messages and Application objects, subjects and API endpoints, Secrets Pods logs and target access, mutation, retry, cleanup and failure injection]

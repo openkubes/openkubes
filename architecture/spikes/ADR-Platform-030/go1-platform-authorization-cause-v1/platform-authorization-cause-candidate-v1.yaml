@@ -1,0 +1,41 @@
+apiVersion: diagnostic.openkubes.io/v1alpha1
+kind: GO1PlatformAuthorizationCauseCandidate
+metadata: {name: ok141-platform-authorization-cause-v1, ticket: OK-141, baseCommit: e9602f2}
+spec:
+  version: ok141-go1-platform-authorization-cause/v1
+  state: OFFLINE-PROVEN-BLOCKED-NO-GO
+  predecessor:
+    closurePath: platform-observer-closure.json
+    closureDigest: sha256:3baced70c56506a896e7aac569b1e13d107eefc6da6599fa6a0e955fc4ad9b99
+    privateEvidencePath: /private/tmp/ok141-post-remediation-platform-observer-v1-evidence.json
+    privateEvidenceDigest: sha256:073a193efe9c7337cb10e961b13f84187f059038a28e25a8070f84812a4388fa
+    privateEvidenceSemanticDigest: sha256:34a451c589100f930f9e41136b734808e70f3717462248d9e7ba006c31c12aa0
+  argo:
+    credentialPath: /Users/arash/.kube/ok-shared.yaml
+    credentialIdentityDigest: sha256:790e5efe2af8f8b8703c1745b9e2643ec4ac14f254d52016ad2c2679a79bdefb
+    clientPath: /private/tmp/ok141-kubectl-v1.34.1-darwin-amd64
+    clientDigest: sha256:bb211f2b31f2b3bc60562b44cc1e3b712a16a98e9072968ba255beb04cefcfdf
+    namespace: argocd
+    applications:
+      - disposable-ok141-observability-core
+      - disposable-ok141-observability-alerting
+      - disposable-ok141-observability-dashboards
+  targetPolicy:
+    expectedNamespaceCategories: [OK-OBSERVABILITY, KUBE-SYSTEM]
+    allowedVerbs: [get, list, watch, create, patch, update, delete]
+  outputPath: /private/tmp/ok141-platform-authorization-cause-v1-evidence.json
+  tool: {path: bounded_platform_authorization_cause_v1.py, digest: sha256:0c52c293481b3b2686da33509f0a4e7ae6286c208d97343805ee307ef8942fc1}
+  authorization:
+    decision: NO-GO
+    sharedClusterContactGranted: false
+    sharedCredentialUseGranted: false
+    exactApplicationReadsGranted: false
+    transientMessageInspectionGranted: false
+    normalizedRBACExtractionGranted: false
+    secretPodLogOrTargetReadGranted: false
+    mutationGranted: false
+    retryGranted: false
+    cleanupGranted: false
+    evidencePublicationGranted: false
+    failureInjectionGranted: false
+    grantIDs: []
