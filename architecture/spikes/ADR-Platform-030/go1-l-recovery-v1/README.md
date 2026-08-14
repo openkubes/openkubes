@@ -35,6 +35,21 @@ R0 candidate:       sha256:1748e1ae7bec8726fd5de8ca30699fa3f9b8c4650e946ef9373d6
 Phase-R v5 fixture: sha256:7536456a762880a78a37dcba76a5f3f0628140bd37b55d5fd62273c64e4cc3eb
 ```
 
+The first R0 grant was consumed by a fail-closed observation attempt. No
+mutation occurred and no partial API results were retained. It exposed that
+`ok-mgmt` does not serve the KubeVirt VM/VMI API and that v1 did not model this
+as an observation result. The additive v2 candidate binds `API_NOT_SERVED` only
+for those two exact, label-bounded `ok-mgmt` collections:
+
+```text
+R0 v1 candidate: sha256:1748e1ae7bec8726fd5de8ca30699fa3f9b8c4650e946ef9373d6a63e926ba48
+Attempt closure: sha256:4bfacec6191c5c1a2d8ec32052454c8f319b74d9c4ef3ead4455f7cde493f8ab (private)
+R0 v2 candidate: sha256:4cc18693b948844a0516492395e7943cd1f1925d66b35f25d35977c989bac71f
+```
+
+All other API errors still stop fail-closed. Candidate v2 requires a new grant;
+the consumed v1 grant cannot be reused.
+
 Patch-in-place is rejected because it would mix resources created from `R'''`
 with the corrected `R''''`. Force deletion, finalizer removal, automatic retry,
 rollback, Secret materialization, and recreation are also excluded.
@@ -57,6 +72,10 @@ python3 architecture/spikes/ADR-Platform-030/go1-l-recovery-v1/observe_recovery_
   verify \
   --candidate architecture/spikes/ADR-Platform-030/go1-l-recovery-v1/recovery-snapshot-candidate-v1.yaml
 python3 architecture/spikes/ADR-Platform-030/go1-l-recovery-v1/test_recovery_snapshot_v1.py -v
+python3 architecture/spikes/ADR-Platform-030/go1-l-recovery-v1/observe_recovery_snapshot_v2.py \
+  verify \
+  --candidate architecture/spikes/ADR-Platform-030/go1-l-recovery-v1/recovery-snapshot-candidate-v2.yaml
+python3 architecture/spikes/ADR-Platform-030/go1-l-recovery-v1/test_recovery_snapshot_v2.py -v
 ```
 
 ```text
