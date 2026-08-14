@@ -1,0 +1,112 @@
+apiVersion: execution.openkubes.io/v1alpha1
+kind: ProviderAccessMaterializerCandidate
+metadata:
+  name: ok141-provider-access-materializer-v1
+  ticket: OK-141
+  baseCommit: 35808751295f1534dfc6a00c36f7091447312693
+spec:
+  version: ok141-provider-access-materializer/v1
+  state: OFFLINE-PROVEN-BLOCKED-NO-GO
+  sourcePreflight:
+    path: ../go1-l-recreation-v1/recreation-preflight-v1.yaml
+    digest: sha256:0c84943fe177b2fa87fe12b9cd470ea09c1426c832e9b33aad874b7e0ba668fc
+  fixture:
+    path: ../harness/fixtures/execution/phase-r-v5.json
+    fileDigest: sha256:e1a159ffcf32191dfba9d7455c67a38557f62ede37902b722e302ad298386068
+    fixtureDigest: sha256:7536456a762880a78a37dcba76a5f3f0628140bd37b55d5fd62273c64e4cc3eb
+    R: sha256:166504ae61fd558d391daedde50986cbc7a28f5f4e9d57f4acbd0433b448aa0f
+  submitter:
+    path: ../go1-l-submitter-v3/go1-l-submitter-candidate-v3.yaml
+    digest: sha256:ef6869cbe35008a79934eeab1a99106d6e73ab5ee4aae08f88f41ca2116f5cd5
+    state: OFFLINE-PROVEN-BLOCKED-NO-GO
+  secretTemplate:
+    apiVersion: v1
+    kind: Secret
+    metadata:
+      name: external-infra-kubeconfig-disposable-ok141
+      namespace: disposable-ok141
+      annotations:
+        openkubes.io/intent-revision: sha256:166504ae61fd558d391daedde50986cbc7a28f5f4e9d57f4acbd0433b448aa0f
+        openkubes.io/execution-fixture: sha256:7536456a762880a78a37dcba76a5f3f0628140bd37b55d5fd62273c64e4cc3eb
+        openkubes.io/provider-plane: ok-infra
+    type: Opaque
+    dataKey: kubeconfig
+  sourceCredential:
+    plane: ok-infra
+    path: /Users/arash/.kube/ok-infra.yaml
+    readOnly: true
+    requiredFileMode: "0600"
+    symlinkAllowed: false
+    bytesInRepositoryAllowed: false
+    bytesInArgumentsAllowed: false
+    bytesInEnvironmentAllowed: false
+    bytesInLogsOrEvidenceAllowed: false
+    contentDigestInPublicEvidenceAllowed: false
+  destinationCredential:
+    plane: ok-mgmt
+    runtimeFileRequired: true
+    requiredFileMode: "0600"
+    symlinkAllowed: false
+    separateFromSourceRequired: true
+    bytesInRepositoryAllowed: false
+    bytesInArgumentsAllowed: false
+    bytesInEnvironmentAllowed: false
+    bytesInLogsOrEvidenceAllowed: false
+  tool:
+    path: bounded_provider_access_materializer_v1.py
+    digest: sha256:c9c100af30aa3e9e89aec649fdc695d4d78ad6e81c274fed5afeb7477e190f5d
+    arbitrarySourcePathAllowed: false
+    arbitrarySecretIdentityAllowed: false
+    arbitraryCommandAllowed: false
+  runtimeGrant:
+    operation: provider-access-secret
+    maximumMinutes: 20
+    singleRunRequired: true
+    predecessorEvidenceCount: 2
+    requiredPredecessors:
+      - accepted management-namespace submission receipt
+      - exact Secret absence-preflight receipt
+    sourceCredentialReceiptRequired: true
+    destinationCredentialReceiptRequired: true
+  transport:
+    operation: CreateExactProviderAccessSecret
+    createOnly: true
+    serverSideApply: false
+    stdinPayloadOnly: true
+    secretBytesInArguments: false
+    secretBytesInEnvironment: false
+    secretBytesInOutputOrEvidence: false
+    automaticRetryAllowed: false
+    automaticRollbackAllowed: false
+    partialStateOnFailure: STOP-PRESERVE-NO-CLEANUP
+  evidence:
+    allowed:
+      - candidate fixture operation and grant identities
+      - source and destination credential receipt digests without credential content
+      - exact Secret identity and data-key name
+      - transport exit code and timestamps
+    forbidden:
+      - source kubeconfig bytes or base64
+      - source kubeconfig content digest in public evidence
+      - generated Secret payload stdout stderr or retained raw evidence
+      - destination credential bytes
+  authorization:
+    decision: NO-GO
+    currentGrantBound: false
+    sourceCredentialReadGranted: false
+    destinationCredentialUseGranted: false
+    secretMaterializationGranted: false
+    recreationGranted: false
+    go1LGranted: false
+    retryGranted: false
+    rollbackOrCleanupGranted: false
+  blockers:
+    - no fresh source and destination credential receipts exist
+    - no namespace receipt or exact Secret absence-preflight receipt exists
+    - no single-run materialization grant exists
+    - no additive recreation protocol binds this materializer
+  exclusions:
+    - reading any source path other than the bound local ok-infra kubeconfig
+    - creating any Secret identity or data key other than the bound template
+    - update patch apply delete retry rollback cleanup or arbitrary kubectl arguments
+    - printing persisting hashing or publishing source credential or generated Secret content
