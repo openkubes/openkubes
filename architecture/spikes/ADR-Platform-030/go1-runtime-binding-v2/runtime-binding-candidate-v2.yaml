@@ -32,6 +32,7 @@ spec:
     clientDigest: sha256:ce6c5e55cd17559e87e4fb5e73ebbbc2511bcf2b695d7a40c1b1461a9817d4b3
     ephemeralKubeconfigPath: /private/tmp/ok141-go1-runtime-binding-v2-workload-kubeconfig.yaml
     localPathProvisioner: rancher.io/local-path
+    tokenAudience: https://kubernetes.default.svc.cluster.local
     queries:
       kubeSystem: /api/v1/namespaces/kube-system
       localPath: /apis/storage.k8s.io/v1/storageclasses/local-path
@@ -43,7 +44,7 @@ spec:
     forbidden: [bearer tokens, client certificates, client private keys, complete kubeconfig]
   tool:
     path: bounded_runtime_binding_v2.py
-    digest: sha256:d5994d5505c059273b3caefdabc9c1af18cb73f14fbc60c8c2cc8fb8bb36a5d2
+    digest: sha256:fbf47f6affedc45742526e952b6dc410d3bc314a827b28c8404265b3d8ce393f
   authorization:
     decision: NO-GO
     clusterContactGranted: false

@@ -107,8 +107,8 @@ def validate_grant(candidate_path: Path, grant_path: Path, now: dt.datetime | No
         raise PlatformObserverError("grant authority mismatch")
     current = now or dt.datetime.now(dt.timezone.utc)
     issued, expires = parse_time(spec["issuedAt"]), parse_time(spec["expiresAt"])
-    if not issued <= current <= expires or expires - issued > dt.timedelta(minutes=50):
-        raise PlatformObserverError("grant inactive or exceeds 50 minutes")
+    if not issued <= current <= expires or expires - issued > dt.timedelta(minutes=80):
+        raise PlatformObserverError("grant inactive or exceeds 80 minutes")
     if spec.get("singleRun") is not True or spec.get("consumed") is not False:
         raise PlatformObserverError("grant is not an unused single run")
     return grant
