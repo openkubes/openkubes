@@ -116,6 +116,33 @@ R2 never deletes, retries R1, removes finalizers, or grants R3. A concrete R2
 candidate and its raw evidence remain private unless separately approved for a
 verified redacted publication.
 
+R3 is prepared as a separate two-gate mechanism. Its first gate is read-only:
+it validates a private `PASS-R2-CLEAN` predecessor and performs exactly three
+GETs on `ok-infra`, in deletion order:
+
+```text
+RoleBinding ok-images/disposable-ok141-talos-golden-image-cloner
+        ↓
+Role ok-images/disposable-ok141-talos-golden-image-cloner
+        ↓
+Namespace disposable-ok141
+```
+
+Only exact, present objects without deletion timestamps, finalizers, or owner
+references can produce a private UID/resourceVersion binding. The binding is
+valid for at most ten minutes. The second gate requires a separate single-run
+grant and deletes those same three objects in the same order using foreground
+deletion with both UID and resourceVersion preconditions. It stops on the first
+error and has no force, finalizer mutation, retry, rollback, or continuation to
+recreation. The public candidate and template contain no live identifiers and
+grant no read or delete authority.
+
+```text
+R3 cleanup candidate: sha256:71ef9c406a772bae02bdb0706e09cc49a772afb3d29a5ee87c11ae93144f4664
+R3 preflight:         NOT GRANTED
+R3 cleanup:           NOT GRANTED
+```
+
 The cleanup mechanism is prepared offline but remains blocked. A deterministic
 materializer converts only a successful, fresh R0-v2 snapshot into a private
 ten-minute UID/resourceVersion binding. The bounded executor then exposes two
@@ -200,6 +227,13 @@ python3 architecture/spikes/ADR-Platform-030/go1-l-recovery-v1/bounded_recovery_
   --candidate architecture/spikes/ADR-Platform-030/go1-l-recovery-v1/recovery-cleanup-candidate-r0-v4-20260814-01.yaml
 python3 architecture/spikes/ADR-Platform-030/go1-l-recovery-v1/test_recovery_snapshot_attempt_v1.py -v
 python3 architecture/spikes/ADR-Platform-030/go1-l-recovery-v1/test_recovery_r2_v1.py -v
+python3 architecture/spikes/ADR-Platform-030/go1-l-recovery-v1/prepare_recovery_r3_binding_v1.py \
+  verify \
+  --candidate architecture/spikes/ADR-Platform-030/go1-l-recovery-v1/recovery-r3-binding-candidate-v1.template.yaml
+python3 architecture/spikes/ADR-Platform-030/go1-l-recovery-v1/bounded_recovery_r3_cleanup_v1.py \
+  verify \
+  --candidate architecture/spikes/ADR-Platform-030/go1-l-recovery-v1/recovery-r3-cleanup-candidate-v1.yaml
+python3 architecture/spikes/ADR-Platform-030/go1-l-recovery-v1/test_recovery_r3_v1.py -v
 ```
 
 ```text

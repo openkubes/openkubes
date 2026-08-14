@@ -1,0 +1,48 @@
+apiVersion: observation.openkubes.io/v1alpha1
+kind: GO1LRecoveryR3BindingCandidate
+metadata: {name: ok141-go1-l-recovery-r3-binding-template, ticket: OK-141}
+spec:
+  version: ok141-go1-l-recovery-r3-binding/v1
+  state: TEMPLATE-NOT-GRANTED
+  protocolDigest: sha256:0be2957f7c417e9c7c25f2595b5168a95f11e72c76508d83f774719045df8bd9
+  predecessor:
+    r2CandidateDigest: null
+    r2EvidenceDigest: null
+    r2State: null
+  attempt:
+    id: null
+  tool:
+    path: prepare_recovery_r3_binding_v1.py
+    executorDigest: sha256:b079a070957fc9d18266fa508c3ba8633db1164b3b27c0bb7a6d57667fb96540
+    kubectlPath: /private/tmp/ok141-kubectl-v1.34.1-darwin-amd64
+    kubectlDigest: sha256:bb211f2b31f2b3bc60562b44cc1e3b712a16a98e9072968ba255beb04cefcfdf
+  kubeconfigPath: /Users/arash/.kube/ok-infra.yaml
+  queries:
+    - {id: golden-image-cloner-binding, identity: 'rbac.authorization.k8s.io/v1|RoleBinding|ok-images|disposable-ok141-talos-golden-image-cloner', mode: exact, rawURI: /apis/rbac.authorization.k8s.io/v1/namespaces/ok-images/rolebindings/disposable-ok141-talos-golden-image-cloner}
+    - {id: golden-image-cloner-role, identity: 'rbac.authorization.k8s.io/v1|Role|ok-images|disposable-ok141-talos-golden-image-cloner', mode: exact, rawURI: /apis/rbac.authorization.k8s.io/v1/namespaces/ok-images/roles/disposable-ok141-talos-golden-image-cloner}
+    - {id: infra-namespace, identity: 'v1|Namespace|_|disposable-ok141', mode: exact, rawURI: /api/v1/namespaces/disposable-ok141}
+  evidence:
+    outputPath: null
+    bindingOutputPath: null
+    outputsMustBeAbsent: true
+    freshnessMaximumMinutes: 10
+    fileMode: "0600"
+    rawAPIResponsesRetained: false
+    credentialsRetained: false
+    publicationAuthorized: false
+  authorization:
+    readOnlyGranted: false
+    credentialUseGranted: false
+    mutationAuthorized: false
+    cleanupAuthorized: false
+    retryAuthorized: false
+    secretReadAuthorized: false
+    r3DeleteAuthorized: false
+    recreateAuthorized: false
+    go1LAuthorized: false
+    go1Authorized: false
+    failureInjectionAuthorized: false
+  exclusions:
+    - all queries other than the three exact GETs
+    - create update patch apply delete retry rollback cleanup or finalizer mutation
+    - R3 delete recreation GO1-L GO-1 or failure injection
