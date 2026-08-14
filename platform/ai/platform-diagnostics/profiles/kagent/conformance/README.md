@@ -10,7 +10,10 @@ changing the public ADR-021 contract. It enforces these invariants:
 - requested but unsupported evidence is returned as `status: unavailable`
   with a non-empty reason, never silently omitted; and
 - supported evidence is returned as `status: available` with a retrievable
-  evidence URI.
+  evidence URI; and
+- both distribution fixtures validate against the normative `EvidenceBundle`
+  schema, including invocation correlation, subject/time-window fields, and
+  stable unique `EvidenceRef.id` values.
 
 Run the complete static and negative-test matrix with:
 

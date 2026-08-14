@@ -8,12 +8,14 @@ from pathlib import Path
 from typing import Any
 
 import yaml
+from jsonschema import Draft202012Validator, FormatChecker
 
 
 HERE = Path(__file__).resolve().parent
 RBAC_PATH = HERE.parent / "rbac.yaml"
 PROFILES_DIR = HERE / "profiles"
 FIXTURES_DIR = HERE / "fixtures"
+OPENAPI_PATH = HERE.parents[2] / "contract" / "openapi.yaml"
 ALLOWED_VERBS = {"get", "list", "watch"}
 BASE_CAPABILITIES = {
     "workload_events",
@@ -131,6 +133,13 @@ def verify_response(profile: dict[str, Any], response: dict[str, Any]) -> None:
     evidence = response.get("evidence")
     if not isinstance(evidence, list):
         raise ConformanceError(f"{distribution} response has no evidence list")
+    evidence_ids = [item.get("id") for item in evidence if isinstance(item, dict)]
+    if len(evidence_ids) != len(set(evidence_ids)) or any(
+        not item for item in evidence_ids
+    ):
+        raise ConformanceError(
+            f"{distribution} EvidenceRef.id values must be present and unique"
+        )
     by_type = {item.get("type"): item for item in evidence if isinstance(item, dict)}
 
     for evidence_type, expectation in profile["evidence_expectations"].items():
@@ -149,14 +158,30 @@ def verify_response(profile: dict[str, Any], response: dict[str, Any]) -> None:
 
 def verify_contract_identity(responses: list[dict[str, Any]]) -> None:
     top_level_shapes = [frozenset(response) for response in responses]
-    evidence_shapes = [
-        frozenset(frozenset(item) for item in response.get("evidence", []))
-        for response in responses
-    ]
     if len(set(top_level_shapes)) != 1:
         raise ConformanceError("distribution responses have different contract fields")
-    if len(set(evidence_shapes)) != 1:
-        raise ConformanceError("distribution EvidenceRef objects have different fields")
+
+
+def verify_response_schema(response: dict[str, Any]) -> None:
+    spec = load_yaml(OPENAPI_PATH)
+    schema = {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "components": spec["components"],
+        "$ref": "#/components/schemas/EvidenceBundle",
+    }
+    Draft202012Validator.check_schema(schema)
+    errors = sorted(
+        Draft202012Validator(
+            schema, format_checker=FormatChecker()
+        ).iter_errors(response),
+        key=lambda error: list(error.absolute_path),
+    )
+    if errors:
+        formatted = "; ".join(
+            f"{'/'.join(map(str, error.absolute_path)) or '<root>'}: {error.message}"
+            for error in errors
+        )
+        raise ConformanceError(f"response violates normative EvidenceBundle: {formatted}")
 
 
 def verify_capability_identity(profiles: list[dict[str, Any]]) -> None:
@@ -184,6 +209,7 @@ def verify_all() -> None:
     profiles, responses = load_matrix()
     for profile, response in zip(profiles, responses):
         verify_profile(profile)
+        verify_response_schema(response)
         verify_response(profile, response)
     verify_capability_identity(profiles)
     verify_contract_identity(responses)
@@ -195,7 +221,7 @@ def main() -> int:
     print("PASS: Talos/RKE2 profiles expose the same contract capability keys")
     print("PASS: unavailable Talos evidence is explicit and reasoned")
     print("PASS: available RKE2 evidence requires retrievable references")
-    print("PASS: distribution fixtures retain an identical response shape")
+    print("PASS: distribution fixtures validate against one normative response shape")
     return 0
 
 
