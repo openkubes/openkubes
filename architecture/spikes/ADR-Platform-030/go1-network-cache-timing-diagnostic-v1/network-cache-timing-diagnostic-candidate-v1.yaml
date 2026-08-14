@@ -1,0 +1,62 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: GO1NetworkCacheTimingDiagnosticCandidate
+metadata:
+  name: ok141-network-cache-timing-diagnostic-v1
+  ticket: OK-141
+  baseCommit: 726f5cd3513bc632d9d7b3e027a35e1ee114b743
+spec:
+  version: ok141-network-cache-timing-diagnostic/v1
+  state: OFFLINE-PROVEN-BLOCKED-NO-GO
+  predecessor:
+    resumeCandidatePath: ../go1-happy-run-resume-v5/happy-run-resume-candidate-v5.yaml
+    resumeCandidateDigest: sha256:3e2ef69489668a6157867331ff11dced512b265162218b7a06c6d5d0008b01a2
+    privateFailedEvidencePath: /private/tmp/ok141-go1-l-network-ready-observer-status-v1-evidence.json
+    privateFailedEvidenceDigestBoundByGrant: true
+    requiredClosureState: FAIL-STALE-FUNCTIONAL-PATH
+  sourceSemantics:
+    lockPath: upstream-cache-source-lock.yaml
+    lockDigest: sha256:563ed197391196c7bbfd526f9f88eff0fcac73e1f4ade7113aca767e326e550f
+    statusSemanticsCandidateDigest: sha256:d2ef66ab787d93fb486b170a7010ab221251b696e0a855e4a3a546764f5b797b
+  probe:
+    command: [cilium-health, status, --probe, --output, json]
+    exactPodAndUIDBoundByGrant: true
+    oneExecutionOnly: true
+  retainedEvidence:
+    - probeExitCode
+    - probeIntervalSeconds
+    - responseTimestampAgeSeconds
+    - minimumPathAgeSeconds
+    - maximumPathAgeSeconds
+    - sortedPathAgeSeconds
+    - statusCategoryCounts
+    - pathCount
+  forbiddenEvidence:
+    - IP addresses
+    - node names
+    - raw statuses
+    - raw probe output
+    - Secret payload
+    - Kubeconfig content
+  output:
+    path: /private/tmp/ok141-network-cache-timing-diagnostic-v1-evidence.json
+    exclusive: true
+    mode: "0600"
+  tool:
+    path: bounded_network_cache_timing_diagnostic_v1.py
+    digest: sha256:f345645779ba5595c9d11f071858d6dc3962e018d6ec9ab6e77adfa5ec5de188
+    clusterContactAllowedOnlyByGrant: true
+    persistentMutationAllowed: false
+  authorization:
+    decision: NO-GO
+    clusterContactGranted: false
+    credentialUseGranted: false
+    secretReadGranted: false
+    exactPodReadGranted: false
+    fixedProbeExecGranted: false
+    happyRunResumeGranted: false
+    retryGranted: false
+    mutationGranted: false
+    cleanupGranted: false
+    evidencePublicationGranted: false
+    failureInjectionGranted: false
+    grantIDs: []
