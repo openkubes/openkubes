@@ -1,0 +1,55 @@
+apiVersion: execution.openkubes.io/v1alpha1
+kind: GO1HappyRunResumeCandidate
+metadata:
+  name: ok141-go1-happy-run-resume-v1
+  ticket: OK-141
+  baseCommit: 0cb7d52c91e715225d9468d9e0d1e0c39d6cda3f
+spec:
+  version: ok141-go1-happy-run-resume/v1
+  state: OFFLINE-PROVEN-BLOCKED-NO-GO
+  supersedes:
+    path: ../go1-happy-run-v2/happy-run-candidate-v2.yaml
+    digest: sha256:f1c3460a725d120e54e4e6244102b184573039548903a26e1e3ff8869f38ab44
+    historicalCandidatePreserved: true
+    consumedGrantReusable: false
+  resumeBoundary:
+    startsAfter: G1
+    requiredPredecessor: verified-preserved-G1-evidence
+    preflightReexecutionAllowed: false
+    g1ReexecutionAllowed: false
+    lifecycleGrantAdds: [runtimePackageDigest, credentialIdentityDigest]
+    g3UsesPriorGO1LRuntimeDirectory: true
+    stopSemantics: STOP-PRESERVE-NO-RETRY
+  tool:
+    path: bounded_happy_run_resume_v1.py
+    digest: sha256:e97afb9c869fe22be45cfc1de4b4de90465cd1c700e6e9be51fb8675d03ef776
+    arbitraryResumePointAllowed: false
+    retryAllowed: false
+    rollbackOrCleanupAllowed: false
+  authorization:
+    decision: NO-GO
+    resumeFromG1Granted: false
+    credentialUseGranted: false
+    lifecycleObserverGranted: false
+    g3Granted: false
+    networkObserverGranted: false
+    runtimeBindingGranted: false
+    targetAccessGranted: false
+    tokenRequestGranted: false
+    registrationGranted: false
+    credentialSecretGranted: false
+    applicationSubmissionGranted: false
+    platformObserverGranted: false
+    capabilityTestGranted: false
+    capabilityTestCleanupGranted: false
+    go1LGranted: false
+    go1Granted: false
+    preflightGranted: false
+    g1Granted: false
+    retryGranted: false
+    rollbackGranted: false
+    broadCleanupGranted: false
+    evidencePublicationGranted: false
+    failureInjectionGranted: false
+    outageGranted: false
+    grantIDs: []
