@@ -143,6 +143,25 @@ R3 preflight:         NOT GRANTED
 R3 cleanup:           NOT GRANTED
 ```
 
+R4 is prepared as a separate read-only closure observer. It first polls only
+the exact `ok-infra` Namespace for at most ten minutes. After the Namespace is
+absent, it runs the same reviewed twenty-query inventory used by R0/R2 and
+accepts the baseline only when:
+
+```text
+all ok-mgmt lifecycle state                 ABSENT
+the two bound local ok-mgmt KubeVirt APIs   API_NOT_SERVED
+all three ok-infra prerequisites            ABSENT
+all ok-infra provider runtime               ABSENT
+                                                ↓
+                                  PASS-R4-CLEAN-BASELINE
+```
+
+The public R4 template carries no concrete R3 evidence or runtime-binding
+digest and grants no reads, credential use, mutation, recreation, GO1-L, or
+GO-1. A private candidate and separate single-run read-only grant are required
+before any observation.
+
 The cleanup mechanism is prepared offline but remains blocked. A deterministic
 materializer converts only a successful, fresh R0-v2 snapshot into a private
 ten-minute UID/resourceVersion binding. The bounded executor then exposes two
@@ -234,6 +253,7 @@ python3 architecture/spikes/ADR-Platform-030/go1-l-recovery-v1/bounded_recovery_
   verify \
   --candidate architecture/spikes/ADR-Platform-030/go1-l-recovery-v1/recovery-r3-cleanup-candidate-v1.yaml
 python3 architecture/spikes/ADR-Platform-030/go1-l-recovery-v1/test_recovery_r3_v1.py -v
+python3 architecture/spikes/ADR-Platform-030/go1-l-recovery-v1/test_recovery_r4_v1.py -v
 ```
 
 ```text
