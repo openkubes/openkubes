@@ -38,6 +38,19 @@ class GenerationTests(unittest.TestCase):
         actual = generate.DEFAULT_OUTPUT.read_text(encoding="utf-8")
         self.assertEqual(expected, actual)
 
+    def test_transport_contract_is_derived_from_openapi(self) -> None:
+        self.assertEqual(
+            {
+                "request_id_header": "X-Request-Id",
+                "invocation_id_header": "X-Invocation-Id",
+            },
+            generate.transport_contract(self.document),
+        )
+        self.assertEqual("X-Request-Id", generated_contract.REQUEST_ID_HEADER)
+        self.assertEqual(
+            "X-Invocation-Id", generated_contract.INVOCATION_ID_HEADER
+        )
+
     def test_every_openapi_operation_is_registered_once(self) -> None:
         mcp = FakeMCP()
 

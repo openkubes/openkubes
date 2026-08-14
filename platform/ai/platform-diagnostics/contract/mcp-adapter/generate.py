@@ -74,6 +74,56 @@ def operation_description(operation: dict[str, Any]) -> str:
     return " ".join(" ".join(str(part).split()) for part in parts if part).strip()
 
 
+def transport_contract(document: dict[str, Any]) -> dict[str, str]:
+    security = document.get("security")
+    if security != [{"bearerAuth": []}]:
+        raise ContractError("the diagnostics contract must require bearerAuth globally")
+    scheme = document.get("components", {}).get("securitySchemes", {}).get(
+        "bearerAuth"
+    )
+    if not isinstance(scheme, dict) or (
+        scheme.get("type"), scheme.get("scheme")
+    ) != ("http", "bearer"):
+        raise ContractError("bearerAuth must be an HTTP bearer security scheme")
+
+    request_header: str | None = None
+    invocation_header: str | None = None
+    for operation in operations(document):
+        path_operation = document["paths"][operation["path"]]["post"]
+        parameters = path_operation.get("parameters", [])
+        resolved_parameters = [
+            resolve_ref(document, parameter)
+            for parameter in parameters
+            if isinstance(parameter, dict)
+        ]
+        request_ids = [
+            parameter.get("name")
+            for parameter in resolved_parameters
+            if parameter.get("in") == "header"
+            and parameter.get("name") == "X-Request-Id"
+        ]
+        if request_ids != ["X-Request-Id"]:
+            raise ContractError(
+                f'{operation["id"]} must expose exactly one X-Request-Id header'
+            )
+        response_headers = (
+            path_operation.get("responses", {}).get("200", {}).get("headers", {})
+        )
+        if "X-Invocation-Id" not in response_headers:
+            raise ContractError(
+                f'{operation["id"]} must return X-Invocation-Id on HTTP 200'
+            )
+        request_header = request_ids[0]
+        invocation_header = "X-Invocation-Id"
+
+    if request_header is None or invocation_header is None:
+        raise ContractError("transport metadata requires at least one operation")
+    return {
+        "request_id_header": request_header,
+        "invocation_id_header": invocation_header,
+    }
+
+
 def operations(document: dict[str, Any]) -> list[dict[str, Any]]:
     result: list[dict[str, Any]] = []
     seen: set[str] = set()
@@ -152,6 +202,7 @@ def operations(document: dict[str, Any]) -> list[dict[str, Any]]:
 
 
 def render(document: dict[str, Any], source_name: str = "openapi.yaml") -> str:
+    transport = transport_contract(document)
     lines = [
         '"""Generated from ../openapi.yaml; do not edit by hand."""',
         "",
@@ -159,6 +210,10 @@ def render(document: dict[str, Any], source_name: str = "openapi.yaml") -> str:
         "",
         "from collections.abc import Awaitable, Callable",
         "from typing import Any",
+        "",
+        "",
+        f'REQUEST_ID_HEADER = {transport["request_id_header"]!r}',
+        f'INVOCATION_ID_HEADER = {transport["invocation_id_header"]!r}',
         "",
         "",
         "Invoker = Callable[[str, dict[str, Any]], Awaitable[dict[str, Any]]]",
