@@ -1,0 +1,30 @@
+apiVersion: authorization.openkubes.io/v1alpha1
+kind: GO1V6PreflightGrantV2
+metadata:
+  name: ok141-go1-v6-preflight-v2-20260814-01
+  ticket: OK-141
+spec:
+  decision: GO
+  candidateDigest: sha256:ef4b09a8835f187605a0120bdd19616d6d078b9ed19a3796a47b9cbbfc7a4fb2
+  grantCandidateDigest: sha256:14481dbc8f5cb37cf93bdeec4dcce209a20e003e14193cc80907cbc63bebae81
+  protocolDigest: sha256:e45e5f6b8254e666226aa874810bf2ca51f76f2411e0316adb52a7ce51254885
+  clientDigest: sha256:bb211f2b31f2b3bc60562b44cc1e3b712a16a98e9072968ba255beb04cefcfdf
+  expectedCredentialIdentities:
+    ok-infra:
+      server: https://188.40.110.28:6443
+      caFingerprint: sha256:48a0efea22e780f5920fa450ee00a1236c87961e12bc0e27af29e258a2b6aad8
+      identityDigest: sha256:0cab42fab537845afb82ef510169bf9402e314e0fcb3ebce972499e0a1cd8f13
+    ok-mgmt:
+      server: https://192.168.100.200:6443
+      caFingerprint: sha256:576ff54f98fdc17d33cef76c3dd0a14c4dc4b99ec4dc91452b3d74606e272291
+      identityDigest: sha256:32a164332776f37129e46415af79945745134fefe80c5237d43fe13fa0511ffe
+    ok-shared:
+      server: https://192.168.100.206:6443
+      caFingerprint: sha256:b3d2deeddbb95cfd017af5ba154c158c65cecea16e6895af002d6c0d2f57d099
+      identityDigest: sha256:790e5efe2af8f8b8703c1745b9e2643ec4ac14f254d52016ad2c2679a79bdefb
+  grantID: ok141-go1-v6-pf-v2-20260814-01
+  singleRun: true
+  readOnly: true
+  mutationAuthorized: false
+  issuedAt: "2026-08-14T10:56:00Z"
+  expiresAt: "2026-08-14T11:08:00Z"

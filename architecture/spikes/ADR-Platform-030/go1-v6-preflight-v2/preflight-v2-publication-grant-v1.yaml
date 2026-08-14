@@ -1,0 +1,29 @@
+apiVersion: authorization.openkubes.io/v1alpha1
+kind: RedactedEvidencePublicationGrant
+metadata:
+  name: ok141-go1-v6-c0-r0-pf-v2-publication
+  ticket: OK-141
+spec:
+  version: ok141-go1-v6-preflight-publication-grant/v1
+  decision: GO
+  closureDigest: sha256:1491b7665a9b2a9ec21fa48fd773d6c21980f6cbe14290b0188c542cd161fd9f
+  scope:
+    - verified and redacted C0-V6 checkpoint
+    - verified and redacted R0-V6 checkpoint
+    - verified and redacted PF-V2 checkpoint
+    - commit push and Draft-PR
+  rawEvidencePathsExcluded:
+    - /private/tmp/ok141-go1-v6-credential-identity-v1-evidence.json
+    - /private/tmp/ok141-go1-v6-preflight-v2-evidence.json
+  forbiddenMaterial:
+    - kubeconfigs
+    - tokens
+    - private keys
+    - certificate payloads
+    - Secret bodies
+  submissionGranted: false
+  retryGranted: false
+  cleanupGranted: false
+  go1LGranted: false
+  go1Granted: false
+  failureInjectionGranted: false
