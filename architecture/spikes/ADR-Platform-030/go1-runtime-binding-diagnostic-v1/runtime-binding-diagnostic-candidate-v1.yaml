@@ -1,0 +1,63 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: GO1RuntimeBindingDiagnosticCandidate
+metadata:
+  name: ok141-runtime-binding-diagnostic-v1
+  ticket: OK-141
+  baseCommit: 502f544
+spec:
+  version: ok141-runtime-binding-diagnostic/v1
+  state: OFFLINE-PROVEN-BLOCKED-NO-GO
+  predecessor:
+    resumeCandidatePath: ../go1-happy-run-resume-v6/happy-run-resume-candidate-v6.yaml
+    resumeCandidateDigest: sha256:93e6f0961e7569ed7cdf56acbfa47e4ba0b47a6a13d42517022299d7177349c9
+    runtimeBindingCandidatePath: ../go1-runtime-binding-v2/runtime-binding-candidate-v2.yaml
+    runtimeBindingCandidateDigest: sha256:100ce0ed046e3b42399b9164a24ead29aa9feefeac71ff21ed965d4ec01f073d
+    privateNetworkReadyEvidencePath: /private/tmp/ok141-go1-l-network-ready-observer-cache-freshness-v1-evidence.json
+    privateNetworkReadyEvidenceDigestBoundByGrant: true
+    requiredClosureState: PASS-NETWORK-READY
+  exactReads:
+    managementSecret: /api/v1/namespaces/disposable-ok141/secrets/disposable-ok141-kubeconfig
+    workloadKubeSystem: /api/v1/namespaces/kube-system
+    workloadLocalPath: /apis/storage.k8s.io/v1/storageclasses/local-path
+  output:
+    path: /private/tmp/ok141-runtime-binding-diagnostic-v1-evidence.json
+    exclusive: true
+    mode: "0600"
+  retainedEvidence:
+    - per-stage result category
+    - per-stage numeric exit code
+    - per-stage stdout digest
+    - per-stage stderr digest
+    - workload identity validation result
+    - ephemeral Kubeconfig removal result
+  forbiddenEvidence:
+    - Secret payload or metadata
+    - Kubeconfig content
+    - API endpoint or CA payload
+    - object content
+    - UID or ResourceVersion
+    - IP address
+    - raw stdout or stderr
+    - error text
+  tool:
+    path: bounded_runtime_binding_diagnostic_v1.py
+    digest: sha256:b6789d2fda416f6622c284e9c8a2fedf5596e106bc241e0ab88cb0d21dee4df6
+    clusterContactAllowedOnlyByGrant: true
+    persistentMutationAllowed: false
+  authorization:
+    decision: NO-GO
+    clusterContactGranted: false
+    managementCredentialUseGranted: false
+    exactSecretReadGranted: false
+    ephemeralCredentialMaterializationGranted: false
+    workloadCredentialUseGranted: false
+    exactKubeSystemReadGranted: false
+    exactLocalPathReadGranted: false
+    happyRunResumeGranted: false
+    storageInstallationGranted: false
+    persistentMutationGranted: false
+    retryGranted: false
+    rollbackOrCleanupGranted: false
+    evidencePublicationGranted: false
+    failureInjectionGranted: false
+    grantIDs: []
