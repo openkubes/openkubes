@@ -1,0 +1,57 @@
+apiVersion: remediation.openkubes.io/v1alpha1
+kind: GO1RegistrationAudienceRemediationCandidate
+metadata:
+  name: ok141-registration-audience-remediation-v1
+  ticket: OK-141
+  baseCommit: 2b62fa6
+spec:
+  version: ok141-go1-registration-audience-remediation/v1
+  state: OFFLINE-PROVEN-BLOCKED-NO-GO
+  predecessor:
+    closurePath: default-audience-closure.json
+    closureDigest: sha256:a85c29d90d9be1b50da3c5793c87cfd011b6dcd0c3b26e4a91fe3e26530e0628
+    privateEvidencePath: /private/tmp/ok141-default-audience-diagnostic-v1-evidence.json
+    privateEvidenceDigest: sha256:7e9ea48a7296f8c92bce862ab27d6220341bec4ecff8299d070252c741f3c791
+    privateEvidenceSemanticDigest: sha256:4e152611ed6acb9747904b35885453cd10cd9a0d8cce39d1ad62ee588678bd6a
+  runtimeBinding:
+    path: /private/tmp/ok141-go1-runtime-binding-v2.json
+    digest: sha256:2e5f56cf305e6eb9241f00b2d019583664529560a0c68159ec52b9efa6653e47
+    semanticDigest: sha256:5f89ee33972c778844a61e9e31b4fbfefa232949f33588fb9d81fe0948794c64
+  management:
+    credentialPath: /Users/arash/.kube/ok-mgmt.yaml
+    credentialIdentityDigest: sha256:32a164332776f37129e46415af79945745134fefe80c5237d43fe13fa0511ffe
+    clientPath: /private/tmp/ok141-kubectl-v1.34.1-darwin-amd64
+    clientDigest: sha256:bb211f2b31f2b3bc60562b44cc1e3b712a16a98e9072968ba255beb04cefcfdf
+    workloadKubeconfigSecretURI: /api/v1/namespaces/disposable-ok141/secrets/disposable-ok141-kubeconfig
+  shared:
+    credentialPath: /Users/arash/.kube/ok-shared.yaml
+    credentialIdentityDigest: sha256:790e5efe2af8f8b8703c1745b9e2643ec4ac14f254d52016ad2c2679a79bdefb
+    clientPath: /private/tmp/ok141-kubectl-v1.34.1-darwin-amd64
+    clientDigest: sha256:bb211f2b31f2b3bc60562b44cc1e3b712a16a98e9072968ba255beb04cefcfdf
+    registrationSecretURI: /api/v1/namespaces/argocd/secrets/disposable-ok141-cluster
+  target:
+    clientPath: /private/tmp/ok141-kubectl-v1.36.2-darwin-amd64
+    clientDigest: sha256:ce6c5e55cd17559e87e4fb5e73ebbbc2511bcf2b695d7a40c1b1461a9817d4b3
+    serviceAccountSubject: system:serviceaccount:kube-system:ok141-argocd-manager
+    tokenRequestURI: /api/v1/namespaces/kube-system/serviceaccounts/ok141-argocd-manager/token
+    expirationSeconds: 10800
+    requestedAudiences: []
+    exactProbeURI: /api/v1/namespaces/ok-observability
+    ephemeralAdminKubeconfigPath: /private/tmp/ok141-registration-remediation-admin-kubeconfig.yaml
+    ephemeralTokenKubeconfigPath: /private/tmp/ok141-registration-remediation-token-kubeconfig.yaml
+  outputPath: /private/tmp/ok141-registration-audience-remediation-v1-evidence.json
+  tool: {path: bounded_registration_audience_remediation_v1.py, digest: sha256:f8d7efa17ace10b06d08139f8cb2444fdc4ce33387775a4a194f82567d0420c4}
+  authorization:
+    decision: NO-GO
+    exactTokenRequestGranted: false
+    exactTargetProbeGranted: false
+    exactRegistrationSecretReadGranted: false
+    exactRegistrationSecretReplaceGranted: false
+    optimisticConcurrencyGranted: false
+    automaticArgoReconciliationAcknowledged: false
+    retryGranted: false
+    rollbackOrCleanupGranted: false
+    platformObserverOrCapabilityTestGranted: false
+    evidencePublicationGranted: false
+    failureInjectionGranted: false
+    grantIDs: []

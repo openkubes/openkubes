@@ -1,0 +1,28 @@
+apiVersion: publication.openkubes.io/v1alpha1
+kind: GO1RegistrationAudienceRemediationPublicationCandidate
+metadata:
+  name: ok141-registration-audience-remediation-publication-v1
+  ticket: OK-141
+spec:
+  decision: BLOCKED-NO-PUBLICATION
+  scope:
+    directory: architecture/spikes/ADR-Platform-030/go1-registration-audience-remediation-v1
+    files:
+      README.md: sha256:b2951d8901503a727b29c38444a663f416e8e8510e378cce6b7e9599cff33a12
+      default-audience-closure.json: sha256:a85c29d90d9be1b50da3c5793c87cfd011b6dcd0c3b26e4a91fe3e26530e0628
+      registration-audience-remediation-candidate-v1.yaml: sha256:ac25c8cdcbdf9dcaa98012afaf01544b60d9347aabfe8d47b25eb36b11eba406
+      registration-audience-remediation-grant-v1.template.yaml: sha256:7e0ef6b361cbbf14efc4e7727b79d31b9374f7a62e5076938690c908a937a2b0
+      bounded_registration_audience_remediation_v1.py: sha256:f8d7efa17ace10b06d08139f8cb2444fdc4ce33387775a4a194f82567d0420c4
+      test_registration_audience_remediation_v1.py: sha256:a70288500955223d6ed4de52a2c3c5fef849093a76ce226b1f08f1a270b1c6d0
+  validation:
+    testsPassed: 4
+    candidateState: OFFLINE-PROVEN-BLOCKED-NO-GO
+    candidateDigest: sha256:ac25c8cdcbdf9dcaa98012afaf01544b60d9347aabfe8d47b25eb36b11eba406
+  permitsAfterSeparateGrant: [commit, push, draft-pr, review, merge]
+  excludes:
+    - private Evidence under /private/tmp
+    - token, JWT, Kubeconfig, CA and endpoint payloads
+    - raw Secret and API responses
+    - remediation execution
+    - platform observation and capability test
+    - retry, rollback, cleanup and failure injection
