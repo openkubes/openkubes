@@ -1,21 +1,28 @@
 {
+  "invocation_id": "inv-talos-fixture-20260811",
   "cluster": "talos-fixture",
+  "namespace": "platform-diagnostics",
+  "workload": "profile-a-evidence",
   "collected_at": "2026-08-11T07:03:04Z",
+  "effective_time_range": {
+    "start": "2026-08-11T06:03:04Z",
+    "end": "2026-08-11T07:03:04Z"
+  },
   "evidence": [
     {
+      "id": "ev-talos-host-journal",
       "type": "host_journal",
       "source": "kagent",
       "status": "unavailable",
       "reason": "host_journal is not supported by this provider profile",
-      "uri": null,
       "collected_at": "2026-08-11T07:03:04Z"
     },
     {
+      "id": "ev-talos-node-shell",
       "type": "node_shell",
       "source": "kagent",
       "status": "unavailable",
       "reason": "node_shell is not supported by this provider profile",
-      "uri": null,
       "collected_at": "2026-08-11T07:03:04Z"
     }
   ],

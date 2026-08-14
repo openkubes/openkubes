@@ -66,6 +66,22 @@ class ConformanceMatrixTests(unittest.TestCase):
         with self.assertRaisesRegex(verify.ConformanceError, "has no evidence URI"):
             verify.verify_response(profiles[1], response)
 
+    def test_duplicate_evidence_ids_are_rejected(self) -> None:
+        profiles, responses = verify.load_matrix()
+        response = copy.deepcopy(responses[0])
+        response["evidence"][1]["id"] = response["evidence"][0]["id"]
+
+        with self.assertRaisesRegex(verify.ConformanceError, "present and unique"):
+            verify.verify_response(profiles[0], response)
+
+    def test_normative_evidence_bundle_drift_is_rejected(self) -> None:
+        _, responses = verify.load_matrix()
+        response = copy.deepcopy(responses[0])
+        response.pop("invocation_id")
+
+        with self.assertRaisesRegex(verify.ConformanceError, "invocation_id"):
+            verify.verify_response_schema(response)
+
     def test_distribution_contract_shape_drift_is_rejected(self) -> None:
         _, responses = verify.load_matrix()
         response = copy.deepcopy(responses[1])
