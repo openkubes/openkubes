@@ -1,0 +1,87 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: GO1PlatformObserverCandidate
+metadata:
+  name: ok141-go1-platform-observer-v1
+  ticket: OK-141
+  baseCommit: 347ac1467ba3efc6ddcf9df2d1efc3de02bad88f
+spec:
+  version: ok141-go1-platform-observer/v1
+  state: OFFLINE-PROVEN-BLOCKED-NO-GO
+  fixture:
+    fixtureDigest: sha256:7536456a762880a78a37dcba76a5f3f0628140bd37b55d5fd62273c64e4cc3eb
+    R: sha256:166504ae61fd558d391daedde50986cbc7a28f5f4e9d57f4acbd0433b448aa0f
+    E: sha256:2a849d69e9c64344e907c1bce3bb1abf3d8f77217377081a5be055d62c213300
+    P: sha256:b0f25c639a45d895b889997f5ecc2325db45dd5d51b0684998c94d5e17bd47bf
+  protocol:
+    path: ../go1-v6/go1-protocol-v6.yaml
+    digest: sha256:e45e5f6b8254e666226aa874810bf2ca51f76f2411e0316adb52a7ce51254885
+  projection:
+    path: ../go1-platform-projection-v1/platform-projection-candidate-v1.yaml
+    digest: sha256:4294218b8032ab5292c44bb1a10ef220099a944619649903f3bc0105d13a4c11
+  profile:
+    path: ../harness/profiles/platform/minimal-observability-v4/profile.json
+    digest: sha256:dc9b45f17f767d03bde5b46ee39d525cbb4a1370df5789d05b38c7c08ff94fed
+  applications:
+    path: ../harness/profiles/platform/minimal-observability-v4/applications.yaml
+    digest: sha256:7738d9501c0b19d26b51111d818251d6308994b51678aa6a9322ef54f7567392
+  argo:
+    plane: ok-shared
+    externalTargetsOnly: true
+    credentialPath: /Users/arash/.kube/ok-shared.yaml
+    credentialIdentityDigest: sha256:790e5efe2af8f8b8703c1745b9e2643ec4ac14f254d52016ad2c2679a79bdefb
+    clientPath: /private/tmp/ok141-kubectl-v1.34.1-darwin-amd64
+    clientDigest: sha256:bb211f2b31f2b3bc60562b44cc1e3b712a16a98e9072968ba255beb04cefcfdf
+    sourceRevision: b5f7be6a7ddab798f31f32197fcbb9e86a9798b6
+    applicationNames:
+      - disposable-ok141-observability-core
+      - disposable-ok141-observability-alerting
+      - disposable-ok141-observability-dashboards
+    intervalSeconds: 15
+    maximumIterations: 180
+    maximumDurationSeconds: 2700
+  management:
+    credentialPath: /Users/arash/.kube/ok-mgmt.yaml
+    credentialIdentityDigest: sha256:32a164332776f37129e46415af79945745134fefe80c5237d43fe13fa0511ffe
+    clientDigest: sha256:bb211f2b31f2b3bc60562b44cc1e3b712a16a98e9072968ba255beb04cefcfdf
+    secretRawURI: /api/v1/namespaces/disposable-ok141/secrets/disposable-ok141-kubeconfig
+  workload:
+    clientPath: /private/tmp/ok141-kubectl-v1.36.2-darwin-amd64
+    clientDigest: sha256:ce6c5e55cd17559e87e4fb5e73ebbbc2511bcf2b695d7a40c1b1461a9817d4b3
+    ephemeralKubeconfigPath: /private/tmp/ok141-go1-platform-observer-v1-workload-kubeconfig.yaml
+    ephemeralToolDirectory: /private/tmp/ok141-go1-platform-observer-v1-tools
+  capability:
+    sourceRepository: openkubes/ok-observability
+    sourceCommit: b5f7be6a7ddab798f31f32197fcbb9e86a9798b6
+    contractPath: contracts/observability-capability-contract-v1.md
+    contractDigest: sha256:b6ef10a8ecf6daf42e6d44018d51e2263f380ed649445e5a70ff5c550c73415e
+    scriptPath: tests/contract-test.sh
+    scriptDigest: sha256:bd68328f35de960bfc291880dd7f85274021c0cce8d7b69ccecde0a459ead648
+    alertAcceptance: firing-only
+    timeoutSecondsPerAsyncCheck: 240
+    overallProcessTimeoutSeconds: 1800
+    credentialKeys: [grafana-admin-user, grafana-admin-password, opensearch-admin-password]
+    exactScriptOwnsSyntheticMutationAndCleanup: true
+  outputPath: /private/tmp/ok141-go1-platform-observer-v1-evidence.json
+  evidenceBoundary:
+    retains: [Application UIDs, sync states, health states, immutable revisions, capability stdout and stderr digests]
+    forbids: [credential values, kubeconfig bytes, endpoint addresses, raw capability output]
+  tool:
+    path: bounded_platform_observer_v1.py
+    digest: sha256:85a1d5b0e1077a86fd94acc1381edf776e22f498707a338928594ac94bdc18bb
+    arbitraryApplicationAllowed: false
+    arbitraryScriptAllowed: false
+    arbitraryCredentialAllowed: false
+  authorization:
+    decision: NO-GO
+    clusterContactGranted: false
+    credentialUseGranted: false
+    secretReadGranted: false
+    argoObservationGranted: false
+    capabilityTestGranted: false
+    capabilityTestCleanupGranted: false
+    arbitraryMutationGranted: false
+    applicationSubmissionGranted: false
+    retryGranted: false
+    go1Granted: false
+    failureInjectionGranted: false
+    grantIDs: []
