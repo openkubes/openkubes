@@ -1,0 +1,30 @@
+apiVersion: publication.openkubes.io/v1alpha1
+kind: GO1TargetAccessCauseDiagnosticPublicationCandidate
+metadata:
+  name: ok141-target-access-cause-diagnostic-publication-v1
+  ticket: OK-141
+spec:
+  decision: BLOCKED-NO-PUBLICATION
+  scope:
+    directory: architecture/spikes/ADR-Platform-030/go1-target-access-cause-diagnostic-v1
+    files:
+      README.md: sha256:01c81caa7015e2f055d8f7b5cfbdb87cef0237a2dedb102da651575b271d7515
+      registration-closure.json: sha256:808c20e11787671f4f6bcaa0f1319589ca7ddae08e03607a754093cbc146640f
+      target-access-cause-diagnostic-candidate-v1.yaml: sha256:c7ef5692247d0dbe47e773e2d2357cb4ba77c666d5af32284e4f47f14f0ec30b
+      target-access-cause-diagnostic-grant-v1.template.yaml: sha256:7314e22bc8c332bac66463e699849b453706320057610401caa29578a608b074
+      bounded_target_access_cause_diagnostic_v1.py: sha256:954d840cbeb5ee1f0b5624c0b4cbe2ee611fb288d8fbaf5200ac4e970f2f6aa1
+      test_target_access_cause_diagnostic_v1.py: sha256:4ff17d91300933cbd011921708ff180ad5470dc60cc4e0a1e19090c174784333
+  validation:
+    testsPassed: 6
+    candidateState: OFFLINE-PROVEN-BLOCKED-NO-GO
+    candidateDigest: sha256:c7ef5692247d0dbe47e773e2d2357cb4ba77c666d5af32284e4f47f14f0ec30b
+  permitsAfterSeparateGrant: [commit, push, draft-pr, review, merge]
+  excludes:
+    - private Evidence under /private/tmp
+    - registration Secret content
+    - token and JWT payload
+    - CA payload and API endpoint
+    - raw Kubeconfig and raw target response
+    - target-access cause diagnostic execution
+    - Happy-Run retry or resume
+    - mutation, cleanup and failure injection
