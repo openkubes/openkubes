@@ -1,0 +1,55 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: GO1LRecoverySnapshotClosureCandidate
+metadata:
+  name: ok141-go1-l-recovery-r0-v2-closure
+  ticket: OK-141
+spec:
+  state: VERIFIED-REDACTED-LOCAL-NOT-PUBLISHED
+  observationCandidateDigest: sha256:4cc18693b948844a0516492395e7943cd1f1925d66b35f25d35977c989bac71f
+  grantCandidateDigest: sha256:4bc699cc1f835def39e88e913f9428fee8ebb34797f54d3e913fb7a2f8a9df89
+  grantDigest: sha256:d58eba9e5db7d581df612bfd33b5fde64cc5183706652151013b0205f02edb66
+  grantID: ok141-go1-l-recovery-r0-v2-20260814-01
+  rawEvidence:
+    path: /private/tmp/ok141-go1-l-recovery-snapshot-v2-evidence.json
+    digest: sha256:33c617b54d6de4e31fd15335487102a229150d9210a7cd4ee1fd0f302b8c10c3
+    mode: "0600"
+    publicationAuthorized: false
+  execution:
+    startedAt: "2026-08-14T07:00:26.158275+00:00"
+    completedAt: "2026-08-14T07:00:31.756299+00:00"
+    exactQueryCount: 20
+    credentialBytesEmitted: false
+    secretReadsPerformed: false
+    mutationPerformed: false
+  outcomes:
+    okMgmt:
+      queryCount: 14
+      present: 10
+      absent: 2
+      apiNotServed: 2
+    okInfra:
+      queryCount: 6
+      present: 3
+      absent: 3
+      apiNotServed: 0
+  findings:
+    - The management plane retains its disposable Namespace, the failed lifecycle graph, a generated MachineSet and the misrouted load-balancer Service.
+    - No Machine or KubevirtMachine exists for the disposable cluster on the management plane.
+    - The management plane does not serve the KubeVirt VM or VMI APIs; both exact bounded queries returned API_NOT_SERVED.
+    - The infrastructure plane retains its disposable Namespace and two golden-image RBAC prerequisites.
+    - The intended infrastructure-plane load balancer and all bounded provider VM and VMI objects are absent.
+    - No cleanup, recreation or other mutation was performed.
+  redaction:
+    containsUIDs: false
+    containsResourceVersions: false
+    containsCredentials: false
+    containsSecrets: false
+    containsKubeconfigs: false
+  authorization:
+    publicationAuthorized: false
+    cleanupAuthorized: false
+    recreationAuthorized: false
+    retryAuthorized: false
+    go1LAuthorized: false
+    go1Authorized: false
+    failureInjectionAuthorized: false
