@@ -97,6 +97,25 @@ R0-v4:                   NOT GRANTED
 R1:                      NOT GRANTED
 ```
 
+R2 is also prepared as a separate read-only mechanism. The public repository
+contains only a non-granted template; the concrete R1 evidence digest, private
+binding digest, and grant identity must be materialized locally. The observer:
+
+```text
+poll exact ok-mgmt Namespace every 10 seconds
+        ↓ maximum 60 iterations / 600 seconds
+Namespace absent
+        ↓
+run the reviewed twenty-query closure inventory once
+        ↓
+PASS-R2-CLEAN only when management state is absent,
+provider runtime remains absent, and the three ok-infra prerequisites remain
+```
+
+R2 never deletes, retries R1, removes finalizers, or grants R3. A concrete R2
+candidate and its raw evidence remain private unless separately approved for a
+verified redacted publication.
+
 The cleanup mechanism is prepared offline but remains blocked. A deterministic
 materializer converts only a successful, fresh R0-v2 snapshot into a private
 ten-minute UID/resourceVersion binding. The bounded executor then exposes two
@@ -180,6 +199,7 @@ python3 architecture/spikes/ADR-Platform-030/go1-l-recovery-v1/bounded_recovery_
   verify \
   --candidate architecture/spikes/ADR-Platform-030/go1-l-recovery-v1/recovery-cleanup-candidate-r0-v4-20260814-01.yaml
 python3 architecture/spikes/ADR-Platform-030/go1-l-recovery-v1/test_recovery_snapshot_attempt_v1.py -v
+python3 architecture/spikes/ADR-Platform-030/go1-l-recovery-v1/test_recovery_r2_v1.py -v
 ```
 
 ```text
