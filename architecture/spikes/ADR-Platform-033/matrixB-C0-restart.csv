@@ -1,0 +1,12 @@
+dependency,objective,required,placement,provider,failureDomain,reachableWhenSharedDown,recoverableIndependently,evidenceRef
+controlplaneendpoint-kube-api,restart,yes,embedded,unresolved,OKP-Single,yes,na,pending:R1-same-node-restart+R2-cold-reschedule
+scheduler,restart,yes,embedded,unresolved,OKP-Single,yes,na,pending:R1-same-node-restart+R2-cold-reschedule
+kubelet-container-runtime,restart,yes,embedded,unresolved,OKP-Single,yes,na,pending:R1-same-node-restart+R2-cold-reschedule
+cni-data-plane,restart,yes,embedded,unresolved,OKP-Single,yes,na,pending:R1-same-node-restart+R2-cold-reschedule
+cluster-dns,restart,yes,embedded,unresolved,OKP-Single,yes,na,pending:R1-same-node-restart+R2-cold-reschedule
+container-image-resolution,restart,yes,embedded,unresolved,OKP-Single,yes,na,pending:R2-cold-reschedule(registry/mirror-dependency)
+secrets-config-resolution,restart,yes,embedded,unresolved,OKP-Single,yes,na,pending:R2-cold-reschedule
+storage-attach-mount,restart,yes,embedded,unresolved,OKP-Single,yes,na,pending:R2-cold-reschedule
+identity,restart,tbd,shared,unresolved,ok-shared,no,no,pending:R2-cold-reschedule(measure-SA-imagepull-secret-without-keycloak)
+gitops,restart,no,embedded,unresolved,OKP-Single,yes,na,note:no-reconcile-within-restart
+observability,restart,no,embedded,unresolved,OKP-Single,yes,na,note:not-required-for-restart
