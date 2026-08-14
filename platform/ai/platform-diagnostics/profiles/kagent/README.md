@@ -47,8 +47,8 @@ collapses to a pass-through; the contract and consumers do not change either way
 | `agents/specialists/*.yaml` | specialist `Agent`s, one Skill-Contract domain each |
 | `tools/scoped-tools-server.yaml` | scoped kagent tools server (read-only SA) + its `RemoteMCPServer` — the read-only enforcement point |
 | `rbac.yaml` | `ServiceAccount` + read-only `ClusterRole` + binding (get/list/watch, no secrets) |
-| `facade/` | OpenAPI→kagent shim (skeleton), `Dockerfile`, chart values |
-| `charts/platform-diagnostics-kagent/` | Helm chart: facade Deployment/Service + RBAC |
+| `facade/` | OpenAPI→kagent conformant provider, tests, and `Dockerfile` |
+| `charts/platform-diagnostics-facade/` | Helm chart: authenticated facade Deployment/Service |
 | `kustomization.yaml` | applies the kagent CRs (ModelConfig, Agents, Tools) as one unit |
 
 ## kagent CRD shapes — confirmed against the installed version

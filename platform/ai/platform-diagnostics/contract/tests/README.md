@@ -48,6 +48,12 @@ The in-process Profile B run uses a synthetic consumer token. External runs
 must provide the provider's consumer bearer token; it is sent only to the
 configured diagnostics endpoint and is never printed by the suite.
 
+`make verify` also runs the Profile A facade conformance tests. Those tests
+exercise all three FastAPI routes against the same normative response schemas,
+including bearer rejection, `X-Invocation-Id` correlation, `unknown` cluster
+health, self-describing workload/evidence results, stable Evidence IDs, and the
+consumer-Secret/no-Kubernetes-token deployment guard.
+
 `OPENAPI_SPEC` may point at another checkout of the normative specification;
 this is useful while a contract change and its conformance implementation are
 reviewed on stacked branches.
