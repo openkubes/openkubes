@@ -17,6 +17,12 @@ OpenAPI contract -> generated_contract.py -> MCP tools -> HTTP provider
 OpenAPI parser. The generation check fails whenever the OpenAPI source changes
 without a corresponding adapter update.
 
+The adapter authenticates to the HTTP provider with its dedicated consumer
+identity from `DIAGNOSTICS_BEARER_TOKEN`, emits a fresh `X-Request-Id` for every
+forwarded call, and rejects responses whose required `X-Invocation-Id` is
+missing or differs from the payload's `invocation_id`. The bearer token is a
+contract-consumer credential, never a Kubernetes credential.
+
 A consumer without an LLM (the `ok` CLI, OK-76) skips this and speaks HTTP directly.
 
 ## Tool mapping (1:1 with operationIds)
@@ -49,6 +55,22 @@ Only JSON `POST` operations are accepted because ADR-021 Phase 1 exposes
 read-only diagnostic requests and no mutation path.
 
 ## Build & deploy
+
+Before deploying, provider values must create the referenced Secret in the
+`platform-diagnostics` namespace:
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: platform-diagnostics-mcp-consumer
+  namespace: platform-diagnostics
+stringData:
+  token: <consumer-bearer-token>
+```
+
+Do not commit the real token. The Deployment also disables ServiceAccount token
+automount, so the adapter receives no Kubernetes API credential.
 
 ```bash
 docker buildx build --platform linux/amd64,linux/arm64 --provenance=false \

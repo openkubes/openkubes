@@ -1,5 +1,6 @@
 # MCP adapter image — exposes the 3 contract functions as MCP tools over
-# streamable-http, forwarding to the facade. Holds no kube credentials.
+# streamable-http, forwarding with a consumer bearer identity. Holds no kube
+# credentials.
 #   docker buildx build --platform linux/amd64,linux/arm64 --provenance=false \
 #     -t ghcr.io/openkubes/platform-diagnostics-mcp-adapter:0.2.0 --push .
 FROM python:3.12-slim
