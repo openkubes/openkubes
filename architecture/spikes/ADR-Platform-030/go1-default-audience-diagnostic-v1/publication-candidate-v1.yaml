@@ -1,0 +1,31 @@
+apiVersion: publication.openkubes.io/v1alpha1
+kind: GO1DefaultAudienceDiagnosticPublicationCandidate
+metadata:
+  name: ok141-default-audience-diagnostic-publication-v1
+  ticket: OK-141
+spec:
+  decision: BLOCKED-NO-PUBLICATION
+  scope:
+    directory: architecture/spikes/ADR-Platform-030/go1-default-audience-diagnostic-v1
+    files:
+      README.md: sha256:7f4b756a482012bb779b25f6ab567f0241c4744c797dbb817e164dcfe04bfa84
+      cause-closure.json: sha256:306321767f45790b5690dad433106852bd624bd38b3b3c399402ad72c3299ec8
+      default-audience-diagnostic-candidate-v1.yaml: sha256:8d4c3d81d09d7a999a47fc7b844f7ff51ec05bec0d7d137b1920680fb5e01b5c
+      default-audience-diagnostic-grant-v1.template.yaml: sha256:9c864f4137d9240f4e2dd97db71e8c0b6d51c10f6acc8c53d0e08036664062c5
+      bounded_default_audience_diagnostic_v1.py: sha256:7def7ebcc0040f60532889135833f01dca9dc62a4eb0ab2c717bb0b36a31eaad
+      test_default_audience_diagnostic_v1.py: sha256:59c96185ec892f98d82c22b58f87a49dda054b7645a5283b0eda7f45395aad3c
+  validation:
+    testsPassed: 6
+    candidateState: OFFLINE-PROVEN-BLOCKED-NO-GO
+    candidateDigest: sha256:8d4c3d81d09d7a999a47fc7b844f7ff51ec05bec0d7d137b1920680fb5e01b5c
+  permitsAfterSeparateGrant: [commit, push, draft-pr, review, merge]
+  excludes:
+    - private Evidence under /private/tmp
+    - workload Kubeconfig Secret content
+    - token and JWT payload
+    - CA payload and API endpoint
+    - raw Kubeconfig and raw target response
+    - default-audience diagnostic execution
+    - persistent credential replacement
+    - Happy-Run retry or resume
+    - cleanup and failure injection
