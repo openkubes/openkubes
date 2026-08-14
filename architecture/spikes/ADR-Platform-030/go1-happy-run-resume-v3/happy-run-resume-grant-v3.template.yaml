@@ -1,0 +1,62 @@
+apiVersion: authorization.openkubes.io/v1alpha1
+kind: GO1HappyRunResumeGrantV3
+metadata:
+  name: FILL
+spec:
+  decision: NO-GO
+  authority: github:arashkaffamanesh
+  candidateDigest: FILL
+  networkObserverDefaultingCandidateDigest: sha256:d7fb85331150dd2ee626d7d81a5f3f4e5114163a761d3d8e61869f3f72a207fe
+  grantID: FILL
+  runID: FILL
+  priorGO1LRunID: ok141-go1-l-20260814-v2
+  singleRun: true
+  consumed: false
+  issuedAt: FILL
+  expiresAt: FILL
+  protocolDigest: sha256:e45e5f6b8254e666226aa874810bf2ca51f76f2411e0316adb52a7ce51254885
+  fixtureDigest: sha256:7536456a762880a78a37dcba76a5f3f0628140bd37b55d5fd62273c64e4cc3eb
+  remediationCandidateDigest: sha256:f2cff408032898997a589bcc829ece7fad73b0b9bbda9afa1c1080674fae02ca
+  remediationEvidencePath: /private/tmp/ok141-lb-namespace-remediation-v1-evidence.json
+  remediationEvidenceDigest: FILL
+  remediationEvidenceBindingGranted: false
+  preflightEvidence:
+    path: /private/tmp/ok141-go1-v6-preflight-v2-evidence.json
+    digest: FILL
+  g1Summary:
+    path: /private/tmp/ok141-go1-l-runtime-v1/ok141-go1-l-20260814-v2/g1-summary.json
+    digest: FILL
+  priorEvidence:
+    lifecyclePath: /private/tmp/ok141-go1-l-lifecycle-api-observer-v1-evidence.json
+    lifecycleDigest: FILL
+    g3Path: /private/tmp/ok141-go1-l-runtime-v1/ok141-go1-l-20260814-v2/evidence-helmchartproxy.json
+    g3Digest: FILL
+    failedNetworkPath: /private/tmp/ok141-go1-l-network-ready-observer-v1-evidence.json
+    failedNetworkDigest: FILL
+  resumeAfterG3Granted: false
+  lifecycleEvidenceReuseGranted: false
+  g3EvidenceReuseGranted: false
+  networkObserverGranted: false
+  runtimeBindingGranted: false
+  targetAccessGranted: false
+  tokenRequestGranted: false
+  registrationGranted: false
+  credentialSecretGranted: false
+  applicationSubmissionGranted: false
+  platformObserverGranted: false
+  capabilityTestGranted: false
+  capabilityTestCleanupGranted: false
+  credentialUseGranted: false
+  go1LGranted: false
+  go1Granted: false
+  preflightGranted: false
+  g1Granted: false
+  remediationGranted: false
+  lifecycleReexecutionGranted: false
+  g3Granted: false
+  retryGranted: false
+  rollbackGranted: false
+  broadCleanupGranted: false
+  evidencePublicationGranted: false
+  failureInjectionGranted: false
+  outageGranted: false
