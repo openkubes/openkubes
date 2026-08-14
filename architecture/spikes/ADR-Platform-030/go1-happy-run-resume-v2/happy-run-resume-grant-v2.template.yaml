@@ -1,0 +1,51 @@
+apiVersion: authorization.openkubes.io/v1alpha1
+kind: GO1HappyRunResumeGrantV2
+metadata:
+  name: ok141-go1-happy-run-resume-v2
+spec:
+  decision: NO-GO
+  authority: github:arashkaffamanesh
+  candidateDigest: sha256:8a9522e51816cc9d8974f8791c678e3d5d86b76abc4e3935d4c4592be74c3487
+  protocolDigest: sha256:e45e5f6b8254e666226aa874810bf2ca51f76f2411e0316adb52a7ce51254885
+  fixtureDigest: sha256:7536456a762880a78a37dcba76a5f3f0628140bd37b55d5fd62273c64e4cc3eb
+  remediationCandidateDigest: sha256:f2cff408032898997a589bcc829ece7fad73b0b9bbda9afa1c1080674fae02ca
+  remediationEvidencePath: /private/tmp/ok141-lb-namespace-remediation-v1-evidence.json
+  remediationEvidenceDigest: PRIVATE_RUNTIME_BINDING_REQUIRED
+  remediationEvidenceBindingGranted: false
+  priorGO1LRunID: ok141-go1-l-20260814-v2
+  preflightEvidence:
+    path: /private/tmp/ok141-go1-v6-preflight-v2-evidence.json
+    digest: sha256:221cf748c7ae4d8698e8ad0b9033987d8cb04856aa3eb8c42fab832e62438c24
+  g1Summary:
+    path: /private/tmp/ok141-go1-l-runtime-v1/ok141-go1-l-20260814-v2/g1-summary.json
+    digest: sha256:c3aef1a58e85ef4b9b2348f10cf8bd4dfdd344f4e89f6170ea132663aa544c86
+  grantID: null
+  runID: null
+  singleRun: true
+  consumed: false
+  issuedAt: null
+  expiresAt: null
+  resumeFromG1Granted: false
+  credentialUseGranted: false
+  lifecycleObserverGranted: false
+  g3Granted: false
+  networkObserverGranted: false
+  runtimeBindingGranted: false
+  targetAccessGranted: false
+  tokenRequestGranted: false
+  registrationGranted: false
+  credentialSecretGranted: false
+  applicationSubmissionGranted: false
+  platformObserverGranted: false
+  capabilityTestGranted: false
+  capabilityTestCleanupGranted: false
+  go1LGranted: false
+  go1Granted: false
+  preflightGranted: false
+  g1Granted: false
+  retryGranted: false
+  rollbackGranted: false
+  broadCleanupGranted: false
+  evidencePublicationGranted: false
+  failureInjectionGranted: false
+  outageGranted: false
