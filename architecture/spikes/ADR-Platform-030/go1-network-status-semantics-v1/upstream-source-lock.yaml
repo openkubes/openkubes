@@ -1,0 +1,25 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: UpstreamSourceSemanticsLock
+metadata:
+  name: cilium-v1-19-6-health-connectivity-status
+spec:
+  repository: cilium/cilium
+  commit: 9a8982433e18019e290b8199c0c4ad24f66befe8
+  files:
+    - path: api/v1/health/models/connectivity_status.go
+      gitBlobSHA: ac4a6c6801d29b47f103cbee7ee03512dc5f4fcb
+      sha256: sha256:5f9349fbdccc1890723e191abb0ef6f048f55817a0bea4c2881b6950a714a5d9
+      relevantFact: Status is a string serialized with json status omitempty.
+    - path: pkg/health/server/prober.go
+      gitBlobSHA: 9ec1c6272be4d424d15a9a75935fdb208b85afd3
+      sha256: sha256:6a4dc3e2ad386df86f9f3c225f4efc60318108300559840a7558b6a51899fbd3
+      relevantFacts:
+        - Successful ICMP leaves Status at the empty Go string and records Latency and LastProbed.
+        - Successful HTTP leaves Status at the empty Go string and records Latency and LastProbed.
+        - Probe errors assign a non-empty error string to Status.
+  derivedSemantics:
+    omittedStatusIsSuccessfulZeroValue: true
+    presentEmptyStatusIsSuccessfulZeroValue: true
+    presentNonEmptyStatusIsFailure: true
+    explicitNullStatusAccepted: false
+
