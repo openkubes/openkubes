@@ -66,6 +66,37 @@ R0 v3 private output:      /private/tmp/ok141-go1-l-recovery-snapshot-v3-evidenc
 R0-v3 carries no read or credential authority. Its output must be absent before
 a separately granted run.
 
+R0-v3 completed successfully, but its ten-minute private binding expired before
+the separately granted R1 window could be used. No delete was attempted and the
+R1 grant was not consumed. The private v3 evidence and binding remain preserved.
+
+To avoid adding another Python tool for every time-bound refresh, the additive
+attempt-v1 mechanism separates stable reviewed logic from immutable attempt
+identity:
+
+```text
+stable observer / materializer / cleanup executor
+        +
+immutable attempt candidate
+        +
+unique private evidence and binding paths
+        =
+fresh, independently granted R0 attempt
+```
+
+Each attempt still binds the exact twenty-query profile, predecessor evidence,
+candidate digest, output path, ten-minute binding lifetime, and a cleanup
+candidate that accepts only that attempt identity. Reuse of an old output,
+binding, candidate digest, or grant fails closed. The mechanism does not combine
+R0 and R1 and does not grant either operation.
+
+```text
+R0-v4 attempt candidate: sha256:243e7eb9b6633e13c7436be2b317f2621c6cc7b4ef44d8cb870aba5d59810b5e
+R0-v4 cleanup candidate: sha256:71a81d3609de890727a08bb5f7680b0c188aa080361de98a3f5aa4d0dab7b1e1
+R0-v4:                   NOT GRANTED
+R1:                      NOT GRANTED
+```
+
 The cleanup mechanism is prepared offline but remains blocked. A deterministic
 materializer converts only a successful, fresh R0-v2 snapshot into a private
 ten-minute UID/resourceVersion binding. The bounded executor then exposes two
@@ -142,6 +173,13 @@ python3 architecture/spikes/ADR-Platform-030/go1-l-recovery-v1/test_bounded_reco
 python3 architecture/spikes/ADR-Platform-030/go1-l-recovery-v1/bounded_recovery_cleanup_v2.py \
   verify \
   --candidate architecture/spikes/ADR-Platform-030/go1-l-recovery-v1/recovery-cleanup-candidate-v1-r0-v3.yaml
+python3 architecture/spikes/ADR-Platform-030/go1-l-recovery-v1/observe_recovery_snapshot_attempt_v1.py \
+  verify \
+  --candidate architecture/spikes/ADR-Platform-030/go1-l-recovery-v1/recovery-snapshot-attempt-r0-v4-20260814-01.yaml
+python3 architecture/spikes/ADR-Platform-030/go1-l-recovery-v1/bounded_recovery_cleanup_attempt_v1.py \
+  verify \
+  --candidate architecture/spikes/ADR-Platform-030/go1-l-recovery-v1/recovery-cleanup-candidate-r0-v4-20260814-01.yaml
+python3 architecture/spikes/ADR-Platform-030/go1-l-recovery-v1/test_recovery_snapshot_attempt_v1.py -v
 ```
 
 ```text

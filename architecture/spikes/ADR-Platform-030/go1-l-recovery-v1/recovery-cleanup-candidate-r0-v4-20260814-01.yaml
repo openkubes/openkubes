@@ -1,0 +1,71 @@
+apiVersion: execution.openkubes.io/v1alpha1
+kind: GO1LRecoveryCleanupCandidate
+metadata: {name: ok141-go1-l-recovery-cleanup-r0-v4-20260814-01, ticket: OK-141}
+spec:
+  version: ok141-go1-l-recovery-cleanup/v1
+  state: OFFLINE-PROVEN-BLOCKED-NO-GO
+  sourceProtocol:
+    path: go1-l-recovery-protocol-v1.yaml
+    digest: sha256:0be2957f7c417e9c7c25f2595b5168a95f11e72c76508d83f774719045df8bd9
+  tool:
+    path: bounded_recovery_cleanup_attempt_v1.py
+    digest: sha256:3737b480bd0438d350636f90c07f7fea56b17c1e984e94025ed2c07a96ba6f79
+    kubectlPath: /private/tmp/ok141-kubectl-v1.34.1-darwin-amd64
+    kubectlDigest: sha256:bb211f2b31f2b3bc60562b44cc1e3b712a16a98e9072968ba255beb04cefcfdf
+    arbitraryCommandAllowed: false
+  runtimeBindingMaterializer:
+    path: materialize_recovery_binding_attempt_v1.py
+    digest: sha256:d7606eafbc5aa57825eb19805d6ef3de19a660f2e4acc7061af78999395cdb40
+    sourceObservationCandidateDigest: sha256:243e7eb9b6633e13c7436be2b317f2621c6cc7b4ef44d8cb870aba5d59810b5e
+    attemptID: r0-v4-20260814-01
+    bindingName: ok141-go1-l-recovery-runtime-binding-r0-v4-20260814-01
+    outputRoot: /private/tmp
+    freshnessMaximumMinutes: 10
+    publicUIDPublicationAllowed: false
+  credentials:
+    R1: {targetPlane: ok-mgmt, path: /Users/arash/.kube/ok-mgmt.yaml}
+    R3: {targetPlane: ok-infra, path: /Users/arash/.kube/ok-infra.yaml}
+  stages:
+    - id: R1
+      targetPlane: ok-mgmt
+      predecessor: fresh-private-runtime-binding
+      targets:
+        - {key: okMgmt.namespace, identity: 'v1|Namespace|_|disposable-ok141', rawURI: /api/v1/namespaces/disposable-ok141}
+    - id: R3
+      targetPlane: ok-infra
+      predecessor: successful-separately-observed-R2-closure
+      targets:
+        - {key: okInfra.roleBinding, identity: 'rbac.authorization.k8s.io/v1|RoleBinding|ok-images|disposable-ok141-talos-golden-image-cloner', rawURI: /apis/rbac.authorization.k8s.io/v1/namespaces/ok-images/rolebindings/disposable-ok141-talos-golden-image-cloner}
+        - {key: okInfra.role, identity: 'rbac.authorization.k8s.io/v1|Role|ok-images|disposable-ok141-talos-golden-image-cloner', rawURI: /apis/rbac.authorization.k8s.io/v1/namespaces/ok-images/roles/disposable-ok141-talos-golden-image-cloner}
+        - {key: okInfra.namespace, identity: 'v1|Namespace|_|disposable-ok141', rawURI: /api/v1/namespaces/disposable-ok141}
+  transport:
+    operation: DeleteWithUIDPrecondition
+    exactGETBeforeDelete: true
+    uidPreconditionRequired: true
+    resourceVersionEqualityRequiredBeforeDelete: true
+    propagationPolicy: Foreground
+    waitForDeletionInSameStage: false
+    forceAllowed: false
+    finalizerMutationAllowed: false
+    automaticRetryAllowed: false
+    automaticRollbackAllowed: false
+  authorization:
+    decision: NO-GO
+    readOnlyPreconditionAuthorized: false
+    credentialUseAuthorized: false
+    mutationAuthorized: false
+    destructiveCleanupAuthorized: false
+    uidPreconditionAuthorized: false
+    retryAuthorized: false
+    forceDeleteAuthorized: false
+    finalizerRemovalAuthorized: false
+    recreateAuthorized: false
+    go1LGranted: false
+    go1Granted: false
+    failureInjectionAuthorized: false
+  exclusions:
+    - patch update apply force delete finalizer removal retry rollback or cleanup expansion
+    - Secret ConfigMap Pod log TokenRequest discovery watch or unbounded collection access
+    - provider credential materialization recreation HCP HRP Cilium Platform GO1-L GO-1 or failure injection
+    - automatic continuation from R1 to R2 from R2 to R3 or from R3 to recreation
+    - any runtime binding whose attempt candidate digest attempt ID or binding name differs from this candidate
