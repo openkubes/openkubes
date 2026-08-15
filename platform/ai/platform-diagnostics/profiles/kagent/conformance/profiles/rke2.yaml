@@ -1,4 +1,20 @@
 distribution: rke2
+# NOT measured. This profile states what the RKE2 provider is expected to
+# declare once it exists. The static checks below can only prove that the
+# expectation is internally consistent — never that it is correct.
+provenance:
+  state: assumed
+  reason: >-
+    Profile A is not installed on ok-infra: namespace, ServiceAccount,
+    ClusterRole, facade and collectors are absent, so there is no provider to
+    audit and no collector response to compare against.
+  missing:
+    - audit the deployed ServiceAccount and its effective authorization
+    - confirm host_journal and node_shell are declared available
+    - request both evidence types from the running provider
+    - verify both return status available with retrievable URIs, in the same
+      response schema used on Talos
+  record: evidence/OK-95-2026-08-11.md
 provider_capabilities:
   workload_events: true
   workload_logs: true
