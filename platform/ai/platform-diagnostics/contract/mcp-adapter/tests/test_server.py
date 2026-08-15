@@ -127,5 +127,79 @@ class FastMCPRegistrationTests(unittest.TestCase):
         )
 
 
+class AdapterIngressTests(unittest.TestCase):
+    """The adapter must not be reachable by everything in the cluster.
+
+    Removing the consumer's RBAC and ServiceAccount token is the visible half of
+    the ADR-021 boundary. The invisible half is that the adapter sits in front of
+    the provider holding its credential: if any pod can reach it, the credential
+    is effectively shared with the whole cluster and the consumer hardening buys
+    nothing.
+    """
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.documents = [
+            document
+            for document in yaml.safe_load_all(
+                (ADAPTER_DIR / "deploy.yaml").read_text()
+            )
+            if isinstance(document, dict)
+        ]
+
+    def policy(self) -> dict:
+        policies = [
+            document
+            for document in self.documents
+            if document.get("kind") == "NetworkPolicy"
+        ]
+        self.assertEqual(
+            1, len(policies), "the adapter must ship exactly one ingress policy"
+        )
+        return policies[0]
+
+    def test_ingress_policy_selects_the_adapter(self) -> None:
+        deployment = next(
+            document for document in self.documents if document["kind"] == "Deployment"
+        )
+        selector = deployment["spec"]["selector"]["matchLabels"]
+        policy = self.policy()
+        self.assertEqual(selector, policy["spec"]["podSelector"]["matchLabels"])
+        self.assertEqual(
+            deployment["metadata"]["namespace"], policy["metadata"]["namespace"]
+        )
+        self.assertIn("Ingress", policy["spec"]["policyTypes"])
+
+    def test_ingress_is_restricted_to_declared_consumers(self) -> None:
+        rules = self.policy()["spec"]["ingress"]
+        self.assertTrue(rules, "an empty ingress list would deny the consumer too")
+        for rule in rules:
+            sources = rule.get("from")
+            self.assertTrue(
+                sources,
+                "a rule without 'from' admits every source, which is the state "
+                "this policy exists to end",
+            )
+            for source in sources:
+                self.assertTrue(
+                    source.get("namespaceSelector", {}).get("matchLabels")
+                    or source.get("podSelector", {}).get("matchLabels"),
+                    f"unrestricted ingress source: {source}",
+                )
+
+    def test_ingress_port_matches_the_served_port(self) -> None:
+        deployment = next(
+            document for document in self.documents if document["kind"] == "Deployment"
+        )
+        container = deployment["spec"]["template"]["spec"]["containers"][0]
+        served = container["ports"][0]["containerPort"]
+        allowed = [
+            port["port"]
+            for rule in self.policy()["spec"]["ingress"]
+            for port in rule.get("ports", [])
+        ]
+        self.assertEqual([served], allowed)
+
+
 if __name__ == "__main__":
     unittest.main()
