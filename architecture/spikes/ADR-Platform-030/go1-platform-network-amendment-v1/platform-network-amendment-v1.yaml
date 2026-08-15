@@ -1,0 +1,42 @@
+apiVersion: test.openkubes.io/v1alpha1
+kind: PlatformNetworkAmendment
+metadata:
+  name: ok141-platform-network-amendment-v1
+spec:
+  authorizationState: NO-GO
+  base:
+    fixturePath: harness/fixtures/execution/phase-r-v5.json
+    fixtureDigest: sha256:7536456a762880a78a37dcba76a5f3f0628140bd37b55d5fd62273c64e4cc3eb
+    R: sha256:166504ae61fd558d391daedde50986cbc7a28f5f4e9d57f4acbd0433b448aa0f
+    P: sha256:b0f25c639a45d895b889997f5ecc2325db45dd5d51b0684998c94d5e17bd47bf
+  fixture:
+    profile: minimal-observability-v5
+    profilePath: harness/profiles/platform/minimal-observability-v5/profile.json
+    applicationsPath: harness/profiles/platform/minimal-observability-v5/applications.yaml
+    providerValuesPath: harness/profiles/platform/minimal-observability-v5/provider-values.yaml
+    P: sha256:02206b92b487a0f12eee8139d82f9ef150ab9688c7a60687d3f7b6b782266472
+    R: sha256:89248df8cd908394d2d75c18fbb39d52d84cf181f66480c743bfe9d732a0aaa4
+    applicationSetDigest: sha256:d54da779ab378f9cae5452c0330555f686f9f1d1a17e17adeac8925e34474146
+    providerValuesDigest: sha256:41ad2fd63473364d634c6df2bb3b7fcd178ba5e82f8ebf6a9a55da41376cd759
+    renderInventoryPath: go1-platform-network-amendment-v1/platform-rendered-inventory-v1.json
+    renderInventoryArtifactDigest: sha256:9df259af46c535cc62ae9147aa2adffc6192536958b437713290b1e8ff50cde0
+    renderInventoryDigest: sha256:447e1e4b601de02f1f027f1aeab54027b2b7345ecb05622c95167ff83e99dbcf
+    coreRenderedRawDigest: sha256:61ee9bfc11141ab89809e8817ee6a1ec828fd20f0316d6cc17426979c43a4519
+    fixtureDigest: sha256:3aa621cd8f3b21e87a5d7059911d02a4b0f10f2d724df351750787eb274b9ae6
+  semanticDelta:
+    enabledValue: false
+    disabledKubePrometheusComponents:
+      - coreDns
+      - kubeControllerManager
+      - kubeEtcd
+      - kubeProxy
+      - kubeScheduler
+    removedObjectCount: 15
+    remainingRenderedNamespaces:
+      - ok-observability
+    reason: Talos/Cilium target does not authorize GitOps management of kube-system monitoring Services
+  executionBoundary:
+    mutationGranted: false
+    destructiveActionGranted: false
+    wildcardRBACGranted: false
+    failureInjectionGranted: false
