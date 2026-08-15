@@ -17,6 +17,7 @@ def load(name: str, path: Path):
 
 
 GEN = load("ok141_capability_boundary_generator_test", HERE / "generate_capability_name_boundary_amendment_v1.py")
+LIVE = load("ok141_live_capability_boundary_test", HERE / "bounded_live_capability_name_boundary_amendment_v1.py")
 
 
 class CapabilityNameBoundaryAmendmentTests(unittest.TestCase):
@@ -55,6 +56,19 @@ class CapabilityNameBoundaryAmendmentTests(unittest.TestCase):
         amendment = json.loads((HERE / "capability-name-boundary-amendment-v1.json").read_text())
         old_profile = json.loads((GEN.V8_PROFILE / "profile.json").read_text())
         self.assertEqual(GEN.V1.semantic_revision(old_profile), amendment["spec"]["base"]["P"])
+
+    def test_directory_recurse_false_matches_api_omission_only(self):
+        explicit = {"source": {"directory": {"include": "x.yaml", "recurse": False}}}
+        omitted = {"source": {"directory": {"include": "x.yaml"}}}
+        self.assertEqual(
+            LIVE.normalized_application_spec(explicit),
+            LIVE.normalized_application_spec(omitted),
+        )
+        changed = {"source": {"directory": {"include": "x.yaml", "recurse": True}}}
+        self.assertNotEqual(
+            LIVE.normalized_application_spec(changed),
+            LIVE.normalized_application_spec(omitted),
+        )
 
 
 if __name__ == "__main__":

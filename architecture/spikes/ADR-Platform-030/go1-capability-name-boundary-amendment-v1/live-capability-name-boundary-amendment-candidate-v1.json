@@ -48,7 +48,7 @@
     "sharedKubeconfigPath": "/Users/arash/.kube/ok-shared.yaml",
     "standingGrantAcknowledged": true,
     "state": "LIVE-AUTHORIZED-ONCE",
-    "toolDigest": "sha256:66d4e2752f79941cab3a3fb70611127991653a0f5be0885e1b70f650b606faab",
+    "toolDigest": "sha256:cdba6a36c30daea11f4de71add1bc5d95959869bb33c187b0461d5be5ecac3c5",
     "toolPath": "bounded_live_capability_name_boundary_amendment_v1.py",
     "verifierPath": "go1-capability-name-boundary-amendment-v1/verify_capability_name_boundary_amendment_v1.py"
   }

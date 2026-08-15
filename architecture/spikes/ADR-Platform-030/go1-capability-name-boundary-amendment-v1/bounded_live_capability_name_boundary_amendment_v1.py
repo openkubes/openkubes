@@ -87,6 +87,15 @@ def desired_applications(amendment: dict[str, Any]) -> dict[str, dict[str, Any]]
     }
 
 
+def normalized_application_spec(value: dict[str, Any]) -> dict[str, Any]:
+    """Normalize the one API-omitted explicit false used by directory sources."""
+    result = copy.deepcopy(value)
+    directory = result.get("source", {}).get("directory")
+    if isinstance(directory, dict) and directory.get("recurse") is False:
+        directory.pop("recurse")
+    return result
+
+
 def app_summary(value: dict[str, Any], expected_revision: str) -> dict[str, Any]:
     status = value.get("status", {})
     return {
@@ -198,7 +207,7 @@ def execute(candidate_path: Path) -> dict[str, Any]:
         })
         replacement["spec"]["source"]["targetRevision"] = new_source
         expected = copy.deepcopy(desired_apps[name])
-        if replacement["spec"] != expected["spec"]:
+        if normalized_application_spec(replacement["spec"]) != normalized_application_spec(expected["spec"]):
             raise LiveCapabilityBoundaryError("Application delta exceeds metadata and targetRevision")
         prepared.append((shared, "application", raw_uri, current, replacement))
 
