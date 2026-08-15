@@ -1,4 +1,10 @@
 distribution: talos
+# Observed on a running provider; see the record for what was actually executed.
+provenance:
+  state: measured
+  cluster: ok-ai
+  observed_at: "2026-08-11"
+  record: evidence/OK-95-2026-08-11.md
 provider_capabilities:
   workload_events: true
   workload_logs: true
