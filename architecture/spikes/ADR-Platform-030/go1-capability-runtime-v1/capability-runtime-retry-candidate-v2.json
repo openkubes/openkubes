@@ -1,0 +1,71 @@
+{
+  "apiVersion": "execution.openkubes.io/v1alpha1",
+  "kind": "OK141CapabilityRuntimeRetryCandidate",
+  "metadata": {
+    "name": "ok141-capability-runtime-retry-v2",
+    "ticket": "OK-141"
+  },
+  "spec": {
+    "version": "ok141-capability-runtime-retry/v2",
+    "state": "AUTHORIZED-SINGLE-DIAGNOSIS-BASED-RETRY",
+    "stopSemantics": "STOP-PRESERVE-NO-FURTHER-RETRY",
+    "predecessor": {
+      "candidatePath": "capability-runtime-candidate-v1.json",
+      "candidateDigest": "sha256:098fc54a849d40c30a6b394d2647e7aae1d7de830c9af5c70b7cf02fb019871b",
+      "failedEvidence": {
+        "path": "/private/tmp/ok141-capability-runtime-v1-evidence.json",
+        "digest": "sha256:7f157109b359b22ab1c2b1e849ba5fca6285c35bb85d88ea10251196ecaffe69"
+      },
+      "componentDiagnostic": {
+        "path": "/private/tmp/ok141-capability-diagnostic-v2-evidence.json",
+        "digest": "sha256:a5eaa9e1d9361845be5cc6d3aa0a31d7a2159591cd6aed4d603d262c4f516098"
+      },
+      "prometheusDiagnostic": {
+        "path": "/private/tmp/ok141-prometheus-scrape-diagnostic-v3-evidence.json",
+        "digest": "sha256:8fd500b03112077ebe1d28f0475111801a5ad108caea8db3fcd50e653740ab0a"
+      },
+      "logDiagnostic": {
+        "path": "/private/tmp/ok141-prometheus-log-diagnostic-v2-evidence.json",
+        "digest": "sha256:d1bf67effd9486421044627f61df845460c765a03234d8d9f9d118971810c5ba"
+      }
+    },
+    "diagnosis": {
+      "platformApplications": "Synced-and-Healthy",
+      "serviceEndpoints": "reachable",
+      "grafanaDatasource": "present",
+      "opensearchSyntheticMarker": "present",
+      "prometheusSyntheticMetric": "absent-from-last-hour",
+      "syntheticAlert": "absent-from-last-hour",
+      "prometheusCR": "Available-and-Reconciled",
+      "prometheusSelectors": "open",
+      "operatorRBAC": "sufficient",
+      "remainingQuestion": "whether-the-exact-ServiceMonitor-target-is-discovered-and-healthy"
+    },
+    "retry": {
+      "singleRun": true,
+      "runID": "ok141-happy-capability-20260815-v2",
+      "prometheusMonitorPort": 29811,
+      "normalizedStepClassification": true,
+      "parallelExactTargetObservation": true,
+      "furtherRetryAllowed": false
+    },
+    "runtime": {
+      "ephemeralKubeconfigPath": "/private/tmp/ok141-capability-runtime-retry-v2-workload-kubeconfig.yaml",
+      "ephemeralToolDirectory": "/private/tmp/ok141-capability-runtime-retry-v2-tools"
+    },
+    "outputPath": "/private/tmp/ok141-capability-runtime-retry-v2-evidence.json",
+    "tool": {
+      "path": "bounded_capability_runtime_retry_v2.py",
+      "digest": "sha256:392b751cca31bbf4f4c1d1421c54615df6125da683fa2607fbf9506974deaa7b"
+    },
+    "authorization": {
+      "source": "standing-continuous-dev-grant-single-diagnosis-based-retry",
+      "syntheticMutationAndCleanup": true,
+      "readOnlyTargetObservation": true,
+      "rawOutputPublication": false,
+      "failureInjection": false,
+      "rollback": false,
+      "broadCleanup": false
+    }
+  }
+}

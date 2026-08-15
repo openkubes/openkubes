@@ -1,0 +1,89 @@
+{
+  "apiVersion": "evidence.openkubes.io/v1alpha1",
+  "kind": "OK141CapabilityRuntimeClosure",
+  "metadata": {
+    "name": "ok141-capability-runtime-closure-v1"
+  },
+  "spec": {
+    "observedAt": "2026-08-15T20:52:03Z",
+    "identities": {
+      "P": "sha256:311a581894905faa1eb57f93f0d236a84a4a016e82c64c5f51ee7d6c1e29c952",
+      "R": "sha256:81a57ef118e339a08e80608c64da7dd6eaed7d67dcdbcfa74a34636ab16dd35f",
+      "FixtureDigest": "sha256:3ad6f2dbe82da2abc15e8dc44bbf2aabf5afcfd8cb54b54b2d2807fd815b7eba",
+      "sourceRevision": "b5f7be6a7ddab798f31f32197fcbb9e86a9798b6"
+    },
+    "platformConvergence": {
+      "defaultingAmendmentCandidateDigest": "sha256:0c6cfea1d16a8d57e2e2f61fcb3ceda08c2d7d375d42af33f220e6a7de90c486",
+      "privateEvidenceDigest": "sha256:fa5717c8a197a8af60acf8c060adb086d1f9a28a2c5c6b7d152badfc727d6231",
+      "alertingSyncCandidateDigest": "sha256:eae292af0bc356c98028356bd62a1527e6ac50e53f6b62fbe95ff56ff15281b3",
+      "alertingPrivateEvidenceDigest": "sha256:21d3bab59e968fe11c78dd1d525f2e1d3f93a35450b430fe4eb233ac395682fe",
+      "applications": {
+        "core": "Synced/Healthy",
+        "alerting": "Synced/Healthy",
+        "dashboards": "Synced/Healthy"
+      }
+    },
+    "capabilityExecution": {
+      "initialCandidateDigest": "sha256:098fc54a849d40c30a6b394d2647e7aae1d7de830c9af5c70b7cf02fb019871b",
+      "initialPrivateEvidenceDigest": "sha256:7f157109b359b22ab1c2b1e849ba5fca6285c35bb85d88ea10251196ecaffe69",
+      "retryCandidateDigest": "sha256:9ca4aaf0a4c07f9f15d306e5166669b8c6129ae99df2333d54eb6a7cae5640a6",
+      "retryPrivateEvidenceDigest": "sha256:8b460b3094cd8e728a186af01914885c2c78f5b767e7a77d09107664f379e04d",
+      "initialState": "FAIL-CAPABILITY",
+      "retryState": "FAIL-CAPABILITY",
+      "furtherRetryAllowed": false,
+      "postEvidenceReportingError": "the retry wrapper omitted a sys import while printing its already-final failure result; evidence writing and cleanup completed before this local reporting error",
+      "cleanup": {
+        "scriptCleanupInvoked": true,
+        "ephemeralKubeconfigRemoved": true,
+        "ephemeralToolDirectoryRemoved": true,
+        "portForwardLogsRemoved": true
+      }
+    },
+    "diagnosis": {
+      "componentPrivateEvidenceDigest": "sha256:a5eaa9e1d9361845be5cc6d3aa0a31d7a2159591cd6aed4d603d262c4f516098",
+      "prometheusPrivateEvidenceDigest": "sha256:8fd500b03112077ebe1d28f0475111801a5ad108caea8db3fcd50e653740ab0a",
+      "logPrivateEvidenceDigest": "sha256:d1bf67effd9486421044627f61df845460c765a03234d8d9f9d118971810c5ba",
+      "eventPrivateEvidenceDigest": "sha256:fc41663e2b9b173f41c07821f6437936a5e57330e800132283c39bc58e9fbd72",
+      "serviceEndpointsReachable": true,
+      "grafanaPrometheusDatasourcePresent": true,
+      "opensearchSyntheticMarkerObserved": true,
+      "prometheusAvailableAndReconciled": true,
+      "prometheusSelectorsOpen": true,
+      "operatorServiceMonitorAndRuleRBACSufficient": true,
+      "serviceMonitorCreated": true,
+      "syntheticWorkloadReady": false,
+      "prometheusTargetEverSeen": false,
+      "rootCause": "the bound 34-character run ID produced a 65-character synthetic resource and app-label identity, exceeding the Kubernetes 63-character Service-name and label-value boundaries",
+      "platformFailure": false,
+      "testMethodFailure": true
+    },
+    "remediation": {
+      "repository": "openkubes/ok-observability",
+      "pullRequest": 13,
+      "candidateCommit": "3050b4ded82da7e1e59241386e9d888dd885d709",
+      "candidateScriptDigest": "sha256:98f41106b7ddc2f7ecffaca9bd9e3c3584d97ab41b169054d8be91ae9cdfb949",
+      "strategy": "deterministic checksum-suffixed run label with all generated Service Pod and label identities bounded to 63 characters",
+      "offlineVerification": "PASS",
+      "merged": false,
+      "authoritative": false
+    },
+    "nextGate": {
+      "state": "BLOCKED-ON-HUMAN-MERGE-AND-IDENTITY-REBINDING",
+      "requirements": [
+        "human merge of ok-observability PR 13",
+        "bind merged source commit and new capability script digest",
+        "derive new P R and FixtureDigest without reinterpreting v8",
+        "prepare a new single-run capability candidate",
+        "run the capability gate once against the existing converged disposable cluster"
+      ]
+    },
+    "retention": {
+      "rawCapabilityOutputPublished": false,
+      "privateEvidencePublished": false,
+      "secretOrKubeconfigBytesPublished": false,
+      "apiEndpointsPublished": false,
+      "uidOrResourceVersionPublished": false
+    },
+    "state": "STOP-CAPABILITY-TEST-METHOD-REMEDIATION-PENDING"
+  }
+}
