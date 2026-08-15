@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -25,6 +26,20 @@ BASE_CAPABILITIES = {
     "node_shell",
 }
 DELTA_EVIDENCE_TYPES = {"host_journal", "node_shell"}
+
+#: The normative contract this matrix was written against. Pinned because the
+#: spec path is resolved relative to the checkout: without it, a branch that has
+#: fallen behind validates happily against an older contract.
+CONTRACT_VERSION = "1.1.0"
+
+#: How a distribution profile came to exist. ``measured`` means someone observed
+#: the running provider; ``assumed`` means the profile states an intention. Both
+#: are legitimate, but only one is evidence, and the difference has to survive
+#: into the output — a declaration nobody measured cannot fail a static check,
+#: it can only be wrong.
+PROVENANCE_STATES = {"measured", "assumed"}
+MEASURED_KEYS = {"cluster", "observed_at", "record"}
+ASSUMED_KEYS = {"reason", "missing", "record"}
 
 
 class ConformanceError(AssertionError):
@@ -91,6 +106,56 @@ def verify_rbac_documents(documents: list[dict[str, Any]]) -> None:
     subjects = binding.get("subjects", [])
     if expected_subject not in subjects:
         raise ConformanceError("ClusterRoleBinding does not bind the provider ServiceAccount")
+
+
+def verify_provenance(profile: dict[str, Any]) -> str:
+    """Return the profile's provenance state, or fail if it does not declare one."""
+    distribution = profile.get("distribution")
+    provenance = profile.get("provenance")
+    if not isinstance(provenance, dict):
+        raise ConformanceError(
+            f"{distribution} declares no provenance; a capability profile must say "
+            f"whether it was measured or assumed"
+        )
+    state = provenance.get("state")
+    if state not in PROVENANCE_STATES:
+        raise ConformanceError(
+            f"{distribution} provenance state {state!r} is not one of "
+            f"{sorted(PROVENANCE_STATES)}"
+        )
+    required = MEASURED_KEYS if state == "measured" else ASSUMED_KEYS
+    missing_keys = sorted(required - set(provenance))
+    if missing_keys:
+        raise ConformanceError(
+            f"{distribution} provenance is {state} but omits {missing_keys}"
+        )
+    record = HERE / str(provenance["record"])
+    if not record.is_file():
+        raise ConformanceError(
+            f"{distribution} points at a provenance record that does not exist: "
+            f"{provenance['record']}"
+        )
+    if state == "assumed":
+        steps = provenance.get("missing")
+        if not isinstance(steps, list) or not steps or any(
+            not str(step).strip() for step in steps
+        ):
+            raise ConformanceError(
+                f"{distribution} is assumed but names no steps to measure it; an "
+                f"open gap without a route to close it is not a plan"
+            )
+    return state
+
+
+def verify_contract_version(spec: dict[str, Any]) -> None:
+    info = spec.get("info")
+    version = info.get("version") if isinstance(info, dict) else None
+    if version != CONTRACT_VERSION:
+        raise ConformanceError(
+            f"{OPENAPI_PATH} declares contract version {version!r}, but this matrix "
+            f"was written against {CONTRACT_VERSION}. Adopt the new contract "
+            f"deliberately instead of validating against whatever the checkout holds."
+        )
 
 
 def verify_profile(profile: dict[str, Any]) -> None:
@@ -164,6 +229,7 @@ def verify_contract_identity(responses: list[dict[str, Any]]) -> None:
 
 def verify_response_schema(response: dict[str, Any]) -> None:
     spec = load_yaml(OPENAPI_PATH)
+    verify_contract_version(spec)
     schema = {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "components": spec["components"],
@@ -204,24 +270,72 @@ def load_matrix() -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     return profiles, responses
 
 
-def verify_all() -> None:
+def verify_all() -> list[dict[str, Any]]:
+    """Run the static matrix and report what each distribution actually rests on."""
     verify_rbac_documents(load_rbac_documents())
     profiles, responses = load_matrix()
+    report: list[dict[str, Any]] = []
     for profile, response in zip(profiles, responses):
+        state = verify_provenance(profile)
         verify_profile(profile)
         verify_response_schema(response)
         verify_response(profile, response)
+        report.append(
+            {
+                "distribution": profile["distribution"],
+                "state": state,
+                "provenance": profile["provenance"],
+            }
+        )
     verify_capability_identity(profiles)
     verify_contract_identity(responses)
+    return report
 
 
-def main() -> int:
-    verify_all()
+def main(argv: list[str] | None = None) -> int:
+    arguments = list(sys.argv[1:] if argv is None else argv)
+    require_measured = "--require-measured" in arguments
+
+    report = verify_all()
     print("PASS: Profile A RBAC is get/list/watch-only, secret-free, and wildcard-free")
     print("PASS: Talos/RKE2 profiles expose the same contract capability keys")
-    print("PASS: unavailable Talos evidence is explicit and reasoned")
-    print("PASS: available RKE2 evidence requires retrievable references")
-    print("PASS: distribution fixtures validate against one normative response shape")
+    print(
+        f"PASS: distribution fixtures validate against the normative "
+        f"EvidenceBundle ({CONTRACT_VERSION})"
+    )
+    print()
+
+    for entry in report:
+        provenance = entry["provenance"]
+        if entry["state"] == "measured":
+            print(
+                f"PASS     {entry['distribution']}: capability delta measured on "
+                f"{provenance['cluster']} ({provenance['observed_at']}) — "
+                f"{provenance['record']}"
+            )
+            continue
+        print(
+            f"BLOCKED  {entry['distribution']}: declared, not measured — "
+            f"{' '.join(str(provenance['reason']).split())}"
+        )
+        for step in provenance["missing"]:
+            print(f"           to close: {step}")
+        print(f"           record: {provenance['record']}")
+
+    assumed = [entry for entry in report if entry["state"] == "assumed"]
+    print()
+    print(
+        f"{len(report) - len(assumed)} of {len(report)} distributions measured. "
+        "The static checks above prove the matrix is internally consistent; for an "
+        "assumed distribution they cannot prove it is right."
+    )
+    if assumed and require_measured:
+        print(
+            "FAIL: --require-measured was set and "
+            f"{', '.join(entry['distribution'] for entry in assumed)} "
+            "is still an assumption."
+        )
+        return 1
     return 0
 
 
