@@ -1,0 +1,81 @@
+{
+  "apiVersion": "evidence.openkubes.io/v1alpha1",
+  "kind": "OK141CapabilityRuntimeClosure",
+  "metadata": {
+    "name": "ok141-capability-runtime-closure-v2"
+  },
+  "spec": {
+    "architectureResult": {
+      "broadOperatorJustified": false,
+      "happyPathMutationProof": "PASS",
+      "leadingHypothesis": "A",
+      "overallOK141Classification": "still pending controlled failure-path evidence",
+      "persistentStatusAdapterJustified": false,
+      "requiresOpenKubesReconciler": "none proven"
+    },
+    "capabilityExecution": {
+      "alertAcceptance": "firing-only",
+      "applications": {
+        "alerting": "Synced/Healthy/current-revision",
+        "core": "Synced/Healthy/current-revision",
+        "dashboards": "Synced/Healthy/current-revision"
+      },
+      "candidateDigest": "sha256:9465dff1f1d9570b7973147b4e3dde4b4024ca5c233d2fa1b1a4d2b5c3b95e39",
+      "exitCode": 0,
+      "historicalFailedRunReused": false,
+      "privateEvidenceDigest": "sha256:b1cc4999d5720c8f72c15153bed7d8467f0973e3ce254b301af8332dbe1e79ac",
+      "privateEvidenceSemanticDigest": "sha256:2160545a2979bf244aa455cb1c79931d622ca6711ea1a38891ee94801e8f1d66",
+      "rawOutputRetained": false,
+      "retryPerformed": false,
+      "secretBytesRetained": false,
+      "state": "PASS-CAPABILITY"
+    },
+    "cleanupObservation": {
+      "deployment": "ABSENT",
+      "ephemeralKubeconfigRemoved": true,
+      "ephemeralToolDirectoryRemoved": true,
+      "exactResourceCount": 4,
+      "logEmitterPod": "ABSENT",
+      "portForwardLogsRemoved": true,
+      "privateEvidenceDigest": "sha256:81aaa7f743097801a3ba671f8e6f2626fa0218f0f9bfcaf98b6ef4e2ec325d79",
+      "service": "ABSENT",
+      "serviceMonitor": "ABSENT"
+    },
+    "closureDigest": "sha256:c4ddda1ea90413899a48cd28746704f9a823c221c346b0e0dcc401553de5899f",
+    "identities": {
+      "FixtureDigest": "sha256:11133538388c3562f135e814ba4560b76d9ffcb0dac6dab5019f7d75c5a71178",
+      "P": "sha256:2956184005f4860607e91672fce82164095dee6ebcbe57e5af883951a199c427",
+      "R": "sha256:47bb651f6bc0bdb3a7a567efcd4ca4c776f872a63496fa55c2a6aed77d6fa995",
+      "capabilityScriptDigest": "sha256:98f41106b7ddc2f7ecffaca9bd9e3c3584d97ab41b169054d8be91ae9cdfb949",
+      "sourceRevision": "c09c18759aeb7526d22106ccb001599f5f06bc4e"
+    },
+    "identityAmendment": {
+      "allApplicationsCurrentSyncedHealthy": true,
+      "applicationDelta": "identity annotations and immutable targetRevision only",
+      "correctedLiveCandidateDigest": "sha256:87f6e826e731e76b2ff2ddd91f46828424f33ad39953ff8e91eac197275fb156",
+      "explicitSyncSubmitted": false,
+      "initialAttempt": "STOP-ZERO-WRITE-API-OMITTED-EXPLICIT-FALSE",
+      "initialLiveCandidateDigest": "sha256:c45f319da793d18598c6303a2f6c5a0d9651712371396d4cd979cc1a6c4aaaa1",
+      "offlineAmendmentDigest": "sha256:c10e1d59021da0ab9115b557c58d333e8af1e8abd1aa27d21fdb63824d8a9725",
+      "privateEvidenceDigest": "sha256:252b26bf7a4342f510bc674b5a40ee996b95d628faa4da6d13cfaafb1c043691",
+      "retryCountAfterZeroWritePreflight": 1,
+      "updatedObjectCount": 13
+    },
+    "observedAt": "2026-08-15T21:24:42Z",
+    "remainingGates": {
+      "breakGlass": "NOT-RUN",
+      "deleteFinalizer": "NOT-RUN",
+      "executorRestart": "NOT-RUN",
+      "failureInjection": "NO-GO",
+      "managementOutage": "NOT-RUN"
+    },
+    "retention": {
+      "apiEndpointsPublished": false,
+      "privateEvidencePublished": false,
+      "rawCapabilityOutputPublished": false,
+      "secretOrKubeconfigBytesPublished": false,
+      "uidOrResourceVersionPublished": false
+    },
+    "state": "PASS-HAPPY-RUN"
+  }
+}
