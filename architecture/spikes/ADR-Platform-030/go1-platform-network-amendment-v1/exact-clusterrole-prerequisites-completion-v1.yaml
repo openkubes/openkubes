@@ -1,0 +1,31 @@
+apiVersion: action.openkubes.io/v1alpha1
+kind: BoundedExactClusterRolePrerequisiteCompletion
+metadata:
+  name: ok141-exact-clusterrole-prerequisites-completion-v1
+spec:
+  authorization:
+    state: GRANTED
+    source: explicit-user-grant
+    scope: create-only-four-missing-clusterroles
+    failurePolicy: STOP-PRESERVE-NO-RETRY
+  predecessor:
+    path: /private/tmp/ok141-exact-clusterrole-prerequisites-v1-evidence.json
+    digest: sha256:a3695b71e518ac9652647ae6c96e2080c6c936ec03552d20e10b75f335918ac0
+    state: STOP-PRESERVE-NO-RETRY
+  extraction:
+    evidencePath: /private/tmp/ok141-exact-five-clusterroles-v1-evidence.json
+    evidenceDigest: sha256:3fd87956fed370886455e485cf199d761c34de2f3c04cadecce4c203f1436e11
+    payloadDirectory: /private/tmp/ok141-exact-five-clusterroles-v1
+    payloadDigest: sha256:4db5978715bf80d4ff0948356d5dba28e20cc3c78a392ae2edeb755dfe77e469
+  existingVerifiedName: disposable-ok141-observability-core-kube-state-metrics
+  missingNames:
+    - ok-observability-grafana-clusterrole
+    - ok-observability-log-collector
+    - ok-observability-operator
+    - ok-observability-prometheus
+  management:
+    workloadKubeconfigSecretURI: /api/v1/namespaces/disposable-ok141/secrets/disposable-ok141-kubeconfig
+  target:
+    collectionURI: /apis/rbac.authorization.k8s.io/v1/clusterroles
+  outputPath: /private/tmp/ok141-exact-clusterrole-prerequisites-completion-v1-evidence.json
+  exclusions: [existing-role-write, wildcard, update, patch, replace, delete, rollback, cleanup, sync-retry, credential-retention, raw-object-retention, failure-injection]

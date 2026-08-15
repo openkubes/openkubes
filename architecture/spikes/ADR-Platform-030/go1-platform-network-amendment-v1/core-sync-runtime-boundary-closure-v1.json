@@ -1,0 +1,83 @@
+{
+  "apiVersion": "evidence.openkubes.io/v1alpha1",
+  "kind": "GO1CoreSyncRuntimeBoundaryClosure",
+  "metadata": {
+    "name": "ok141-core-sync-runtime-boundary-closure-v1",
+    "ticket": "OK-141"
+  },
+  "spec": {
+    "fixtureDigest": "sha256:3aa621cd8f3b21e87a5d7059911d02a4b0f10f2d724df351750787eb274b9ae6",
+    "R": "sha256:89248df8cd908394d2d75c18fbb39d52d84cf181f66480c743bfe9d732a0aaa4",
+    "P": "sha256:02206b92b487a0f12eee8139d82f9ef150ab9688c7a60687d3f7b6b782266472",
+    "sourceRevision": "b5f7be6a7ddab798f31f32197fcbb9e86a9798b6",
+    "secondAndFinalSyncCandidateDigest": "sha256:172d83fa43b5dcf5ff38d840237efeced98b06ead546fc038ce4ad55100d848d"
+  },
+  "evidence": {
+    "exactPrerequisitesCompletion": {
+      "digest": "sha256:e8f68d8d8742e9e95b46fea39114aaef91978d795d6b45c4d8e9f0888ff2dcde",
+      "state": "PASS-EXACT-CLUSTERROLE-PREREQUISITES-COMPLETED",
+      "createdCount": 4,
+      "preexistingExactCount": 1
+    },
+    "secondAndFinalSyncSubmission": {
+      "digest": "sha256:a056ff1d63bc595ef41e751dacd70bffcbc97f82bd6ba9a8b3de46afa99ec560",
+      "state": "PASS-SYNC-RETRY-SUBMITTED"
+    },
+    "postSyncObservation": {
+      "digest": "sha256:4a5d78c3f382e18e72d7737447c3eb50c91e0b884aca6cf9e7eb4802b433799a",
+      "ready": false,
+      "health": "Healthy",
+      "sync": "OutOfSync",
+      "blockingCondition": "SyncError"
+    },
+    "postSyncCause": {
+      "digest": "sha256:8438819a56ecce3418ed1cc0458ae9f08d42084d4722f28aac339daef7afa2dc",
+      "failedExactClusterRoleCount": 5,
+      "cause": "PRIVILEGE-ESCALATION"
+    },
+    "namedEscalateDryRun": {
+      "candidateDigest": "sha256:81a737c4eca51d41f6160a391dbd88417ccd3428132e14dba6f5c6bed41a20fc",
+      "digest": "sha256:006137db468cf529efd50881ea0ec413041bc794f5b1fe065758743eee308592",
+      "accepted": true,
+      "resourceVersionUnchanged": true
+    },
+    "clusterRoleCacheReadReview": {
+      "candidateDigest": "sha256:f465054ecb93d996cfb180b5d781e17589ede4fdc861f644d25742594d44f846",
+      "digest": "sha256:9683791f616effd4dbef6438d05df50de0dfeaa19b2a449eb13c4b94a0106030",
+      "listAllowed": true,
+      "watchAllowed": true
+    },
+    "argoApplyModeDryRun": {
+      "candidateDigest": "sha256:fe36656a615e794b373cbe60a348b01310bbdf40a03e7b1388f26f0e1b2069ed",
+      "digest": "sha256:1e9f6fbe5c7d558b26f5ec90db589fcacc9b0cd71d2d534dacb42465a0024525",
+      "accepted": true,
+      "resourceVersionUnchanged": true
+    },
+    "runtimeSubjectCorrelation": {
+      "candidateDigest": "sha256:c5868dbea67d12371ab770e28da28164e26cc1ac871c07097b72f46c43a1dbd3",
+      "digest": "sha256:b1fb8fb451f1e129ab199becd6e925ca53138fd02e8e6e04c6131b2e754c478e",
+      "subjectBearingMessageCount": 5,
+      "distinctSubjectCount": 1,
+      "allErrorSubjectsMatchRegistration": true
+    }
+  },
+  "conclusion": {
+    "currentTargetRBACSufficientForNamedApply": true,
+    "manifestApplyModeAcceptedIndependently": true,
+    "registrationSubjectMismatch": false,
+    "faultBoundary": "ARGO-APPLICATION-CONTROLLER-RUNTIME-OR-CACHE",
+    "thirdSyncAuthorized": false,
+    "nextExperiment": "GRACEFUL-CONTROLLER-RESTART-THEN-BOUNDED-OBSERVATION",
+    "nextExperimentAuthorized": false,
+    "reasonBlocked": "AUTOMATED-SELF-HEAL-MAY-IMPLICITLY-RETRY-SYNC"
+  },
+  "publication": {
+    "rawEvidenceIncluded": false,
+    "rawMessagesIncluded": false,
+    "subjectsIncluded": false,
+    "uidsIncluded": false,
+    "resourceVersionsIncluded": false,
+    "credentialsIncluded": false,
+    "endpointsIncluded": false
+  }
+}

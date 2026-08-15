@@ -1,0 +1,30 @@
+apiVersion: remediation.openkubes.io/v1alpha1
+kind: BoundedExactRBACEscalateBindRemediation
+metadata:
+  name: ok141-exact-rbac-escalate-bind-remediation-v1
+spec:
+  authorization:
+    state: GRANTED
+    source: standing-dev-execution-envelope-v1
+    envelopeDigest: sha256:85e997df331d2ced4ea147c32cc4a94a419e9efdba6de17d8a8ef3cb1dbeac93
+  predecessor:
+    path: /private/tmp/ok141-rbac-escalation-cause-diagnostic-v1-evidence.json
+    digest: sha256:138986bdc4cad37b5b767a1dc2a06444069a327316c987a19c3a31606823905f
+    failedClusterRoleSetExact: true
+    attemptToGrantPrivilegesNotHeld: true
+  target:
+    clusterRoleURI: /apis/rbac.authorization.k8s.io/v1/clusterroles/ok141-argocd-platform-cluster
+    exactRule:
+      apiGroups: [rbac.authorization.k8s.io]
+      resources: [clusterroles]
+      resourceNames:
+        - disposable-ok141-observability-core-kube-state-metrics
+        - ok-observability-grafana-clusterrole
+        - ok-observability-log-collector
+        - ok-observability-operator
+        - ok-observability-prometheus
+      verbs: [bind, escalate]
+  management:
+    workloadKubeconfigSecretURI: /api/v1/namespaces/disposable-ok141/secrets/disposable-ok141-kubeconfig
+  outputPath: /private/tmp/ok141-exact-rbac-escalate-bind-remediation-v1-evidence.json
+  exclusions: [wildcards, secret-retention, other-rbac-change, retry, rollback, cleanup, platform-observation, capability-test, failure-injection]

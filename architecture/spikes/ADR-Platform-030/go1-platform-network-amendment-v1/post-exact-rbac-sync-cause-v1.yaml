@@ -1,0 +1,18 @@
+apiVersion: diagnostic.openkubes.io/v1alpha1
+kind: BoundedPlatformSyncCauseDiagnostic
+metadata:
+  name: ok141-platform-sync-cause-after-exact-rbac-v1
+spec:
+  authorization:
+    state: GRANTED
+    source: standing-dev-execution-envelope-v1
+    envelopeDigest: sha256:85e997df331d2ced4ea147c32cc4a94a419e9efdba6de17d8a8ef3cb1dbeac93
+  predecessor:
+    path: /private/tmp/ok141-post-exact-rbac-observer-v1-evidence.json
+    digest: sha256:58d6f8ef0e1ec18c9e5a4ca897c074c96bad26234c85425fed38abc1d5416e27
+  applications:
+    - disposable-ok141-observability-core
+    - disposable-ok141-observability-alerting
+    - disposable-ok141-observability-dashboards
+  outputPath: /private/tmp/ok141-platform-sync-cause-after-exact-rbac-v1-evidence.json
+  exclusions: [secret-read, target-read, pod-read, log-read, mutation, retry, cleanup, failure-injection]
