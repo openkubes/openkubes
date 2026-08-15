@@ -1,0 +1,55 @@
+{
+  "apiVersion": "action.openkubes.io/v1alpha1",
+  "kind": "OK141LiveCapabilityNameBoundaryAmendmentCandidate",
+  "metadata": {
+    "name": "ok141-live-capability-name-boundary-amendment-v1"
+  },
+  "spec": {
+    "amendmentDigest": "sha256:c10e1d59021da0ab9115b557c58d333e8af1e8abd1aa27d21fdb63824d8a9725",
+    "amendmentPath": "go1-capability-name-boundary-amendment-v1/capability-name-boundary-amendment-v1.json",
+    "authorizationBasis": [
+      "continuing OK-141 DEV execution grant",
+      "user instruction: weiter"
+    ],
+    "clientDigest": "sha256:bb211f2b31f2b3bc60562b44cc1e3b712a16a98e9072968ba255beb04cefcfdf",
+    "clientPath": "/private/tmp/ok141-kubectl-v1.34.1-darwin-amd64",
+    "exclusions": [
+      "manual Argo sync",
+      "capability execution",
+      "retry",
+      "rollback",
+      "general cleanup",
+      "delete",
+      "failure injection",
+      "raw Secret retention",
+      "raw kubeconfig retention",
+      "raw API object publication"
+    ],
+    "failurePolicy": "STOP-PRESERVE-NO-RETRY",
+    "identities": {
+      "FixtureDigest": "sha256:11133538388c3562f135e814ba4560b76d9ffcb0dac6dab5019f7d75c5a71178",
+      "P": "sha256:2956184005f4860607e91672fce82164095dee6ebcbe57e5af883951a199c427",
+      "R": "sha256:47bb651f6bc0bdb3a7a567efcd4ca4c776f872a63496fa55c2a6aed77d6fa995"
+    },
+    "managementKubeconfigPath": "/Users/arash/.kube/ok-mgmt.yaml",
+    "observation": {
+      "intervalSeconds": 15,
+      "maxIterations": 80
+    },
+    "operation": {
+      "automaticArgoReconciliationMayRun": true,
+      "exactApplicationDelta": "metadata identities and immutable targetRevision only",
+      "explicitArgoSyncSubmitted": false,
+      "optimisticConcurrency": "UID and resourceVersion checked for every replace",
+      "ordering": "eight lifecycle objects, HCP, registration, two non-Core Applications, Core Application last",
+      "replaceCount": 13
+    },
+    "outputPath": "/private/tmp/ok141-live-capability-name-boundary-amendment-v1-evidence.json",
+    "sharedKubeconfigPath": "/Users/arash/.kube/ok-shared.yaml",
+    "standingGrantAcknowledged": true,
+    "state": "LIVE-AUTHORIZED-ONCE",
+    "toolDigest": "sha256:66d4e2752f79941cab3a3fb70611127991653a0f5be0885e1b70f650b606faab",
+    "toolPath": "bounded_live_capability_name_boundary_amendment_v1.py",
+    "verifierPath": "go1-capability-name-boundary-amendment-v1/verify_capability_name_boundary_amendment_v1.py"
+  }
+}
