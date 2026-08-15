@@ -1,0 +1,42 @@
+apiVersion: recovery.openkubes.io/v1alpha1
+kind: GO1LRecoveryRuntimeBinding
+metadata:
+  name: ok141-go1-l-recovery-runtime-binding-v1
+  ticket: OK-141
+spec:
+  state: TEMPLATE-NOT-EXECUTABLE
+  protocolDigest: REPLACE_WITH_PROTOCOL_DIGEST
+  observedAt: null
+  expiresAt: null
+  sourceEvidenceDigests: []
+  objects:
+    okMgmt:
+      namespace:
+        identity: v1|Namespace|_|disposable-ok141
+        uid: null
+        resourceVersion: null
+      lifecycle: []
+      misroutedService:
+        identity: v1|Service|disposable-ok141|disposable-ok141-lb
+        uid: null
+        resourceVersion: null
+    okInfra:
+      namespace:
+        identity: v1|Namespace|_|disposable-ok141
+        uid: null
+        resourceVersion: null
+      role:
+        identity: rbac.authorization.k8s.io/v1|Role|ok-images|disposable-ok141-talos-golden-image-cloner
+        uid: null
+        resourceVersion: null
+      roleBinding:
+        identity: rbac.authorization.k8s.io/v1|RoleBinding|ok-images|disposable-ok141-talos-golden-image-cloner
+        uid: null
+        resourceVersion: null
+  generatedInventory:
+    machines: null
+    kubevirtMachines: null
+    virtualMachines: null
+    virtualMachineInstances: null
+  credentialsIncluded: false
+  executable: false

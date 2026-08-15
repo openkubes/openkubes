@@ -1,0 +1,69 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: GHCRPublisherDurableCorrelation
+metadata:
+  name: ok141-ghcr-publisher-durable-correlation-v1
+  ticket: OK-141
+spec:
+  version: ok141-publisher-durable-correlation/v1
+  state: IMPLEMENTED-OFFLINE-INERT-BLOCKED-NO-GO
+  baseline:
+    repository: openkubes/openkubes
+    commit: 7aadbaa66c2a05e15654677e4e02064a57d6cb4d
+    release: v0.15.0
+  sourceAmendment:
+    path: ../ghcr-publisher-candidate-amendment/publisher-candidate-amendment-v1.yaml
+    digest: sha256:82c45f3901cc8347940ec61735a720f3d18a5b00540f17361b84480eaf3db91f
+  components:
+    candidateWorkflow:
+      path: candidate/ok141-evidence-publisher-v3.workflow.yaml
+      digest: sha256:3de106067f2fdb70add382c1fa63a2749e032dda9f83442f9880d6e672a3aab2
+      futureDeploymentPath: .github/workflows/ok141-evidence-publisher.yaml
+      futureDeploymentPathPresent: false
+    correlatedPlannerAndVerifier:
+      path: publish_evidence_v2.py
+      digest: sha256:988f7abf0ac7c53fe2539d20cfde76ac66359d6444a431168278a8bef7a80f16
+  correlationContract:
+    version: ok141-source-run-correlation/v1
+    fields: [repository, runId, workflowId, event, headBranch, headSHA, status, conclusion, protocolDigest, internalBundleDigest]
+    embeddedTransportPath: source-run-correlation.json
+    planDigestField: sourceCorrelationDigest
+    receiptDigestField: sourceCorrelationDigest
+    sourceRunValidatedBeforeDownload: true
+    evidenceBindingsValidatedBeforeTransport: true
+    transportDigestBindsCorrelation: true
+    receiptPreservesCorrelationDigest: true
+  proof:
+    offlineTestsPassed: 9
+    deterministicTransportProven: true
+    durableCorrelationEmbedded: true
+    wrongRepositoryRejected: true
+    wrongWorkflowRejected: true
+    wrongHeadRejected: true
+    unsuccessfulRunRejected: true
+    protocolMismatchRejected: true
+    pullBackTamperingRejected: true
+    activeWorkflowPresent: false
+    livePublicationPerformed: false
+  remainingGates:
+    e0: Create and observe the protected environment under separate authorization.
+    w0: Bind and deploy the exact v3 candidate under separate authorization.
+    p0: Perform first publication attestation and digest-only pull-back under separate authorization.
+    pins: Re-resolve action and ORAS identities in the exact authorization window.
+  authorization:
+    decision: NO-GO
+    e0Granted: false
+    w0Granted: false
+    p0Granted: false
+    environmentCreationAuthorized: false
+    workflowDeploymentAuthorized: false
+    workflowDispatchAuthorized: false
+    packageWriteAuthorized: false
+    attestationWriteAuthorized: false
+    externalWriteAuthorized: false
+    infrastructureMutationAuthorized: false
+    go1Granted: false
+  rules:
+    - The source-run correlation is canonical evidence inside the digest-bound OCI transport, not merely workflow-log output.
+    - Historical v1 and v2 candidates remain immutable evidence and are not reinterpreted.
+    - This v3 candidate remains inert under the spike directory and cannot publish anything.
+    - E0 W0 P0 GO-1 infrastructure mutation and failure injection remain NO-GO.

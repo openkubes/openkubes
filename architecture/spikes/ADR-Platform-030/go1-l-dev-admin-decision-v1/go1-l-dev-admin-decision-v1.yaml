@@ -1,0 +1,70 @@
+apiVersion: security.openkubes.io/v1alpha1
+kind: GO1LCredentialModelDecision
+metadata:
+  name: ok141-go1-l-dev-admin-create-v1
+  ticket: OK-141
+  recordedAt: "2026-08-13"
+  baseCommit: fc010e3c8ee2d73445232c9b2139dd44f203e180
+spec:
+  version: ok141-go1-l-credential-model-decision/v1
+  state: SELECTED-NON-AUTHORIZING
+  decisionAuthority: github:arashkaffamanesh
+  sourceBoundary:
+    path: ../go1-l-credential-boundary-v1/go1-l-credential-boundary-v1.yaml
+    digest: sha256:ba2d8fdcc773ab333af2560436ad48f27dbb6c7222a627add44ed03b3ce8fa38
+    priorSelectedModel: UNRESOLVED
+  sourceSubmitter:
+    path: ../go1-l-submitter-v1/go1-l-submitter-candidate-v1.yaml
+    digest: sha256:e5b4185b7dcd4f1e3fb026d03ce29b5b35e0b6c5c6e51f29d921a240636b73cc
+    state: OFFLINE-PROVEN-BLOCKED-NO-GO
+  selection:
+    model: DEV-ADMIN-CREATE
+    exactStatement: Ich wähle für OK-141 das DEV-ADMIN-CREATE-Modell mit der dokumentierten Administrator- und Create-Content-Grenze. Diese Auswahl allein erteilt noch keine Credential-, GO1-L- oder GO-1-Freigabe.
+    administratorBoundaryAcknowledged: true
+    createContentBoundaryAcknowledged: true
+    executionRiskAccepted: false
+  acceptedClaims:
+    - Kubernetes RBAC does not restrict top-level Create to the reviewed object names or content.
+    - The digest-bound submitter and human grant are the content-integrity boundary for this DEV model.
+    - An administrator credential could perform writes outside the reviewed set if misused or compromised.
+    - The three Create-only operations are non-atomic and may leave partial state on failure.
+    - No automatic retry rollback cleanup delete update patch or exploratory mutation is allowed.
+  futureCredentialRequirements:
+    credentialMaterial: UNRESOLVED
+    separateCredentialBindingPerOperation: true
+    maximumOperationGrantMinutes: 20
+    credentialBytesInArgumentsEnvironmentLogsEvidence: false
+    credentialFileMode: "0600"
+    credentialFileOutsideRepository: true
+    explicitIssuanceOrUseGrantRequired: true
+    explicitRevocationOrEndOfUseEvidenceRequired: true
+  futureOperationRequirements:
+    - fresh candidate digest and one exact operation grant
+    - current absence preflight for every object identity in that operation
+    - predecessor evidence for capi-lifecycle and helmchartproxy
+    - explicit partial-state stop and preservation rule
+    - redacted evidence path and exact test window
+  authorization:
+    decision: NO-GO
+    credentialIssuanceGranted: false
+    administratorCredentialUseGranted: false
+    operationGrantIssued: false
+    admissionInstallationGranted: false
+    go1LGranted: false
+    go1Granted: false
+    retryGranted: false
+    rollbackOrCleanupGranted: false
+    failureInjectionGranted: false
+    grantIDs: []
+    authorizedDigest: null
+  conclusions:
+    credentialModelSelected: true
+    credentialMaterialReady: false
+    submitterReadyForExecution: false
+    go1LReadyForDecision: false
+    infrastructureMutationAuthorized: false
+    nextStep: Prepare an offline credential-use and absence-preflight candidate bound to this decision; do not issue or use credentials.
+  exclusions:
+    - credential creation materialization or use
+    - admission installation cluster contact object submission retry rollback cleanup or deletion
+    - GO1-L GO-1 target registration Platform convergence evidence publication or failure injection

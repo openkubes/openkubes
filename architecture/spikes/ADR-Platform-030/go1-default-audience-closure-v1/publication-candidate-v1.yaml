@@ -1,0 +1,27 @@
+apiVersion: publication.openkubes.io/v1alpha1
+kind: GO1DefaultAudienceClosurePublicationCandidate
+metadata:
+  name: ok141-default-audience-closure-publication-v1
+  ticket: OK-141
+spec:
+  decision: BLOCKED-NO-PUBLICATION
+  scope:
+    directory: architecture/spikes/ADR-Platform-030/go1-default-audience-closure-v1
+    files:
+      README.md: sha256:ad44a9382e4fec07a2ae6978f0bf6228c8cbbdc646b5be26cd8dbdea9530c5df
+      default-audience-closure-v1.json: sha256:02b0c6634779ebdf9bebef3e7cde502cf8bdecd9f35229bbaccdee2d199633c3
+      test_default_audience_closure_v1.py: sha256:12d1ae3522c9d7ab57d2e729ad400d3fe95bd1d35f7561fdd7abff72377c6909
+  validation:
+    testsPassed: 1
+    diagnosticResult: PASS-DEFAULT-AUDIENCE-DIAGNOSTIC
+    targetProbeSucceeded: true
+    oldBoundAudienceMatched: false
+  permitsAfterSeparateGrant: [commit, push, draft-pr, review, merge]
+  excludes:
+    - private Evidence under /private/tmp
+    - workload Kubeconfig Secret content
+    - token and JWT payload
+    - CA payload and API endpoint
+    - raw Kubeconfig and raw target response
+    - credential replacement and Happy-Run resume
+    - cleanup and failure injection

@@ -13,8 +13,8 @@ interchangeable behind/in front of it — that replaceability is the whole point
  Consumers                        Contract                     Providers
  ─────────                        ────────                     ─────────
  OpenClaw (conversational)  ┐                            ┌ Profile A: kagent
- ok CLI (OK-76)             ├─►  HTTP + OpenAPI  ◄────────┤ Profile B: runbook/API
- Slack / incident tooling   ┘   (+ MCP adapter)          └   (declared, not built)
+ ok CLI (OK-76)             ├─►  HTTP + OpenAPI  ◄────────┤ Profile B: deterministic stub
+ Slack / incident tooling   ┘   (+ MCP adapter)          └   (backend-swap proof)
                                      │
                                      ▼  the three public functions
                 get_platform_health · investigate_workload · collect_diagnostic_evidence
@@ -32,11 +32,12 @@ platform/ai/platform-diagnostics/
 ├── consumer/
 │   └── openclaw/             # first consumer, MCP-only and credential-less  ← OK-94
 ├── contract/
-│   ├── openapi.yaml           # Draft implementation scaffold — finalization in OK-89/OK-90
-│   ├── mcp-adapter/           # thin agent-facing adapter, DERIVED from openapi.yaml (optional)
-│   └── tests/                 # the 6 contract tests from ADR-021 (schema, RBAC audit, backend-swap, …)
+│   ├── openapi.yaml           # normative Phase-1 HTTP contract (v1.1.0)
+│   ├── mcp-adapter/           # generated agent-facing adapter, DERIVED from openapi.yaml (OK-93)
+│   └── tests/                 # executable provider-neutral ADR-021 tests 1–6
 └── profiles/
-    └── kagent/                # Profile A (first) — kagent operations engine  ← OK-92
+    ├── stub/                  # Profile B — deterministic backend-swap proof ← OK-91
+    └── kagent/                # Profile A (first) — kagent operations engine ← OK-92
         ├── modelconfig.yaml           # kagent ModelConfig: shared Ollama
         ├── agents/
         │   ├── openkubes-platform-agent.yaml   # single agent that fronts the contract
@@ -52,14 +53,29 @@ platform/ai/platform-diagnostics/
 
 | Piece | Ticket | Repo |
 |---|---|---|
-| `contract/` (OpenAPI, MCP adapter, contract tests) | **OK-89 / OK-90** (normative finalization and validation) | `openkubes` (this repo) |
+| `contract/openapi.yaml` | **OK-90** (normative finalization) | `openkubes` (this repo) |
+| `contract/tests/` + Profile B stub | **OK-91** (executable provider-neutral conformance suite) | `openkubes` (this repo) |
+| `contract/mcp-adapter/` | **OK-93** (adapter derived from the accepted OpenAPI) | `openkubes` (this repo) |
 | `profiles/kagent/` (Profile A implementation) | **OK-92** (integrate kagent as first provider profile) | `openkubes` (generic) + `ok-cluster` (provider values) |
-| OpenClaw as first **consumer** (diagnostics via MCP adapter only) | **OK-94** | `openkubes` chart + `ok-cluster/openclaw` values |
+| OpenClaw as first **consumer** (diagnostics skill via MCP adapter) | **OK-94** | `openkubes` + `ok-cluster` |
 
-OK-92 needs a concrete interface for Profile A. The included
-`contract/openapi.yaml` is therefore explicitly a **Draft implementation
-scaffold**, derived from ADR-021 revision 3. It is not the finalized normative
-specification; that work remains in OK-89/OK-90.
+`contract/openapi.yaml` is the **normative, machine-readable Phase-1 contract**.
+It defines the three public operations and their input, output, evidence,
+capability, and error schemas. Provider profiles and the optional MCP adapter
+derive from it; provider endpoints and credentials remain Provider Values.
+
+## Executable contract suite
+
+The same HTTP-level test suite runs against any provider. By default it starts
+Profile B on an ephemeral loopback port:
+
+```bash
+make verify
+```
+
+Set `DIAGNOSTICS_BASE_URL` and `DIAGNOSTICS_RBAC_PATH` to run it unchanged
+against a deployed provider. The six tests cover schema conformance, RBAC,
+evidence hygiene, backend swap, capability deltas, and counter-evidence.
 
 ## What lives where (generic vs. provider values)
 
@@ -83,4 +99,4 @@ chat backend.
 - [ADR-Platform-015 — Agentic AI](../../../architecture/decisions/ADR-Platform-015-agentic-ai.md)
 - [Implementation guideline](../../../docs/agentic-ai-poc-guideline.md)
 - [Problem statement](../../../docs/problem-statement-platform-diagnostics-contract.md)
-- [OK-89](https://kubernauts.atlassian.net/browse/OK-89) · [OK-92](https://kubernauts.atlassian.net/browse/OK-92) · [OK-94](https://kubernauts.atlassian.net/browse/OK-94) · [OK-14](https://kubernauts.atlassian.net/browse/OK-14)
+- [OK-89](https://kubernauts.atlassian.net/browse/OK-89) · [OK-90](https://kubernauts.atlassian.net/browse/OK-90) · [OK-91](https://kubernauts.atlassian.net/browse/OK-91) · [OK-92](https://kubernauts.atlassian.net/browse/OK-92) · [OK-93](https://kubernauts.atlassian.net/browse/OK-93) · [OK-94](https://kubernauts.atlassian.net/browse/OK-94)

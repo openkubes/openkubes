@@ -1,0 +1,57 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: M0aV4RiskAcceptance
+metadata:
+  name: ok141-m0a-v4-risk-acceptance-v1
+  ticket: OK-141
+spec:
+  version: ok141-m0a-v4-risk-acceptance-record/v1
+  state: ACCEPTED-NON-AUTHORIZING
+  recordedAt: "2026-08-12T17:20:52Z"
+  acceptedBy: github:arashkaffamanesh
+  references:
+    acceptanceCandidate:
+      path: ../m0a-execution-v4/m0a-v4-risk-acceptance-candidate.yaml
+      digest: sha256:6e3e477ecc8c9228cf65895263676205fce3ce915e5d25c2487846a44bd80fd5
+    securityBoundary:
+      path: ../m0a-execution-v4/m0a-v4-security-boundary.yaml
+      digest: sha256:ba2f854b2ce7d5e1528bd8d490a67dc8d163ad7548238117275c0b1d7db0dadd
+    v3RuntimeEvidence:
+      path: ../m0a-execution-runtime-v3/m0a-v3-first-run-evidence-v1.yaml
+      digest: sha256:1515ca4f2015d20398ff0e3cda4b2403f153e63d8a146faf4614c804628c5dce
+  decision:
+    outcome: ACCEPTED-DEV-ONLY
+    exactStatement: Ich akzeptiere für OK-141/M0a-v4 die dokumentierte einmalige Create-only-Submission mit möglichem partiellem Installationszustand, die fortbestehende Create-Content- und temporäre Admission-Bootstrap-Grenze sowie die bis expirationTimestamp+100s gebundene Token-Ablehnungsbeobachtung, gebunden an Security-Kandidat sha256:ba2f854b2ce7d5e1528bd8d490a67dc8d163ad7548238117275c0b1d7db0dadd. Diese Akzeptanz erteilt keine Freigabe für Credentials, Admission-Installation, CAAPH-Retry oder -Installation, Rollback, Evidence-Publication, M0b-I, GO-1, Target-Konvergenz oder Failure Injection.
+    acceptedRisks:
+      - M0A-V4-CREATE-ONLY-PARTIAL-STATE
+      - M0A-V4-EXPIRY-PLUS-100S-OBSERVATION
+      - M0A-V4-CREATE-CONTENT-BOUNDARY
+      - M0A-V4-ADMISSION-BOOTSTRAP-BOUNDARY
+  claimBoundaries:
+    environment: DEV
+    submissionAtomic: false
+    submissionIdempotent: false
+    partialInstallationPossible: true
+    automaticRetryAllowed: false
+    automaticRollbackAllowed: false
+    completePayloadProvenByRbacOrAdmission: false
+    immediateTokenRevocationProven: false
+    tokenRejectionMustBeObservedByExpiryDeadline: true
+    productionUseAllowed: false
+  authorization:
+    decision: NO-GO
+    mutationAuthorized: false
+    credentialBootstrapGranted: false
+    admissionBootstrapGranted: false
+    caaphInstallationGranted: false
+    retryGranted: false
+    rollbackGranted: false
+    evidencePublicationGranted: false
+    m0bInstallationGranted: false
+    go1Granted: false
+    targetConvergenceGranted: false
+    failureInjectionGranted: false
+  rules:
+    - This acceptance closes only the four named DEV risk decisions and grants no execution authority.
+    - The consumed v1 v2 and v3 grants remain unusable.
+    - A new executable candidate new digests new preflight and new distinct explicit grants remain mandatory.
+    - Editing the accepted risk statement security boundary submission operation or observation deadline invalidates this acceptance.

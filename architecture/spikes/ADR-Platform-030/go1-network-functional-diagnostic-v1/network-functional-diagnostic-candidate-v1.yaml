@@ -1,0 +1,56 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: GO1NetworkFunctionalDiagnosticCandidate
+metadata:
+  name: ok141-network-functional-diagnostic-v1
+  ticket: OK-141
+  baseCommit: 7e13d03ca9ebbb28c938fe1179d43bfc53ec2475
+spec:
+  version: ok141-network-functional-diagnostic/v1
+  state: OFFLINE-PROVEN-BLOCKED-NO-GO
+  predecessor:
+    candidatePath: ../go1-l-network-observer-v1/go1-l-network-observer-candidate-v1.yaml
+    candidateDigest: sha256:15b24bd0d7247e0a05d4b1f291221cc52e4f1cefa498b8fe4c5d00b6347f3e04
+    privateEvidencePath: /private/tmp/ok141-go1-l-network-ready-observer-defaulting-v1-evidence.json
+    privateEvidenceDigestPublished: false
+    requiredClosureState: FAIL-FUNCTIONAL-CONNECTIVITY
+  probe:
+    podIdentityFromPrivateEvidence: true
+    namespace: kube-system
+    container: cilium-agent
+    command: [cilium-health, status, --probe, --output, json]
+    oneExecutionOnly: true
+  clients:
+    managementPath: /private/tmp/ok141-kubectl-v1.34.1-darwin-amd64
+    managementDigest: sha256:bb211f2b31f2b3bc60562b44cc1e3b712a16a98e9072968ba255beb04cefcfdf
+    workloadPath: /private/tmp/ok141-kubectl-v1.36.2-darwin-amd64
+    workloadDigest: sha256:ce6c5e55cd17559e87e4fb5e73ebbbc2511bcf2b695d7a40c1b1461a9817d4b3
+  managementCredentialIdentityDigest: sha256:32a164332776f37129e46415af79945745134fefe80c5237d43fe13fa0511ffe
+  secretRawURI: /api/v1/namespaces/disposable-ok141/secrets/disposable-ok141-kubeconfig
+  output:
+    path: /private/tmp/ok141-network-functional-diagnostic-v1-evidence.json
+    mode: O_EXCL-0600
+    rawProbeOutputRetained: false
+    statusTextRetained: false
+    statusCategoryAndDigestRetained: true
+  tool:
+    path: bounded_network_functional_diagnostic_v1.py
+    digest: sha256:09526090c909fd59b8bd741c453d4e2d510189ea246af448e263f7377e8dacdc
+    arbitraryQueryAllowed: false
+    arbitraryCommandAllowed: false
+    persistentMutationAllowed: false
+  authorization:
+    decision: NO-GO
+    clusterContactGranted: false
+    managementCredentialUseGranted: false
+    exactSecretReadGranted: false
+    ephemeralCredentialMaterializationGranted: false
+    workloadCredentialUseGranted: false
+    exactPodReadGranted: false
+    fixedPodExecDiagnosticGranted: false
+    persistentMutationGranted: false
+    networkObserverRetryGranted: false
+    happyRunResumeGranted: false
+    rollbackOrCleanupGranted: false
+    evidencePublicationGranted: false
+    failureInjectionGranted: false
+    grantIDs: []

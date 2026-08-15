@@ -1,0 +1,66 @@
+apiVersion: execution.openkubes.io/v1alpha1
+kind: GO1HappyRunResumeCandidateV2
+metadata:
+  name: ok141-go1-happy-run-resume-v2
+  ticket: OK-141
+  baseCommit: e9c3d4c71b1c64a7a6e1719e21267723fcb34401
+spec:
+  version: ok141-go1-happy-run-resume/v2
+  state: OFFLINE-PROVEN-BLOCKED-NO-GO
+  supersedes:
+    path: ../go1-happy-run-resume-v1/happy-run-resume-candidate-v1.yaml
+    digest: sha256:804ffad444c2a2155a098c0485a9f5d887d3798a9c2718085d1e2d3b61f678fc
+    historicalCandidatePreserved: true
+    priorUnissuedGrantReusable: false
+  requiredRemediation:
+    candidatePath: ../go1-l-lb-namespace-remediation-v1/lb-namespace-remediation-candidate-v1.yaml
+    candidateDigest: sha256:f2cff408032898997a589bcc829ece7fad73b0b9bbda9afa1c1080674fae02ca
+    privateEvidencePath: /private/tmp/ok141-lb-namespace-remediation-v1-evidence.json
+    digestPublishedInCandidate: false
+    requiredResult: REMEDIATED-PRESERVE-HAPPY-RUN
+    requiredVIP: 192.168.100.213
+    evidencePublicationGranted: false
+  resumeBoundary:
+    startsAfter: LB-REMEDIATION
+    requiresPreservedG1Evidence: true
+    requiresPrivateRemediationEvidence: true
+    preflightReexecutionAllowed: false
+    g1ReexecutionAllowed: false
+    remediationReexecutionAllowed: false
+    nextStage: LIFECYCLE
+    stopSemantics: STOP-PRESERVE-NO-RETRY
+  tool:
+    path: bounded_happy_run_resume_v2.py
+    digest: sha256:7b5f8a29e1a7bdb9d74aaa572a8f6786fd4e66927f0db9cb50d128001721b8d9
+    arbitraryEvidencePathAllowed: false
+    arbitraryResumePointAllowed: false
+    retryAllowed: false
+    rollbackOrCleanupAllowed: false
+  authorization:
+    decision: NO-GO
+    remediationEvidenceBindingGranted: false
+    resumeFromG1Granted: false
+    credentialUseGranted: false
+    lifecycleObserverGranted: false
+    g3Granted: false
+    networkObserverGranted: false
+    runtimeBindingGranted: false
+    targetAccessGranted: false
+    tokenRequestGranted: false
+    registrationGranted: false
+    credentialSecretGranted: false
+    applicationSubmissionGranted: false
+    platformObserverGranted: false
+    capabilityTestGranted: false
+    capabilityTestCleanupGranted: false
+    go1LGranted: false
+    go1Granted: false
+    preflightGranted: false
+    g1Granted: false
+    retryGranted: false
+    rollbackGranted: false
+    broadCleanupGranted: false
+    evidencePublicationGranted: false
+    failureInjectionGranted: false
+    outageGranted: false
+    grantIDs: []

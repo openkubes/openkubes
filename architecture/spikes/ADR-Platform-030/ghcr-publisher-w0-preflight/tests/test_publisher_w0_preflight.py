@@ -1,0 +1,62 @@
+import copy
+import hashlib
+import importlib.util
+import sys
+import unittest
+from pathlib import Path
+
+import yaml
+
+
+ROOT = Path(__file__).resolve().parents[1]
+SPEC = importlib.util.spec_from_file_location("ok141_publisher_w0_preflight", ROOT / "verify_publisher_w0_preflight.py")
+MODULE = importlib.util.module_from_spec(SPEC)
+sys.modules[SPEC.name] = MODULE
+SPEC.loader.exec_module(MODULE)
+
+
+class PublisherW0PreflightTests(unittest.TestCase):
+    def setUp(self):
+        self.path = ROOT / "publisher-w0-preflight-v1.yaml"
+        self.document = yaml.safe_load(self.path.read_text())
+
+    def rejected(self, changed):
+        with self.assertRaises(MODULE.V1.HarnessError):
+            MODULE.validate(changed, self.path)
+
+    def test_preflight_is_reproducible_and_no_go(self):
+        digest = MODULE.validate(copy.deepcopy(self.document), self.path)
+        self.assertEqual(digest, "sha256:" + hashlib.sha256(self.path.read_bytes()).hexdigest())
+
+    def test_active_workflow_cannot_be_preclaimed(self):
+        changed = copy.deepcopy(self.document)
+        changed["spec"]["candidate"]["deploymentPathPresent"] = True
+        self.rejected(changed)
+
+    def test_environment_mismatch_is_rejected(self):
+        changed = copy.deepcopy(self.document)
+        changed["spec"]["readOnlyObservation"]["environment"]["exactBranchPolicy"] = "*"
+        self.rejected(changed)
+
+    def test_supply_chain_mismatch_is_rejected(self):
+        changed = copy.deepcopy(self.document)
+        changed["spec"]["supplyChainObservation"]["oras"]["assetDigest"] = "sha256:" + "0" * 64
+        self.rejected(changed)
+
+    def test_dispatch_cannot_be_authorized(self):
+        changed = copy.deepcopy(self.document)
+        changed["spec"]["w0Scope"]["workflowDispatchAuthorized"] = True
+        self.rejected(changed)
+
+    def test_w0_cannot_be_pregranted(self):
+        changed = copy.deepcopy(self.document)
+        changed["spec"]["authorization"]["w0Granted"] = True
+        self.rejected(changed)
+
+    def test_digest_file_is_current(self):
+        expected = hashlib.sha256(self.path.read_bytes()).hexdigest()
+        self.assertEqual((ROOT / "publisher-w0-preflight-v1.sha256").read_text().split()[0], expected)
+
+
+if __name__ == "__main__":
+    unittest.main(verbosity=2)

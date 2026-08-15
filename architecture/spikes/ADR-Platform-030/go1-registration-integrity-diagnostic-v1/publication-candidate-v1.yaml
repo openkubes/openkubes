@@ -1,0 +1,31 @@
+apiVersion: publication.openkubes.io/v1alpha1
+kind: GO1RegistrationIntegrityDiagnosticPublicationCandidate
+metadata:
+  name: ok141-registration-integrity-diagnostic-publication-v1
+  ticket: OK-141
+spec:
+  decision: BLOCKED-NO-PUBLICATION
+  scope:
+    directory: architecture/spikes/ADR-Platform-030/go1-registration-integrity-diagnostic-v1
+    files:
+      README.md: sha256:e1eb95dbef53916e7e250e6b8ab156e2698d55f84e0e9bbca099f331226399ce
+      cause-closure.json: sha256:053f1f290ebfee79f85a88dbceed107b1428fdc18ef5914dd7a8229b1f28674e
+      registration-integrity-diagnostic-candidate-v1.yaml: sha256:832fa661dd9c424be9f8572212752f025818c3685475bf1aa7e25ee67136a7e0
+      registration-integrity-diagnostic-grant-v1.template.yaml: sha256:6059bd51599432a46a173c0057b2812ed3e5095023b4162091a54fc043f0e7cd
+      bounded_registration_integrity_diagnostic_v1.py: sha256:b7793b97e82791ab4e658d483e7e6a3df872208d5646be270411052bf9b55066
+      test_registration_integrity_diagnostic_v1.py: sha256:6fff9cf54b44d1d23d85ba9278d2bb2cad36fbeed76d49689a680ef4e5d3c84b
+  validation:
+    testsPassed: 9
+    candidateState: OFFLINE-PROVEN-BLOCKED-NO-GO
+    candidateDigest: sha256:832fa661dd9c424be9f8572212752f025818c3685475bf1aa7e25ee67136a7e0
+  permitsAfterSeparateGrant: [commit, push, draft-pr, review, merge]
+  excludes:
+    - private Evidence under /private/tmp
+    - registration Secret content
+    - token and JWT payload
+    - CA payload and API endpoint
+    - raw kubeconfig and raw API output
+    - registration-integrity diagnostic execution
+    - target-cluster contact
+    - Happy-Run retry or resume
+    - mutation, cleanup and failure injection

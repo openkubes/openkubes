@@ -1,0 +1,49 @@
+apiVersion: authorization.openkubes.io/v1alpha1
+kind: CombinedGateGrant
+metadata:
+  name: ok141-m0a-c1-a1-i-v4-20260812-01
+  ticket: OK-141
+spec:
+  version: ok141-m0a-combined-grant/v4
+  state: GRANTED-ONE-RUN
+  candidateDigest: sha256:3fc1fee9338bca1f1ad9901bb4c0bf83d52eac56ff8b60c0579bea4415db7da8
+  authority: github:arashkaffamanesh
+  decision: GO
+  mutationAuthorized: true
+  credentialGrant:
+    gate: M0A-C1-v4
+    granted: true
+    grantID: ok141-m0a-c1-v4-20260812-01
+    scope: exactly-one-temporary-credential-run
+  admissionGrant:
+    gate: M0A-A1-v4
+    granted: true
+    grantID: ok141-m0a-a1-v4-20260812-01
+    scope: exactly-one-temporary-admission-bootstrap
+  installationGrant:
+    gate: M0a-I-v4
+    granted: true
+    grantID: ok141-m0a-i-v4-20260812-01
+    scope: exactly-one-create-only-installation-of-bound-19-object-caaph-control-plane-set-on-ok-mgmt
+  validFrom: "2026-08-12T18:00:00Z"
+  validUntil: "2026-08-12T21:00:00Z"
+  maximumRuns: 1
+  evidenceOutputPath: /private/tmp/ok141-m0a-v4-execution-evidence-20260812.json
+  rollbackGranted: false
+  targetConvergenceGranted: false
+  m0bInstallationGranted: false
+  go1Granted: false
+  evidencePublicationGranted: false
+  failureInjectionGranted: false
+  exactStatement: >-
+    ch erteile für OK-141 gemäß Kandidat sha256:3fc1fee9338bca1f1ad9901bb4c0bf83d52eac56ff8b60c0579bea4415db7da8 getrennt:
+    M0A-C1-v4, Grant-ID ok141-m0a-c1-v4-20260812-01, für genau einen temporären Credential-Lauf;
+    M0A-A1-v4, Grant-ID ok141-m0a-a1-v4-20260812-01, für genau einen temporären Admission-Bootstrap;
+    M0a-I-v4, Grant-ID ok141-m0a-i-v4-20260812-01, für genau eine Create-only-Installation des gebundenen 19-Objekt-CAAPH-Control-Plane-Sets auf ok-mgmt.
+    Das gemeinsame Zeitfenster ist 2026-08-12T18:00:00Z bis 2026-08-12T21:00:00Z. Die rohe Evidence ist ausschließlich unter /private/tmp/ok141-m0a-v4-execution-evidence-20260812.json zulässig. HCP/HRP-Submission, Cilium-Konvergenz, Retry, automatischer CAAPH-Rollback, Evidence-Publication, M0b-I, GO-1, Target-Konvergenz und Failure Injection bleiben ausdrücklich NOT GRANTED.
+  rules:
+    - The leading omitted I in the submitted German statement is recorded verbatim and does not make the otherwise explicit grant ambiguous.
+    - This grant authorizes exactly one combined run in the recorded UTC window.
+    - Temporary bootstrap cleanup in finally is included; CAAPH rollback is not.
+    - Any completed or stopped run consumes all three grants.
+    - No retry is authorized.

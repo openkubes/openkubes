@@ -33,9 +33,16 @@ ZOTCTL ?= $(TOOLING)/zotctl.py
 
 TAR ?= tar
 BACKUP_DIR ?=
+RELEASE_SET ?=
+TRANSFER_DIR ?=
+TRANSFER_ARTIFACT ?=
+TRANSFER_INTEGRITY_MANIFEST ?=
 RESTORE_ARTIFACT ?=
 INTEGRITY_MANIFEST ?=
 APPROVE_RESTORE_DRILL ?=
+APPROVE_DISASTER_RECOVERY ?=
+APPROVE_INCOMPLETE_RECOVERY_RESET ?=
+EXPECTED_PVC_UID ?=
 RETAIN_SCRATCH ?= no
 SCRATCH_NAMESPACE ?=
 SCRATCH_RELEASE ?= zot-restore-drill
@@ -92,8 +99,9 @@ WRITER_GROUP ?= registry-writers
 READER_GROUP ?= registry-readers
 OIDC_REDIRECT_URI ?= $(REGISTRY_ORIGIN)/zot/auth/callback/oidc
 
-.PHONY: help render diff require-inputs require-tools require-backup-tools require-restore-tools require-chart require-values-contract require-oidc-approval require-lifecycle-approval require-restore-input require-restore-drill-approval require-confirm \
-	namespace identities reachability zot oidc-client metrics post-check smoke lifecycle contract-job oidc-conformance backup verify-backup restore-drill install \
+.PHONY: help render diff require-inputs require-tools require-backup-tools require-verify-tools require-restore-tools require-chart require-values-contract require-oidc-approval require-lifecycle-approval require-release-set require-transfer-input require-restore-input require-restore-drill-approval require-disaster-recovery-approval require-incomplete-recovery-reset-approval require-confirm \
+	namespace identities reachability zot oidc-client metrics post-check smoke lifecycle contract-job oidc-conformance backup verify-backup restore-drill disaster-recovery reset-incomplete-disaster-recovery release-export verify-release offline-transfer-drill install \
+	ship-check ship-scan-self-test \
 	teardown-metrics teardown-zot teardown-reachability teardown-oidc-secret teardown-identities teardown-data teardown
 
 help: ## Show registry-default lifecycle targets
@@ -119,6 +127,9 @@ require-backup-tools:
 	@for tool in "$(KUBECTL)" "$(PYTHON)" "$(JQ)" "$(TAR)" curl base64 find sha256sum stat make; do \
 		command -v "$$tool" >/dev/null || { echo "ERROR: backup tool not found: $$tool" >&2; exit 2; }; \
 	done
+
+require-verify-tools:
+	@command -v "$(PYTHON)" >/dev/null || { echo "ERROR: verifier tool not found: $(PYTHON)" >&2; exit 2; }
 
 require-restore-tools: require-backup-tools
 	@for tool in "$(HELM)" cmp; do \
@@ -158,11 +169,42 @@ require-restore-input:
 	@test -n "$(INTEGRITY_MANIFEST)" || { echo "ERROR: INTEGRITY_MANIFEST is required" >&2; exit 2; }
 	@test -r "$(INTEGRITY_MANIFEST)" || { echo "ERROR: integrity manifest is not readable: $(INTEGRITY_MANIFEST)" >&2; exit 2; }
 
+require-release-set:
+	@test -n "$(RELEASE_SET)" || { echo "ERROR: RELEASE_SET is required" >&2; exit 2; }
+	@test -r "$(RELEASE_SET)" || { echo "ERROR: release set is not readable: $(RELEASE_SET)" >&2; exit 2; }
+	@test -n "$(TRANSFER_DIR)" || { echo "ERROR: TRANSFER_DIR is required" >&2; exit 2; }
+	@test -d "$(TRANSFER_DIR)" || { echo "ERROR: TRANSFER_DIR is not an existing directory: $(TRANSFER_DIR)" >&2; exit 2; }
+
+require-transfer-input:
+	@test -n "$(TRANSFER_ARTIFACT)" || { echo "ERROR: TRANSFER_ARTIFACT is required" >&2; exit 2; }
+	@test -r "$(TRANSFER_ARTIFACT)" || { echo "ERROR: transfer artifact is not readable: $(TRANSFER_ARTIFACT)" >&2; exit 2; }
+	@test -n "$(TRANSFER_INTEGRITY_MANIFEST)" || { echo "ERROR: TRANSFER_INTEGRITY_MANIFEST is required" >&2; exit 2; }
+	@test -r "$(TRANSFER_INTEGRITY_MANIFEST)" || { echo "ERROR: transfer integrity manifest is not readable: $(TRANSFER_INTEGRITY_MANIFEST)" >&2; exit 2; }
+
 require-restore-drill-approval:
 	@test "$(APPROVE_RESTORE_DRILL)" = yes || { \
 		echo "ERROR: restore-drill creates an isolated scratch registry on cluster $(CLUSTER)." >&2; \
 		echo "       Review the artifact, isolation guards and cleanup; rerun with APPROVE_RESTORE_DRILL=yes." >&2; exit 2; }
 	@test -t 0 || { echo "ERROR: restore-drill must be run attended from a terminal" >&2; exit 2; }
+
+require-disaster-recovery-approval:
+	@test "$(APPROVE_DISASTER_RECOVERY)" = yes || { \
+		echo "ERROR: disaster-recovery writes verified artifact content into the live zot/zot registry." >&2; \
+		echo "       Review the reconstructed target and artifact; rerun with APPROVE_DISASTER_RECOVERY=yes." >&2; exit 2; }
+	@test -t 0 || { echo "ERROR: disaster-recovery must be run attended from a terminal" >&2; exit 2; }
+	@test -n "$(EXPECTED_PVC_UID)" || { echo "ERROR: EXPECTED_PVC_UID is required for disaster-recovery" >&2; exit 2; }
+
+require-incomplete-recovery-reset-approval:
+	@test "$(APPROVE_INCOMPLETE_RECOVERY_RESET)" = yes || { \
+		echo "ERROR: reset-incomplete-disaster-recovery uninstalls zot/zot and irreversibly deletes only the exact approved replacement PVC." >&2; \
+		echo "       Review the incomplete target and rerun with APPROVE_INCOMPLETE_RECOVERY_RESET=yes." >&2; exit 2; }
+	@test -t 0 || { echo "ERROR: reset-incomplete-disaster-recovery must be run attended from a terminal" >&2; exit 2; }
+	@test -n "$(EXPECTED_PVC_UID)" || { echo "ERROR: EXPECTED_PVC_UID is required for reset-incomplete-disaster-recovery" >&2; exit 2; }
+	@test -n "$(INTEGRITY_MANIFEST)" || { \
+		echo "ERROR: INTEGRITY_MANIFEST is required for reset-incomplete-disaster-recovery." >&2; \
+		echo "       Its recovery point is what proves the PVC is a replacement created during" >&2; \
+		echo "       this recovery rather than the original claim. A UID alone cannot tell them apart." >&2; exit 2; }
+	@test -r "$(INTEGRITY_MANIFEST)" || { echo "ERROR: integrity manifest is not readable: $(INTEGRITY_MANIFEST)" >&2; exit 2; }
 
 require-confirm:
 	@test "$(CONFIRM)" = yes || { echo "ERROR: teardown is destructive; rerun the reviewed target with CONFIRM=yes" >&2; exit 2; }
@@ -242,9 +284,9 @@ oidc-conformance: require-inputs require-tools require-oidc-approval ## APPROVAL
 		CONFORMANCE_SECRET="$(CONFORMANCE_SECRET)" OIDC_SECRET="$(OIDC_SECRET)" bash "$(OIDC_CONFORMANCE_SCRIPT)"
 
 backup: require-inputs require-backup-tools ## Export OCI content and a verifiable integrity manifest to operator-supplied off-cluster storage
-	@$(PYTHON) "$(ZOTCTL)" backup --kubectl "$(KUBECTL)" --kubeconfig "$(KUBECONFIG)" \
+	@REGISTRY_LB_KUBECONFIG="$(REGISTRY_LB_KUBECONFIG)" $(PYTHON) "$(ZOTCTL)" backup --kubectl "$(KUBECTL)" --kubeconfig "$(KUBECONFIG)" \
 		--namespace "$(NAMESPACE)" --release "$(RELEASE)" \
-		--registry-host "$(REGISTRY_HOST)" --registry-lb "$(REGISTRY_LB)" \
+		--registry-host "$(REGISTRY_HOST)" $(if $(REGISTRY_LB),--registry-lb "$(REGISTRY_LB)",) \
 		--tls-secret "$(TLS_SECRET)" --machine-secret "$(MACHINE_SECRET)" \
 		--conformance-secret "$(CONFORMANCE_SECRET)" \
 		--keycloak-host "$(KEYCLOAK_HOST)" --page-size "$(OCI_PAGE_SIZE)" \
@@ -262,6 +304,44 @@ restore-drill: require-inputs require-restore-tools require-chart require-restor
 		$(if $(SCRATCH_NAMESPACE),--scratch-namespace "$(SCRATCH_NAMESPACE)",) \
 		$(if $(SCRATCH_RELEASE),--scratch-release "$(SCRATCH_RELEASE)",) \
 		"$(RESTORE_ARTIFACT)" "$(INTEGRITY_MANIFEST)"
+
+disaster-recovery: require-inputs require-backup-tools require-values-contract require-restore-input require-disaster-recovery-approval ## APPROVAL: restore into reconstructed authenticated live zot/zot after exact PVC UID and empty-catalog guards
+	@REGISTRY_LB_KUBECONFIG="$(REGISTRY_LB_KUBECONFIG)" $(PYTHON) "$(ZOTCTL)" disaster-recovery --kubectl "$(KUBECTL)" --kubeconfig "$(KUBECONFIG)" \
+		--namespace "$(NAMESPACE)" --release "$(RELEASE)" --values-file "$(VALUES_FILE)" \
+		--expected-pvc-uid "$(EXPECTED_PVC_UID)" \
+		--registry-host "$(REGISTRY_HOST)" $(if $(REGISTRY_LB),--registry-lb "$(REGISTRY_LB)",) \
+		--tls-secret "$(TLS_SECRET)" --machine-secret "$(MACHINE_SECRET)" \
+		--conformance-secret "$(CONFORMANCE_SECRET)" --keycloak-host "$(KEYCLOAK_HOST)" \
+		$(if $(filter yes,$(APPROVE_DISASTER_RECOVERY)),--approve,) \
+		"$(RESTORE_ARTIFACT)" "$(INTEGRITY_MANIFEST)"
+
+reset-incomplete-disaster-recovery: require-inputs require-tools require-incomplete-recovery-reset-approval ## APPROVAL: uninstall an incomplete zot/zot and delete only its exact approved PVC UID
+	@$(PYTHON) "$(ZOTCTL)" reset-incomplete-disaster-recovery --kubectl "$(KUBECTL)" --helm "$(HELM)" --kubeconfig "$(KUBECONFIG)" \
+		--namespace "$(NAMESPACE)" --release "$(RELEASE)" --expected-pvc-uid "$(EXPECTED_PVC_UID)" \
+		$(if $(filter yes,$(APPROVE_INCOMPLETE_RECOVERY_RESET)),--approve,) \
+		"$(INTEGRITY_MANIFEST)"
+
+release-export: require-inputs require-backup-tools require-release-set ## Export one named immutable release and refuse an incomplete descriptor/referrer closure
+	@REGISTRY_LB_KUBECONFIG="$(REGISTRY_LB_KUBECONFIG)" $(PYTHON) "$(ZOTCTL)" release-export "$(RELEASE_SET)" --kubectl "$(KUBECTL)" --kubeconfig "$(KUBECONFIG)" \
+		--namespace "$(NAMESPACE)" --release "$(RELEASE)" \
+		--registry-host "$(REGISTRY_HOST)" $(if $(REGISTRY_LB),--registry-lb "$(REGISTRY_LB)",) \
+		--tls-secret "$(TLS_SECRET)" --machine-secret "$(MACHINE_SECRET)" \
+		--conformance-secret "$(CONFORMANCE_SECRET)" \
+		--keycloak-host "$(KEYCLOAK_HOST)" --page-size "$(OCI_PAGE_SIZE)" \
+		--backup-dir "$(TRANSFER_DIR)"
+
+verify-release: require-verify-tools require-transfer-input ## Verify release integrity and descriptor/referrer completeness with no cluster or source access
+	@$(PYTHON) "$(ZOTCTL)" verify "$(TRANSFER_ARTIFACT)" "$(TRANSFER_INTEGRITY_MANIFEST)"
+
+offline-transfer-drill: require-transfer-input ## APPROVAL: import a release into a fresh scratch zot and pull every member by digest
+	@$(MAKE) --no-print-directory restore-drill \
+		KUBECONFIG="$(KUBECONFIG)" \
+		RESTORE_ARTIFACT="$(TRANSFER_ARTIFACT)" \
+		INTEGRITY_MANIFEST="$(TRANSFER_INTEGRITY_MANIFEST)" \
+		APPROVE_RESTORE_DRILL="$(APPROVE_RESTORE_DRILL)" \
+		RETAIN_SCRATCH="$(RETAIN_SCRATCH)" \
+		SCRATCH_NAMESPACE="$(SCRATCH_NAMESPACE)" \
+		SCRATCH_RELEASE="$(SCRATCH_RELEASE)"
 
 install: require-inputs require-tools require-chart require-values-contract require-oidc-approval ## APPROVAL: install Increment 1 end to end (requires APPROVE_OIDC_CLIENT=yes)
 	@$(MAKE) --no-print-directory namespace KUBECONFIG="$(KUBECONFIG)"
@@ -308,3 +388,47 @@ teardown: require-inputs require-tools require-confirm ## Reverse Increment 1 bu
 	@$(MAKE) --no-print-directory teardown-oidc-secret KUBECONFIG="$(KUBECONFIG)" CONFIRM=yes
 	@$(MAKE) --no-print-directory teardown-identities KUBECONFIG="$(KUBECONFIG)" CONFIRM=yes
 	@echo "NOTICE: namespace, PVC/data, and central Keycloak objects were retained. Run teardown-data separately only after backup."
+
+# ------------------------------------------------------------------------------------
+# Pre-commit gate. Offline on purpose: no cluster, no credentials, no network, so it can
+# run before every commit. `render` and `diff` remain the cluster-side checks; this does
+# not replace them, and it deliberately does not run git commit.
+# ------------------------------------------------------------------------------------
+
+ship-scan-self-test: ## Prove the credential/address scanner flags and clears the right lines
+	@$(PYTHON) "$(TOOLING)/ship-scan.py" --self-test
+
+ship-check: ship-scan-self-test ## Offline pre-commit gate: generated files, syntax, tests, credential/address scan
+	@set -Eeuo pipefail; \
+	export PYTHONDONTWRITEBYTECODE=1; \
+	echo "== generated artifacts =="; \
+	found="$$( { git ls-files -- . ; git diff --cached --name-only -- . ; } \
+		| grep -E '(^|/)__pycache__/|\.pyc$$' | sort -u | head -20 )" || true; \
+	if [ -n "$$found" ]; then \
+		echo "ERROR: generated Python artifacts are tracked or staged; unstage before committing:" >&2; \
+		echo "$$found" >&2; exit 1; \
+	fi; \
+	echo "  none tracked or staged (untracked local bytecode is ignored)"; \
+	echo "== python syntax =="; \
+	for f in $(TOOLING)/*.py; do \
+		$(PYTHON) -c 'import ast,sys; ast.parse(open(sys.argv[1]).read())' "$$f" || exit 1; \
+	done; \
+	echo "  $$(ls $(TOOLING)/*.py | wc -l | tr -d ' ') file(s) parse"; \
+	echo "== shell syntax =="; \
+	for f in $(TOOLING)/*.sh conformance/*.sh; do [ -e "$$f" ] || continue; bash -n "$$f" || exit 1; done; \
+	echo "  ok"; \
+	echo "== unit tests =="; \
+	( cd "$(TOOLING)" && $(PYTHON) -m unittest zotctl_test ) ; \
+	echo "== credential / estate-address scan =="; \
+	if git diff --cached --quiet -- .; then \
+		echo "  nothing staged for this shelf; scanning the working diff plus untracked files"; \
+		{ git diff -- . ; \
+		  git ls-files --others --exclude-standard -- . | while read -r f; do \
+			git diff --no-index -- /dev/null "$$f" || true; \
+		  done ; } | $(PYTHON) "$(TOOLING)/ship-scan.py"; \
+	else \
+		echo "  scanning the staged diff (what a commit would actually contain)"; \
+		git diff --cached -- . | $(PYTHON) "$(TOOLING)/ship-scan.py"; \
+	fi; \
+	rm -rf "$(TOOLING)/__pycache__"; \
+	echo "RESULT: PASS - offline gate clean. Cluster-side checks (render, diff, post-check) are separate."

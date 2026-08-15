@@ -1,5 +1,5 @@
 # Diagnostics facade image. GHCR is the primary registry (OK-15 decision).
-#   docker build -t ghcr.io/openkubes/platform-diagnostics-facade:dev .
+#   docker build -t ghcr.io/openkubes/platform-diagnostics-facade:0.1.8 .
 FROM python:3.12-slim
 
 WORKDIR /app

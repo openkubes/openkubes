@@ -1,0 +1,13 @@
+{
+  "apiVersion": "evidence.openkubes.io/v1alpha1",
+  "kind": "GO1DefaultAudienceDiagnosticRedactedClosure",
+  "candidateDigest": "sha256:8d4c3d81d09d7a999a47fc7b844f7ff51ec05bec0d7d137b1920680fb5e01b5c",
+  "privateEvidenceDigest": "sha256:7e9ea48a7296f8c92bce862ab27d6220341bec4ecff8299d070252c741f3c791",
+  "privateEvidenceSemanticDigest": "sha256:4e152611ed6acb9747904b35885453cd10cd9a0d8cce39d1ad62ee588678bd6a",
+  "result": "PASS-DEFAULT-AUDIENCE-DIAGNOSTIC",
+  "classification": "SUCCESS",
+  "returnedAudienceMatchesOldBoundAudience": false,
+  "targetProbeSucceeded": true,
+  "persistentObjectCreated": false,
+  "happyRunResumed": false
+}

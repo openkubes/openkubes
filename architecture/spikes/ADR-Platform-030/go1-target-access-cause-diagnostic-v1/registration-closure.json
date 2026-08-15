@@ -1,0 +1,21 @@
+{
+  "apiVersion": "evidence.openkubes.io/v1alpha1",
+  "kind": "GO1RegistrationIntegrityDiagnosticRedactedClosure",
+  "candidateDigest": "sha256:832fa661dd9c424be9f8572212752f025818c3685475bf1aa7e25ee67136a7e0",
+  "privateEvidenceDigest": "sha256:989fb86e974f8c8721da6b3087830cdd3db7093bf935b6069bb55670ddb4ef6c",
+  "privateEvidenceSemanticDigest": "sha256:cd26c3f5681716815694783766dc708f92d3cf3fa89fd6a439f4876d2b1b65e6",
+  "result": "PASS-READ-ONLY-REGISTRATION-DIAGNOSTIC",
+  "registrationValid": true,
+  "targetProbeAttempted": true,
+  "targetProbeSucceeded": false,
+  "targetProbeExitCode": 1,
+  "boundaries": {
+    "secretBytesPublished": false,
+    "tokenOrJWTPublished": false,
+    "caOrEndpointPublished": false,
+    "rawResponsePublished": false,
+    "mutationPerformed": false,
+    "retryPerformed": false,
+    "happyRunResumed": false
+  }
+}

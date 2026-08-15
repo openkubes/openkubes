@@ -1,0 +1,67 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: M0bRuntimeRegistrationRiskAcceptance
+metadata:
+  name: ok141-m0b-runtime-registration-risk-acceptance-v1
+  ticket: OK-141
+spec:
+  version: ok141-m0b-runtime-registration-risk-acceptance-record/v1
+  state: ACCEPTED-NON-AUTHORIZING
+  recordedAt: "2026-08-13T12:52:31Z"
+  acceptedBy: github:arashkaffamanesh
+  references:
+    acceptanceCandidate:
+      path: ../m0b-target-registration-security-v1/m0b-runtime-registration-risk-acceptance-candidate-v1.yaml
+      digest: sha256:c7d0be07a2da9d862e84b7f96dd97377292cfb7bdbf75e11440941593038ee3d
+    securityBoundary:
+      path: ../m0b-target-registration-security-v1/m0b-runtime-registration-security-v1.yaml
+      digest: sha256:3def094077184842e0d1f73292043b8d882e9ad7ba73d09e086ca8f291c1ff81
+    runtimeProtocol:
+      path: ../m0b-target-registration-v1/m0b-runtime-registration-protocol-v1.yaml
+      digest: sha256:fde90d77c4ba8b82c86c7b0d3977b4c6ca4799807431c73098d83984177a004b
+  decision:
+    outcome: ACCEPTED-DEV-ONLY
+    exactStatement: Ich akzeptiere für OK-141/M0b-R-v1 die dokumentierte Administrator- und Create-Content-Grenze des achtteiligen Target-Access-Sets, die clusterweite Argo-Autorität für CRDs, Webhooks und Cluster-RBAC, das privilegierte Pod-Security-Profil, den statischen maximal dreistündigen TokenRequest ohne native Rotation, möglichen nicht-atomaren Partial-State ohne Retry, Rollback oder Cleanup, das unbewiesene Kompatibilitätsrisiko von Argo CD v3.4.2 mit Kubernetes v1.36.2 sowie die Secret-Exposure-Grenze des noch zu prüfenden Runtime-Materializers, gebunden an Security-Kandidat sha256:3def094077184842e0d1f73292043b8d882e9ad7ba73d09e086ca8f291c1ff81. Diese Akzeptanz erteilt keine Freigabe für Target-Access, TokenRequest, Credentials, Target-Registrierung, AppProject, Applications, Platform-Konvergenz, Retry, Rollback, Cleanup, Evidence-Publication, GO-1 oder Failure Injection.
+    acceptedRisks:
+      - M0B-R1-TARGET-BOOTSTRAP-ADMIN-CONTENT
+      - M0B-R1-ARGO-CREATE-CONTENT
+      - M0B-R1-CLUSTER-SCOPED-PLATFORM-AUTHORITY
+      - M0B-R1-PRIVILEGED-POD-SECURITY
+      - M0B-R1-STATIC-TOKENREQUEST
+      - M0B-R1-CROSS-PLANE-PARTIAL-STATE
+      - M0B-R1-TARGET-COMPATIBILITY
+      - M0B-R1-MATERIALIZER-SECRET-EXPOSURE
+  claimBoundaries:
+    environment: DEV
+    targetBootstrapAdmissionConstrained: false
+    createPayloadEqualityProvenByRBAC: false
+    clusterScopedPlatformAuthorityAccepted: true
+    privilegedPodSecurityAccepted: true
+    staticTokenRequestAccepted: true
+    nativeArgoTokenRotation: false
+    tokenMaximumExpirationSeconds: 10800
+    expiredCredentialBytesAutomaticallyRemoved: false
+    crossPlaneSubmissionAtomic: false
+    partialStatePossible: true
+    automaticRetryAllowed: false
+    automaticRollbackAllowed: false
+    cleanupAllowed: false
+    exactTargetCompatibilityExecutionProven: false
+    materializerSecretSafetyExecutionProven: false
+    productionUseAllowed: false
+  authorization:
+    decision: NO-GO
+    mutationAuthorized: false
+    targetAccessGranted: false
+    tokenRequestGranted: false
+    registrationGranted: false
+    applicationSubmissionGranted: false
+    platformConvergenceGranted: false
+    retryGranted: false
+    rollbackOrCleanupGranted: false
+    evidencePublicationGranted: false
+    go1Granted: false
+    failureInjectionGranted: false
+  rules:
+    - This record accepts only the eight named DEV risks and grants no execution or publication authority.
+    - Any changed candidate content digest credential model target version authority scope or runtime ordering invalidates this acceptance.
+    - A reviewed redacting materializer fresh runtime preflight newly canonicalized execution candidate and explicit separate grants remain mandatory.

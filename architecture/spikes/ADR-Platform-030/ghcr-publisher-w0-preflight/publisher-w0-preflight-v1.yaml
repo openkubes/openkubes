@@ -1,0 +1,86 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: GHCRPublisherW0Preflight
+metadata:
+  name: ok141-ghcr-publisher-w0-preflight-v1
+  ticket: OK-141
+spec:
+  version: ok141-ghcr-publisher-w0-preflight/v1
+  state: READY-FOR-W0-DECISION-NOT-GRANTED
+  baseline:
+    repository: openkubes/openkubes
+    commit: 7f5728e240435920ae1287675c11311f185c901f
+    release: v0.15.0
+  sourceE0:
+    path: ../ghcr-publisher-e0-evidence/publisher-e0-evidence-v1.yaml
+    digest: sha256:a79a951265b1cb84df1fde6f657131f8f559b962011b94d3316aef2e8a1b93d9
+    status: COMPLETE-OBSERVED
+  candidate:
+    sourcePath: ../ghcr-publisher-durable-correlation/candidate/ok141-evidence-publisher-v3.workflow.yaml
+    sourceDigest: sha256:3de106067f2fdb70add382c1fa63a2749e032dda9f83442f9880d6e672a3aab2
+    deploymentPath: .github/workflows/ok141-evidence-publisher.yaml
+    deploymentPathPresent: false
+    trigger: workflow_dispatch
+    environment: ok-141-evidence-publish
+    automaticTriggerPresent: false
+  readOnlyObservation:
+    observedAt: "2026-08-11T16:49:32Z"
+    environment:
+      id: 19690057278
+      present: true
+      reviewerID: 1782605
+      exactBranchPolicy: main
+      environmentSecretsCount: 0
+      canAdminsBypass: true
+    activeWorkflowState: ABSENT-404
+  supplyChainObservation:
+    observedAt: "2026-08-11T16:49:32Z"
+    checkout:
+      repository: actions/checkout
+      tag: v4
+      fullCommitSHA: 11d5960a326750d5838078e36cf38b85af677262
+      commitSignatureVerified: true
+      tagResolvesToExactCommit: true
+    attestation:
+      repository: actions/attest
+      tag: v4.2.2
+      fullCommitSHA: 1e69f48acb82d1966a394da916b4c1698aa569d6
+      commitSignatureVerified: true
+      tagResolvesToExactCommit: true
+    oras:
+      repository: oras-project/oras
+      version: v1.3.3
+      asset: oras_1.3.3_linux_amd64.tar.gz
+      releasePublishedAt: "2026-07-10T19:29:50Z"
+      assetSize: 4668550
+      assetDigest: sha256:9ce999f8d2de03fc03968b29d743077a58783e545e5eaa53917ca177352d0e59
+      candidateDigestMatchesReleaseMetadata: true
+  w0Scope:
+    exactOperation: Copy the exact candidate bytes to .github/workflows/ok141-evidence-publisher.yaml through one reviewed PR and merge.
+    activeWorkflowDigestRequired: sha256:3de106067f2fdb70add382c1fa63a2749e032dda9f83442f9880d6e672a3aab2
+    workflowDispatchAuthorized: false
+    packageWriteAuthorized: false
+    attestationWriteAuthorized: false
+    p0Authorized: false
+    postMergeObservationRequired: true
+  stopConditions:
+    - the environment or exact main policy differs from E0 evidence
+    - candidate bytes or supply-chain identities differ from this preflight
+    - the deployed workflow gains an automatic trigger
+    - any workflow run starts as part of W0
+    - package attestation credential or infrastructure mutation is attempted
+  authorization:
+    decision: NO-GO
+    w0Granted: false
+    p0Granted: false
+    workflowDeploymentAuthorized: false
+    workflowDispatchAuthorized: false
+    packageWriteAuthorized: false
+    attestationWriteAuthorized: false
+    externalWriteAuthorized: false
+    infrastructureMutationAuthorized: false
+    go1Granted: false
+  rules:
+    - W0 activates write-capable code and therefore requires explicit exact authorization.
+    - W0 may deploy only the bound candidate and must not dispatch it.
+    - W0 completion cannot be reused as P0 authority.
+    - W0 P0 GO-1 infrastructure mutation and failure injection remain NO-GO.

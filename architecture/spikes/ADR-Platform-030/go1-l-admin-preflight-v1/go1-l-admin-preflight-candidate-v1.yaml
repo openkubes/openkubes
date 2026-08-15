@@ -1,0 +1,120 @@
+apiVersion: security.openkubes.io/v1alpha1
+kind: GO1LAdminPreflightCandidate
+metadata:
+  name: ok141-go1-l-admin-preflight-v1
+  ticket: OK-141
+  baseCommit: 42325d6ba9ac11c398e96543ce5cc21d4c3c942b
+spec:
+  version: ok141-go1-l-admin-preflight/v1
+  state: OFFLINE-PROVEN-BLOCKED-NO-GO
+  sourceDecision:
+    path: ../go1-l-dev-admin-decision-v1/go1-l-dev-admin-decision-v1.yaml
+    digest: sha256:f5cebe20bfe8059cec2bbf55324d753821df0cb439568495194242d253595c5c
+    model: DEV-ADMIN-CREATE
+  sourceSubmitter:
+    path: ../go1-l-submitter-v1/go1-l-submitter-candidate-v1.yaml
+    digest: sha256:e5b4185b7dcd4f1e3fb026d03ce29b5b35e0b6c5c6e51f29d921a240636b73cc
+  tool:
+    path: bounded_admin_preflight_v1.py
+    digest: sha256:2ca56bd5c9d06548b655c3c7df235e716f8d319a7026eabaeca578a20b8361cb
+    arbitraryQueryAllowed: false
+    executeCommandExposed: false
+  authorization:
+    decision: NO-GO
+    credentialUseGranted: false
+    absencePreflightGranted: false
+    mutationGranted: false
+    go1LGranted: false
+    go1Granted: false
+    retryGranted: false
+    cleanupGranted: false
+    grantIDs: []
+    authorizedDigest: null
+  credentialContract:
+    model: DEV-ADMIN-CREATE
+    material: UNRESOLVED
+    administratorCredential: true
+    useOnlyUnderSeparateReadOnlyPreflightGrant: true
+    maximumPreflightGrantMinutes: 15
+    fileMode: "0600"
+    symlinkAllowed: false
+    outsideRepository: true
+    insecureTLSAllowed: false
+    proxyURLAllowed: false
+    execOrAuthProviderAllowed: false
+    externalTokenOrCertificateFileAllowed: false
+    embeddedClientCertificateKeyOrTokenRequired: true
+    serverAndCAFingerprintMustMatchGrant: true
+    secretBytesInArgumentsEnvironmentOutputEvidence: false
+  queryTransport:
+    verb: get
+    exactNameOnly: true
+    ignoreNotFound: true
+    output: json
+    listWatchAllowed: false
+    mutationAllowed: false
+    arbitraryResourceNamespaceNameOrArgumentAllowed: false
+  operations:
+    - id: provider-prerequisites
+      targetPlane: ok-infra
+      preflightState: NOT-RUN
+      queries:
+        - resource: namespaces
+          namespace: null
+          name: disposable-ok141
+          proofRule: direct-absence
+        - resource: roles.rbac.authorization.k8s.io
+          namespace: ok-images
+          name: disposable-ok141-talos-golden-image-cloner
+          proofRule: direct-absence
+        - resource: rolebindings.rbac.authorization.k8s.io
+          namespace: ok-images
+          name: disposable-ok141-talos-golden-image-cloner
+          proofRule: direct-absence
+      acceptance: All three exact queries return successful empty responses within the bound grant window.
+    - id: capi-lifecycle
+      targetPlane: ok-mgmt
+      preflightState: NOT-RUN
+      queries:
+        - resource: namespaces
+          namespace: null
+          name: disposable-ok141
+          proofRule: namespace-absence-implies-seven-contained-objects-absent
+      acceptance: The exact disposable namespace is absent; Kubernetes namespace scoping then proves the seven reviewed contained objects cannot exist.
+    - id: helmchartproxy
+      targetPlane: ok-mgmt
+      preflightState: NOT-RUN
+      queries:
+        - resource: helmchartproxies.addons.cluster.x-k8s.io
+          namespace: disposable-ok141
+          name: disposable-ok141-cilium
+          proofRule: direct-absence
+      acceptance: The exact HCP is absent after current lifecycle evidence proves the namespace and Cluster incarnation.
+  evidenceContract:
+    freshForMinutes: 5
+    retainedFields:
+      - operation target plane query identities proof rules and ABSENT outcomes
+      - credential identity digest server and CA fingerprint but no context user or credential bytes
+      - preflight grant ID candidate digest timestamps and process exit status
+    credentialBytesAllowed: false
+    rawKubeconfigAllowed: false
+    presentObjectContentAllowed: false
+    anyPresentOrQueryError: STOP-NOT-PASS
+  runtimeSequence:
+    - issue one exact read-only preflight grant for one operation
+    - inspect credential locally without emitting secret-bearing fields
+    - match server and CA fingerprint to the grant
+    - run only the fixed exact-name queries
+    - produce redacted PASS-ABSENT evidence or STOP
+    - expire the result after five minutes and never infer a mutation grant
+  conclusions:
+    candidateOfflineComplete: true
+    credentialMaterialReady: false
+    preflightRunReady: false
+    operationRunReady: false
+    clusterContacted: false
+    mutationAuthorized: false
+  exclusions:
+    - credential issuance materialization or ungranted use
+    - list watch discovery broad namespace scan object submission retry rollback cleanup deletion or failure injection
+    - GO1-L GO-1 target registration Platform convergence or evidence publication

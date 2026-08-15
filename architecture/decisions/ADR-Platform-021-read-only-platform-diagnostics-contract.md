@@ -114,7 +114,11 @@ The central audit log must never contain raw log payloads or secrets.
 
 **Profile A (first): kagent operations engine.** A single `openkubes-platform-agent` fronts the contract; it may delegate internally to specialist agents (Kubernetes, Cilium, observability, Helm, Argo). Internal delegation is invisible to consumers. Real provider values (manifests, endpoints, credentials) live in `ok-cluster` (private).
 
-**Profile B (declared, not built):** any other agent runtime, or a classical runbook/API implementation with no LLM at all. Existence of Profile B is the backend-swap test.
+**Profile B (conformance stub):** a deterministic classical HTTP implementation
+with no LLM, agent runtime, or Kubernetes access. It lives under
+`platform/ai/platform-diagnostics/profiles/stub` and exists solely to prove the
+backend swap: the same consumer-facing suite runs unchanged against this stub or
+any other provider.
 
 ## Consumers
 

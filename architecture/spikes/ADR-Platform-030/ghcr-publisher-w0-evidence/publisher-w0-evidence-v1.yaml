@@ -1,0 +1,62 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: GHCRPublisherW0Evidence
+metadata:
+  name: ok141-ghcr-publisher-w0-evidence-v1
+  ticket: OK-141
+spec:
+  version: ok141-ghcr-publisher-w0-evidence/v1
+  state: W0-COMPLETE-OBSERVED-P0-NO-GO
+  baseline:
+    repository: openkubes/openkubes
+    commit: 022eafd970b6c0226184356a68df489284f1ca67
+    release: v0.15.0
+  sourcePreflight:
+    path: ../ghcr-publisher-w0-preflight/publisher-w0-preflight-v1.yaml
+    digest: sha256:0846d51bada19fed015fa719c6e9d8d418cdbc2f3200cb214207ead10af5acd8
+  authorizationRecord:
+    gate: W0
+    exactScope: Deploy and verify the exact bound publisher-v3 workflow without dispatch.
+    grantedBy: github:arashkaffamanesh
+    p0Granted: false
+  execution:
+    pullRequest: 121
+    mergeCommit: 022eafd970b6c0226184356a68df489284f1ca67
+    mergedAt: "2026-08-11T16:57:50Z"
+    observationCompletedAt: "2026-08-11T16:58:34Z"
+    mutationScopeExceeded: false
+  observedState:
+    workflow:
+      id: 332090718
+      name: OK-141 evidence publisher candidate v3
+      path: .github/workflows/ok141-evidence-publisher.yaml
+      state: active
+      digest: sha256:3de106067f2fdb70add382c1fa63a2749e032dda9f83442f9880d6e672a3aab2
+      trigger: workflow_dispatch
+      environment: ok-141-evidence-publish
+      sourceRefGuard: refs/heads/main
+    environmentID: 19690057278
+    workflowRunCount: 0
+    workflowDispatched: false
+    packageCreated: false
+    attestationCreated: false
+  nextGate:
+    id: P0
+    status: NOT-GRANTED
+    prerequisites:
+      - one exact successful evidence-collector source run
+      - exact source workflow ID head SHA and protocol digest
+      - re-observed environment and active workflow digest
+      - explicit bounded publication authorization
+  authorization:
+    decision: NO-GO
+    p0Granted: false
+    workflowDispatchAuthorized: false
+    packageWriteAuthorized: false
+    attestationWriteAuthorized: false
+    infrastructureMutationAuthorized: false
+    go1Granted: false
+  rules:
+    - W0 is complete and cannot be reused as P0 authority.
+    - The active workflow has only a manual trigger and no run occurred during W0.
+    - P0 requires one exact eligible source run and a separate bounded decision.
+    - P0 GO-1 infrastructure mutation and failure injection remain NO-GO.

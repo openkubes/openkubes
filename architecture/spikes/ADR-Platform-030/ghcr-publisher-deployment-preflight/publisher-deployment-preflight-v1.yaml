@@ -1,0 +1,127 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: GHCRPublisherDeploymentPreflight
+metadata:
+  name: ok141-ghcr-publisher-deployment-preflight-v1
+  ticket: OK-141
+spec:
+  version: ok141-ghcr-publisher-deployment-preflight/v1
+  state: PREPARED-OFFLINE-BLOCKED-NO-GO
+  baseline:
+    repository: openkubes/openkubes
+    commit: 23ecce974e6e5e79ebadc7af31068428222faa76
+    release: v0.15.0
+  sourcePrototype:
+    path: ../ghcr-publisher-offline-prototype/publisher-offline-prototype-v1.yaml
+    digest: sha256:023cfad2d496ec0145e212b9e5bb996e3ef200fba8947d521e6ad2b2fce3252c
+    state: IMPLEMENTED-OFFLINE-INERT-WRITE-CAPABLE-NOT-DEPLOYED-NO-GO
+  candidate:
+    sourcePath: ../ghcr-publisher-offline-prototype/candidate/ok141-evidence-publisher.workflow.yaml
+    sourceDigest: sha256:ae6514766cdba993f3480d6445494d8134eefad447c7320c4b720ed57633de4e
+    deploymentPath: .github/workflows/ok141-evidence-publisher.yaml
+    deploymentPathPresent: false
+    trigger: workflow_dispatch
+    environment: ok-141-evidence-publish
+    packageRepository: ghcr.io/openkubes/ok141-evidence
+    sourceRefGuard: MISSING-BLOCKS-W0
+    sourceRunMetadataGuard: MISSING-BLOCKS-P0
+  readOnlyObservation:
+    observedAt: "2026-08-11T16:26:24Z"
+    repositoryVisibility: public
+    defaultBranch: main
+    currentPrincipal: github:arashkaffamanesh
+    currentPrincipalRepositoryAdmin: true
+    environmentState: ABSENT-404
+    mainBranchProtection:
+      present: true
+      requiredApprovingReviewCount: 0
+      requireLastPushApproval: false
+      enforceAdmins: false
+      requiredLinearHistory: true
+      allowForcePushes: false
+      allowDeletions: false
+  environmentCandidate:
+    mustExistBeforeWorkflowDeployment: true
+    creationByWorkflowForbidden: true
+    waitTimerMinutes: 0
+    preventSelfReview: false
+    reviewers:
+      - type: User
+        login: arashkaffamanesh
+        id: 1782605
+    deploymentBranchPolicy:
+      protectedBranches: false
+      customBranchPolicies: true
+      exactPattern: main
+    environmentSecretsRequired: []
+    administratorBypassClaim: UNRESOLVED-MUST-BE-OBSERVED
+    governanceBoundary: ACCEPTED-DEV-SOLO-NO-INDEPENDENT-HUMAN-REVIEW
+  gateSequence:
+    - id: E0
+      name: environment-create-and-protect
+      mutationClass: GITHUB-REPOSITORY-ADMINISTRATION
+      status: NOT-GRANTED
+      acceptance:
+        - environment exists before the active workflow exists
+        - exact reviewer ID and branch policy are observed
+        - no environment secret exists or is required
+        - administrator bypass behavior is recorded without a stronger claim
+    - id: W0
+      name: exact-workflow-deployment
+      mutationClass: GIT-MERGE-ACTIVATES-WORKFLOW
+      status: NOT-GRANTED
+      dependsOn: [E0]
+      acceptance:
+        - deployed bytes equal the bound candidate digest
+        - the only trigger is workflow_dispatch
+        - the workflow rejects every ref except refs/heads/main before any write-capable job starts
+        - no workflow run is dispatched by this gate
+        - package attestation and active index remain absent
+    - id: P0
+      name: first-publication-attestation-and-pullback
+      mutationClass: GHCR-AND-ATTESTATION-WRITE
+      status: NOT-GRANTED
+      dependsOn: [E0, W0]
+      acceptance:
+        - a new authorization binds one exact source run and protocol digest
+        - source run repository workflow head SHA conclusion and artifact identity are verified before download
+        - environment approval is recorded
+        - package and attestation subjects match the accepted OCI digest
+        - digest-only pullback reproduces the internal bundle digest
+  forbiddenByThisCheckpoint:
+    workflowDeployment: true
+    environmentCreation: true
+    workflowDispatch: true
+    packageCreation: true
+    packageWrite: true
+    packageDelete: true
+    attestationWrite: true
+    activeIndexCreation: true
+    credentialCreation: true
+    infrastructureMutation: true
+    failureInjection: true
+  stopConditions:
+    - the environment is missing when workflow deployment is proposed
+    - the observed environment differs from the exact reviewer or branch policy
+    - candidate and deployed workflow digests differ
+    - any trigger other than workflow_dispatch is present
+    - the workflow lacks an in-job refs/heads/main guard before write authority
+    - source-run metadata is not correlated before artifact download
+    - package delete issue webhook or reusable credential authority is introduced
+    - one gate attempts to authorize a later gate
+  authorization:
+    decision: NO-GO
+    e0Granted: false
+    w0Granted: false
+    p0Granted: false
+    externalWriteAuthorized: false
+    infrastructureMutationAuthorized: false
+    m0aInstallationGranted: false
+    m0bInstallationGranted: false
+    go1Granted: false
+  rules:
+    - Preflight identity is not deployment authority.
+    - The protected environment must be created and observed before workflow deployment.
+    - Workflow deployment does not authorize workflow dispatch.
+    - Workflow dispatch does not inherit authority from environment or deployment creation.
+    - Every gate requires a new exact digest observation and explicit human authorization.
+    - E0 W0 P0 M0a-I M0b-I GO-1 infrastructure mutation and failure injection remain NO-GO.

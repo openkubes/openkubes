@@ -1,0 +1,118 @@
+apiVersion: test.openkubes.io/v1alpha1
+kind: CombinedGateCandidate
+metadata:
+  name: ok141-m0a-c1-a1-i-v5
+  ticket: OK-141
+spec:
+  version: ok141-m0a-combined-candidate/v5
+  state: READY-FOR-THREE-SEPARATE-EXPLICIT-GRANTS
+  baseCommit: f566fffb42073b619acc17077b20fe1940f620a0
+  fixtureDigest: sha256:a2ae3437645db5a83426b89d36d00693d2600e4ef20dc1aba2650dcda7f936f6
+  references:
+    v4RuntimeEvidence:
+      path: ../m0a-execution-runtime-v4/m0a-v4-first-run-evidence-v1.yaml
+      digest: sha256:03007163ea510a0613cc776f6c7d93061a2319a8a7998923016382f263fd7c61
+    securityBoundary:
+      path: m0a-v5-security-boundary.yaml
+      digest: sha256:2ee5a49eca562d57b5c8d6cf264885c005f19d517df9673f42d47336abc7f988
+    toolchainEvidence:
+      path: m0a-v5-toolchain.yaml
+      digest: sha256:0e6d043da174b4e8aacc095d63fb12cce91fcd7ffbdf5d7834b1fbc03536ce59
+    retainedRiskAcceptance:
+      path: ../m0a-v4-risk-acceptance/m0a-v4-risk-acceptance-v1.yaml
+      digest: sha256:063556f9b92755eb1d3b92a293690794ac55f182b38e06adcf6b27f12c1edb92
+    credentialManifest:
+      path: ../m0a-execution-v2/m0a-installer-rbac-v2.yaml
+      digest: sha256:0781697102c2c03652bb3f6d01a83d1431b1657d43f21c020aa97364701235bf
+    admissionManifest:
+      path: ../m0a-execution-v2/m0a-installer-admission-v2.yaml
+      digest: sha256:d690f71278e7986976069fc4bd1aa7e91c70dd40dc3f4eba26f1f7d65f7b2363
+    installationProtocol:
+      path: ../m0a-installation/m0a-installation-v1.yaml
+      digest: sha256:873d3aa3b15df53d3a4055675288c6d9acdf6c18d4f850e181a4eb7b93fc4a27
+    executor:
+      path: controlled_m0a_execution_v5.py
+      digest: sha256:36c17aa0c1506c002cf1099e1bf52f1a5f02c7ca1db9656fb84adf06eaa152c8
+  target:
+    plane: ok-mgmt
+    apiServer: https://192.168.100.200:6443
+    apiAudience: https://192.168.100.200:6443
+    kubeSystemNamespaceUID: c3b45aab-d2a1-4e64-8f12-77b99186ad4a
+    kubernetesVersion: v1.34.1
+    platform: linux/amd64
+    adminKubeconfigPath: /Users/arash/.kube/ok-mgmt.yaml
+  toolchain:
+    localCandidatePath: /private/tmp/ok141-kubectl-v1.34.1/kubectl
+    release: v1.34.1
+    gitCommit: 93248f9ae092f571eb870b7664c534bfc7d00f03
+    platform: darwin/amd64
+    binaryDigest: sha256:bb211f2b31f2b3bc60562b44cc1e3b712a16a98e9072968ba255beb04cefcfdf
+    binarySizeBytes: 61851632
+    verifyBeforeClusterContact: true
+  credential:
+    gate: M0A-C1-v5
+    serviceAccount: openkubes-system/ok141-m0a-installer-v2
+    maximumDurationMinutes: 10
+    rejectionDeadlineOffsetSeconds: 100
+    mandatoryFirstPostBoundaryProbe: true
+    temporaryKubeconfigDeleteAfterRun: true
+  admission:
+    gate: M0A-A1-v5
+    policy: ok141-m0a-installer-v2.openkubes.io
+    binding: ok141-m0a-installer-v2.openkubes.io
+    allowedPrincipal: system:serviceaccount:openkubes-system:ok141-m0a-installer-v2
+    allowedObjectIdentities: 19
+    operations: [CREATE]
+    payloadEqualityClaimed: false
+  installation:
+    gate: M0a-I-v5
+    semanticDigest: sha256:01fc13d694da3304385a7bae0d1bd662d7c8c3d336b8a4d44da5324439d59095
+    objectCount: 19
+    positiveServerDryRunRequired: false
+    fullStreamServerDryRunFeasible: false
+    submissionMethod: create
+    maximumSubmissions: 1
+    allObjectsAbsentPrecondition: true
+    partialStatePossible: true
+    readinessTimeoutSeconds: 600
+    serverSideApplyAllowed: false
+    patchAllowed: false
+    updateAllowed: false
+    deleteAllowed: false
+    automaticRetryAllowed: false
+    automaticRollbackAllowed: false
+    targetResourcesAllowed: false
+  diagnostic:
+    stdoutMaximumBytes: 4096
+    stderrMaximumBytes: 4096
+    pathsRedacted: true
+    tokensRedacted: true
+    payloadRetained: false
+  executionWindow:
+    maximumDurationMinutes: 180
+    maximumClockSkewSeconds: 5
+    maximumRuns: 1
+    grantsRequired: [M0A-C1-v5, M0A-A1-v5, M0a-I-v5]
+  evidence:
+    rawOutputDirectory: /private/tmp
+    rawOutputMustBeGrantBound: true
+    publicationAuthorized: false
+  authorization:
+    decision: NO-GO
+    mutationAuthorized: false
+    credentialGrantRequired: true
+    admissionBootstrapGrantRequired: true
+    installationGrantRequired: true
+    retryGranted: false
+    rollbackGranted: false
+    m0bInstallationGranted: false
+    go1Granted: false
+    evidencePublicationGranted: false
+    targetConvergenceGranted: false
+    failureInjectionGranted: false
+  rules:
+    - The consumed v1 through v4 grants cannot be reused.
+    - Toolchain verification and offline candidate verification grant no cluster contact or mutation.
+    - The future grant must bind this exact candidate digest three distinct IDs one UTC window and one absent raw evidence path.
+    - Full-stream server dry-run is not a success gate because the required namespace is absent before real create.
+    - Any run consumes all grants regardless of result and no retry or rollback is automatic.

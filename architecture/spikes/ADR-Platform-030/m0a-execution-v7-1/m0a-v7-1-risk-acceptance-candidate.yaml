@@ -1,0 +1,45 @@
+apiVersion: test.openkubes.io/v1alpha1
+kind: RiskAcceptanceCandidate
+metadata:
+  name: ok141-m0a-v7-1-security-risk-acceptance
+  ticket: OK-141
+spec:
+  version: ok141-m0a-v7-1-risk-acceptance/v1
+  state: AWAITING-EXPLICIT-ACCEPTANCE
+  authority: github:arashkaffamanesh
+  references:
+    securityBoundary:
+      path: m0a-v7-1-security-boundary.yaml
+      digest: sha256:41f3feebee02d625759bbaeba06dc8a0a2d10ef4345263e169fee01f02ec26d2
+    executionInvalidation:
+      path: m0a-v7-execution-invalidation-v1.yaml
+      digest: sha256:70a7585544d1d7d168280d12a929e35c5629453996738bce278c61b5b9518ab6
+    priorAcceptedRecord:
+      path: ../m0a-v7-risk-acceptance/m0a-v7-risk-acceptance-v1.yaml
+      digest: sha256:046dc53a39c6b8c6aa25f80f7862f39aed8721ae815148add05a0bc55fd5686b
+  risks:
+    - M0A-V7.1-ADMIN-CONTENT-BOUNDARY
+    - M0A-V7.1-SPLIT-AUTHORITY-PARTIAL-STATE
+    - M0A-V7.1-INSTALLER-CONTENT-BOUNDARY
+    - M0A-V7.1-ADMISSION-BOOTSTRAP-BOUNDARY
+    - M0A-V7.1-EXPIRY-PLUS-100S-OBSERVATION
+  acceptanceText: Ich akzeptiere für OK-141/M0a-v7.1 die korrigierte einzelne OR-Admission-Validierung sowie die dokumentierte Admin-Content-Grenze, die nicht-atomare Split-Authority-Installation mit möglichem partiellem Zustand, die Installer-Content- und temporäre Admission-Bootstrap-Grenze und die bis expirationTimestamp+100s gebundene Token-Ablehnungsbeobachtung, gebunden an Security-Kandidat sha256:41f3feebee02d625759bbaeba06dc8a0a2d10ef4345263e169fee01f02ec26d2. Diese Akzeptanz erteilt keine Freigabe für Admin-Prerequisites, Credentials, Admission-Installation, CAAPH-Installation oder -Retry, Rollback, Evidence-Publication, M0b-I, GO-1, Target-Konvergenz oder Failure Injection.
+  acceptance:
+    accepted: false
+    acceptedBy: null
+    acceptedAt: null
+    acceptedCandidateDigest: null
+  authorization:
+    decision: NO-GO
+    mutationAuthorized: false
+    administratorPrerequisiteGranted: false
+    credentialBootstrapGranted: false
+    admissionBootstrapGranted: false
+    caaphInstallationGranted: false
+    retryGranted: false
+    rollbackGranted: false
+    evidencePublicationGranted: false
+    m0bInstallationGranted: false
+    go1Granted: false
+    targetConvergenceGranted: false
+    failureInjectionGranted: false

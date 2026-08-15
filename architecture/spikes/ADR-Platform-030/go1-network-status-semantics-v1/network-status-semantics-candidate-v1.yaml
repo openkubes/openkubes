@@ -1,0 +1,56 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: GO1NetworkStatusSemanticsAmendmentCandidate
+metadata:
+  name: ok141-network-status-semantics-v1
+  ticket: OK-141
+  baseCommit: 69dee179a3e96731178a3dce6a108e8382dece6e
+spec:
+  version: ok141-network-status-semantics/v1
+  state: OFFLINE-PROVEN-BLOCKED-NO-GO
+  supersedes:
+    candidatePath: ../go1-l-network-observer-v1/go1-l-network-observer-candidate-v1.yaml
+    candidateDigest: sha256:15b24bd0d7247e0a05d4b1f291221cc52e4f1cefa498b8fe4c5d00b6347f3e04
+    toolPath: ../go1-l-network-observer-v1/bounded_go1_l_network_observer_v1.py
+    toolDigest: sha256:801780456e5f4ec4381ad4fa58b28568bdf6ad655d642b114eb537f27feb28a5
+    historicalEvidencePreserved: true
+  finding:
+    class: EVALUATOR_SCHEMA_MISMATCH
+    rawRuntimeEvidencePublished: false
+    rawProbeOutputPublished: false
+  upstreamSource:
+    repository: cilium/cilium
+    commit: 9a8982433e18019e290b8199c0c4ad24f66befe8
+    lockPath: upstream-source-lock.yaml
+    lockDigest: sha256:e1bac1e7bd7cba757e586acb1c7dd21707546fcd23acc6801a3e7d241dcf4037
+  statusSemantics:
+    omitted: success-candidate
+    presentEmptyString: success-candidate
+    presentNonEmptyString: failure
+    presentNullOrNonString: failure
+  retainedAcceptanceRules:
+    fixedProbeExitZeroRequired: true
+    exactNodeCoverageRequired: true
+    exactPrimaryPathCoverageRequired: true
+    httpAndIcmpRequired: true
+    currentProbeTimestampRequired: true
+    currentPathTimestampsRequired: true
+    nonEmptyErrorFails: true
+  identityImpact:
+    platformRevisionPChanged: false
+    clusterIntentRChanged: false
+    fixtureDigestChanged: false
+    evaluatorSemanticsChanged: true
+  tool:
+    path: network_status_semantics_v1.py
+    digest: sha256:2e3fcf0a44a87ab50a775d52a13acd6abab301f762705b13299c353c9732a0c6
+    clusterContactAllowed: false
+    mutationAllowed: false
+  authorization:
+    decision: NO-GO
+    clusterContactGranted: false
+    networkReadyRetryGranted: false
+    happyRunResumeGranted: false
+    mutationGranted: false
+    evidencePublicationGranted: false
+    failureInjectionGranted: false
+    grantIDs: []

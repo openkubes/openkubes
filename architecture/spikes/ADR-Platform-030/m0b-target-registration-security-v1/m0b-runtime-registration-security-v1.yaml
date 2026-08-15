@@ -1,0 +1,143 @@
+apiVersion: security.openkubes.io/v1alpha1
+kind: M0bRuntimeRegistrationSecurityCandidate
+metadata:
+  name: ok141-m0b-runtime-registration-security-v1
+  ticket: OK-141
+spec:
+  version: ok141-m0b-runtime-registration-security/v1
+  state: READY-FOR-RISK-DECISION-NO-GO
+  references:
+    runtimeProtocol:
+      path: ../m0b-target-registration-v1/m0b-runtime-registration-protocol-v1.yaml
+      digest: sha256:fde90d77c4ba8b82c86c7b0d3977b4c6ca4799807431c73098d83984177a004b
+    appProject:
+      path: ../m0b-target-registration-v1/appproject-v5-candidate.yaml
+      digest: sha256:9e689020d139a5811f6784ca768cf5b7228ff3844aed31ef6196d2c4916b5f72
+    targetAccess:
+      path: ../m0b-target-registration-v1/target-access-v1.template.yaml
+      digest: sha256:aeb7d1f65a1553bf8b004f0789f705d3c70b330d878bf6032b410491571fe29a
+      objectCount: 8
+    registration:
+      path: ../m0b-target-registration-v1/cluster-registration-v5.template.yaml
+      digest: sha256:fd989de0e4d97ffe333571e82ad91e796899de0c2ed03a18bc1f695ec1e7aadf
+      containsCredential: false
+  runtimeAuthorityDomains:
+    targetBootstrap:
+      plane: disposable-ok141
+      credentialClass: CAPI-workload-kubeconfig-administrator
+      concreteIdentity: RUNTIME-UNBOUND
+      operation: create-only-exact-eight-object-target-access-set
+      maximumRuns: 1
+      admissionConstrained: false
+    targetTokenRequest:
+      plane: disposable-ok141
+      serviceAccount: kube-system/ok141-argocd-manager
+      maximumExpirationSeconds: 10800
+      nativeArgoRotation: false
+      productionSuitable: false
+    gitOpsRegistration:
+      plane: ok-shared
+      namespace: argocd
+      credentialClass: existing-ok-shared-administrator
+      concreteIdentity: RUNTIME-REVERIFY
+      operation: create-only-exact-appproject-and-project-scoped-cluster-secret
+      maximumRuns: 1
+  targetAccessBoundary:
+    namespaces: [ok-observability, kube-system]
+    namespaceBootstrap:
+      name: ok-observability
+      podSecurityLevel: privileged
+      createPerformedBy: target-bootstrap-administrator
+      createAllowedToArgoServiceAccount: false
+    namespacedKinds:
+      core: [ConfigMap, PersistentVolumeClaim, Pod, Secret, Service, ServiceAccount]
+      apps: [DaemonSet, Deployment, StatefulSet]
+      batch: [Job]
+      monitoring.coreos.com: [Alertmanager, Prometheus, PrometheusRule, ServiceMonitor]
+      policy: [PodDisruptionBudget]
+      rbac.authorization.k8s.io: [Role, RoleBinding]
+    clusterScopedKinds:
+      core: [Namespace]
+      admissionregistration.k8s.io: [MutatingWebhookConfiguration, ValidatingWebhookConfiguration]
+      apiextensions.k8s.io: [CustomResourceDefinition]
+      rbac.authorization.k8s.io: [ClusterRole, ClusterRoleBinding]
+    wildcardAllowed: false
+    semanticCreateRestrictionByRBAC: false
+    correctiveOwnership: argo-cd
+    openKubesLifecycleWriterIntroduced: false
+  registrationBoundary:
+    secretType: argocd.argoproj.io/secret-type=cluster
+    project: openkubes-disposable
+    permitOnlyProjectScopedClusters: true
+    nativeDefaultProjectMustRemainUnused: true
+    credentialMaterialization: server-side-or-in-memory-only
+    credentialBytesInGitLogsOrEvidence: forbidden
+    retainedEvidence:
+      - CAPI Cluster UID
+      - workload kube-system UID
+      - workload API CA SHA-256
+      - workload API endpoint
+      - token expiration timestamp
+      - Argo cluster Secret UID
+    tokenRevocationModel: expiry-only-unless-separately-authorized-cleanup
+    expiredCredentialBytesRemovedAutomatically: false
+  submissionBoundary:
+    registrationOnly: true
+    applicationSubmissionIncluded: false
+    atomic: false
+    idempotent: false
+    partialStatePossible: true
+    automaticRetryAllowed: false
+    automaticRollbackAllowed: false
+    cleanupAllowed: false
+  compatibilityBoundary:
+    argoVersion: v3.4.2
+    targetKubernetesVersion: v1.36.2
+    exactCombinationExecutionProven: false
+    result: ACCEPTANCE-OR-LIVE-PROOF-REQUIRED
+  risksRequiringAcceptance:
+    - id: M0B-R1-TARGET-BOOTSTRAP-ADMIN-CONTENT
+      statement: The target access set is digest-bound but a runtime workload administrator performs its create-only submission without an independent admission policy proving complete payload equality.
+    - id: M0B-R1-ARGO-CREATE-CONTENT
+      statement: Kubernetes RBAC limits API groups kinds namespaces and verbs but cannot restrict create requests to the exact rendered object content; Argo can create arbitrary content within the reviewed resource classes.
+    - id: M0B-R1-CLUSTER-SCOPED-PLATFORM-AUTHORITY
+      statement: The platform profile requires Argo authority over CRDs admission webhooks ClusterRoles and ClusterRoleBindings on the disposable DEV target.
+    - id: M0B-R1-PRIVILEGED-POD-SECURITY
+      statement: The required ok-observability Namespace uses the privileged Pod Security level for the bound platform profile.
+    - id: M0B-R1-STATIC-TOKENREQUEST
+      statement: Argo stores one bounded TokenRequest bearer token and does not natively rotate it; expiry interrupts reconciliation and does not automatically remove expired credential bytes from the registration Secret.
+    - id: M0B-R1-CROSS-PLANE-PARTIAL-STATE
+      statement: Ordered creates on the workload and ok-shared are non-atomic and can leave target access AppProject or registration partial state; retry rollback and cleanup are not authorized.
+    - id: M0B-R1-TARGET-COMPATIBILITY
+      statement: Argo CD v3.4.2 behavior against the fixture target Kubernetes v1.36.2 has not been execution-proven for this exact combination.
+    - id: M0B-R1-MATERIALIZER-SECRET-EXPOSURE
+      statement: A future runtime materializer must handle bearer token and CA bytes in memory; implementation defects could expose them through process arguments logs temporary files or retained evidence.
+  compensatingControls:
+    - Exact source paths digests object counts identities and resource scopes are verified immediately before any later execution.
+    - Project-scoped registration and permitOnlyProjectScopedClusters isolate the custom AppProject from the native default project.
+    - The native default project remains without Applications and cannot be used by the disposable target workflow.
+    - The requested token lifetime is at most three hours for a GO-1 wall-clock boundary of two hours.
+    - Credential values are materialized server-side or in memory and are forbidden from Git logs and retained evidence.
+    - Current CAPI UID workload UID CA fingerprint endpoint expiration and registration Secret UID must correlate before any Application submission.
+    - Any mismatch missing identity premature Application or secret disclosure is a STOP condition.
+  requiredBeforeExecutionCandidate:
+    - explicit acceptance of every risk in this exact security candidate
+    - a reviewed redacting materializer with negative secret-disclosure tests
+    - exact runtime bootstrap and ok-shared administrator identities
+    - fresh target identity and NetworkReady evidence
+    - a newly canonicalized protocol and grant candidate binding the exact test window
+  authorization:
+    securityRiskAccepted: false
+    mutationAuthorized: false
+    targetAccessGranted: false
+    tokenRequestGranted: false
+    registrationGranted: false
+    applicationSubmissionGranted: false
+    platformConvergenceGranted: false
+    rollbackOrCleanupGranted: false
+    go1Granted: false
+    failureInjectionGranted: false
+  rules:
+    - This candidate performs no cluster contact and grants no mutation or publication authority.
+    - Acceptance of these risks would not grant target access credentials registration Applications or GO-1.
+    - A separate runtime execution candidate and explicit grants remain mandatory.

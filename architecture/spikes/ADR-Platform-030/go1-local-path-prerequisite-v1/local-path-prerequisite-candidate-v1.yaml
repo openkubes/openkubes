@@ -1,0 +1,79 @@
+apiVersion: execution.openkubes.io/v1alpha1
+kind: GO1LocalPathPrerequisiteCandidate
+metadata:
+  name: ok141-local-path-prerequisite-v1
+  ticket: OK-141
+  baseCommit: 044fa0a
+spec:
+  version: ok141-local-path-prerequisite/v1
+  state: OFFLINE-PROVEN-BLOCKED-NO-GO
+  failureSemantics: STOP-PRESERVE-NO-RETRY
+  predecessor:
+    diagnosticCandidatePath: ../go1-runtime-binding-diagnostic-v1/runtime-binding-diagnostic-candidate-v1.yaml
+    diagnosticCandidateDigest: sha256:97ca8678f47fe27f3f770c2ada6c9feb33450fb5f54cd9b78492e0f47bedbb16
+    privateDiagnosticEvidencePath: /private/tmp/ok141-runtime-binding-diagnostic-v1-evidence.json
+    privateDiagnosticEvidenceDigestBoundByGrant: true
+    requiredFinding: LOCAL-PATH-ABSENT
+  source:
+    openKubesWorkflow:
+      repository: openkubes/ok-cluster
+      commit: c4bb72e368bdedb92d75485ce9972d86e8a75210
+      makeTarget: install-storage
+    repository: rancher/local-path-provisioner
+    tag: v0.0.30
+    commit: c4fdcada94c2e632cd7d9231e73406d554eb40e2
+    url: https://raw.githubusercontent.com/rancher/local-path-provisioner/v0.0.30/deploy/local-path-storage.yaml
+    path: upstream-local-path-storage-v0.0.30.yaml
+    digest: sha256:fe682186b00400fe7e2b72bae16f63e47a56a6dcc677938c6642139ef670045e
+  projection:
+    path: local-path-storage-ok141-v1.yaml
+    digest: sha256:d8404ff79705f87d5ec3fde7a0753e904e9261a277bbae3cca8650046c29a59f
+    semanticDigest: sha256:e8b8996c1ae052d0dcfac83906cebfbe95293f15a3ae2825523f6ee0dabda240
+    objectCount: 9
+    provisionerImage: rancher/local-path-provisioner@sha256:9b914881170048f80ae9302f36e5b99b4a6b18af73a38adc1c66d12f65d360be
+    helperImage: busybox@sha256:dc2d74b28e4cf8984fa52af1f39bc7c3d9c73760b41a74d629f5d11b1ab28616
+  objects:
+    - {id: namespace, get: /api/v1/namespaces/local-path-storage, post: /api/v1/namespaces}
+    - {id: serviceaccount, get: /api/v1/namespaces/local-path-storage/serviceaccounts/local-path-provisioner-service-account, post: /api/v1/namespaces/local-path-storage/serviceaccounts}
+    - {id: role, get: /apis/rbac.authorization.k8s.io/v1/namespaces/local-path-storage/roles/local-path-provisioner-role, post: /apis/rbac.authorization.k8s.io/v1/namespaces/local-path-storage/roles}
+    - {id: clusterrole, get: /apis/rbac.authorization.k8s.io/v1/clusterroles/local-path-provisioner-role, post: /apis/rbac.authorization.k8s.io/v1/clusterroles}
+    - {id: rolebinding, get: /apis/rbac.authorization.k8s.io/v1/namespaces/local-path-storage/rolebindings/local-path-provisioner-bind, post: /apis/rbac.authorization.k8s.io/v1/namespaces/local-path-storage/rolebindings}
+    - {id: clusterrolebinding, get: /apis/rbac.authorization.k8s.io/v1/clusterrolebindings/local-path-provisioner-bind, post: /apis/rbac.authorization.k8s.io/v1/clusterrolebindings}
+    - {id: configmap, get: /api/v1/namespaces/local-path-storage/configmaps/local-path-config, post: /api/v1/namespaces/local-path-storage/configmaps}
+    - {id: storageclass, get: /apis/storage.k8s.io/v1/storageclasses/local-path, post: /apis/storage.k8s.io/v1/storageclasses}
+    - {id: deployment, get: /apis/apps/v1/namespaces/local-path-storage/deployments/local-path-provisioner, post: /apis/apps/v1/namespaces/local-path-storage/deployments}
+  readiness:
+    deploymentAvailableReplicas: 1
+    storageClassProvisioner: rancher.io/local-path
+    volumeBindingMode: WaitForFirstConsumer
+    reclaimPolicy: Delete
+    defaultClass: true
+    maximumPolls: 60
+    intervalSeconds: 10
+  evidence:
+    outputPath: /private/tmp/ok141-local-path-prerequisite-v1-evidence.json
+    rawMayRetain: [exact object identities, created UIDs, ResourceVersions, stage results]
+    publicationForbiddenWithoutSeparateGrant: true
+  tool:
+    rendererPath: render_local_path_prerequisite_v1.py
+    rendererDigest: sha256:ff03da99a19c6c4c27c96ebf7ffcffb7efa204a63343b52402bd2ed218eb1b7c
+    executorPath: bounded_local_path_prerequisite_v1.py
+    executorDigest: sha256:fca9bb4483f2d65262684cdcf30561ecea2773422b85440d95fa6463efb10977
+  authorization:
+    decision: NO-GO
+    riskAcceptanceGranted: false
+    clusterContactGranted: false
+    managementCredentialUseGranted: false
+    exactSecretReadGranted: false
+    ephemeralCredentialMaterializationGranted: false
+    workloadCredentialUseGranted: false
+    exactAbsencePreflightGranted: false
+    exactCreateOnlyGranted: false
+    readinessObservationGranted: false
+    runtimeBindingGranted: false
+    happyRunResumeGranted: false
+    retryGranted: false
+    rollbackOrCleanupGranted: false
+    evidencePublicationGranted: false
+    failureInjectionGranted: false
+    grantIDs: []

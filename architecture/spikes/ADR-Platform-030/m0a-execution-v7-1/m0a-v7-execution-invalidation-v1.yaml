@@ -1,0 +1,37 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: M0aExecutionCandidateInvalidation
+metadata:
+  name: ok141-m0a-v7-admission-semantics
+  ticket: OK-141
+spec:
+  version: ok141-m0a-execution-invalidation/v1
+  state: INVALID-FOR-EXECUTION
+  affectedSecurityCandidate:
+    path: ../m0a-execution-v7/m0a-v7-security-boundary.yaml
+    digest: sha256:1f6afda15207c76d9562a8f95bc7422a7d2f23b528695c567c781abe9fdeb8a5
+  acceptedRiskRecord:
+    path: ../m0a-v7-risk-acceptance/m0a-v7-risk-acceptance-v1.yaml
+    digest: sha256:046dc53a39c6b8c6aa25f80f7862f39aed8721ae815148add05a0bc55fd5686b
+    remainsHistoricalEvidence: true
+    grantsExecutionAuthority: false
+  defect:
+    id: M0A-V7-CONJUNCTIVE-VALIDATIONS
+    observedValidationEntries: 2
+    intendedSemantics: cluster-scoped-identities OR namespaced-identities
+    actualSemantics: every validation entry must succeed
+    effect: reviewed requests cannot satisfy both mutually exclusive identity sets
+  resolution:
+    method: additive-v7.1-correction
+    preserveAcceptedDigest: true
+    newRiskAcceptanceRequired: true
+  authorization:
+    decision: NO-GO
+    mutationAuthorized: false
+    evidencePublicationGranted: false
+    retryGranted: false
+    rollbackGranted: false
+    m0bInstallationGranted: false
+    go1Granted: false
+    targetConvergenceGranted: false
+    failureInjectionGranted: false
+

@@ -1,0 +1,123 @@
+apiVersion: recovery.openkubes.io/v1alpha1
+kind: GO1LRecreationPreflight
+metadata:
+  name: ok141-go1-l-recreation-preflight-v1
+  ticket: OK-141
+  baseCommit: 02208a39887a3f114da5515ca508e53cea2b1ec9
+spec:
+  version: ok141-go1-l-recreation-preflight/v1
+  state: OFFLINE-PREPARED-BLOCKED-NO-GO
+  cleanBaseline:
+    path: ../go1-l-recovery-v1/r3-r4-redacted-closure-candidate-v1.yaml
+    digest: sha256:797a61fb61cc3ed0e4e57efb07cc5654ae2162b4e7b0c445029ae8e6f0b21674
+    requiredState: PASS-R4-CLEAN-BASELINE
+  correctedFixture:
+    path: ../harness/fixtures/execution/phase-r-v5.json
+    fileDigest: sha256:e1a159ffcf32191dfba9d7455c67a38557f62ede37902b722e302ad298386068
+    fixtureDigest: sha256:7536456a762880a78a37dcba76a5f3f0628140bd37b55d5fd62273c64e4cc3eb
+    R: sha256:166504ae61fd558d391daedde50986cbc7a28f5f4e9d57f4acbd0433b448aa0f
+    E: sha256:2a849d69e9c64344e907c1bce3bb1abf3d8f77217377081a5be055d62c213300
+    P: sha256:b0f25c639a45d895b889997f5ecc2325db45dd5d51b0684998c94d5e17bd47bf
+  rejectedHistoricalExecutionArtifacts:
+    - path: ../go1-v5/go1-protocol-v5.yaml
+      digest: sha256:685b7e142e9b2e67dcee89ef091df93e4b9aa5d43ff32c7becf6df743e3df2b9
+      allowedForRecreation: false
+      reason: protocol remains bound to Phase-R v4
+    - path: ../go1-l-submitter-v1/go1-l-submitter-candidate-v1.yaml
+      digest: sha256:e5b4185b7dcd4f1e3fb026d03ce29b5b35e0b6c5c6e51f29d921a240636b73cc
+      allowedForRecreation: false
+      reason: submitter remains bound to Phase-R v4 and lacks provider-access Secret sequencing
+  projection:
+    providerPrerequisites:
+      path: ../harness/projections/phase-r-v5/ok-infra-prerequisites.yaml
+      rawDigest: sha256:45d6fea6739d49cb74d4a50354976b6cbb7d64e00e3509c228174f1a31b6f9d3
+      semanticDigest: sha256:48280ac428d1f0c18bdcdbae7a8e12ab966ce0f57a0381f72ab51b4cb68e9e85
+      objectCount: 3
+    managementLifecycle:
+      path: ../harness/projections/phase-r-v5/ok-mgmt-lifecycle.yaml
+      rawDigest: sha256:631142d66ca6a02cbea9e758473c85fe9ba779803a918975a9bc571af62b7cf7
+      semanticDigest: sha256:585c5c4f6cfdeb8915954b193874c4cb23714e1214034b52886150101038ee6d
+      objectCount: 8
+      namespaceSemanticDigest: sha256:b1771f137e64ae09c27cc9d446af561067e7a4f7ea3d0ae7886588b4f2ca4ce7
+      remainingSemanticDigest: sha256:3f5025be5dc20c73910e33533d67cf99038f6f38a07ac82ed08acee252ef59ff
+  providerAccess:
+    sourcePlane: ok-infra
+    destinationPlane: ok-mgmt
+    sourceCredentialPath: /Users/arash/.kube/ok-infra.yaml
+    secretRef:
+      apiVersion: v1
+      kind: Secret
+      name: external-infra-kubeconfig-disposable-ok141
+      namespace: disposable-ok141
+    secretDataKey: kubeconfig
+    credentialBytesInRepositoryAllowed: false
+    credentialBytesInArgumentsAllowed: false
+    credentialBytesInEnvironmentAllowed: false
+    credentialBytesInLogsOrEvidenceAllowed: false
+    materializerRequired: true
+    materializerImplemented: false
+  requiredSequence:
+    - id: provider-prerequisites
+      order: 1
+      plane: ok-infra
+      operation: create-reviewed-static-object-set
+      objectCount: 3
+    - id: management-namespace
+      order: 2
+      plane: ok-mgmt
+      operation: create-reviewed-document-slice
+      documentIndices: [0]
+      objectCount: 1
+    - id: provider-access-secret
+      order: 3
+      plane: ok-mgmt
+      operation: materialize-exact-secret-from-local-ok-infra-kubeconfig
+      objectCount: 1
+    - id: capi-lifecycle
+      order: 4
+      plane: ok-mgmt
+      operation: create-reviewed-document-slice
+      documentIndices: [1, 2, 3, 4, 5, 6, 7]
+      objectCount: 7
+    - id: helmchartproxy
+      order: 5
+      plane: ok-mgmt
+      operation: create-reviewed-static-object-set-after-current-lifecycle-evidence
+      objectCount: 1
+  invariants:
+    - Phase-R v4 protocol and submitter artifacts cannot be reused for recreation.
+    - The management Namespace must exist before provider-access Secret materialization.
+    - The exact provider-access Secret must exist before KubevirtCluster creation.
+    - The static Phase-R v5 projection never contains credential bytes or a Secret object.
+    - The eight management projection documents are only sliced for submission; their combined semantic identity is unchanged.
+    - Every operation requires a separate current single-run grant and predecessor receipt.
+    - Partial state stops without retry rollback cleanup or continuation.
+  blockers:
+    - id: RECREATION-PROTOCOL
+      state: BLOCKED
+      closure: create an additive protocol bound to Phase-R v5 and the R4 clean-baseline receipt
+    - id: SUBMITTER-V2
+      state: BLOCKED
+      closure: implement reviewed document slicing and the five-step operation order
+    - id: PROVIDER-ACCESS-MATERIALIZER
+      state: BLOCKED
+      closure: implement secret-safe exact materialization with no credential-byte evidence
+    - id: OPERATION-CREDENTIALS-AND-GRANTS
+      state: BLOCKED
+      closure: bind fresh independent credentials and grants only after all offline mechanisms merge
+  verifier:
+    path: verify_recreation_preflight_v1.py
+    digest: sha256:3f77373add064b98213cd5b96d6c5a2297c9f2f36f620d269d4773c4901f583f
+  authorization:
+    credentialUseGranted: false
+    secretMaterializationGranted: false
+    providerPrerequisitesGranted: false
+    managementNamespaceGranted: false
+    lifecycleGranted: false
+    helmChartProxyGranted: false
+    recreationGranted: false
+    retryGranted: false
+    rollbackOrCleanupGranted: false
+    go1LGranted: false
+    go1Granted: false
+    failureInjectionGranted: false

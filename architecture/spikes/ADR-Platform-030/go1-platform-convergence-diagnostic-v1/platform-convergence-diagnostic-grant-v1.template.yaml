@@ -1,0 +1,26 @@
+apiVersion: authorization.openkubes.io/v1alpha1
+kind: GO1PlatformConvergenceDiagnosticGrant
+metadata:
+  name: FILL
+spec:
+  decision: NO-GO
+  authority: github:arashkaffamanesh
+  candidateDigest: FILL
+  grantID: FILL
+  singleRun: true
+  consumed: false
+  issuedAt: FILL
+  expiresAt: FILL
+  clusterContactGranted: false
+  credentialUseGranted: false
+  exactApplicationReadsGranted: false
+  readOnlyDiagnosticGranted: false
+  secretReadGranted: false
+  podOrLogReadGranted: false
+  targetClusterAccessGranted: false
+  mutationGranted: false
+  retryGranted: false
+  rollbackOrCleanupGranted: false
+  happyRunResumeGranted: false
+  evidencePublicationGranted: false
+  failureInjectionGranted: false

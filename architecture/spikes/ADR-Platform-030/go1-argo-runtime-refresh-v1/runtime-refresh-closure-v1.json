@@ -1,0 +1,74 @@
+{
+  "apiVersion": "evidence.openkubes.io/v1alpha1",
+  "kind": "GO1ArgoRuntimeRefreshClosure",
+  "metadata": {
+    "name": "ok141-argo-runtime-refresh-closure-v1",
+    "ticket": "OK-141"
+  },
+  "execution": {
+    "candidateDigest": "sha256:89b3ea187a8b4cb25b8e61a37d44ed7bbe3e153580535c962e4a0c97601ec5dd",
+    "evidenceDigest": "sha256:c4aa3a893c0f05eb817e0e289c4da7d1c5eba2671561110f9e88dc110c3f8394",
+    "state": "STOP-PRESERVE-NO-RETRY",
+    "controllerRestartPerformed": true,
+    "replacementUIDChanged": true,
+    "replacementRunningAndReady": true,
+    "replacementObservationIterations": 4,
+    "applicationObservationIterations": 40,
+    "applicationReady": false,
+    "explicitApplicationOperationSubmitted": false,
+    "applicationChanged": false,
+    "credentialReadPerformed": false,
+    "targetReadPerformed": false,
+    "rollbackOrCleanupPerformed": false,
+    "failureInjectionPerformed": false
+  },
+  "postExecution": {
+    "coreHealth": "Healthy",
+    "coreSync": "OutOfSync",
+    "blockingConditions": ["SyncError"],
+    "advisoryConditions": ["OrphanedResourceWarning"],
+    "currentRevision": true,
+    "exactClusterRoleStatus": {
+      "synced": 4,
+      "outOfSync": 1,
+      "outOfSyncName": "ok-observability-operator"
+    }
+  },
+  "diagnostics": {
+    "semanticDiff": {
+      "candidateDigest": "sha256:8e920eda64adc50dc05b7b3a03e9964b9c5bb4b34d511f2a9d2166b0827cd790",
+      "evidenceDigest": "sha256:33e8462681e4bd5e5083ce812208a5706d415ac830a15b11bf6c8fbcbb9771f2",
+      "rulesEquivalent": true,
+      "labelsEquivalent": true,
+      "aggregationRuleEquivalent": true
+    },
+    "trackingMetadata": {
+      "candidateDigest": "sha256:805c714416f44c5fa8916e717e70941ef22de556796a7640e2a1c007cd2b77c7",
+      "evidenceDigest": "sha256:3deee1c9dcb4073bd41e43f3b16851722f1f7090d438780bd127287089206df1",
+      "distinctAnnotationKeySets": 1,
+      "annotationKeysOnAllFive": []
+    },
+    "ruleOrdering": {
+      "candidateDigest": "sha256:e21cc9d4317948aeba6a504ec202898c542b66fa7da3a6716078277e559edc1d",
+      "evidenceDigest": "sha256:619a2fb91cd10ddba7c1f60e442badd0b869e13cf3546849a9442ec669985a73",
+      "exactRuleSequenceEquivalent": true,
+      "normalizedRuleSequenceEquivalent": true
+    }
+  },
+  "conclusion": {
+    "broadRuntimeCacheHypothesis": "DISPROVEN",
+    "currentFaultBoundary": "ARGO-COMPARISON-STATE-FOR-ONE-SEMANTICALLY-EQUAL-CLUSTERROLE",
+    "explicitFurtherSyncAuthorized": false,
+    "happyRunComplete": false
+  },
+  "publication": {
+    "rawEvidenceIncluded": false,
+    "rawObjectsIncluded": false,
+    "rawMessagesIncluded": false,
+    "annotationValuesIncluded": false,
+    "uidsIncluded": false,
+    "resourceVersionsIncluded": false,
+    "credentialsIncluded": false,
+    "endpointsIncluded": false
+  }
+}

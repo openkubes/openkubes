@@ -1,0 +1,63 @@
+apiVersion: authorization.openkubes.io/v1alpha1
+kind: M0bInstallationGrantCandidate
+metadata:
+  name: ok141-m0b-v2-direct-admin-create-only
+  ticket: OK-141
+spec:
+  version: ok141-m0b-installation-grant-candidate/v2
+  state: READY-FOR-EXPLICIT-GRANT
+  references:
+    executionCandidate:
+      path: m0b-v2-execution-candidate.yaml
+      digest: sha256:2a3370b46fc70d7eeafb455dfa13fb4cbdf37d1189e801b581539e1ebec2ef3c
+    finalLivePreflight:
+      path: m0b-v2-final-live-preflight-v1.yaml
+      digest: sha256:6b58e3ddce017732155276288f028f6f1b7ac74155d4dddd52c78d02e495f6e3
+    readinessCandidate:
+      path: m0b-v2-readiness-candidate.yaml
+      digest: sha256:7a1ffffb41ca67b911b3a0d36b4ef5111467a48132b1089a5541e030ec9e195e
+  requestedOperation:
+    gate: M0b-I-v2
+    targetPlane: ok-shared
+    operation: DIRECT-ADMIN-TWO-PHASE-CREATE-ONLY
+    candidateDigest: sha256:2a3370b46fc70d7eeafb455dfa13fb4cbdf37d1189e801b581539e1ebec2ef3c
+    objectCount: 54
+    phase1Objects: 4
+    phase2Objects: 50
+    maximumRuns: 1
+    rawEvidencePath: /private/tmp/ok141-m0b-v2-execution-evidence-20260813.json
+  closedPreconditions:
+    sourceRefresh: PASS-POINT-IN-TIME
+    targetIncarnation: PASS-POINT-IN-TIME
+    administratorIdentity: PASS-POINT-IN-TIME
+    objectAbsence: PASS-POINT-IN-TIME
+    imageIdentity: PASS-POINT-IN-TIME
+  explicitGrantFields:
+    authority: github:arashkaffamanesh
+    grantID: null
+    validFrom: null
+    validUntil: null
+    candidateDigestMustBeCitedExactly: true
+  exclusions:
+    - rollback
+    - retry
+    - target-registration
+    - target-credentials
+    - AppProject-Application-ApplicationSet-submission
+    - target-convergence
+    - platform-convergence
+    - go-1
+    - failure-injection
+  authorization:
+    decision: NO-GO
+    mutationAuthorized: false
+    m0bInstallationGranted: false
+    rollbackGranted: false
+    targetRegistrationGranted: false
+    targetConvergenceGranted: false
+    go1Granted: false
+    failureInjectionGranted: false
+  rules:
+    - This grant candidate authorizes no mutation.
+    - A future grant must cite the exact digest of this document and bind one grant ID and active UTC window.
+    - Any changed precondition candidate source target tool payload evidence path or boundary requires a new candidate.

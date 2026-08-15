@@ -1,0 +1,34 @@
+apiVersion: governance.openkubes.io/v1alpha1
+kind: M0bRiskAcceptance
+metadata:
+  name: ok141-m0b-v2-2-native-default-project
+  ticket: OK-141
+spec:
+  version: ok141-m0b-default-project-risk-acceptance/v2.2
+  state: ACCEPTED-BOUNDARY-NO-MUTATION
+  authority: github:arashkaffamanesh
+  acceptedAt: "2026-08-13T12:18:24Z"
+  readinessCandidateDigest: sha256:28f787bbeacf68345392826a0f651540591b6fd42d6c17f96071d3ec9bfd976a
+  acceptedRisk:
+    object: AppProject/argocd/default
+    origin: native Argo CD v3.4.2 server bootstrap
+    sourceRepos: ["*"]
+    destinations:
+      - {namespace: "*", server: "*"}
+    clusterResourceWhitelist:
+      - {group: "*", kind: "*"}
+    boundedWhile:
+      targetCredentials: 0
+      applications: 0
+      applicationSets: 0
+  authorization:
+    mutationAuthorized: false
+    targetRegistrationGranted: false
+    targetConvergenceGranted: false
+    evidencePublicationGranted: false
+    go1Granted: false
+    failureInjectionGranted: false
+  rules:
+    - This acceptance applies only while the stated zero-target-state boundary remains true.
+    - It does not authorize modifying deleting or using the default project.
+

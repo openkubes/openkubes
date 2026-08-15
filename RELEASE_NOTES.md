@@ -2,6 +2,57 @@
 
 ---
 
+## v0.15.0 — Governed Artifact Supply and Execution Evidence
+
+> **OpenKubes separates immutable desired-state evidence from the authority to execute it.**
+
+### What's New
+
+**Governed artifact registry**
+- The central zot capability now has reviewed production values, OIDC integration,
+  explicit machine and human consumer identities, and Talos registry trust for
+  the current `ok-shared` and `ok-ai` consumers.
+- Release sets bind container images and OCI Helm charts by digest, including
+  recursive referrer closure and identity-aware pull verification.
+- Offline export/import, scratch restore verification, disaster-recovery tooling,
+  upgrade/rollback drills, and consumer-onboarding checks are fail-closed and
+  covered by deterministic negative controls.
+
+**Control-plane execution evidence (OK-141)**
+- ADR-Platform-030/031 spike evidence now separates contracts, authority,
+  bounded submission, existing controller reconciliation, enablement, GitOps,
+  evaluation, and durable evidence.
+- Phase-R fixtures and GO-1 protocols bind immutable intent, enablement,
+  platform, projection, authority-domain, and evidence identities while
+  preserving every historical revision.
+- Installation, observer, retention, alerting, and recovery boundaries are
+  explicitly modeled. No broad OpenKubes lifecycle operator has been proven
+  necessary.
+- This remains a DEV spike: GO-1, infrastructure mutation, failure injection,
+  production HA, automatic adoption, and production DR claims are not granted.
+
+**Cluster and capability integrations**
+- `ok-cluster` adds bounded Talos registry trust, a metrics-only observability
+  path, standalone kagent access controls, and documented recovery/onboarding
+  behavior.
+- `ok-observability` now carries its authoritative chart dependency closure in
+  Git and resolves the exact Helm renderer used by the reviewed render lock.
+- `ok-storage` adds an explicitly guarded, non-HA GPU demo StorageClass outside
+  the stable production storage contract.
+
+### Release Train
+
+| Repository | Release |
+|---|---:|
+| `openkubes/openkubes` | `v0.15.0` |
+| `openkubes/ok-cluster` | `v0.15.0` |
+| `openkubes/ok-linux` | `v0.3.0` |
+| `openkubes/ok-observability` | `v0.14.0` |
+| `openkubes/ok-storage` | `v0.2.0` |
+| `openkubes/ok-local` | `v0.1.0` |
+
+---
+
 ## v0.14.0 — Central Identity and Governed Application Claims
 
 > **Human intent is authenticated centrally and constrained before it becomes platform state.**

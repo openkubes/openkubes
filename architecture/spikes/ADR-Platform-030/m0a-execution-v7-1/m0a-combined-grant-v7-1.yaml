@@ -1,0 +1,25 @@
+apiVersion: authorization.openkubes.io/v1alpha1
+kind: CombinedGateGrant
+metadata: {name: ok141-m0a-ap1-c1-a1-i-v7-1-20260813-01, ticket: OK-141}
+spec:
+  version: ok141-m0a-combined-grant/v7.1
+  state: GO
+  candidateDigest: sha256:314ba6303c61a18234c8946d4152181fc3bf139e9faa04bcc8eb629f6cb4be3b
+  authority: github:arashkaffamanesh
+  decision: GO
+  mutationAuthorized: true
+  administratorPrerequisiteGrant: {gate: M0A-AP1-v7.1, granted: true, grantID: ok141-m0a-ap1-v7-1-20260813-01}
+  credentialGrant: {gate: M0A-C1-v7.1, granted: true, grantID: ok141-m0a-c1-v7-1-20260813-01}
+  admissionGrant: {gate: M0A-A1-v7.1, granted: true, grantID: ok141-m0a-a1-v7-1-20260813-01}
+  installationGrant: {gate: M0a-I-v7.1, granted: true, grantID: ok141-m0a-i-v7-1-20260813-01}
+  validFrom: "2026-08-13T09:45:00Z"
+  validUntil: "2026-08-13T12:45:00Z"
+  maximumRuns: 1
+  evidenceOutputPath: /private/tmp/ok141-m0a-v7-1-execution-evidence-20260813.json
+  retryGranted: false
+  rollbackGranted: false
+  targetConvergenceGranted: false
+  m0bInstallationGranted: false
+  go1Granted: false
+  evidencePublicationGranted: false
+  failureInjectionGranted: false

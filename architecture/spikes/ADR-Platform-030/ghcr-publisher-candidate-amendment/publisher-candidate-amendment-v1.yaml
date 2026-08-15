@@ -1,0 +1,54 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: GHCRPublisherCandidateAmendment
+metadata:
+  name: ok141-ghcr-publisher-candidate-amendment-v1
+  ticket: OK-141
+spec:
+  version: ok141-ghcr-publisher-candidate-amendment/v1
+  state: IMPLEMENTED-OFFLINE-INERT-BLOCKED-NO-GO
+  baseline:
+    repository: openkubes/openkubes
+    commit: a491c87edb493b15e8a7a655e1e6229238650c7f
+    release: v0.15.0
+  sourcePrototype:
+    path: ../ghcr-publisher-offline-prototype/publisher-offline-prototype-v1.yaml
+    digest: sha256:023cfad2d496ec0145e212b9e5bb996e3ef200fba8947d521e6ad2b2fce3252c
+  sourcePreflight:
+    path: ../ghcr-publisher-deployment-preflight/publisher-deployment-preflight-v1.yaml
+    digest: sha256:f8a4b743f8af81ba22d780726260edde2b9a6f197544cd8ff8b9b00d58a132ce
+  candidate:
+    path: candidate/ok141-evidence-publisher-v2.workflow.yaml
+    digest: sha256:551217327ef2a45aa151f9401ddf7192a3a1ae57d949fa9fad4322ef180cd7f4
+    futureDeploymentPath: .github/workflows/ok141-evidence-publisher.yaml
+    futureDeploymentPathPresent: false
+    trigger: workflow_dispatch
+    jobSourceRefGuard: refs/heads/main
+    requiredInputs: [source-run-id, source-workflow-id, source-head-sha, protocol-digest]
+    sourceRunChecks: [repository, event, head_branch, head_sha, workflow_id, status, conclusion]
+    evidenceChecks: [runId, protocolDigest]
+    sourceMetadataPersistedInOCIPayload: false
+  resolvedBlockers:
+    sourceRefGuard: IMPLEMENTED-OFFLINE
+    sourceRunMetadataGuard: IMPLEMENTED-OFFLINE
+  remainingBlockers:
+    - Persist or separately retain the accepted source-run metadata correlation for P0 evidence.
+    - Create and observe the protected environment under E0 before W0.
+    - Bind the exact amended candidate digest into a W0 deployment protocol.
+    - Re-resolve action and ORAS identities in the eventual authorization window.
+  authorization:
+    decision: NO-GO
+    e0Granted: false
+    w0Granted: false
+    p0Granted: false
+    workflowDeploymentAuthorized: false
+    workflowDispatchAuthorized: false
+    packageWriteAuthorized: false
+    externalWriteAuthorized: false
+    infrastructureMutationAuthorized: false
+    go1Granted: false
+  rules:
+    - This amendment is inert and cannot deploy or dispatch a workflow.
+    - Source-ref and source-run checks must complete before artifact download or any registry write.
+    - Environment protection is defense in depth and does not replace the workflow source-ref guard.
+    - Source-run correlation in logs is not yet durable OCI evidence.
+    - E0 W0 P0 GO-1 infrastructure mutation and failure injection remain NO-GO.

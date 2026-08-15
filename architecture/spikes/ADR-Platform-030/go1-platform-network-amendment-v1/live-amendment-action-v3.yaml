@@ -1,0 +1,47 @@
+apiVersion: execution.openkubes.io/v1alpha1
+kind: BoundedPlatformNetworkAmendmentAction
+metadata:
+  name: ok141-platform-network-amendment-live-v3
+spec:
+  actionID: ok141-platform-network-amendment-live-20260815-v3
+  authorization:
+    state: GRANTED
+    source: standing-dev-execution-envelope-v1
+    envelopeDigest: sha256:85e997df331d2ced4ea147c32cc4a94a419e9efdba6de17d8a8ef3cb1dbeac93
+  predecessor:
+    actionID: ok141-platform-network-amendment-live-20260815-v2
+    evidencePath: /private/tmp/ok141-platform-network-amendment-live-v2-evidence.json
+    evidenceDigest: sha256:be7612082f316b3a4fbdb5f65845b2cbf86b578be6aecd163a82931371edacb1
+    state: STOP-LOCAL-VALIDATION-ZERO-UPDATES
+    retryReason: corrected-yaml-loader-api-before-any-write
+  amendment:
+    path: platform-network-amendment-v1.yaml
+    fixtureDigest: sha256:3aa621cd8f3b21e87a5d7059911d02a4b0f10f2d724df351750787eb274b9ae6
+    R: sha256:89248df8cd908394d2d75c18fbb39d52d84cf181f66480c743bfe9d732a0aaa4
+    E: sha256:2a849d69e9c64344e907c1bce3bb1abf3d8f77217377081a5be055d62c213300
+    P: sha256:02206b92b487a0f12eee8139d82f9ef150ab9688c7a60687d3f7b6b782266472
+  precondition:
+    oldFixtureDigest: sha256:7536456a762880a78a37dcba76a5f3f0628140bd37b55d5fd62273c64e4cc3eb
+    oldR: sha256:166504ae61fd558d391daedde50986cbc7a28f5f4e9d57f4acbd0433b448aa0f
+    oldP: sha256:b0f25c639a45d895b889997f5ecc2325db45dd5d51b0684998c94d5e17bd47bf
+    lifecycleCarrierRule: old-R-required-old-FixtureDigest-absent-accepted
+    enablementRegistrationApplicationCarrierRule: old-R-and-old-FixtureDigest-required
+  operation:
+    managementLifecycleMetadataObjects: 8
+    helmChartProxyMetadataObjects: 1
+    registrationMetadataObjects: 1
+    applicationMetadataObjects: 3
+    applicationSpecObjects: 1
+    exactSemanticSpecChange: disable-five-target-incompatible-kube-prometheus-components
+    optimisticConcurrency: resourceVersion-guarded-replace-with-uid-pre-post-check
+    automaticArgoReconciliationExpected: true
+  outputPath: /private/tmp/ok141-platform-network-amendment-live-v3-evidence.json
+  exclusions:
+    - delete
+    - force-delete
+    - finalizer-change
+    - wildcard-rbac
+    - credential-change
+    - further-retry
+    - rollback
+    - failure-injection

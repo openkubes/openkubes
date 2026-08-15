@@ -1,0 +1,85 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: GO1LRecoveryR3R4ClosureCandidate
+metadata:
+  name: ok141-go1-l-recovery-r3-r4-closure-v1
+  ticket: OK-141
+spec:
+  state: VERIFIED-REDACTED-LOCAL-NOT-PUBLISHED
+  cleanup:
+    candidateDigest: sha256:71ef9c406a772bae02bdb0706e09cc49a772afb3d29a5ee87c11ae93144f4664
+    runtimeBindingDigest: sha256:4bf74beb4759302232ad06245ac643302f1d9b6ef167ae87340f2bdef9ca3a4c
+    grantDigest: sha256:10be5c39d96fc66c00a74f96ce2ba2a681f968830d95839e88d6ba0d611f0695
+    grantID: ok141-go1-l-recovery-r3-20260814-01
+    rawEvidence:
+      path: /private/tmp/ok141-go1-l-recovery-r3-cleanup-evidence.json
+      digest: sha256:675e0e0fc8a81cba404520bbf3efae00c919e986b807982696c2f0e9335ac44d
+      mode: "0600"
+      publicationAuthorized: false
+    execution:
+      startedAt: "2026-08-14T09:18:04.508459+00:00"
+      completedAt: "2026-08-14T09:18:05.934722+00:00"
+      state: ALL-DELETES-ACCEPTED
+      plannedObjects: 3
+      submittedObjects: 3
+      order:
+        - rbac.authorization.k8s.io/v1|RoleBinding|ok-images|disposable-ok141-talos-golden-image-cloner
+        - rbac.authorization.k8s.io/v1|Role|ok-images|disposable-ok141-talos-golden-image-cloner
+        - v1|Namespace|_|disposable-ok141
+      uidAndResourceVersionPreconditionsUsed: true
+      forceDeleteUsed: false
+      finalizerMutationPerformed: false
+      retryPerformed: false
+      automaticRollbackPerformed: false
+      credentialBytesEmitted: false
+  observation:
+    candidateDigest: sha256:36fce334736ffa7c4c2115eab2507452baabd63ddf22a53c3ffda2ba7f3786bf
+    grantDigest: sha256:dc78e2ec0d466687cea1711017d6434b382ebc52f9055b035579b3ec7684348d
+    grantID: ok141-go1-l-recovery-r4-20260814-01
+    rawEvidence:
+      path: /private/tmp/ok141-go1-l-recovery-r4-v1-evidence.json
+      digest: sha256:621fea800e550d801829b99c8ea513aa25ae56776776cda9cc9594ffb1b85020
+      mode: "0600"
+      publicationAuthorized: false
+    execution:
+      startedAt: "2026-08-14T09:28:20.348657+00:00"
+      completedAt: "2026-08-14T09:28:25.325357+00:00"
+      closureState: PASS-R4-CLEAN-BASELINE
+      pollIterations: 1
+      pollFinalOutcome: ABSENT
+      okMgmt:
+        queryCount: 14
+        absent: 12
+        apiNotServed: 2
+        present: 0
+      okInfra:
+        queryCount: 6
+        absent: 6
+        apiNotServed: 0
+        present: 0
+      credentialBytesEmitted: false
+      secretReadsPerformed: false
+      mutationPerformed: false
+  conclusion:
+    failedLifecycleStateAbsent: true
+    providerRuntimeAbsent: true
+    infrastructurePrerequisitesAbsent: true
+    cleanBaselineProven: true
+    recreationPerformed: false
+    go1LComplete: false
+    go1Complete: false
+  redaction:
+    containsUIDs: false
+    containsResourceVersions: false
+    containsCredentials: false
+    containsSecrets: false
+    containsKubeconfigs: false
+    containsTokens: false
+    containsPrivateKeys: false
+  authorization:
+    publicationAuthorized: false
+    recreationAuthorized: false
+    retryAuthorized: false
+    rollbackAuthorized: false
+    go1LAuthorized: false
+    go1Authorized: false
+    failureInjectionAuthorized: false

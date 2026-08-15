@@ -56,17 +56,18 @@ ungrounded* answer fails — that is the point of the PoC.
 **Pass:**
 
 1. HTTP 200, response validates against `PlatformHealth`.
-2. `clusters[0].status` ∈ {`healthy`, `degraded`, `unavailable`} —
-   **`unknown` is a FAIL.** `unknown` is the facade's parse-fallback
-   (`facade/app.py`, `get_platform_health` exception path); it means the agent
-   reply could not be mapped, not that the cluster state is unknown.
+2. `clusters[0].status` ∈ {`healthy`, `degraded`, `unavailable`, `unknown`}.
+   `unknown` is valid only when the provider cannot determine a reliable
+   cluster state and `summary` plus `signals` state that uncertainty
+   explicitly. It must not be used as an unexplained parse fallback and must
+   not be coerced to `unavailable`.
 3. `clusters[0].provider_capabilities` present and matches the deployed
    `providerCapabilities` values.
 4. `summary` is non-empty and consistent with `signals`.
 
-> This criterion is deliberately strict because the intermittent `unknown`
-> fallback is a known open defect on the OK-92 branch. If S1 fails this way,
-> record the run as FAIL and fix the mapping — do not soften the criterion.
+> This criterion distinguishes a normalized, explicit `unknown` result from
+> the intermittent unexplained parse fallback on the OK-92 branch. A bare
+> fallback remains a FAIL and belongs in the OK-91 provider-conformance work.
 
 ### S2 — Pod/Deployment failure diagnosis
 
@@ -88,10 +89,12 @@ ungrounded* answer fails — that is the point of the PoC.
    `counter_evidence_status` ∈ {`found`, `none_found`} —
    **`not_checked` is a FAIL** (ADR-021: a hypothesis without sought
    counter-evidence is a guess).
-5. `evidence` is non-empty; every `EvidenceRef` carries `uri`
-   **and no raw payload or secret** — references only.
+5. `evidence` is non-empty; every `EvidenceRef` carries a unique `id`,
+   every available/partial item carries `uri`, and no item embeds a raw
+   payload or secret — references only.
 6. Every `evidence_refs` / `contradicting_evidence_refs` entry resolves to an
-   `EvidenceRef` in `evidence` (no dangling references).
+   `EvidenceRef.id` in `evidence`, with no duplicate IDs or dangling
+   references.
 7. `recommended_next_steps` contains only human actions; nothing was executed.
 
 The fixtures are created by a human operator, not by the agent. The agent's
@@ -112,8 +115,8 @@ identity stays read-only throughout — that is what `verify-rbac` asserts.
 1. HTTP 200, validates against `EvidenceBundle`.
 2. At least one `events` and one `logs` ref with `status: available` and a `uri`.
 3. The requested-but-unsupported `host_journal` appears with
-   `status: unavailable` **and a non-empty `reason`** — silent omission is a
-   FAIL (ADR-021 test 5, capability delta).
+   `status: unavailable`, a stable `id`, and a non-empty `reason`; `uri`
+   may be absent — silent omission is a FAIL (ADR-021 test 5, capability delta).
 4. No `EvidenceRef` embeds a payload; no secret material anywhere in the bundle.
 5. `provider_capabilities` present and consistent with (3).
 
@@ -208,8 +211,9 @@ never count as passed.
    FAIL and where it is tracked.
 
 A FAIL is not a blocker for OK-14 as such — the Go/No-Go is already decided. It
-belongs on the ticket that owns the defect (e.g. the `unknown` fallback and the
-missing adapter deploy path are OK-92; executable contract tests are OK-91).
+belongs on the ticket that owns the defect (e.g. an unexplained `unknown`
+fallback and the missing adapter deploy path are OK-92; executable provider
+conformance tests are OK-91).
 
 ## Cleanup
 

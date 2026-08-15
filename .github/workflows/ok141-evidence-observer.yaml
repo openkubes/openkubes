@@ -1,0 +1,28 @@
+name: OK-141 public evidence observer candidate v2
+
+"on":
+  workflow_dispatch:
+  schedule:
+    - cron: "17 3 * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ok141-evidence-observer
+  cancel-in-progress: false
+
+jobs:
+  observe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out the reviewed observer source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Observe the exact public evidence digest
+        run: |
+          python3 architecture/spikes/ADR-Platform-030/ghcr-observer-runtime/observe_public_ghcr_evidence_v2.py \
+            --index architecture/spikes/ADR-Platform-030/ghcr-observer-runtime/active-evidence-index.json \
+            --summary "$GITHUB_STEP_SUMMARY"

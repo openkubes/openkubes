@@ -1,0 +1,28 @@
+apiVersion: authorization.openkubes.io/v1alpha1
+kind: GO1RegistrationIntegrityDiagnosticGrant
+metadata:
+  name: FILL
+spec:
+  decision: NO-GO
+  authority: github:arashkaffamanesh
+  candidateDigest: FILL
+  grantID: FILL
+  singleRun: true
+  consumed: false
+  issuedAt: FILL
+  expiresAt: FILL
+  sharedClusterContactGranted: false
+  sharedCredentialUseGranted: false
+  exactRegistrationSecretReadGranted: false
+  registrationIntegrityGranted: false
+  tokenClaimInspectionGranted: false
+  ephemeralTargetKubeconfigGranted: false
+  targetCredentialUseGranted: false
+  exactTargetNamespaceGetGranted: false
+  mutationGranted: false
+  podOrLogReadGranted: false
+  retryGranted: false
+  rollbackOrCleanupGranted: false
+  happyRunResumeGranted: false
+  evidencePublicationGranted: false
+  failureInjectionGranted: false

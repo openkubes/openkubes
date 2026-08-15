@@ -1,0 +1,76 @@
+apiVersion: execution.openkubes.io/v1alpha1
+kind: GO1HappyRunResumeCandidateV6
+metadata:
+  name: ok141-go1-happy-run-resume-v6
+  ticket: OK-141
+  baseCommit: 6118a7ecb2a176869efec30dc29d03ba687d1d20
+spec:
+  version: ok141-go1-happy-run-resume/v6
+  state: OFFLINE-PROVEN-BLOCKED-NO-GO
+  supersedes:
+    path: ../go1-happy-run-resume-v5/happy-run-resume-candidate-v5.yaml
+    digest: sha256:3e2ef69489668a6157867331ff11dced512b265162218b7a06c6d5d0008b01a2
+    historicalCandidatePreserved: true
+    consumedV5GrantReusable: false
+  cacheFreshness:
+    candidatePath: ../go1-network-cache-freshness-v1/network-cache-freshness-candidate-v1.yaml
+    candidateDigest: sha256:181f376512ca22e4b828a37c6f0bc448781ed88e5cf8d3913243edaa00f8f39d
+    toolPath: ../go1-network-cache-freshness-v1/network_cache_freshness_v1.py
+    toolDigest: sha256:f5c7bc8a04c7720ea205ef73f38a2f79ee4b66c22ce6c85e9ae594b5d347c5b0
+    outputPath: /private/tmp/ok141-go1-l-network-ready-observer-cache-freshness-v1-evidence.json
+  requiredPrivateEvidence:
+    failedNetwork:
+      path: /private/tmp/ok141-go1-l-network-ready-observer-status-v1-evidence.json
+      digestBoundByGrant: true
+      published: false
+    timingDiagnostic:
+      path: /private/tmp/ok141-network-cache-timing-diagnostic-v1-evidence.json
+      digestBoundByGrant: true
+      published: false
+  resumeBoundary:
+    startsAfter: FAILED-CACHED-FRESHNESS-AND-PASS-TIMING-DIAGNOSTIC
+    correctedNetworkObservationAllowedOnlyByNewGrant: true
+    allEarlierStagesReexecutionAllowed: false
+  identityImpact:
+    platformRevisionPChanged: false
+    clusterIntentRChanged: false
+    fixtureDigestChanged: false
+    evaluatorSemanticsChanged: true
+  tool:
+    path: bounded_happy_run_resume_v6.py
+    digest: sha256:424b5a417748d3794e870e652ce242d7ebd98586fe0b99b02661550a827bb97c
+    arbitraryEvidencePathAllowed: false
+    arbitraryResumePointAllowed: false
+    retryAllowed: false
+    rollbackOrCleanupAllowed: false
+  authorization:
+    decision: NO-GO
+    resumeAfterG3Granted: false
+    lifecycleEvidenceReuseGranted: false
+    g3EvidenceReuseGranted: false
+    correctedNetworkObserverGranted: false
+    cacheFreshnessAmendmentGranted: false
+    runtimeBindingGranted: false
+    targetAccessGranted: false
+    tokenRequestGranted: false
+    registrationGranted: false
+    credentialSecretGranted: false
+    applicationSubmissionGranted: false
+    platformObserverGranted: false
+    capabilityTestGranted: false
+    capabilityTestCleanupGranted: false
+    credentialUseGranted: false
+    go1LGranted: false
+    go1Granted: false
+    preflightGranted: false
+    g1Granted: false
+    remediationGranted: false
+    lifecycleReexecutionGranted: false
+    g3Granted: false
+    retryGranted: false
+    rollbackGranted: false
+    broadCleanupGranted: false
+    evidencePublicationGranted: false
+    failureInjectionGranted: false
+    outageGranted: false
+    grantIDs: []

@@ -1,0 +1,38 @@
+apiVersion: authorization.openkubes.io/v1alpha1
+kind: CombinedGateGrant
+metadata:
+  name: ok141-m0a-c1-a1-i-v4-template
+  ticket: OK-141
+spec:
+  version: ok141-m0a-combined-grant/v4
+  state: TEMPLATE-NO-GO
+  candidateDigest: sha256:3fc1fee9338bca1f1ad9901bb4c0bf83d52eac56ff8b60c0579bea4415db7da8
+  authority: github:arashkaffamanesh
+  decision: NO-GO
+  mutationAuthorized: false
+  credentialGrant:
+    gate: M0A-C1-v4
+    granted: false
+    grantID: null
+  admissionGrant:
+    gate: M0A-A1-v4
+    granted: false
+    grantID: null
+  installationGrant:
+    gate: M0a-I-v4
+    granted: false
+    grantID: null
+  validFrom: null
+  validUntil: null
+  maximumRuns: 0
+  evidenceOutputPath: null
+  rollbackGranted: false
+  targetConvergenceGranted: false
+  m0bInstallationGranted: false
+  go1Granted: false
+  evidencePublicationGranted: false
+  failureInjectionGranted: false
+  rules:
+    - This template is not an execution grant.
+    - All three distinct grants must bind the exact candidate digest and one bounded UTC window.
+    - The consumed v1 v2 and v3 grants cannot be reused.

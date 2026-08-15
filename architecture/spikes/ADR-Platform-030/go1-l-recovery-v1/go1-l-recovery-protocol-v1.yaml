@@ -1,0 +1,133 @@
+apiVersion: recovery.openkubes.io/v1alpha1
+kind: GO1LRecoveryProtocol
+metadata:
+  name: ok141-go1-l-recovery-v1
+  ticket: OK-141
+  baseCommit: 2f783e017e180409c43021f5d90ae9d9a253f7ed
+spec:
+  version: ok141-go1-l-recovery/v1
+  state: OFFLINE-PREPARED-BLOCKED-NO-GO
+  failedExecution:
+    protocol:
+      path: ../go1-v5/go1-protocol-v5.yaml
+      digest: sha256:685b7e142e9b2e67dcee89ef091df93e4b9aa5d43ff32c7becf6df743e3df2b9
+    submitter:
+      path: ../go1-l-submitter-v1/go1-l-submitter-candidate-v1.yaml
+      digest: sha256:e5b4185b7dcd4f1e3fb026d03ce29b5b35e0b6c5c6e51f29d921a240636b73cc
+    privateEvidence:
+      providerSubmission: sha256:27281dee3448555e1a0fd91882a48815bbead47ac9c4c071f83e0c02c1c711ad
+      lifecycleSubmission: sha256:0a1c2d124a96413a891cd70b2eb4c7b8cda38a061d7906f3d1afa95e691e04ed
+      currentLifecycleSnapshot: sha256:e2c3dce097f708df980f5f05a74f4abac668ce449a4f8d0aa17dfa80f579a8f9
+      providerDiagnostic: sha256:a89f7977ea9a6b946d70a677d65c38f2a265686cd255d856e5f118e76080c4d4
+      serviceIdentityDiagnostic: sha256:1730a67e6be63a2229688e1f2740748a9d655af53b17bfae77f1028ff7bf86c7
+      managementServiceConfirmation: sha256:366c5697a1aeb8d7c259a560c562788d9755026fabbe884f704677048a402e93
+  correctedBaseline:
+    mergeCommit: 2f783e017e180409c43021f5d90ae9d9a253f7ed
+    fixture:
+      path: ../harness/fixtures/execution/phase-r-v5.json
+      fileDigest: sha256:e1a159ffcf32191dfba9d7455c67a38557f62ede37902b722e302ad298386068
+      fixtureDigest: sha256:7536456a762880a78a37dcba76a5f3f0628140bd37b55d5fd62273c64e4cc3eb
+      R: sha256:166504ae61fd558d391daedde50986cbc7a28f5f4e9d57f4acbd0433b448aa0f
+    amendment:
+      path: ../phase-r-v5-authority-routing-amendment.md
+      digest: sha256:1f816470f28c5b24f2a5d2029b0505d56ed7a0ce40396ad8fa0320cfefb4e031
+  decision:
+    strategy: uid-preconditioned-cleanup-then-fresh-recreate
+    patchInPlaceAllowed: false
+    reason: Mixing the failed R-triple-prime object graph with R-four-prime would weaken revision provenance and the GO1-L execution proof.
+    automaticContinuationToRecreate: false
+  privateRuntimeBinding:
+    required: true
+    templatePath: runtime-binding-v1.template.yaml
+    finalPath: /private/tmp/ok141-go1-l-recovery-runtime-binding-v1.yaml
+    finalDigest: null
+    state: BLOCKED-FRESH-READ-ONLY-PREFLIGHT
+    containsCredentials: false
+    publicUIDPublicationAllowed: false
+    freshnessMaximumMinutes: 10
+  stages:
+    - id: R0
+      name: fresh-exact-inventory
+      mutating: false
+      enabled: false
+      authority: separate-read-only-grant-required
+      requirements:
+        - exact GET of the two disposable Namespaces and every previously submitted object
+        - exact GET of the misrouted management-plane Service
+        - bounded namespace-local collections for generated CAPI/CAPK objects
+        - bind current UID resourceVersion deletionTimestamp finalizers and ownerReferences
+        - fail on any identity conflict or unexpected non-controller-owned payload
+    - id: R1
+      name: delete-management-disposable-namespace
+      mutating: true
+      enabled: false
+      authority: separate-destructive-grant-required
+      targetPlane: ok-mgmt
+      target: v1|Namespace|_|disposable-ok141
+      transport: kubernetes-api-delete-with-deleteoptions-uid-precondition
+      force: false
+      removeFinalizers: false
+      automaticRetry: false
+      onFailure: STOP-PRESERVE-NO-FURTHER-MUTATION
+    - id: R2
+      name: observe-management-cleanup
+      mutating: false
+      enabled: false
+      authority: separate-read-only-grant-required
+      success:
+        - management Namespace is absent
+        - eight submitted lifecycle identities are absent
+        - misrouted management-plane Service is absent
+        - no workload Machine VM or Node was created
+    - id: R3
+      name: delete-infrastructure-prerequisites
+      mutating: true
+      enabled: false
+      authority: separate-destructive-grant-required
+      targetPlane: ok-infra
+      order:
+        - rbac.authorization.k8s.io/v1|RoleBinding|ok-images|disposable-ok141-talos-golden-image-cloner
+        - rbac.authorization.k8s.io/v1|Role|ok-images|disposable-ok141-talos-golden-image-cloner
+        - v1|Namespace|_|disposable-ok141
+      transport: kubernetes-api-delete-with-deleteoptions-uid-precondition
+      force: false
+      removeFinalizers: false
+      automaticRetry: false
+      onFailure: STOP-PRESERVE-NO-FURTHER-MUTATION
+    - id: R4
+      name: prove-clean-baseline
+      mutating: false
+      enabled: false
+      authority: separate-read-only-grant-required
+      success:
+        - all eleven submitted identities are absent
+        - misrouted management-plane Service is absent
+        - no cleanup-owned credential or temporary object remains
+  stopConditions:
+    - private runtime binding absent stale digest-mismatched or already consumed
+    - any live UID differs from the bound UID
+    - any target has an unexpected deletionTimestamp finalizer owner or revision identity
+    - any generated Machine KubevirtMachine VM VMI or Node exists
+    - any API deletion cannot carry DeleteOptions.preconditions.uid
+    - any deletion remains blocked beyond the separately authorized observation window
+    - any force finalizer patch retry rollback cleanup expansion or recreation is requested
+  exclusions:
+    - patch or update of the failed lifecycle graph
+    - force deletion or finalizer removal
+    - automatic retry rollback or cleanup expansion
+    - provider Secret materialization
+    - recreation from Phase-R v5
+    - HCP HRP Cilium Platform convergence GO1-L GO-1 or failure injection
+  authorization:
+    decision: NO-GO
+    readOnlyPreflightGranted: false
+    destructiveCleanupGranted: false
+    credentialUseGranted: false
+    secretMaterializationGranted: false
+    recreateGranted: false
+    retryGranted: false
+    rollbackGranted: false
+    evidencePublicationGranted: false
+    go1LGranted: false
+    go1Granted: false
+    failureInjectionGranted: false

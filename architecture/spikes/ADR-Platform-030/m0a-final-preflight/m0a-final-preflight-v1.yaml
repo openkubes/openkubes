@@ -1,0 +1,125 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: M0aFinalPreflight
+metadata:
+  name: ok141-m0a-final-preflight-v1
+  ticket: OK-141
+spec:
+  version: ok141-m0a-final-preflight/v1
+  state: READY-FOR-EXPLICIT-DECISIONS-NO-GO
+  preparedAt: "2026-08-11T18:02:03Z"
+  baseline:
+    repositoryCommit: c28de5a3b24d6482ba2c51f53ce2f04ad47c43e8
+    installationProtocol:
+      path: ../m0a-installation/m0a-installation-v1.yaml
+      digest: sha256:873d3aa3b15df53d3a4055675288c6d9acdf6c18d4f850e181a4eb7b93fc4a27
+    offlineClosure:
+      path: ../installation-closure/offline-closure-results-v1.yaml
+      digest: sha256:1e34953595fa98de3e2207f8ac90c2e1a52e2652491012f6323021f8570cc6e3
+      evaluated: 9
+      provenOffline: 7
+      provenRepeatablePreflight: 1
+      partialUnresolved: 1
+    installer:
+      path: ../installation-closure/bounded_installer.py
+      digest: sha256:8b4ab9929c7bbea98366bc26a26a490f8153f50b3983ca19ee2c7fa74ee48e98
+    installationSet:
+      source: caaph-v0.6.4-addon-components.yaml
+      rawDigest: sha256:a70f4eb77eac626231daca1e2a046b4b069bb84320efa327cc8c56a9c4ca03e6
+      semanticDigest: sha256:01fc13d694da3304385a7bae0d1bd662d7c8c3d336b8a4d44da5324439d59095
+      objectCount: 19
+      targetResourcesIncluded: false
+  targetObservation:
+    operation: READ-ONLY
+    observedAt: "2026-08-11T18:02:03Z"
+    plane: ok-mgmt
+    apiServer: https://192.168.100.200:6443
+    kubeSystemNamespaceUID: c3b45aab-d2a1-4e64-8f12-77b99186ad4a
+    kubernetesVersion: v1.34.1
+    platform: linux/amd64
+    nodes:
+      total: 3
+      ready: 3
+      controlPlane: 1
+      workers: 2
+    existingControllers:
+      capi: v1.13.4
+      capk: v0.11.2
+      certManager: v1.20.1
+    caaph:
+      namespacePresent: false
+      helmChartProxyCRDPresent: false
+      helmReleaseProxyCRDPresent: false
+    lifecycleInventory:
+      clusters: 0
+      machines: 0
+      machineDeployments: 0
+    sourceProjectionDigest: sha256:2a8ef0d40b16841a47280eaf6d58505a723a23bea788b5aa5cb0a31f03c98303
+  acceptedBoundaries:
+    authorityPrincipal: github:arashkaffamanesh
+    governance: DEV-SOLO-NO-INDEPENDENT-HUMAN-SECURITY-REVIEW
+    totalStateLossAccepted: true
+    recoveryMode: rebuild-not-restore
+    productionClaimsAllowed: false
+    evidenceDestination:
+      repository: ghcr.io/openkubes/ok141-evidence
+      manifestDigest: sha256:c9bdeadf1ee859c69ed0ab1136ec6b590139fe931eff44039265c144cea76dc8
+      internalBundleDigest: sha256:8372a41284a69774f173c1037516f3dbba64fd19c5de3f1506f10386a6b2eab7
+      publicCredentialFreeObserverRun: 31519905262
+      observerResult: OBSERVED-PRESENT
+      retentionModel: DEV-BEST-EFFORT-NON-WORM
+  currentCredential:
+    identity: kubernetes-admin
+    group: system:masters
+    expiry: "2027-07-22T13:18:40Z"
+    acceptedForInstallation: false
+    reason: Long-lived cluster-admin credentials violate the bound short-lived least-privilege installer requirement.
+    secretMaterialRecorded: false
+  explicitDecisionsRequired:
+    - id: M0AI-COMPATIBILITY-RISK
+      state: UNDECIDED
+      claim: Accept CAAPH v0.6.4 on Kubernetes v1.34.1, CAPI v1.13.4, CAPK v0.11.2 and cert-manager v1.20.1 for this DEV-only installation despite no authoritative upstream test matrix for the exact tuple.
+      failureEffect: M0a-I remains NOT GRANTED.
+    - id: M0AI-CONTROLLER-RBAC-RISK
+      state: UNDECIDED
+      claim: Accept the reviewed CAAPH controller boundary including cluster-wide Secret read, provider-group visibility, TokenReview, SubjectAccessReview and HCP/HRP reconciliation writes for this DEV-only installation.
+      failureEffect: M0a-I remains NOT GRANTED.
+    - id: M0AI-INSTALLER-CREDENTIAL
+      state: NOT-PREPARED
+      claim: Prepare and separately authorize one short-lived least-privilege installer credential with issuance, expiry, revocation and audit evidence; the existing system:masters kubeconfig is forbidden for the installation.
+      failureEffect: M0a-I remains NOT GRANTED.
+    - id: M0AI-INSTALLATION-GRANT
+      state: NOT-GRANTED
+      claim: Bind the refreshed target identity, exact final protocol digest and one execution window before enabling the single installation phase.
+      failureEffect: M0a-I remains NOT GRANTED.
+  nextProtocolRequirements:
+    credentialGate:
+      separateAuthorizationRequired: true
+      serviceAccountCandidate: ok141-m0a-installer
+      namespaceCandidate: openkubes-system
+      boundedTokenMaximumDuration: 60m
+      revokeAfterRun: true
+      arbitraryShellAllowed: false
+      exactObjectIntegrityEnforcedBy: reviewed-bounded-installer-and-digest-verification
+      limitation: Kubernetes RBAC cannot constrain create to one exact object-content digest.
+    installationGate:
+      maximumWindowMinutes: 180
+      allowedMutation: apply-exact-reviewed-19-object-caaph-control-plane-set-once
+      targetConvergenceAllowed: false
+      helmChartProxySubmissionAllowed: false
+      helmReleaseProxySubmissionAllowed: false
+      go1Allowed: false
+      rollbackSeparatelyAuthorized: true
+  authorization:
+    decision: NO-GO
+    mutationAuthorized: false
+    credentialIssuanceAuthorized: false
+    m0aInstallationGranted: false
+    m0bInstallationGranted: false
+    go1Granted: false
+    failureInjectionGranted: false
+  rules:
+    - This preflight records only verified and redacted DEV evidence; no Secret token kubeconfig private key or certificate payload is retained.
+    - READY-FOR-EXPLICIT-DECISIONS is not READY-FOR-INSTALLATION and grants no authority.
+    - Any target incarnation source digest object membership credential model or scope change requires a new digest and decision.
+    - The credential mutation and installation mutation are separate gates and neither may inherit authority from this checkpoint.
+    - M0b-I GO-1 infrastructure mutation and failure injection remain NO-GO.

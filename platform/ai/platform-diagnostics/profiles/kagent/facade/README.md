@@ -1,12 +1,11 @@
 # Diagnostics facade — OpenAPI → kagent shim
 
 Makes kagent a **conformant provider** of the Read-Only Platform Diagnostics
-Contract. It implements the `contract/openapi.yaml` **Draft implementation
-scaffold** and, per request, invokes the `openkubes-platform-agent` (kagent),
-then shapes the agent's output into the ADR-021-derived schema
+Contract. It implements the normative `contract/openapi.yaml` and, per request,
+invokes the `openkubes-platform-agent` (kagent), then shapes the agent's output
+into the contract schema
 (`RankedHypothesis` with
 `counter_evidence_status`, `EvidenceRef` references-only, `provider_capabilities`).
-Normative OpenAPI finalization remains in OK-89/OK-90.
 
 ```
 OpenClaw ─(MCP adapter)─► facade  ─(kagent A2A/API)─►  openkubes-platform-agent
@@ -19,8 +18,14 @@ The facade invokes the live kagent endpoint and maps its output into the
 provider-neutral schema. For workload investigations it first collects the
 actual pod identities, status, events, describe output, and logs through the
 scoped read-only tools server. The facade owns the canonical evidence catalog;
-agent-produced hypotheses may cite those exact URIs but cannot mint resource
-identities or evidence references.
+agent-produced hypotheses may cite its stable evidence IDs but cannot mint
+resource identities or evidence references.
+
+The public HTTP surface requires a consumer bearer identity. Every request is
+assigned an `invocation_id`; the same value is returned in
+`X-Invocation-Id` and the successful response body. The facade logs a one-way
+consumer fingerprint, operation, timestamp, optional `X-Request-Id`, and
+invocation ID without logging the bearer token.
 
 ## Config (all env; endpoints are Provider Values from ok-cluster)
 
@@ -34,22 +39,26 @@ The agent is invoked over A2A at `{KAGENT_BASE_URL}/api/a2a/{KAGENT_NAMESPACE}/{
 | `KAGENT_AGENT` | agent to invoke | `openkubes-platform-agent` |
 | `KAGENT_TOOLS_URL` | scoped read-only Kubernetes MCP server | `http://platform-diagnostics-tools.platform-diagnostics.svc.cluster.local:8084/mcp` |
 | `KAGENT_TOKEN` | bearer for kagent, if enabled | _(unset)_ |
+| `DIAGNOSTICS_BEARER_TOKEN` | required consumer identity for the HTTP contract | _(required)_ |
 | `PROVIDER_NAME` | logical provider id for audit | `kagent` |
 | `PROVIDER_CAPS` | JSON of capability flags (Talos vs RKE2 delta) | see `app.py` |
 
 The facade holds **no Kubernetes credentials** — cluster access lives only in the
-kagent tool-executor's ServiceAccount. The facade only talks to kagent.
+kagent tool-executor's ServiceAccount. Its chart disables ServiceAccount-token
+automount. Provider values supply the consumer token through the
+`platform-diagnostics-mcp-consumer` Secret; the real token must not be committed.
 
 ## Run / build
 
 ```bash
 pip install -r requirements.txt
-uvicorn app:app --host 0.0.0.0 --port 8080      # local
+DIAGNOSTICS_BEARER_TOKEN=local-contract-test \
+  uvicorn app:app --host 0.0.0.0 --port 8080      # local
 
 # Image: build MULTI-ARCH. A plain `docker build` on Apple Silicon produces an
 # arm64-only manifest, which the amd64 cluster nodes reject with
 # "no match for platform in manifest". Use buildx and push a manifest that
 # includes the node architecture (--provenance=false keeps it to real platforms):
 docker buildx build --platform linux/amd64,linux/arm64 --provenance=false \
-  -t ghcr.io/openkubes/platform-diagnostics-facade:0.1.7 --push .
+  -t ghcr.io/openkubes/platform-diagnostics-facade:0.1.8 --push .
 ```
