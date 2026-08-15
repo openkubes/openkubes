@@ -1,0 +1,46 @@
+{
+  "apiVersion": "evidence.openkubes.io/v1alpha1",
+  "kind": "OK141RegistrationTokenRefreshRuntimeClosure",
+  "metadata": {
+    "name": "ok141-registration-token-refresh-runtime-closure-v2"
+  },
+  "spec": {
+    "observedAt": "2026-08-15T15:46:03Z",
+    "candidateDigest": "sha256:f212f9a577a3f580a1d0525d7f413bdf235b835e27f4a94187a9f2ee5943cc3c",
+    "privateEvidenceDigest": "sha256:5ed1bd176258258216fd654f2957c1a68ee29f7cd4eed5e481000c3a5a7252b9",
+    "privateEvidencePublished": false,
+    "zeroWritePreflight": {
+      "candidateDigest": "sha256:a69295cbb860e580f20cb1d6bcc35654e60ec8116980c269101767b78675a95b",
+      "result": "STOP-ZERO-WRITE-LOCAL-IDENTITY-CHECK",
+      "mutationPerformed": false,
+      "cause": "Secret data.server required Base64 decoding before identity comparison"
+    },
+    "result": {
+      "targetIdentityMatched": true,
+      "defaultAudienceTokenIssued": true,
+      "tokenLifetimeSeconds": 10800,
+      "targetProbeSucceeded": true,
+      "registrationSecretReplaced": true,
+      "uidPreserved": true,
+      "resourceVersionAdvanced": true,
+      "automaticArgoReconciliationAcknowledged": true,
+      "observationIterations": 40,
+      "finalApplications": {
+        "core": {"sync": "OutOfSync", "health": "Healthy"},
+        "alerting": {"sync": "OutOfSync", "health": "Missing"},
+        "dashboards": {"sync": "Synced", "health": "Healthy"}
+      },
+      "state": "STOP-PLATFORM-NOT-CONVERGED"
+    },
+    "retention": {
+      "credentialPayloadRetained": false,
+      "endpointPayloadRetained": false,
+      "rawApplicationPayloadRetained": false,
+      "rawEvidencePathPublished": false
+    },
+    "exclusions": {
+      "rollbackOrCleanupPerformed": false,
+      "failureInjectionPerformed": false
+    }
+  }
+}
