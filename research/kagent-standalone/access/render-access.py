@@ -18,33 +18,23 @@ Design rules, in order of importance:
     RBAC being the boundary *here* is not the claim that RBAC is a sufficient
     boundary in general: it constrains direct API calls, and some permissions
     (workload pod-template write above all) reach further than the verbs they
-    name. That is why rule 4 exists — the surface is kept to permissions whose
-    reach RBAC alone does describe.
+    name. The generated summary states that limitation explicitly.
 2.  Fail closed. Any config the renderer does not fully understand is an error,
     not a default. Secrets, RBAC objects, ServiceAccounts and wildcards can not
     be granted at all.
 3.  Read-only means nothing is generated for the write path. Switching the mode
     back removes objects rather than leaving them orphaned.
-4.  **Only evidenced capability is executable.** v1 renders exactly the write
-    profile that has been exercised against a live cluster and recorded in
-    ``docs/kagent-standalone/evidence-protocol.md``: approval-gated ConfigMap
-    writes in ``[kagent-lab]``. Everything wider — any other namespace target,
-    workload kinds, Jobs, Services, Ingresses, Pod deletion, ungated writes and
-    cluster-wide scope — is candidate work and is *refused*, not defaulted.
+4.  **The write surface is explicit and modular.** ``write.resources`` selects
+    any non-empty subset of the supported namespaced resource allow-list.
+    Unlisted kinds receive no mutation verbs, and a selected kind receives the
+    verbs declared for *that kind* rather than a blanket create/update/patch/
+    delete rule — Pods and Jobs only ``delete``, workload controllers, Services
+    and Ingresses only ``update``/``patch``, and the full life cycle only for
+    ConfigMaps, the kind the recorded drill covered. Secrets, RBAC objects,
+    ServiceAccounts, wildcards, other namespace targets, ungated writes and
+    cluster-wide scope remain refused.
 
-    Two different reasons, kept distinct on purpose:
-
-    * **Boundary gaps.** Cluster scope and workload write cannot be bounded with
-      what this lab has: a ``ClusterRoleBinding`` cannot exclude a namespace, and
-      pod-template write reaches Secrets and other ServiceAccounts without the
-      Role naming them. See the ``write.scope`` check and
-      ``WORKLOAD_WRITE_PRECONDITION``.
-    * **Evidence gaps.** Another namespace target, Services, Ingresses and Pod
-      deletion are enforceable in the same shape that already works — they simply
-      have no recorded drill. Shape is not evidence, so they are refused too, but
-      promoting one is a drill rather than a design problem.
-
-    Both are enforced by this module rather than left to a consumer. The
+    These boundaries are enforced by this module rather than left to a consumer. The
     allow-lists are ``WRITABLE_RESOURCES`` and ``EVIDENCED_WRITE_NAMESPACES``, and
     the rule for where they apply is deliberately blunt:
 
@@ -95,51 +85,70 @@ import yaml
 # --------------------------------------------------------------------------- #
 
 READ_VERBS = ["get", "list", "watch"]
+
+#: Every mutation verb this renderer can grant *anywhere*. It is a union for
+#: validation and reporting, never a set handed to a resource as a block: a
+#: blanket create/update/patch/delete rule grants reach nobody asked for and
+#: nobody drilled. What each kind gets is declared per kind below.
 WRITE_VERBS = ["create", "update", "patch", "delete"]
 
-#: Resources a v1 write profile may target: name -> (apiGroup, extra verbs).
+#: Recorded drill covers the whole life cycle for this kind (E4b: create, update
+#: and delete in ``kagent-lab``, with Approve and Reject both exercised).
+DRILLED_LIFECYCLE_VERBS = ["create", "update", "patch", "delete"]
+
+#: Repair an object that already exists. No ``create`` — bringing a new workload
+#: or traffic object into being is not a repair — and no ``delete``, which on a
+#: controller cascades to everything it owns.
+MUTATE_IN_PLACE_VERBS = ["update", "patch"]
+
+#: Removal is the whole point for these: deleting a Pod is the restart
+#: primitive, and clearing a failed Job is how you clean up after one. Neither
+#: needs ``create`` or ``patch``, and withholding both keeps the most direct
+#: pod-template escalation path out of the Role.
+REMOVE_ONLY_VERBS = ["delete"]
+
+#: Namespaced resources a write profile may target: name -> (apiGroup, verbs).
+#: The config selects any non-empty subset of this allow-list. Sensitive and
+#: cluster-scoped resources remain rejected by ``FORBIDDEN_RESOURCES``.
 #:
-#: Exactly one entry, and that is the point. This is the only write capability
-#: the PoC has evidenced on a live cluster (approval-gated ConfigMap create /
-#: patch / delete in ``kagent-lab``), so it is the only one the renderer will
-#: produce. Adding a kind here is a claim that a drill for it has been run and
-#: recorded.
+#: Verbs are declared per kind, deliberately, and are narrower than the union
+#: above for every kind except the one the drill actually covered. Note the limit
+#: of that narrowing: ``update``/``patch`` on a workload controller still rewrites
+#: a pod template, so it can still choose another ``serviceAccountName``, mount an
+#: existing Secret, or change image and command. Dropping ``create`` and
+#: ``delete`` bounds the blast radius; it does not close that path. See
+#: ``WORKLOAD_WRITE_PRECONDITION``.
 WRITABLE_RESOURCES = {
-    "configmaps": ("", WRITE_VERBS),
+    "configmaps": ("", DRILLED_LIFECYCLE_VERBS),
+    "pods": ("", REMOVE_ONLY_VERBS),
+    "services": ("", MUTATE_IN_PLACE_VERBS),
+    "deployments": ("apps", MUTATE_IN_PLACE_VERBS),
+    "statefulsets": ("apps", MUTATE_IN_PLACE_VERBS),
+    "daemonsets": ("apps", MUTATE_IN_PLACE_VERBS),
+    "replicasets": ("apps", MUTATE_IN_PLACE_VERBS),
+    "jobs": ("batch", REMOVE_ONLY_VERBS),
+    "cronjobs": ("batch", MUTATE_IN_PLACE_VERBS),
+    "ingresses": ("networking.k8s.io", MUTATE_IN_PLACE_VERBS),
 }
 
-#: Candidate work: recognised, deliberately refused, each with the reason it is
-#: not just "untested". These are not defaults waiting for a flag — every one of
-#: them needs a boundary that does not exist in this lab yet.
-CANDIDATE_RESOURCES = {
-    "deployments": "workload pod-template write — see WORKLOAD_WRITE_PRECONDITION",
-    "statefulsets": "workload pod-template write — see WORKLOAD_WRITE_PRECONDITION",
-    "daemonsets": "workload pod-template write — see WORKLOAD_WRITE_PRECONDITION",
-    "replicasets": "workload pod-template write — see WORKLOAD_WRITE_PRECONDITION",
-    "jobs": "workload pod-template write — see WORKLOAD_WRITE_PRECONDITION",
-    "cronjobs": "workload pod-template write — see WORKLOAD_WRITE_PRECONDITION",
-    "services": "traffic-path write: no drill, and no tested blast-radius bound",
-    "ingresses": "traffic-path write: no drill, and no tested blast-radius bound",
-    "pods": "Pod deletion is a disruption primitive; no recorded drill",
-}
+# A kind may never be declared with a verb the renderer does not recognise as a
+# mutation verb: a typo would otherwise become a silently granted permission.
+for _kind, (_group, _verbs) in WRITABLE_RESOURCES.items():
+    assert _verbs, f"{_kind} must declare at least one mutation verb"
+    assert set(_verbs) <= set(WRITE_VERBS), (
+        f"{_kind} declares verbs outside the recognised mutation set: "
+        f"{sorted(set(_verbs) - set(WRITE_VERBS))}"
+    )
 
-#: Why the workload kinds above are a boundary problem and not a test gap: a
+#: Why workload writes need special care: a
 #: principal that can create or patch a pod template can usually choose another
 #: ``serviceAccountName``, mount an existing Secret, or change the image and
 #: command. Withholding the Secret and RBAC verbs from the Role does not stop
-#: that — it only stops the *direct* API call. Workload write therefore needs
-#: either narrowly typed repair tools with deterministic field restrictions, or
-#: a documented and tested admission-policy boundary, before it can ship.
-WORKLOAD_WRITE_PRECONDITION = (
-    "workload write needs typed repair tools with fixed editable fields, or a "
-    "tested admission policy: pod-template mutation can reach existing Secrets "
-    "or a more privileged ServiceAccount in the same namespace, which the Role "
-    "itself never grants"
-)
-
+#: that — it only stops the *direct* API call. Use narrowly typed repair tools or
+#: admission policy when this indirect path must be prevented.
 #: Never grantable, whatever the config says. Withholding these removes the
 #: *direct* API path to Secrets and to RBAC objects. It does not by itself prove
-#: that no indirect path exists — see WORKLOAD_WRITE_PRECONDITION.
+#: that no indirect path exists through a configured workload resource.
 FORBIDDEN_RESOURCES = {
     "*",
     "secrets",
@@ -560,15 +569,6 @@ def _validate_write(write_raw: object, install_ns: str) -> dict:
         if res in FORBIDDEN_RESOURCES:
             raise ConfigError(
                 f"write.resources: {res!r} can never be granted by this renderer"
-            )
-        if res in CANDIDATE_RESOURCES:
-            reason = CANDIDATE_RESOURCES[res]
-            if "WORKLOAD_WRITE_PRECONDITION" in reason:
-                reason = WORKLOAD_WRITE_PRECONDITION
-            raise ConfigError(
-                f"write.resources: {res!r} is candidate work, not a v1 option "
-                f"({reason}). v1 renders only: "
-                + ", ".join(sorted(WRITABLE_RESOURCES))
             )
         if res not in WRITABLE_RESOURCES:
             raise ConfigError(
@@ -1242,13 +1242,11 @@ def render_summary(cfg: dict, config_path: Path) -> str:
         "  denies it, the prompt is not the boundary;",
         "- no permission in the kagent install namespace, so the identity cannot",
         "  rewrite its own Agent or tool definitions;",
-        "- no permission of any kind — not even `get` — on workload controllers",
-        "  (Deployments, StatefulSets, DaemonSets, ReplicaSets, Jobs, CronJobs), on",
-        "  Services, or on Ingresses. Those are candidate work and this renderer",
-        "  refuses them; the read identity is what reads them.",
-        "- no Pod *mutation* of any kind, including deletion. Pods, Pod logs and",
-        f"  Events are readable in {namespace_list} — that is the write",
-        "  identity's verification context, and it is in the table above.",
+        "- no write permission for a supported resource unless it is explicitly",
+        "  listed in `write.resources`;",
+        f"- Pods, Pod logs and Events are readable in {namespace_list} as",
+        "  verification context. Pod mutation is granted only when `pods` is",
+        "  explicitly listed in `write.resources`.",
         "",
         "### Two limits of these guarantees",
         "",
@@ -1268,7 +1266,8 @@ def render_summary(cfg: dict, config_path: Path) -> str:
         "   StatefulSet, DaemonSet or Job can reach existing Secrets or a more",
         "   privileged ServiceAccount in the same namespace, without ever calling",
         "   the Secret API. RBAC alone does not prevent it — admission control does.",
-        "   That is one reason workload write is refused here.",
+        "   Configure workload writes only where that namespace-level risk is",
+        "   accepted or constrained by admission policy.",
         "",
         "Verify, do not trust this table:",
         "",
@@ -1279,16 +1278,20 @@ def render_summary(cfg: dict, config_path: Path) -> str:
     ]
     # Every target, not only the first: a block that checks one namespace of
     # several would under-report the moment the evidenced set grows.
+    positive_resource = sorted(write["resources"])[0]
+    unconfigured = sorted(set(WRITABLE_RESOURCES) - set(write["resources"]))
     for target in targets:
         lines += [
-            f"kubectl auth can-i patch configmaps -n {target} --as=\"$SUBJECT\"    # expect yes",
-            f"kubectl auth can-i patch deployments -n {target} --as=\"$SUBJECT\"   # expect no",
-            f"kubectl auth can-i get deployments -n {target} --as=\"$SUBJECT\"     # expect no",
+            f"kubectl auth can-i patch {positive_resource} -n {target} --as=\"$SUBJECT\"    # expect yes",
         ]
+        if unconfigured:
+            lines.append(
+                f"kubectl auth can-i patch {unconfigured[0]} -n {target} --as=\"$SUBJECT\"   # expect no"
+            )
     lines += [
         # 'default' is refused as a write target, so it is always a valid
         # negative control here.
-        "kubectl auth can-i patch configmaps -n default --as=\"$SUBJECT\"     # expect no",
+        f"kubectl auth can-i patch {positive_resource} -n default --as=\"$SUBJECT\"     # expect no",
         "```",
         "",
     ]

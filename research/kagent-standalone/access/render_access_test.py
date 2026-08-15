@@ -154,59 +154,110 @@ def test_only_evidenced_namespace_is_renderable() -> None:
     )
 
 
-def test_v1_write_surface_is_configmaps_only() -> None:
-    """RC2: the renderer may only produce the capability that was evidenced."""
-    print("\nv1 write surface")
+def test_write_surface_is_configurable() -> None:
+    """The config may select any subset of the supported namespaced kinds."""
+    print("\nconfigurable write surface")
+    expected = {
+        "configmaps", "pods", "services", "deployments", "statefulsets",
+        "daemonsets", "replicasets", "jobs", "cronjobs", "ingresses",
+    }
     check(
-        sorted(ra.WRITABLE_RESOURCES) == ["configmaps"],
-        f"only configmaps are renderable (got {sorted(ra.WRITABLE_RESOURCES)})",
+        set(ra.WRITABLE_RESOURCES) == expected,
+        f"the supported resource allow-list is complete (got {sorted(ra.WRITABLE_RESOURCES)})",
     )
     check(
         ra.EVIDENCED_WRITE_NAMESPACES == {"kagent-lab"},
         "only kagent-lab is an evidenced write target",
     )
-    check(
-        not (set(ra.CANDIDATE_RESOURCES) & set(ra.WRITABLE_RESOURCES)),
-        "no resource is both candidate work and renderable",
-    )
-    for candidate in ("deployments", "statefulsets", "daemonsets", "jobs", "cronjobs",
-                      "services", "ingresses", "pods", "replicasets"):
-        check(candidate in ra.CANDIDATE_RESOURCES, f"{candidate} is recorded as candidate work")
-
-    out = render(base())
+    out = render(base(resources=sorted(expected)))
     rules = all_rules(out["manifests/20-rbac.yaml"])
-    granted = {resource for rule in rules for resource in rule["resources"]}
     writable_verbs = set(ra.WRITE_VERBS)
-    for rule in rules:
-        if writable_verbs & set(rule["verbs"]):
-            check(
-                rule["resources"] == ["configmaps"],
-                f"only configmaps carry write verbs (got {rule['resources']})",
-            )
-
-    # The summary claims "no permission of any kind on workload controllers".
-    # Assert exactly that, including read verbs and the write-scope read context:
-    # a stray `apps/replicasets` read would make the documented claim false.
-    workload_kinds = {
-        "deployments", "statefulsets", "daemonsets", "replicasets", "jobs", "cronjobs",
-        "services", "ingresses",
+    writable = {
+        resource
+        for rule in rules
+        if writable_verbs & set(rule["verbs"])
+        for resource in rule["resources"]
     }
-    leaked = granted & workload_kinds
     check(
-        not leaked,
-        f"no workload kind appears in any generated rule, read verbs included (leaked: {sorted(leaked)})",
+        writable == expected,
+        f"every selected resource gets write verbs (got {sorted(writable)})",
+    )
+    deployment_only = all_rules(render(base(resources=["deployments"]))["manifests/20-rbac.yaml"])
+    deployment_writes = {
+        resource
+        for rule in deployment_only
+        if writable_verbs & set(rule["verbs"])
+        for resource in rule["resources"]
+    }
+    check(
+        deployment_writes == {"deployments"},
+        "an individual supported resource can be selected without granting the others",
+    )
+
+
+def test_write_verbs_are_declared_per_resource() -> None:
+    """No kind gets a blanket create/update/patch/delete rule.
+
+    A single CRUD rule for everything grants reach nobody asked for: create on a
+    workload controller means a new workload, delete cascades to what it owns,
+    and patch on a Pod is the most direct pod-template escalation path. The
+    boundary has to be per kind, and it has to be asserted here — a policy table
+    nobody checks drifts back to convenience.
+    """
+    print("\nwrite verbs are per resource, not a blanket CRUD rule")
+    expected_verbs = {
+        "configmaps": {"create", "update", "patch", "delete"},
+        "pods": {"delete"},
+        "jobs": {"delete"},
+        "services": {"update", "patch"},
+        "ingresses": {"update", "patch"},
+        "deployments": {"update", "patch"},
+        "statefulsets": {"update", "patch"},
+        "daemonsets": {"update", "patch"},
+        "replicasets": {"update", "patch"},
+        "cronjobs": {"update", "patch"},
+    }
+    check(
+        set(expected_verbs) == set(ra.WRITABLE_RESOURCES),
+        "every supported kind has an asserted verb set",
+    )
+    for kind, wanted in sorted(expected_verbs.items()):
+        declared = set(ra.WRITABLE_RESOURCES[kind][1])
+        check(declared == wanted, f"{kind} declares {sorted(wanted)} (got {sorted(declared)})")
+
+    # And what actually reaches the Role, not only the table.
+    rules = all_rules(render(base(resources=sorted(expected_verbs)))["manifests/20-rbac.yaml"])
+    mutation_verbs = set(ra.WRITE_VERBS)
+    granted: dict = {}
+    for rule in rules:
+        grants = mutation_verbs & set(rule["verbs"])
+        if not grants:
+            continue
+        for resource in rule["resources"]:
+            granted.setdefault(resource, set()).update(grants)
+    check(
+        granted == expected_verbs,
+        f"the rendered Role grants exactly the declared verbs (got "
+        f"{ {k: sorted(v) for k, v in sorted(granted.items())} })",
+    )
+
+    only_pods = all_rules(render(base(resources=["pods"]))["manifests/20-rbac.yaml"])
+    pod_mutations = {
+        verb
+        for rule in only_pods
+        for verb in mutation_verbs & set(rule["verbs"])
+        if "pods" in rule["resources"]
+    }
+    check(
+        pod_mutations == {"delete"},
+        f"a Pod write profile can delete and nothing else (got {sorted(pod_mutations)})",
     )
     check(
-        not any("apps" in rule["apiGroups"] for rule in rules),
-        "the write identity gets no rule in the apps apiGroup at all",
-    )
-    pod_rules = [
-        rule for rule in rules
-        if any(r == "pods" or r.startswith("pods/") for r in rule["resources"])
-    ]
-    check(
-        all(not (writable_verbs & set(rule["verbs"])) for rule in pod_rules),
-        "no Pod or Pod subresource carries a write verb",
+        not any(
+            "create" in set(rule["verbs"])
+            for rule in all_rules(render(base(resources=["deployments"]))["manifests/20-rbac.yaml"])
+        ),
+        "a workload controller profile never grants create",
     )
 
 
@@ -330,7 +381,6 @@ def test_no_renderer_entry_point_accepts_an_unevidenced_scope() -> None:
         ("the tool server inside its write target", {"tool_server_namespace": "kagent-lab"}, {}),
         ("a protected tool-server namespace", {"tool_server_namespace": "kube-system"}, {}),
         ("a forbidden resource", {"resources": ["secrets"]}, {}),
-        ("a candidate resource", {"resources": ["deployments"]}, {}),
         ("an unknown resource", {"resources": ["widgets"]}, {}),
         ("a duplicated resource", {"resources": ["configmaps", "configmaps"]}, {}),
         ("require_approval=False", {"require_approval": False}, {}),
@@ -396,7 +446,7 @@ def test_no_renderer_entry_point_accepts_an_unevidenced_scope() -> None:
     )
 
     # Same for a resource outside the allow-list reaching the rule builder directly.
-    for resource in ("deployments", "secrets", "widgets"):
+    for resource in ("secrets", "widgets"):
         try:
             ra.build_policy_rules([resource])
         except ra.ConfigError:
@@ -405,6 +455,14 @@ def test_no_renderer_entry_point_accepts_an_unevidenced_scope() -> None:
             check(False, f"build_policy_rules({resource!r}) raised {type(exc).__name__}")
         else:
             check(False, f"build_policy_rules({resource!r}) produced a rule")
+    try:
+        deployment_rules = ra.build_policy_rules(["deployments"])
+        check(
+            deployment_rules[0]["apiGroups"] == ["apps"],
+            "build_policy_rules accepts deployments in the apps API group",
+        )
+    except Exception as exc:  # noqa: BLE001
+        check(False, f"build_policy_rules('deployments') raised {type(exc).__name__}")
 
     # No shell metacharacter may reach profile.env through any field, in EITHER
     # mode. The read-only variants matter most: `KAGENT_ACCESS_MODE` and
@@ -638,16 +696,6 @@ def test_rejected_configs() -> None:
     expect_config_error(base(resources=["nodes"]), "never be granted", "write nodes")
     expect_config_error(base(resources=["widgets"]), "not supported", "unknown resource")
 
-    expect_config_error(base(resources=["deployments"]), "candidate work", "workload write")
-    expect_config_error(
-        base(resources=["configmaps", "deployments"]),
-        "candidate work",
-        "configmaps plus a workload kind",
-    )
-    expect_config_error(base(resources=["pods"]), "candidate work", "pod deletion")
-    expect_config_error(base(resources=["services"]), "candidate work", "service write")
-    expect_config_error(base(resources=["ingresses"]), "candidate work", "ingress write")
-
     expect_config_error(base(scope="namespaces", namespaces=[]), "must name the evidenced write target", "namespaced scope without namespaces")
     expect_config_error(base(namespaces=["kube-system"]), "protected", "protected namespace")
     expect_config_error(base(namespaces=["default"]), "refused", "'default' as a write target")
@@ -799,7 +847,8 @@ def main() -> int:
     test_read_only_generates_no_write_path()
     test_namespace_scope()
     test_only_evidenced_namespace_is_renderable()
-    test_v1_write_surface_is_configmaps_only()
+    test_write_surface_is_configurable()
+    test_write_verbs_are_declared_per_resource()
     test_no_cluster_scoped_object_is_renderable()
     test_no_renderer_entry_point_accepts_an_unevidenced_scope()
     test_no_rule_ever_grants_secrets_or_escalation()

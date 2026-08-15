@@ -38,12 +38,8 @@ read:
     - k8s_get_pod_logs
     - k8s_get_resource_yaml
 
-# The write block below is the *entire* v1 write surface: approval-gated
-# ConfigMap writes in `kagent-lab`. That is the profile
-# that was exercised on a live cluster and recorded in
-# docs/kagent-standalone/evidence-protocol.md. Anything wider is candidate work
-# and the renderer refuses it rather than defaulting it — see
-# "Candidate work" in access/README.md.
+# The write block below selects the approval-gated, namespace-scoped write
+# surface. Only explicitly listed, supported resources are granted.
 write:
   # `namespaces` is the only scope. `cluster` is refused: a ClusterRoleBinding
   # applies in every namespace, including kagent, kagent-write, kube-* and any
@@ -56,13 +52,16 @@ write:
   namespaces:
     - kagent-lab
 
-  # Resource kinds the write identity may change. v1 supports `configmaps` only.
-  # Read verbs are always added, plus read-only context (Pods, Pod logs, Events)
-  # so the agent can verify its own change. No `apps` resource is granted, not
-  # even read — that comes from the separate read identity.
+  # Select any non-empty subset of: configmaps, pods, services, deployments,
+  # statefulsets, daemonsets, replicasets, jobs, cronjobs, ingresses. Read verbs
+  # are added to each selected kind, plus read-only Pods, Pod logs and Events as
+  # verification context.
   #
-  # Refused as candidate work: deployments, statefulsets, daemonsets,
-  # replicasets, jobs, cronjobs, services, ingresses, pods (deletion).
+  # Mutation verbs are declared per kind, not granted as a block: ConfigMaps get
+  # the full life cycle (the drilled kind), Pods and Jobs only delete, and
+  # workload controllers, Services and Ingresses only update/patch. See the
+  # generator README for why.
+  #
   # Never grantable: secrets, RBAC objects, serviceaccounts, namespaces, nodes,
   # persistentvolumes, CRDs, webhook configurations, `*`.
   resources:

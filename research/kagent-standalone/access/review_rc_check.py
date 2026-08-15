@@ -79,18 +79,38 @@ with tempfile.TemporaryDirectory() as t:
     # namespace. The claim is about cluster-scoped *RBAC*.
     ck(not [k for k in kinds if k.startswith("Cluster")], "no cluster-scoped RBAC object is rendered", str(kinds))
 
-print("\nRC2 — v1 = ConfigMaps only, in THIS repo's renderer and docs")
-ck(sorted(ra.WRITABLE_RESOURCES)==["configmaps"], "WRITABLE_RESOURCES == {configmaps}", str(sorted(ra.WRITABLE_RESOURCES)))
+print("\nRC2 — modular namespaced resource allow-list")
+supported = {"configmaps", "pods", "services", "deployments", "statefulsets",
+             "daemonsets", "replicasets", "jobs", "cronjobs", "ingresses"}
+ck(set(ra.WRITABLE_RESOURCES)==supported, "WRITABLE_RESOURCES contains the supported namespaced kinds", str(sorted(ra.WRITABLE_RESOURCES)))
 ck(ra.EVIDENCED_WRITE_NAMESPACES=={"kagent-lab"}, "EVIDENCED_WRITE_NAMESPACES == {kagent-lab}")
+per_kind = {"configmaps": {"create", "update", "patch", "delete"},
+            "pods": {"delete"}, "jobs": {"delete"},
+            "services": {"update", "patch"}, "ingresses": {"update", "patch"},
+            "deployments": {"update", "patch"}, "statefulsets": {"update", "patch"},
+            "daemonsets": {"update", "patch"}, "replicasets": {"update", "patch"},
+            "cronjobs": {"update", "patch"}}
+for _k, _want in sorted(per_kind.items()):
+    _got = set(ra.WRITABLE_RESOURCES[_k][1])
+    ck(_got == _want, f"{_k} grants only {sorted(_want)} — verbs are declared per kind", str(sorted(_got)))
+ck(not [_k for _k, _v in ra.WRITABLE_RESOURCES.items()
+        if _k != "configmaps" and set(_v[1]) == set(ra.WRITE_VERBS)],
+   "no kind beyond the drilled ConfigMap life cycle receives blanket CRUD")
 refused(profile(namespaces=["team-a"]), "an unevidenced namespace is refused", "exactly the evidenced target")
 refused(profile(namespaces=["kagent-lab", "team-a"]), "a mixed namespace list is refused", "exactly the evidenced target")
-for r in ("deployments","statefulsets","daemonsets","replicasets","jobs","cronjobs","services","ingresses","pods"):
-    refused(profile(resources=[r]), f"resources=[{r}] refused", "candidate work")
+for r in sorted(supported):
+    with tempfile.TemporaryDirectory() as t:
+        p = pathlib.Path(t)/"c.yaml"; p.write_text(yaml.safe_dump(profile(resources=[r])))
+        try:
+            ra.load_config(p, quiet=True)
+            ck(True, f"resources=[{r}] accepted")
+        except ra.ConfigError as exc:
+            ck(False, f"resources=[{r}] accepted", str(exc))
 for r in ("secrets", "clusterroles", "*"):
     refused(profile(resources=[r]), f"resources=[{r}] refused", "can never be granted")
 refused(profile(requireApproval=False), "requireApproval=false refused", "requireApproval: must be true")
 ex = yaml.safe_load(txt("research/kagent-standalone/access/access-config.example.yaml"))
-ck(ex["write"]["resources"]==["configmaps"], "shipped example: resources == [configmaps]", str(ex["write"]["resources"]))
+ck(set(ex["write"]["resources"]) <= supported, "shipped example selects only supported resources", str(ex["write"]["resources"]))
 ck(ex["write"]["namespaces"]==["kagent-lab"], "shipped example: namespaces == [kagent-lab]")
 ck(ex["write"]["scope"]=="namespaces", "shipped example: scope == namespaces")
 
@@ -119,7 +139,6 @@ for label, over in (("cluster scope", {"scope":"cluster","namespaces":[]}),
                     ("namespaces=['prod-payments']", {"namespaces":["prod-payments"]}),
                     ("namespaces=['kagent-lab','team-a']", {"namespaces":["kagent-lab","team-a"]}),
                     ("namespaces=['kagent-lab','kagent-lab']", {"namespaces":["kagent-lab","kagent-lab"]}),
-                    ("resources=['deployments']", {"resources":["deployments"]}),
                     ("resources=['secrets']", {"resources":["secrets"]}),
                     ("agent_name with shell metacharacters", {"agent_name":"a'; id; #"}),
                     ("tool_server_namespace with shell metacharacters", {"tool_server_namespace":"x'; id; #"}),

@@ -58,12 +58,12 @@ will use with a customer:
   identity.** That is a claim about permissions, not a proof that no indirect path
   exists: pod-template mutation on a Deployment, StatefulSet, DaemonSet or Job can
   reach existing Secrets or a more privileged ServiceAccount in the same namespace
-  without calling the Secret API, and only admission control prevents it. That is
-  one reason the renderable write surface is ConfigMaps only.
+  without calling the Secret API, and only admission control prevents it. Enable
+  workload kinds only where that namespace-level risk is accepted or constrained.
 
-The renderer refuses everything wider — other namespace targets, workload kinds,
-Services, Ingresses, Pod deletion, ungated writes, cluster-wide scope — as
-candidate work.
+The renderer accepts a configured subset of supported namespaced resources and
+refuses other namespace targets, sensitive or unsupported resources, ungated
+writes and cluster-wide scope.
 
 Start at
 [`research/kagent-standalone/access/README.md`](../../research/kagent-standalone/access/README.md);

@@ -2,7 +2,7 @@
 
 `render-access.py` turns a single declarative config into every object that grants
 a standalone kagent installation its permissions: read-only diagnosis, or
-additionally one approval-gated ConfigMap write path in `kagent-lab`. All of it
+additionally one approval-gated, configurable write path in `kagent-lab`. All of it
 comes from `access-config.yaml`.
 
 The namespace is not an operator choice in v1. `kagent-lab` is the one target the
@@ -17,28 +17,27 @@ with a prompt, a tool allow-list and a Helm value across two repositories drifts
 It drifted here once already — a widened Role shipped while the documentation
 still described the narrow one. Generating removes the class of bug.
 
-## v1 renders only what has been evidenced
+## Configurable write resources
 
-The renderer's executable surface is deliberately smaller than what kagent can
-do. It renders exactly the write profile that was exercised on a live cluster and
-recorded in
-[`docs/kagent-standalone/evidence-protocol.md`](../../../docs/kagent-standalone/evidence-protocol.md):
+The renderer grants only the supported resource kinds explicitly selected in
+`write.resources`:
 
 ```yaml
 mode: read-write
 write:
   scope: namespaces
   namespaces: [kagent-lab]
-  resources: [configmaps]
+  resources: [configmaps, deployments]
   requireApproval: true
 ```
 
-Everything wider is **candidate work**: recognised by the renderer, refused with
-the reason, and documented below. Not "off by default" — refused. A PoC does not
-need production-grade completeness, but every boundary it claims has to hold for
-every configuration it can actually produce, and the fastest way to guarantee
-that is to not produce the configurations whose boundary has not been
-demonstrated.
+Supported kinds are `configmaps`, `pods`, `services`, `deployments`,
+`statefulsets`, `daemonsets`, `replicasets`, `jobs`, `cronjobs`, and `ingresses`.
+Any non-empty subset is valid. Unlisted kinds receive no mutation permission,
+and a selected kind receives **the verbs declared for that kind** — not a blanket
+`create`/`update`/`patch`/`delete` rule. The recorded OK-129 drill covered
+ConfigMaps, so ConfigMaps are the only kind with a full life cycle; broader
+selections deliberately accept the namespace-level workload risk described below.
 
 ## Where the boundary actually is
 
@@ -50,7 +49,7 @@ loud in a customer conversation.
 | `systemMessage` | intent | **soft** — a prompt | generated from the config |
 | `toolNames` allow-list | which tools the model can see | **medium** — configuration | `read.tools` / `write.tools` |
 | `requireApproval` | which calls wait for a human *on the Agent that declares it* | **medium** — a per-Agent workflow gate, not a server-side policy | `write.requireApproval` |
-| **tool-server ServiceAccount RBAC** | which API calls the executing identity may make | **hard — the only enforced boundary here.** Some permissions reach further than the verbs they name; see "What withholding those verbs does and does not prove" | not config — the `EVIDENCED_WRITE_NAMESPACES` and `WRITABLE_RESOURCES` allow-lists in the renderer |
+| **tool-server ServiceAccount RBAC** | which API calls the executing identity may make | **hard — the only enforced boundary here.** Some permissions reach further than the verbs they name; see "What withholding those verbs does and does not prove" | `write.namespaces`, `write.resources`, and the renderer's supported/forbidden lists |
 
 Three consequences that surprise people:
 
@@ -174,14 +173,26 @@ a way of turning into a quietly false claim:
   `8084.9` would be truncated, because `bool` is a subclass of `int` in Python and
   `int()` coerces silently.
 
-Grantable resources in v1: **`configmaps`, and nothing else.**
+Grantable resources: **ConfigMaps, Pods, Services, Deployments, StatefulSets,
+DaemonSets, ReplicaSets, Jobs, CronJobs and Ingresses.** Only kinds listed in the
+active profile are granted.
 
 The write identity also gets read-only context in `kagent-lab` — Pods, Pod logs
-and Events — so the agent can verify the change it just made instead of
-asserting success. Deliberately *not* included: any `apps` resource. Granting the
-write identity even a read verb on a workload controller would make the
-"no permission on workload kinds" claim false, and cluster-wide read already
-exists on the separate read identity.
+and Events — so the agent can verify the change it just made. Selected resource
+kinds additionally receive `get`, `list`, `watch` and the mutation verbs declared
+for that kind:
+
+| Kind | Mutation verbs | Why not more |
+|---|---|---|
+| ConfigMaps | `create`, `update`, `patch`, `delete` | the E4b drill exercised the whole life cycle, Approve and Reject included |
+| Pods, Jobs | `delete` | deleting a Pod is the restart primitive and deleting a failed Job is the cleanup; `create`/`patch` would be the most direct pod-template escalation path |
+| Deployments, StatefulSets, DaemonSets, ReplicaSets, CronJobs, Services, Ingresses | `update`, `patch` | repair changes an object that exists — `create` means a new workload or traffic object, and `delete` on a controller cascades to what it owns |
+
+The limit of that narrowing is worth stating: `update`/`patch` on a workload
+controller still rewrites a pod template, so it can still select another
+`serviceAccountName`, mount an existing Secret, or change image and command.
+Dropping `create` and `delete` bounds the blast radius; it does not close that
+path.
 
 `default` is refused as a write target. The generated summary asserts that writes
 in `default` are denied, and a warning-only check would have turned that assertion
@@ -201,30 +212,24 @@ different `serviceAccountName`, mounting a Secret that already exists, or changi
 the image and command — none of which requires calling the Secret API. Nothing in
 RBAC alone prevents that; it takes admission control.
 
-This is the main reason workload kinds are candidate work here rather than a
-config option: the honest version of the guarantee would have to be much weaker
-than the one the documentation used to make.
+This means workload kinds are powerful even though Secrets and RBAC remain
+directly forbidden. Use admission policy when that indirect path must be blocked.
 
-## Candidate work — recognised, refused, and why
+## Capabilities that remain refused
 
 Each entry is refused with its reason at render time, so nobody has to read this
 table to find out.
 
 | Capability | Why it is not a v1 option |
 |---|---|
-| `deployments`, `statefulsets`, `daemonsets`, `replicasets`, `jobs`, `cronjobs` | pod-template write reaches Secrets and other ServiceAccounts indirectly. Needs narrowly typed repair tools with fixed editable fields, or a documented and tested admission-policy boundary. |
-| `services`, `ingresses` | traffic-path write. No drill, and no tested bound on blast radius. |
-| `pods` (delete) | a disruption primitive. No recorded drill. |
 | `write.scope: cluster` | `ClusterRoleBinding` cannot exclude namespaces; no forcing consumer in this lab. |
 | any write namespace other than `kagent-lab` | no recorded drill for it. Multi-namespace RBAC is the same *shape*, but shape is not evidence, and `EVIDENCED_WRITE_NAMESPACES` is the renderer's own boundary rather than a downstream consumer's. |
 | `requireApproval: false` | no drill, and no compensating server-side control. |
 | namespaced **read** scope | would mean taking over the chart's built-in tool RBAC; needs live testing, not a config flag. |
 
-Promoting one of these is a specific piece of work: implement the boundary, run
-E4b in `evidence-protocol.md` for it, record the result, *then* widen the
-allow-list — `WRITABLE_RESOURCES` for a kind, `EVIDENCED_WRITE_NAMESPACES` for a
-namespace. Editing either constant is a claim that this already happened, and the
-tests assert the current contents so the edit cannot pass unnoticed.
+Adding another resource kind still requires extending `WRITABLE_RESOURCES` —
+including the verbs that kind may receive — and its tests. Sensitive and cluster-scoped kinds in `FORBIDDEN_RESOURCES` are not
+configurable.
 
 ## Usage
 
@@ -268,8 +273,9 @@ quietly apply nothing.
 `SUMMARY.md` ends with the `kubectl auth can-i` calls for the profile it just
 rendered, and `make verify-access` runs the same assertions against the API
 server: reads work, writes and Secret reads are denied for the read identity, the
-write identity can patch ConfigMaps inside its scope and is denied outside it and
-on workload kinds, and in read-only mode no write objects exist at all. A chart
+write identity can mutate every configured kind inside its scope and is denied
+outside it and on non-configured kinds, and in read-only mode no write objects
+exist at all. A chart
 upgrade that quietly widens RBAC fails that target.
 
 ## Tests
@@ -285,7 +291,7 @@ PR review is true of this tree.
 - cluster scope **and** the evidenced namespace refused at *every* render entry
   point, not only in `load_config` — the boundary must hold for an importer of this
   module, not only for callers that go through the loader;
-- ConfigMaps-only and `kagent-lab`-only, in the code *and* in the shipped example;
+- a modular supported-resource allow-list and a `kagent-lab`-only target;
 - the exact approval-boundary sentence in all six documents and in the generated
   summary;
 - the pod-template escalation caveat worded as the reviewer asked, naming
@@ -301,7 +307,7 @@ Static, no cluster. Asserts the properties that matter:
 
 - read-only generates no write path, and a read-only profile that still carries a
   populated write block is refused rather than summarised;
-- the renderable write surface is ConfigMaps in `kagent-lab` only;
+- the renderable write surface is the configured subset in `kagent-lab` only;
 - **nothing `load_config` refuses is renderable.** Not as a second list of checks —
   those drifted from the first three times, and each time a reviewer found the one
   that had been missed. `_require_renderable_profile` converts the config back to
@@ -343,9 +349,7 @@ Static, no cluster. Asserts the properties that matter:
   server — check with
   `kubectl get remotemcpserver kagent-tool-server -o yaml`. The renderer does not
   invent names.
-- **More resource kinds** are not an extension point in the ordinary sense. See
-  "Candidate work" above: the boundary has to exist and be evidenced before the
-  kind moves from `CANDIDATE_RESOURCES` to `WRITABLE_RESOURCES`, and the tests
-  assert the current split so widening it is a visible, reviewable change rather
-  than a one-line edit. Anything in `FORBIDDEN_RESOURCES` needs a written
-  decision first, not a code change.
+- **More resource kinds** are added centrally to `WRITABLE_RESOURCES` together
+  with the verbs they may receive; profiles can immediately select any subset of
+  that supported list. Anything in
+  `FORBIDDEN_RESOURCES` needs a written decision first, not a config change.

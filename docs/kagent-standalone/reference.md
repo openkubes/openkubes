@@ -605,23 +605,22 @@ RBAC, the write tool server and the write Agent by
 | `mode` | `read-only` \| `read-write` | whether a write identity exists at all |
 | `write.scope` | `namespaces` | one Role + RoleBinding in the evidenced namespace. `cluster` is refused |
 | `write.namespaces` | `[kagent-lab]` | the only evidenced write target in v1 |
-| `write.resources` | `[configmaps]` | the only renderable write surface in v1 |
+| `write.resources` | supported resource list | exact namespaced kinds that may be changed |
 | `write.requireApproval` | `true` | must be true; the gate is per-Agent, see above |
 
 The generator refuses, whatever the config says: Secrets in any scope; RBAC
 objects, ServiceAccounts, Namespaces, Nodes, CRDs and webhooks; `*` as a
 resource; the install namespace, the tool server's own namespace, `kube-*` and
 `default` as write targets; `write.scope: cluster`; `requireApproval: false`; a
-mutating tool name in the ungated `read.tools` reference; and every write kind
-beyond ConfigMaps, plus every namespace target other than `kagent-lab`. Those are refusals, not defaults — it exits non-zero and
+mutating tool name in the ungated `read.tools` reference; unsupported resource
+kinds; and every namespace target other than `kagent-lab`. Those are refusals, not defaults — it exits non-zero and
 generates nothing.
 
-#### Why the executable surface is smaller than the product's
+#### Workload-write caveat
 
-The renderer produces only the profile that has been exercised on a live cluster
-and recorded in [`evidence-protocol.md`](evidence-protocol.md): approval-gated
-ConfigMap writes in `kagent-lab`. Two of the refusals are boundary
-problems rather than test gaps, which is why they are refused instead of flagged:
+The recorded drill in [`evidence-protocol.md`](evidence-protocol.md) covered
+approval-gated ConfigMap writes. The current renderer also supports a configured
+subset of common namespaced workloads. Two important boundaries remain:
 
 - **`write.scope: cluster`.** A `ClusterRoleBinding` applies in every namespace,
   including `kagent`, `kagent-write`, `kube-system` and namespaces created later,
@@ -633,6 +632,7 @@ problems rather than test gaps, which is why they are refused instead of flagged
   in the same namespace** — by setting a different `serviceAccountName`, mounting a
   Secret that already exists, or changing the image and command — without ever
   calling the Secret API. RBAC alone does not prevent it; admission control does.
+  Selecting workload kinds explicitly accepts this namespace-level risk.
   So the accurate claim is that *no direct Secret, ServiceAccount or RBAC API
   permission is granted*, not that escalation is unreachable. Workload write needs
   narrowly typed repair tools with deterministic field restrictions, or a
