@@ -28,3 +28,40 @@ grant, which expressly allowed no further retries.
 
 No credential, cluster contact, restart, Application observation, sync, cleanup
 or failure injection is performed by this checkpoint.
+
+## Runtime result
+
+The separately granted execution completed fail-closed:
+
+```text
+graceful controller restart       PASS
+replacement UID changed           PASS
+replacement Running + Ready       PASS (iteration 4)
+explicit Application operation    none
+Core observation                  40 × 15 seconds
+Core health                       Healthy
+Core sync                         OutOfSync
+blocking condition                SyncError
+result                            STOP-PRESERVE-NO-RETRY
+```
+
+The Application state did not change once during the bounded observation. A
+post-run exact status read showed that Argo now reports four of the five bound
+ClusterRoles as `Synced`; only `ok-observability-operator` remains
+`OutOfSync`.
+
+Further exact read-only diagnostics found no semantic drift in that role:
+
+```text
+rule set                           equal
+exact rule sequence                equal
+normalized rule sequence           equal
+labels and values                  equal
+annotations                        equal (empty on all five roles)
+aggregationRule                    equal
+```
+
+The graceful restart therefore disproves the broad stale-runtime hypothesis.
+The remaining boundary is an Argo comparison-state discrepancy for one
+semantically equal resource. A further explicit sync remains outside this
+run's authorization.
