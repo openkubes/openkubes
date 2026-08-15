@@ -1,0 +1,94 @@
+digraph OK141PoC {
+  graph [label="OK-141 PoC — Komponenten, Platzierung und Ownership", labelloc=t, fontsize=24, fontname="Helvetica Bold", rankdir=TB, compound=true, newrank=true, splines=polyline, nodesep=0.45, ranksep=0.72, pad=0.28, bgcolor="white"];
+  node [shape=box, style="rounded,filled", fillcolor="white", color="#475569", fontcolor="#0f172a", fontname="Helvetica", fontsize=11, margin="0.16,0.11"];
+  edge [color="#475569", fontcolor="#334155", fontname="Helvetica", fontsize=9, arrowsize=0.72, penwidth=1.2];
+
+  subgraph cluster_execution {
+    label="Lokale Testausführung — noch kein produktiver Runner"; color="#f59e0b"; fillcolor="#fffbeb"; style="rounded,filled"; fontname="Helvetica Bold"; fontcolor="#92400e";
+    approval [label="Menschliche Freigabe\nGO + Stop Conditions", fillcolor="#fef3c7", color="#d97706"];
+    contract [label="OpenKubes Intent\nR + E + P + FixtureDigest", fillcolor="#fef3c7", color="#d97706"];
+    harness [label="Gebundene Spike-Skripte\nEinmal-Kandidaten + fail-closed Checks", fillcolor="#fde68a", color="#b45309"];
+    {rank=same; approval; contract; harness;}
+    approval -> harness [label="autorisiert Lauf"];
+    contract -> harness [label="bindet Experiment"];
+  }
+
+  subgraph cluster_mgmt {
+    label="ok-mgmt — Lifecycle Authority"; color="#2563eb"; fillcolor="#eff6ff"; style="rounded,filled"; fontname="Helvetica Bold"; fontcolor="#1e3a8a";
+    lifecycle [label="CAPI Lifecycle-State\nCluster / Machine / MachineDeployment", fillcolor="#bfdbfe", color="#1d4ed8"];
+    capi [label="CAPI + CAPK Controller\nLifecycle + KubeVirt Infrastructure", fillcolor="#dbeafe", color="#2563eb"];
+    hcp [label="HelmChartProxy\nCilium Revision E", fillcolor="#bfdbfe", color="#1d4ed8"];
+    caaph [label="CAAPH Controller\nHelm Enablement", fillcolor="#dbeafe", color="#2563eb"];
+    workload_kubeconfig [label="Workload-Kubeconfig Secret\ngebundener Zugriff", fillcolor="#dbeafe", color="#2563eb"];
+    {rank=same; lifecycle; hcp; workload_kubeconfig;}
+    {rank=same; capi; caaph;}
+    lifecycle -> capi [label="desired lifecycle"];
+    hcp -> caaph [label="desired Cilium"];
+    workload_kubeconfig -> caaph [style=dashed, label="Target-Zugriff"];
+  }
+
+  subgraph cluster_infra {
+    label="ok-infra — Provider Plane"; color="#7c3aed"; fillcolor="#f5f3ff"; style="rounded,filled"; fontname="Helvetica Bold"; fontcolor="#5b21b6";
+    provider_prereq [label="Provider-Prerequisites\nNamespace / RBAC / Golden Image", fillcolor="#ede9fe", color="#7c3aed"];
+    kubevirt [label="KubeVirt API + Controller", fillcolor="#ddd6fe", color="#7c3aed"];
+    metallb [label="MetalLB\nControl-Plane VIP", fillcolor="#ddd6fe", color="#7c3aed"];
+    cpvm [label="disposable-ok141\nControl-Plane VM", fillcolor="#ede9fe", color="#7c3aed"];
+    workervm [label="disposable-ok141\nWorker VM", fillcolor="#ede9fe", color="#7c3aed"];
+    {rank=same; provider_prereq; kubevirt; metallb;}
+    {rank=same; cpvm; workervm;}
+    provider_prereq -> kubevirt [label="Clone + VM"];
+    kubevirt -> cpvm [label="erstellt"];
+    kubevirt -> workervm [label="erstellt"];
+    metallb -> cpvm [label="API VIP"];
+  }
+
+  subgraph cluster_shared {
+    label="ok-shared — zentraler GitOps Control Plane"; color="#0891b2"; fillcolor="#ecfeff"; style="rounded,filled"; fontname="Helvetica Bold"; fontcolor="#155e75";
+    git [label="GitHub: ok-observability\nimmutable Commit c09c187…", fillcolor="#e2e8f0", color="#475569"];
+    registration [label="Cluster Registration\nkurzlebiges Token + Target Identity", fillcolor="#cffafe", color="#0891b2"];
+    apps [label="3 Applications\nCore / Alerting / Dashboards", fillcolor="#a5f3fc", color="#0e7490"];
+    argocd [label="Argo CD v3.4.2\nverwaltet nur externe Workload-Cluster", fillcolor="#cffafe", color="#0891b2"];
+    {rank=same; git; registration; apps;}
+    git -> argocd [label="immutable P"];
+    registration -> argocd [label="Target-Zugriff"];
+    apps -> argocd [label="desired Platform"];
+  }
+
+  {rank=same; lifecycle; provider_prereq; git;}
+
+  subgraph cluster_workload {
+    label="disposable-ok141 — externer Workload-Cluster"; color="#16a34a"; fillcolor="#f0fdf4"; style="rounded,filled"; fontname="Helvetica Bold"; fontcolor="#166534";
+    talos [label="Talos Kubernetes v1.36.2\n1 Control Plane + 1 Worker", fillcolor="#dcfce7", color="#16a34a"];
+    cilium [label="Cilium CNI\nNetworkReady Source", fillcolor="#bbf7d0", color="#15803d"];
+    prometheus [label="Prometheus", fillcolor="#dcfce7", color="#16a34a"];
+    grafana [label="Grafana", fillcolor="#dcfce7", color="#16a34a"];
+    opensearch [label="OpenSearch + Fluent Bit", fillcolor="#dcfce7", color="#16a34a"];
+    alerting [label="Alerting + Dashboards", fillcolor="#dcfce7", color="#16a34a"];
+    capability [label="Funktionaler Capability-Test\nPrometheus / Grafana / Logs / Alert", fillcolor="#bbf7d0", color="#15803d"];
+    {rank=same; talos; cilium;}
+    {rank=same; prometheus; grafana; opensearch; alerting;}
+    talos -> cilium [label="CNI"];
+    cilium -> prometheus; cilium -> grafana; cilium -> opensearch; cilium -> alerting;
+    prometheus -> capability [style=dashed]; grafana -> capability [style=dashed]; opensearch -> capability [style=dashed]; alerting -> capability [style=dashed];
+  }
+
+  evaluator [label="Read-only Evaluator\nRevision + Conditions + Capabilities", fillcolor="#fef3c7", color="#d97706"];
+  evidence [label="Redigierte Evidence\nDigests + normalisierte Zustände", fillcolor="#fef3c7", color="#d97706"];
+  legend [label="Durchgezogen: Desired State / Reconciliation     · · ·     Gestrichelt: Beobachtung / Evidence", shape=plaintext, fontsize=10];
+
+  harness -> lifecycle [label="CAPI Create-only", lhead=cluster_mgmt];
+  harness -> provider_prereq [label="Provider-Prerequisites", lhead=cluster_infra];
+  harness -> hcp [label="Enablement E", lhead=cluster_mgmt];
+  capi -> kubevirt [label="Provider-Reconciliation", ltail=cluster_mgmt, lhead=cluster_infra];
+  cpvm -> talos [label="Control Plane", ltail=cluster_infra, lhead=cluster_workload];
+  workervm -> talos [label="Worker", ltail=cluster_infra, lhead=cluster_workload];
+  caaph -> cilium [label="Helm-Konvergenz", ltail=cluster_mgmt, lhead=cluster_workload];
+  argocd -> prometheus [label="GitOps-Konvergenz", ltail=cluster_shared, lhead=cluster_workload];
+  argocd -> grafana [ltail=cluster_shared, lhead=cluster_workload]; argocd -> opensearch [ltail=cluster_shared, lhead=cluster_workload]; argocd -> alerting [ltail=cluster_shared, lhead=cluster_workload];
+  lifecycle -> evaluator [label="CAPI Conditions", style=dashed];
+  cilium -> evaluator [label="NetworkReady", style=dashed];
+  argocd -> evaluator [label="PlatformReady", style=dashed];
+  capability -> evaluator [label="funktionaler Beweis", style=dashed];
+  evaluator -> evidence [label="persistiert Beweis"];
+  evidence -> legend [style=invis];
+}
