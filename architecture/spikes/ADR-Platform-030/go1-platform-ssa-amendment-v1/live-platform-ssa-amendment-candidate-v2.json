@@ -1,0 +1,56 @@
+{
+  "apiVersion": "execution.openkubes.io/v1alpha1",
+  "kind": "OK141LivePlatformSSAAmendmentCandidate",
+  "metadata": {
+    "name": "ok141-live-platform-ssa-amendment-v2"
+  },
+  "spec": {
+    "state": "LIVE-AUTHORIZED-ONCE",
+    "standingGrantAcknowledged": true,
+    "authorizationBasis": "continuous bounded OK-141 DEV execution grant until successful Happy Run",
+    "predecessor": {
+      "preflightClosurePath": "live-preflight-closure-v1.json",
+      "preflightClosureDigest": "sha256:e3ab6b6fe76a05535352df57d86f621b0191d8c7771a63543aee81597f898dfe",
+      "result": "STOP-ZERO-WRITE-MANAGEMENT-PLANE-UNREACHABLE",
+      "resumeCondition": "ok-mgmt /readyz restored; repeat all 13 exact GETs"
+    },
+    "amendmentPath": "go1-platform-ssa-amendment-v1/platform-ssa-amendment-v1.json",
+    "amendmentDigest": "sha256:ed774745c5846593c612a1f2c330886469cb1aff0f828defc8e656c5bb635521",
+    "identities": {
+      "P": "sha256:30946024c91c64d29840bbdd1184d5f1f1e20dde3869505e07e262caef22df7b",
+      "R": "sha256:7503b0cd54d5d68243f05e231fe76cb56173a96ba9f2e4f76c83106b30731305",
+      "FixtureDigest": "sha256:e83ddec6908ca416d0ddc718a5652ba5db2b4950c26deff1da1ae03b908f028c"
+    },
+    "clientPath": "/private/tmp/ok141-kubectl-v1.34.1-darwin-amd64",
+    "clientDigest": "sha256:bb211f2b31f2b3bc60562b44cc1e3b712a16a98e9072968ba255beb04cefcfdf",
+    "managementKubeconfigPath": "/Users/arash/.kube/ok-mgmt.yaml",
+    "sharedKubeconfigPath": "/Users/arash/.kube/ok-shared.yaml",
+    "toolPath": "bounded_live_platform_ssa_amendment_v1.py",
+    "toolDigest": "sha256:51907066014664101f7bda9c2cd8a5bf2ecb22ac8b64e4f8966fd45f17bd6fc2",
+    "outputPath": "/private/tmp/ok141-live-platform-ssa-amendment-v2-evidence.json",
+    "observation": {
+      "intervalSeconds": 10,
+      "maxIterations": 90
+    },
+    "operation": {
+      "preparedObjectCount": 13,
+      "applicationSpecChanges": 1,
+      "exactSpecDelta": "add ServerSideApply=true to the Core Application",
+      "optimisticConcurrency": "UID and resourceVersion guarded replacement"
+    },
+    "stopPolicy": "STOP-PRESERVE-NO-RETRY",
+    "exclusions": [
+      "delete",
+      "force delete",
+      "finalizer change",
+      "credential change",
+      "RBAC change",
+      "explicit sync",
+      "rollback",
+      "general cleanup",
+      "outage",
+      "failure injection",
+      "unredacted evidence publication"
+    ]
+  }
+}

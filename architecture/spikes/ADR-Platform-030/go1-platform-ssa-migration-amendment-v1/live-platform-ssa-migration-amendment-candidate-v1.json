@@ -1,0 +1,52 @@
+{
+  "apiVersion": "execution.openkubes.io/v1alpha1",
+  "kind": "OK141LivePlatformSSAMigrationAmendmentCandidate",
+  "metadata": {
+    "name": "ok141-live-platform-ssa-migration-amendment-v1"
+  },
+  "spec": {
+    "state": "LIVE-AUTHORIZED-ONCE",
+    "standingGrantAcknowledged": true,
+    "authorizationBasis": "continuous bounded OK-141 DEV execution grant; diagnosis-backed Argo sync amendment",
+    "predecessor": {
+      "privateCoreSyncEvidencePath": "/private/tmp/ok141-core-sync-after-ssa-v2-evidence.json",
+      "privateCoreSyncEvidenceDigest": "sha256:a66aa245371746b3ff39d3a23c0c08599d62c8528362602036125ed3704a56cd",
+      "result": "STOP-SYNC-NOT-CONVERGED",
+      "cause": "Argo default client-side apply migration retained the large-CRD annotation boundary"
+    },
+    "amendmentPath": "go1-platform-ssa-migration-amendment-v1/platform-ssa-migration-amendment-v1.json",
+    "amendmentDigest": "sha256:53b926fc37381555e79a2cbb6ccc806df0e101ea021c109e179e9445e350640c",
+    "identities": {
+      "P": "sha256:86db1e51e2d4ecbe2cf32d27e7e0f76a6a29a17f6bab201289fff6eee5299925",
+      "R": "sha256:32c2abeb6f08a6853006f31b764900b65faa9f36db2482b062aa5b3709764d13",
+      "FixtureDigest": "sha256:ad13f4e233a25fe4aa252bd0013f3257c8003f78955a133501a117997462feed"
+    },
+    "clientPath": "/private/tmp/ok141-kubectl-v1.34.1-darwin-amd64",
+    "clientDigest": "sha256:bb211f2b31f2b3bc60562b44cc1e3b712a16a98e9072968ba255beb04cefcfdf",
+    "managementKubeconfigPath": "/Users/arash/.kube/ok-mgmt.yaml",
+    "sharedKubeconfigPath": "/Users/arash/.kube/ok-shared.yaml",
+    "toolPath": "bounded_live_platform_ssa_migration_amendment_v1.py",
+    "toolDigest": "sha256:615e5b7e277dbbc518e52c1b6a10e18454ad5f9f84a26e0ad384cb191a9c9a1c",
+    "outputPath": "/private/tmp/ok141-live-platform-ssa-migration-amendment-v1-evidence.json",
+    "operation": {
+      "preparedObjectCount": 13,
+      "applicationSpecChanges": 1,
+      "exactSpecDelta": "add ClientSideApplyMigration=false to the Core Application while retaining ServerSideApply=true",
+      "optimisticConcurrency": "UID and resourceVersion guarded replacement"
+    },
+    "stopPolicy": "STOP-PRESERVE-NO-RETRY",
+    "exclusions": [
+      "delete",
+      "force delete",
+      "finalizer change",
+      "credential change",
+      "RBAC change",
+      "explicit sync",
+      "rollback",
+      "general cleanup",
+      "outage",
+      "failure injection",
+      "unredacted evidence publication"
+    ]
+  }
+}
