@@ -1,0 +1,76 @@
+apiVersion: remediation.openkubes.io/v1alpha1
+kind: GO1ArgoRuntimeRefreshCandidate
+metadata:
+  name: ok141-argo-runtime-refresh-v1
+  ticket: OK-141
+  baseCommit: ed09d1662a9865f18511ae9a1a79ca83df8c4f60
+spec:
+  version: ok141-go1-argo-runtime-refresh/v1
+  state: BLOCKED-NO-GO
+  predecessor:
+    path: ../go1-platform-network-amendment-v1/core-sync-runtime-boundary-closure-v1.json
+    digest: sha256:4d75463129019452a612c6e8535a1316738f392c09170dc26fc79d5f0b5b2046
+    faultBoundary: ARGO-APPLICATION-CONTROLLER-RUNTIME-OR-CACHE
+    thirdSyncAuthorized: false
+  shared:
+    credentialPath: /Users/arash/.kube/ok-shared.yaml
+    clientPath: /private/tmp/ok141-kubectl-v1.34.1-darwin-amd64
+    clientDigest: sha256:bb211f2b31f2b3bc60562b44cc1e3b712a16a98e9072968ba255beb04cefcfdf
+    configMapURI: /api/v1/namespaces/argocd/configmaps/argocd-cm
+    requiredConfig: {resource.respectRBAC: strict}
+    statefulSetURI: /apis/apps/v1/namespaces/argocd/statefulsets/argocd-application-controller
+    requiredStatefulSet:
+      replicas: 1
+      readyReplicas: 1
+      image: quay.io/argoproj/argocd:v3.4.2
+    podURI: /api/v1/namespaces/argocd/pods/argocd-application-controller-0
+    applicationURI: /apis/argoproj.io/v1alpha1/namespaces/argocd/applications/disposable-ok141-observability-core
+  operation:
+    gracefulPodDelete: true
+    force: false
+    uidAndResourceVersionPreconditions: true
+    deletePropagation: Foreground
+    replacementPollIntervalSeconds: 5
+    replacementMaximumIterations: 60
+    requireReplacementUID: true
+    requireReplacementRunningAndReady: true
+    applicationPollIntervalSeconds: 15
+    applicationMaximumIterations: 40
+    automaticReconciliationMayOccur: true
+    explicitApplicationOperationSubmission: false
+    outputPath: /private/tmp/ok141-argo-runtime-refresh-v1-evidence.json
+  stopConditions:
+    - required-config-mismatch
+    - statefulset-identity-or-readiness-mismatch
+    - pod-identity-or-readiness-mismatch
+    - uid-or-resourceVersion-missing
+    - delete-precondition-failure
+    - replacement-not-ready-within-bound
+    - unexpected-application-identity
+    - secret-or-target-read-required
+    - destructive-action-required
+  exclusions:
+    - force-delete
+    - statefulset-change
+    - configmap-change
+    - application-change
+    - explicit-sync
+    - credential-read
+    - target-read
+    - rollback
+    - general-cleanup
+    - further-retry
+    - evidence-publication
+    - failure-injection
+  authorization:
+    decision: NO-GO
+    sharedCredentialUseGranted: false
+    exactConfigMapReadGranted: false
+    exactStatefulSetReadGranted: false
+    exactPodReadAndDeleteGranted: false
+    uidAndResourceVersionPreconditionsGranted: false
+    controllerInterruptionAcknowledged: false
+    automaticReconciliationAcknowledged: false
+    boundedReplacementObservationGranted: false
+    boundedApplicationObservationGranted: false
+    implicitRetryBoundarySuperseded: false
