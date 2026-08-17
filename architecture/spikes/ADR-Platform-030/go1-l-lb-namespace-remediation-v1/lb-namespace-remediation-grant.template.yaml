@@ -1,0 +1,34 @@
+apiVersion: authorization.openkubes.io/v1alpha1
+kind: LBNamespaceRemediationGrant
+metadata:
+  name: ok141-lb-namespace-remediation-v1
+spec:
+  decision: NO-GO
+  authority: github:arashkaffamanesh
+  candidateDigest: sha256:f2cff408032898997a589bcc829ece7fad73b0b9bbda9afa1c1080674fae02ca
+  riskAcceptance: PENDING
+  grantID: null
+  runID: null
+  singleRun: true
+  consumed: false
+  issuedAt: null
+  expiresAt: null
+  rawEvidencePath: /private/tmp/ok141-lb-namespace-remediation-v1-evidence.json
+  credentialIdentityDigests:
+    ok-infra: sha256:0cab42fab537845afb82ef510169bf9402e314e0fcb3ebce972499e0a1cd8f13
+    ok-mgmt: sha256:32a164332776f37129e46415af79945745134fefe80c5237d43fe13fa0511ffe
+  credentialUseGranted: false
+  secretReadGranted: false
+  secretReplaceGranted: false
+  targetServiceCreateGranted: false
+  misplacedServiceDeleteGranted: false
+  kubevirtClusterEndpointResetGranted: false
+  observationGranted: false
+  retryGranted: false
+  rollbackGranted: false
+  generalCleanupGranted: false
+  happyRunResumeGranted: false
+  g3Granted: false
+  platformConvergenceGranted: false
+  evidencePublicationGranted: false
+  failureInjectionGranted: false

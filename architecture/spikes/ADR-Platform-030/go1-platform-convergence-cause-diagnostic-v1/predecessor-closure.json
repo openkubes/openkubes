@@ -1,0 +1,31 @@
+{
+  "apiVersion": "evidence.openkubes.io/v1alpha1",
+  "kind": "GO1PlatformConvergenceDiagnosticRedactedClosure",
+  "candidateDigest": "sha256:aa88dd7de0a79bbde2985c5420502858121920ad0a76b491bc4be4ed51b150fe",
+  "privateEvidenceDigest": "sha256:4bcaf5c1fcb8ae7f9b1f485f8374da1615371e058f0aa1bbb516a8861739b434",
+  "privateEvidenceSemanticDigest": "sha256:c0280c7bbaf6d7ac457210429d4d889301349ea36e6f457ea6cc74622e18944d",
+  "result": "PASS-READ-ONLY-DIAGNOSTIC",
+  "queryCount": 3,
+  "readyCount": 0,
+  "allReady": false,
+  "commonState": {
+    "desiredRevisionMatches": true,
+    "observedRevisionMatches": true,
+    "sync": "Unknown",
+    "health": "Healthy",
+    "resourceInventoryEmpty": true,
+    "conditionTypes": ["ComparisonError", "UnknownError"],
+    "sharedSourceOrRenderMessageDigest": "sha256:872086d8d540ccc83446826bc8ee537527c1c7feb4264110b89e39a6bcd2da50",
+    "sharedUnknownMessageDigest": "sha256:2f839cd0df14017d75edc5dfa89982bfd63630af6323f57ceeaf6a7c456fb300"
+  },
+  "interpretation": "Failure is common to all three Argo Applications before target resource comparison; the current redaction cannot yet distinguish source/render from live-target-state loading.",
+  "boundaries": {
+    "rawEvidencePublished": false,
+    "rawMessagesPublished": false,
+    "uidsOrResourceVersionsPublished": false,
+    "secretsOrCredentialsPublished": false,
+    "mutationPerformed": false,
+    "retryPerformed": false,
+    "happyRunResumed": false
+  }
+}

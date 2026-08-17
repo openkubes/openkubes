@@ -1,0 +1,50 @@
+apiVersion: remediation.openkubes.io/v1alpha1
+kind: GO1PlatformRBACRemediationCandidate
+metadata: {name: ok141-platform-rbac-remediation-v1, ticket: OK-141, baseCommit: 2d304e6}
+spec:
+  version: ok141-go1-platform-rbac-remediation/v1
+  state: OFFLINE-PROVEN-BLOCKED-NO-GO
+  predecessor:
+    closurePath: authorization-closure.json
+    closureDigest: sha256:a4594faa45538cdc4b03fa3ca000c60ef0afacd87fb972cd9aa2ee1f2abe7189
+    privateEvidencePath: /private/tmp/ok141-platform-authorization-cause-v1-evidence.json
+    privateEvidenceDigest: sha256:350c6cda09d60980a023be5ca2697d66e779fa16ad471a64392170239e30b23b
+    privateEvidenceSemanticDigest: sha256:bc26bedc11742d99595ab8ee7a89b24701c458800b4542c28dbcc111ba61b672
+  management:
+    credentialPath: /Users/arash/.kube/ok-mgmt.yaml
+    credentialIdentityDigest: sha256:32a164332776f37129e46415af79945745134fefe80c5237d43fe13fa0511ffe
+    clientPath: /private/tmp/ok141-kubectl-v1.34.1-darwin-amd64
+    clientDigest: sha256:bb211f2b31f2b3bc60562b44cc1e3b712a16a98e9072968ba255beb04cefcfdf
+    workloadKubeconfigSecretURI: /api/v1/namespaces/disposable-ok141/secrets/disposable-ok141-kubeconfig
+  target:
+    clientPath: /private/tmp/ok141-kubectl-v1.36.2-darwin-amd64
+    clientDigest: sha256:ce6c5e55cd17559e87e4fb5e73ebbbc2511bcf2b695d7a40c1b1461a9817d4b3
+    ephemeralAdminKubeconfigPath: /private/tmp/ok141-platform-rbac-remediation-admin-kubeconfig.yaml
+    objects:
+      - id: namespace-role
+        uri: /apis/rbac.authorization.k8s.io/v1/namespaces/ok-observability/roles/ok141-argocd-platform
+        apiGroup: ""
+        resources: [replicationcontrollers, resourcequotas]
+        verbs: [list]
+      - id: cluster-role
+        uri: /apis/rbac.authorization.k8s.io/v1/clusterroles/ok141-argocd-platform-cluster
+        apiGroup: cilium.io
+        resources: [ciliumpodippools]
+        verbs: [list]
+  outputPath: /private/tmp/ok141-platform-rbac-remediation-v1-evidence.json
+  tool: {path: bounded_platform_rbac_remediation_v1.py, digest: sha256:9c887c8c2e6ed25f36ea3cfb6658dffbc8379fea77d9468d997e5bde2de210ad}
+  authorization:
+    decision: NO-GO
+    managementCredentialAndSecretReadGranted: false
+    targetAdminCredentialGranted: false
+    exactRoleReadsGranted: false
+    exactRoleReplacementsGranted: false
+    optimisticConcurrencyGranted: false
+    nonAtomicPartialStateAccepted: false
+    automaticArgoReconciliationAcknowledged: false
+    retryGranted: false
+    rollbackOrCleanupGranted: false
+    platformObservationGranted: false
+    evidencePublicationGranted: false
+    failureInjectionGranted: false
+    grantIDs: []

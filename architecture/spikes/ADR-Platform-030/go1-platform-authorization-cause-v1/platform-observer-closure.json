@@ -1,0 +1,14 @@
+{
+  "apiVersion": "evidence.openkubes.io/v1alpha1",
+  "kind": "GO1PostRemediationPlatformObserverRedactedClosure",
+  "candidateDigest": "sha256:85657357c4d3e0c46c7ee3598d4b260b7b0d44e18e09c875185d89d19df2a673",
+  "privateEvidenceDigest": "sha256:073a193efe9c7337cb10e961b13f84187f059038a28e25a8070f84812a4388fa",
+  "privateEvidenceSemanticDigest": "sha256:34a451c589100f930f9e41136b734808e70f3717462248d9e7ba006c31c12aa0",
+  "readyCount": 0,
+  "applicationCount": 3,
+  "revisionMatchCount": 3,
+  "healthyCount": 3,
+  "syncUnknownCount": 3,
+  "authorizationConditionPresent": true,
+  "mutationPerformed": false
+}

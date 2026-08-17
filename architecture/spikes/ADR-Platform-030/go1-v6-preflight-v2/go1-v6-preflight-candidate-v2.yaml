@@ -1,0 +1,59 @@
+apiVersion: test.openkubes.io/v1alpha1
+kind: GO1V6PreflightCandidate
+metadata:
+  name: ok141-go1-v6-preflight-v2
+  ticket: OK-141
+  baseCommit: d977e85
+spec:
+  version: ok141-go1-v6-preflight/v2
+  state: OFFLINE-PROVEN-BLOCKED-NO-GO
+  supersedesTransportOnly:
+    path: ../go1-v6-preflight-v1/go1-v6-preflight-candidate-v1.yaml
+    digest: sha256:5b1eb87734b16e84fdd395368b4bf8cc0aa498ff9620241b2b36f6fc9530721f
+    historicalEvidencePreserved: true
+    queryAndAcceptanceContractUnchanged: true
+    v1AllowedForFutureExecution: false
+    reason: v1 resolves kubectl from PATH and does not bind the verified v1.34.1 client.
+  credentialIdentityClosure:
+    path: ../go1-v6-credential-identity-v1/credential-identity-closure-v1.yaml
+    digest: sha256:26c840ac3e1c5eb879f107801740edb0db73a717fea9c00123ad1e36b3fdc008
+    requiredState: COMPLETE-LOCALLY-PUBLICATION-NOT-GRANTED
+  client:
+    path: /private/tmp/ok141-kubectl-v1.34.1-darwin-amd64
+    digest: sha256:bb211f2b31f2b3bc60562b44cc1e3b712a16a98e9072968ba255beb04cefcfdf
+    version: v1.34.1
+    platform: darwin/amd64
+    requiredMode: "0700"
+    PATHLookupAllowed: false
+    verifyImmediatelyBeforeRun: true
+  tool:
+    path: bounded_go1_v6_preflight_v2.py
+    digest: sha256:5e4286481f24b78250988a0eebd9c2b64cbed2c8570a7df558f8773a6a83b439
+    arbitraryCommandAllowed: false
+    arbitraryQueryAllowed: false
+  evidence:
+    rawLocalPath: /private/tmp/ok141-go1-v6-preflight-v2-evidence.json
+    createMode: O_EXCL-0600
+    freshnessMinutes: 5
+    publicByDefault: false
+  authorization:
+    decision: NO-GO
+    credentialUseGranted: false
+    preflightGranted: false
+    mutationGranted: false
+    go1LGranted: false
+    go1Granted: false
+    retryGranted: false
+    cleanupGranted: false
+    grantIDs: []
+    authorizedDigest: null
+  conclusions:
+    candidateOfflineComplete: true
+    clientLocallyVerifiedAtPreparation: true
+    livePreflightPerformed: false
+    clusterContacted: false
+    mutationAuthorized: false
+  exclusions:
+    - execution without a fresh single-run v2 grant
+    - PATH kubectl or any client other than the exact bound binary
+    - broad queries Secret-body reads mutation submission retry rollback cleanup GO1-L GO-1 or failure injection

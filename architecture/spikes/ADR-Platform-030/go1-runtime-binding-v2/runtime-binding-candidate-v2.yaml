@@ -1,0 +1,61 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: GO1RuntimeBindingCandidate
+metadata:
+  name: ok141-go1-runtime-binding-v2
+  ticket: OK-141
+  baseCommit: 21bda1e8660570d7c4895867e5e9edb66647eec9
+spec:
+  version: ok141-go1-runtime-binding/v2
+  state: OFFLINE-PROVEN-BLOCKED-NO-GO
+  protocol:
+    path: ../go1-v6/go1-protocol-v6.yaml
+    digest: sha256:e45e5f6b8254e666226aa874810bf2ca51f76f2411e0316adb52a7ce51254885
+    protocolDigest: sha256:e45e5f6b8254e666226aa874810bf2ca51f76f2411e0316adb52a7ce51254885
+    fixtureDigest: sha256:7536456a762880a78a37dcba76a5f3f0628140bd37b55d5fd62273c64e4cc3eb
+    R: sha256:166504ae61fd558d391daedde50986cbc7a28f5f4e9d57f4acbd0433b448aa0f
+    E: sha256:2a849d69e9c64344e907c1bce3bb1abf3d8f77217377081a5be055d62c213300
+    P: sha256:b0f25c639a45d895b889997f5ecc2325db45dd5d51b0684998c94d5e17bd47bf
+  lifecycleObserver:
+    path: ../go1-l-lifecycle-observer-v1/go1-l-lifecycle-observer-candidate-v1.yaml
+    digest: sha256:00b3f9eb444e91047ffb3a6af2d90eb45b6b8cf90fa5045a299f254708949be0
+  networkObserver:
+    path: ../go1-l-network-observer-v1/go1-l-network-observer-candidate-v1.yaml
+    digest: sha256:15b24bd0d7247e0a05d4b1f291221cc52e4f1cefa498b8fe4c5d00b6347f3e04
+  management:
+    credentialPath: /Users/arash/.kube/ok-mgmt.yaml
+    credentialIdentityDigest: sha256:32a164332776f37129e46415af79945745134fefe80c5237d43fe13fa0511ffe
+    clientPath: /private/tmp/ok141-kubectl-v1.34.1-darwin-amd64
+    clientDigest: sha256:bb211f2b31f2b3bc60562b44cc1e3b712a16a98e9072968ba255beb04cefcfdf
+    secretRawURI: /api/v1/namespaces/disposable-ok141/secrets/disposable-ok141-kubeconfig
+  workload:
+    clientPath: /private/tmp/ok141-kubectl-v1.36.2-darwin-amd64
+    clientDigest: sha256:ce6c5e55cd17559e87e4fb5e73ebbbc2511bcf2b695d7a40c1b1461a9817d4b3
+    ephemeralKubeconfigPath: /private/tmp/ok141-go1-runtime-binding-v2-workload-kubeconfig.yaml
+    localPathProvisioner: rancher.io/local-path
+    tokenAudience: https://kubernetes.default.svc.cluster.local
+    queries:
+      kubeSystem: /api/v1/namespaces/kube-system
+      localPath: /apis/storage.k8s.io/v1/storageclasses/local-path
+  outputPath: /private/tmp/ok141-go1-runtime-binding-v2.json
+  outputMode: O_EXCL-0600
+  evidenceBoundary:
+    localRuntimeBindingMayContain: [public API CA data, API endpoint, immutable UIDs, predecessor digests]
+    publicationMustRedact: [CA payload, API endpoint, UIDs, ResourceVersions]
+    forbidden: [bearer tokens, client certificates, client private keys, complete kubeconfig]
+  tool:
+    path: bounded_runtime_binding_v2.py
+    digest: sha256:fbf47f6affedc45742526e952b6dc410d3bc314a827b28c8404265b3d8ce393f
+  authorization:
+    decision: NO-GO
+    clusterContactGranted: false
+    credentialUseGranted: false
+    secretReadGranted: false
+    ephemeralMaterializationGranted: false
+    readOnlyQueriesGranted: false
+    persistentMutationGranted: false
+    registrationGranted: false
+    platformSubmissionGranted: false
+    go1Granted: false
+    retryGranted: false
+    cleanupGranted: false
+    grantIDs: []

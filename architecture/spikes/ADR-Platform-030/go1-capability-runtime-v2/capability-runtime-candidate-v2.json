@@ -1,0 +1,122 @@
+{
+  "apiVersion": "execution.openkubes.io/v1alpha1",
+  "kind": "OK141CapabilityRuntimeCandidate",
+  "metadata": {
+    "name": "ok141-capability-runtime-v2",
+    "ticket": "OK-141"
+  },
+  "spec": {
+    "applications": [
+      "disposable-ok141-observability-core",
+      "disposable-ok141-observability-alerting",
+      "disposable-ok141-observability-dashboards"
+    ],
+    "authorization": {
+      "exactApplicationReads": true,
+      "exactCapabilityTest": true,
+      "exactSecretReads": true,
+      "forbidden": [
+        "arbitraryMutation",
+        "failureInjection",
+        "broadCleanup",
+        "rawEvidencePublication",
+        "forceDelete",
+        "finalizerMutation"
+      ],
+      "retry": false,
+      "source": "user-continuous-dev-execution-grant-until-happy-run-or-stop-condition",
+      "syntheticCapabilityCleanup": true,
+      "temporary0600Kubeconfig": true
+    },
+    "capability": {
+      "alertAcceptance": "firing-only",
+      "asyncTimeoutSeconds": 240,
+      "contractDigest": "sha256:b6ef10a8ecf6daf42e6d44018d51e2263f380ed649445e5a70ff5c550c73415e",
+      "namespace": "ok-observability",
+      "overallTimeoutSeconds": 1800,
+      "runID": "ok141-cap-v9-20260815-01",
+      "scriptDigest": "sha256:98f41106b7ddc2f7ecffaca9bd9e3c3584d97ab41b169054d8be91ae9cdfb949",
+      "scriptPath": "/Users/arash/temp/kubernauts/ok/ok-observability/tests/contract-test.sh",
+      "syntheticMutationAndCleanupOwnedByScript": true
+    },
+    "credentials": {
+      "managementKubeconfig": "/Users/arash/.kube/ok-mgmt.yaml",
+      "managementKubeconfigDigest": "sha256:cbc813975ca00503c8b097192d4945bfa05a5cfc689c76c219cc4b65cb4a8fc1",
+      "sharedKubeconfig": "/Users/arash/.kube/ok-shared.yaml",
+      "sharedKubeconfigDigest": "sha256:33b397e252d1e37299d2079a7a0c33f50cf515d1227e56e6e0a2c65c0fae6f77"
+    },
+    "evidenceBoundary": {
+      "forbids": [
+        "secret-bytes",
+        "kubeconfig-bytes",
+        "raw-capability-output",
+        "api-endpoints",
+        "tokens",
+        "private-keys"
+      ],
+      "retains": [
+        "application-state",
+        "identity-digests",
+        "capability-exit-code",
+        "stdout-digest",
+        "stderr-digest",
+        "cleanup-state"
+      ]
+    },
+    "identities": {
+      "FixtureDigest": "sha256:11133538388c3562f135e814ba4560b76d9ffcb0dac6dab5019f7d75c5a71178",
+      "P": "sha256:2956184005f4860607e91672fce82164095dee6ebcbe57e5af883951a199c427",
+      "R": "sha256:47bb651f6bc0bdb3a7a567efcd4ca4c776f872a63496fa55c2a6aed77d6fa995"
+    },
+    "outputPath": "/private/tmp/ok141-capability-runtime-v2-evidence.json",
+    "predecessor": {
+      "historicalV1RunReused": false,
+      "liveAmendmentCandidateDigest": "sha256:87f6e826e731e76b2ff2ddd91f46828424f33ad39953ff8e91eac197275fb156",
+      "liveAmendmentEvidenceDigest": "sha256:252b26bf7a4342f510bc674b5a40ee996b95d628faa4da6d13cfaafb1c043691",
+      "liveAmendmentEvidencePath": "/private/tmp/ok141-live-capability-name-boundary-amendment-v1-evidence.json"
+    },
+    "runtime": {
+      "ephemeralKubeconfigPath": "/private/tmp/ok141-capability-runtime-v2-workload-kubeconfig.yaml",
+      "ephemeralToolDirectory": "/private/tmp/ok141-capability-runtime-v2-tools"
+    },
+    "sourceRevision": "c09c18759aeb7526d22106ccb001599f5f06bc4e",
+    "state": "AUTHORIZED-BY-CONTINUOUS-DEV-GRANT",
+    "stopSemantics": "STOP-PRESERVE-NO-RETRY",
+    "tool": {
+      "digest": "sha256:4d1df8f49951cac83dfea5292233f436cc048d8692aed537ec4f5505b2dfec21",
+      "path": "bounded_capability_runtime_v2.py"
+    },
+    "tools": {
+      "bash": {
+        "digest": "sha256:35e00b592b1bfa799ec86e1a00bfa88f61668ddac9ee8bf4dd597494ac3c7e39",
+        "path": "/bin/bash"
+      },
+      "curl": {
+        "digest": "sha256:1959572debbab1a39fb3bcf17e0c977561fc766c92d7b171ef47a9f54895c1df",
+        "path": "/usr/bin/curl"
+      },
+      "jq": {
+        "digest": "sha256:0954dfe94b05fafd0900ebb7f60b9df72c49515b82e45c499e0597408d5baa11",
+        "path": "/usr/local/Cellar/jq/1.6/bin/jq"
+      },
+      "sharedAndManagementKubectl": {
+        "digest": "sha256:bb211f2b31f2b3bc60562b44cc1e3b712a16a98e9072968ba255beb04cefcfdf",
+        "path": "/private/tmp/ok141-kubectl-v1.34.1-darwin-amd64"
+      },
+      "workloadKubectl": {
+        "digest": "sha256:158b3b46cf74e8b6bd9b1d7cd30f665e3efb2bc1ec3c843ec925bcfdd2930de0",
+        "path": "/usr/local/bin/kubectl"
+      }
+    },
+    "version": "ok141-capability-runtime/v2",
+    "workload": {
+      "credentialKeys": [
+        "grafana-admin-user",
+        "grafana-admin-password",
+        "opensearch-admin-password"
+      ],
+      "credentialSecretURI": "/api/v1/namespaces/ok-observability/secrets/ok-observability-credentials",
+      "kubeconfigSecretURI": "/api/v1/namespaces/disposable-ok141/secrets/disposable-ok141-kubeconfig"
+    }
+  }
+}

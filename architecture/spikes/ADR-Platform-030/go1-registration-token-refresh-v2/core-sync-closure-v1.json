@@ -1,0 +1,46 @@
+{
+  "apiVersion": "evidence.openkubes.io/v1alpha1",
+  "kind": "OK141CoreSyncAfterTokenRefreshClosure",
+  "metadata": {
+    "name": "ok141-core-sync-after-token-refresh-closure-v1"
+  },
+  "spec": {
+    "observedAt": "2026-08-15T15:49:12Z",
+    "candidateDigest": "sha256:c725827adaa3f8343b550f398806c384f1425dabe7268c2187a794398a9cc425",
+    "predecessorEvidenceDigest": "sha256:5ed1bd176258258216fd654f2957c1a68ee29f7cd4eed5e481000c3a5a7252b9",
+    "privateEvidenceDigest": "sha256:9df01b27be6c7a53793497d3e366cbe79a0b73ec6e8f9c64c148685f71e7122a",
+    "privateEvidencePublished": false,
+    "operation": {
+      "application": "disposable-ok141-observability-core",
+      "sourceRevision": "b5f7be6a7ddab798f31f32197fcbb9e86a9798b6",
+      "exactOperationSubmitted": true,
+      "uidPreserved": true,
+      "resourceVersionAdvanced": true,
+      "observationIterations": 3,
+      "phase": "Failed",
+      "sync": "OutOfSync",
+      "health": "Healthy"
+    },
+    "cause": {
+      "classification": "CLIENT-SIDE-APPLY-ANNOTATION-LIMIT",
+      "affectedKind": "CustomResourceDefinition",
+      "affectedResourceCount": 6,
+      "allAffectedMessagesMatchedAnnotationTooLong": true,
+      "credentialFailure": false,
+      "rbacFailure": false,
+      "desiredResourceSetFailure": false,
+      "requiredMechanismDelta": "ServerSideApply=true on the Core Application"
+    },
+    "state": "STOP-SYNC-NOT-CONVERGED",
+    "retention": {
+      "rawMessagesRetained": false,
+      "rawObjectsRetained": false,
+      "credentialsRetained": false
+    },
+    "exclusions": {
+      "retryPerformedAfterFailure": false,
+      "rollbackOrCleanupPerformed": false,
+      "failureInjectionPerformed": false
+    }
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "apiVersion": "evidence.openkubes.io/v1alpha1",
+  "kind": "GO1PlatformAuthorizationCauseRedactedClosure",
+  "candidateDigest": "sha256:516d5a35778d0ef4cac82e1f0d8fe7f0b36102c4fb59bed3d27c2b1f398cca5e",
+  "privateEvidenceDigest": "sha256:350c6cda09d60980a023be5ca2697d66e779fa16ad471a64392170239e30b23b",
+  "privateEvidenceSemanticDigest": "sha256:bc26bedc11742d99595ab8ee7a89b24701c458800b4542c28dbcc111ba61b672",
+  "normalizedFindings": [
+    {"apiGroup": "", "resource": "replicationcontrollers", "verb": "list", "scope": "NAMESPACE", "namespaceCategory": "OK-OBSERVABILITY"},
+    {"apiGroup": "", "resource": "resourcequotas", "verb": "list", "scope": "NAMESPACE", "namespaceCategory": "OK-OBSERVABILITY"},
+    {"apiGroup": "cilium.io", "resource": "ciliumpodippools", "verb": "list", "scope": "CLUSTER", "namespaceCategory": "NONE"}
+  ],
+  "findingCount": 3,
+  "unparsedAuthorizationConditionCount": 0,
+  "remediationDesignReady": true,
+  "rawMessagesPublished": false,
+  "mutationPerformed": false
+}
