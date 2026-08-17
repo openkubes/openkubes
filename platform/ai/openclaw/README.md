@@ -74,6 +74,7 @@ make validate                   # in-cluster /v1/models + completion test
 make connect-openwebui          # auto-register in Open WebUI (env seed, fresh instances)
 make connect-info               # or: manual values for the Admin UI
 make verify-mcp-consumer        # render chart and verify MCP-only/no-credential boundary
+make prepare-diagnostics-consumer # create/label namespace for adapter ingress
 make verify-mcp-live            # verify the same boundary after deployment
 ```
 
@@ -90,6 +91,31 @@ denied · exactly three allowlisted diagnostics tools through the MCP adapter ·
 no PVC (stateless; emptyDir only — statelessness verified in OK-14) ·
 `gateway.bind: lan` · `chatCompletions` endpoint explicitly enabled
 (upstream default-disabled).
+
+The `tools.deny: ["exec"]` entry already existed before OK-94. This change keeps
+that control and adds a rendered regression check for it. The new OK-94
+mitigations are the removal of the kubectl-bearing derivative image, the legacy
+`platform-diag`/Exec path and all consumer RBAC, plus MCP-only registration and
+disabled ServiceAccount-token automount.
+
+The adapter ingress policy from
+[`openkubes/openkubes#245`](https://github.com/openkubes/openkubes/pull/245)
+admits only namespaces labelled
+`openkubes.io/diagnostics-consumer=true`. `make install` applies that label via
+`prepare-diagnostics-consumer`; Crossplane operators must run the same target
+against the workload cluster before the adapter policy is rolled out.
+
+## Release order (OK-94)
+
+1. Merge the reusable consumer PR and the adapter-ingress PR.
+2. Publish chart `0.2.0` with `make chart-release`.
+3. Run `make prepare-diagnostics-consumer` against the workload cluster.
+4. Roll out the adapter NetworkPolicy.
+5. Merge the provider-value PR in `ok-cluster`, let Crossplane reconcile, and
+   run `make verify-mcp-live`.
+
+Do not merge the provider-value PR before chart `0.2.0` exists in GHCR. The
+current pre-OK-94 workload remains unchanged until this ordered rollout.
 
 **Stop rule (guideline Part C):** write verbs or secrets in RBAC, a second
 parallel backend, wire-format changes, new Skill Contracts, per-user auth →

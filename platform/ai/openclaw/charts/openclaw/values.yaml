@@ -48,6 +48,9 @@ limits:
   timeoutSeconds: 120
 
 diagnostics:
+  # The MCP tool surface is derived from this normative contract revision.
+  # Bump deliberately together with the adapter and consumer verification.
+  contractVersion: "1.1.0"
   # Logical cluster name passed to the platform-diagnostics contract when the
   # user does not name one explicitly. Set by the deployment path from CLUSTER
   # / spec.clusterRef; keep empty in the reusable chart.

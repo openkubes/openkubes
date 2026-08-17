@@ -10,7 +10,7 @@
 
 .PHONY: help preflight install upgrade uninstall status validate logs \
         token-show connect-info connect-openwebui fix-openwebui-ollama \
-        verify-mcp-consumer verify-mcp-live chart-release
+        prepare-diagnostics-consumer verify-mcp-consumer verify-mcp-live chart-release
 .DEFAULT_GOAL := help
 
 CLUSTER     ?= ok-ai
@@ -47,6 +47,7 @@ help:
 	@echo ""
 	@echo "ADR-021 consumer verification:"
 	@echo "  make verify-mcp-consumer   # static Helm/MCP/credential-boundary checks"
+	@echo "  make prepare-diagnostics-consumer # label namespace for adapter ingress"
 	@echo "  make verify-mcp-live       # post-deploy token/image/MCP checks"
 
 # ── step 1 ────────────────────────────────────────────────────────────────────
@@ -82,7 +83,12 @@ $(TOKEN_FILE):
 # (must be pulled on the Ollama host first — see README "Changing the model")
 MODEL ?=
 
-install: $(TOKEN_FILE)
+prepare-diagnostics-consumer:
+	@$(KUBECTL) create namespace $(NS) --dry-run=client -o yaml | $(KUBECTL) apply -f -
+	@$(KUBECTL) label namespace $(NS) \
+		openkubes.io/diagnostics-consumer=true --overwrite
+
+install: $(TOKEN_FILE) prepare-diagnostics-consumer
 	@test -n "$(OLLAMA_URL)" || (echo "ERROR: OLLAMA_URL is required, e.g. make install OLLAMA_URL=http://<ip>:11434"; exit 1)
 	helm upgrade --install $(RELEASE) $(CHART) \
 		--kubeconfig $(KUBECONFIG) \

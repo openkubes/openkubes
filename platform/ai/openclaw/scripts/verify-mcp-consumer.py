@@ -13,11 +13,13 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 CHART = HERE.parent / "charts" / "openclaw"
+MAKEFILE = HERE.parent / "Makefile"
 EXPECTED_TOOLS = {
     "get_platform_health",
     "investigate_workload",
     "collect_diagnostic_evidence",
 }
+EXPECTED_CONTRACT_VERSION = "1.1.0"
 TEST_MCP_URL = "http://contract-adapter.test.svc:8080/mcp"
 
 
@@ -42,6 +44,8 @@ def render_chart() -> str:
             "gateway.token=test-only",
             "--set-string",
             f"diagnostics.mcp.url={TEST_MCP_URL}",
+            "--set-string",
+            f"diagnostics.contractVersion={EXPECTED_CONTRACT_VERSION}",
         ],
         check=True,
         capture_output=True,
@@ -104,10 +108,20 @@ def verify() -> None:
             fail(f"consumer instructions omit required text: {required_text}")
     if "kubectl commands" not in instructions:
         fail("consumer instructions do not prohibit the legacy kubectl path")
+    if f"Contract version: {EXPECTED_CONTRACT_VERSION}." not in instructions:
+        fail("consumer instructions are not pinned to the normative contract version")
+
+    operator_path = MAKEFILE.read_text()
+    if "install: $(TOKEN_FILE) prepare-diagnostics-consumer" not in operator_path:
+        fail("install does not prepare the namespace for restricted adapter ingress")
+    if "openkubes.io/diagnostics-consumer=true --overwrite" not in operator_path:
+        fail("consumer namespace label does not match the adapter ingress contract")
 
     print("PASS: chart renders no consumer RBAC and disables ServiceAccount token automount")
     print("PASS: upstream image and denied Exec remove the direct Kubernetes client path")
     print("PASS: OpenClaw registers only the three diagnostics tools through the MCP adapter")
+    print(f"PASS: consumer expectations are pinned to contract {EXPECTED_CONTRACT_VERSION}")
+    print("PASS: install prepares the namespace for restricted adapter ingress")
     print("PASS: diagnostics output preserves provenance and supports sanitized workflow handoff")
 
 

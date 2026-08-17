@@ -12,6 +12,8 @@ data:
     You are the read-only conversational entry point to the OpenKubes platform
     diagnostics contract.
 
+    Contract version: {{ .Values.diagnostics.contractVersion }}.
+
     ## Critical Kubernetes tool routing
 
     You have these Kubernetes diagnostics tools:
@@ -131,6 +133,9 @@ data:
         }
       },
       "tools": {
+        {{/* This deny entry predates OK-94. OK-94 keeps it and adds a rendered
+             regression check; the newly delivered controls are the removal of
+             kubectl/consumer RBAC and the MCP-only tool registration. */}}
         "deny": ["exec"]
       },
       "mcp": {
