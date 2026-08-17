@@ -53,7 +53,7 @@ def refused(cfg, label, needle):
     ck(False, label, "ACCEPTED")
 
 def profile(**w):
-    write = {"scope":"namespaces","namespaces":["kagent-lab"],"resources":["configmaps"],
+    write = {"scope":"namespaces","namespaces":["kagent-lab"],"resources":{"configmaps":["get", "patch"]},
              "requireApproval":True,"toolServer":{"namespace":"kagent-write","releaseName":"kagent-write-tools"},
              "tools":["k8s_apply_manifest"]}
     write.update(w)
@@ -88,14 +88,14 @@ refused(profile(namespaces=["team-a"]), "an unevidenced namespace is refused", "
 refused(profile(namespaces=["kagent-lab", "team-a"]), "a mixed namespace list is refused", "exactly the evidenced target")
 for r in sorted(supported):
     with tempfile.TemporaryDirectory() as t:
-        p = pathlib.Path(t)/"c.yaml"; p.write_text(yaml.safe_dump(profile(resources=[r])))
+        p = pathlib.Path(t)/"c.yaml"; p.write_text(yaml.safe_dump(profile(resources={r:["get", "patch"]})))
         try:
             ra.load_config(p, quiet=True)
-            ck(True, f"resources=[{r}] accepted")
+            ck(True, f"resources.{r}=[get, patch] accepted")
         except ra.ConfigError as exc:
-            ck(False, f"resources=[{r}] accepted", str(exc))
+            ck(False, f"resources.{r}=[get, patch] accepted", str(exc))
 for r in ("secrets", "clusterroles", "*"):
-    refused(profile(resources=[r]), f"resources=[{r}] refused", "can never be granted")
+    refused(profile(resources={r:["get"]}), f"resources.{r} refused", "can never be granted")
 refused(profile(requireApproval=False), "requireApproval=false refused", "requireApproval: must be true")
 ex = yaml.safe_load(txt("research/kagent-standalone/access/access-config.example.yaml"))
 ck(set(ex["write"]["resources"]) == supported, "shipped example selects the complete OK-129 resource set", str(ex["write"]["resources"]))
@@ -114,7 +114,7 @@ print("\nFollow-up — the v1 boundary holds for an importer, not only via load_
 # scope. A namespace allow-list enforced only in load_config is enforced only for
 # callers that use load_config — the same gap as leaving it to each consumer.
 def _hand_built(**over):
-    w={"scope":"namespaces","namespaces":["kagent-lab"],"resources":["configmaps"],
+    w={"scope":"namespaces","namespaces":["kagent-lab"],"resources":{"configmaps":["get", "patch"]},
        "require_approval":True,"tool_server_namespace":"kagent-write",
        "tool_server_release":"kagent-write-tools","tool_server_port":8084,
        "tool_server_metrics_port":8085,"tools":["k8s_apply_manifest"],
@@ -127,7 +127,7 @@ for label, over in (("cluster scope", {"scope":"cluster","namespaces":[]}),
                     ("namespaces=['prod-payments']", {"namespaces":["prod-payments"]}),
                     ("namespaces=['kagent-lab','team-a']", {"namespaces":["kagent-lab","team-a"]}),
                     ("namespaces=['kagent-lab','kagent-lab']", {"namespaces":["kagent-lab","kagent-lab"]}),
-                    ("resources=['secrets']", {"resources":["secrets"]}),
+                    ("resources.secrets", {"resources":{"secrets":["get"]}}),
                     ("agent_name with shell metacharacters", {"agent_name":"a'; id; #"}),
                     ("tool_server_namespace with shell metacharacters", {"tool_server_namespace":"x'; id; #"}),
                     ("require_approval=False", {"require_approval":False})):

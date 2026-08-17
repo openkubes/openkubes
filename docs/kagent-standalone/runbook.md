@@ -340,8 +340,8 @@ write:
   scope: namespaces          # the only scope; `cluster` is refused
   namespaces: [kagent-lab]   # the only evidenced v1 target
   resources:
-    - configmaps
-    - deployments
+    configmaps: [get, list, watch, create, update, patch, delete]
+    deployments: [get, list, watch, update, patch]
     - statefulsets
     - daemonsets
     - replicasets
@@ -386,8 +386,8 @@ make -C <ok-cluster>/ok-kagent/kagent verify-access
 
 Asserts against the API server: the read identity reads but cannot write, is
 denied on Secrets and has no wildcard; the write identity has
-`get/list/watch/create/update/patch/delete` for every configured resource inside
-`kagent-lab`, is denied outside it and on representative non-configured kinds,
+exactly the verbs declared per configured resource inside `kagent-lab`, is
+denied outside it and on representative non-configured kinds,
 and cannot create RoleBindings; and in read-only mode the write Agent, its
 `RemoteMCPServer` and the `kagent-write` namespace do not exist. A chart upgrade
 that quietly widens RBAC fails this target.

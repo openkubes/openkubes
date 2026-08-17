@@ -39,10 +39,10 @@ kagent can be deployed here in two roles, chosen at install time from **one
 config file** — read-only diagnosis, or additionally an approval-gated write
 path scoped exactly to `kagent-lab`. The intended OK-129 resource set is
 ConfigMaps, Pods, Services, Deployments, StatefulSets, DaemonSets, ReplicaSets,
-Jobs, CronJobs and Ingresses; any configured subset receives
-`get/list/watch/create/update/patch/delete`. RBAC, the write tool server and the
-write Agent are generated from that file, so the documented boundary and the
-deployed boundary cannot drift apart.
+Jobs, CronJobs and Ingresses. The config maps each selected resource to its
+exact allowed API verbs; there is no global CRUD grant. RBAC, the write tool
+server and the write Agent are generated from that file, so the documented
+boundary and the deployed boundary cannot drift apart.
 
 Where the boundary actually sits, in one sentence: **Kubernetes calls are executed
 by the tool server's ServiceAccount, not by the Agent** — so `toolNames`,

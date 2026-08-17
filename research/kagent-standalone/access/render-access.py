@@ -24,9 +24,9 @@ Design rules, in order of importance:
     be granted at all.
 3.  Read-only means nothing is generated for the write path. Switching the mode
     back removes objects rather than leaving them orphaned.
-4.  **The write surface is explicit and modular.** ``write.resources`` selects
-    any non-empty subset of the supported namespaced resource allow-list.
-    Unlisted kinds receive no mutation verbs. Secrets, RBAC objects,
+4.  **The write surface is explicit and modular.** ``write.resources`` maps
+    each supported namespaced resource to its permitted API verbs. Unlisted
+    kinds and verbs receive no permission. Secrets, RBAC objects,
     ServiceAccounts, wildcards, other namespace targets, ungated writes and
     cluster-wide scope remain refused.
 
@@ -91,22 +91,27 @@ WRITE_VERBS = ["create", "update", "patch", "delete"]
 #: the installer pointing at assets absent from ``openkubes/main``.  Keep the
 #: provider and consumer changes coupled and record both SHAs in evidence.
 #:
-#: Namespaced resources a write profile may target: name -> (apiGroup, verbs).
-#: The config selects any non-empty subset of this allow-list. Each selected
-#: resource receives all read and mutation verbs below. Sensitive and
-#: cluster-scoped resources remain rejected by ``FORBIDDEN_RESOURCES``.
+#: Namespaced resource kinds a write profile may target: name -> API group.
+#:
+#: The profile config declares the allowed verbs *for each resource*.  This is
+#: deliberately not a resource list plus one global CRUD grant: a future profile
+#: can, for example, allow ``get``/``update`` for Pods while allowing only
+#: ``get``/``delete`` for ConfigMaps.  The table here is solely the hard
+#: allow-list of resource *kinds*; it does not decide a capability.
 WRITABLE_RESOURCES = {
-    "configmaps": ("", WRITE_VERBS),
-    "pods": ("", WRITE_VERBS),
-    "services": ("", WRITE_VERBS),
-    "deployments": ("apps", WRITE_VERBS),
-    "statefulsets": ("apps", WRITE_VERBS),
-    "daemonsets": ("apps", WRITE_VERBS),
-    "replicasets": ("apps", WRITE_VERBS),
-    "jobs": ("batch", WRITE_VERBS),
-    "cronjobs": ("batch", WRITE_VERBS),
-    "ingresses": ("networking.k8s.io", WRITE_VERBS),
+    "configmaps": "",
+    "pods": "",
+    "services": "",
+    "deployments": "apps",
+    "statefulsets": "apps",
+    "daemonsets": "apps",
+    "replicasets": "apps",
+    "jobs": "batch",
+    "cronjobs": "batch",
+    "ingresses": "networking.k8s.io",
 }
+
+ALLOWED_RESOURCE_VERBS = frozenset(READ_VERBS + WRITE_VERBS)
 
 #: Why workload writes need special care: a
 #: principal that can create or patch a pod template can usually choose another
@@ -523,17 +528,23 @@ def _validate_write(write_raw: object, install_ns: str) -> dict:
             "they have their own recorded drill and reviewed boundary."
         )
 
-    resources = write_raw.get("resources") or []
-    if not isinstance(resources, list) or not resources:
-        raise ConfigError("write.resources: must list at least one resource")
-    for r in resources:
-        if not isinstance(r, str):
-            raise ConfigError(f"write.resources: {r!r} is not a resource name")
-    resources = [r.lower() for r in resources]
-    if len(set(resources)) != len(resources):
-        raise ConfigError("write.resources: contains a duplicate entry")
+    resources_raw = write_raw.get("resources") or {}
+    if not isinstance(resources_raw, dict) or not resources_raw:
+        raise ConfigError(
+            "write.resources: must be a non-empty mapping of resource names to verb lists"
+        )
 
-    for res in resources:
+    resources: dict[str, list[str]] = {}
+    for resource_raw, verbs_raw in resources_raw.items():
+        if not isinstance(resource_raw, str):
+            raise ConfigError(
+                f"write.resources: {resource_raw!r} is not a resource name"
+            )
+        res = resource_raw.lower()
+        if res in resources:
+            raise ConfigError(
+                f"write.resources: contains duplicate resource {res!r} after normalization"
+            )
         if res in FORBIDDEN_RESOURCES:
             raise ConfigError(
                 f"write.resources: {res!r} can never be granted by this renderer"
@@ -543,6 +554,28 @@ def _validate_write(write_raw: object, install_ns: str) -> dict:
                 f"write.resources: {res!r} is not supported. Supported: "
                 + ", ".join(sorted(WRITABLE_RESOURCES))
             )
+        if not isinstance(verbs_raw, list) or not verbs_raw:
+            raise ConfigError(
+                f"write.resources.{res}: must be a non-empty list of Kubernetes verbs"
+            )
+        if any(not isinstance(verb, str) for verb in verbs_raw):
+            raise ConfigError(
+                f"write.resources.{res}: every verb must be a string"
+            )
+        verbs = [verb.lower() for verb in verbs_raw]
+        if len(set(verbs)) != len(verbs):
+            raise ConfigError(
+                f"write.resources.{res}: contains a duplicate verb"
+            )
+        unsupported_verbs = sorted(set(verbs) - ALLOWED_RESOURCE_VERBS)
+        if unsupported_verbs:
+            raise ConfigError(
+                f"write.resources.{res}: unsupported verb(s): "
+                + ", ".join(unsupported_verbs)
+                + ". Supported: "
+                + ", ".join(sorted(ALLOWED_RESOURCE_VERBS))
+            )
+        resources[res] = verbs
 
     require_approval = write_raw.get("requireApproval", True)
     if not isinstance(require_approval, bool):
@@ -635,7 +668,7 @@ def _validate_write(write_raw: object, install_ns: str) -> dict:
 # --------------------------------------------------------------------------- #
 
 
-def build_policy_rules(resources: list[str]) -> list[dict]:
+def build_policy_rules(resources: dict[str, list[str]]) -> list[dict]:
     """Group the requested resources into PolicyRules, one per (apiGroup, verbs).
 
     Raises ``ConfigError`` — not ``KeyError`` — for a resource outside the v1
@@ -650,8 +683,8 @@ def build_policy_rules(resources: list[str]) -> list[dict]:
                 f"({', '.join(sorted(WRITABLE_RESOURCES))}). No rule is generated "
                 "for a resource this renderer does not support."
             )
-        api_group, extra_verbs = WRITABLE_RESOURCES[res]
-        verbs = tuple(READ_VERBS + [v for v in extra_verbs if v not in READ_VERBS])
+        api_group = WRITABLE_RESOURCES[res]
+        verbs = tuple(resources[res])
         grouped.setdefault((api_group, verbs), []).append(res)
 
     rules = [
@@ -932,7 +965,10 @@ def _scope_phrase(write: dict) -> str:
 
 def _system_message(cfg: dict) -> str:
     write = _require_write_profile(cfg, "_system_message")
-    resources = ", ".join(sorted(write["resources"]))
+    resources = "; ".join(
+        f"{resource} ({', '.join(write['resources'][resource])})"
+        for resource in sorted(write["resources"])
+    )
 
     allowed = ", ".join(write["namespaces"])
     scope_rules = [
@@ -953,7 +989,7 @@ def _system_message(cfg: dict) -> str:
     ]
     lines += [f"- {rule}" for rule in scope_rules]
     lines += [
-        f"- You may change only these resource kinds: {resources}.",
+        f"- You may use only these resource kinds and verbs: {resources}.",
         "- Never request or access Secrets. Your identity is not granted Secret "
         "permissions; do not try.",
         "- Prefer patching an existing object over replacing it, and prefer the "
@@ -1210,11 +1246,11 @@ def render_summary(cfg: dict, config_path: Path) -> str:
         "  denies it, the prompt is not the boundary;",
         "- no permission in the kagent install namespace, so the identity cannot",
         "  rewrite its own Agent or tool definitions;",
-        "- no write permission for a supported resource unless it is explicitly",
-        "  listed in `write.resources`;",
+        "- no mutating permission for a supported resource unless that exact",
+        "  resource and verb are explicitly listed in `write.resources`;",
         f"- Pods, Pod logs and Events are readable in {namespace_list} as",
         "  verification context. Pod mutation is granted only when `pods` is",
-        "  explicitly listed in `write.resources`.",
+        "  explicitly lists a mutation verb for `pods`.",
         "",
         "### Two limits of these guarantees",
         "",
@@ -1246,20 +1282,30 @@ def render_summary(cfg: dict, config_path: Path) -> str:
     ]
     # Every target, not only the first: a block that checks one namespace of
     # several would under-report the moment the evidenced set grows.
-    positive_resource = sorted(write["resources"])[0]
+    configured_pairs = [
+        (resource, verb)
+        for resource in sorted(write["resources"])
+        for verb in write["resources"][resource]
+        if verb in WRITE_VERBS
+    ]
+    if not configured_pairs:
+        raise ConfigError(
+            "render_summary: write.resources must include at least one mutation verb"
+        )
+    positive_resource, positive_verb = configured_pairs[0]
     unconfigured = sorted(set(WRITABLE_RESOURCES) - set(write["resources"]))
     for target in targets:
         lines += [
-            f"kubectl auth can-i patch {positive_resource} -n {target} --as=\"$SUBJECT\"    # expect yes",
+            f"kubectl auth can-i {positive_verb} {positive_resource} -n {target} --as=\"$SUBJECT\"    # expect yes",
         ]
         if unconfigured:
             lines.append(
-                f"kubectl auth can-i patch {unconfigured[0]} -n {target} --as=\"$SUBJECT\"   # expect no"
+                f"kubectl auth can-i {positive_verb} {unconfigured[0]} -n {target} --as=\"$SUBJECT\"   # expect no"
             )
     lines += [
         # 'default' is refused as a write target, so it is always a valid
         # negative control here.
-        f"kubectl auth can-i patch {positive_resource} -n default --as=\"$SUBJECT\"     # expect no",
+        f"kubectl auth can-i {positive_verb} {positive_resource} -n default --as=\"$SUBJECT\"     # expect no",
         "```",
         "",
     ]

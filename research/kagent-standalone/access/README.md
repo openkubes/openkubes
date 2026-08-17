@@ -19,7 +19,7 @@ still described the narrow one. Generating removes the class of bug.
 
 ## Configurable write resources
 
-The renderer grants only the supported resource kinds explicitly selected in
+The renderer grants only the exact resource/verb pairs explicitly declared in
 `write.resources`:
 
 ```yaml
@@ -27,16 +27,19 @@ mode: read-write
 write:
   scope: namespaces
   namespaces: [kagent-lab]
-  resources: [configmaps, deployments]
+  resources:
+    configmaps: [get, delete]
+    deployments: [get, update, patch]
   requireApproval: true
 ```
 
 Supported kinds are `configmaps`, `pods`, `services`, `deployments`,
 `statefulsets`, `daemonsets`, `replicasets`, `jobs`, `cronjobs`, and `ingresses`.
 These are the resource kinds declared by the merged OK-129 consumer in
-`ok-cluster/ok-kagent/kagent/access-config.yaml`. Any non-empty subset is valid;
-each selected kind receives `get`, `list`, `watch`, `create`, `update`, `patch`
-and `delete`. Unlisted kinds receive no mutation permission.
+`ok-cluster/ok-kagent/kagent/access-config.yaml`. Any non-empty mapping is valid;
+each resource gets only the listed subset of `get`, `list`, `watch`, `create`,
+`update`, `patch` and `delete`. Unlisted kinds and unlisted verbs receive no
+permission.
 The recorded OK-129 drill covered ConfigMaps; broader selections deliberately
 accept the namespace-level workload risk described below.
 
@@ -196,13 +199,12 @@ a way of turning into a quietly false claim:
   `int()` coerces silently.
 
 Grantable resources: **ConfigMaps, Pods, Services, Deployments, StatefulSets,
-DaemonSets, ReplicaSets, Jobs, CronJobs and Ingresses.** Only kinds listed in the
-active profile are granted.
+DaemonSets, ReplicaSets, Jobs, CronJobs and Ingresses.** Only resource/verb pairs
+listed in the active profile are granted.
 
 The write identity also gets read-only context in `kagent-lab` — Pods, Pod logs
-and Events — so the agent can verify the change it just made. Selected resource
-kinds additionally receive `get`, `list`, `watch`, `create`, `update`, `patch`
-and `delete`.
+and Events — so the agent can verify the change it just made. That context is
+separate from the per-resource capability mapping.
 
 `default` is refused as a write target. The generated summary asserts that writes
 in `default` are denied, and a warning-only check would have turned that assertion

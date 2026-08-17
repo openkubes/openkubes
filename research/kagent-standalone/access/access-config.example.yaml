@@ -52,24 +52,25 @@ write:
   namespaces:
     - kagent-lab
 
-  # Select any non-empty subset of: configmaps, pods, services, deployments,
-  # statefulsets, daemonsets, replicasets, jobs, cronjobs, ingresses. Read verbs
-  # are added to each selected kind, plus read-only Pods, Pod logs and Events as
-  # verification context.
+  # For each selected kind, declare the exact Kubernetes API verbs kagent may
+  # use. There is intentionally no global CRUD default: change this mapping to
+  # match the task the agent is meant to perform. Allowed verbs are get, list,
+  # watch, create, update, patch and delete. Pods, Pod logs and Events remain
+  # read-only verification context.
   #
   # Never grantable: secrets, RBAC objects, serviceaccounts, namespaces, nodes,
   # persistentvolumes, CRDs, webhook configurations, `*`.
   resources:
-    - configmaps
-    - deployments
-    - statefulsets
-    - daemonsets
-    - replicasets
-    - jobs
-    - cronjobs
-    - pods
-    - services
-    - ingresses
+    configmaps: [get, list, watch, create, update, patch, delete]
+    pods: [get, list, watch, delete]
+    services: [get, list, watch, update, patch]
+    deployments: [get, list, watch, update, patch]
+    statefulsets: [get, list, watch, update, patch]
+    daemonsets: [get, list, watch, update, patch]
+    replicasets: [get, list, watch, update, patch]
+    jobs: [get, list, watch, delete]
+    cronjobs: [get, list, watch, update, patch]
+    ingresses: [get, list, watch, update, patch]
 
   # Must be true. Every write tool on the generated Agent goes through
   # Approve/Reject in the UI. Note what this does and does not mean: it is a

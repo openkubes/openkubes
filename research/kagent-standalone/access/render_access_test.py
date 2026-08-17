@@ -74,7 +74,7 @@ def base(mode: str = "read-write", **write_overrides) -> dict:
     write = {
         "scope": "namespaces",
         "namespaces": ["kagent-lab"],
-        "resources": ["configmaps"],
+        "resources": {"configmaps": ["get", "patch"]},
         "requireApproval": True,
         "toolServer": {"namespace": "kagent-write", "releaseName": "kagent-write-tools"},
         "tools": ["k8s_apply_manifest", "k8s_patch_resource", "k8s_delete_resource"],
@@ -155,7 +155,7 @@ def test_only_evidenced_namespace_is_renderable() -> None:
 
 
 def test_write_surface_is_configurable() -> None:
-    """The config may select any subset of the supported namespaced kinds."""
+    """The config selects an explicit, independent verb set per resource."""
     print("\nconfigurable write surface")
     expected = {
         "configmaps", "pods", "services", "deployments", "statefulsets",
@@ -169,20 +169,28 @@ def test_write_surface_is_configurable() -> None:
         ra.EVIDENCED_WRITE_NAMESPACES == {"kagent-lab"},
         "only kagent-lab is an evidenced write target",
     )
-    out = render(base(resources=sorted(expected)))
+    requested = {
+        "configmaps": ["get", "delete"],
+        "pods": ["get", "update"],
+        "services": ["get", "patch"],
+        "deployments": ["get", "update"],
+        "statefulsets": ["get", "patch"],
+        "daemonsets": ["get", "update"],
+        "replicasets": ["get", "patch"],
+        "jobs": ["get", "delete"],
+        "cronjobs": ["get", "update"],
+        "ingresses": ["get", "patch"],
+    }
+    out = render(base(resources=requested))
     rules = all_rules(out["manifests/20-rbac.yaml"])
     writable_verbs = set(ra.WRITE_VERBS)
-    expected_verbs = set(ra.READ_VERBS + ra.WRITE_VERBS)
     writable = {
         resource
         for rule in rules
         if writable_verbs & set(rule["verbs"])
         for resource in rule["resources"]
     }
-    check(
-        writable == expected,
-        f"every selected resource gets write verbs (got {sorted(writable)})",
-    )
+    check(writable == expected, f"every selected resource gets its declared write verb (got {sorted(writable)})")
     actual_verbs = {
         resource: set(rule["verbs"])
         for rule in rules
@@ -190,10 +198,10 @@ def test_write_surface_is_configurable() -> None:
         if resource in expected
     }
     check(
-        actual_verbs == {resource: expected_verbs for resource in expected},
-        "every selected resource gets get/list/watch/create/update/patch/delete",
+        actual_verbs == {resource: set(verbs) for resource, verbs in requested.items()},
+        "each selected resource gets exactly its configured verbs",
     )
-    deployment_only = all_rules(render(base(resources=["deployments"]))["manifests/20-rbac.yaml"])
+    deployment_only = all_rules(render(base(resources={"deployments": ["get", "patch"]}))["manifests/20-rbac.yaml"])
     deployment_writes = {
         resource
         for rule in deployment_only
@@ -202,7 +210,7 @@ def test_write_surface_is_configurable() -> None:
     }
     check(
         deployment_writes == {"deployments"},
-        "an individual supported resource can be selected without granting the others",
+        "an individual resource/verb pair can be selected without granting the others",
     )
 
 
@@ -232,7 +240,7 @@ def _hand_built(**write_overrides) -> tuple[dict, dict]:
     write = {
         "scope": "namespaces",
         "namespaces": ["kagent-lab"],
-        "resources": ["configmaps"],
+        "resources": {"configmaps": ["get", "patch"]},
         "require_approval": True,
         "tool_server_namespace": "kagent-write",
         "tool_server_release": "kagent-write-tools",
@@ -325,9 +333,10 @@ def test_no_renderer_entry_point_accepts_an_unevidenced_scope() -> None:
         ("'default' as a target", {"namespaces": ["default"]}, {}),
         ("the tool server inside its write target", {"tool_server_namespace": "kagent-lab"}, {}),
         ("a protected tool-server namespace", {"tool_server_namespace": "kube-system"}, {}),
-        ("a forbidden resource", {"resources": ["secrets"]}, {}),
-        ("an unknown resource", {"resources": ["widgets"]}, {}),
-        ("a duplicated resource", {"resources": ["configmaps", "configmaps"]}, {}),
+        ("a forbidden resource", {"resources": {"secrets": ["get"]}}, {}),
+        ("an unknown resource", {"resources": {"widgets": ["get"]}}, {}),
+        ("a duplicate normalized resource", {"resources": {"pods": ["get"], "PODS": ["delete"]}}, {}),
+        ("an unsupported verb", {"resources": {"pods": ["escalate"]}}, {}),
         ("require_approval=False", {"require_approval": False}, {}),
         ("a shell-injecting agent name", {"agent_name": "a'; id; #"}, {}),
         ("a shell-injecting release name", {"tool_server_release": "y'; id; #"}, {}),
@@ -393,7 +402,7 @@ def test_no_renderer_entry_point_accepts_an_unevidenced_scope() -> None:
     # Same for a resource outside the allow-list reaching the rule builder directly.
     for resource in ("secrets", "widgets"):
         try:
-            ra.build_policy_rules([resource])
+            ra.build_policy_rules({resource: ["get"]})
         except ra.ConfigError:
             check(True, f"build_policy_rules({resource!r}) raises ConfigError")
         except Exception as exc:  # noqa: BLE001
@@ -401,7 +410,7 @@ def test_no_renderer_entry_point_accepts_an_unevidenced_scope() -> None:
         else:
             check(False, f"build_policy_rules({resource!r}) produced a rule")
     try:
-        deployment_rules = ra.build_policy_rules(["deployments"])
+        deployment_rules = ra.build_policy_rules({"deployments": ["get", "patch"]})
         check(
             deployment_rules[0]["apiGroups"] == ["apps"],
             "build_policy_rules accepts deployments in the apps API group",
@@ -483,16 +492,16 @@ def test_no_renderer_entry_point_accepts_an_unevidenced_scope() -> None:
                 check(False, f"{name} accepted {label}")
 
     # An unrenderable resource *shape* must not reach a dict lookup.
-    _, cfg = _hand_built(resources=["configmaps", []])
+    _, cfg = _hand_built(resources={"configmaps": []})
     for name, call in _entry_points(cfg).items():
         try:
             call()
         except ra.ConfigError:
-            check(True, f"{name} raises ConfigError for an unhashable resource")
+            check(True, f"{name} raises ConfigError for an invalid resource verb list")
         except Exception as exc:  # noqa: BLE001
-            check(False, f"{name} raised {type(exc).__name__} for an unhashable resource")
+            check(False, f"{name} raised {type(exc).__name__} for an invalid resource verb list")
         else:
-            check(False, f"{name} accepted an unhashable resource")
+            check(False, f"{name} accepted an invalid resource verb list")
 
     # The one document whose purpose is to state the boundary must not be
     # injectable through the config filename.
@@ -513,7 +522,10 @@ def test_no_renderer_entry_point_accepts_an_unevidenced_scope() -> None:
 
 def test_no_rule_ever_grants_secrets_or_escalation() -> None:
     print("\nforbidden resources never appear in generated rules")
-    for config in (base(), base(resources=list(ra.WRITABLE_RESOURCES))):
+    for config in (
+        base(),
+        base(resources={resource: ["get", "patch"] for resource in ra.WRITABLE_RESOURCES}),
+    ):
         out = render(config)
         granted = {
             resource
@@ -635,11 +647,13 @@ def test_rejected_configs() -> None:
     cfg["read"]["secrets"] = True
     expect_config_error(cfg, "secret", "read.secrets=true")
 
-    expect_config_error(base(resources=["secrets"]), "never be granted", "write secrets")
-    expect_config_error(base(resources=["*"]), "never be granted", "write wildcard")
-    expect_config_error(base(resources=["clusterroles"]), "never be granted", "write clusterroles")
-    expect_config_error(base(resources=["nodes"]), "never be granted", "write nodes")
-    expect_config_error(base(resources=["widgets"]), "not supported", "unknown resource")
+    expect_config_error(base(resources={"secrets": ["get"]}), "never be granted", "write secrets")
+    expect_config_error(base(resources={"*": ["get"]}), "never be granted", "write wildcard")
+    expect_config_error(base(resources={"clusterroles": ["get"]}), "never be granted", "write clusterroles")
+    expect_config_error(base(resources={"nodes": ["get"]}), "never be granted", "write nodes")
+    expect_config_error(base(resources={"widgets": ["get"]}), "not supported", "unknown resource")
+    expect_config_error(base(resources={"pods": ["get", "get"]}), "duplicate verb", "duplicate resource verb")
+    expect_config_error(base(resources={"pods": ["exec"]}), "unsupported verb", "unsupported resource verb")
 
     expect_config_error(base(scope="namespaces", namespaces=[]), "must name the evidenced write target", "namespaced scope without namespaces")
     expect_config_error(base(namespaces=["kube-system"]), "protected", "protected namespace")

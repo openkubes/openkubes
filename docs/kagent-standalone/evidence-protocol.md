@@ -105,8 +105,8 @@ Both roles come from one file, `access-config.yaml`, so this scenario tests the
 The renderable write profile is approval-gated and namespace-scoped to
 `kagent-lab`. Its intended resource set is ConfigMaps, Pods, Services,
 Deployments, StatefulSets, DaemonSets, ReplicaSets, Jobs, CronJobs and
-Ingresses. Selecting a resource grants `get/list/watch/create/update/patch/delete`
-for that kind; unselected kinds receive no mutation verbs.
+Ingresses. The profile declares the allowed API verbs separately for each
+resource; unselected resources and unlisted verbs receive no permission.
 
 Do not confuse delivered permission with observed agent behaviour. The recorded
 Approve/Reject drill currently covers ConfigMaps. The RBAC and verification
@@ -145,9 +145,9 @@ make -C <ok-cluster>/ok-kagent/kagent verify-access    # what the API server say
 - the read identity: reads yes, writes no, Secret reads no, wildcard no;
 - in `read-only` mode: no write Agent, no write `RemoteMCPServer`, no
   `kagent-write` namespace;
-- in `read-write` mode: every configured resource has
-  `get/list/watch/create/update/patch/delete` in `kagent-lab`; the same mutation
-  is denied in the install namespace and in `default`; representative
+- in `read-write` mode: every configured resource has exactly the verbs declared
+  for it in `kagent-lab`; each declared mutation is denied in the install
+  namespace and in `default`; representative
   non-configured resources are denied; Secrets, RoleBinding creation and
   wildcards are denied;
 - no cluster-scoped RBAC object exists for the write identity, in either mode;
