@@ -29,6 +29,8 @@ test, not a convention.
 
 ```
 platform/ai/platform-diagnostics/
+├── consumer/
+│   └── openclaw/             # first consumer, MCP-only and credential-less  ← OK-94
 ├── contract/
 │   ├── openapi.yaml           # normative Phase-1 HTTP contract (v1.1.0)
 │   ├── mcp-adapter/           # generated agent-facing adapter, DERIVED from openapi.yaml (OK-93)

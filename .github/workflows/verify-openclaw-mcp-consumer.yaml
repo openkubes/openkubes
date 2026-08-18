@@ -1,0 +1,28 @@
+name: verify-openclaw-mcp-consumer
+
+on:
+  pull_request:
+    paths:
+      - "platform/ai/openclaw/**"
+      - "platform/ai/platform-diagnostics/consumer/openclaw/**"
+      - ".github/workflows/verify-openclaw-mcp-consumer.yaml"
+  push:
+    branches: [main]
+    paths:
+      - "platform/ai/openclaw/**"
+      - "platform/ai/platform-diagnostics/consumer/openclaw/**"
+      - ".github/workflows/verify-openclaw-mcp-consumer.yaml"
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-helm@v4
+        with:
+          version: v3.17.3
+      - name: Verify MCP-only consumer boundary
+        run: make -C platform/ai/openclaw verify-mcp-consumer
