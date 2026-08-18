@@ -1,0 +1,80 @@
+{
+  "format": "ok141-fresh-stage-authorization-candidate/v1",
+  "state": "READY-FOR-PRIVATE-SIGNING-DECISION-NO-GO",
+  "package": {
+    "manifestDigest": "sha256:415bf125f1bfe0b93cd1e7410d314e9272f16879e5eb02ad0c8f27585ee32ca8",
+    "planDigest": "sha256:22c5925b1fbc69d8b9dc8db2f74429f31c150147c0c484c04113e189ff3a0362",
+    "runnerImage": "ghcr.io/openkubes/ok-cluster-runner@sha256:269993ad90f7e9b5e13b3ce480bf0f2d40c5e99f31b40d41eecdf8f4ffb4ae44",
+    "runnerPublicationReceiptDigest": "sha256:9f9e5718a3852df7c29adf91ac2ac4d65ff3e18f64cf86fd36a8de821695d247"
+  },
+  "request": {
+    "requestDigest": "sha256:4c452a2b3ded5a776ee2d96a0ab7f6cb6dc59ac7ec0a8a79e6238d672747947a",
+    "format": "ok147-stage-authorization-request/v1",
+    "audience": "ok-cluster-staged-executor",
+    "planDigest": "sha256:22c5925b1fbc69d8b9dc8db2f74429f31c150147c0c484c04113e189ff3a0362",
+    "contractIdentity": {
+      "namespace": "disposable-ok141",
+      "name": "disposable-ok141"
+    },
+    "contractRevision": "sha256:47bb651f6bc0bdb3a7a567efcd4ca4c776f872a63496fa55c2a6aed77d6fa995",
+    "enablementRevision": "sha256:2a849d69e9c64344e907c1bce3bb1abf3d8f77217377081a5be055d62c213300",
+    "platformRevision": "sha256:2956184005f4860607e91672fce82164095dee6ebcbe57e5af883951a199c427",
+    "executionFixture": "sha256:438a6882d8e22b644c826cb0a6f2856850afd7c7ef71badb44cd66e8db0393ec",
+    "stageId": "provider-prerequisites",
+    "stageOrder": 1,
+    "stageDigest": "sha256:5e4264ed0cbd1014ceb49afe60287b47204476c4605fc8a10f1aa820ab8b35fe",
+    "operation": "CreateProviderPrerequisites",
+    "authority": "infrastructure",
+    "predecessors": [],
+    "maxUses": 1
+  },
+  "unsignedGrantTemplate": {
+    "format": "ok147-stage-authorization/v1",
+    "payload": {
+      "audience": "ok-cluster-staged-executor",
+      "grantId": "RUNTIME-LOWERCASE-GRANT-ID-REQUIRED",
+      "decision": "ALLOW",
+      "planDigest": "sha256:22c5925b1fbc69d8b9dc8db2f74429f31c150147c0c484c04113e189ff3a0362",
+      "contractIdentity": {
+        "namespace": "disposable-ok141",
+        "name": "disposable-ok141"
+      },
+      "contractRevision": "sha256:47bb651f6bc0bdb3a7a567efcd4ca4c776f872a63496fa55c2a6aed77d6fa995",
+      "enablementRevision": "sha256:2a849d69e9c64344e907c1bce3bb1abf3d8f77217377081a5be055d62c213300",
+      "platformRevision": "sha256:2956184005f4860607e91672fce82164095dee6ebcbe57e5af883951a199c427",
+      "executionFixture": "sha256:438a6882d8e22b644c826cb0a6f2856850afd7c7ef71badb44cd66e8db0393ec",
+      "stageId": "provider-prerequisites",
+      "stageOrder": 1,
+      "stageDigest": "sha256:5e4264ed0cbd1014ceb49afe60287b47204476c4605fc8a10f1aa820ab8b35fe",
+      "operation": "CreateProviderPrerequisites",
+      "authority": "infrastructure",
+      "predecessors": [],
+      "notBefore": "RUNTIME-RFC3339-NOT-BEFORE-REQUIRED",
+      "notAfter": "RUNTIME-RFC3339-NOT-AFTER-REQUIRED",
+      "maxUses": 1
+    },
+    "signature": {
+      "algorithm": "Ed25519",
+      "keyId": "RUNTIME-SHA256-PUBLIC-KEY-ID-REQUIRED",
+      "value": "RUNTIME-BASE64-SIGNATURE-REQUIRED"
+    }
+  },
+  "privateSigningBoundary": {
+    "privateKeyRequiredAtRuntime": true,
+    "privateKeyPublicRepositoryAllowed": false,
+    "maximumWindowSeconds": 1800,
+    "maximumUses": 1,
+    "laterMutationStagesRequireNewGrant": true,
+    "predecessorReceiptsRequiredAfterStage1": true
+  },
+  "authorization": {
+    "privateKeyMaterialized": false,
+    "grantSigned": false,
+    "stage1Granted": false,
+    "clusterContactGranted": false,
+    "mutationGranted": false,
+    "retryGranted": false,
+    "cleanupGranted": false,
+    "failureInjectionGranted": false
+  }
+}
