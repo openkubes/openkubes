@@ -1,9 +1,12 @@
 # Database capability — binding invariants
 
-Read this before changing anything here. It is the short form of the rules in
-ADR-Platform-032 that this code must satisfy. Read the ADR itself only when this file is
-insufficient or when you are changing what the contract *says* rather than what the code does — it is
-~1,000 lines and re-reading it in full is rarely the cheapest way to answer a question.
+Read this before changing anything here. It is the short form of the rules in ADR-Platform-032 that
+this code must satisfy, with the section references kept so each rule can be traced back.
+
+Consult the ADR itself when you are changing what the contract *says* rather than what the code does,
+or when a rule here is not specific enough to settle the change in front of you. This file is not a
+substitute for it: the ADR records why each rule exists and what evidence decided it, and several of
+these rules are counter-intuitive without that reasoning.
 
 ## Evidence semantics (ADR §5.1, §5.2, §11.1)
 - Four condition dimensions, evaluated as a **set**, not a chain: `OperationalReady`,
