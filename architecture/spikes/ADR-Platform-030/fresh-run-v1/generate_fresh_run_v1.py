@@ -24,7 +24,7 @@ FIXTURE = "sha256:438a6882d8e22b644c826cb0a6f2856850afd7c7ef71badb44cd66e8db0393
 TARGET_PLACEHOLDER = "RUNTIME-TARGET-IDENTITY-DIGEST-REQUIRED"
 SOURCE_REPOSITORY = "https://github.com/openkubes/ok-observability.git"
 RUNNER_IMAGE = re.compile(r"^ghcr\.io/openkubes/ok-cluster-runner@sha256:[0-9a-f]{64}$")
-RUNNER_SOURCE_SHA = "1b70e55abe6477cc6e7dc47119f788d660cc80a0"
+RUNNER_SOURCE_SHA = "0ad5768b4dc35e83b4352ccb2af9bb23967712b6"
 RUNNER_RECEIPT_FORMAT = "ok147-runner-publication-receipt/v1"
 
 
