@@ -492,15 +492,12 @@ Unbounded user-provided DB images
 Shared multi-tenant database clusters
 Automatic execution of every major upgrade
 Everest/KubeBlocks replacement
-Credential overlap / grace window on rotation      (§11.4 — role pair or client certs, v2)
-Residency policy resolution (dataPolicyRef)        (§12 — no policy mechanism exists yet)
 ```
 
-The last two entries were added by the spike rather than foreseen here: rotation overlap and
-residency resolution were deliberately deferred to v2 (§11.4, §12). One original entry —
-"premature choice of Crossplane/controller" — has been **removed** rather than annotated: §12
-decided that question on the spike's evidence, so listing its avoidance as a v1 non-goal would
-contradict the decision instead of qualifying it.
+This list is deliberately the one OK-145 defined, minus one entry. "Premature choice of
+Crossplane/controller" has been **removed** rather than annotated: §12 decided that question on the
+spike's evidence, so listing its avoidance as a v1 non-goal would contradict the decision instead of
+qualifying it.
 
 ## 10. Claims we intentionally do not make
 
@@ -790,7 +787,8 @@ verifier per role, so two simultaneously valid passwords for one role do not exi
   written".
 - `enableSuperuserAccess: false` by default; superuser is not part of the consumer contract.
 
-Two paths to genuine overlap exist and are **v2 candidates**, listed as v1 non-goals in §9:
+Two paths to genuine overlap exist. The absence of overlap is a bound on acceptance, carried as
+required work in §13:
 
 1. A **login-role pair** sharing a non-login privilege role — the standard password-overlap
    design, and the only one that works with `managed.roles[]` as used above.
@@ -904,11 +902,12 @@ constraints follow, and the second bounds what this ADR may currently assert:
   this pinned version — and only for it. The general constraint above stands: the names are plugin
   behaviour, so a version bump re-opens this and must re-observe the surface, not assume it.
 
-**Still deliberately open.** Whether the capability is ultimately called `ok-dbaas` is not settled
-here, and §6.1 residency (`dataPolicyRef`) is **not implemented in v1**: this platform has no
-policy-resolution mechanism, and a claimant-writable reference to a non-existent policy object
-would be worse than its absence. `protection.policyRef` is correspondingly a closed enum
-(`development` | `production`) for v1.
+**Still deliberately open — and one thing that only looks like it.** Whether the capability is
+ultimately called `ok-dbaas` is genuinely unsettled and costs nothing to leave open. §6.1 residency
+(`dataPolicyRef`) is different: it is **not implemented in v1** because this platform has no
+policy-resolution mechanism, and a claimant-writable reference to a non-existent policy object would
+be worse than its absence, so `protection.policyRef` is a closed enum (`development` | `production`)
+for now. §13 carries it as bound 7.
 
 ## 13. Path to Acceptance — Architektur-Spike
 
@@ -1028,9 +1027,9 @@ drill 20260818t115710z · backupId 20260818T115641 · timeline 2 · lsn 0/600012
   admitted server-side dry run against the ok-mgmt CRD; databaseRef binds name AND uid
 ```
 
-**What is still NOT evidenced, and therefore bounds this acceptance.** Five items, listed because a
-bounded acceptance is only honest if the bounds are enumerated. The fifth was found by installing
-the capability and watching it run; it is the kind of gap only a live pipeline reveals. None of them invalidates the
+**What is still NOT evidenced, and therefore bounds this acceptance.** Seven items, listed because a
+bounded acceptance is only honest if the bounds are enumerated. The last three were found by
+installing the capability and operating it — the kind of gap only a live pipeline reveals. None of them invalidates the
 contracts; each blocks *delivered-capability* acceptance.
 
 ```text
@@ -1070,6 +1069,20 @@ contracts; each blocks *delivered-capability* acceptance.
                                           it being a real source event, reads as a recent and
                                           definite Valid. Needs an explicit observation-freshness
                                           field and a measured propagation bound (§12).
+6. Credential rotation has no overlap    → §11.4: publishing the Secret and applying ALTER ROLE are
+   (§11.4, and OK-145's fourth AC          two separate reconciliations, so there is a window in
+    asked for this to be decided)          which the published credential is not yet the accepted
+                                          one, and v1 makes the consumer carry reconnection.
+                                          OK-145's fourth AC asked for the overlap and grace
+                                          period to be decided; "none" is an answer that leaves
+                                          the requirement owed. Needs a login-role pair sharing a
+                                          non-login privilege role, or client certificates.
+7. Residency is a contract field with    → §6.1: `dataPolicyRef` describes residency as policy plus
+   no resolution mechanism                 evidence, but this platform has no policy-resolution
+   (§6.1)                                  mechanism, so the field is absent in v1 rather than
+                                          claimant-writable and dangling. `protection.policyRef`
+                                          is correspondingly a closed enum. Needs a policy object
+                                          and a resolver before residency can be asserted at all.
 ```
 
 The two causes behind item 4, neither of which sits in this contract:
