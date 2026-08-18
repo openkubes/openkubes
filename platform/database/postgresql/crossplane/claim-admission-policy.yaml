@@ -1,0 +1,127 @@
+# DatabaseClaim delegated-authority boundary (ADR-Platform-032).
+#
+# The portable XRD permits more than one target. Environment authorization is
+# an explicit authenticated-group -> exact allocation tuple here. Add a tuple;
+# never replace this list with patterns or wildcards.
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: databaseclaim-authority.platform.openkubes.ai
+  labels:
+    app.kubernetes.io/part-of: openkubes-database-postgresql
+    openkubes.ai/adr: adr-platform-032
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    matchPolicy: Exact
+    resourceRules:
+      - apiGroups: ["platform.openkubes.ai"]
+        apiVersions: ["v1alpha1"]
+        operations: ["CREATE", "UPDATE"]
+        resources: ["databaseclaims"]
+        scope: Namespaced
+  variables:
+    - name: authorizations
+      expression: >-
+        [{'group': 'oidc:database-claim-editors',
+          'claimNamespace': 'openkubes-system',
+          'claimName': 'ok-robotics',
+          'clusterRef': 'ok-robotics',
+          'namespace': 'database-ok-robotics',
+          'credentialsSecretName': 'database-ok-robotics-app',
+          'credentialsSecretNamespace': 'crossplane-system'}]
+    - name: allocationIsAuthorized
+      expression: >-
+        variables.authorizations.exists(a,
+          request.namespace == a['claimNamespace'] &&
+          object.metadata.name == a['claimName'] &&
+          object.spec.clusterRef == a['clusterRef'] &&
+          object.spec.namespace == a['namespace'] &&
+          object.spec.credentialsSecretRef.name == a['credentialsSecretName'] &&
+          object.spec.credentialsSecretRef.namespace == a['credentialsSecretNamespace'])
+    - name: claimantIsAuthorized
+      expression: >-
+        variables.authorizations.exists(a,
+          request.userInfo.groups.exists(g, g == a['group']) &&
+          request.namespace == a['claimNamespace'] &&
+          object.metadata.name == a['claimName'] &&
+          object.spec.clusterRef == a['clusterRef'] &&
+          object.spec.namespace == a['namespace'] &&
+          object.spec.credentialsSecretRef.name == a['credentialsSecretName'] &&
+          object.spec.credentialsSecretRef.namespace == a['credentialsSecretNamespace'])
+    - name: isCrossplaneControllerUpdate
+      expression: >-
+        request.operation == 'UPDATE' &&
+        request.userInfo.username ==
+          'system:serviceaccount:crossplane-system:crossplane'
+  validations:
+    - expression: >-
+        variables.allocationIsAuthorized &&
+        (variables.claimantIsAuthorized || variables.isCrossplaneControllerUpdate)
+      reason: Forbidden
+      message: >-
+        DatabaseClaim allocation authorization denied: the authenticated subject
+        or one of its groups is not mapped to the exact requested Claim
+        namespace/name, clusterRef, workload namespace, and credentials Secret reference.
+    - expression: >-
+        variables.isCrossplaneControllerUpdate ||
+        (request.operation == 'CREATE'
+          ? (!has(object.spec.compositionRef) &&
+             !has(object.spec.compositionSelector) &&
+             !has(object.spec.compositionRevisionRef) &&
+             !has(object.spec.compositionRevisionSelector) &&
+             !has(object.spec.compositionUpdatePolicy) &&
+             (!has(object.spec.compositeDeletePolicy) ||
+              object.spec.compositeDeletePolicy == 'Background') &&
+             !has(object.spec.resourceRef) &&
+             !has(object.spec.writeConnectionSecretToRef))
+          : ((has(object.spec.compositionRef) == has(oldObject.spec.compositionRef)) &&
+             (!has(object.spec.compositionRef) || object.spec.compositionRef == oldObject.spec.compositionRef) &&
+             (has(object.spec.compositionSelector) == has(oldObject.spec.compositionSelector)) &&
+             (!has(object.spec.compositionSelector) || object.spec.compositionSelector == oldObject.spec.compositionSelector) &&
+             (has(object.spec.compositionRevisionRef) == has(oldObject.spec.compositionRevisionRef)) &&
+             (!has(object.spec.compositionRevisionRef) || object.spec.compositionRevisionRef == oldObject.spec.compositionRevisionRef) &&
+             (has(object.spec.compositionRevisionSelector) == has(oldObject.spec.compositionRevisionSelector)) &&
+             (!has(object.spec.compositionRevisionSelector) || object.spec.compositionRevisionSelector == oldObject.spec.compositionRevisionSelector) &&
+             (has(object.spec.compositionUpdatePolicy) == has(oldObject.spec.compositionUpdatePolicy)) &&
+             (!has(object.spec.compositionUpdatePolicy) || object.spec.compositionUpdatePolicy == oldObject.spec.compositionUpdatePolicy) &&
+             (has(object.spec.compositeDeletePolicy) == has(oldObject.spec.compositeDeletePolicy)) &&
+             (!has(object.spec.compositeDeletePolicy) || object.spec.compositeDeletePolicy == oldObject.spec.compositeDeletePolicy) &&
+             (has(object.spec.resourceRef) == has(oldObject.spec.resourceRef)) &&
+             (!has(object.spec.resourceRef) || object.spec.resourceRef == oldObject.spec.resourceRef) &&
+             (has(object.spec.writeConnectionSecretToRef) == has(oldObject.spec.writeConnectionSecretToRef)) &&
+             (!has(object.spec.writeConnectionSecretToRef) || object.spec.writeConnectionSecretToRef == oldObject.spec.writeConnectionSecretToRef)))
+      reason: Forbidden
+      message: >-
+        DatabaseClaim control fields are controller-owned: claimants may not set
+        or change composition, revision, composite-resource, deletion, or
+        connection-publication selectors.
+    - expression: >-
+        variables.isCrossplaneControllerUpdate ||
+        (request.operation == 'CREATE'
+          ? ((!has(object.metadata.ownerReferences) || object.metadata.ownerReferences.size() == 0) &&
+             (!has(object.metadata.finalizers) || object.metadata.finalizers.size() == 0) &&
+             (!has(object.metadata.labels) || object.metadata.labels.all(k, !k.startsWith('crossplane.io/'))) &&
+             (!has(object.metadata.annotations) || object.metadata.annotations.all(k, !k.startsWith('crossplane.io/'))))
+          : ((!has(object.metadata.ownerReferences) || object.metadata.ownerReferences.size() == 0) &&
+             has(object.metadata.finalizers) &&
+             object.metadata.finalizers == ['finalizer.apiextensions.crossplane.io'] &&
+             (!has(object.metadata.labels) || object.metadata.labels.all(k, !k.startsWith('crossplane.io/'))) &&
+             (!has(object.metadata.annotations) || object.metadata.annotations.all(k, !k.startsWith('crossplane.io/')))))
+      reason: Forbidden
+      message: >-
+        DatabaseClaim metadata controls are controller-owned: claimants may not
+        set owner references or reserved Crossplane metadata, or alter the
+        pinned Crossplane Claim finalizer.
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: databaseclaim-authority.platform.openkubes.ai
+  labels:
+    app.kubernetes.io/part-of: openkubes-database-postgresql
+    openkubes.ai/adr: adr-platform-032
+spec:
+  policyName: databaseclaim-authority.platform.openkubes.ai
+  validationActions: [Deny]
+  # No selector: every namespace matched by the policy remains covered.

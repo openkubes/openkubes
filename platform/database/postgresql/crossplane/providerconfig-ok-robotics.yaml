@@ -1,0 +1,21 @@
+# provider-kubernetes ProviderConfig for the ok-robotics workload cluster.
+#
+# The Composition sets `providerConfigRef.name` from the XR's `clusterRef`, so this object's NAME
+# must equal the cluster name exactly — `ok-robotics`. Adding a second target cluster means adding
+# another ProviderConfig here AND a reviewed entry in $backupStores plus the admission tuple list;
+# a ProviderConfig on its own grants no authority (ADR-Platform-032 §12).
+#
+# No credential material is created or copied. This references the SAME Secret the per-cluster
+# provider-helm ProviderConfig has used since the cluster was registered, so the kubeconfig never
+# passes through a file, through argv, or through this repository.
+apiVersion: kubernetes.crossplane.io/v1alpha1
+kind: ProviderConfig
+metadata:
+  name: ok-robotics
+spec:
+  credentials:
+    source: Secret
+    secretRef:
+      namespace: crossplane-system
+      name: ok-robotics-kubeconfig
+      key: kubeconfig
