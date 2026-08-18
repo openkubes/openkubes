@@ -1,0 +1,139 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: database-ok-robotics
+  labels:
+    platform.openkubes.ai/owned-by: ok-145
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: ClusterImageCatalog
+metadata:
+  name: openkubes-postgresql-18-ok-robotics
+  labels:
+    platform.openkubes.ai/owned-by: ok-145
+    images.cnpg.io/date: "20260815"
+    images.cnpg.io/publisher: cnpg.io
+    images.cnpg.io/type: minimal
+    images.cnpg.io/os: trixie
+spec:
+  images:
+    - major: 18
+      image: ghcr.io/cloudnative-pg/postgresql:18.6-202608131513-minimal-trixie@sha256:e488b1434919f455f2ee4e18a181ce9b33f34cdd8dfb821126855486bce6ad34
+      extensions:
+        - name: pgvector
+          image:
+            reference: ghcr.io/cloudnative-pg/pgvector:0.8.6-202608090042-18-trixie@sha256:c3fe71d306fe3dfad4e71b2585c58034c2da5f234a18cd4b964ed03e1dc858a9
+---
+apiVersion: barmancloud.cnpg.io/v1
+kind: ObjectStore
+metadata:
+  name: ok-robotics-backup-store
+  namespace: database-ok-robotics
+  labels:
+    platform.openkubes.ai/owned-by: ok-145
+spec:
+  configuration:
+    destinationPath: s3://ok-db-backups
+    endpointURL: https://minio.minio.svc:9000
+    endpointCA:
+      name: minio-backup-store-ca
+      key: ca.crt
+    s3Credentials:
+      accessKeyId:
+        name: ok-db-backups-ok-robotics-writer
+        key: ACCESS_KEY_ID
+      secretAccessKey:
+        name: ok-db-backups-ok-robotics-writer
+        key: ACCESS_SECRET_KEY
+    wal:
+      compression: gzip
+    data:
+      compression: gzip
+  retentionPolicy: 7d
+  instanceSidecarConfiguration:
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 250m
+        memory: 256Mi
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: ok-robotics
+  namespace: database-ok-robotics
+  labels:
+    app.kubernetes.io/part-of: openkubes-database-postgresql
+    platform.openkubes.ai/owned-by: ok-145
+spec:
+  instances: 1
+  enableSuperuserAccess: false
+  imageCatalogRef:
+    apiGroup: postgresql.cnpg.io
+    kind: ClusterImageCatalog
+    name: openkubes-postgresql-18-ok-robotics
+    major: 18
+  bootstrap:
+    initdb:
+      database: app
+      owner: app
+      secret:
+        name: database-ok-robotics-app
+      postInitApplicationSQL:
+        - CREATE TABLE restore_probe (id integer PRIMARY KEY, marker text NOT NULL)
+        - INSERT INTO restore_probe VALUES (145, 'ok-145-real-backup')
+  managed:
+    roles:
+      - name: app
+        ensure: present
+        login: true
+        passwordSecret:
+          name: database-ok-robotics-app
+  storage:
+    storageClass: local-path
+    size: 5Gi
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+  plugins:
+    - name: barman-cloud.cloudnative-pg.io
+      isWALArchiver: true
+      parameters:
+        barmanObjectName: ok-robotics-backup-store
+        serverName: ok-robotics
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: ok-robotics-daily
+  namespace: database-ok-robotics
+  labels:
+    platform.openkubes.ai/owned-by: ok-145
+spec:
+  schedule: "0 0 1 * * *"
+  backupOwnerReference: self
+  cluster:
+    name: ok-robotics
+  method: plugin
+  pluginConfiguration:
+    name: barman-cloud.cloudnative-pg.io
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Backup
+metadata:
+  name: ok-robotics-evidence
+  namespace: database-ok-robotics
+  labels:
+    platform.openkubes.ai/owned-by: ok-145
+spec:
+  cluster:
+    name: ok-robotics
+  method: plugin
+  pluginConfiguration:
+    name: barman-cloud.cloudnative-pg.io
