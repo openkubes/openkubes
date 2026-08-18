@@ -1,0 +1,62 @@
+apiVersion: evidence.platform.openkubes.ai/v1alpha1
+kind: RestoreVerified
+metadata:
+  name: ok-145-20260817t114640z
+spec:
+  backupId: 20260817T104456
+  backupRef:
+    apiVersion: postgresql.cnpg.io/v1
+    kind: Backup
+    namespace: database-ok-robotics
+    name: ok-robotics-evidence
+    uid: 711f242d-a78e-4c02-b71a-7f67a1d981b7
+  sourceSystemIdentifier: '7674943119728799765'
+  sourceClusterRef:
+    apiVersion: postgresql.cnpg.io/v1
+    kind: Cluster
+    namespace: database-ok-robotics
+    name: ok-robotics
+    uid: 1c47d9d1-2cc2-4619-8265-a1598cb22274
+  source:
+    endpoint: https://minio.minio.svc:9000
+    bucket: ok-db-backups
+    pathPrefix: /
+    serverName: ok-robotics
+  recoveryTarget:
+    requested: backupID=20260817T104456
+    reached:
+      timelineId: '2'
+      lsn: 0/80001D0
+  timing:
+    startedAt: '2026-08-17T11:48:25Z'
+    completedAt: '2026-08-17T11:49:40Z'
+    duration: PT75S
+  checks:
+  - name: outside-recovery
+    result: PASS
+  - name: known-row-readable
+    result: PASS
+  - name: relation-catalog-readable
+    result: PASS
+  - name: selected-backup-object-readable
+    result: PASS
+    object: ok-robotics/base/20260817T104456/backup.info
+    sha256: 1ddcff899497994d2bd173f5bd6b9a4ac1bc32b44e44552c1d58466f54d26b42
+  checkProfileDigest: sha256:106803a2d7a54d4ae5dc5074bbde951c2142e57433ecf0d94bdda860d99ae1e7
+  manifestDigest: sha256:fc0ebadbcc840a3d2767d48cedcda15a26c2bd95adb1a460feaec4b0ceaa377e
+  isolation:
+    effectivePolicyResult: 'PASS: per-run writer reconciled and source reader effective
+      policy verified'
+    writeDenialProbeResult: 'PASS: authenticated write refused and object confirmed
+      absent'
+    writeDenialRawResponse: "\r 0 B / ? {\"status\":\"error\",\"error\":{\"message\"\
+      :\"Unable to write to one or more targets.\",\"cause\":{\"message\":\"Insufficient\
+      \ permissions to access this path `https://minio.minio.svc:9000/ok-db-backups/ok-robotics/base/20260817T104456/ok145-write-denial-20260817t114640z`\"\
+      ,\"error\":{\"Path\":\"https://minio.minio.svc:9000/ok-db-backups/ok-robotics/base/20260817T104456/ok145-write-denial-20260817t114640z\"\
+      }},\"type\":\"fatal\"}}"
+    writeDenialObjectAbsent: true
+  verifierVersion: ok-db-restore-v1
+  cnpgVersion: 1.30.0
+  pluginIdentity: barman-cloud.cloudnative-pg.io
+  pluginVersion: 0.14.0
+  evidenceRef: platform/database/postgresql/drill/evidence/restoreverified-20260817t114640z.yaml
