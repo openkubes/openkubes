@@ -1,0 +1,281 @@
+{
+  "format": "ok141-execution-fixture/v6",
+  "fixtureVersion": "phase-r-v6",
+  "fixtureSchema": {
+    "path": "schema/execution-fixture-v6.schema.json",
+    "digest": "sha256:a8bec9c0c4324ff5532484f417ce2bd8744c6fa36b89553f58cb565a30fdc5e4"
+  },
+  "authorizationState": "NO-GO",
+  "supersedes": {
+    "fixtureVersion": "phase-r-v5",
+    "fixtureDigest": "sha256:7536456a762880a78a37dcba76a5f3f0628140bd37b55d5fd62273c64e4cc3eb",
+    "disposition": "valid-historical-superseded-not-mutated",
+    "reason": "The additive live amendments through capability-name-boundary-v1 are consolidated into one complete offline fixture and projection for future runner planning."
+  },
+  "contractIdentity": {
+    "name": "disposable-ok141",
+    "namespace": "disposable-ok141"
+  },
+  "contract": {
+    "path": "fixtures/contracts-v9/base.yaml",
+    "schemaPath": "schema/contract-v3.schema.json",
+    "canonicalizationProfile": "openkubes-contract-c14n/v1",
+    "rawArtifactDigest": "sha256:eb32369fe58537fe24e05c15d98704ebf5904024f52705b113a52dfa73310bd6",
+    "schemaDigest": "sha256:5cb4e07136b2484d8082d4c7aebee24a50a859f69ccae61ff1b34060c3a12d35",
+    "R": "sha256:47bb651f6bc0bdb3a7a567efcd4ca4c776f872a63496fa55c2a6aed77d6fa995"
+  },
+  "clusterSemantics": {
+    "kubernetesVersion": "v1.36.2",
+    "infrastructure": {
+      "provider": "kubevirt",
+      "profile": {
+        "name": "ok-infra",
+        "identity": "sha256:60fc84a67c33a41661c68ffadd646a13fd5ffd09f2a3d536f0eac1b909befc89",
+        "nodeSelector": "ok-infra",
+        "cloneTargetStorageClass": "ok-storage-block",
+        "replicaCount": 2,
+        "snapshotClass": "ok-storage-block-snapshot"
+      },
+      "providerAccess": {
+        "mode": "external-cluster-secret",
+        "managementPlane": "ok-mgmt",
+        "providerPlane": "ok-infra",
+        "secretRef": {
+          "apiVersion": "v1",
+          "kind": "Secret",
+          "name": "external-infra-kubeconfig-disposable-ok141",
+          "namespace": "disposable-ok141"
+        },
+        "targetNamespace": "disposable-ok141"
+      },
+      "controlPlaneEndpoint": {
+        "mode": "provider-allocated",
+        "serviceType": "LoadBalancer",
+        "addressFamily": "IPv4",
+        "allocationAuthority": "CAPK+MetalLB"
+      }
+    },
+    "operatingSystem": {
+      "distribution": "ok-linux",
+      "profile": "kubevirt",
+      "version": "v1.9.6",
+      "architecture": "amd64",
+      "schematicID": "ce4c980550dd2ab1b17bbf2b08801c7eb59418eafe8f279833297925d67c7515",
+      "imageDigest": "sha256:461d72d30750b9e18cf0656239e0274764b1e391bde5bbc41084a887b8a55ed5",
+      "identity": "sha256:7f5dd4276432f522727a50e604538b6befc0cac51ee2b90d4b1ccbfcac774a2d",
+      "goldenImage": {
+        "namespace": "ok-images",
+        "claim": "talos-v1-9-6-ce4c980550dd-461d72d30750-amd64",
+        "storageClass": "ok-storage-block"
+      }
+    },
+    "topology": {
+      "controlPlane": {
+        "replicas": 1,
+        "machine": {
+          "cores": 2,
+          "memory": "4Gi",
+          "disk": "20Gi"
+        }
+      },
+      "workers": {
+        "replicas": 1,
+        "machine": {
+          "cores": 2,
+          "memory": "4Gi",
+          "disk": "15Gi"
+        }
+      }
+    },
+    "connectivity": {
+      "profile": "datacenter-isolated-v1",
+      "podCIDR": "10.40.0.0/16",
+      "serviceCIDR": "10.100.0.0/20",
+      "forbiddenCIDRs": [
+        "192.168.100.0/24"
+      ]
+    }
+  },
+  "projection": {
+    "format": "ok141-contract-to-capi-projection/v2",
+    "manifestPath": "projections/phase-r-v6/projection-manifest.json",
+    "manifestDigest": "sha256:1736a6dc010a8801f05a6d5c5168c7d36caf7ce57a874128b1b709b9f8278d7c",
+    "authorityMapPath": "projections/phase-r-v6/authority-map.json",
+    "managementObjectsPath": "projections/phase-r-v6/ok-mgmt-lifecycle.yaml",
+    "infrastructurePrerequisitesPath": "projections/phase-r-v6/ok-infra-prerequisites.yaml",
+    "objectSets": {
+      "okInfraPrerequisites": {
+        "count": 3,
+        "digest": "sha256:28580b5b4960bc01a3de4a0a241c1bd3638eb45dfdd8608014733fbc497347c6"
+      },
+      "okMgmtLifecycle": {
+        "count": 8,
+        "digest": "sha256:e024802c480c5bc865088a44f4a99685d254c96f7fe6ef27862a71de2dfeb83a"
+      },
+      "rendererSource": {
+        "count": 10,
+        "digest": "sha256:3710f04235df6466febf313b6f1202fbc50b075db71e30b14299dac2b5d9d97a"
+      }
+    }
+  },
+  "enablement": {
+    "profilePath": "profiles/enablement/cilium-fixture-v2/profile.json",
+    "valuesPath": "profiles/enablement/cilium-fixture-v2/values.yaml",
+    "E": "sha256:2a849d69e9c64344e907c1bce3bb1abf3d8f77217377081a5be055d62c213300",
+    "convergenceOwnerCandidate": "cluster-api-addon-provider-helm",
+    "candidateStatus": "configurable-not-proven"
+  },
+  "platform": {
+    "profilePath": "profiles/platform/minimal-observability-v9/profile.json",
+    "applicationsPath": "profiles/platform/minimal-observability-v9/applications.yaml",
+    "providerValuesPath": "profiles/platform/minimal-observability-v9/provider-values.yaml",
+    "profile": "minimal-observability-v9",
+    "P": "sha256:2956184005f4860607e91672fce82164095dee6ebcbe57e5af883951a199c427",
+    "applicationSetDigest": "sha256:dfd3793c987c79225c22360f81316e0f3060bf1d26e66f1c49ca521d04faabdc",
+    "providerValuesDigest": "sha256:41ad2fd63473364d634c6df2bb3b7fcd178ba5e82f8ebf6a9a55da41376cd759",
+    "sourceCommit": "c09c18759aeb7526d22106ccb001599f5f06bc4e",
+    "immutableTargetIdentityScheme": "capi-cluster-uid/v1",
+    "convergenceOwnerCandidate": "argo-cd",
+    "candidateStatus": "execution-proven-for-historical-run-fresh-run-not-yet-performed",
+    "registrationAndRBAC": "outside-P-runtime-materialized-and-separately-gated"
+  },
+  "conditions": {
+    "profilePath": "profiles/conditions/disposable-ready-v1.json",
+    "profileDigest": "sha256:69bef08a6ff04b940844439d81554828dea83cde84450a6602c508834271d9a3"
+  },
+  "tools": {
+    "canonicalizerVersion": "openkubes-contract-c14n/v1",
+    "evaluatorVersion": "ok141-evaluator/v1",
+    "projectionVersion": "ok141-contract-to-capi-projection/v2",
+    "phaseRV6ToolDigest": "sha256:3c07c27165b8d65b906cd0cbb45ba8c268857ef77b39819aaf14055503a6ea56"
+  },
+  "evidence": {
+    "schemaId": "ok141-evidence/v1",
+    "schemaPath": "schema/evidence-manifest-v1.schema.json",
+    "schemaDigest": "sha256:97442f98e85bb2d5975ba028209331a4b017cb8492fe0f791fa29da6ee721ad1",
+    "finalBundleChecksumRequired": true
+  },
+  "positiveAssertions": [
+    {
+      "id": "PA-R",
+      "claim": "The consolidated Cluster contract reproduces R9."
+    },
+    {
+      "id": "PA-PROJECTION",
+      "claim": "Every projected lifecycle and prerequisite object carries R9."
+    },
+    {
+      "id": "PA-PROVIDER-AUTHORITY",
+      "claim": "The KubevirtCluster explicitly references the per-cluster external ok-infra credential identity while credential material remains outside the fixture."
+    },
+    {
+      "id": "PA-E",
+      "claim": "The target-bound Enablement profile reproduces E-prime."
+    },
+    {
+      "id": "PA-P",
+      "claim": "The capability-name-corrected Platform profile, exact Application membership and authoritative source closure reproduce P9."
+    },
+    {
+      "id": "PA-CONSOLIDATION",
+      "claim": "The SSA, migration, API-defaulting and capability-name amendments are bound as historical source evidence without mutation."
+    },
+    {
+      "id": "PA-BOUNDARY",
+      "claim": "Provider credentials, target registration credentials and runtime target identity remain separately gated and absent from the public fixture."
+    }
+  ],
+  "negativeControls": [
+    {
+      "id": "NC-R-WRONG",
+      "expectedReady": "Unknown"
+    },
+    {
+      "id": "NC-E-WRONG",
+      "expectedReady": "Unknown"
+    },
+    {
+      "id": "NC-P-WRONG",
+      "expectedReady": "Unknown"
+    },
+    {
+      "id": "NC-STALE-GENERATION",
+      "expectedReady": "Unknown"
+    },
+    {
+      "id": "NC-MISSING-SOURCE",
+      "expectedReady": "Unknown"
+    },
+    {
+      "id": "NC-CONFLICTING-AUTHORITY",
+      "expectedReady": "Unknown"
+    },
+    {
+      "id": "NC-HISTORICAL-SUCCESS",
+      "expectedReady": "False"
+    },
+    {
+      "id": "NC-TAMPERED-EVIDENCE",
+      "expectedReady": "NotEvaluated"
+    }
+  ],
+  "expectedEvidence": {
+    "providerAccess": [
+      "exact Secret reference on KubevirtCluster",
+      "separately gated credential materialization receipt",
+      "provider-plane identity ok-infra",
+      "no credential bytes in public fixture or evidence"
+    ],
+    "platform": [
+      "exact three-Application membership",
+      "P9",
+      "authoritative package and capability-script closure",
+      "current applied commit",
+      "current Synced and Healthy",
+      "current capability-check evidence"
+    ],
+    "target": [
+      "registration Secret UID",
+      "current CAPI Cluster UID",
+      "live kube-system Namespace UID",
+      "workload API CA fingerprint"
+    ],
+    "securityPrerequisites": [
+      "redacted registration proof",
+      "least-privilege AppProject/RBAC inventory",
+      "no credential material retained"
+    ],
+    "bundle": [
+      "artifact hashes",
+      "correlation manifest",
+      "final bundle checksum"
+    ]
+  },
+  "consolidates": [
+    {
+      "name": "platform-ssa-v1",
+      "path": "../go1-platform-ssa-amendment-v1/platform-ssa-amendment-v1.json",
+      "fixtureDigest": "sha256:e83ddec6908ca416d0ddc718a5652ba5db2b4950c26deff1da1ae03b908f028c",
+      "disposition": "valid-historical-source-evidence"
+    },
+    {
+      "name": "platform-ssa-migration-v1",
+      "path": "../go1-platform-ssa-migration-amendment-v1/platform-ssa-migration-amendment-v1.json",
+      "fixtureDigest": "sha256:ad13f4e233a25fe4aa252bd0013f3257c8003f78955a133501a117997462feed",
+      "disposition": "valid-historical-source-evidence"
+    },
+    {
+      "name": "platform-defaulting-diff-v1",
+      "path": "../go1-platform-defaulting-diff-amendment-v1/platform-defaulting-diff-amendment-v1.json",
+      "fixtureDigest": "sha256:3ad6f2dbe82da2abc15e8dc44bbf2aabf5afcfd8cb54b54b2d2807fd815b7eba",
+      "disposition": "valid-historical-source-evidence"
+    },
+    {
+      "name": "capability-name-boundary-v1",
+      "path": "../go1-capability-name-boundary-amendment-v1/capability-name-boundary-amendment-v1.json",
+      "fixtureDigest": "sha256:11133538388c3562f135e814ba4560b76d9ffcb0dac6dab5019f7d75c5a71178",
+      "disposition": "valid-historical-source-evidence"
+    }
+  ],
+  "fixtureDigest": "sha256:438a6882d8e22b644c826cb0a6f2856850afd7c7ef71badb44cd66e8db0393ec"
+}

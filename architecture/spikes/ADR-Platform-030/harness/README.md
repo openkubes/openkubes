@@ -116,3 +116,19 @@ Phase-R v5 binds the exact external `ok-infra` provider identity through
 `KubevirtCluster.spec.infraClusterSecretRef`, but deliberately excludes the Secret
 and all credential bytes. Credential materialization remains separately gated.
 The fixture performs no cluster contact or submission and remains `NO-GO`.
+
+Verify the consolidated Phase-R v6 fixture:
+
+```bash
+python3 architecture/spikes/ADR-Platform-030/harness/ok141_phase_r_v6.py \
+  --root architecture/spikes/ADR-Platform-030/harness \
+  --input architecture/spikes/ADR-Platform-030/harness/fixtures/execution/phase-r-v6.json
+```
+
+Phase-R v6 consolidates the already reviewed SSA, client-side migration,
+API-defaulting, and capability-name amendments into one complete contract and
+projection. It binds `R9`, `P9`, the unchanged Enablement identity, eight
+`ok-mgmt` lifecycle objects, and three `ok-infra` prerequisites. Phase-R v5 and
+all amendment artifacts remain valid historical evidence and are not modified.
+The consolidated fixture is an offline planning input only, performs no cluster
+contact or submission, and remains `NO-GO`.

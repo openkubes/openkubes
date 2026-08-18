@@ -1,0 +1,286 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: disposable-ok141
+  labels:
+    openkubes.io/type: talos
+    openkubes.io/provider: kubevirt
+    openkubes.io/os-identity: 7f5dd4276432
+  annotations:
+    openkubes.io/os-identity-full: sha256:7f5dd4276432f522727a50e604538b6befc0cac51ee2b90d4b1ccbfcac774a2d
+    openkubes.io/os-image-digest: sha256:461d72d30750b9e18cf0656239e0274764b1e391bde5bbc41084a887b8a55ed5
+    openkubes.io/golden-image-published: "true"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: disposable-ok141-talos-golden-image-cloner
+  namespace: ok-images
+  labels:
+    openkubes.io/type: talos
+    openkubes.io/consumer-cluster: disposable-ok141
+    openkubes.io/os-identity: 7f5dd4276432
+rules:
+- apiGroups:
+  - cdi.kubevirt.io
+  resources:
+  - datavolumes/source
+  verbs:
+  - create
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: disposable-ok141-talos-golden-image-cloner
+  namespace: ok-images
+  labels:
+    openkubes.io/type: talos
+    openkubes.io/consumer-cluster: disposable-ok141
+    openkubes.io/os-identity: 7f5dd4276432
+subjects:
+- kind: ServiceAccount
+  name: default
+  namespace: disposable-ok141
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: disposable-ok141-talos-golden-image-cloner
+---
+apiVersion: cluster.x-k8s.io/v1beta2
+kind: Cluster
+metadata:
+  name: disposable-ok141
+  namespace: disposable-ok141
+  labels:
+    openkubes.io/type: talos
+    openkubes.io/provider: kubevirt
+    openkubes.io/k8s-version: v1.36.2
+    openkubes.io/talos-version: v1.9.6
+spec:
+  clusterNetwork:
+    pods:
+      cidrBlocks:
+      - 10.40.0.0/16
+    services:
+      cidrBlocks:
+      - 10.100.0.0/20
+  controlPlaneRef:
+    apiGroup: controlplane.cluster.x-k8s.io
+    kind: TalosControlPlane
+    name: disposable-ok141-cp
+  infrastructureRef:
+    apiGroup: infrastructure.cluster.x-k8s.io
+    kind: KubevirtCluster
+    name: disposable-ok141
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+kind: KubevirtCluster
+metadata:
+  name: disposable-ok141
+  namespace: disposable-ok141
+spec:
+  infraClusterSecretRef:
+    apiVersion: v1
+    kind: Secret
+    name: external-infra-kubeconfig-disposable-ok141
+    namespace: disposable-ok141
+  controlPlaneServiceTemplate:
+    spec:
+      type: LoadBalancer
+---
+apiVersion: controlplane.cluster.x-k8s.io/v1alpha3
+kind: TalosControlPlane
+metadata:
+  name: disposable-ok141-cp
+  namespace: disposable-ok141
+spec:
+  version: v1.36.2
+  replicas: 1
+  infrastructureTemplate:
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+    kind: KubevirtMachineTemplate
+    name: disposable-ok141-cp-7f5dd4276432
+    namespace: disposable-ok141
+  controlPlaneConfig:
+    controlplane:
+      generateType: controlplane
+      talosVersion: v1.9.6
+      configPatches:
+      - op: add
+        path: /cluster/network/cni
+        value:
+          name: none
+      - op: add
+        path: /cluster/proxy
+        value:
+          disabled: true
+      - op: add
+        path: /machine/features/hostDNS
+        value:
+          enabled: false
+---
+apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
+kind: TalosConfigTemplate
+metadata:
+  name: disposable-ok141-workers-v1-9-6
+  namespace: disposable-ok141
+spec:
+  template:
+    spec:
+      generateType: worker
+      talosVersion: v1.9.6
+      configPatches:
+      - op: add
+        path: /cluster/network/cni
+        value:
+          name: none
+      - op: add
+        path: /cluster/proxy
+        value:
+          disabled: true
+      - op: add
+        path: /machine/features/hostDNS
+        value:
+          enabled: false
+---
+apiVersion: cluster.x-k8s.io/v1beta2
+kind: MachineDeployment
+metadata:
+  name: disposable-ok141-workers
+  namespace: disposable-ok141
+spec:
+  clusterName: disposable-ok141
+  replicas: 1
+  selector:
+    matchLabels:
+      cluster.x-k8s.io/cluster-name: disposable-ok141
+  template:
+    spec:
+      clusterName: disposable-ok141
+      version: v1.36.2
+      bootstrap:
+          configRef:
+            apiGroup: bootstrap.cluster.x-k8s.io
+            kind: TalosConfigTemplate
+            name: disposable-ok141-workers-v1-9-6
+      infrastructureRef:
+        apiGroup: infrastructure.cluster.x-k8s.io
+        kind: KubevirtMachineTemplate
+        name: disposable-ok141-workers-7f5dd4276432
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+kind: KubevirtMachineTemplate
+metadata:
+  name: disposable-ok141-cp-7f5dd4276432
+  namespace: disposable-ok141
+  labels:
+    openkubes.io/type: talos
+    openkubes.io/os-identity: 7f5dd4276432
+  annotations:
+    openkubes.io/os-identity-full: sha256:7f5dd4276432f522727a50e604538b6befc0cac51ee2b90d4b1ccbfcac774a2d
+    openkubes.io/os-image-digest: sha256:461d72d30750b9e18cf0656239e0274764b1e391bde5bbc41084a887b8a55ed5
+    openkubes.io/provider-profile: ok-infra
+    openkubes.io/provider-profile-identity: sha256:60fc84a67c33a41661c68ffadd646a13fd5ffd09f2a3d536f0eac1b909befc89
+spec:
+  template:
+    spec:
+      virtualMachineTemplate:
+        metadata:
+          namespace: disposable-ok141
+        spec:
+          runStrategy: Always
+          template:
+            spec:
+              nodeSelector:
+                kubernetes.io/hostname: ok-infra
+              domain:
+                cpu:
+                  cores: 2
+                devices:
+                  disks:
+                  - disk:
+                      bus: virtio
+                    name: talos
+                  networkInterfaceMultiqueue: true
+                memory:
+                  guest: 4Gi
+              evictionStrategy: External
+              volumes:
+              - dataVolume:
+                  name: disposable-ok141-cp-7f5dd4276432-disk
+                name: talos
+          dataVolumeTemplates:
+          - metadata:
+              name: disposable-ok141-cp-7f5dd4276432-disk
+              namespace: disposable-ok141
+            spec:
+              pvc:
+                accessModes:
+                - ReadWriteOnce
+                resources:
+                  requests:
+                    storage: 20Gi
+                storageClassName: ok-storage-block
+              source:
+                pvc:
+                  namespace: ok-images
+                  name: talos-v1-9-6-ce4c980550dd-461d72d30750-amd64
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+kind: KubevirtMachineTemplate
+metadata:
+  name: disposable-ok141-workers-7f5dd4276432
+  namespace: disposable-ok141
+  labels:
+    openkubes.io/type: talos
+    openkubes.io/os-identity: 7f5dd4276432
+  annotations:
+    openkubes.io/os-identity-full: sha256:7f5dd4276432f522727a50e604538b6befc0cac51ee2b90d4b1ccbfcac774a2d
+    openkubes.io/os-image-digest: sha256:461d72d30750b9e18cf0656239e0274764b1e391bde5bbc41084a887b8a55ed5
+    openkubes.io/provider-profile: ok-infra
+    openkubes.io/provider-profile-identity: sha256:60fc84a67c33a41661c68ffadd646a13fd5ffd09f2a3d536f0eac1b909befc89
+spec:
+  template:
+    spec:
+      virtualMachineTemplate:
+        metadata:
+          namespace: disposable-ok141
+        spec:
+          runStrategy: Always
+          template:
+            spec:
+              nodeSelector:
+                kubernetes.io/hostname: ok-infra
+              domain:
+                cpu:
+                  cores: 2
+                devices:
+                  disks:
+                  - disk:
+                      bus: virtio
+                    name: talos
+                  networkInterfaceMultiqueue: true
+                memory:
+                  guest: 4Gi
+              evictionStrategy: External
+              volumes:
+              - dataVolume:
+                  name: disposable-ok141-worker-7f5dd4276432-disk
+                name: talos
+          dataVolumeTemplates:
+          - metadata:
+              name: disposable-ok141-worker-7f5dd4276432-disk
+              namespace: disposable-ok141
+            spec:
+              pvc:
+                accessModes:
+                - ReadWriteOnce
+                resources:
+                  requests:
+                    storage: 15Gi
+                storageClassName: ok-storage-block
+              source:
+                pvc:
+                  namespace: ok-images
+                  name: talos-v1-9-6-ce4c980550dd-461d72d30750-amd64
