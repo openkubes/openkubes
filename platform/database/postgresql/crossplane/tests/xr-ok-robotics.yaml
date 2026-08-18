@@ -1,0 +1,38 @@
+# Development XR fixture for the admission-authorized ok-robotics allocation.
+apiVersion: platform.openkubes.ai/v1alpha1
+kind: Database
+metadata:
+  name: ok-robotics-render-development
+  uid: 81b14e99-9c0d-5952-91a3-b8a1528b4e28
+  creationTimestamp: "2026-08-17T00:00:00Z"
+  labels:
+    crossplane.io/claim-name: ok-robotics
+    crossplane.io/claim-namespace: openkubes-system
+spec:
+  clusterRef: ok-robotics
+  namespace: database-ok-robotics
+  credentialsSecretRef:
+    name: database-ok-robotics-app
+    namespace: crossplane-system
+  engine:
+    name: postgresql
+    majorVersion: 18
+    capabilities:
+      - name: postgresql.extension.pgvector
+        versionPolicy: platform
+  performance:
+    class: standard
+  availability:
+    mode: single
+  connectivity:
+    pooling:
+      enabled: true
+      mode: transaction
+  protection:
+    policyRef: development
+  maintenance:
+    upgradePolicy: controlled
+    windowRef: saturday-night
+    majorVersionStrategy: blueGreen
+  isolation:
+    class: dedicated
