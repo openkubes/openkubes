@@ -80,6 +80,21 @@ kubectl --kubeconfig ~/.kube/ok-ai.yaml apply -f deploy.yaml
 
 Endpoint: `http://platform-diagnostics-mcp.platform-diagnostics.svc.cluster.local:8080/mcp`
 
+### Ingress boundary
+
+`deploy.yaml` includes a default-deny-by-selection ingress policy for the
+adapter. Only Pods in namespaces labelled as diagnostics consumers may connect:
+
+```bash
+kubectl label namespace <consumer-namespace> \
+  openkubes.io/diagnostics-consumer=true --overwrite
+```
+
+Apply that label before rolling out the policy. The reusable OpenClaw deployment
+provides `make prepare-diagnostics-consumer` for this step. The policy restricts
+network reachability; it does not add per-consumer application authentication.
+The adapter continues to forward with its dedicated provider-facing identity.
+
 ## Register in OpenClaw (the first MCP consumer)
 
 OpenClaw supports MCP natively (`openclaw mcp add`, HTTP transport). Diagnoses take
@@ -97,4 +112,4 @@ this pod session). **For persistence** across pod restarts (the state dir is an
 emptyDir), the resulting `mcp.servers` block must be baked into the shipped
 `openclaw.json` (the openclaw chart configmap) — capture it with
 `node dist/index.js mcp show` and add it to the config. OpenClaw stays
-credential-less; RBAC remains `rbac.create=false`.
+credential-less and renders no consumer RBAC.

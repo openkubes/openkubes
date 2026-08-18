@@ -72,3 +72,39 @@ spec:
     - name: mcp
       port: 8080
       targetPort: mcp
+---
+# The adapter is the only thing standing in front of the provider, and it holds
+# the provider's consumer credential. Without an ingress restriction its
+# ClusterIP is reachable by every pod in the cluster, which would hand the whole
+# read-only diagnostics surface to anything that can open a socket - and would
+# quietly undo the consumer-side hardening (no RBAC, no ServiceAccount token)
+# that ADR-021 relies on.
+#
+# Selecting the adapter pod with policyTypes: Ingress denies every source that
+# is not listed below. A consumer is admitted by labelling its namespace, so the
+# contract stays provider- and consumer-neutral: no namespace name is hardcoded
+# here, and adding a consumer is a label, not an edit to this file.
+#
+#   kubectl label namespace <consumer-namespace> openkubes.io/diagnostics-consumer=true
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: platform-diagnostics-mcp-adapter
+  namespace: platform-diagnostics
+  labels:
+    app.kubernetes.io/name: platform-diagnostics-mcp-adapter
+    app.kubernetes.io/part-of: platform-diagnostics
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: platform-diagnostics-mcp-adapter
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              openkubes.io/diagnostics-consumer: "true"
+      ports:
+        - protocol: TCP
+          port: 8080
