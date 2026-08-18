@@ -119,19 +119,38 @@ class ConformanceMatrixTests(unittest.TestCase):
         """An open gap without a route to close it is not a plan."""
         profiles, _ = verify.load_matrix()
         profile = copy.deepcopy(profiles[1])
+        profile["provenance"]["state"] = "assumed"
         profile["provenance"]["missing"] = []
 
         with self.assertRaisesRegex(verify.ConformanceError, "names no steps"):
             verify.verify_provenance(profile)
 
-    def test_the_matrix_reports_rke2_as_assumed(self) -> None:
-        """The report is the only place the RKE2 gap is visible to a reader."""
-        states = {entry["distribution"]: entry["state"] for entry in verify.verify_all()}
-        self.assertEqual({"talos": "measured", "rke2": "assumed"}, states)
+    def test_an_out_of_scope_profile_must_name_a_decision_reference(self) -> None:
+        """A silent drop is exactly what out-of-scope must not become."""
+        profiles, _ = verify.load_matrix()
+        profile = copy.deepcopy(profiles[1])
+        profile["provenance"]["decision"]["reference"] = ""
 
-    def test_require_measured_fails_while_a_distribution_is_assumed(self) -> None:
+        with self.assertRaisesRegex(verify.ConformanceError, "decision reference"):
+            verify.verify_provenance(profile)
+
+    def test_the_matrix_reports_rke2_as_out_of_scope(self) -> None:
+        """The report is the only place the RKE2 exclusion is visible to a reader."""
+        states = {entry["distribution"]: entry["state"] for entry in verify.verify_all()}
+        self.assertEqual({"talos": "measured", "rke2": "out-of-scope"}, states)
+
+    def test_require_measured_passes_once_rke2_is_out_of_scope(self) -> None:
+        """The acceptance gate is about in-scope distributions, not every profile on disk."""
         self.assertEqual(0, verify.main([]))
-        self.assertEqual(1, verify.main(["--require-measured"]))
+        self.assertEqual(0, verify.main(["--require-measured"]))
+
+    def test_require_measured_fails_if_any_in_scope_distribution_is_assumed(self) -> None:
+        """out-of-scope does not exempt a distribution that is merely unmeasured."""
+        report = [
+            {"distribution": "talos", "state": "assumed", "provenance": {}},
+            {"distribution": "rke2", "state": "out-of-scope", "provenance": {}},
+        ]
+        self.assertEqual(["talos"], [e["distribution"] for e in verify.assumed_entries(report)])
 
     def test_a_stale_contract_version_is_rejected(self) -> None:
         spec = verify.load_yaml(verify.OPENAPI_PATH)

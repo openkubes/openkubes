@@ -23,7 +23,7 @@ Run the complete static and negative-test matrix with:
 make verify
 ```
 
-## Measured or assumed
+## Measured, assumed, or out-of-scope
 
 These checks prove that the matrix is *internally consistent*. For a
 distribution nobody has measured they cannot prove it is *right* — a declaration
@@ -33,16 +33,21 @@ profile therefore carries a `provenance` block, and `verify.py` reports it:
 | Distribution | Provenance | Meaning |
 |---|---|---|
 | Talos (`ok-ai`) | `measured`, 2026-08-11 | a running provider was audited and a live `collect_diagnostic_evidence` response observed |
-| RKE2 (`ok-infra`) | `assumed` | Profile A is not installed; the profile states what the provider is expected to declare |
+| RKE2 (`ok-infra`) | `out-of-scope`, decided 2026-08-18 | Profile A is not deployed on `ok-infra` and is not planned to be; live validation is not an OK-95 acceptance criterion |
 
-`make verify` reports the gap and exits zero, so CI keeps running the static
+`make verify` reports this and exits zero, so CI keeps running the static
 checks. `make verify-measured` is the acceptance gate: it fails while any
-distribution is still an assumption. An assumed profile must name the steps that
-would close the gap — an open gap without a route to close it is not a plan.
+in-scope distribution is still an assumption. An `assumed` profile must name
+the steps that would close the gap — an open gap without a route to close it
+is not a plan. An `out-of-scope` profile must instead name the decision that
+excluded it — a decision reference is what keeps the exclusion from being a
+silent drop, and it is not counted toward "measured".
 
 The fixtures are deterministic contract examples, not substitutes for live
 cluster checks. Record live validation results under `evidence/` and flip the
-profile to `measured` in the same change.
+profile to `measured` in the same change. A profile only moves to
+`out-of-scope` when a deployment decision, not a measurement gap, removes it
+from the acceptance criteria.
 
 ## Files
 
