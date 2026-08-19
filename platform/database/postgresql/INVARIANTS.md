@@ -53,6 +53,32 @@ completedAt + class.maxAge`. Never trust `checks[].result: PASS` on its own.
   mutating the very cluster whose restorability the artifact attests. Artifacts therefore record
   `extensionsAfterRollback` and `probeTablesRemaining`, and residue makes an artifact inadmissible.
 
+## Observation freshness (§13 bound 5)
+Every `evidence.*.observedAt` is a **source event** time, so it cannot say whether anyone is still
+looking. `status.observation.observedThrough` is the only field that can, and a reader **MUST** treat
+every dimension as unproven once it is older than `freshnessBound` — whatever state that dimension
+claims. A stale observation invalidates a `Valid` exactly as much as a `Failed`.
+
+`observedThrough` is `now` floored to `quantum` (300s), never ahead of the real observation and never
+more than one quantum behind it. Flooring is not cosmetic: an unfloored instant rewrites status on
+every reconcile. `freshnessBound` (15m) must stay **wider than `quantum` + Crossplane's
+`--poll-interval` (1m, read from the running v2.3.3 pod)**, or a healthy platform trips its own bound;
+`observation-freshness-check.py` asserts that arithmetic rather than trusting the constants.
+
+The Composition cannot evaluate its own freshness — while it runs it is fresh by construction — so
+the bound is published as data and the verdict belongs to the reader. Do not fold it into
+`serviceReady`.
+
+Why this is not optional: measured on ok-mgmt, the live `Database` XR held **one** resourceVersion
+across 350s of sampling. Status is written only when it changes, so a healthy composite and a dead
+one emit identical bytes.
+
+## Composed resource names
+A `Pooler`'s name becomes its **Service** name, and CNPG already owns `<cluster>-rw`, `-ro` and `-r`
+for the Cluster. No composed object may take one of those names — it can never acquire ownership, and
+the symptom is a silent `phase=inactive` with a recurring `InvalidOwnership` warning, not a failure
+anyone is paged for. `render-check.py` refuses any composed manifest named after a Cluster Service.
+
 ## Isolation (§11.3)
 Read-only source, isolated write destination, compared on **resolved effective values** (the plugin's
 `serverName`, not the requested name). A write denial must be an authenticated permission denial with
