@@ -43,6 +43,7 @@ JSON_FILES := drill/minio-policy-backups-readonly.json \
 
 .PHONY: help validate render-prerequisites render render-check claim-policy-check \
 	claim-authority-model-check claim-admission-check evidence-status-check \
+	observation-freshness-check \
 	restoreverified-api-check api-acceptance-check drill-validate drill-policy-check minio-provisioning-check \
 	restore-evidence-check \
 	require-mgmt-context require-mgmt-approval require-explicit-cluster require-deploy-user \
@@ -59,7 +60,8 @@ validate: ## Parse all local artifacts and run static contract guards
 	@bash -n drill/run-restore-drill.sh
 	@bash -n probe/pgvector-probe.sh
 	@$(MAKE) --no-print-directory claim-policy-check claim-authority-model-check \
-		claim-admission-check restoreverified-api-check evidence-status-check drill-validate \
+		claim-admission-check restoreverified-api-check evidence-status-check \
+		observation-freshness-check drill-validate \
 		drill-policy-check minio-provisioning-check restore-evidence-check
 	@echo "OK: all offline validation targets are wired and completed or explicitly skipped"
 
@@ -80,6 +82,7 @@ render-check: render-prerequisites ## Render both fixtures and assert Objects an
 	@set -Eeuo pipefail; work="$$(mktemp -d)"; trap 'rm -rf -- "$$work"' EXIT; \
 		$(RENDER_BASE) "$(XR_DEVELOPMENT)" "$(COMPOSITION)" "$(FUNCTIONS)" $(RENDER_FLAGS) >"$$work/development.yaml"; \
 		$(PYTHON) crossplane/tests/render-check.py "$$work/development.yaml" --policy development; \
+		$(PYTHON) crossplane/tests/observation-freshness-check.py "$$work/development.yaml"; \
 		$(RENDER_BASE) "$(XR_PRODUCTION)" "$(COMPOSITION)" "$(FUNCTIONS)" $(RENDER_FLAGS) >"$$work/production.yaml"; \
 		$(PYTHON) crossplane/tests/render-check.py "$$work/production.yaml" --policy production; \
 		$(RENDER_BASE) "$(XR_DEVELOPMENT)" "$(COMPOSITION)" "$(FUNCTIONS)" $(RENDER_FLAGS) \
@@ -138,6 +141,15 @@ evidence-status-check: ## Prove rendered state reachability and the production p
 		$(PYTHON) crossplane/tests/evidence-status-check.py --self-test & core_pid=$$!; \
 		$(PYTHON) crossplane/tests/evidence-status-check.py --self-test --self-test-group edges & edge_pid=$$!; \
 		wait $$core_pid; wait $$edge_pid
+
+# Bound 5. Holds the READER side of observation freshness: given a status, may it still be
+# believed? Its decisive control is `frozen-reconciler` — every dimension Valid, every
+# observedAt recent, verdict UNPROVEN — which is the shape the pre-bound-5 status could not
+# tell apart from health. Without a rendered composite it says so rather than printing OK;
+# render-check passes one in.
+observation-freshness-check: ## Prove a frozen reconciler is detectable from status alone
+	@$(PYTHON) crossplane/tests/observation-freshness-check.py --negative-controls
+	@$(PYTHON) crossplane/tests/observation-freshness-check.py
 
 drill-validate: ## Parse and render the unexecuted recovery-drill scaffold
 	@bash -n drill/run-restore-drill.sh

@@ -483,6 +483,41 @@ spec:
             {{- if and (ne $publishedCredentialVersion "") (not $credentialApplied) }}{{- $credentialReason = "AwaitingCredentialApplication" }}{{- end }}
             {{- if $credentialApplied }}{{- $credentialReason = "CredentialApplied" }}{{- end }}
 
+            {{- /* Observation freshness (ADR-Platform-032 §13 bound 5). Every observedAt above is
+                   a SOURCE event time — lastTransitionTime, stoppedAt, lastSuccessfulBackupTime —
+                   so nothing else in this status says when the platform last successfully LOOKED.
+                   The asymmetry that makes this necessary: a frozen read-back under a live
+                   reconciler still degrades, because the ageing checks keep re-evaluating against
+                   current time, but a frozen RECONCILER cannot degrade at all. Its last verdict
+                   persists verbatim and, every timestamp in it being a real source event, reads as
+                   a recent and definite Valid forever. Measured on ok-mgmt 2026-08-19: the live
+                   XR held ONE resourceVersion across 350s of 5s sampling — zero status writes from
+                   a healthy composite — because status is written only when it changes. So "nothing
+                   moved" and "nobody is looking" are byte-identical over any window that matters.
+
+                   `now` is the only clock available here; observed state carries no observation
+                   time. Emitting it raw would rewrite status on every reconcile, so it is floored
+                   to $observationQuantumSeconds. That trade is the whole reason `quantum` is
+                   published rather than assumed: observedThrough is never AHEAD of the real
+                   observation and never more than one quantum behind it.
+
+                   freshnessBound is the stated bound the acceptance criterion asks for. A reader
+                   MUST treat every dimension above as unproven — regardless of the state it
+                   reports — once observedThrough is older than this. It exceeds quantum plus the
+                   measured --poll-interval=1m, so a healthy platform never trips it; the
+                   arithmetic is asserted by observation-freshness-check.py rather than trusted.
+                   This Composition cannot evaluate its own freshness and does not pretend to:
+                   while it runs it is fresh by construction. The verdict belongs to the reader,
+                   which is why the bound is published as data instead of folded into
+                   serviceReady. */}}
+            {{- $observationQuantumSeconds := 300 }}
+            {{- $observationFreshnessBound := "PT15M" }}
+            {{- $observationEpoch := now | unixEpoch | int64 }}
+            {{- $observedThrough := dateInZone "2006-01-02T15:04:05Z07:00" (mul (div $observationEpoch $observationQuantumSeconds) $observationQuantumSeconds) "UTC" }}
+            {{- if not (include "canonicalRFC3339" $observedThrough) }}
+            {{- fail (printf "refusing to publish a non-canonical observation instant %q: an unparseable observedThrough would make freshness unevaluable while still looking present" $observedThrough) }}
+            {{- end }}
+
             {{- /* DatabaseServiceReady is policy only, never a fifth sensor. */}}
             {{- $serviceReady := false }}
             {{- $serviceReadyReason := "EvidencePolicyUnsatisfied" }}
@@ -862,6 +897,10 @@ spec:
                   reason: {{ $capabilityReason }}
                   observedAt: {{ $capabilityObservedAt | quote }}
                   evidenceRef: {{ printf "Cluster/%s/%s#status.pgDataImageInfo" $namespace $dbName | quote }}
+              observation:
+                observedThrough: {{ $observedThrough | quote }}
+                quantum: {{ printf "PT%dS" (int $observationQuantumSeconds) | quote }}
+                freshnessBound: {{ $observationFreshnessBound | quote }}
               serviceReady: {{ $serviceReady }}
               serviceReadyReason: {{ $serviceReadyReason }}
               credentials:
