@@ -65,8 +65,32 @@
 >    CNPG's declarative extensions are built on image volumes (KEP-4639), so with that gate disabled
 >    no volume can exist. Reproduced on a **freshly created** cluster and again with an explicit
 >    `postgresql.extensions[].image.reference`, which rules out both a rolling-restart effect and a
->    manifest-shape error: **enabling the `ImageVolume` feature gate on the target cluster is a
->    prerequisite of extension delivery**, and belongs in the capability's cluster requirements.
+>    manifest-shape error. **Enabling the `ImageVolume` feature gate is necessary but not
+>    sufficient, and on this platform extension delivery does not work at all.** Re-measured
+>    2026-08-19 with the gate enabled: on ok-robotics (Talos v1.9.5, containerd 2.0.3, k8s v1.34.1,
+>    gate beta-enabled, metric reporting **1**) the pod receives a real image volume and the
+>    extension image pulls in 1.981s, but the container cannot be created —
+>    `failed to apply OCI options: failed to mkdir "": mkdir : no such file or directory` — and the
+>    instance never starts. The identical error, character for character, occurs on a second cluster
+>    (Talos v1.9.6, containerd 2.0.5, k8s v1.36.2) where `ImageVolume` is **GA and enabled by
+>    default**. The failure is therefore invariant across two Talos versions, two containerd
+>    versions, two Kubernetes versions and both gate stages, which points at the Talos containerd
+>    configuration rather than any of those variables; it is **not root-caused**. The cluster
+>    requirement is consequently *a node runtime that can mount image volumes* **and** the gate —
+>    not the gate alone. **Operationally: enabling the gate on ok-robotics took the database down**
+>    (~8 minutes; the instance could not start until the gate was reverted), so "just enable the
+>    gate" is not a safe instruction.
+>
+>    **pgvector itself is viable — through a different mechanism than this ADR chose.** Delivered by
+>    a bundled image (`ghcr.io/cloudnative-pg/postgresql:18.6-standard-trixie`, whose `standard`
+>    variant ships `vector.control`), `CREATE EXTENSION vector` succeeds and reports pgvector
+>    **0.8.6**, with L2 distances computed correctly (`sqrt(27)` for `'[4,5,6]'` against
+>    `'[1,2,3]'`) — no image volume, no gate, no machine-config change. The same probe script
+>    returned `Failed/RequestedCapabilityAbsent` against the composed Database in the same minute.
+>    The tradeoff must not get lost: `standard` bundles a **fixed** extension set, strictly weaker
+>    than §6.4's per-extension allowlist for approved-image, version and provenance governance. So
+>    the honest statement is that the capability is deliverable, while **this ADR's
+>    catalogued-per-extension-image model is unvalidated on Talos**.
 >
 >    **The load-bearing lesson is about evidence, not about pgvector.** CNPG reported the extension
 >    as configured throughout: `status.pgDataImageInfo.extensions` listed
@@ -1095,14 +1119,23 @@ The two causes behind item 4, neither of which sits in this contract:
                                                  CapabilityProbePending; extension ABSENT →
                                                  Failed/RequestedCapabilityAbsent, which is what
                                                  ok-robotics reports, the gate being off
-2. ImageVolume feature gate disabled on the   → CNPG's declarative extensions are image volumes
-   target cluster (k8s, not CNPG)                (KEP-4639); with the gate off, none can mount
+2. image volumes non-functional on the       → CNPG's declarative extensions are image volumes
+   target platform (k8s/runtime, not CNPG)      (KEP-4639). With the gate off none can mount;
+                                                with the gate ON the container cannot be created
+                                                (`failed to mkdir ""`). Reproduced with the gate
+                                                both beta-enabled and GA, across two Talos and
+                                                two containerd versions. NOT root-caused. A
+                                                bundled image delivers pgvector 0.8.6 without
+                                                image volumes, at the cost of a fixed extension
+                                                set (weaker than §6.4).
 ```
 
 So a `Database` requesting `postgresql.extension.pgvector` is out of v1 scope. Closing it needs a
-probe that exercises the capability (§6.3's rule, applied at provisioning) and the gate enabled on
-the target cluster — the latter belongs in the capability's cluster requirements, alongside
-cert-manager and the pinned plugin.
+probe that exercises the capability (§6.3's rule, applied at provisioning) and a platform on which
+image volumes actually mount — the latter belongs in the capability's cluster requirements, alongside
+cert-manager and the pinned plugin. The probe half is delivered under OK-150: `CapabilityVerified`
+(§11.2's evidence pattern applied to capability) plus a Composition that reaches
+`CapabilityConformant=Valid` only from an admitted artifact bound to the running image digest.
 
 ### Spike-Definition
 
