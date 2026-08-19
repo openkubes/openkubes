@@ -174,21 +174,9 @@ spec:
             {{- $pgvectorObserved = true }}
             {{- end }}
             {{- end }}
-            {{- if and $clusterReady (hasKey $clusterStatus "targetPgDataImageInfo") }}
-            {{- $capabilityState = "Pending" }}
-            {{- $capabilityReason = "UpgradeVerificationPending" }}
-            {{- else if $clusterReady }}
-            {{- if not $requestedPgvector }}
-            {{- $capabilityState = "Valid" }}
-            {{- $capabilityReason = "NoCapabilitiesRequested" }}
-            {{- else if $pgvectorObserved }}
-            {{- $capabilityState = "Pending" }}
-            {{- $capabilityReason = "CapabilityProbePending" }}
-            {{- else }}
-            {{- $capabilityState = "Failed" }}
-            {{- $capabilityReason = "RequestedCapabilityAbsent" }}
-            {{- end }}
-            {{- end }}
+            {{- /* The capability DECISION is made further down, once ExtraResources has been
+                   read: it needs an admitted CapabilityVerified, and $extraResources does not
+                   exist yet at this point. Only the observation is computed here. */}}
 
             {{- /* Protection is reduced once from three independently visible signals.
                    A Backup CR is execution history, ObjectStore is current catalogue
@@ -483,6 +471,112 @@ spec:
             {{- if and (ne $publishedCredentialVersion "") (not $credentialApplied) }}{{- $credentialReason = "AwaitingCredentialApplication" }}{{- end }}
             {{- if $credentialApplied }}{{- $credentialReason = "CredentialApplied" }}{{- end }}
 
+            {{- /* Capability evidence (§13 bound 4). status.pgDataImageInfo can only ever justify
+                   Pending: on ok-robotics it carries a pinned pgvector digest on a cluster where
+                   CREATE EXTENSION vector fails, so the declaration and the function disagree and
+                   only a probe settles it.
+
+                   Admissibility binds the XR identity AND the running image digest. The digest
+                   term is what §6.3 requires — capability, upgrade and evidence are coupled, so a
+                   proof taken against a different image says nothing about this one, and an image
+                   change must VOID it rather than be tolerated. A proof whose digest is not the
+                   digest currently running is not selected at all. */}}
+            {{- $selectedCapability := dict }}
+            {{- $selectedCapabilityCompletedAt := "1970-01-01T00:00:00Z" }}
+            {{- $canonicalSelectedCapabilityCompletedAt := include "canonicalRFC3339" $selectedCapabilityCompletedAt }}
+            {{- $runningImageDigest := "" }}
+            {{- $runningImage := dig "pgDataImageInfo" "image" "" $clusterStatus }}
+            {{- if contains "@sha256:" $runningImage }}
+            {{- $runningImageDigest = printf "sha256:%s" (last (splitList "@sha256:" $runningImage)) }}
+            {{- end }}
+            {{- $capabilityResults := index $extraResources "capability-evidence" | default (dict "items" (list)) }}
+            {{- range $required := dig "items" (list) $capabilityResults }}
+            {{- $candidate := dig "resource" (dict) $required }}
+            {{- $candidateSpec := dig "spec" (dict) $candidate }}
+            {{- $capability := dig "capability" (dict) $candidateSpec }}
+            {{- $capDatabaseRef := dig "databaseRef" (dict) $candidateSpec }}
+            {{- $capClusterRef := dig "clusterRef" (dict) $candidateSpec }}
+            {{- $capDelivery := dig "delivery" (dict) $candidateSpec }}
+            {{- $canonicalCapCompletedAt := include "canonicalRFC3339" (dig "timing" "completedAt" "" $candidateSpec) }}
+            {{- /* All five named checks must be present AND carry an observed value. The CRD
+                   enforces the set server-side; re-checking means a proof admitted by some other
+                   path still cannot be selected. */}}
+            {{- $observedCheckNames := list }}
+            {{- $checksComplete := true }}
+            {{- $distanceHonest := false }}
+            {{- $residueClean := false }}
+            {{- range $check := dig "checks" (list) $candidateSpec }}
+            {{- $checkName := dig "name" "" $check }}
+            {{- $checkObserved := dig "observed" (dict) $check }}
+            {{- $observedCheckNames = append $observedCheckNames $checkName }}
+            {{- if lt (len $checkObserved) 1 }}{{- $checksComplete = false }}{{- end }}
+            {{- /* The distance the operator RETURNED must equal the distance the probe expected.
+                   Ordering alone is satisfied by a stub returning a constant, so this is the term
+                   that separates a working operator from a plausible one. */}}
+            {{- if eq $checkName "operator-returns-true-distance" }}
+            {{- $capDistance := dig "farthestDistance" "" $checkObserved }}
+            {{- if and (ne $capDistance "") (eq $capDistance (dig "expectedFarthestDistance" "" $checkObserved)) }}
+            {{- $distanceHonest = true }}
+            {{- end }}
+            {{- end }}
+            {{- if eq $checkName "probe-left-no-residue" }}
+            {{- if eq (dig "probeTablesRemaining" -1 $checkObserved) 0 }}{{- $residueClean = true }}{{- end }}
+            {{- end }}
+            {{- end }}
+            {{- range $expected := list "catalog-lists-extension" "extension-created" "operator-orders-by-distance" "operator-returns-true-distance" "probe-left-no-residue" }}
+            {{- if not (has $expected $observedCheckNames) }}{{- $checksComplete = false }}{{- end }}
+            {{- end }}
+            {{- $capabilityAdmissible := and
+                  (eq (dig "apiVersion" "" $candidate) "evidence.platform.openkubes.ai/v1alpha1")
+                  (eq (dig "kind" "" $candidate) "CapabilityVerified")
+                  (eq (dig "name" "" $capability) "postgresql.extension.pgvector")
+                  (ne (dig "observedVersion" "" $capability) "")
+                  (eq (dig "apiVersion" "" $capDatabaseRef) $xr.apiVersion)
+                  (eq (dig "kind" "" $capDatabaseRef) $xr.kind)
+                  (eq (dig "name" "" $capDatabaseRef) $xr.metadata.name)
+                  (eq (dig "uid" "" $capDatabaseRef) $xr.metadata.uid)
+                  (eq (dig "uid" "" $capClusterRef) (dig "metadata" "uid" "" $clusterManifest))
+                  (eq (dig "namespace" "" $capClusterRef) $namespace)
+                  (eq (dig "name" "" $capClusterRef) $dbName)
+                  (ne $runningImageDigest "")
+                  (eq (dig "imageDigest" "" $capDelivery) $runningImageDigest)
+                  (ne $canonicalCapCompletedAt "")
+                  (not ((toDate $layout $canonicalCapCompletedAt).After now))
+                  (ne (dig "probeDigest" "" $candidateSpec) "")
+                  $checksComplete
+                  $distanceHonest
+                  $residueClean }}
+            {{- if and $capabilityAdmissible ((toDate $layout $canonicalCapCompletedAt).After (toDate $layout $canonicalSelectedCapabilityCompletedAt)) }}
+            {{- $selectedCapability = $candidate }}
+            {{- $selectedCapabilityCompletedAt = $canonicalCapCompletedAt }}
+            {{- $canonicalSelectedCapabilityCompletedAt = $canonicalCapCompletedAt }}
+            {{- end }}
+            {{- end }}
+            {{- $capabilityEvidenceRef := printf "Cluster/%s/%s#status.pgDataImageInfo" $namespace $dbName }}
+            {{- if and $clusterReady (hasKey $clusterStatus "targetPgDataImageInfo") }}
+            {{- $capabilityState = "Pending" }}
+            {{- $capabilityReason = "UpgradeVerificationPending" }}
+            {{- else if $clusterReady }}
+            {{- if not $requestedPgvector }}
+            {{- $capabilityState = "Valid" }}
+            {{- $capabilityReason = "NoCapabilitiesRequested" }}
+            {{- else if gt (len $selectedCapability) 0 }}
+            {{- $capabilityState = "Valid" }}
+            {{- $capabilityReason = "CapabilityProvenByFunction" }}
+            {{- $capabilityObservedAt = $selectedCapabilityCompletedAt }}
+            {{- $capabilityEvidenceRef = printf "CapabilityVerified/%s" (dig "metadata" "name" "" $selectedCapability) }}
+            {{- else if $pgvectorObserved }}
+            {{- /* Declared present, never exercised. Pending, never Valid — this is the state
+                   ok-robotics reports, and calling it Valid is the substitution bound 4 exists
+                   to prevent. */}}
+            {{- $capabilityState = "Pending" }}
+            {{- $capabilityReason = "CapabilityProbePending" }}
+            {{- else }}
+            {{- $capabilityState = "Failed" }}
+            {{- $capabilityReason = "RequestedCapabilityAbsent" }}
+            {{- end }}
+            {{- end }}
+
             {{- /* Observation freshness (ADR-Platform-032 §13 bound 5). Every observedAt above is
                    a SOURCE event time — lastTransitionTime, stoppedAt, lastSuccessfulBackupTime —
                    so nothing else in this status says when the platform last successfully LOOKED.
@@ -538,6 +632,11 @@ spec:
               restore-evidence:
                 apiVersion: evidence.platform.openkubes.ai/v1alpha1
                 kind: RestoreVerified
+                matchLabels:
+                  platform.openkubes.ai/source-cluster: {{ $dbName | quote }}
+              capability-evidence:
+                apiVersion: evidence.platform.openkubes.ai/v1alpha1
+                kind: CapabilityVerified
                 matchLabels:
                   platform.openkubes.ai/source-cluster: {{ $dbName | quote }}
             ---
@@ -896,7 +995,7 @@ spec:
                   state: {{ $capabilityState }}
                   reason: {{ $capabilityReason }}
                   observedAt: {{ $capabilityObservedAt | quote }}
-                  evidenceRef: {{ printf "Cluster/%s/%s#status.pgDataImageInfo" $namespace $dbName | quote }}
+                  evidenceRef: {{ $capabilityEvidenceRef | quote }}
               observation:
                 observedThrough: {{ $observedThrough | quote }}
                 quantum: {{ printf "PT%dS" (int $observationQuantumSeconds) | quote }}

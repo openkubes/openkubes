@@ -43,7 +43,7 @@ JSON_FILES := drill/minio-policy-backups-readonly.json \
 
 .PHONY: help validate render-prerequisites render render-check claim-policy-check \
 	claim-authority-model-check claim-admission-check evidence-status-check \
-	observation-freshness-check capability-admission-check \
+	observation-freshness-check capability-admission-check capability-evidence-check \
 	restoreverified-api-check api-acceptance-check drill-validate drill-policy-check minio-provisioning-check \
 	restore-evidence-check \
 	require-mgmt-context require-mgmt-approval require-explicit-cluster require-deploy-user \
@@ -90,6 +90,7 @@ render-check: render-prerequisites ## Render both fixtures and assert Objects an
 		$(PYTHON) crossplane/tests/render-check.py "$$work/observed.yaml" --policy development \
 			--expected-protection-state Unknown --expected-protection-reason BackupAvailabilityUnproven; \
 		$(PYTHON) crossplane/tests/evidence-status-check.py "$$work/observed.yaml"
+	@$(MAKE) --no-print-directory capability-evidence-check
 
 claim-policy-check: ## Prove authority guards fail, then validate the reviewed tuple
 	@$(PYTHON) crossplane/tests/claim-policy-check.py --negative-controls
@@ -152,6 +153,16 @@ evidence-status-check: ## Prove rendered state reachability and the production p
 # five-check set and the governed capability list get a SERVER's verdict rather than ours. A
 # file-reading check once certified a CRD every API server rejected; this target would not have.
 # Skips loudly when no cluster is reachable.
+# Renders the real Composition and proves CapabilityConformant is decided by a PROBE, not by a
+# declaration: with no artifact it stays Pending even though the extension is declared present
+# (the ok-robotics state), and each of ten tampers — a proof for another database, against another
+# cluster, against a replaced image, a stub whose ordering is right but whose distance is wrong,
+# a probe that left tables behind — fails to reach Valid. Needs the render toolchain, so it hangs
+# off render-check rather than the offline validate list.
+capability-evidence-check: render-prerequisites ## Prove capability evidence decides CapabilityConformant
+	@$(PYTHON) crossplane/tests/capability-evidence-check.py --negative-controls
+	@$(PYTHON) crossplane/tests/capability-evidence-check.py
+
 capability-admission-check: ## Prove the API server enforces the CapabilityVerified contract
 	@$(PYTHON) crossplane/tests/capability-admission-live.py --context $(API_CONTEXT)
 
