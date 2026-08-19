@@ -43,7 +43,7 @@ JSON_FILES := drill/minio-policy-backups-readonly.json \
 
 .PHONY: help validate render-prerequisites render render-check claim-policy-check \
 	claim-authority-model-check claim-admission-check evidence-status-check \
-	observation-freshness-check \
+	observation-freshness-check capability-admission-check \
 	restoreverified-api-check api-acceptance-check drill-validate drill-policy-check minio-provisioning-check \
 	restore-evidence-check \
 	require-mgmt-context require-mgmt-approval require-explicit-cluster require-deploy-user \
@@ -61,7 +61,7 @@ validate: ## Parse all local artifacts and run static contract guards
 	@bash -n probe/pgvector-probe.sh
 	@$(MAKE) --no-print-directory claim-policy-check claim-authority-model-check \
 		claim-admission-check restoreverified-api-check evidence-status-check \
-		observation-freshness-check drill-validate \
+		observation-freshness-check capability-admission-check drill-validate \
 		drill-policy-check minio-provisioning-check restore-evidence-check
 	@echo "OK: all offline validation targets are wired and completed or explicitly skipped"
 
@@ -147,6 +147,14 @@ evidence-status-check: ## Prove rendered state reachability and the production p
 # observedAt recent, verdict UNPROVEN — which is the shape the pre-bound-5 status could not
 # tell apart from health. Without a rendered composite it says so rather than printing OK;
 # render-check passes one in.
+# Bound 4's contract half. Installs the CapabilityVerified CRD on a DISPOSABLE API server and
+# submits artifacts the contract must refuse, so immutability, delivery coherence, the exact
+# five-check set and the governed capability list get a SERVER's verdict rather than ours. A
+# file-reading check once certified a CRD every API server rejected; this target would not have.
+# Skips loudly when no cluster is reachable.
+capability-admission-check: ## Prove the API server enforces the CapabilityVerified contract
+	@$(PYTHON) crossplane/tests/capability-admission-live.py --context $(API_CONTEXT)
+
 observation-freshness-check: ## Prove a frozen reconciler is detectable from status alone
 	@$(PYTHON) crossplane/tests/observation-freshness-check.py --negative-controls
 	@$(PYTHON) crossplane/tests/observation-freshness-check.py

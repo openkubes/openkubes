@@ -1,0 +1,261 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: capabilityverifieds.evidence.platform.openkubes.ai
+  labels:
+    app.kubernetes.io/part-of: openkubes-database-postgresql
+    openkubes.ai/adr: adr-platform-032
+spec:
+  group: evidence.platform.openkubes.ai
+  scope: Cluster
+  names:
+    plural: capabilityverifieds
+    singular: capabilityverified
+    kind: CapabilityVerified
+    shortNames: [cv]
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      additionalPrinterColumns:
+        - name: Capability
+          type: string
+          jsonPath: .spec.capability.name
+        - name: Version
+          type: string
+          jsonPath: .spec.capability.observedVersion
+        - name: Delivery
+          type: string
+          jsonPath: .spec.delivery.mechanism
+        - name: Completed
+          type: date
+          jsonPath: .spec.timing.completedAt
+      schema:
+        openAPIV3Schema:
+          type: object
+          required: [spec]
+          # No root-level x-kubernetes-validations, for the same reason as RestoreVerified: at the
+          # resource root CEL sees only metadata.name/generateName, so a rule reading labels fails
+          # to compile and the API server rejects the whole CRD. Selection is the Composition's
+          # job — it compares databaseRef and the image digest itself, so a mislabelled artifact is
+          # invisible to selection rather than wrongly admissible.
+          properties:
+            spec:
+              type: object
+              description: >-
+                Immutable record of one capability probe that EXERCISED the capability
+                and left nothing behind. A declaration that an extension is configured
+                is not this: CNPG reports pgvector in status.pgDataImageInfo on clusters
+                where CREATE EXTENSION fails, which is exactly the gap this evidence
+                closes. A failed probe must not create this artifact.
+              x-kubernetes-validations:
+                - rule: self == oldSelf
+                  message: CapabilityVerified spec is immutable; create a new evidence event.
+              required:
+                - capability
+                - databaseRef
+                - clusterRef
+                - delivery
+                - checks
+                - timing
+                - probeDigest
+                - verifierVersion
+                - postgresMajorVersion
+              properties:
+                capability:
+                  type: object
+                  description: >-
+                    The capability identifier as REQUESTED in the contract, plus the
+                    version actually observed in the database.
+                  required: [name, observedVersion]
+                  properties:
+                    name:
+                      type: string
+                      # §6.4's governed allowlist. Closed on purpose: an open string would let a
+                      # probe assert conformance for a capability the contract never governs.
+                      enum: [postgresql.extension.pgvector]
+                    observedVersion:
+                      type: string
+                      pattern: '^[0-9]+\.[0-9]+(\.[0-9]+)?$'
+                      maxLength: 32
+                databaseRef:
+                  type: object
+                  description: Binding to the exact Crossplane Database/XR this proof speaks for.
+                  required: [apiVersion, kind, name, uid]
+                  properties:
+                    apiVersion:
+                      type: string
+                      enum: [platform.openkubes.ai/v1alpha1]
+                    kind:
+                      type: string
+                      enum: [Database]
+                    name:
+                      type: string
+                      minLength: 1
+                      maxLength: 253
+                    uid:
+                      type: string
+                      minLength: 1
+                      maxLength: 128
+                clusterRef:
+                  type: object
+                  description: The CNPG Cluster the probe actually connected to.
+                  required: [apiVersion, kind, namespace, name, uid]
+                  properties:
+                    apiVersion:
+                      type: string
+                      enum: [postgresql.cnpg.io/v1]
+                    kind:
+                      type: string
+                      enum: [Cluster]
+                    namespace:
+                      type: string
+                      minLength: 1
+                      maxLength: 63
+                    name:
+                      type: string
+                      minLength: 1
+                      maxLength: 253
+                    uid:
+                      type: string
+                      minLength: 1
+                      maxLength: 128
+                delivery:
+                  type: object
+                  description: >-
+                    HOW the extension reached the database, and the image digest that
+                    delivered it. §6.3 couples capability, upgrade and evidence: this
+                    proof is void the moment the image changes, so the digest is part
+                    of the evidence rather than context. The Composition refuses to
+                    apply a proof whose digest is not the one currently running.
+                  required: [mechanism, imageName, imageDigest]
+                  x-kubernetes-validations:
+                    # A BundledImage proof must not claim an image-volume reference, and an
+                    # ImageVolume proof must name the volume it mounted. Conflating them would
+                    # hide which mechanism was actually exercised.
+                    - rule: >-
+                        self.mechanism != 'ImageVolume' || has(self.extensionImageDigest)
+                      message: An ImageVolume proof must record extensionImageDigest.
+                    - rule: >-
+                        self.mechanism != 'BundledImage' || !has(self.extensionImageDigest)
+                      message: A BundledImage proof must not record extensionImageDigest.
+                  properties:
+                    mechanism:
+                      type: string
+                      # BundledImage: the extension ships inside the PostgreSQL image (a FIXED
+                      # extension set — weaker than §6.4's per-extension allowlist for provenance
+                      # and version governance, and that cost is deliberate, not overlooked).
+                      # ImageVolume: CNPG declarative extensions per KEP-4639, which needs both
+                      # the Kubernetes feature gate AND a node runtime that can mount image
+                      # volumes. Measured 2026-08-19: broken on every Talos cluster tested here,
+                      # and the failure is LOUD — the pod never starts with
+                      #   failed to apply OCI options: failed to mkdir "": no such file or directory
+                      # character-for-character identical across Talos v1.9.5/v1.9.6, containerd
+                      # 2.0.3/2.0.5, Kubernetes v1.34.1/v1.36.2, and both gate stages (beta-enabled
+                      # and GA). Invariant across every variable except Talos itself. NOT
+                      # root-caused: confirming would mean reading the containerd config off a
+                      # node, which nobody has done — do not cite this as an isolated upstream bug.
+                      # There is no silent-empty mode; a probe need not defend against one.
+                      enum: [BundledImage, ImageVolume]
+                    imageName:
+                      type: string
+                      minLength: 1
+                      maxLength: 512
+                    imageDigest:
+                      type: string
+                      pattern: '^sha256:[a-f0-9]{64}$'
+                    extensionImageDigest:
+                      type: string
+                      pattern: '^sha256:[a-f0-9]{64}$'
+                checks:
+                  type: array
+                  description: >-
+                    The exact probe stages, each carrying the value it OBSERVED. All five
+                    are required because each one alone is insufficient: catalog presence
+                    passes on an extension that cannot be created, creation passes on a
+                    loadable-but-broken operator, ordering passes on a stub that returns a
+                    constant, and none of the first four says the probe cleaned up.
+                  minItems: 5
+                  maxItems: 5
+                  x-kubernetes-list-type: map
+                  x-kubernetes-list-map-keys: [name]
+                  items:
+                    type: object
+                    required: [name, observed]
+                    properties:
+                      name:
+                        type: string
+                        enum:
+                          - catalog-lists-extension
+                          - extension-created
+                          - operator-orders-by-distance
+                          - operator-returns-true-distance
+                          - probe-left-no-residue
+                      observed:
+                        type: object
+                        description: >-
+                          Values read back out of the database. minProperties keeps a
+                          check from being recorded with nothing behind it; the closed
+                          property set keeps a probe from inventing its own vocabulary.
+                          No additionalProperties beside properties — that is illegal in
+                          a structural schema, and pruning already closes the object.
+                        minProperties: 1
+                        properties:
+                          catalogDefaultVersion:
+                            type: string
+                            maxLength: 32
+                          extensionVersion:
+                            type: string
+                            maxLength: 32
+                          nearestId:
+                            type: integer
+                            format: int64
+                          orderedIds:
+                            type: array
+                            maxItems: 16
+                            items:
+                              type: integer
+                              format: int64
+                          farthestDistance:
+                            type: string
+                            # Recorded as a string so the exact digits the database returned
+                            # survive; a float would round the very value that distinguishes a
+                            # real L2 computation from a placeholder.
+                            pattern: '^[0-9]+(\.[0-9]+)?$'
+                            maxLength: 32
+                          expectedFarthestDistance:
+                            type: string
+                            pattern: '^[0-9]+(\.[0-9]+)?$'
+                            maxLength: 32
+                          extensionsAfterRollback:
+                            type: array
+                            maxItems: 32
+                            items:
+                              type: string
+                              maxLength: 64
+                          probeTablesRemaining:
+                            type: integer
+                            format: int64
+                timing:
+                  type: object
+                  required: [completedAt, duration]
+                  properties:
+                    completedAt:
+                      type: string
+                      format: date-time
+                    duration:
+                      type: string
+                      pattern: '^PT[0-9]+(\.[0-9]+)?S$'
+                probeDigest:
+                  type: string
+                  description: >-
+                    sha256 of the probe script that produced this artifact. Without it a
+                    later, weaker probe could not be told apart from this one.
+                  pattern: '^sha256:[a-f0-9]{64}$'
+                verifierVersion:
+                  type: string
+                  minLength: 1
+                  maxLength: 64
+                postgresMajorVersion:
+                  type: integer
+                  format: int64
