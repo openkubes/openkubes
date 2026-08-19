@@ -72,6 +72,23 @@ def validate(
     require(kinds == {"Secret", "ClusterImageCatalog", "ObjectStore", "Cluster", "ScheduledBackup", "Backup", "Pooler"},
             f"unexpected composed manifest set: {sorted(kinds)}")
 
+    # CNPG owns Services <cluster>-rw, -ro and -r for the Cluster itself, and a Pooler's name
+    # becomes its Service name. No composed object may claim one of those names: the Pooler that
+    # did sat phase=inactive for 28h on ok-robotics, re-emitting InvalidOwnership, because it
+    # could not adopt a Service owned by the Cluster. Nothing asserted the name, which is exactly
+    # how it shipped, so the rule is checked for every composed manifest rather than for Poolers.
+    cluster = next(manifest for manifest in manifests if manifest["kind"] == "Cluster")
+    reserved = {f"{cluster['metadata']['name']}-{suffix}" for suffix in ("rw", "ro", "r")}
+    for manifest in manifests:
+        if manifest["kind"] == "Cluster":
+            continue
+        name = manifest["metadata"]["name"]
+        require(
+            name not in reserved,
+            f"composed {manifest['kind']} is named {name!r}, which CNPG already owns as a "
+            f"Cluster Service ({sorted(reserved)}); it can never take ownership of that name",
+        )
+
     secret = next(manifest for manifest in manifests if manifest["kind"] == "Secret")
     require("data" not in secret and "stringData" not in secret,
             "rendered Secret must contain references only, never credential values")

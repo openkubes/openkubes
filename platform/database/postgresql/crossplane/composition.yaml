@@ -766,8 +766,15 @@ spec:
                 manifest:
                   apiVersion: postgresql.cnpg.io/v1
                   kind: Pooler
+                  {{- /* NOT "<cluster>-rw": a Pooler's name becomes its Service name, and CNPG
+                         already owns Services <cluster>-rw, -ro and -r for the Cluster itself.
+                         Composing a Pooler called ok-robotics-rw left it phase=inactive for 28h
+                         on ok-robotics, re-emitting InvalidOwnership every ~2 minutes, because
+                         Service/ok-robotics-rw carries ownerReferences Cluster/ok-robotics and
+                         the Pooler may not adopt it. $dbName is capped at 52 characters, so the
+                         10-character suffix still leaves the Service name inside 63. */}}
                   metadata:
-                    name: {{ printf "%s-rw" $dbName | quote }}
+                    name: {{ printf "%s-pooler-rw" $dbName | quote }}
                     namespace: {{ $namespace | quote }}
                   spec:
                     cluster:
