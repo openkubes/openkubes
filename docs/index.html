@@ -36,6 +36,29 @@
     height:120px;
     margin-bottom:1.5rem;
   }
+  .universe-nav{
+    display:flex;
+    justify-content:center;
+    gap:0.55rem;
+    margin:0 auto 2rem;
+  }
+  .universe-nav a{
+    display:inline-flex;
+    align-items:center;
+    gap:0.35rem;
+    padding:0.38rem 0.8rem;
+    border:1px solid var(--border);
+    border-radius:999px;
+    background:#ffffff;
+    color:var(--text);
+    font-size:0.82rem;
+    font-weight:650;
+  }
+  .universe-nav a:hover{
+    border-color:var(--accent);
+    color:var(--accent);
+    text-decoration:none;
+  }
   h1{
     font-size:2rem;
     margin:0 0 1rem;
@@ -145,6 +168,101 @@
     font-size:0.9rem;
     margin:0;
   }
+  .universe-intro{
+    max-width:680px;
+    color:var(--muted);
+  }
+  .universe-grid{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:1rem;
+    margin-top:1.6rem;
+  }
+  .universe-card{
+    position:relative;
+    display:grid;
+    grid-template-columns:58px minmax(0,1fr);
+    gap:1.1rem;
+    min-height:210px;
+    padding:1.5rem;
+    overflow:hidden;
+    border:1px solid var(--border);
+    border-radius:12px;
+    color:var(--text);
+    background:#ffffff;
+    box-shadow:0 1px 2px rgba(31,35,40,0.04);
+    transition:transform 160ms ease,box-shadow 160ms ease,border-color 160ms ease;
+  }
+  .universe-card::after{
+    content:"";
+    position:absolute;
+    right:-42px;
+    bottom:-72px;
+    width:180px;
+    height:180px;
+    border-radius:50%;
+    opacity:0.14;
+    pointer-events:none;
+  }
+  .universe-card:hover{
+    transform:translateY(-3px);
+    text-decoration:none;
+    box-shadow:0 12px 32px rgba(31,35,40,0.11);
+  }
+  .universe-card:focus-visible,.universe-nav a:focus-visible{
+    outline:3px solid var(--accent);
+    outline-offset:3px;
+  }
+  .universe-card.oki{border-top:4px solid #1a7f37;}
+  .universe-card.oki::after{background:#1a7f37;}
+  .universe-card.aia{border-top:4px solid #8250df;}
+  .universe-card.aia::after{background:#8250df;}
+  .universe-mark{
+    position:relative;
+    z-index:1;
+    display:grid;
+    place-items:center;
+    width:58px;
+    height:58px;
+    border-radius:16px 16px 16px 5px;
+    color:#ffffff;
+    font-size:1.35rem;
+    font-weight:800;
+  }
+  .oki .universe-mark{background:linear-gradient(145deg,#1f883d,#0969da);}
+  .aia .universe-mark{background:linear-gradient(145deg,#8250df,#bf6b24);}
+  .universe-card-content{
+    position:relative;
+    z-index:1;
+    display:flex;
+    flex-direction:column;
+    align-items:flex-start;
+  }
+  .universe-kicker{
+    margin-bottom:0.45rem;
+    color:var(--muted);
+    font-size:0.72rem;
+    font-weight:700;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+  }
+  .universe-card h3{
+    margin:0 0 0.55rem;
+    font-size:1.25rem;
+    letter-spacing:-0.01em;
+  }
+  .universe-card p{
+    margin:0;
+    color:var(--muted);
+    font-size:0.92rem;
+  }
+  .universe-link{
+    margin-top:auto;
+    padding-top:1.2rem;
+    color:var(--accent);
+    font-size:0.88rem;
+    font-weight:700;
+  }
   .repo-list{
     list-style:none;
     padding:0;
@@ -203,11 +321,19 @@
     padding:0.1rem 0.35rem;
     font-size:0.9em;
   }
+  @media(max-width:680px){
+    .universe-grid{grid-template-columns:1fr;}
+    .universe-card{min-height:190px;}
+  }
 </style>
 </head>
 <body>
 
 <header>
+  <nav class="universe-nav" aria-label="OpenKubes Universe">
+    <a href="https://oki.openkubes.org/">Oki <span aria-hidden="true">↗</span></a>
+    <a href="https://aia.openkubes.org/en">Aia <span aria-hidden="true">↗</span></a>
+  </nav>
   <img class="logo-img" src="openkubes-logo.png" alt="OpenKubes logo">
   <h1>OpenKubes Kubernetes Platform Distribution Framework</h1>
   <p class="tagline">OpenKubes is a framework for building sovereign Kubernetes platform distributions — built ADR-first, reviewed three ways, run on infrastructure you control.</p>
@@ -219,6 +345,32 @@
 </header>
 
 <main>
+
+  <section id="universe">
+    <div class="eyebrow">Explore</div>
+    <h2>Explore the OpenKubes Universe</h2>
+    <p class="universe-intro">Two illustrated journeys make the ideas behind OpenKubes tangible — from the foundations of platform engineering to AI-assisted, verifiable operations.</p>
+    <div class="universe-grid">
+      <a class="universe-card oki" href="https://oki.openkubes.org/">
+        <span class="universe-mark" aria-hidden="true">O</span>
+        <div class="universe-card-content">
+          <span class="universe-kicker">Illustrated origin story</span>
+          <h3>Meet Oki</h3>
+          <p>Discover platform engineering through an illustrated story about clusters, contracts and trust.</p>
+          <span class="universe-link">Explore Oki Universe →</span>
+        </div>
+      </a>
+      <a class="universe-card aia" href="https://aia.openkubes.org/en">
+        <span class="universe-mark" aria-hidden="true">A</span>
+        <div class="universe-card-content">
+          <span class="universe-kicker">Illustrated guide for CIOs &amp; SREs</span>
+          <h3>Meet Aia</h3>
+          <p>See how AI, Crossplane, Cluster API and robotics turn intent into a verifiable platform.</p>
+          <span class="universe-link">Explore Aia →</span>
+        </div>
+      </a>
+    </div>
+  </section>
 
   <section id="about">
     <div class="eyebrow">What it is</div>
