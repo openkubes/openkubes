@@ -116,7 +116,7 @@ kubectl apply -f claim.yaml
 
 ## Architecture Decisions
 
-OpenKubes is built on 23 documented platform-level decisions:
+OpenKubes is built on 35 documented platform-level decisions:
 
 | ADR | Decision |
 |---|---|
@@ -143,6 +143,18 @@ OpenKubes is built on 23 documented platform-level decisions:
 | [ADR-Platform-021](./architecture/decisions/ADR-Platform-021-read-only-platform-diagnostics-contract.md) | Read-Only Platform Diagnostics Contract *(draft)* |
 | [ADR-Platform-022](./architecture/decisions/ADR-Platform-022-distribution-framework-not-a-distribution.md) | OpenKubes is a distribution framework, not a distribution *(draft)* |
 | [ADR-Platform-023](./architecture/decisions/ADR-Platform-023-capi-infrastructure-providers-as-implementation-profiles.md) | CAPI infrastructure providers as Implementation Profiles |
+| [ADR-Platform-024](./architecture/decisions/ADR-Platform-024-observability-install-as-opt-in-gated-command.md) | Observability install and readiness gate as an opt-in ok-cluster command |
+| [ADR-Platform-025](./architecture/decisions/ADR-Platform-025-datacenter-secret-sync-profile.md) | Datacenter secret-sync profile — Vault on ok-shared + Vault Secrets Operator (VSO) *(draft)* |
+| [ADR-Platform-026](./architecture/decisions/ADR-Platform-026-vertical-layer.md) | Vertical Layer — ok-robotics / ok-ai / ok-iot as forcing consumers |
+| [ADR-Platform-027](./architecture/decisions/ADR-Platform-027-observability-gate-assurance-scope.md) | Assurance scope of the observability contract gate — control-plane-mediated reachability only |
+| [ADR-Platform-028](./architecture/decisions/ADR-Platform-028-artifact-registry-capability.md) | Artifact Registry Capability — zot as v1 implementation *(draft)* |
+| [ADR-Platform-029](./architecture/decisions/ADR-Platform-029-ok-messaging-capability.md) | ok-messaging capability — broker-agnostic pub/sub &amp; streaming contract |
+| [ADR-Platform-030](./architecture/decisions/ADR-Platform-030-control-plane-execution-model.md) | Cluster Lifecycle Control-Plane Execution Model *(proposed)* |
+| [ADR-Platform-031](./architecture/decisions/ADR-Platform-031-ok-mgmt-disaster-recovery.md) | ok-mgmt protection and disaster recovery *(proposed)* |
+| [ADR-Platform-032](./architecture/decisions/ADR-Platform-032-openkubes-dbaas.md) | OpenKubes DBaaS — Database Platform Contracts (PostgreSQL reference) *(proposed)* |
+| [ADR-Platform-033](./architecture/decisions/ADR-Platform-033-openkubes-okp-single.md) | OpenKubes OKP Single — Capability Placement and Autonomy *(draft)* |
+| [ADR-Platform-034](./architecture/decisions/ADR-Platform-034-ok-up.md) | `ok up` Convergence UX and Authorized Desired-State Transitions *(proposed)* |
+| [ADR-Platform-035](./architecture/decisions/ADR-Platform-035-hybrid-intent-and-control-plane-execution.md) | Hybrid Intent and Control-Plane Execution Architecture for cluster lifecycle management *(proposed)* |
 
 → [`architecture/decisions/`](./architecture/decisions/)
 
