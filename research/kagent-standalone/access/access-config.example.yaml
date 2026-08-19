@@ -1,0 +1,97 @@
+# Access profile for a standalone kagent installation (OK-129).
+#
+# This file is the single place where the permissions of the deployment are
+# decided. RBAC, the write tool server, the write Agent and the Helm value
+# fragment for the read path are all generated from it:
+#
+#   render-access.py --config access-config.yaml --out .access.local --summary
+#
+# Copy it next to your cluster values (ok-cluster/<cluster>/kagent/) and edit it
+# there. Nothing in this file is private — no endpoints, no credentials.
+kind: KagentAccessProfile
+
+# read-only  : diagnosis only. No write ServiceAccount, Role, tool server or
+#              Agent is created. Switching back to this value removes them.
+# read-write : additionally deploys one scoped, approval-gated write path.
+mode: read-only
+
+install:
+  # Where kagent itself runs. Write targets may never include this namespace —
+  # an agent that can write here could rewrite its own definition.
+  namespace: kagent
+
+read:
+  # Cluster-wide read is the only implemented read scope. Namespaced read
+  # scoping would mean taking over the chart's built-in tool RBAC; that is a
+  # separate, testable change rather than a config flag.
+  scope: cluster
+  # Refused if set to true. No tool identity in this deployment gets Secrets.
+  secrets: false
+  # Tools the diagnostic path exposes. Names must exist in the installed tool
+  # server — check with `kubectl get remotemcpserver kagent-tool-server -o yaml`.
+  # This reference is rendered *without* an approval gate, so a mutating-looking
+  # name here is refused: write tools belong in write.tools.
+  tools:
+    - k8s_get_resources
+    - k8s_describe_resource
+    - k8s_get_events
+    - k8s_get_pod_logs
+    - k8s_get_resource_yaml
+
+# The write block below selects the approval-gated, namespace-scoped write
+# surface. Only explicitly listed, supported resources are granted.
+write:
+  # `namespaces` is the only scope. `cluster` is refused: a ClusterRoleBinding
+  # applies in every namespace, including kagent, kagent-write, kube-* and any
+  # namespace created later, and RBAC cannot express those exclusions.
+  scope: namespaces
+
+  # Required and must be exactly `[kagent-lab]`, the target exercised by the
+  # recorded drill. Any other namespace, alone or added to this list, is refused
+  # until it has its own evidence and reviewed boundary.
+  namespaces:
+    - kagent-lab
+
+  # For each selected kind, declare the exact Kubernetes API verbs kagent may
+  # use. There is intentionally no global CRUD default: change this mapping to
+  # match the task the agent is meant to perform. Allowed verbs are get, list,
+  # watch, create, update, patch and delete. Pods, Pod logs and Events remain
+  # read-only verification context.
+  #
+  # Never grantable: secrets, RBAC objects, serviceaccounts, namespaces, nodes,
+  # persistentvolumes, CRDs, webhook configurations, `*`.
+  resources:
+    configmaps: [get, list, watch, create, update, patch, delete]
+    pods: [get, list, watch, delete]
+    services: [get, list, watch, update, patch]
+    deployments: [get, list, watch, update, patch]
+    statefulsets: [get, list, watch, update, patch]
+    daemonsets: [get, list, watch, update, patch]
+    replicasets: [get, list, watch, update, patch]
+    jobs: [get, list, watch, delete]
+    cronjobs: [get, list, watch, update, patch]
+    ingresses: [get, list, watch, update, patch]
+
+  # Must be true. Every write tool on the generated Agent goes through
+  # Approve/Reject in the UI. Note what this does and does not mean: it is a
+  # policy of *this Agent's* tool reference, not of the shared write
+  # RemoteMCPServer or of its ServiceAccount. Another Agent referencing the same
+  # tool server is not forced to declare it.
+  requireApproval: true
+
+  # The write tool server runs in its own namespace so its identity stays
+  # separately auditable and cannot be modified by the agent using it.
+  toolServer:
+    namespace: kagent-write
+    releaseName: kagent-write-tools
+    port: 8084
+    metricsPort: 8085
+
+  agentName: cluster-operator-gated
+
+  # Tool names the write identity exposes. Must exist in the installed tool
+  # server; the renderer does not invent names.
+  tools:
+    - k8s_apply_manifest
+    - k8s_patch_resource
+    - k8s_delete_resource
