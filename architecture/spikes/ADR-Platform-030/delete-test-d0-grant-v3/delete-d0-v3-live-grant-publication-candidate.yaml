@@ -1,0 +1,56 @@
+apiVersion: publication.openkubes.io/v1alpha1
+kind: OK141DeleteD0V3LiveGrantPublicationCandidate
+metadata:
+  name: ok141-delete-d0-v3-live-grant-publication
+  ticket: OK-141
+spec:
+  state: PREPARED-NOT-AUTHORIZED
+  baseCommit: 0d34f3c1f71f110bf4e17b73c1772df300c5fe60
+  scope:
+    - README.md
+    - delete-d0-live-grant-candidate-v3.yaml
+    - verify_delete_d0_live_grant_candidate_v3.py
+    - test_delete_d0_live_grant_candidate_v3.py
+  bindings:
+    candidateFileDigest: sha256:08043c9b26447e546864984d9533eb1d15342479b60f3497e56959ae293b8422
+    candidateSemanticDigest: sha256:44f413ae37a28d190fcddfc78b2bb1a6b8377ea4a6c95947b0b478bbd3db5d44
+    d0v3CandidateDigest: sha256:771c09a760940afa8c04a26a79e3e921c11d87d96ae949c1781f4fd7c846074b
+    d0v3ExecutorDigest: sha256:66f45942bfe28d52860cb4a673bab39aa893e53952f942811ab94a41b5a4e8e5
+    verifierDigest: sha256:e097eba9f7b9fc1dc39dde77d92a14cf696607198d48d6b8f8abfd1c0d8018a3
+    testDigest: sha256:b4d8ebfb17fcf635bcc1b3fa5e769cb5b4e7a923891e7b2428f6b23a30aa112f
+    readmeDigest: sha256:4dd65a3aacf8e280a3f3b2a79502033c3d6e56cab5e34cfd84061dab6138a318
+    offlineTestsPassed: 9
+  claims:
+    d0v3GrantContractPrepared: true
+    liveGrantMaterialized: false
+    liveBindingPerformed: false
+    clusterContactPerformed: false
+    mutationPerformed: false
+    deleteGranted: false
+    cleanupGranted: false
+  redaction:
+    rawObjectsExcluded: true
+    endpointsExcluded: true
+    uidsExcluded: true
+    resourceVersionsExcluded: true
+    secretValuesExcluded: true
+    credentialsExcluded: true
+    kubeconfigsExcluded: true
+    privateKeysExcluded: true
+  authorization:
+    publicationGranted: false
+    commitGranted: false
+    pushGranted: false
+    pullRequestGranted: false
+    reviewGranted: false
+    mergeGranted: false
+    liveReadGranted: false
+    credentialUseGranted: false
+    secretMetadataReadGranted: false
+    mutationGranted: false
+    deleteGranted: false
+    cleanupGranted: false
+    retryGranted: false
+    rollbackGranted: false
+    outageGranted: false
+    failureInjectionGranted: false

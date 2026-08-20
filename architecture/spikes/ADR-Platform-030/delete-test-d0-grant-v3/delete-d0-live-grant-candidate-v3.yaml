@@ -1,0 +1,74 @@
+apiVersion: authorization.openkubes.io/v1alpha1
+kind: OK141DeleteD0LiveGrantCandidate
+metadata:
+  name: ok141-delete-d0-live-grant-v3
+  ticket: OK-141
+spec:
+  version: ok141-delete-d0-live-grant-candidate/v3
+  state: READY-FOR-EXPLICIT-D0-V3-LIVE-READ-GRANT
+  baseCommit: 0d34f3c1f71f110bf4e17b73c1772df300c5fe60
+  bindings:
+    protocolSemanticDigest: sha256:4cd457c5f40bdf3ae871cbe56ba7c151f7ac3242bd73129557f25cf620a2d0bc
+    d0CandidatePath: ../delete-test-d0-v3/delete-d0-binding-candidate-v3.yaml
+    d0CandidateFileDigest: sha256:771c09a760940afa8c04a26a79e3e921c11d87d96ae949c1781f4fd7c846074b
+    d0CandidateSemanticDigest: sha256:fc3c68828f87cfecb2f12bbcb18188cc16f6c386993f7b2e15406c84e47baa77
+    executorPath: ../delete-test-d0-v3/prepare_delete_d0_binding_v3.py
+    executorDigest: sha256:66f45942bfe28d52860cb4a673bab39aa893e53952f942811ab94a41b5a4e8e5
+    queryProfileDigest: sha256:f8dbcf6195712fdac4acfa5ff5bbc2eb8694f8c1f6436e6c400758cfa5888853
+    longhornClosureDigest: sha256:8c11c9bf42d25f96817c43f3e4e0b11b3ed24f15e81f163038b41d29167ae634
+    kubectlPath: /private/tmp/ok141-kubectl-v1.34.1-darwin-amd64
+    kubectlDigest: sha256:bb211f2b31f2b3bc60562b44cc1e3b712a16a98e9072968ba255beb04cefcfdf
+  scope:
+    planes: [ok-shared, ok-mgmt, ok-infra, workload]
+    sealedGetCount: 36
+    discoveryAllowed: false
+    listOutsideBoundQueriesAllowed: false
+    watchAllowed: false
+    mutationAllowed: false
+  privateOutputs:
+    bindingPath: /private/tmp/ok141-delete-d0-runtime-binding-v3.json
+    evidencePath: /private/tmp/ok141-delete-d0-evidence-v3.json
+    mustBeAbsentBeforeRun: true
+    mode: "0600"
+    maximumBindingAgeMinutes: 10
+    publishable: false
+  requiredGrant:
+    kind: OK141DeleteD0BindingGrant
+    state: GRANTED
+    grantIDBoundAtGrantTime: true
+    windowBoundAtGrantTime: true
+    maximumWindowMinutes: 20
+    maximumRuns: 1
+    consumed: false
+    requiredTrue:
+      - readOnlyAuthorized
+      - credentialUseAuthorized
+      - secretMetadataReadAuthorized
+    requiredFalse:
+      - mutationAuthorized
+      - deleteAuthorized
+      - cleanupAuthorized
+      - retryAuthorized
+      - rollbackAuthorized
+      - outageAuthorized
+      - failureInjectionAuthorized
+      - publicationAuthorized
+  authorization:
+    decision: NO-GO
+    liveReadGranted: false
+    credentialUseGranted: false
+    secretMetadataReadGranted: false
+    mutationGranted: false
+    deleteGranted: false
+    cleanupGranted: false
+    retryGranted: false
+    rollbackGranted: false
+    outageGranted: false
+    failureInjectionGranted: false
+    publicationGranted: false
+  exclusions:
+    - reuse of D0 v1 or v2 grants or private outputs
+    - D1 D2 D3 D4 D5 D6 or D7 execution
+    - create update patch apply delete TokenRequest discovery watch logs or exec
+    - output of raw Secret values credentials endpoints or kubeconfig content
+    - reuse of the D0 start binding for D5 retained-storage cleanup
