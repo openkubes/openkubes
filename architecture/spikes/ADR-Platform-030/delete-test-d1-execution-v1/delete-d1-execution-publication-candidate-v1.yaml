@@ -1,0 +1,53 @@
+apiVersion: publication.openkubes.io/v1alpha1
+kind: OK141DeleteD1ExecutionPublicationCandidate
+metadata:
+  name: ok141-delete-d1-execution-v1
+  ticket: OK-141
+spec:
+  state: PREPARED-NOT-AUTHORIZED
+  baseCommit: 29c961a36b03d9de226de28b2c6aab48842702b3
+  scope:
+    - README.md
+    - bounded_delete_d1_v1.py
+    - delete-d1-execution-candidate-v1.yaml
+    - delete-d1-execution-grant-v1.template.yaml
+    - delete-d1-execution-publication-candidate-v1.yaml
+    - test_bounded_delete_d1_v1.py
+  bindings:
+    candidateDigest: sha256:2f8bfa6e6a622442381e57c56787a5c7804ddc40a64aefb219884ce3057848e3
+    candidateSemanticDigest: sha256:34ec393eb91c666f696824897c302420383274ec3a5b7e4482bad6076b954f17
+    executorDigest: sha256:8f941d5745bb7823c0ad5f449602606fe4b907a113acdae330df83b9e865c359
+    testDigest: sha256:c408acc97e6885cafacbf0debaa8f304198920326727457f4c8312b0a253529f
+    grantTemplateDigest: sha256:f7d0fb6539e4871ed4ba2eeb7859c3b377ef3086cc0edee0d4ea2c45c03e71d8
+    readmeDigest: sha256:e3499b61c787733bea09af1bd52058b6363c6db14b3c014540b8f80177bc6f85
+    offlineTestsPassed: 9
+  claims:
+    exactFiveTargetOrderBound: true
+    uidAndResourceVersionPreconditionsRequired: true
+    exactGetBeforeEachDeleteRequired: true
+    applicationFinalizersMustBeAbsent: true
+    backgroundPropagationRequired: true
+    targetResourceDeleteByRunnerForbidden: true
+    partialStatePreservedOnFailure: true
+    forceDeleteUnavailable: true
+    finalizerMutationUnavailable: true
+    retryUnavailable: true
+  authorization:
+    publicationGranted: false
+    commitGranted: false
+    pushGranted: false
+    pullRequestGranted: false
+    reviewGranted: false
+    mergeGranted: false
+    credentialUseGranted: false
+    mutationGranted: false
+    deleteGranted: false
+    retryGranted: false
+    rollbackGranted: false
+    cleanupGranted: false
+    forceDeleteGranted: false
+    finalizerMutationGranted: false
+    d2Granted: false
+    d3Granted: false
+    outageGranted: false
+    failureInjectionGranted: false
