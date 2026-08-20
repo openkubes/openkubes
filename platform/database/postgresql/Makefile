@@ -10,6 +10,9 @@ MGMT_KUBECONFIG ?=
 APPROVE_MGMT ?= no
 ACCEPT_PROTOTYPE_LIMITS ?= no
 CLUSTER ?= ok-robotics
+PROBE_NAMESPACE ?=
+PROBE_CNPG_CLUSTER ?=
+PROBE_CAPABILITY ?= pgvector
 CLAIM_NAMESPACE ?= openkubes-system
 DEPLOY_USER ?=
 CLAIM_EDITOR_GROUP ?= oidc:database-claim-editors
@@ -53,6 +56,7 @@ validate: ## Parse all local artifacts and run static contract guards
 	@$(PYTHON) -c 'import ast, pathlib; files=list(pathlib.Path("crossplane/tests").glob("*.py"))+list(pathlib.Path("drill/tests").glob("*.py")); [ast.parse(f.read_text(), filename=str(f)) for f in files]; print("OK: parsed %d Python files" % len(files))'
 	@$(PYTHON) -c 'import pathlib; roots=(pathlib.Path("crossplane"), pathlib.Path("drill")); bad=sorted(str(p) for root in roots for p in root.rglob("*") if p.name in {"__pycache__", ".pytest_cache", "build", "dist"} or p.suffix in {".pyc", ".pyo", ".class", ".o", ".so"}); assert not bad, "generated/build artifacts present: " + ", ".join(bad); print("OK: no Python caches or build artifacts in the capability tree")'
 	@bash -n drill/run-restore-drill.sh
+	@bash -n probe/pgvector-probe.sh
 	@$(MAKE) --no-print-directory claim-policy-check claim-authority-model-check \
 		claim-admission-check restoreverified-api-check evidence-status-check drill-validate \
 		drill-policy-check minio-provisioning-check restore-evidence-check
@@ -152,6 +156,15 @@ minio-provisioning-check: ## Prove the pinned MinIO scaffold and credential boun
 restore-evidence-check: ## Generate and reject malformed RestoreVerified evidence locally
 	@$(PYTHON) drill/tests/restore-evidence-check.py --negative-controls
 	@$(PYTHON) drill/tests/restore-evidence-check.py
+
+# Runs against a LIVE cluster, so it is not part of the offline validate list; validate only
+# syntax-checks it. Emits a CapabilityVerified artifact on stdout — the CRD that admits that
+# artifact lands with OK-150, so on this branch the probe's verdict and exit code are the usable
+# output and the artifact is a forward reference.
+capability-probe: ## Run the functional capability probe against a live CNPG cluster (PROBE_NAMESPACE, PROBE_CNPG_CLUSTER)
+	@test -n "$(PROBE_NAMESPACE)" || { echo "ERROR: name PROBE_NAMESPACE explicitly" >&2; exit 2; }
+	@test -n "$(PROBE_CNPG_CLUSTER)" || { echo "ERROR: name PROBE_CNPG_CLUSTER explicitly" >&2; exit 2; }
+	@bash probe/pgvector-probe.sh "$(PROBE_NAMESPACE)" "$(PROBE_CNPG_CLUSTER)" "$(PROBE_CAPABILITY)"
 
 require-mgmt-context:
 	@test -n "$(MGMT_KUBECONFIG)" -a -r "$(MGMT_KUBECONFIG)" || { echo "ERROR: set MGMT_KUBECONFIG to a readable ok-mgmt kubeconfig" >&2; exit 2; }
