@@ -1,0 +1,95 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: OK141DeleteReadOnlyObservation
+metadata:
+  name: ok141-delete-read-only-observation-v1
+  ticket: OK-141
+  observedAt: "2026-08-20T12:52:53Z"
+spec:
+  state: PASS-READ-ONLY-INVENTORY-NO-GO
+  redaction:
+    rawObjectsRetained: false
+    credentialsRetained: false
+    endpointsRetained: false
+    uidsRetained: false
+    resourceVersionsRetained: false
+  managementPlane:
+    cluster:
+      name: disposable-ok141
+      phase: Provisioned
+      available: "True"
+      deletionTimestampPresent: false
+      finalizers: [cluster.cluster.x-k8s.io]
+    authorityGraph:
+      declaredLifecycleObjects: 7
+      generatedMachines: 2
+      generatedMachineSet: 1
+      generatedKubevirtMachines: 2
+      generatedTalosConfigs: 2
+      allDeletionTimestampsAbsent: true
+      controllerFinalizersPresent: true
+    enablement:
+      helmChartProxy: disposable-ok141-cilium
+      helmChartProxyCount: 1
+      helmReleaseProxyCount: 1
+      controllerFinalizersPresent: true
+    providerAccessSecret:
+      name: external-infra-kubeconfig-disposable-ok141
+      dataKeys: [kubeconfig]
+      deletionTimestampPresent: false
+      finalizers: []
+  infrastructurePlane:
+    namespace: disposable-ok141
+    virtualMachines: 2
+    virtualMachineInstances: 2
+    dataVolumes: 2
+    persistentVolumeClaims: 2
+    loadBalancerServices: 1
+    goldenImageRoleCount: 1
+    goldenImageRoleBindingCount: 1
+    controllerFinalizersPresent: true
+    retainedProviderStorage:
+      persistentVolumes: 2
+      reclaimPolicy: Retain
+      storageClass: ok-storage-block
+      longhornVolumes: 2
+      allAttachedAtObservation: true
+      allDegradedAtObservation: true
+      identityPublication: sha256-only
+  gitOpsPlane:
+    applicationNames:
+      - disposable-ok141-observability-core
+      - disposable-ok141-observability-alerting
+      - disposable-ok141-observability-dashboards
+    applicationCount: 3
+    exclusiveAppProjectMembership: true
+    allSynced: true
+    allHealthy: true
+    allAutomated: true
+    allDeletionFinalizersAbsent: true
+    registrationSecret: disposable-ok141-cluster
+    appProject: openkubes-disposable
+    registrationAndProjectFinalizersAbsent: true
+  workloadPlane:
+    namespace: ok-observability
+    platformPersistentVolumeClaims: 4
+    platformPersistentVolumes: 4
+    platformPVReclaimPolicy: Delete
+    targetClusterRole: ok141-argocd-platform-cluster
+    targetClusterRoleBinding: ok141-argocd-platform-cluster
+  conclusions:
+    - Argo Applications can be removed without cascading target deletion because no Application deletion finalizer is present.
+    - CAAPH must be quiesced while the workload API remains reachable.
+    - CAPI Cluster deletion must own lifecycle and VM convergence.
+    - Provider access must remain until CAPI and CAPK closure is proven.
+    - Retain-policy provider PVs and Longhorn volumes require an explicit later destructive cleanup gate.
+    - Shared ok147 runner, ledger, admission and controller infrastructure is not disposable-cluster state.
+  authorization:
+    decision: NO-GO
+    mutationGranted: false
+    deleteGranted: false
+    cleanupGranted: false
+    retryGranted: false
+    forceDeleteGranted: false
+    finalizerMutationGranted: false
+    outageGranted: false
+    failureInjectionGranted: false
