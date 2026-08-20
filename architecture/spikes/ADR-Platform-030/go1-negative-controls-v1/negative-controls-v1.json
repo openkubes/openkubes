@@ -1,0 +1,56 @@
+{
+  "format": "ok141-nondestructive-negative-controls/v1",
+  "state": "OFFLINE-PROVEN-LIVE-NO-WRITE-CLOSURE-PENDING",
+  "recorded": "2026-08-20",
+  "bindings": {
+    "R": "sha256:47bb651f6bc0bdb3a7a567efcd4ca4c776f872a63496fa55c2a6aed77d6fa995",
+    "E": "sha256:2a849d69e9c64344e907c1bce3bb1abf3d8f77217377081a5be055d62c213300",
+    "P": "sha256:2956184005f4860607e91672fce82164095dee6ebcbe57e5af883951a199c427",
+    "fixtureDigest": "sha256:438a6882d8e22b644c826cb0a6f2856850afd7c7ef71badb44cd66e8db0393ec",
+    "planDigest": "sha256:22c5925b1fbc69d8b9dc8db2f74429f31c150147c0c484c04113e189ff3a0362",
+    "planArtifactDigest": "sha256:855f4182d19ae1e267238112457c703664afc052746d01a23692ad632a54dda7"
+  },
+  "implementation": {
+    "okClusterCommit": "432bc2b2361fc4e8b56c368292c5df7fca504f57",
+    "runnerBinaryDigest": "sha256:b249e075f4052fae17e46949fd86a5117c4a20f8a5433718d3e6842a149ce238",
+    "targetedTestCount": 15,
+    "targetedTestResult": "PASS"
+  },
+  "resumeProof": {
+    "format": "ok147-stage-resume-inspection/v1",
+    "state": "COMPLETED",
+    "completedStages": 12,
+    "requiresAuthorization": false,
+    "mutationAllowed": false,
+    "evidenceDigest": "sha256:c76159e73dece6331f2617468b01d0446d8c4a77c6ed9b3473a216357d06645c"
+  },
+  "receiptPrefix": [
+    {"stage": "provider-prerequisites", "digest": "sha256:b9b78e2e7733dde725588dd4d99ce40f7e11f288ad0b49d7015ab3eaebb0f437"},
+    {"stage": "cluster-lifecycle", "digest": "sha256:8de8b22541ea0dbc27d6cf6c661accb1b3dd5539950f115f5d6dd2fefaa11e5c"},
+    {"stage": "lifecycle-observation", "digest": "sha256:2261cebe5c017f83d8a204741b25c2a9a7050179991c63ebaccc568b7929fc39"},
+    {"stage": "enablement", "digest": "sha256:c3d2f053f38c1f72ce87d5c423f1deb578c3a0812245adfe7e2fd724f0b4019f"},
+    {"stage": "network-observation", "digest": "sha256:a2b533c95f227514b3b713c2225b640ff14dd5afd429b9ab02cdecbd16b47596"},
+    {"stage": "runtime-binding", "digest": "sha256:276b419ec53c5c28f6cacadc296a3620e8e972231c86ad1f279fea965230412a"},
+    {"stage": "target-access", "digest": "sha256:ae8e4bbe423716fc18898f62269e2f6534df521d7f9011ded1b0b30be84a78f7"},
+    {"stage": "target-credential", "digest": "sha256:82341951473ddc6f7fe41ad3527ae3cae8d95d0413b692a2d622effcb6722d84"},
+    {"stage": "target-registration", "digest": "sha256:eda3533320aaac496c52efe54cd485740640af7e08deb5397bbc2a7792398efa"},
+    {"stage": "platform-applications", "digest": "sha256:72b6421a2c795a88b9f50eb6243c11279b29a52e1a29928c34b266b1ae56bcb9"},
+    {"stage": "platform-observation", "digest": "sha256:92a5811cb8926744655f8f6ee20c91ab426b803fb7912ae35f6f4e9379d1a2b0"},
+    {"stage": "aggregate-evidence", "digest": "sha256:51c3481ea38b8d41284f4f1d6d9a900c4bf40f86318c7bee4825f10eb08ae3d2"}
+  ],
+  "controls": [
+    {"id": "AUTHORIZATION-DENIED", "result": "PASS-OFFLINE", "liveRequirement": "LOCAL-REJECTION-WITH-READ-ONLY-SNAPSHOTS"},
+    {"id": "STALE-GENERATION-EVIDENCE", "result": "PASS", "liveRequirement": "NONE"},
+    {"id": "DUPLICATE-SUBMISSION-IDEMPOTENCY", "result": "PASS-RUNNER-TERMINAL-REPLAY", "liveRequirement": "READ-ONLY-SNAPSHOT-EQUALITY"},
+    {"id": "EXECUTOR-RESTART-RECEIPT-RESUME", "result": "PASS", "liveRequirement": "NONE"},
+    {"id": "WRONG-R-E-P-CORRELATION", "result": "PASS", "liveRequirement": "NONE"}
+  ],
+  "liveBoundary": {
+    "mutationAllowed": false,
+    "clusterContactByNegativeOperation": false,
+    "projectedObjectCount": 11,
+    "allowedOperations": ["EXACT_GET_BEFORE", "LOCAL_REJECTION", "LOCAL_TERMINAL_REPLAY", "EXACT_GET_AFTER", "READ_ONLY_HEALTH_CHECK"],
+    "forbiddenOperations": ["CREATE", "UPDATE", "PATCH", "APPLY", "REPLACE", "DELETE", "POD_EXEC", "LOG_READ", "SECRET_CONTENT_READ", "FAILURE_INJECTION"]
+  },
+  "candidateDigest": "sha256:4fc0baa880552a03471a9be52d5e954236f3b518470f368e6b28f09099ae2b78"
+}

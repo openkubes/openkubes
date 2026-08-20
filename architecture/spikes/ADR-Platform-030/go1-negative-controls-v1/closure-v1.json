@@ -1,0 +1,29 @@
+{
+  "afterSnapshotDigest": "sha256:0702d1d4a688dae9fb266e46675bf95742da06cc988d94b73bbfb8320bd81261",
+  "beforeSnapshotDigest": "sha256:0702d1d4a688dae9fb266e46675bf95742da06cc988d94b73bbfb8320bd81261",
+  "candidateDigest": "sha256:4fc0baa880552a03471a9be52d5e954236f3b518470f368e6b28f09099ae2b78",
+  "clusterMutationPerformed": false,
+  "completedAt": "2026-08-20T09:53:26.215685Z",
+  "credentialContentRetained": false,
+  "evidenceDigest": "sha256:55d435b49626d9d65e8be720af5f314c540011bfa2033e6f87e9647d8a1bcb01",
+  "format": "ok141-nondestructive-negative-controls-closure/v1",
+  "health": {
+    "ciliumDesired": 2,
+    "ciliumReady": 2,
+    "nodesExpected": 2,
+    "nodesReady": 2,
+    "operatorAvailable": 1,
+    "storageClassPresent": true
+  },
+  "projectedObjectCount": 11,
+  "snapshotsEqual": true,
+  "state": "PASS",
+  "terminalReplay": {
+    "completedStages": 12,
+    "decisionDigest": "sha256:9438c5f306a3c76126a5d469627803a3b9e93def45c5ae4f34a10f35ef3a7133",
+    "mutationAllowed": false,
+    "requiresAuthorization": false,
+    "state": "COMPLETED",
+    "wrongRRejected": true
+  }
+}
