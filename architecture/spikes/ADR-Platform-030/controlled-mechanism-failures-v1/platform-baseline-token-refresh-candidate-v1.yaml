@@ -1,0 +1,54 @@
+apiVersion: execution.openkubes.io/v1alpha1
+kind: PlatformBaselineTokenRefreshCandidate
+metadata:
+  name: ok141-platform-baseline-token-refresh-v1
+spec:
+  state: PREPARED-NO-GO
+  ticket: OK-141
+  blocker:
+    application: disposable-ok141-observability-core
+    conditionType: ComparisonError
+    causeCategory: AUTHENTICATION
+    conditionMessageDigest: sha256:ee892b8ded29bcc957dc17a91dcec738577e019ae7ff55a27528bf27ede9abc0
+    P1WritesPerformed: false
+  sourceRevision: c09c18759aeb7526d22106ccb001599f5f06bc4e
+  expirationSeconds: 10800
+  requestedAudiences: []
+  shared:
+    clientPath: /private/tmp/ok141-kubectl-v1.34.1-darwin-amd64
+    clientDigest: sha256:bb211f2b31f2b3bc60562b44cc1e3b712a16a98e9072968ba255beb04cefcfdf
+    kubeconfigPath: /Users/arash/.kube/ok-shared.yaml
+    kubeconfigDigest: sha256:33b397e252d1e37299d2079a7a0c33f50cf515d1227e56e6e0a2c65c0fae6f77
+    registrationSecretURI: /api/v1/namespaces/argocd/secrets/disposable-ok141-cluster
+    applicationURIs:
+      core: /apis/argoproj.io/v1alpha1/namespaces/argocd/applications/disposable-ok141-observability-core
+      alerting: /apis/argoproj.io/v1alpha1/namespaces/argocd/applications/disposable-ok141-observability-alerting
+      dashboards: /apis/argoproj.io/v1alpha1/namespaces/argocd/applications/disposable-ok141-observability-dashboards
+  target:
+    clientPath: /usr/local/bin/kubectl
+    clientDigest: sha256:158b3b46cf74e8b6bd9b1d7cd30f665e3efb2bc1ec3c843ec925bcfdd2930de0
+    kubeconfigPath: /Users/arash/.kube/disposable-ok141.yaml
+    kubeconfigDigest: sha256:4a907ee6b596de844a3b73a5b8a27b60ee1abac72dc825320f6aff7b03afbb4b
+    serviceAccountSubject: system:serviceaccount:kube-system:ok141-argocd-manager
+    tokenRequestURI: /api/v1/namespaces/kube-system/serviceaccounts/ok141-argocd-manager/token
+    probeURI: /api/v1/namespaces/ok-observability
+  observation:
+    intervalSeconds: 15
+    maximumIterations: 40
+  ephemeralTokenKubeconfigPath: /private/tmp/ok141-platform-baseline-token-refresh-v1-token.yaml
+  tool:
+    path: bounded_platform_baseline_token_refresh_v1.py
+    digest: sha256:86608cd8e62eb82bf753ae2d20f8e28dde930d29843b46d6e0e2f6773d8014c0
+  authorization:
+    decision: NO-GO
+    registrationSecretReadGranted: false
+    workloadAdminCredentialUseGranted: false
+    tokenRequestGranted: false
+    targetProbeGranted: false
+    registrationSecretReplaceGranted: false
+    applicationObservationGranted: false
+    retryGranted: false
+    rollbackGranted: false
+    cleanupGranted: false
+    failureInjectionGranted: false
+    evidencePublicationGranted: false
