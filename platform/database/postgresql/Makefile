@@ -278,11 +278,31 @@ require-deploy-user:
 # the gate names them rather than letting a successful install imply they are closed.
 setup: validate require-mgmt-approval ## APPROVAL: install policy, evidence CRD, ProviderConfig, XRD and Composition
 	@test "$(ACCEPT_PROTOTYPE_LIMITS)" = yes || { \
-		echo "ERROR: this installs a capability with four open bounds (ADR-Platform-032 §13):" >&2; \
-		echo "         1. no automated RestoreVerified collection — an operator admits evidence by hand" >&2; \
-		echo "         2. no scheduled-Backup enumeration — the fixed evidence Backup is the anchor" >&2; \
-		echo "         3. capability delivery unproven — pgvector needs the ImageVolume feature gate" >&2; \
-		echo "         4. ProtectionReady is NOT an RPO bound (§10)" >&2; \
+		echo "ERROR: this installs a capability with known limits and two operator obligations" >&2; \
+		echo "       (ADR-Platform-032 §13, as amended under OK-150):" >&2; \
+		echo "       STILL OPEN:" >&2; \
+		echo "         1. RecoveryAssured needs a human act, by design (§7): the operator group's" >&2; \
+		echo "            CREATION of a RestoreVerified CR *is* the approval. Not automated, and" >&2; \
+		echo "            not intended to be." >&2; \
+		echo "         2. no Backup enumeration. Evidence no longer decays with the fixed anchor -" >&2; \
+		echo "            a pruned anchor reads WindowSupersedesAnchor and freshness follows the" >&2; \
+		echo "            schedule - but the recovery window carries TIMES, not identities, so" >&2; \
+		echo "            backupId is unavailable then, and Failed/BackupUnavailable is not" >&2; \
+		echo "            reachable from window times at all." >&2; \
+		echo "         3. capability delivery is proven only via a BUNDLED image. The catalogued" >&2; \
+		echo "            per-extension image model (6.4) needs containerd >= 2.1.0 AND the" >&2; \
+		echo "            ImageVolume gate; containerd 2.0.x has no OCI volume source" >&2; \
+		echo "            (containerd#10579), so it does not work on these clusters. A bundled" >&2; \
+		echo "            image fixes the extension set, which is weaker governance." >&2; \
+		echo "       REQUIRES ACTION FROM YOU:" >&2; \
+		echo "         4. production ProtectionReady is NOW an RPO bound, and nothing publishes the" >&2; \
+		echo "            measurement yet. Without ArchiveFreshness observations a production" >&2; \
+		echo "            Database stays Unknown/RPOFreshnessUnproven and never becomes ready." >&2; \
+		echo "            development requires no RPO evidence." >&2; \
+		echo "         5. the app role becomes NOLOGIN. Login moves to the app_a/app_b pair, so any" >&2; \
+		echo "            consumer authenticating as 'app' stops opening new sessions. Point" >&2; \
+		echo "            consumers at status.credentials.activeRole BEFORE installing over a" >&2; \
+		echo "            database that already has them." >&2; \
 		echo "       Rerun with ACCEPT_PROTOTYPE_LIMITS=yes to install knowing these." >&2; exit 2; }
 	@set -Eeuo pipefail; \
 		MK="$(KUBECTL) --kubeconfig $(MGMT_KUBECONFIG)"; \

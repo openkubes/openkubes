@@ -34,6 +34,7 @@ import yaml
 TESTS_DIR = Path(__file__).resolve().parent
 CAPABILITY_DIR = TESTS_DIR.parent.parent
 COMPOSITION_PATH = CAPABILITY_DIR / "crossplane/composition.yaml"
+MAKEFILE_PATH = CAPABILITY_DIR / "Makefile"
 PRODUCTION_XR = TESTS_DIR / "xr-ok-robotics-production.yaml"
 DEVELOPMENT_XR = TESTS_DIR / "xr-ok-robotics.yaml"
 OBSERVED_PATH = TESTS_DIR / "observed-ok-robotics-valid.yaml"
@@ -143,6 +144,46 @@ def protection_of(status: dict[str, Any]) -> tuple[str, str]:
     return protection.get("state", ""), protection.get("reason", "")
 
 
+def check_install_gate_text() -> None:
+    """The install gate must not tell an operator the opposite of what the code does.
+
+    That text is what someone reads while deciding to accept the open bounds, and it drifted
+    exactly this way once: it still said "ProtectionReady is NOT an RPO bound" and "pgvector needs
+    the ImageVolume feature gate" after both had stopped being true. It is prose, so nothing
+    misbehaves — which is precisely why nothing catches it. This does.
+    """
+    text = MAKEFILE_PATH.read_text()
+    marker = 'ACCEPT_PROTOTYPE_LIMITS)" = yes'
+    if marker not in text:
+        raise RpoError(
+            "could not find the ACCEPT_PROTOTYPE_LIMITS gate in the Makefile; if it was renamed, "
+            "this guard needs updating rather than deleting"
+        )
+    start = text.index(marker)
+    gate = text[start : text.index("Rerun with ACCEPT_PROTOTYPE_LIMITS", start)]
+
+    if "ProtectionReady is NOT an RPO bound" in gate:
+        raise RpoError(
+            "the install gate still claims ProtectionReady is not an RPO bound, but production "
+            "now requires a measured WAL lag — an operator would go fix the wrong thing"
+        )
+    if "needs the ImageVolume feature gate" in gate and "containerd" not in gate:
+        raise RpoError(
+            "the install gate names the ImageVolume gate as the capability prerequisite without "
+            "containerd >= 2.1.0; the gate alone is necessary but not sufficient"
+        )
+    # The two obligations an operator must act on BEFORE installing. Both are consequences of
+    # this ticket's changes, and both are silent failures if unread: production never becomes
+    # ready without measurements, and consumers lose their login without warning.
+    for needle, why in (
+        ("ArchiveFreshness", "production needs published measurements or it never becomes ready"),
+        ("NOLOGIN", "the app role stops being a login role and consumers must be repointed"),
+    ):
+        if needle not in gate:
+            raise RpoError(f"the install gate does not mention {needle}: {why}")
+    print("PASS install gate: names the RPO obligation, the NOLOGIN cutover and containerd")
+
+
 def positive() -> None:
     now = datetime.now(timezone.utc).replace(microsecond=0)
 
@@ -234,6 +275,7 @@ def main() -> int:
         if args.negative_controls:
             negative_controls()
         else:
+            check_install_gate_text()
             positive()
     except RpoError as exc:
         print(f"FAIL: {exc}", file=sys.stderr)
