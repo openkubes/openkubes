@@ -837,10 +837,25 @@ verifier per role, so two simultaneously valid passwords for one role do not exi
   an honest one.
 - Established sessions are **not deliberately terminated**. The old password stops starting new
   sessions once the change reaches a given server.
-- There is no overlap and no grace window for passwords in v1. The consumer therefore carries a
-  stated obligation: **reload credentials and retry authentication** during rotation, rather than
-  reading them once at boot. §6.2 names this failure mode; v1 resolves it by putting the
-  obligation in the contract instead of pretending the platform hides it.
+- ~~There is no overlap and no grace window for passwords in v1.~~ **Superseded under OK-150
+  (§13 bound 6): there is now a real overlap.** The reasoning above stands — one verifier per role
+  is mechanical — so the overlap is obtained by not using one role. `app` keeps owning the database
+  and its objects but becomes **NOLOGIN**, and two login roles `app_a`/`app_b` are granted into it,
+  each with its own Secret derived platform-side from the admission-authorized name. Two roles
+  means two verifiers, so both credentials genuinely authenticate at once. The active slot is an
+  annotation on the mirrored Secret, which the claimant cannot write.
+  `overlapWindow` is an attribute of the protection class — **PT1H production, PT24H development**,
+  production deliberately shorter because a previous credential that still authenticates is
+  standing exposure — and `status.credentials` publishes `activeRole`, `previousRole`,
+  `overlapWindow`, `previousValidUntil` and a boolean `previousCredentialAccepted`. That boolean is
+  what stops the consumer's obligation from being prose: the consumer reads whether the old
+  credential still works instead of inferring it.
+  The consumer obligation is **reduced, not removed** — reload credentials and retry
+  authentication rather than reading once at boot — because the overlap bounds the window, it does
+  not eliminate the need to pick the new credential up. §6.2 names the failure mode.
+  **MIGRATION, not a detail:** on a database that already logs in as `app`, this turns `app`
+  NOLOGIN and existing consumers authenticating as `app` stop opening new sessions. Applying it to
+  a live Database is a gated change with a consumer cutover, never a silent reconcile.
 - No timer-based expiry for application roles. Note the mechanism honestly: omitting `validUntil`
   means no expiry, but CNPG may actively set an existing role to `VALID UNTIL 'infinity'` rather
   than leaving it untouched. The contract is "no timer-based expiry", not "the field is never

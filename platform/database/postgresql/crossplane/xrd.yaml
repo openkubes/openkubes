@@ -356,6 +356,33 @@ spec:
                       type: string
                       minLength: 1
                       maxLength: 253
+                    activeRole:
+                      type: string
+                      pattern: '^app_[ab]$'
+                      description: >-
+                        The login role whose credential the consumer should be using.
+                        Ownership stays with the non-login `app` role, so rotating a
+                        login role cannot change who owns the data.
+                    previousRole:
+                      type: string
+                      pattern: '^app_[ab]$'
+                    overlapWindow:
+                      type: string
+                      pattern: '^PT[0-9]+[HMS]$'
+                      description: >-
+                        How long the platform guarantees not to rotate the previous
+                        login role after a rotation. An attribute of the protection
+                        class, shorter in production because a previous credential
+                        that still authenticates is standing exposure.
+                    previousCredentialAccepted:
+                      type: boolean
+                      description: >-
+                        Whether the PREVIOUS credential still opens new sessions. This
+                        is the field that stops the consumer's rotation obligation from
+                        being prose: false means only the active credential works now.
+                    previousValidUntil:
+                      type: string
+                      format: date-time
                     transactionId:
                       type: integer
                       format: int64

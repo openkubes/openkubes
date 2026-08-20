@@ -459,12 +459,57 @@ spec:
             {{- /* The inline managed-role status records the remote Secret resourceVersion
                    actually applied. Equality with the observed mirrored Secret is the
                    marker; publication alone never claims database acceptance. */}}
+            {{- /* Credential rotation overlap (§13 bound 6, superseding §11.4's "no overlap").
+                   PostgreSQL stores ONE verifier per role, so two simultaneously valid passwords
+                   for a single role do not exist — that is mechanical, not a CNPG limitation, and
+                   it is why v1 owed this. The remedy §13 names is a login-role PAIR sharing a
+                   non-login privilege role, and that is what this composes: `app` keeps owning the
+                   database and its objects but stops being a login role, while `app_a` and `app_b`
+                   are login roles granted INTO it. Two roles means two verifiers, so both
+                   credentials are genuinely valid at once and the overlap is real rather than
+                   asserted.
+
+                   MIGRATION, and it is not a detail: on a database that already logs in as `app`,
+                   this turns `app` NOLOGIN. Existing consumers authenticating as `app` stop being
+                   able to open new sessions. Applying this to a live Database is a gated change
+                   with a consumer cutover, never a silent reconcile.
+
+                   The active slot is platform state, not claim input: it is read from an
+                   annotation on the mirrored credential Secret, which the claimant cannot write.
+                   Absent annotation means slot a, so a database provisioned before rotation
+                   behaves deterministically instead of ambiguously. */}}
+            {{- $credentialSlots := dict "a" "b" "b" "a" }}
+            {{- $secretAnnotations := dig "metadata" "annotations" (dict) $appSecretManifest }}
+            {{- $activeSlot := dig "platform.openkubes.ai/active-credential-slot" "a" $secretAnnotations }}
+            {{- if not (hasKey $credentialSlots $activeSlot) }}
+            {{- fail (printf "credential slot %q is not one of a/b: refusing to compose a Database whose active login role cannot be determined" $activeSlot) }}
+            {{- end }}
+            {{- $previousSlot := index $credentialSlots $activeSlot }}
+            {{- $ownerRole := "app" }}
+            {{- $activeRole := printf "app_%s" $activeSlot }}
+            {{- $previousRole := printf "app_%s" $previousSlot }}
+            {{- /* The window is an attribute of the protection class, like gracePeriod. production
+                   is SHORTER on purpose: a previous credential that still authenticates is
+                   standing exposure, and production consumers are expected to reload promptly.
+                   development is generous because dev consumers restart lazily and the cost of a
+                   stale credential there is an outage, not a breach. */}}
+            {{- $credentialOverlapWindow := ternary "PT1H" "PT24H" $isProduction }}
+            {{- $credentialOverlapSeconds := ternary 3600 86400 $isProduction }}
+            {{- $rotatedAt := include "canonicalRFC3339" (dig "platform.openkubes.ai/credential-rotated-at" "" $secretAnnotations) }}
+            {{- $previousValidUntil := "" }}
+            {{- $previousCredentialAccepted := false }}
+            {{- if ne $rotatedAt "" }}
+            {{- $previousExpiry := dateModify (printf "+%ds" (int $credentialOverlapSeconds)) (toDate $layout $rotatedAt) }}
+            {{- $previousValidUntil = date $layout $previousExpiry }}
+            {{- $previousCredentialAccepted = not (now.After $previousExpiry) }}
+            {{- end }}
+
             {{- $publishedCredentialVersion := dig "metadata" "resourceVersion" "" $appSecretManifest }}
-            {{- $appliedCredentialVersion := dig "managedRolesStatus" "passwordStatus" "app" "resourceVersion" "" $clusterStatus }}
-            {{- $credentialTransactionId := dig "managedRolesStatus" "passwordStatus" "app" "transactionID" 0 $clusterStatus }}
+            {{- $appliedCredentialVersion := dig "managedRolesStatus" "passwordStatus" $activeRole "resourceVersion" "" $clusterStatus }}
+            {{- $credentialTransactionId := dig "managedRolesStatus" "passwordStatus" $activeRole "transactionID" 0 $clusterStatus }}
             {{- $credentialReconciled := false }}
             {{- range $role := dig "managedRolesStatus" "byStatus" "reconciled" (list) $clusterStatus }}
-            {{- if eq $role "app" }}{{- $credentialReconciled = true }}{{- end }}
+            {{- if eq $role $activeRole }}{{- $credentialReconciled = true }}{{- end }}
             {{- end }}
             {{- $credentialApplied := and $credentialReconciled (ne $publishedCredentialVersion "") (eq $publishedCredentialVersion $appliedCredentialVersion) }}
             {{- $credentialReason := "AwaitingCredentialPublication" }}
@@ -805,11 +850,27 @@ spec:
                           name: {{ $spec.credentialsSecretRef.name | quote }}
                     managed:
                       roles:
-                        - name: app
+                        # `app` owns the database and its objects and is deliberately NOLOGIN:
+                        # it is the shared privilege role, so neither login role holds the grants
+                        # directly and rotating either one cannot change ownership.
+                        - name: {{ $ownerRole | quote }}
+                          ensure: present
+                          login: false
+                        # Two login roles, two verifiers, therefore a real overlap. Each has its
+                        # own Secret, derived platform-side from the admission-authorized name so
+                        # the authority tuple still binds exactly one claimant-visible Secret.
+                        - name: {{ printf "app_%s" "a" | quote }}
                           ensure: present
                           login: true
+                          inRoles: [{{ $ownerRole | quote }}]
                           passwordSecret:
-                            name: {{ $spec.credentialsSecretRef.name | quote }}
+                            name: {{ printf "%s-a" $spec.credentialsSecretRef.name | quote }}
+                        - name: {{ printf "app_%s" "b" | quote }}
+                          ensure: present
+                          login: true
+                          inRoles: [{{ $ownerRole | quote }}]
+                          passwordSecret:
+                            name: {{ printf "%s-b" $spec.credentialsSecretRef.name | quote }}
                     storage:
                       storageClass: local-path
                       size: {{ $storageSize }}
@@ -1005,6 +1066,13 @@ spec:
               credentials:
                 applied: {{ $credentialApplied }}
                 reason: {{ $credentialReason }}
+                activeRole: {{ $activeRole | quote }}
+                previousRole: {{ $previousRole | quote }}
+                overlapWindow: {{ $credentialOverlapWindow | quote }}
+                previousCredentialAccepted: {{ $previousCredentialAccepted }}
+                {{- if ne $previousValidUntil "" }}
+                previousValidUntil: {{ $previousValidUntil | quote }}
+                {{- end }}
                 observedAt: {{ $operationalObservedAt | quote }}
                 {{- if ne $publishedCredentialVersion "" }}
                 publishedResourceVersion: {{ $publishedCredentialVersion | quote }}

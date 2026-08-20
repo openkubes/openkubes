@@ -44,6 +44,7 @@ JSON_FILES := drill/minio-policy-backups-readonly.json \
 .PHONY: help validate render-prerequisites render render-check claim-policy-check \
 	claim-authority-model-check claim-admission-check evidence-status-check \
 	observation-freshness-check capability-admission-check capability-evidence-check \
+	credential-overlap-check \
 	restoreverified-api-check api-acceptance-check drill-validate drill-policy-check minio-provisioning-check \
 	restore-evidence-check \
 	require-mgmt-context require-mgmt-approval require-explicit-cluster require-deploy-user \
@@ -61,7 +62,8 @@ validate: ## Parse all local artifacts and run static contract guards
 	@bash -n probe/pgvector-probe.sh
 	@$(MAKE) --no-print-directory claim-policy-check claim-authority-model-check \
 		claim-admission-check restoreverified-api-check evidence-status-check \
-		observation-freshness-check capability-admission-check drill-validate \
+		observation-freshness-check capability-admission-check credential-overlap-check \
+		drill-validate \
 		drill-policy-check minio-provisioning-check restore-evidence-check
 	@echo "OK: all offline validation targets are wired and completed or explicitly skipped"
 
@@ -162,6 +164,14 @@ evidence-status-check: ## Prove rendered state reachability and the production p
 capability-evidence-check: render-prerequisites ## Prove capability evidence decides CapabilityConformant
 	@$(PYTHON) crossplane/tests/capability-evidence-check.py --negative-controls
 	@$(PYTHON) crossplane/tests/capability-evidence-check.py
+
+# Bound 6. The structural assertions are the load-bearing ones: two login roles granted into a
+# NOLOGIN owner, each with its OWN Secret. Point both at one Secret and every status field still
+# reads correctly while the overlap is fictional — that case is a negative control, driven by
+# mutating the Composition source rather than a fixture.
+credential-overlap-check: ## Prove the rotation overlap is real and published as data
+	@$(PYTHON) crossplane/tests/credential-overlap-check.py --negative-controls
+	@$(PYTHON) crossplane/tests/credential-overlap-check.py
 
 capability-admission-check: ## Prove the API server enforces the CapabilityVerified contract
 	@$(PYTHON) crossplane/tests/capability-admission-live.py --context $(API_CONTEXT)
