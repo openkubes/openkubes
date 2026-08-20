@@ -1,0 +1,56 @@
+apiVersion: publication.openkubes.io/v1alpha1
+kind: OK141DeleteD0V3ClosurePublicationCandidate
+metadata:
+  name: ok141-delete-d0-v3-closure
+  ticket: OK-141
+spec:
+  state: PREPARED-NOT-AUTHORIZED
+  baseCommit: 9a159ea8fd9421830caf117267c36beb9379ae80
+  scope:
+    - README.md
+    - delete-d0-v3-closure-evidence.yaml
+    - verify_delete_d0_v3_closure.py
+    - test_delete_d0_v3_closure.py
+  bindings:
+    closureFileDigest: sha256:eb4f5366e95519ffe2ad21971a0efca928858e6dc462be72579c77ebccfb1edb
+    closureSemanticDigest: sha256:ae970a6eb0c6f2ea1911cdc9a6a87db7e8589830884788abbd4a3d8c9406c20a
+    privateBindingDigest: sha256:a4379888b6e176684348c302f840642092134021b4bf29a36c65d86f87bfd075
+    privateEvidenceDigest: sha256:aa79707da0d9c071843818500348c3e4617841b6820a1ce86f7c77f1eaaa4894
+    verifierDigest: sha256:bfdf17920700414db53363868a6bafae8ed42be348650b3a3f1649ed96d2789d
+    testDigest: sha256:4002415ed114920426c04672f4177eba36624d19a6ef2f75e25b153d75e923b5
+    readmeDigest: sha256:5e883b755cd9c9ae9a93a5d3d39b1d1fbcc8940f8834f9fd2408014023e1eac4
+    offlineTestsPassed: 6
+  claims:
+    d0v3SnapshotPassed: true
+    allThirtySixQueriesPassed: true
+    exactStorageCorrelationsPassed: true
+    privateBindingCreated: true
+    mutationPerformed: false
+    deletePerformed: false
+    cleanupPerformed: false
+  redaction:
+    rawNamesExcluded: true
+    rawObjectsExcluded: true
+    endpointsExcluded: true
+    uidsExcluded: true
+    resourceVersionsExcluded: true
+    secretValuesExcluded: true
+    credentialsExcluded: true
+    kubeconfigsExcluded: true
+  authorization:
+    publicationGranted: false
+    commitGranted: false
+    pushGranted: false
+    pullRequestGranted: false
+    reviewGranted: false
+    mergeGranted: false
+    d1Granted: false
+    d2Granted: false
+    d3Granted: false
+    mutationGranted: false
+    deleteGranted: false
+    cleanupGranted: false
+    retryGranted: false
+    rollbackGranted: false
+    outageGranted: false
+    failureInjectionGranted: false
