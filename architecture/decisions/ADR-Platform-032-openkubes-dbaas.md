@@ -652,6 +652,36 @@ connect, and **no RTO conformance**. Duration is recorded in the artifact, but R
 Service Objective claim: conflating the two would let a six-hour restore report a fifteen-minute
 objective as met.
 
+**Relationship to `CapabilityConformant` (§5.1, §6.3).** The sentence above couples a capability
+conformance probe into `RecoveryAssured`, which raises a fair question: does that make the two
+conditions a pipeline after all? It does not, and the reason is that the two probes assert
+different things about different objects.
+
+* The **in-restore** probe runs inside the disposable recovery environment, against the cluster
+  reconstructed from `backupId`. It contributes to a claim about *that backup's restorability*.
+* The **`CapabilityConformant`** probe runs against the **live primary**. It contributes to a claim
+  about *what the serving database can do now*.
+
+They may therefore disagree, and each verdict is still correct. A backup taken while the capability
+worked stays restorable-with-capability even after the live cluster's image has changed and the
+extension has gone, so `RecoveryAssured=Valid` alongside `CapabilityConformant=Failed` is a coherent
+pair rather than a contradiction. The converse — a capable live database whose restore drill fails —
+is equally coherent. Neither condition gates the other, so §5.1's "set, not pipeline" survives.
+
+Their **temporal semantics** differ too, which is a second reason they cannot be chained.
+`RecoveryAssured` is bound to one backup and one UID and does not decay when the running image
+changes; §6.3 requires `CapabilityConformant` to be re-proven after *every* upgrade. Chaining a
+condition that is re-proven on upgrade behind one that is pinned to a historical backup would make
+the pinned evidence expire for a reason unrelated to what it attests.
+
+What makes the independence **mechanical rather than asserted** is that the probe is
+side-effect-free: its DDL runs inside a transaction it rolls back. Running it inside the recovery
+environment therefore cannot alter the cluster whose restorability the artifact attests, and running
+it against the live primary cannot alter production. A side-effecting probe *would* couple them — it
+would mutate the restored cluster the evidence describes. Side-effect-freeness is consequently an
+**admissibility term rather than hygiene**: the artifact records `extensionsAfterRollback` and
+`probeTablesRemaining`, and a probe that left residue behind cannot produce a valid artifact.
+
 Naming: the artifact/event is `RestoreVerified`, the condition is `RecoveryAssured`
 (`restore verification evidence → RecoveryAssured`). Artifact fields:
 

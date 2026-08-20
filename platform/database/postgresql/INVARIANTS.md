@@ -41,6 +41,18 @@ by Database UID + source Cluster UID + system identifier + backup UID + resolved
 digests. Its *creation* by the operator group is the authority action (§7). `validUntil =
 completedAt + class.maxAge`. Never trust `checks[].result: PASS` on its own.
 
+- The in-restore capability conformance probe does **not** couple `RecoveryAssured` to
+  `CapabilityConformant`. They attest different subjects — the probe inside the disposable recovery
+  environment speaks about *that backup's* restorability, the `CapabilityConformant` probe speaks
+  about the *live primary* — and they carry different temporal semantics: `RecoveryAssured` is pinned
+  to one backup + UID, while §6.3 requires `CapabilityConformant` to be re-proven after every
+  upgrade. `RecoveryAssured=Valid` alongside a live `CapabilityConformant=Failed` is a coherent pair,
+  not a contradiction. The set in §5.1 stays a set.
+- The capability probe **MUST be side-effect-free** — its DDL runs inside a transaction it rolls
+  back. This is an **admissibility term, not hygiene**: it is what stops the in-restore run from
+  mutating the very cluster whose restorability the artifact attests. Artifacts therefore record
+  `extensionsAfterRollback` and `probeTablesRemaining`, and residue makes an artifact inadmissible.
+
 ## Isolation (§11.3)
 Read-only source, isolated write destination, compared on **resolved effective values** (the plugin's
 `serverName`, not the requested name). A write denial must be an authenticated permission denial with
