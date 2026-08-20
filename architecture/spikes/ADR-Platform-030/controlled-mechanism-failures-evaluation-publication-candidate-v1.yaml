@@ -1,0 +1,40 @@
+apiVersion: publication.openkubes.io/v1alpha1
+kind: OK141ControlledMechanismFailuresEvaluationPublicationCandidate
+metadata:
+  name: ok141-controlled-mechanism-failures-evaluation-v1
+spec:
+  state: READY-NO-GO
+  evaluation:
+    path: controlled-mechanism-failures-evidence-evaluation-v1.md
+    digest: sha256:3c89ef20bcdb518af29aa2c05498c937e348c7b12f106b102d49a76de6548f4d
+  verification:
+    focusedChecks: 5
+    liveMutationPerformed: false
+  publishablePaths:
+    - controlled-mechanism-failures-evidence-evaluation-v1.md
+    - controlled-mechanism-failures-evaluation-publication-candidate-v1.yaml
+    - verify_controlled_mechanism_failures_evaluation_v1.py
+    - test_verify_controlled_mechanism_failures_evaluation_v1.py
+  excluded:
+    - raw-local-evidence
+    - raw-kubernetes-objects
+    - UIDs
+    - resourceVersions
+    - endpoints
+    - Secrets
+    - tokens
+    - Kubeconfigs
+    - private-keys
+  authorization:
+    decision: NO-GO
+    commitGranted: false
+    pushGranted: false
+    draftPRGranted: false
+    reviewGranted: false
+    mergeGranted: false
+    liveMutationGranted: false
+    failureInjectionGranted: false
+    retryGranted: false
+    cleanupGranted: false
+    deleteGranted: false
+    outageGranted: false
