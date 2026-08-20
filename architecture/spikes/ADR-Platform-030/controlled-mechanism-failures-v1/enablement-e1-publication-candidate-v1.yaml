@@ -1,0 +1,35 @@
+apiVersion: publication.openkubes.io/v1alpha1
+kind: OK141ControlledEnablementFailurePublicationCandidate
+metadata:
+  name: ok141-controlled-enablement-failure-e1-v1
+spec:
+  state: READY-NO-GO
+  closureEvidence:
+    path: enablement-e1-closure-evidence-v1.yaml
+    digest: sha256:76513bf068355e3d26db7174ef27633dc6a2c1dd8d476a7b28313fecc99eb655
+  publishablePaths:
+    - README.md
+    - enablement-e1-closure-evidence-v1.yaml
+    - enablement-e1-publication-candidate-v1.yaml
+    - verify_enablement_e1_closure_v1.py
+    - test_verify_enablement_e1_closure_v1.py
+  excluded:
+    - raw-local-evidence
+    - raw-kubernetes-objects
+    - UIDs
+    - resourceVersions
+    - endpoints
+    - Secrets
+    - tokens
+    - Kubeconfigs
+    - private-keys
+  authorization:
+    decision: NO-GO
+    commitGranted: false
+    pushGranted: false
+    draftPRGranted: false
+    reviewGranted: false
+    mergeGranted: false
+    liveMutationGranted: false
+    retryGranted: false
+    deleteGranted: false
