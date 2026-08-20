@@ -36,6 +36,17 @@
 
 ---
 
+## Platform Console prototype
+
+The first native OpenKubes Console prototype turns **Contracts. Clusters. Evidence.**
+into a responsive, evidence-first product experience. It uses deterministic fixtures,
+keeps mutation disabled, and preserves the Presentation Contract seams proposed in
+ADR-Platform-036.
+
+→ [Run and explore the Console prototype](./console/README.md)
+
+---
+
 ## The OpenKubes Family
 
 > The mother owns the contracts, not the components. The children do the work.
