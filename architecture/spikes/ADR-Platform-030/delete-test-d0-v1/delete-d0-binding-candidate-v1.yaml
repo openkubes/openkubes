@@ -1,0 +1,98 @@
+apiVersion: observation.openkubes.io/v1alpha1
+kind: OK141DeleteD0BindingCandidate
+metadata:
+  name: ok141-delete-d0-binding-v1
+  ticket: OK-141
+  baseCommit: 4ef09e95e5e42d686cd0194b453c7a3c6d6d18c1
+spec:
+  version: ok141-delete-d0-binding/v1
+  state: READY-FOR-EXPLICIT-READ-ONLY-GRANT
+  protocol:
+    path: ../delete-test-v1/delete-test-protocol-v1.yaml
+    semanticDigest: sha256:4cd457c5f40bdf3ae871cbe56ba7c151f7ac3242bd73129557f25cf620a2d0bc
+    fileDigest: sha256:f63a9a1fd2f46d7f8995f95e6ba75138053f9cc9b4c93467184510ec5899b989
+  tool:
+    executorPath: prepare_delete_d0_binding_v1.py
+    executorDigest: sha256:c8856ee3c31c5dbcf03e12a73027fa20b243bbf7e42671a96960d5e28629f8b3
+    kubectlPath: /private/tmp/ok141-kubectl-v1.34.1-darwin-amd64
+    kubectlDigest: sha256:bb211f2b31f2b3bc60562b44cc1e3b712a16a98e9072968ba255beb04cefcfdf
+    queryProfileDigest: sha256:21175b2a181e05019eea8024240b6f6c7ee0ba86c9ab0c8d6f3bc0b8eaa0670c
+    discoveryAllowed: false
+    watchAllowed: false
+    mutationAllowed: false
+  planes:
+    ok-shared:
+      kubeconfigPath: /Users/arash/.kube/ok-shared.yaml
+      queries:
+        - {id: application-core, method: GET, collection: false, expectedCount: 1, rawURI: /apis/argoproj.io/v1alpha1/namespaces/argocd/applications/disposable-ok141-observability-core}
+        - {id: application-alerting, method: GET, collection: false, expectedCount: 1, rawURI: /apis/argoproj.io/v1alpha1/namespaces/argocd/applications/disposable-ok141-observability-alerting}
+        - {id: application-dashboards, method: GET, collection: false, expectedCount: 1, rawURI: /apis/argoproj.io/v1alpha1/namespaces/argocd/applications/disposable-ok141-observability-dashboards}
+        - {id: registration-secret, method: GET, collection: false, expectedCount: 1, rawURI: /api/v1/namespaces/argocd/secrets/disposable-ok141-cluster}
+        - {id: app-project, method: GET, collection: false, expectedCount: 1, rawURI: /apis/argoproj.io/v1alpha1/namespaces/argocd/appprojects/openkubes-disposable}
+        - {id: project-applications, method: GET, collection: true, expectedCount: 3, postFilter: application-project:openkubes-disposable, rawURI: /apis/argoproj.io/v1alpha1/namespaces/argocd/applications}
+    ok-mgmt:
+      kubeconfigPath: /Users/arash/.kube/ok-mgmt.yaml
+      queries:
+        - {id: management-namespace, method: GET, collection: false, expectedCount: 1, rawURI: /api/v1/namespaces/disposable-ok141}
+        - {id: provider-access-secret, method: GET, collection: false, expectedCount: 1, rawURI: /api/v1/namespaces/disposable-ok141/secrets/external-infra-kubeconfig-disposable-ok141}
+        - {id: capi-cluster, method: GET, collection: false, expectedCount: 1, rawURI: /apis/cluster.x-k8s.io/v1beta2/namespaces/disposable-ok141/clusters/disposable-ok141}
+        - {id: kubevirt-cluster, method: GET, collection: false, expectedCount: 1, rawURI: /apis/infrastructure.cluster.x-k8s.io/v1alpha1/namespaces/disposable-ok141/kubevirtclusters/disposable-ok141}
+        - {id: talos-control-plane, method: GET, collection: false, expectedCount: 1, rawURI: /apis/controlplane.cluster.x-k8s.io/v1alpha3/namespaces/disposable-ok141/taloscontrolplanes/disposable-ok141-cp}
+        - {id: talos-worker-template, method: GET, collection: false, expectedCount: 1, rawURI: /apis/bootstrap.cluster.x-k8s.io/v1alpha3/namespaces/disposable-ok141/talosconfigtemplates/disposable-ok141-workers-v1-9-6}
+        - {id: machine-deployment, method: GET, collection: false, expectedCount: 1, rawURI: /apis/cluster.x-k8s.io/v1beta2/namespaces/disposable-ok141/machinedeployments/disposable-ok141-workers}
+        - {id: control-plane-machine-template, method: GET, collection: false, expectedCount: 1, rawURI: /apis/infrastructure.cluster.x-k8s.io/v1alpha1/namespaces/disposable-ok141/kubevirtmachinetemplates/disposable-ok141-cp-7f5dd4276432}
+        - {id: worker-machine-template, method: GET, collection: false, expectedCount: 1, rawURI: /apis/infrastructure.cluster.x-k8s.io/v1alpha1/namespaces/disposable-ok141/kubevirtmachinetemplates/disposable-ok141-workers-7f5dd4276432}
+        - {id: helm-chart-proxy, method: GET, collection: false, expectedCount: 1, rawURI: /apis/addons.cluster.x-k8s.io/v1alpha1/namespaces/disposable-ok141/helmchartproxies/disposable-ok141-cilium}
+        - {id: helm-release-proxy, method: GET, collection: false, expectedCount: 1, rawURI: /apis/addons.cluster.x-k8s.io/v1alpha1/namespaces/disposable-ok141/helmreleaseproxies/cilium-disposable-ok141-dkb9v}
+        - {id: machines, method: GET, collection: true, expectedCount: 2, rawURI: '/apis/cluster.x-k8s.io/v1beta2/namespaces/disposable-ok141/machines?labelSelector=cluster.x-k8s.io%2Fcluster-name%3Ddisposable-ok141'}
+        - {id: machine-sets, method: GET, collection: true, expectedCount: 1, rawURI: '/apis/cluster.x-k8s.io/v1beta2/namespaces/disposable-ok141/machinesets?labelSelector=cluster.x-k8s.io%2Fcluster-name%3Ddisposable-ok141'}
+        - {id: kubevirt-machines, method: GET, collection: true, expectedCount: 2, rawURI: '/apis/infrastructure.cluster.x-k8s.io/v1alpha1/namespaces/disposable-ok141/kubevirtmachines?labelSelector=cluster.x-k8s.io%2Fcluster-name%3Ddisposable-ok141'}
+        - {id: talos-configs, method: GET, collection: true, expectedCount: 2, rawURI: '/apis/bootstrap.cluster.x-k8s.io/v1alpha3/namespaces/disposable-ok141/talosconfigs?labelSelector=cluster.x-k8s.io%2Fcluster-name%3Ddisposable-ok141'}
+    ok-infra:
+      kubeconfigPath: /Users/arash/.kube/ok-infra.yaml
+      queries:
+        - {id: provider-namespace, method: GET, collection: false, expectedCount: 1, rawURI: /api/v1/namespaces/disposable-ok141}
+        - {id: golden-image-role, method: GET, collection: false, expectedCount: 1, rawURI: /apis/rbac.authorization.k8s.io/v1/namespaces/ok-images/roles/disposable-ok141-talos-golden-image-cloner}
+        - {id: golden-image-role-binding, method: GET, collection: false, expectedCount: 1, rawURI: /apis/rbac.authorization.k8s.io/v1/namespaces/ok-images/rolebindings/disposable-ok141-talos-golden-image-cloner}
+        - {id: load-balancer-service, method: GET, collection: false, expectedCount: 1, rawURI: /api/v1/namespaces/disposable-ok141/services/disposable-ok141-lb}
+        - {id: virtual-machines, method: GET, collection: true, expectedCount: 2, rawURI: '/apis/kubevirt.io/v1/namespaces/disposable-ok141/virtualmachines?labelSelector=cluster.x-k8s.io%2Fcluster-name%3Ddisposable-ok141'}
+        - {id: virtual-machine-instances, method: GET, collection: true, expectedCount: 2, rawURI: '/apis/kubevirt.io/v1/namespaces/disposable-ok141/virtualmachineinstances?labelSelector=cluster.x-k8s.io%2Fcluster-name%3Ddisposable-ok141'}
+        - {id: data-volumes, method: GET, collection: true, expectedCount: 2, rawURI: '/apis/cdi.kubevirt.io/v1beta1/namespaces/disposable-ok141/datavolumes?labelSelector=cluster.x-k8s.io%2Fcluster-name%3Ddisposable-ok141'}
+        - {id: provider-pvcs, method: GET, collection: true, expectedCount: 2, postFilter: metadata-namespace:disposable-ok141, rawURI: /api/v1/namespaces/disposable-ok141/persistentvolumeclaims}
+        - {id: provider-pvs, method: GET, collection: true, expectedCount: 2, postFilter: claim-namespace:disposable-ok141, rawURI: /api/v1/persistentvolumes}
+        - {id: provider-longhorn-volumes, method: GET, collection: true, expectedCount: 2, postFilter: 'derived:provider-pv-volume-handles', rawURI: /apis/longhorn.io/v1beta2/namespaces/longhorn-system/volumes}
+    workload:
+      kubeconfigPath: /Users/arash/.kube/disposable-ok141.yaml
+      queries:
+        - {id: platform-namespace, method: GET, collection: false, expectedCount: 1, rawURI: /api/v1/namespaces/ok-observability}
+        - {id: target-cluster-role, method: GET, collection: false, expectedCount: 1, rawURI: /apis/rbac.authorization.k8s.io/v1/clusterroles/ok141-argocd-platform-cluster}
+        - {id: target-cluster-role-binding, method: GET, collection: false, expectedCount: 1, rawURI: /apis/rbac.authorization.k8s.io/v1/clusterrolebindings/ok141-argocd-platform-cluster}
+        - {id: platform-pvcs, method: GET, collection: true, expectedCount: 4, postFilter: metadata-namespace:ok-observability, rawURI: /api/v1/namespaces/ok-observability/persistentvolumeclaims}
+        - {id: platform-pvs, method: GET, collection: true, expectedCount: 4, postFilter: claim-namespace:ok-observability, rawURI: /api/v1/persistentvolumes}
+  privateOutputs:
+    bindingPath: /private/tmp/ok141-delete-d0-runtime-binding-v1.json
+    evidencePath: /private/tmp/ok141-delete-d0-evidence-v1.json
+    outputMustBeAbsent: true
+    mode: "0600"
+    maximumBindingAgeMinutes: 10
+    rawResponsesRetained: false
+    secretValuesRetained: false
+    publishable: false
+  authorization:
+    decision: NO-GO
+    readOnlyBindingGranted: false
+    credentialUseGranted: false
+    secretMetadataReadGranted: false
+    mutationGranted: false
+    deleteGranted: false
+    cleanupGranted: false
+    retryGranted: false
+    rollbackGranted: false
+    publicationGranted: false
+    outageGranted: false
+    failureInjectionGranted: false
+  exclusions:
+    - create update patch apply delete TokenRequest watch discovery logs or exec
+    - raw Secret values credentials endpoints or kubeconfig content in output
+    - D1 D2 D3 execution retry rollback cleanup outage and failure injection
+    - use of this start binding for D5 retained-storage cleanup

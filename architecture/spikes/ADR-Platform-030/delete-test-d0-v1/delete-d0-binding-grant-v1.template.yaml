@@ -1,0 +1,26 @@
+apiVersion: authorization.openkubes.io/v1alpha1
+kind: OK141DeleteD0BindingGrant
+metadata:
+  name: ok141-delete-d0-binding-v1-template
+  ticket: OK-141
+spec:
+  state: TEMPLATE-NOT-GRANTED
+  grantID: REPLACE_WITH_UNIQUE_GRANT_ID
+  candidateDigest: REPLACE_WITH_CANDIDATE_FILE_DIGEST
+  notBefore: REPLACE_WITH_UTC_TIMESTAMP
+  notAfter: REPLACE_WITH_UTC_TIMESTAMP_MAX_20_MINUTES
+  maximumRuns: 1
+  consumed: false
+  bindingPath: /private/tmp/ok141-delete-d0-runtime-binding-v1.json
+  evidencePath: /private/tmp/ok141-delete-d0-evidence-v1.json
+  readOnlyAuthorized: false
+  credentialUseAuthorized: false
+  secretMetadataReadAuthorized: false
+  mutationAuthorized: false
+  deleteAuthorized: false
+  cleanupAuthorized: false
+  retryAuthorized: false
+  rollbackAuthorized: false
+  outageAuthorized: false
+  failureInjectionAuthorized: false
+  publicationAuthorized: false
