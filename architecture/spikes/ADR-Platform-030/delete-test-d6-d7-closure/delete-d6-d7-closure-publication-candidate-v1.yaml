@@ -1,0 +1,28 @@
+apiVersion: publication.openkubes.io/v1alpha1
+kind: OK141DeleteD6D7ClosurePublicationCandidate
+metadata:
+  name: ok141-delete-d6-d7-v1-closure
+  ticket: OK-141
+spec:
+  state: READY-FOR-COMMIT-PUSH-DRAFT-PR
+  bindings:
+    baseCommit: b26c927295774df4c8ff89620f7cfec7c4879e16
+    closureDigest: sha256:9498323c20908b580fd127de7f25194491a56d6d47cbef4976cf05603b4f5ca8
+    closureSemanticDigest: sha256:3eb20399f24d8b175a79d0248ec83af8d33d43ae1ada9e582753be8317d3b3ca
+    offlineTestsPassed: 6
+  publication:
+    privateEvidenceIncluded: false
+    rawObjectsIncluded: false
+    namesIncluded: false
+    uidValuesIncluded: false
+    resourceVersionValuesIncluded: false
+    endpointsIncluded: false
+    credentialsIncluded: false
+  authorization:
+    decision: NO-GO
+    furtherDeleteGranted: false
+    retryGranted: false
+    forceDeleteGranted: false
+    finalizerMutationGranted: false
+    outageGranted: false
+    failureInjectionGranted: false

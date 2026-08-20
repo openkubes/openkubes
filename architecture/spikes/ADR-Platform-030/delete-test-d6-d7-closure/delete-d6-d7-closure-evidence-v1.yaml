@@ -1,0 +1,56 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: OK141DeleteD6D7ClosureEvidence
+metadata:
+  name: ok141-delete-d6-d7-v1-closure
+  ticket: OK-141
+spec:
+  state: PASS-D6-D7-DISPOSABLE-ENVIRONMENT-ABSENT-REDACTED
+  bindings:
+    d0RuntimeBindingDigest: sha256:5bbab0ea4204df4e3f0756c6af5ba48569519e95975464de45648c614097bd94
+    d4D5PublicClosureDigest: sha256:d264b2fd9172cf8372426332bf5103400c954b4a4fbd11da9ca6d13a665a6f92
+    privateD6EvidenceDigest: sha256:880d048c2788f99b7f930d74ad85090840840feae903659ab26a8afe169b1b03
+    privateD7EvidenceDigest: sha256:05cb77465c3b01d6014b6c154fd609fa391bc9e351465805904025e09bb06a28
+  d6:
+    plannedDeletes: 2
+    completedDeletes: 2
+    providerAccessSecretAbsent: true
+    managementNamespaceAbsent: true
+    uidAndResourceVersionPreconditionsUsed: true
+    retryPerformed: false
+    rollbackPerformed: false
+    forceDeletePerformed: false
+    finalizerMutationPerformed: false
+  d7:
+    expectedAbsentUniqueIdentities: 39
+    confirmedAbsentUniqueIdentities: 39
+    confirmedAbsentByPlane:
+      okShared: 5
+      okMgmt: 18
+      okInfra: 16
+    mutationPerformed: false
+    deletePerformed: false
+    retryPerformed: false
+  conclusion:
+    gitOpsBindingsAbsent: true
+    lifecycleGraphAbsent: true
+    providerGraphAbsent: true
+    retainedStorageAbsent: true
+    retainedCredentialsAbsent: true
+    disposableEnvironmentAbsent: true
+    deleteScenarioComplete: true
+  redaction:
+    privateEvidenceIncluded: false
+    rawObjectsIncluded: false
+    namesIncluded: false
+    uidValuesIncluded: false
+    resourceVersionValuesIncluded: false
+    endpointsIncluded: false
+    credentialsIncluded: false
+  authorization:
+    decision: NO-GO
+    furtherDeleteGranted: false
+    retryGranted: false
+    forceDeleteGranted: false
+    finalizerMutationGranted: false
+    outageGranted: false
+    failureInjectionGranted: false
