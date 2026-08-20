@@ -167,3 +167,22 @@ bound missing path, observe the native Argo failure, prove Core and Alerting
 remain healthy, prove the existing dashboard data remains unchanged, and
 restore the exact baseline Application spec. It remains non-authorizing until
 a separate active single-run grant is supplied.
+
+## P1 result
+
+The authorized P1 run completed with `PASS-FAIL-CLOSED-RESTORED`:
+
+```text
+baseline PlatformReady       True
+fault PlatformReady          False
+Core and Alerting            Ready
+protected dashboard          unchanged
+runner Platform repair       none
+exact Application restore    complete
+post-restore PlatformReady   True
+```
+
+Argo CD remained the Platform convergence owner. The runner only observed,
+correlated, evaluated, and restored the exact authorized test projection. The
+raw local Evidence remains private, and the redacted closure remains
+`publication.state: NO-GO` until separately authorized.

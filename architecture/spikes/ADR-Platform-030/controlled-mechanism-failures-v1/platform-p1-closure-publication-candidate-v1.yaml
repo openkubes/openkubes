@@ -1,0 +1,37 @@
+apiVersion: publication.openkubes.io/v1alpha1
+kind: OK141ControlledPlatformFailureClosurePublicationCandidate
+metadata:
+  name: ok141-controlled-platform-failure-p1-v1
+spec:
+  state: READY-NO-GO
+  closureEvidence:
+    path: platform-p1-closure-evidence-v1.yaml
+    digest: sha256:3d55cd9eb368302e0116d954da0eb1bd6e2337d90c3ffb3b4508320a6f105369
+  publishablePaths:
+    - README.md
+    - platform-p1-closure-evidence-v1.yaml
+    - platform-p1-closure-publication-candidate-v1.yaml
+    - verify_platform_p1_closure_v1.py
+    - test_verify_platform_p1_closure_v1.py
+  excluded:
+    - raw-local-evidence
+    - raw-kubernetes-objects
+    - UIDs
+    - resourceVersions
+    - endpoints
+    - Secrets
+    - tokens
+    - Kubeconfigs
+    - private-keys
+  authorization:
+    decision: NO-GO
+    commitGranted: false
+    pushGranted: false
+    draftPRGranted: false
+    reviewGranted: false
+    mergeGranted: false
+    liveMutationGranted: false
+    retryGranted: false
+    deleteGranted: false
+    cleanupGranted: false
+    outageGranted: false
