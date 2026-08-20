@@ -1,0 +1,29 @@
+{
+  "apiVersion": "publication.openkubes.io/v1alpha1",
+  "kind": "OK141ManagementOutageReadinessPublicationCandidate",
+  "metadata": {
+    "name": "ok141-management-outage-readiness-v1",
+    "ticket": "OK-141"
+  },
+  "state": "READY-FOR-COMMIT-PUSH-DRAFT-PR",
+  "bindings": {
+    "baseCommit": "b252fe5e421391bf6fba5de95644ecc7e3bfe5b9",
+    "assessmentDigest": "sha256:efc4adee19551a8812c7f9c8108b3676bf06478a058d4e5be9eb3e82abc039f1",
+    "offlineTestsPassed": 6
+  },
+  "readiness": {
+    "safety": "BLOCKED",
+    "observability": "BLOCKED",
+    "changeControl": "BLOCKED",
+    "authority": "BLOCKED",
+    "overall": "NO-GO"
+  },
+  "authorization": {
+    "decision": "NO-GO",
+    "clusterCreateGranted": false,
+    "backupMutationGranted": false,
+    "outageGranted": false,
+    "workerFailureGranted": false,
+    "recoveryMutationGranted": false
+  }
+}
