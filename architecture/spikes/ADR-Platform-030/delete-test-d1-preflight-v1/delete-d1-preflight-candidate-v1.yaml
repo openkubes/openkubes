@@ -1,0 +1,71 @@
+apiVersion: observation.openkubes.io/v1alpha1
+kind: OK141DeleteD1PreflightCandidate
+metadata:
+  name: ok141-delete-d1-preflight-v1
+  ticket: OK-141
+spec:
+  version: ok141-delete-d1-preflight/v1
+  state: READY-FOR-EXPLICIT-READ-ONLY-GRANT
+  baseCommit: 5730b05149acb138db9a9e5e4d6791aaa73b6056
+  bindings:
+    protocolPath: ../delete-test-v1/delete-test-protocol-v1.yaml
+    protocolSemanticDigest: sha256:4cd457c5f40bdf3ae871cbe56ba7c151f7ac3242bd73129557f25cf620a2d0bc
+    d0CandidatePath: ../delete-test-d0-v3/delete-d0-binding-candidate-v3.yaml
+    d0CandidateDigest: sha256:771c09a760940afa8c04a26a79e3e921c11d87d96ae949c1781f4fd7c846074b
+    d0ClosurePath: ../delete-test-d0-v3-closure/delete-d0-v3-closure-evidence.yaml
+    d0ClosureDigest: sha256:eb4f5366e95519ffe2ad21971a0efca928858e6dc462be72579c77ebccfb1edb
+    d0PrivateBindingPath: /private/tmp/ok141-delete-d0-runtime-binding-v3.json
+  queries:
+    plane: ok-shared
+    kubeconfigPath: /Users/arash/.kube/ok-shared.yaml
+    sealedGetCount: 6
+    items:
+      - {id: application-dashboards, collection: false, rawURI: /apis/argoproj.io/v1alpha1/namespaces/argocd/applications/disposable-ok141-observability-dashboards}
+      - {id: application-alerting, collection: false, rawURI: /apis/argoproj.io/v1alpha1/namespaces/argocd/applications/disposable-ok141-observability-alerting}
+      - {id: application-core, collection: false, rawURI: /apis/argoproj.io/v1alpha1/namespaces/argocd/applications/disposable-ok141-observability-core}
+      - {id: project-applications, collection: true, rawURI: /apis/argoproj.io/v1alpha1/namespaces/argocd/applications}
+      - {id: app-project, collection: false, rawURI: /apis/argoproj.io/v1alpha1/namespaces/argocd/appprojects/openkubes-disposable}
+      - {id: registration-secret, collection: false, rawURI: /api/v1/namespaces/argocd/secrets/disposable-ok141-cluster}
+  assertions:
+    applicationProject: openkubes-disposable
+    requiredSync: Synced
+    requiredHealth: Healthy
+    requireNoFinalizers: true
+    requireNoDeletionTimestamp: true
+    exactProjectApplicationCount: 3
+    compareDestinationToRegistrationInMemory: true
+    persistTargetIdentityDigestOnly: true
+    requireExactD0MetadataEquality: true
+  tool:
+    executorPath: prepare_delete_d1_preflight_v1.py
+    executorDigest: sha256:05efc4724fe710e5e23b9d1fa857c2fb924151d92be779fcb36dcd31da1be1e0
+    kubectlPath: /private/tmp/ok141-kubectl-v1.34.1-darwin-amd64
+    kubectlDigest: sha256:bb211f2b31f2b3bc60562b44cc1e3b712a16a98e9072968ba255beb04cefcfdf
+  privateOutputs:
+    bindingPath: /private/tmp/ok141-delete-d1-runtime-binding-v1.json
+    evidencePath: /private/tmp/ok141-delete-d1-preflight-evidence-v1.json
+    mustBeAbsentBeforeRun: true
+    mode: "0600"
+    maximumBindingAgeMinutes: 5
+    rawResponsesRetained: false
+    secretValuesRetained: false
+    endpointsRetained: false
+    publishable: false
+  authorization:
+    decision: NO-GO
+    readOnlyPreflightGranted: false
+    credentialUseGranted: false
+    secretContentReadGranted: false
+    mutationGranted: false
+    deleteGranted: false
+    cleanupGranted: false
+    retryGranted: false
+    rollbackGranted: false
+    publicationGranted: false
+    outageGranted: false
+    failureInjectionGranted: false
+  exclusions:
+    - D1 deletion or any later delete stage
+    - reuse of an expired or unbound D0 runtime binding
+    - persistence or output of registration endpoint Secret content or raw objects
+    - create update patch apply delete TokenRequest discovery watch logs or exec
