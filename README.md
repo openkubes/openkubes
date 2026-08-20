@@ -116,7 +116,7 @@ kubectl apply -f claim.yaml
 
 ## Architecture Decisions
 
-OpenKubes is built on 35 documented platform-level decisions:
+OpenKubes is built on 36 documented platform-level decisions:
 
 | ADR | Decision |
 |---|---|
@@ -155,6 +155,7 @@ OpenKubes is built on 35 documented platform-level decisions:
 | [ADR-Platform-033](./architecture/decisions/ADR-Platform-033-openkubes-okp-single.md) | OpenKubes OKP Single — Capability Placement and Autonomy *(draft)* |
 | [ADR-Platform-034](./architecture/decisions/ADR-Platform-034-ok-up.md) | `ok up` Convergence UX and Authorized Desired-State Transitions *(proposed)* |
 | [ADR-Platform-035](./architecture/decisions/ADR-Platform-035-hybrid-intent-and-control-plane-execution.md) | Hybrid Intent and Control-Plane Execution Architecture for cluster lifecycle management *(proposed)* |
+| [ADR-Platform-036](./architecture/decisions/ADR-Platform-036-openkubes-console-architecture.md) | Native OpenKubes Console — curated first delivery and evolution toward contract-adaptive UI *(proposed)* |
 
 → [`architecture/decisions/`](./architecture/decisions/)
 
