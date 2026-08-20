@@ -1,0 +1,35 @@
+# Reproduction fixture for DoD clause 3. Standalone by design — NOT the composed Database.
+# standard-trixie bundles pgvector, so no image volume and no ImageVolume gate: that mechanism needs
+# containerd >= 2.1.0 (containerd#10579) and these clusters run 2.0.x. Cost: a FIXED extension set,
+# weaker than §6.4's allowlist. Apply, then: make capability-probe PROBE_NAMESPACE=pgvector-proof
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: pgvector-proof
+  labels:
+    app.kubernetes.io/part-of: openkubes-database-postgresql
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: pgvector-proof
+  namespace: pgvector-proof
+  labels:
+    app.kubernetes.io/part-of: openkubes-database-postgresql
+spec:
+  instances: 1
+  imageName: ghcr.io/cloudnative-pg/postgresql:18.6-standard-trixie
+  bootstrap:
+    initdb:
+      database: app
+      owner: app
+  storage:
+    size: 2Gi
+    storageClass: local-path
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi

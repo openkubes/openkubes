@@ -1,0 +1,19 @@
+# Namespaced self-service permissions for approved Database claimants.
+# Intentionally no Secret, XR, Composition, ProviderConfig, or Function access.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: database-claim-editor
+  namespace: openkubes-system
+rules:
+  - apiGroups:
+      - platform.openkubes.ai
+    resources:
+      - databaseclaims
+    verbs:
+      - create
+      - get
+      - list
+      - patch
+      - update
+      - watch

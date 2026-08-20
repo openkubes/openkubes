@@ -1,0 +1,332 @@
+# Database XRD — OpenKubes PostgreSQL lifecycle and evidence contract.
+#
+# v1alpha1 keeps each service dimension orthogonal and enum-closed. Target
+# allocation is portable syntax here; the fail-closed admission policy maps an
+# authenticated claimant to an exact cluster/namespace/Secret tuple.
+apiVersion: apiextensions.crossplane.io/v1
+kind: CompositeResourceDefinition
+metadata:
+  name: databases.platform.openkubes.ai
+spec:
+  group: platform.openkubes.ai
+  names:
+    kind: Database
+    plural: databases
+  claimNames:
+    kind: DatabaseClaim
+    plural: databaseclaims
+  defaultCompositionRef:
+    name: database-postgresql.platform.openkubes.ai
+  defaultCompositionUpdatePolicy: Manual
+  versions:
+    - name: v1alpha1
+      served: true
+      referenceable: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              required:
+                - clusterRef
+                - namespace
+                - credentialsSecretRef
+                - engine
+                - performance
+                - availability
+                - connectivity
+                - protection
+                - maintenance
+                - isolation
+              properties:
+                clusterRef:
+                  type: string
+                  minLength: 1
+                  maxLength: 253
+                  pattern: "^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$"
+                  description: >-
+                    Registered workload cluster and provider-kubernetes
+                    ProviderConfig name. Admission authorizes exact values.
+                namespace:
+                  type: string
+                  minLength: 1
+                  maxLength: 63
+                  pattern: "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+                  description: >-
+                    Workload namespace for all namespaced database resources.
+                    Admission authorizes it together with clusterRef.
+                credentialsSecretRef:
+                  type: object
+                  required: [name, namespace]
+                  description: >-
+                    Management-plane kubernetes.io/basic-auth Secret copied to
+                    the workload namespace through a fixed provider reference.
+                  properties:
+                    name:
+                      type: string
+                      enum: [database-ok-robotics-app]
+                    namespace:
+                      type: string
+                      enum: [crossplane-system]
+                engine:
+                  type: object
+                  required: [name, majorVersion, capabilities]
+                  properties:
+                    name:
+                      type: string
+                      enum: [postgresql]
+                    majorVersion:
+                      type: integer
+                      enum: [18]
+                    capabilities:
+                      type: array
+                      minItems: 0
+                      maxItems: 1
+                      x-kubernetes-list-type: map
+                      x-kubernetes-list-map-keys: [name]
+                      items:
+                        type: object
+                        required: [name, versionPolicy]
+                        properties:
+                          name:
+                            type: string
+                            enum: [postgresql.extension.pgvector]
+                          versionPolicy:
+                            type: string
+                            enum: [platform]
+                performance:
+                  type: object
+                  required: [class]
+                  properties:
+                    class:
+                      type: string
+                      enum: [standard]
+                availability:
+                  type: object
+                  required: [mode]
+                  properties:
+                    mode:
+                      type: string
+                      enum: [single, ha]
+                connectivity:
+                  type: object
+                  required: [pooling]
+                  properties:
+                    pooling:
+                      type: object
+                      required: [enabled, mode]
+                      properties:
+                        enabled:
+                          type: boolean
+                        mode:
+                          type: string
+                          enum: [session, transaction]
+                protection:
+                  type: object
+                  required: [policyRef]
+                  properties:
+                    policyRef:
+                      type: string
+                      enum: [development, production]
+                maintenance:
+                  type: object
+                  required:
+                    - upgradePolicy
+                    - windowRef
+                    - majorVersionStrategy
+                  properties:
+                    upgradePolicy:
+                      type: string
+                      enum: [controlled]
+                    windowRef:
+                      type: string
+                      enum: [saturday-night]
+                    majorVersionStrategy:
+                      type: string
+                      enum: [blueGreen]
+                      description: >-
+                        v1 declares only supervised blue/green major upgrades;
+                        it never grants autonomous upgrade authority.
+                isolation:
+                  type: object
+                  required: [class]
+                  properties:
+                    class:
+                      type: string
+                      enum: [dedicated]
+            status:
+              type: object
+              properties:
+                evidence:
+                  type: object
+                  properties:
+                    operational:
+                      type: object
+                      required: [state, reason, observedAt]
+                      x-kubernetes-validations:
+                        - rule: >-
+                            self.state != 'Stale' ||
+                            (oldSelf.hasValue() &&
+                             oldSelf.value().state in ['Valid', 'Stale'])
+                          optionalOldSelf: true
+                          message: Operational evidence may become Stale only after Valid.
+                      properties:
+                        state: &evidenceState
+                          type: string
+                          enum: [Pending, Valid, Stale, Failed, Unknown]
+                        reason: &evidenceReason
+                          type: string
+                          minLength: 1
+                          maxLength: 128
+                        observedAt: &observedAt
+                          type: string
+                          format: date-time
+                        evidenceRef: &evidenceRef
+                          type: string
+                          minLength: 1
+                          maxLength: 512
+                    protection:
+                      type: object
+                      required: [state, reason, observedAt]
+                      x-kubernetes-validations:
+                        - rule: >-
+                            self.state != 'Stale' ||
+                            (oldSelf.hasValue() &&
+                             oldSelf.value().state in ['Valid', 'Stale'])
+                          optionalOldSelf: true
+                          message: Protection evidence may become Stale only after Valid.
+                      properties:
+                        state: *evidenceState
+                        reason: *evidenceReason
+                        observedAt: *observedAt
+                        validUntil:
+                          type: string
+                          format: date-time
+                        evidenceRef: *evidenceRef
+                        backupId:
+                          type: string
+                          minLength: 1
+                          maxLength: 253
+                        signals:
+                          type: object
+                          required: [execution, availability, archiving]
+                          properties:
+                            execution:
+                              type: object
+                              required: [state, reason, observedAt]
+                              properties:
+                                state: *evidenceState
+                                reason: *evidenceReason
+                                observedAt: *observedAt
+                                backupId:
+                                  type: string
+                                  minLength: 1
+                                  maxLength: 253
+                                stoppedAt:
+                                  type: string
+                                  format: date-time
+                            availability:
+                              type: object
+                              required: [state, reason, observedAt]
+                              properties:
+                                state: *evidenceState
+                                reason: *evidenceReason
+                                observedAt: *observedAt
+                                firstRecoverabilityPoint:
+                                  type: string
+                                  format: date-time
+                                lastSuccessfulBackupTime:
+                                  type: string
+                                  format: date-time
+                                lastFailedBackupTime:
+                                  type: string
+                                  format: date-time
+                            archiving:
+                              type: object
+                              required: [state, reason, observedAt]
+                              properties:
+                                state: *evidenceState
+                                reason: *evidenceReason
+                                observedAt: *observedAt
+                    recovery:
+                      type: object
+                      required: [state, reason, observedAt]
+                      x-kubernetes-validations:
+                        - rule: >-
+                            self.state != 'Stale' ||
+                            (oldSelf.hasValue() &&
+                             oldSelf.value().state in ['Valid', 'Stale'])
+                          optionalOldSelf: true
+                          message: Recovery evidence may become Stale only after Valid.
+                      properties:
+                        state: *evidenceState
+                        reason: *evidenceReason
+                        observedAt: *observedAt
+                        validUntil:
+                          type: string
+                          format: date-time
+                        evidenceRef: *evidenceRef
+                        backupId:
+                          type: string
+                          minLength: 1
+                          maxLength: 253
+                        recoveryTarget:
+                          type: string
+                          minLength: 1
+                          maxLength: 253
+                        verifierVersion:
+                          type: string
+                          minLength: 1
+                          maxLength: 128
+                    capability:
+                      type: object
+                      required: [state, reason, observedAt]
+                      x-kubernetes-validations:
+                        - rule: >-
+                            self.state != 'Stale' ||
+                            (oldSelf.hasValue() &&
+                             oldSelf.value().state in ['Valid', 'Stale'])
+                          optionalOldSelf: true
+                          message: Capability evidence may become Stale only after Valid.
+                      properties:
+                        state: *evidenceState
+                        reason: *evidenceReason
+                        observedAt: *observedAt
+                        evidenceRef: *evidenceRef
+                serviceReady:
+                  type: boolean
+                  description: >-
+                    Pure policy evaluation of the four evidence dimensions;
+                    this field creates no independent technical truth.
+                serviceReadyReason:
+                  type: string
+                  minLength: 1
+                  maxLength: 128
+                credentials:
+                  type: object
+                  required: [applied, reason, observedAt]
+                  description: >-
+                    Separates credential publication from the CNPG managed-role
+                    resourceVersion actually reconciled into PostgreSQL.
+                  properties:
+                    applied:
+                      type: boolean
+                    reason:
+                      type: string
+                      minLength: 1
+                      maxLength: 128
+                    observedAt:
+                      type: string
+                      format: date-time
+                    publishedResourceVersion:
+                      type: string
+                      minLength: 1
+                      maxLength: 253
+                    appliedResourceVersion:
+                      type: string
+                      minLength: 1
+                      maxLength: 253
+                    transactionId:
+                      type: integer
+                      format: int64

@@ -17,3 +17,6 @@ docs/*-whitepaper*.pdf
 # macOS
 .venv/
 .DS_Store
+__pycache__/
+*.py[cod]
+.pytest_cache/

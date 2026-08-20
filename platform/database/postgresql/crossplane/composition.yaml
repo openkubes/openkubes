@@ -1,0 +1,879 @@
+# PostgreSQL reference Composition for ADR-Platform-032.
+#
+# CNPG resources are applied to the registered workload cluster through
+# provider-kubernetes. The status template reads the observed manifests of the
+# Cluster, ScheduledBackup, deterministic Backup, and ObjectStore Objects. It
+# intentionally never reads deprecated CNPG Cluster backup-freshness fields,
+# which are unset for plugins.
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: database-postgresql.platform.openkubes.ai
+  labels:
+    provider: kubernetes
+    capability: database
+    engine: postgresql
+spec:
+  compositeTypeRef:
+    apiVersion: platform.openkubes.ai/v1alpha1
+    kind: Database
+  mode: Pipeline
+  pipeline:
+    - step: render-postgresql
+      functionRef:
+        name: function-go-templating
+      input:
+        apiVersion: gotemplating.fn.crossplane.io/v1beta1
+        kind: GoTemplate
+        source: Inline
+        inline:
+          template: |
+            {{- /* Return the input only when Go can parse it and formatting the parsed
+                   instant with Go's canonical RFC3339 layout reproduces it exactly.
+                   Runs of 9 trim trailing fractional zeroes; Z07:00 emits Z for UTC.
+                   Callers test for a non-empty result before every business toDate. */}}
+            {{- define "canonicalRFC3339" -}}
+            {{- $value := . -}}
+            {{- $layout := "2006-01-02T15:04:05.999999999Z07:00" -}}
+            {{- $shape := "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{1,9})?(Z|[+-][0-9]{2}:[0-9]{2})$" -}}
+            {{- if and (regexMatch $shape $value) (eq $value (date $layout (toDate $layout $value))) -}}
+            {{- $value -}}
+            {{- end -}}
+            {{- end -}}
+            {{- $xr := .observed.composite.resource }}
+            {{- $spec := $xr.spec }}
+            {{- $claimName := index $xr.metadata.labels "crossplane.io/claim-name" | default $xr.metadata.name }}
+            {{- $dbName := $claimName }}
+            {{- if gt (len $dbName) 52 }}
+            {{- $dbName = printf "%s-%s" (trunc 43 $dbName | trimSuffix "-" | trimSuffix ".") (sha256sum $dbName | trunc 8) }}
+            {{- end }}
+            {{- $namespace := $spec.namespace }}
+            {{- $provider := $spec.clusterRef }}
+            {{- $policy := $spec.protection.policyRef }}
+            {{- $isProduction := eq $policy "production" }}
+            {{- $instances := 1 }}
+            {{- $storageSize := "5Gi" }}
+            {{- $retention := "7d" }}
+            {{- $backupValidity := "+168h" }}
+            {{- $backupGracePeriod := "+72h" }}
+            {{- $initialVerificationDeadline := "+336h" }}
+            {{- $protectionValidReason := "BackupCompletedAvailableAndArchivingNotFailing" }}
+            {{- if eq $spec.availability.mode "ha" }}
+            {{- $instances = 3 }}
+            {{- end }}
+            {{- if $isProduction }}
+            {{- $storageSize = "20Gi" }}
+            {{- $retention = "30d" }}
+            {{- $backupValidity = "+24h" }}
+            {{- $backupGracePeriod = "+24h" }}
+            {{- $initialVerificationDeadline = "+72h" }}
+            {{- end }}
+            {{- /* Platform-owned backup-store registry, keyed by target cluster.
+                   This is deliberately NOT claim input and NOT an XRD field: a claimant
+                   able to choose the endpoint could point backups at a store it controls,
+                   which would also remove any basis for the read-only-source reasoning in
+                   ADR-Platform-032 §11.3. Adding a cluster here is a reviewed edit, the
+                   same shape as adding an entry to the admission authority tuple list.
+                   `endpointCA` names a Secret carrying the CA bundle. The field and the
+                   availability status path below were verified against the pinned Barman
+                   Cloud Plugin v0.14.0 ObjectStore CRD. */}}
+            {{- $backupStores := dict
+                  "ok-robotics" (dict
+                    "bucket" "ok-db-backups"
+                    "endpointURL" "https://minio.minio.svc:9000"
+                    "endpointCA" "minio-backup-store-ca") }}
+            {{- $store := dict }}
+            {{- if hasKey $backupStores $provider }}
+            {{- $store = index $backupStores $provider }}
+            {{- end }}
+            {{- if not (hasKey $store "endpointURL") }}
+            {{- fail (printf "no reviewed backup store is registered for cluster %q: refusing to compose a Database with no protection destination. Add it to $backupStores in this Composition." $provider) }}
+            {{- end }}
+            {{- if not (hasPrefix "https://" $store.endpointURL) }}
+            {{- fail (printf "backup store endpoint for cluster %q must be https: backup data and the credentials authenticating to it must not cross a plaintext connection" $provider) }}
+            {{- end }}
+            {{- $catalogName := printf "openkubes-postgresql-18-%s" $dbName }}
+            {{- $objectStoreName := printf "%s-backup-store" $dbName }}
+            {{- $evidenceBackupName := printf "%s-evidence" $dbName }}
+            {{- $initialObservedAt := default "1970-01-01T00:00:00Z" $xr.metadata.creationTimestamp }}
+            {{- $requestedPgvector := false }}
+            {{- range $capability := $spec.engine.capabilities }}
+            {{- if eq $capability.name "postgresql.extension.pgvector" }}
+            {{- $requestedPgvector = true }}
+            {{- end }}
+            {{- end }}
+
+            {{- /* Read observed provider-kubernetes manifests. */}}
+            {{- $clusterObject := dict }}
+            {{- if hasKey $.observed.resources "database-cluster" }}
+            {{- $clusterObject = (index $.observed.resources "database-cluster").resource }}
+            {{- end }}
+            {{- $clusterManifest := dig "status" "atProvider" "manifest" (dict) $clusterObject }}
+            {{- $clusterStatus := dig "status" (dict) $clusterManifest }}
+            {{- $appSecretObject := dict }}
+            {{- if hasKey $.observed.resources "app-secret" }}
+            {{- $appSecretObject = (index $.observed.resources "app-secret").resource }}
+            {{- end }}
+            {{- $appSecretManifest := dig "status" "atProvider" "manifest" (dict) $appSecretObject }}
+            {{- $backupObject := dict }}
+            {{- if hasKey $.observed.resources "evidence-backup" }}
+            {{- $backupObject = (index $.observed.resources "evidence-backup").resource }}
+            {{- end }}
+            {{- $backupManifest := dig "status" "atProvider" "manifest" (dict) $backupObject }}
+            {{- $backupStatus := dig "status" (dict) $backupManifest }}
+            {{- $scheduledBackupObject := dict }}
+            {{- if hasKey $.observed.resources "scheduled-backup" }}
+            {{- $scheduledBackupObject = (index $.observed.resources "scheduled-backup").resource }}
+            {{- end }}
+            {{- $scheduledBackupManifest := dig "status" "atProvider" "manifest" (dict) $scheduledBackupObject }}
+            {{- $scheduledBackupStatus := dig "status" (dict) $scheduledBackupManifest }}
+            {{- $objectStoreObject := dict }}
+            {{- if hasKey $.observed.resources "object-store" }}
+            {{- $objectStoreObject = (index $.observed.resources "object-store").resource }}
+            {{- end }}
+            {{- $objectStoreManifest := dig "status" "atProvider" "manifest" (dict) $objectStoreObject }}
+            {{- $objectStoreStatus := dig "status" (dict) $objectStoreManifest }}
+            {{- /* Barman Cloud Plugin v0.14.0 publishes one recovery window per
+                   effective serverName. Containment of Backup.stoppedAt inside that
+                   window is the current-availability proof; equality with the latest
+                   successful backup is deliberately not required. */}}
+            {{- $serverRecoveryWindows := dig "serverRecoveryWindow" (dict) $objectStoreStatus }}
+            {{- $backupAvailability := dig $dbName (dict) $serverRecoveryWindows }}
+            {{- $oldEvidence := dig "status" "evidence" (dict) $xr }}
+
+            {{- /* Operational evidence comes only from the current Ready sensor. */}}
+            {{- $operationalState := "Unknown" }}
+            {{- $operationalReason := "AwaitingCluster" }}
+            {{- $operationalObservedAt := $initialObservedAt }}
+            {{- $clusterReady := false }}
+            {{- $clusterReadyObserved := false }}
+            {{- range $condition := dig "conditions" (list) $clusterStatus }}
+            {{- if eq $condition.type "Ready" }}
+            {{- $clusterReadyObserved = true }}
+            {{- $operationalObservedAt = default $initialObservedAt $condition.lastTransitionTime }}
+            {{- if eq $condition.status "True" }}
+            {{- $clusterReady = true }}
+            {{- $operationalState = "Valid" }}
+            {{- $operationalReason = "ClusterReady" }}
+            {{- else if eq $condition.status "False" }}
+            {{- $operationalState = "Failed" }}
+            {{- $operationalReason = "ClusterNotReady" }}
+            {{- else }}
+            {{- $operationalReason = "ClusterReadinessUnknown" }}
+            {{- end }}
+            {{- end }}
+            {{- end }}
+
+            {{- /* Capability evidence is independent of protection/recovery. */}}
+            {{- $capabilityState := "Unknown" }}
+            {{- $capabilityReason := "AwaitingCluster" }}
+            {{- $capabilityObservedAt := $operationalObservedAt }}
+            {{- $pgvectorObserved := false }}
+            {{- range $extension := dig "pgDataImageInfo" "extensions" (list) $clusterStatus }}
+            {{- if eq $extension.name "vector" }}
+            {{- $pgvectorObserved = true }}
+            {{- end }}
+            {{- end }}
+            {{- if and $clusterReady (hasKey $clusterStatus "targetPgDataImageInfo") }}
+            {{- $capabilityState = "Pending" }}
+            {{- $capabilityReason = "UpgradeVerificationPending" }}
+            {{- else if $clusterReady }}
+            {{- if not $requestedPgvector }}
+            {{- $capabilityState = "Valid" }}
+            {{- $capabilityReason = "NoCapabilitiesRequested" }}
+            {{- else if $pgvectorObserved }}
+            {{- $capabilityState = "Pending" }}
+            {{- $capabilityReason = "CapabilityProbePending" }}
+            {{- else }}
+            {{- $capabilityState = "Failed" }}
+            {{- $capabilityReason = "RequestedCapabilityAbsent" }}
+            {{- end }}
+            {{- end }}
+
+            {{- /* Protection is reduced once from three independently visible signals.
+                   A Backup CR is execution history, ObjectStore is current catalogue
+                   availability, and ContinuousArchiving=True says archiving is not
+                   currently failing. Per ADR §10 this does not claim an RPO bound. */}}
+            {{- $layout := "2006-01-02T15:04:05.999999999Z07:00" }}
+            {{- $backupPhase := dig "phase" "" $backupStatus }}
+            {{- $backupStoppedAt := dig "stoppedAt" "" $backupStatus }}
+            {{- $backupId := dig "backupId" "" $backupStatus }}
+            {{- $lastSuccessfulBackupTime := dig "lastSuccessfulBackupTime" "" $backupAvailability }}
+            {{- $firstRecoverabilityPoint := dig "firstRecoverabilityPoint" "" $backupAvailability }}
+            {{- $lastFailedBackupTime := dig "lastFailedBackupTime" "" $backupAvailability }}
+            {{- $lastScheduleTime := dig "lastScheduleTime" "" $scheduledBackupStatus }}
+            {{- $nextScheduleTime := dig "nextScheduleTime" "" $scheduledBackupStatus }}
+            {{- $scheduleObserved := or (ne $lastScheduleTime "") (ne $nextScheduleTime "") }}
+            {{- $oldProtection := dig "protection" (dict) $oldEvidence }}
+            {{- $oldProtectionState := dig "state" "" $oldProtection }}
+            {{- $oldProtectionBackupId := dig "backupId" "" $oldProtection }}
+            {{- $oldProtectionValidUntil := dig "validUntil" "" $oldProtection }}
+
+            {{- /* Named helper results are the only values admitted to business toDate
+                   calls below. An empty result means syntactically plausible but not a
+                   canonical Go RFC3339 instant, including impossible calendar values. */}}
+            {{- $canonicalOperationalObservedAt := include "canonicalRFC3339" $operationalObservedAt }}
+            {{- $canonicalLastScheduleTime := include "canonicalRFC3339" $lastScheduleTime }}
+            {{- $canonicalBackupStoppedAt := include "canonicalRFC3339" $backupStoppedAt }}
+            {{- $canonicalFirstRecoverabilityPoint := include "canonicalRFC3339" $firstRecoverabilityPoint }}
+            {{- $canonicalLastSuccessfulBackupTime := include "canonicalRFC3339" $lastSuccessfulBackupTime }}
+            {{- $canonicalLastFailedBackupTime := include "canonicalRFC3339" $lastFailedBackupTime }}
+
+            {{- $firstBackupDeadline := "" }}
+            {{- if and (eq $oldProtectionBackupId "") (ne $oldProtectionValidUntil "") }}
+            {{- $firstBackupDeadline = $oldProtectionValidUntil }}
+            {{- else if and $clusterReady (ne $canonicalOperationalObservedAt "") (ne $canonicalLastScheduleTime "") }}
+            {{- $clusterReadyTime := toDate $layout $canonicalOperationalObservedAt }}
+            {{- $scheduleDueTime := toDate $layout $canonicalLastScheduleTime }}
+            {{- $clockOrigin := $clusterReadyTime }}
+            {{- if $scheduleDueTime.After $clusterReadyTime }}
+            {{- $clockOrigin = $scheduleDueTime }}
+            {{- end }}
+            {{- $firstBackupDeadline = date $layout (dateModify $backupGracePeriod $clockOrigin) }}
+            {{- end }}
+            {{- $canonicalFirstBackupDeadline := include "canonicalRFC3339" $firstBackupDeadline }}
+
+            {{- $executionState := "Unknown" }}
+            {{- $executionReason := "AwaitingFirstBackup" }}
+            {{- $executionObservedAt := $initialObservedAt }}
+            {{- if eq $backupPhase "failed" }}
+            {{- $executionState = "Failed" }}
+            {{- $executionReason = "BackupFailed" }}
+            {{- $executionObservedAt = default $initialObservedAt $backupStoppedAt }}
+            {{- else if or (eq $backupPhase "running") (eq $backupPhase "pending") }}
+            {{- $executionState = "Pending" }}
+            {{- $executionReason = "BackupInProgress" }}
+            {{- else if eq $backupPhase "completed" }}
+            {{- if and (ne $backupId "") (ne $canonicalBackupStoppedAt "") }}
+            {{- $executionState = "Valid" }}
+            {{- $executionReason = "BackupCompleted" }}
+            {{- $executionObservedAt = $canonicalBackupStoppedAt }}
+            {{- else if and (ne $backupId "") (ne $backupStoppedAt "") }}
+            {{- $executionReason = "ObservationTimestampInvalid" }}
+            {{- else }}
+            {{- $executionReason = "ObservationUnavailable" }}
+            {{- end }}
+            {{- else if and (ne $canonicalFirstBackupDeadline "") (now.After (toDate $layout $canonicalFirstBackupDeadline)) }}
+            {{- if and $clusterReadyObserved $scheduleObserved (hasKey $.observed.resources "evidence-backup") }}
+            {{- $executionState = "Failed" }}
+            {{- $executionReason = "BackupOverdue" }}
+            {{- $executionObservedAt = $firstBackupDeadline }}
+            {{- else }}
+            {{- $executionReason = "ObservationUnavailable" }}
+            {{- end }}
+            {{- end }}
+
+            {{- $availabilityState := "Unknown" }}
+            {{- $availabilityReason := "BackupAvailabilityUnproven" }}
+            {{- $availabilityObservedAt := $initialObservedAt }}
+            {{- if eq $executionState "Pending" }}
+            {{- $availabilityState = "Pending" }}
+            {{- $availabilityReason = "AwaitingBackupCompletion" }}
+            {{- else if eq $executionState "Valid" }}
+            {{- $availabilityFieldsParse := and (ne $canonicalBackupStoppedAt "") (ne $canonicalFirstRecoverabilityPoint "") (ne $canonicalLastSuccessfulBackupTime "") (or (eq $lastFailedBackupTime "") (ne $canonicalLastFailedBackupTime "")) }}
+            {{- if $availabilityFieldsParse }}
+            {{- $stoppedTime := toDate $layout $canonicalBackupStoppedAt }}
+            {{- $firstTime := toDate $layout $canonicalFirstRecoverabilityPoint }}
+            {{- $lastSuccessTime := toDate $layout $canonicalLastSuccessfulBackupTime }}
+            {{- $availabilityObservedAt = $canonicalLastSuccessfulBackupTime }}
+            {{- if $firstTime.After $lastSuccessTime }}
+            {{- $availabilityReason = "BackupAvailabilityUnproven" }}
+            {{- else if and (ne $canonicalLastFailedBackupTime "") ((toDate $layout $canonicalLastFailedBackupTime).Equal $lastSuccessTime) }}
+            {{- $availabilityReason = "BackupFailureTimeAmbiguous" }}
+            {{- else if and (ne $canonicalLastFailedBackupTime "") ((toDate $layout $canonicalLastFailedBackupTime).After $lastSuccessTime) }}
+            {{- $availabilityState = "Failed" }}
+            {{- $availabilityReason = "BackupFailed" }}
+            {{- $availabilityObservedAt = $lastFailedBackupTime }}
+            {{- else if $firstTime.After $stoppedTime }}
+            {{- $availabilityState = "Failed" }}
+            {{- $availabilityReason = "BackupUnavailable" }}
+            {{- else if $stoppedTime.After $lastSuccessTime }}
+            {{- $availabilityReason = "BackupAvailabilityUnproven" }}
+            {{- else }}
+            {{- $availabilityState = "Valid" }}
+            {{- $availabilityReason = "BackupWindowContainsExecution" }}
+            {{- end }}
+            {{- end }}
+            {{- end }}
+
+            {{- $archivingState := "Unknown" }}
+            {{- $archivingReason := "WALArchivingUnproven" }}
+            {{- $archivingObservedAt := $initialObservedAt }}
+            {{- range $condition := dig "conditions" (list) $clusterStatus }}
+            {{- if eq $condition.type "ContinuousArchiving" }}
+            {{- $archivingObservedAt = default $initialObservedAt $condition.lastTransitionTime }}
+            {{- if eq $condition.status "False" }}
+            {{- $archivingState = "Failed" }}
+            {{- $archivingReason = "ContinuousArchivingFailed" }}
+            {{- else if eq $condition.status "True" }}
+            {{- $archivingState = "Valid" }}
+            {{- $archivingReason = "ContinuousArchivingNotFailing" }}
+            {{- end }}
+            {{- end }}
+            {{- end }}
+
+            {{- $protectionState := "Unknown" }}
+            {{- $protectionReason := "AwaitingFirstBackup" }}
+            {{- $protectionObservedAt := $executionObservedAt }}
+            {{- $protectionValidUntil := "" }}
+            {{- $protectionEvidenceRef := "" }}
+            {{- $protectionBackupId := "" }}
+            {{- $samePriorEvidence := false }}
+            {{- $protectionExpired := false }}
+            {{- if and (ne $canonicalFirstBackupDeadline "") (ne $executionState "Valid") }}
+            {{- /* Before first success, validUntil carries the immutable grace
+                   deadline so a later schedule observation cannot slide it. */}}
+            {{- $protectionValidUntil = $canonicalFirstBackupDeadline }}
+            {{- end }}
+            {{- if eq $executionState "Valid" }}
+            {{- $stoppedTime := toDate $layout $canonicalBackupStoppedAt }}
+            {{- $validTime := dateModify $backupValidity $stoppedTime }}
+            {{- $protectionValidUntil = date $layout $validTime }}
+            {{- $protectionEvidenceRef = printf "Backup/%s/%s" $namespace $evidenceBackupName }}
+            {{- $protectionBackupId = $backupId }}
+            {{- $samePriorEvidence = and (eq $oldProtectionBackupId $backupId) (or (eq $oldProtectionState "Valid") (eq $oldProtectionState "Stale")) }}
+            {{- $protectionExpired = now.After $validTime }}
+            {{- end }}
+            {{- if and (eq $availabilityState "Failed") (eq $availabilityReason "BackupUnavailable") }}
+            {{- $protectionState = "Failed" }}
+            {{- $protectionReason = "BackupUnavailable" }}
+            {{- $protectionObservedAt = $availabilityObservedAt }}
+            {{- else if eq $archivingState "Failed" }}
+            {{- $protectionState = "Failed" }}
+            {{- $protectionReason = $archivingReason }}
+            {{- $protectionObservedAt = $archivingObservedAt }}
+            {{- else if or (eq $executionState "Failed") (eq $availabilityState "Failed") }}
+            {{- $protectionState = "Failed" }}
+            {{- $protectionReason = ternary $executionReason $availabilityReason (eq $executionState "Failed") }}
+            {{- else if eq $executionState "Unknown" }}
+            {{- $protectionReason = $executionReason }}
+            {{- else if eq $availabilityState "Unknown" }}
+            {{- $protectionReason = $availabilityReason }}
+            {{- else if eq $archivingState "Unknown" }}
+            {{- $protectionReason = $archivingReason }}
+            {{- else if and $protectionExpired (eq $availabilityState "Valid") }}
+            {{- if $samePriorEvidence }}
+            {{- $protectionState = "Stale" }}
+            {{- $protectionReason = "BackupEvidenceExpired" }}
+            {{- else }}
+            {{- $protectionState = "Pending" }}
+            {{- $protectionReason = "FreshBackupEvidencePending" }}
+            {{- end }}
+            {{- else if or (eq $executionState "Pending") (eq $availabilityState "Pending") (eq $archivingState "Pending") }}
+            {{- $protectionState = "Pending" }}
+            {{- $protectionReason = ternary "BackupInProgress" "ProtectionEvaluationPending" (eq $executionState "Pending") }}
+            {{- else }}
+            {{- $protectionState = "Valid" }}
+            {{- $protectionReason = $protectionValidReason }}
+            {{- end }}
+
+            {{- /* Select the newest admissible management-plane RestoreVerified.
+                   ExtraResources is native to function-go-templating v0.9.2. The
+                   label narrows discovery; exact immutable identities and resolved
+                   source coordinates decide admissibility. */}}
+            {{- $recoveryState := "Unknown" }}
+            {{- $recoveryReason := "VerificationPending" }}
+            {{- $recoveryObservedAt := $initialObservedAt }}
+            {{- $recoveryValidUntil := "" }}
+            {{- $recoveryEvidenceRef := "" }}
+            {{- $recoveryBackupId := "" }}
+            {{- $recoveryTarget := "" }}
+            {{- $verifierVersion := "" }}
+            {{- $selectedRestore := dict }}
+            {{- $selectedCompletedAt := "1970-01-01T00:00:00Z" }}
+            {{- $canonicalSelectedCompletedAt := include "canonicalRFC3339" $selectedCompletedAt }}
+            {{- $extraResources := default (dict) $.extraResources }}
+            {{- $restoreResults := index $extraResources "restore-evidence" | default (dict "items" (list)) }}
+            {{- range $required := dig "items" (list) $restoreResults }}
+            {{- $candidate := dig "resource" (dict) $required }}
+            {{- $candidateSpec := dig "spec" (dict) $candidate }}
+            {{- $checksPass := true }}
+            {{- range $check := dig "checks" (list) $candidateSpec }}
+            {{- if ne (dig "result" "" $check) "PASS" }}{{- $checksPass = false }}{{- end }}
+            {{- end }}
+            {{- $completedAt := dig "timing" "completedAt" "" $candidateSpec }}
+            {{- $canonicalCompletedAt := include "canonicalRFC3339" $completedAt }}
+            {{- $source := dig "source" (dict) $candidateSpec }}
+            {{- $databaseRef := dig "databaseRef" (dict) $candidateSpec }}
+            {{- $sourceClusterRef := dig "sourceClusterRef" (dict) $candidateSpec }}
+            {{- $backupRef := dig "backupRef" (dict) $candidateSpec }}
+            {{- $reached := dig "recoveryTarget" "reached" (dict) $candidateSpec }}
+            {{- $admissible := and
+                  (eq (dig "apiVersion" "" $candidate) "evidence.platform.openkubes.ai/v1alpha1")
+                  (eq (dig "kind" "" $candidate) "RestoreVerified")
+                  (eq (dig "apiVersion" "" $databaseRef) $xr.apiVersion)
+                  (eq (dig "kind" "" $databaseRef) $xr.kind)
+                  (eq (dig "name" "" $databaseRef) $xr.metadata.name)
+                  (eq (dig "uid" "" $databaseRef) $xr.metadata.uid)
+                  (eq (dig "backupId" "" $candidateSpec) $backupId)
+                  (eq (dig "uid" "" $backupRef) (dig "metadata" "uid" "" $backupManifest))
+                  (eq (dig "namespace" "" $backupRef) $namespace)
+                  (eq (dig "name" "" $backupRef) $evidenceBackupName)
+                  (eq (dig "sourceSystemIdentifier" "" $candidateSpec) (dig "systemID" "" $clusterStatus))
+                  (eq (dig "uid" "" $sourceClusterRef) (dig "metadata" "uid" "" $clusterManifest))
+                  (eq (dig "namespace" "" $sourceClusterRef) $namespace)
+                  (eq (dig "name" "" $sourceClusterRef) $dbName)
+                  (eq (dig "endpoint" "" $source) $store.endpointURL)
+                  (eq (dig "bucket" "" $source) $store.bucket)
+                  (eq (dig "pathPrefix" "" $source) (printf "%s/" $dbName))
+                  (eq (dig "serverName" "" $source) $dbName)
+                  (eq (dig "canonicalServerDirectory" "" $source) (printf "s3://%s/%s/" $store.bucket $dbName))
+                  (ne $canonicalCompletedAt "")
+                  (not ((toDate $layout $canonicalCompletedAt).After now))
+                  (ne (dig "timelineId" "" $reached) "")
+                  (ne (dig "lsn" "" $reached) "")
+                  (ne (dig "checkProfileDigest" "" $candidateSpec) "")
+                  (ne (dig "manifestDigest" "" $candidateSpec) "")
+                  $checksPass
+                  (eq (dig "isolation" "writeDenialObjectAbsent" false $candidateSpec) true)
+                  (hasPrefix "PASS" (dig "isolation" "effectivePolicyResult" "" $candidateSpec))
+                  (hasPrefix "PASS" (dig "isolation" "writeDenialProbeResult" "" $candidateSpec)) }}
+            {{- if and $admissible ((toDate $layout $canonicalCompletedAt).After (toDate $layout $canonicalSelectedCompletedAt)) }}
+            {{- $selectedRestore = $candidate }}
+            {{- $selectedCompletedAt = $canonicalCompletedAt }}
+            {{- $canonicalSelectedCompletedAt = $canonicalCompletedAt }}
+            {{- end }}
+            {{- end }}
+            {{- if gt (len $selectedRestore) 0 }}
+            {{- $selectedSpec := dig "spec" (dict) $selectedRestore }}
+            {{- $selectedReached := dig "recoveryTarget" "reached" (dict) $selectedSpec }}
+            {{- $recoveryExpiry := dateModify $backupValidity (toDate $layout $canonicalSelectedCompletedAt) }}
+            {{- $recoveryState = "Valid" }}
+            {{- $recoveryReason = "RestoreVerified" }}
+            {{- $recoveryObservedAt = $selectedCompletedAt }}
+            {{- $recoveryValidUntil = date $layout $recoveryExpiry }}
+            {{- $recoveryEvidenceRef = dig "evidenceRef" "" $selectedSpec }}
+            {{- $recoveryBackupId = dig "backupId" "" $selectedSpec }}
+            {{- $recoveryTarget = printf "timeline=%s,lsn=%s" (dig "timelineId" "" $selectedReached) (dig "lsn" "" $selectedReached) }}
+            {{- $verifierVersion = dig "verifierVersion" "" $selectedSpec }}
+            {{- if now.After $recoveryExpiry }}
+            {{- $oldRecovery := dig "recovery" (dict) $oldEvidence }}
+            {{- $samePriorRecoveryEvidence := and
+                  (eq (dig "evidenceRef" "" $oldRecovery) $recoveryEvidenceRef)
+                  (or (eq (dig "state" "" $oldRecovery) "Valid") (eq (dig "state" "" $oldRecovery) "Stale")) }}
+            {{- if $samePriorRecoveryEvidence }}
+            {{- $recoveryState = "Stale" }}
+            {{- $recoveryReason = "RestoreEvidenceExpired" }}
+            {{- else }}
+            {{- $recoveryState = "Pending" }}
+            {{- $recoveryReason = "FreshVerificationPending" }}
+            {{- end }}
+            {{- end }}
+            {{- else if and (eq $executionState "Valid") (ne $canonicalBackupStoppedAt "") }}
+            {{- $verificationDeadlineTime := dateModify $initialVerificationDeadline (toDate $layout $canonicalBackupStoppedAt) }}
+            {{- if now.After $verificationDeadlineTime }}
+            {{- $recoveryState = "Failed" }}
+            {{- $recoveryReason = "VerificationOverdue" }}
+            {{- $recoveryObservedAt = date $layout $verificationDeadlineTime }}
+            {{- end }}
+            {{- end }}
+
+            {{- /* The inline managed-role status records the remote Secret resourceVersion
+                   actually applied. Equality with the observed mirrored Secret is the
+                   marker; publication alone never claims database acceptance. */}}
+            {{- $publishedCredentialVersion := dig "metadata" "resourceVersion" "" $appSecretManifest }}
+            {{- $appliedCredentialVersion := dig "managedRolesStatus" "passwordStatus" "app" "resourceVersion" "" $clusterStatus }}
+            {{- $credentialTransactionId := dig "managedRolesStatus" "passwordStatus" "app" "transactionID" 0 $clusterStatus }}
+            {{- $credentialReconciled := false }}
+            {{- range $role := dig "managedRolesStatus" "byStatus" "reconciled" (list) $clusterStatus }}
+            {{- if eq $role "app" }}{{- $credentialReconciled = true }}{{- end }}
+            {{- end }}
+            {{- $credentialApplied := and $credentialReconciled (ne $publishedCredentialVersion "") (eq $publishedCredentialVersion $appliedCredentialVersion) }}
+            {{- $credentialReason := "AwaitingCredentialPublication" }}
+            {{- if and (ne $publishedCredentialVersion "") (not $credentialApplied) }}{{- $credentialReason = "AwaitingCredentialApplication" }}{{- end }}
+            {{- if $credentialApplied }}{{- $credentialReason = "CredentialApplied" }}{{- end }}
+
+            {{- /* DatabaseServiceReady is policy only, never a fifth sensor. */}}
+            {{- $serviceReady := false }}
+            {{- $serviceReadyReason := "EvidencePolicyUnsatisfied" }}
+            {{- if $isProduction }}
+            {{- if and (eq $operationalState "Valid") (eq $protectionState "Valid") (eq $recoveryState "Valid") (eq $capabilityState "Valid") }}
+            {{- $serviceReady = true }}
+            {{- $serviceReadyReason = "ProductionEvidenceValid" }}
+            {{- end }}
+            {{- else if and (eq $operationalState "Valid") (or (eq $recoveryState "Valid") (and (eq $protectionState "Unknown") (eq $protectionReason "AwaitingFirstBackup") (eq $recoveryState "Unknown") (eq $recoveryReason "VerificationPending"))) }}
+            {{- $serviceReady = true }}
+            {{- $serviceReadyReason = ternary "DevelopmentEvidenceValid" "DevelopmentBootstrapAllowed" (eq $recoveryState "Valid") }}
+            {{- end }}
+
+            ---
+            apiVersion: meta.gotemplating.fn.crossplane.io/v1alpha1
+            kind: ExtraResources
+            requirements:
+              restore-evidence:
+                apiVersion: evidence.platform.openkubes.ai/v1alpha1
+                kind: RestoreVerified
+                matchLabels:
+                  platform.openkubes.ai/source-cluster: {{ $dbName | quote }}
+            ---
+            # Mirror only the fixed, admission-authorized app Secret. Values are
+            # never templated into this Composition; provider-kubernetes resolves
+            # the management-plane reference at reconciliation time.
+            apiVersion: kubernetes.crossplane.io/v1alpha2
+            kind: Object
+            metadata:
+              name: database-{{ $dbName }}-app-secret
+              annotations:
+                gotemplating.fn.crossplane.io/composition-resource-name: app-secret
+            spec:
+              deletionPolicy: Orphan
+              providerConfigRef:
+                name: {{ $provider | quote }}
+              references:
+                - patchesFrom:
+                    apiVersion: v1
+                    kind: Secret
+                    name: {{ $spec.credentialsSecretRef.name | quote }}
+                    namespace: {{ $spec.credentialsSecretRef.namespace | quote }}
+                    fieldPath: data
+                  toFieldPath: data
+              forProvider:
+                manifest:
+                  apiVersion: v1
+                  kind: Secret
+                  metadata:
+                    name: {{ $spec.credentialsSecretRef.name | quote }}
+                    namespace: {{ $namespace | quote }}
+                    labels:
+                      app.kubernetes.io/part-of: openkubes-database-postgresql
+                      cnpg.io/reload: "true"
+                  type: kubernetes.io/basic-auth
+            ---
+            # Claim-scoped governed catalog: PostgreSQL 18 plus the sole v1
+            # allowlisted extension image. Claims select a capability name, not
+            # an arbitrary image reference.
+            apiVersion: kubernetes.crossplane.io/v1alpha2
+            kind: Object
+            metadata:
+              name: database-{{ $dbName }}-image-catalog
+              annotations:
+                gotemplating.fn.crossplane.io/composition-resource-name: image-catalog
+            spec:
+              deletionPolicy: Orphan
+              providerConfigRef:
+                name: {{ $provider | quote }}
+              forProvider:
+                manifest:
+                  apiVersion: postgresql.cnpg.io/v1
+                  kind: ClusterImageCatalog
+                  metadata:
+                    name: {{ $catalogName | quote }}
+                    labels:
+                      app.kubernetes.io/part-of: openkubes-database-postgresql
+                      images.cnpg.io/date: "20260815"
+                      images.cnpg.io/publisher: cnpg.io
+                      images.cnpg.io/type: minimal
+                      images.cnpg.io/os: trixie
+                  spec:
+                    images:
+                      - major: 18
+                        image: ghcr.io/cloudnative-pg/postgresql:18.6-202608131513-minimal-trixie@sha256:e488b1434919f455f2ee4e18a181ce9b33f34cdd8dfb821126855486bce6ad34
+                        extensions:
+                          - name: pgvector
+                            image:
+                              reference: ghcr.io/cloudnative-pg/pgvector:0.8.6-202608090042-18-trixie@sha256:c3fe71d306fe3dfad4e71b2585c58034c2da5f234a18cd4b964ed03e1dc858a9
+            ---
+            apiVersion: kubernetes.crossplane.io/v1alpha2
+            kind: Object
+            metadata:
+              name: database-{{ $dbName }}-object-store
+              annotations:
+                gotemplating.fn.crossplane.io/composition-resource-name: object-store
+            spec:
+              deletionPolicy: Orphan
+              providerConfigRef:
+                name: {{ $provider | quote }}
+              forProvider:
+                manifest:
+                  apiVersion: barmancloud.cnpg.io/v1
+                  kind: ObjectStore
+                  metadata:
+                    name: {{ $objectStoreName | quote }}
+                    namespace: {{ $namespace | quote }}
+                  spec:
+                    configuration:
+                      # The plugin appends serverName below, yielding exactly
+                      # ok-db-backups/<database-cluster>/.
+                      #
+                      # destinationPath and endpointURL come from the platform-owned
+                      # $backupStores registry above, never from the Claim. The `s3://`
+                      # scheme and the s3Credentials/arn:aws:s3 vocabulary below are the
+                      # plugin's and MinIO's own S3-compatible syntax — the backend is
+                      # selected by endpointURL, which is MinIO, not AWS.
+                      destinationPath: s3://{{ $store.bucket }}
+                      endpointURL: {{ $store.endpointURL | quote }}
+                      endpointCA:
+                        name: {{ $store.endpointCA | quote }}
+                        key: ca.crt
+                      # No `encryption` is set: at-rest encryption belongs to the data
+                      # policy of ADR-Platform-032 §6.1, which §12 explicitly defers out
+                      # of v1. Stated rather than left blank so an unset field is not read
+                      # as a handled one.
+                      # Named for the ROLE it holds, not for the bucket: this is the
+                      # database's own write identity for its own server folder. The drill's
+                      # read-only source identity is a different Secret
+                      # (ok-db-backups-<cluster>-reader) and the two must never resolve to
+                      # the same object — drill/tests assert that separately, and the
+                      # render check asserts this one is not a reader.
+                      s3Credentials:
+                        accessKeyId:
+                          name: {{ printf "ok-db-backups-%s-writer" $dbName | quote }}
+                          key: ACCESS_KEY_ID
+                        secretAccessKey:
+                          name: {{ printf "ok-db-backups-%s-writer" $dbName | quote }}
+                          key: ACCESS_SECRET_KEY
+                      wal:
+                        compression: gzip
+                      data:
+                        compression: gzip
+                    # Retention is a freshness boundary, not just housekeeping: it is what
+                    # prunes an object-store backup out from under a still-present Backup
+                    # CR, which is the failure ADR-Platform-032 §11.1 builds three separate
+                    # signals to catch. Changing it moves that boundary.
+                    retentionPolicy: {{ $retention | quote }}
+            ---
+            apiVersion: kubernetes.crossplane.io/v1alpha2
+            kind: Object
+            metadata:
+              name: database-{{ $dbName }}-cluster
+              annotations:
+                gotemplating.fn.crossplane.io/composition-resource-name: database-cluster
+            spec:
+              # The database/PVC lifecycle is never coupled to Claim deletion.
+              deletionPolicy: Orphan
+              providerConfigRef:
+                name: {{ $provider | quote }}
+              forProvider:
+                manifest:
+                  apiVersion: postgresql.cnpg.io/v1
+                  kind: Cluster
+                  metadata:
+                    name: {{ $dbName | quote }}
+                    namespace: {{ $namespace | quote }}
+                    labels:
+                      app.kubernetes.io/part-of: openkubes-database-postgresql
+                  spec:
+                    instances: {{ $instances }}
+                    enableSuperuserAccess: false
+                    {{- if gt $instances 1 }}
+                    primaryUpdateStrategy: supervised
+                    {{- end }}
+                    imageCatalogRef:
+                      apiGroup: postgresql.cnpg.io
+                      kind: ClusterImageCatalog
+                      name: {{ $catalogName | quote }}
+                      major: 18
+                    bootstrap:
+                      initdb:
+                        database: app
+                        owner: app
+                        secret:
+                          name: {{ $spec.credentialsSecretRef.name | quote }}
+                    managed:
+                      roles:
+                        - name: app
+                          ensure: present
+                          login: true
+                          passwordSecret:
+                            name: {{ $spec.credentialsSecretRef.name | quote }}
+                    storage:
+                      storageClass: local-path
+                      size: {{ $storageSize }}
+                    resources:
+                      requests:
+                        cpu: 250m
+                        memory: 512Mi
+                      limits:
+                        cpu: "2"
+                        memory: 2Gi
+                    plugins:
+                      - name: barman-cloud.cloudnative-pg.io
+                        isWALArchiver: true
+                        parameters:
+                          barmanObjectName: {{ $objectStoreName | quote }}
+                          serverName: {{ $dbName | quote }}
+                    {{- if $requestedPgvector }}
+                    postgresql:
+                      extensions:
+                        - name: pgvector
+                    {{- end }}
+            ---
+            apiVersion: kubernetes.crossplane.io/v1alpha2
+            kind: Object
+            metadata:
+              name: database-{{ $dbName }}-scheduled-backup
+              annotations:
+                gotemplating.fn.crossplane.io/composition-resource-name: scheduled-backup
+            spec:
+              deletionPolicy: Orphan
+              providerConfigRef:
+                name: {{ $provider | quote }}
+              forProvider:
+                manifest:
+                  apiVersion: postgresql.cnpg.io/v1
+                  kind: ScheduledBackup
+                  metadata:
+                    name: {{ printf "%s-daily" $dbName | quote }}
+                    namespace: {{ $namespace | quote }}
+                  spec:
+                    schedule: "0 0 1 * * *"
+                    backupOwnerReference: self
+                    cluster:
+                      name: {{ $dbName | quote }}
+                    method: plugin
+                    pluginConfiguration:
+                      name: barman-cloud.cloudnative-pg.io
+            ---
+            # A deterministic first Backup gives the Evidence Contract an
+            # actual Backup.status to observe locally and at runtime. Scheduled
+            # backups remain the recurring protection mechanism.
+            apiVersion: kubernetes.crossplane.io/v1alpha2
+            kind: Object
+            metadata:
+              name: database-{{ $dbName }}-evidence-backup
+              annotations:
+                gotemplating.fn.crossplane.io/composition-resource-name: evidence-backup
+            spec:
+              deletionPolicy: Orphan
+              providerConfigRef:
+                name: {{ $provider | quote }}
+              forProvider:
+                manifest:
+                  apiVersion: postgresql.cnpg.io/v1
+                  kind: Backup
+                  metadata:
+                    name: {{ $evidenceBackupName | quote }}
+                    namespace: {{ $namespace | quote }}
+                  spec:
+                    cluster:
+                      name: {{ $dbName | quote }}
+                    method: plugin
+                    pluginConfiguration:
+                      name: barman-cloud.cloudnative-pg.io
+            {{- if $spec.connectivity.pooling.enabled }}
+            ---
+            apiVersion: kubernetes.crossplane.io/v1alpha2
+            kind: Object
+            metadata:
+              name: database-{{ $dbName }}-pooler
+              annotations:
+                gotemplating.fn.crossplane.io/composition-resource-name: pooler
+            spec:
+              deletionPolicy: Delete
+              providerConfigRef:
+                name: {{ $provider | quote }}
+              forProvider:
+                manifest:
+                  apiVersion: postgresql.cnpg.io/v1
+                  kind: Pooler
+                  {{- /* NOT "<cluster>-rw": a Pooler's name becomes its Service name, and CNPG
+                         already owns Services <cluster>-rw, -ro and -r for the Cluster itself.
+                         Composing a Pooler called ok-robotics-rw left it phase=inactive for 28h
+                         on ok-robotics, re-emitting InvalidOwnership every ~2 minutes, because
+                         Service/ok-robotics-rw carries ownerReferences Cluster/ok-robotics and
+                         the Pooler may not adopt it. $dbName is capped at 52 characters, so the
+                         10-character suffix still leaves the Service name inside 63. */}}
+                  metadata:
+                    name: {{ printf "%s-pooler-rw" $dbName | quote }}
+                    namespace: {{ $namespace | quote }}
+                  spec:
+                    cluster:
+                      name: {{ $dbName | quote }}
+                    instances: {{ ternary 2 1 $isProduction }}
+                    type: rw
+                    pgbouncer:
+                      poolMode: {{ $spec.connectivity.pooling.mode }}
+                      parameters:
+                        max_client_conn: "1000"
+                        default_pool_size: "20"
+            {{- end }}
+            ---
+            apiVersion: platform.openkubes.ai/v1alpha1
+            kind: Database
+            status:
+              evidence:
+                operational:
+                  state: {{ $operationalState }}
+                  reason: {{ $operationalReason }}
+                  observedAt: {{ $operationalObservedAt | quote }}
+                  evidenceRef: {{ printf "Cluster/%s/%s" $namespace $dbName | quote }}
+                protection:
+                  state: {{ $protectionState }}
+                  reason: {{ $protectionReason }}
+                  observedAt: {{ $protectionObservedAt | quote }}
+                  {{- if ne $protectionValidUntil "" }}
+                  validUntil: {{ $protectionValidUntil | quote }}
+                  {{- end }}
+                  {{- if ne $protectionEvidenceRef "" }}
+                  evidenceRef: {{ $protectionEvidenceRef | quote }}
+                  {{- end }}
+                  {{- if ne $protectionBackupId "" }}
+                  backupId: {{ $protectionBackupId | quote }}
+                  {{- end }}
+                  signals:
+                    execution:
+                      state: {{ $executionState }}
+                      reason: {{ $executionReason }}
+                      observedAt: {{ $executionObservedAt | quote }}
+                      {{- if ne $backupId "" }}
+                      backupId: {{ $backupId | quote }}
+                      {{- end }}
+                      {{- if ne $canonicalBackupStoppedAt "" }}
+                      stoppedAt: {{ $canonicalBackupStoppedAt | quote }}
+                      {{- end }}
+                    availability:
+                      state: {{ $availabilityState }}
+                      reason: {{ $availabilityReason }}
+                      observedAt: {{ $availabilityObservedAt | quote }}
+                      {{- if ne $canonicalFirstRecoverabilityPoint "" }}
+                      firstRecoverabilityPoint: {{ $canonicalFirstRecoverabilityPoint | quote }}
+                      {{- end }}
+                      {{- if ne $canonicalLastSuccessfulBackupTime "" }}
+                      lastSuccessfulBackupTime: {{ $canonicalLastSuccessfulBackupTime | quote }}
+                      {{- end }}
+                      {{- if ne $canonicalLastFailedBackupTime "" }}
+                      lastFailedBackupTime: {{ $canonicalLastFailedBackupTime | quote }}
+                      {{- end }}
+                    archiving:
+                      state: {{ $archivingState }}
+                      reason: {{ $archivingReason }}
+                      observedAt: {{ $archivingObservedAt | quote }}
+                recovery:
+                  state: {{ $recoveryState }}
+                  reason: {{ $recoveryReason }}
+                  observedAt: {{ $recoveryObservedAt | quote }}
+                  {{- if ne $recoveryValidUntil "" }}
+                  validUntil: {{ $recoveryValidUntil | quote }}
+                  {{- end }}
+                  {{- if ne $recoveryEvidenceRef "" }}
+                  evidenceRef: {{ $recoveryEvidenceRef | quote }}
+                  {{- end }}
+                  {{- if ne $recoveryBackupId "" }}
+                  backupId: {{ $recoveryBackupId | quote }}
+                  {{- end }}
+                  {{- if ne $recoveryTarget "" }}
+                  recoveryTarget: {{ $recoveryTarget | quote }}
+                  {{- end }}
+                  {{- if ne $verifierVersion "" }}
+                  verifierVersion: {{ $verifierVersion | quote }}
+                  {{- end }}
+                capability:
+                  state: {{ $capabilityState }}
+                  reason: {{ $capabilityReason }}
+                  observedAt: {{ $capabilityObservedAt | quote }}
+                  evidenceRef: {{ printf "Cluster/%s/%s#status.pgDataImageInfo" $namespace $dbName | quote }}
+              serviceReady: {{ $serviceReady }}
+              serviceReadyReason: {{ $serviceReadyReason }}
+              credentials:
+                applied: {{ $credentialApplied }}
+                reason: {{ $credentialReason }}
+                observedAt: {{ $operationalObservedAt | quote }}
+                {{- if ne $publishedCredentialVersion "" }}
+                publishedResourceVersion: {{ $publishedCredentialVersion | quote }}
+                {{- end }}
+                {{- if ne $appliedCredentialVersion "" }}
+                appliedResourceVersion: {{ $appliedCredentialVersion | quote }}
+                {{- end }}
+                {{- if gt (int64 $credentialTransactionId) 0 }}
+                transactionId: {{ $credentialTransactionId }}
+                {{- end }}

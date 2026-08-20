@@ -1,0 +1,9 @@
+# Functions used by the local Crossplane v2.3.3 render path.
+apiVersion: pkg.crossplane.io/v1
+kind: Function
+metadata:
+  name: function-go-templating
+  annotations:
+    render.crossplane.io/runtime-docker-pull-policy: IfNotPresent
+spec:
+  package: xpkg.upbound.io/crossplane-contrib/function-go-templating:v0.9.2

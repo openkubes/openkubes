@@ -1,0 +1,144 @@
+apiVersion: evidence.platform.openkubes.ai/v1alpha1
+kind: RestoreVerified
+metadata:
+  name: ok-robotics-valid
+  labels:
+    platform.openkubes.ai/source-cluster: ok-robotics
+spec:
+  databaseRef:
+    apiVersion: platform.openkubes.ai/v1alpha1
+    kind: Database
+    name: ok-robotics-render-development
+    uid: 81b14e99-9c0d-5952-91a3-b8a1528b4e28
+  backupId: 20260817T020000
+  backupRef:
+    apiVersion: postgresql.cnpg.io/v1
+    kind: Backup
+    namespace: database-ok-robotics
+    name: ok-robotics-evidence
+    uid: 711f242d-a78e-4c02-b71a-7f67a1d981b7
+  sourceSystemIdentifier: "7674943119728799765"
+  sourceClusterRef:
+    apiVersion: postgresql.cnpg.io/v1
+    kind: Cluster
+    namespace: database-ok-robotics
+    name: ok-robotics
+    uid: 1c47d9d1-2cc2-4619-8265-a1598cb22274
+  source:
+    endpoint: https://minio.minio.svc:9000
+    bucket: ok-db-backups
+    pathPrefix: ok-robotics/
+    serverName: ok-robotics
+    canonicalServerDirectory: s3://ok-db-backups/ok-robotics/
+  recoveryTarget:
+    requested: backupID=20260817T020000
+    reached:
+      timelineId: "2"
+      lsn: 0/80001D0
+  timing:
+    startedAt: "2026-08-17T02:02:00Z"
+    completedAt: "2026-08-17T02:03:15Z"
+    duration: PT75S
+  checks:
+    - name: outside-recovery
+      result: PASS
+      observed: {pgIsInRecovery: false}
+    - name: known-row-readable
+      result: PASS
+      observed: {matchingRows: 1, marker: ok-145-real-backup}
+    - name: restore-probe-heap-readable
+      result: PASS
+      observed: {rowCount: 1, minimumId: 145, maximumId: 145}
+    - name: primary-key-index-readable
+      result: PASS
+      observed:
+        matchingRows: 1
+        indexName: restore_probe_pkey
+        indexValid: true
+        indexReady: true
+    - name: selected-backup-object-readable
+      result: PASS
+      observed:
+        object: ok-robotics/base/20260817T020000/backup.info
+        sha256: sha256:1ddcff899497994d2bd173f5bd6b9a4ac1bc32b44e44552c1d58466f54d26b42
+  checkProfileDigest: sha256:106803a2d7a54d4ae5dc5074bbde951c2142e57433ecf0d94bdda860d99ae1e7
+  manifestDigest: sha256:fc0ebadbcc840a3d2767d48cedcda15a26c2bd95adb1a460feaec4b0ceaa377e
+  isolation:
+    effectivePolicyResult: "PASS: source policy is read-only"
+    effectivePolicyName: ok-db-backups-reader
+    effectivePolicyDigest: sha256:3171361cdc3706c0641bd67dd6a3b180f102eaef4606b35948eebf6ea39b2246
+    writeDenialProbeResult: "PASS: authenticated write refused and object absent"
+    writeDenialRawResponse: Insufficient permissions to access this path
+    writeDenialObject: ok-robotics/base/20260817T020000/denial-probe
+    writeDenialObjectAbsent: true
+  verifierVersion: sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+  cnpgVersion: 1.30.0
+  pluginIdentity: barman-cloud.cloudnative-pg.io
+  pluginVersion: 0.14.0
+  evidenceRef: RestoreVerified/ok-robotics-valid
+---
+# Newer but inadmissible: exact source identity filtering must reject it.
+apiVersion: evidence.platform.openkubes.ai/v1alpha1
+kind: RestoreVerified
+metadata:
+  name: ok-robotics-wrong-source
+  labels:
+    platform.openkubes.ai/source-cluster: ok-robotics
+spec:
+  databaseRef:
+    apiVersion: platform.openkubes.ai/v1alpha1
+    kind: Database
+    name: ok-robotics-render-development
+    uid: wrong-database-uid
+  backupId: 20260817T020000
+  backupRef:
+    apiVersion: postgresql.cnpg.io/v1
+    kind: Backup
+    namespace: database-ok-robotics
+    name: ok-robotics-evidence
+    uid: wrong-backup-uid
+  sourceSystemIdentifier: wrong-system
+  sourceClusterRef:
+    apiVersion: postgresql.cnpg.io/v1
+    kind: Cluster
+    namespace: database-ok-robotics
+    name: ok-robotics
+    uid: wrong-cluster-uid
+  source:
+    endpoint: https://minio.minio.svc:9000
+    bucket: ok-db-backups
+    pathPrefix: ok-robotics/
+    serverName: ok-robotics
+    canonicalServerDirectory: s3://ok-db-backups/ok-robotics/
+  recoveryTarget:
+    requested: backupID=20260817T020000
+    reached: {timelineId: "99", lsn: 0/DEADBEEF}
+  timing:
+    startedAt: "2026-08-17T03:00:00Z"
+    completedAt: "2026-08-17T03:01:00Z"
+    duration: PT60S
+  checks:
+    - {name: outside-recovery, result: PASS, observed: {pgIsInRecovery: false}}
+    - {name: known-row-readable, result: PASS, observed: {matchingRows: 1, marker: wrong}}
+    - {name: restore-probe-heap-readable, result: PASS, observed: {rowCount: 1, minimumId: 1, maximumId: 1}}
+    - name: primary-key-index-readable
+      result: PASS
+      observed: {matchingRows: 1, indexName: wrong_pkey, indexValid: true, indexReady: true}
+    - name: selected-backup-object-readable
+      result: PASS
+      observed: {object: ok-robotics/base/wrong/backup.info, sha256: "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"}
+  checkProfileDigest: sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+  manifestDigest: sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+  isolation:
+    effectivePolicyResult: "PASS: wrong source"
+    effectivePolicyName: wrong-policy
+    effectivePolicyDigest: sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+    writeDenialProbeResult: "PASS: wrong source"
+    writeDenialRawResponse: Insufficient permissions
+    writeDenialObject: ok-robotics/base/wrong/denial
+    writeDenialObjectAbsent: true
+  verifierVersion: sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+  cnpgVersion: 1.30.0
+  pluginIdentity: barman-cloud.cloudnative-pg.io
+  pluginVersion: 0.14.0
+  evidenceRef: RestoreVerified/ok-robotics-wrong-source

@@ -1,0 +1,125 @@
+# Synthetic provider-kubernetes observations for local Composition evaluation.
+# The baseline deliberately has execution evidence but no ObjectStore recovery
+# window. evidence-status-check.py injects the verified Barman Cloud Plugin
+# v0.14.0 status shape in scenarios that exercise the availability branches.
+apiVersion: kubernetes.crossplane.io/v1alpha2
+kind: Object
+metadata:
+  name: database-ok-robotics-cluster
+  annotations:
+    crossplane.io/composition-resource-name: database-cluster
+status:
+  conditions:
+    - type: Ready
+      status: "True"
+      reason: Available
+      lastTransitionTime: "2026-08-17T01:00:00Z"
+  atProvider:
+    manifest:
+      apiVersion: postgresql.cnpg.io/v1
+      kind: Cluster
+      metadata:
+        name: ok-robotics
+        namespace: database-ok-robotics
+        uid: 1c47d9d1-2cc2-4619-8265-a1598cb22274
+      status:
+        systemID: "7674943119728799765"
+        conditions:
+          - type: Ready
+            status: "True"
+            reason: ClusterIsReady
+            lastTransitionTime: "2026-08-17T01:00:00Z"
+          - type: ContinuousArchiving
+            status: "True"
+            reason: ContinuousArchivingSuccess
+            lastTransitionTime: "2026-08-17T01:00:00Z"
+        pgDataImageInfo:
+          majorVersion: 18
+          extensions:
+            - name: vector
+        managedRolesStatus:
+          byStatus:
+            reconciled: [app]
+          passwordStatus:
+            app:
+              resourceVersion: "101"
+              transactionID: 2051
+---
+apiVersion: kubernetes.crossplane.io/v1alpha2
+kind: Object
+metadata:
+  name: database-ok-robotics-evidence-backup
+  annotations:
+    crossplane.io/composition-resource-name: evidence-backup
+status:
+  conditions:
+    - type: Ready
+      status: "True"
+      reason: Available
+      lastTransitionTime: "2026-08-17T02:00:00Z"
+  atProvider:
+    manifest:
+      apiVersion: postgresql.cnpg.io/v1
+      kind: Backup
+      metadata:
+        name: ok-robotics-evidence
+        namespace: database-ok-robotics
+        uid: 711f242d-a78e-4c02-b71a-7f67a1d981b7
+      status:
+        phase: completed
+        stoppedAt: "2026-08-17T02:00:00Z"
+        backupId: "20260817T020000"
+---
+apiVersion: kubernetes.crossplane.io/v1alpha2
+kind: Object
+metadata:
+  name: database-ok-robotics-scheduled-backup
+  annotations:
+    crossplane.io/composition-resource-name: scheduled-backup
+status:
+  atProvider:
+    manifest:
+      apiVersion: postgresql.cnpg.io/v1
+      kind: ScheduledBackup
+      metadata:
+        name: ok-robotics-daily
+        namespace: database-ok-robotics
+      status:
+        lastCheckTime: "2026-08-17T02:00:00Z"
+        lastScheduleTime: "2026-08-17T01:00:00Z"
+        nextScheduleTime: "2026-08-18T01:00:00Z"
+---
+apiVersion: kubernetes.crossplane.io/v1alpha2
+kind: Object
+metadata:
+  name: database-ok-robotics-object-store
+  annotations:
+    crossplane.io/composition-resource-name: object-store
+status:
+  atProvider:
+    manifest:
+      apiVersion: barmancloud.cnpg.io/v1
+      kind: ObjectStore
+      metadata:
+        name: ok-robotics-backup-store
+        namespace: database-ok-robotics
+      status: {}
+---
+apiVersion: kubernetes.crossplane.io/v1alpha2
+kind: Object
+metadata:
+  name: database-ok-robotics-app-secret
+  annotations:
+    crossplane.io/composition-resource-name: app-secret
+status:
+  atProvider:
+    manifest:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: database-ok-robotics-app
+        namespace: database-ok-robotics
+        resourceVersion: "101"
+        labels:
+          cnpg.io/reload: "true"
+      type: kubernetes.io/basic-auth

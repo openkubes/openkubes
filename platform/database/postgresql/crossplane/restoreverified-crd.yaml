@@ -1,0 +1,384 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: restoreverifieds.evidence.platform.openkubes.ai
+  labels:
+    app.kubernetes.io/part-of: openkubes-database-postgresql
+    openkubes.ai/adr: adr-platform-032
+spec:
+  group: evidence.platform.openkubes.ai
+  scope: Cluster
+  names:
+    plural: restoreverifieds
+    singular: restoreverified
+    kind: RestoreVerified
+    shortNames: [rv]
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      additionalPrinterColumns:
+        - name: Backup
+          type: string
+          jsonPath: .spec.backupId
+        - name: Source
+          type: string
+          jsonPath: .spec.sourceClusterRef.name
+        - name: Completed
+          type: date
+          jsonPath: .spec.timing.completedAt
+      schema:
+        openAPIV3Schema:
+          type: object
+          required: [spec]
+          # No root-level x-kubernetes-validations: at the resource root CEL exposes only
+          # metadata.name and metadata.generateName, so a rule reading metadata.labels fails to
+          # compile and the API server rejects the CRD. The selector label is therefore NOT
+          # enforced here; the Composition independently compares spec.sourceClusterRef.name to
+          # the Database it is reconciling, so a mislabelled artifact is invisible to selection
+          # rather than wrongly admissible. Do not re-add this rule at the root.
+          properties:
+            spec:
+              type: object
+              description: >-
+                Immutable record of one successful restore verification. A failed or
+                incomplete verification must not create this evidence event.
+              x-kubernetes-validations:
+                - rule: self == oldSelf
+                  message: RestoreVerified spec is immutable; create a new evidence event.
+              required:
+                - backupId
+                - backupRef
+                - sourceSystemIdentifier
+                - sourceClusterRef
+                - databaseRef
+                - source
+                - recoveryTarget
+                - timing
+                - checks
+                - checkProfileDigest
+                - manifestDigest
+                - isolation
+                - verifierVersion
+                - cnpgVersion
+                - pluginIdentity
+                - pluginVersion
+                - evidenceRef
+              properties:
+                backupId:
+                  type: string
+                  minLength: 1
+                  maxLength: 253
+                backupRef:
+                  type: object
+                  required: [apiVersion, kind, namespace, name, uid]
+                  properties:
+                    apiVersion:
+                      type: string
+                      enum: [postgresql.cnpg.io/v1]
+                    kind:
+                      type: string
+                      enum: [Backup]
+                    namespace:
+                      type: string
+                      minLength: 1
+                      maxLength: 63
+                    name:
+                      type: string
+                      minLength: 1
+                      maxLength: 253
+                    uid:
+                      type: string
+                      minLength: 1
+                      maxLength: 128
+                sourceSystemIdentifier:
+                  type: string
+                  pattern: '^[0-9]+$'
+                  maxLength: 32
+                sourceClusterRef:
+                  type: object
+                  required: [apiVersion, kind, namespace, name, uid]
+                  properties:
+                    apiVersion:
+                      type: string
+                      enum: [postgresql.cnpg.io/v1]
+                    kind:
+                      type: string
+                      enum: [Cluster]
+                    namespace:
+                      type: string
+                      minLength: 1
+                      maxLength: 63
+                    name:
+                      type: string
+                      minLength: 1
+                      maxLength: 253
+                    uid:
+                      type: string
+                      minLength: 1
+                      maxLength: 128
+                databaseRef:
+                  type: object
+                  description: Binding to the exact Crossplane Database/XR evaluated by this event.
+                  required: [apiVersion, kind, name, uid]
+                  properties:
+                    apiVersion:
+                      type: string
+                      enum: [platform.openkubes.ai/v1alpha1]
+                    kind:
+                      type: string
+                      enum: [Database]
+                    name:
+                      type: string
+                      minLength: 1
+                      maxLength: 253
+                    uid:
+                      type: string
+                      minLength: 1
+                      maxLength: 128
+                source:
+                  type: object
+                  required: [endpoint, bucket, pathPrefix, serverName, canonicalServerDirectory]
+                  x-kubernetes-validations:
+                    - rule: self.pathPrefix == self.serverName + '/'
+                      message: pathPrefix must be the resolved serverName directory.
+                    - rule: >-
+                        self.canonicalServerDirectory ==
+                          's3://' + self.bucket + '/' + self.pathPrefix
+                      message: canonicalServerDirectory must bind the resolved bucket and pathPrefix.
+                  properties:
+                    endpoint:
+                      type: string
+                      pattern: '^https://[^[:space:]]+$'
+                      maxLength: 2048
+                    bucket:
+                      type: string
+                      minLength: 3
+                      maxLength: 63
+                      pattern: '^[a-z0-9][a-z0-9.-]*[a-z0-9]$'
+                    pathPrefix:
+                      type: string
+                      minLength: 2
+                      maxLength: 1024
+                      pattern: '^[^/]+/$'
+                    serverName:
+                      type: string
+                      minLength: 1
+                      maxLength: 253
+                    canonicalServerDirectory:
+                      type: string
+                      minLength: 8
+                      maxLength: 2048
+                      pattern: '^s3://[^[:space:]]+/$'
+                recoveryTarget:
+                  type: object
+                  required: [requested, reached]
+                  properties:
+                    requested:
+                      type: string
+                      minLength: 1
+                      maxLength: 512
+                    reached:
+                      type: object
+                      required: [timelineId, lsn]
+                      properties:
+                        timelineId:
+                          type: string
+                          pattern: '^[0-9]+$'
+                          maxLength: 20
+                        lsn:
+                          type: string
+                          pattern: '^[0-9A-F]+/[0-9A-F]+$'
+                          maxLength: 32
+                timing:
+                  type: object
+                  required: [startedAt, completedAt, duration]
+                  x-kubernetes-validations:
+                    - rule: timestamp(self.completedAt) >= timestamp(self.startedAt)
+                      message: completedAt must not precede startedAt.
+                  properties:
+                    startedAt:
+                      type: string
+                      format: date-time
+                    completedAt:
+                      type: string
+                      format: date-time
+                    duration:
+                      type: string
+                      pattern: '^PT([0-9]+H)?([0-9]+M)?([0-9]+([.][0-9]+)?S)?$'
+                      maxLength: 64
+                checks:
+                  type: array
+                  description: >-
+                    The complete v1 restore-verification profile. The map key prevents
+                    duplicate names; cardinality and enums require exactly one of each.
+                  minItems: 5
+                  maxItems: 5
+                  x-kubernetes-list-type: map
+                  x-kubernetes-list-map-keys: [name]
+                  items:
+                    type: object
+                    required: [name, result, observed]
+                    x-kubernetes-validations:
+                      - rule: >-
+                          self.name != 'outside-recovery' ||
+                          (has(self.observed.pgIsInRecovery) &&
+                           self.observed.pgIsInRecovery == false &&
+                           !has(self.observed.matchingRows) && !has(self.observed.marker) &&
+                           !has(self.observed.rowCount) && !has(self.observed.minimumId) &&
+                           !has(self.observed.maximumId) && !has(self.observed.indexName) &&
+                           !has(self.observed.indexValid) && !has(self.observed.indexReady) &&
+                           !has(self.observed.object) && !has(self.observed.sha256))
+                        message: outside-recovery requires only observed.pgIsInRecovery=false.
+                      - rule: >-
+                          self.name != 'known-row-readable' ||
+                          (has(self.observed.matchingRows) && self.observed.matchingRows > 0 &&
+                           has(self.observed.marker) &&
+                           !has(self.observed.pgIsInRecovery) && !has(self.observed.rowCount) &&
+                           !has(self.observed.minimumId) && !has(self.observed.maximumId) &&
+                           !has(self.observed.indexName) && !has(self.observed.indexValid) &&
+                           !has(self.observed.indexReady) && !has(self.observed.object) &&
+                           !has(self.observed.sha256))
+                        message: known-row-readable requires only positive matchingRows and marker observations.
+                      - rule: >-
+                          self.name != 'restore-probe-heap-readable' ||
+                          (has(self.observed.rowCount) && self.observed.rowCount > 0 &&
+                           has(self.observed.minimumId) && has(self.observed.maximumId) &&
+                           self.observed.minimumId <= self.observed.maximumId &&
+                           !has(self.observed.pgIsInRecovery) && !has(self.observed.matchingRows) &&
+                           !has(self.observed.marker) && !has(self.observed.indexName) &&
+                           !has(self.observed.indexValid) && !has(self.observed.indexReady) &&
+                           !has(self.observed.object) && !has(self.observed.sha256))
+                        message: restore-probe-heap-readable requires only rowCount/minimumId/maximumId observations.
+                      - rule: >-
+                          self.name != 'primary-key-index-readable' ||
+                          (has(self.observed.matchingRows) && self.observed.matchingRows > 0 &&
+                           has(self.observed.indexName) && has(self.observed.indexValid) &&
+                           self.observed.indexValid == true && has(self.observed.indexReady) &&
+                           self.observed.indexReady == true && !has(self.observed.pgIsInRecovery) &&
+                           !has(self.observed.marker) && !has(self.observed.rowCount) &&
+                           !has(self.observed.minimumId) && !has(self.observed.maximumId) &&
+                           !has(self.observed.object) && !has(self.observed.sha256))
+                        message: primary-key-index-readable requires only positive index observations.
+                      - rule: >-
+                          self.name != 'selected-backup-object-readable' ||
+                          (has(self.observed.object) && has(self.observed.sha256) &&
+                           !has(self.observed.pgIsInRecovery) && !has(self.observed.matchingRows) &&
+                           !has(self.observed.marker) && !has(self.observed.rowCount) &&
+                           !has(self.observed.minimumId) && !has(self.observed.maximumId) &&
+                           !has(self.observed.indexName) && !has(self.observed.indexValid) &&
+                           !has(self.observed.indexReady))
+                        message: selected-backup-object-readable requires only object and sha256 observations.
+                    properties:
+                      name:
+                        type: string
+                        enum:
+                          - outside-recovery
+                          - known-row-readable
+                          - restore-probe-heap-readable
+                          - primary-key-index-readable
+                          - selected-backup-object-readable
+                      result:
+                        type: string
+                        enum: [PASS]
+                      observed:
+                        type: object
+                        minProperties: 1
+                        # NB: no `additionalProperties: false` here. Beside `properties` it is
+                        # forbidden in a structural schema (the API server rejects the whole CRD:
+                        # "additionalProperties and properties are mutual exclusive"), and it is
+                        # redundant — structural pruning already drops unknown fields.
+                        properties:
+                          pgIsInRecovery:
+                            type: boolean
+                          matchingRows:
+                            type: integer
+                            minimum: 0
+                          marker:
+                            type: string
+                            minLength: 1
+                            maxLength: 1024
+                          rowCount:
+                            type: integer
+                            minimum: 0
+                          minimumId:
+                            type: integer
+                          maximumId:
+                            type: integer
+                          indexName:
+                            type: string
+                            minLength: 1
+                            maxLength: 253
+                          indexValid:
+                            type: boolean
+                          indexReady:
+                            type: boolean
+                          object:
+                            type: string
+                            minLength: 1
+                            maxLength: 1024
+                          sha256:
+                            type: string
+                            pattern: '^sha256:[0-9a-f]{64}$'
+                checkProfileDigest:
+                  type: string
+                  pattern: '^sha256:[0-9a-f]{64}$'
+                manifestDigest:
+                  type: string
+                  pattern: '^sha256:[0-9a-f]{64}$'
+                isolation:
+                  type: object
+                  required:
+                    - effectivePolicyResult
+                    - effectivePolicyName
+                    - effectivePolicyDigest
+                    - writeDenialProbeResult
+                    - writeDenialRawResponse
+                    - writeDenialObject
+                    - writeDenialObjectAbsent
+                  properties:
+                    effectivePolicyResult:
+                      type: string
+                      minLength: 1
+                      maxLength: 2048
+                    effectivePolicyName:
+                      type: string
+                      minLength: 1
+                      maxLength: 253
+                    effectivePolicyDigest:
+                      type: string
+                      pattern: '^sha256:[0-9a-f]{64}$'
+                    writeDenialProbeResult:
+                      type: string
+                      minLength: 1
+                      maxLength: 2048
+                    writeDenialRawResponse:
+                      type: string
+                      minLength: 1
+                      maxLength: 16384
+                    writeDenialObject:
+                      type: string
+                      minLength: 1
+                      maxLength: 1024
+                    writeDenialObjectAbsent:
+                      type: boolean
+                      enum: [true]
+                verifierVersion:
+                  type: string
+                  pattern: '^sha256:[0-9a-f]{64}$'
+                cnpgVersion:
+                  type: string
+                  minLength: 1
+                  maxLength: 128
+                pluginIdentity:
+                  type: string
+                  minLength: 1
+                  maxLength: 253
+                pluginVersion:
+                  type: string
+                  minLength: 1
+                  maxLength: 128
+                evidenceRef:
+                  type: string
+                  minLength: 1
+                  maxLength: 1024

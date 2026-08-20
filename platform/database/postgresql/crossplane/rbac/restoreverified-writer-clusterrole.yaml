@@ -1,0 +1,11 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: restoreverified-writer
+  labels:
+    app.kubernetes.io/part-of: openkubes-database-postgresql
+    openkubes.ai/adr: adr-platform-032
+rules:
+  - apiGroups: [evidence.platform.openkubes.ai]
+    resources: [restoreverifieds]
+    verbs: [create, get, list, watch]

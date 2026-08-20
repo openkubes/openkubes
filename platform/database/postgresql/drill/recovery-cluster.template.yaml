@@ -1,0 +1,107 @@
+apiVersion: barmancloud.cnpg.io/v1
+kind: ObjectStore
+metadata:
+  name: ${RECOVERY_CLUSTER}-source
+  namespace: ${NAMESPACE}
+  labels:
+    platform.openkubes.ai/database-drill-run: ${RUN_ID}
+spec:
+  configuration:
+    # bootstrap.recovery.source and externalClusters[].plugin.parameters.serverName
+    # are both derived from SOURCE_CLUSTER. The server folder below this path is
+    # therefore exactly ok-db-backups/SOURCE_CLUSTER.
+    destinationPath: s3://ok-db-backups
+    endpointURL: ${MINIO_ENDPOINT}
+    endpointCA:
+      name: ${MINIO_CA_SECRET}
+      key: ca.crt
+    s3Credentials:
+      accessKeyId:
+        name: ${SOURCE_CREDENTIALS_SECRET}
+        key: ACCESS_KEY_ID
+      secretAccessKey:
+        name: ${SOURCE_CREDENTIALS_SECRET}
+        key: ACCESS_SECRET_KEY
+  instanceSidecarConfiguration:
+    resources:
+      requests:
+        cpu: 25m
+        memory: 64Mi
+      limits:
+        cpu: 200m
+        memory: 256Mi
+---
+apiVersion: barmancloud.cnpg.io/v1
+kind: ObjectStore
+metadata:
+  name: ${RECOVERY_CLUSTER}-destination
+  namespace: ${NAMESPACE}
+  labels:
+    platform.openkubes.ai/database-drill-run: ${RUN_ID}
+spec:
+  configuration:
+    destinationPath: s3://ok-db-drill/${RUN_ID}
+    endpointURL: ${MINIO_ENDPOINT}
+    endpointCA:
+      name: ${MINIO_CA_SECRET}
+      key: ca.crt
+    s3Credentials:
+      accessKeyId:
+        name: ${DRILL_CREDENTIALS_SECRET}
+        key: ACCESS_KEY_ID
+      secretAccessKey:
+        name: ${DRILL_CREDENTIALS_SECRET}
+        key: ACCESS_SECRET_KEY
+    wal:
+      compression: gzip
+  instanceSidecarConfiguration:
+    resources:
+      requests:
+        cpu: 25m
+        memory: 64Mi
+      limits:
+        cpu: 200m
+        memory: 256Mi
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: ${RECOVERY_CLUSTER}
+  namespace: ${NAMESPACE}
+  labels:
+    platform.openkubes.ai/database-drill-run: ${RUN_ID}
+spec:
+  instances: 1
+  imageName: ${POSTGRES_IMAGE}
+  serviceAccountTemplate:
+    metadata:
+      labels:
+        platform.openkubes.ai/database-drill-run: ${RUN_ID}
+  bootstrap:
+    recovery:
+      source: ${SOURCE_CLUSTER}
+      recoveryTarget:
+        backupID: ${BACKUP_ID}
+  externalClusters:
+    - name: ${SOURCE_CLUSTER}
+      plugin:
+        name: barman-cloud.cloudnative-pg.io
+        parameters:
+          barmanObjectName: ${RECOVERY_CLUSTER}-source
+          serverName: ${SOURCE_CLUSTER}
+  plugins:
+    - name: barman-cloud.cloudnative-pg.io
+      enabled: true
+      isWALArchiver: true
+      parameters:
+        barmanObjectName: ${RECOVERY_CLUSTER}-destination
+  storage:
+    size: ${STORAGE_SIZE}
+    storageClass: ${STORAGE_CLASS}
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
