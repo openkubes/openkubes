@@ -1,0 +1,45 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: OK141ControlledEnablementFailureClosure
+metadata:
+  name: ok141-controlled-enablement-failure-e1-v1
+spec:
+  source:
+    candidateDigest: sha256:ca3801cded6747c8f09c92ff9d617c5a61a129244a1f6d385621003c6349231b
+    grantID: ok141-controlled-enablement-failure-e1-20260820-01
+    rawEvidenceDigest: sha256:56340d4dcee404155db74d8560dea942e44926923fb541e0eebe218fe7d1ca3e
+  result:
+    state: PASS-FAIL-CLOSED-RESTORED
+    initialNetworkReady: true
+    faultWritten: true
+    faultObserved: true
+    NetworkReadyDuringFault: false
+    runtimeReadyDuringFault: true
+    exactRestoreWritten: true
+    recoveryObserved: true
+    NetworkReadyAfterRestore: true
+    runtimeReadyAfterRestore: true
+  safety:
+    directRuntimeMutationPerformed: false
+    runnerRepairPerformed: false
+    deletePerformed: false
+    retryPerformed: false
+    rawObjectsRetained: false
+    credentialPayloadRetained: false
+    postRunReadOnlyPreflight: PASS-READY-NO-WRITES
+  ownership:
+    desiredEnablementOwner: CAAPH-Helm
+    runtimeNetworkTruthOwner: Cilium-Kubernetes
+    runnerRole: observe-correlate-evaluate-fail-closed
+    runnerOwnsEnablementRepair: false
+    newOpenKubesReconcilerProvenNecessary: false
+  interpretation:
+    - A wrong desired Enablement projection makes NetworkReady fail closed even while the existing runtime remains healthy.
+    - CAAPH and Helm remain responsible for Enablement convergence.
+    - Restoring the exact desired projection returns HCP, HRP, and NetworkReady to the healthy baseline.
+    - The result supports architecture hypothesis A for the tested Enablement failure boundary.
+  publication:
+    state: NO-GO
+    rawEvidencePublished: false
+    secretMaterialPublished: false
+    rawObjectsPublished: false
+    identifiersPublished: false

@@ -102,3 +102,20 @@ The executable E1 candidate is defined separately in
 non-authorizing. The bounded runner refuses execution without a matching,
 active, single-run grant that explicitly authorizes both the fault and the
 exact restore.
+
+## E1 result
+
+The authorized E1 run completed with `PASS-FAIL-CLOSED-RESTORED`:
+
+```text
+baseline NetworkReady     True
+fault NetworkReady        False
+runtime during fault      Ready
+runner repair             none
+exact HCP restore         complete
+post-restore NetworkReady True
+```
+
+The raw local Evidence remains private. The public closure file contains only
+redacted claims and remains `publication.state: NO-GO` until separately
+authorized.
