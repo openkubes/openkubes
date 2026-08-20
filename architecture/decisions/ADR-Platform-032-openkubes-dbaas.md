@@ -73,11 +73,17 @@
 >    `failed to apply OCI options: failed to mkdir "": mkdir : no such file or directory` — and the
 >    instance never starts. The identical error, character for character, occurs on a second cluster
 >    (Talos v1.9.6, containerd 2.0.5, k8s v1.36.2) where `ImageVolume` is **GA and enabled by
->    default**. The failure is therefore invariant across two Talos versions, two containerd
->    versions, two Kubernetes versions and both gate stages, which points at the Talos containerd
->    configuration rather than any of those variables; it is **not root-caused**. The cluster
->    requirement is consequently *a node runtime that can mount image volumes* **and** the gate —
->    not the gate alone. **Operationally: enabling the gate on ok-robotics took the database down**
+>    default**. **The cause is the container runtime version.** containerd added *OCI/Image Volume
+>    Source support* only in **v2.1.0** (CRI highlight, containerd#10579); both clusters run the
+>    2.0.x series — 2.0.3 and 2.0.5. Kubernetes admits the field and the kubelet forwards it over
+>    CRI, but a 2.0.x runtime has no handler for it, and that is where the empty mount path comes
+>    from. Invariance across 2.0.3 and 2.0.5 therefore says nothing about configuration: both
+>    predate the feature, so the earlier reading of this evidence — that it pointed at Talos's
+>    containerd configuration — was wrong. (The same error string is also reachable on a runtime
+>    that *does* support the feature, by mounting an image volume at `/`; that is a distinct trigger
+>    we did not hit, since every mount here was a non-root path.) The cluster requirement is
+>    consequently **containerd >= 2.1.0** — or another runtime implementing the CRI image-volume
+>    source — **and** the gate, not the gate alone. **Operationally: enabling the gate on ok-robotics took the database down**
 >    (~8 minutes; the instance could not start until the gate was reverted), so "just enable the
 >    gate" is not a safe instruction.
 >
@@ -1154,10 +1160,14 @@ The two causes behind item 4, neither of which sits in this contract:
                                                 with the gate ON the container cannot be created
                                                 (`failed to mkdir ""`). Reproduced with the gate
                                                 both beta-enabled and GA, across two Talos and
-                                                two containerd versions. NOT root-caused. A
-                                                bundled image delivers pgvector 0.8.6 without
-                                                image volumes, at the cost of a fixed extension
-                                                set (weaker than §6.4).
+                                                two containerd versions. CAUSE: containerd adds
+                                                OCI/Image Volume Source only in v2.1.0
+                                                (containerd#10579); these run 2.0.3 and 2.0.5, so
+                                                the runtime has no handler for the field the
+                                                kubelet forwards. Requirement is containerd
+                                                >= 2.1.0 AND the gate. A bundled image delivers
+                                                pgvector 0.8.6 without image volumes, at the cost
+                                                of a fixed extension set (weaker than §6.4).
 ```
 
 So a `Database` requesting `postgresql.extension.pgvector` is out of v1 scope. Closing it needs a
