@@ -1,0 +1,41 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: OK141DeleteD0StoppedEvidence
+metadata:
+  name: ok141-delete-d0-v2-stopped-20260820
+  ticket: OK-141
+spec:
+  state: STOPPED-FAIL-CLOSED-NO-RETRY
+  observedAt: "2026-08-20T14:21:22Z"
+  bindings:
+    candidateDigest: sha256:6064e19d7af591a4e32835b5b4f08afccc16217beaedb3e27a9f3457238170e5
+    grantFileDigest: sha256:83265d2a0719de3c6caeb5ce4d45976c8c237f07fc9ad992463f91377be1a115
+    grantID: ok141-delete-d0-binding-v2-20260820-01
+  result:
+    failedQueryID: provider-longhorn-volumes
+    expectedCount: 2
+    observedCount: 0
+    runtimeBindingWritten: false
+    privateEvidenceWritten: false
+    mutationPerformed: false
+    deletePerformed: false
+    retryPerformed: false
+  causeClassification:
+    class: LONGHORN-CORRELATION-UNRESOLVED
+    assumedCorrelation: PV csi.volumeHandle equals Longhorn metadata.name
+    alternativeCorrelation: Longhorn status.kubernetesStatus tuple
+    retainedStorageLossProven: false
+  redaction:
+    rawObjectsRetained: false
+    endpointsRetained: false
+    uidsRetained: false
+    resourceVersionsRetained: false
+    secretValuesRetained: false
+    credentialsRetained: false
+  authorization:
+    decision: NO-GO
+    diagnosticGranted: false
+    retryGranted: false
+    mutationGranted: false
+    deleteGranted: false
+    cleanupGranted: false
+    publicationGranted: false

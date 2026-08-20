@@ -1,0 +1,54 @@
+apiVersion: publication.openkubes.io/v1alpha1
+kind: OK141DeleteLonghornCorrelationPublicationCandidate
+metadata:
+  name: ok141-delete-longhorn-correlation-diagnostic-v1
+  ticket: OK-141
+spec:
+  state: PREPARED-NOT-AUTHORIZED
+  baseCommit: 96a57d7b84c2bda7c31287783a76d5a173457ae7
+  scope:
+    - README.md
+    - delete-d0-v2-stopped-evidence.yaml
+    - delete-longhorn-correlation-diagnostic-candidate-v1.yaml
+    - run_delete_longhorn_correlation_diagnostic_v1.py
+    - test_delete_longhorn_correlation_diagnostic_v1.py
+  bindings:
+    stoppedEvidenceDigest: sha256:f3ab796a048348fcbfd5904ec015512640131a518a147fc048df94fc7210cd4f
+    candidateFileDigest: sha256:39a715ccfe16b366f3d7fb552c7edfb585f035b0b44afce5ee814a0f1fe4525d
+    candidateSemanticDigest: sha256:009d2f6be72d5b656bf11f340ef00023df48260c11b91a757a4f28c02528ab8d
+    executorDigest: sha256:03323a0ce6341eb9c2bfe69e8b75793dc90eda9d7b301d3f20f19957181054ca
+    queryProfileDigest: sha256:2178190922f8aeddab1fa3a60633e5aae9516d5f248b366cc0d7e47e35b6dbba
+    testDigest: sha256:e77b8905bcf9245e9c7bd2acba1a6b2d54978e7e8df1ee6603b59bdfc75213f3
+    readmeDigest: sha256:36ea631032f703b785cc6eb9b488d09641544d3dce508cb830e3d3ff066b2bc7
+    offlineTestsPassed: 9
+  claims:
+    d0V2StoppedFailClosed: true
+    d0V2PartialOutputWritten: false
+    diagnosticPrepared: true
+    diagnosticQueryCount: 2
+    diagnosticPerformed: false
+    clusterContactPerformedByPreparation: false
+    mutationPerformedByPreparation: false
+  redaction:
+    rawObjectsExcluded: true
+    rawNamesExcluded: true
+    endpointsExcluded: true
+    uidsExcluded: true
+    resourceVersionsExcluded: true
+    secretValuesExcluded: true
+    credentialsExcluded: true
+    kubeconfigsExcluded: true
+  authorization:
+    publicationGranted: false
+    commitGranted: false
+    pushGranted: false
+    pullRequestGranted: false
+    reviewGranted: false
+    mergeGranted: false
+    diagnosticGranted: false
+    credentialUseGranted: false
+    mutationGranted: false
+    deleteGranted: false
+    cleanupGranted: false
+    retryGranted: false
+    failureInjectionGranted: false
