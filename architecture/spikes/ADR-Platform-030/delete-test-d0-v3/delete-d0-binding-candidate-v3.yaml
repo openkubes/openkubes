@@ -1,0 +1,71 @@
+apiVersion: observation.openkubes.io/v1alpha1
+kind: OK141DeleteD0BindingCandidate
+metadata:
+  name: ok141-delete-d0-binding-v3
+  ticket: OK-141
+spec:
+  version: ok141-delete-d0-binding/v3
+  state: READY-FOR-EXPLICIT-READ-ONLY-GRANT
+  baseCommit: aa46d621b88b3e4dd2a5f096da52272b88a34ebf
+  bindings:
+    v2CandidatePath: ../delete-test-d0-v2/delete-d0-binding-candidate-v2.yaml
+    v2CandidateDigest: sha256:6064e19d7af591a4e32835b5b4f08afccc16217beaedb3e27a9f3457238170e5
+    v2ExecutorPath: ../delete-test-d0-v2/prepare_delete_d0_binding_v2.py
+    v2ExecutorDigest: sha256:d7e75599bf369b06d8a7dd5acb28af3a850fa8a756833c541804d9a329c9467f
+    longhornClosurePath: ../delete-longhorn-correlation-evidence-v1/delete-longhorn-correlation-closure-evidence-v1.yaml
+    longhornClosureDigest: sha256:8c11c9bf42d25f96817c43f3e4e0b11b3ed24f15e81f163038b41d29167ae634
+  amendment:
+    queryID: provider-longhorn-volumes
+    replacesPostFilter: derived:provider-pv-volume-handles
+    postFilter: derived:provider-pv-longhorn-exact-equality
+    deriveBeforeRedaction: true
+    rawPVFields:
+      - metadata.name
+      - spec.csi.volumeHandle
+      - spec.claimRef.namespace
+      - spec.claimRef.name
+    requiredLonghornEquality:
+      - metadata.name equals PV metadata.name
+      - metadata.name equals PV csi.volumeHandle
+      - status.kubernetesStatus.namespace equals PV claim namespace
+      - status.kubernetesStatus.pvName equals PV metadata.name
+      - status.kubernetesStatus.pvcName equals PV claim name
+    requiredEqualityCount: 2
+    allOtherQueriesUnchanged: true
+  tool:
+    executorPath: prepare_delete_d0_binding_v3.py
+    executorDigest: sha256:66f45942bfe28d52860cb4a673bab39aa893e53952f942811ab94a41b5a4e8e5
+    queryProfileDigest: sha256:f8dbcf6195712fdac4acfa5ff5bbc2eb8694f8c1f6436e6c400758cfa5888853
+    kubectlPath: /private/tmp/ok141-kubectl-v1.34.1-darwin-amd64
+    kubectlDigest: sha256:bb211f2b31f2b3bc60562b44cc1e3b712a16a98e9072968ba255beb04cefcfdf
+    discoveryAllowed: false
+    watchAllowed: false
+    mutationAllowed: false
+  privateOutputs:
+    bindingPath: /private/tmp/ok141-delete-d0-runtime-binding-v3.json
+    evidencePath: /private/tmp/ok141-delete-d0-evidence-v3.json
+    outputMustBeAbsent: true
+    mode: "0600"
+    maximumBindingAgeMinutes: 10
+    rawResponsesRetained: false
+    secretValuesRetained: false
+    publishable: false
+  authorization:
+    decision: NO-GO
+    readOnlyBindingGranted: false
+    credentialUseGranted: false
+    secretMetadataReadGranted: false
+    mutationGranted: false
+    deleteGranted: false
+    cleanupGranted: false
+    retryGranted: false
+    rollbackGranted: false
+    publicationGranted: false
+    outageGranted: false
+    failureInjectionGranted: false
+  exclusions:
+    - reuse of v1 or v2 grants or outputs
+    - D1 D2 D3 D4 D5 D6 or D7 execution
+    - create update patch apply delete TokenRequest watch discovery logs or exec
+    - raw Secret values credentials endpoints or kubeconfig content in output
+    - use of this start binding for D5 retained-storage cleanup

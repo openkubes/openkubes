@@ -1,0 +1,60 @@
+apiVersion: publication.openkubes.io/v1alpha1
+kind: OK141DeleteD0V3PublicationCandidate
+metadata:
+  name: ok141-delete-d0-storage-correlation-v3
+  ticket: OK-141
+spec:
+  state: PREPARED-NOT-AUTHORIZED
+  baseCommit: aa46d621b88b3e4dd2a5f096da52272b88a34ebf
+  scope:
+    - README.md
+    - delete-d0-binding-candidate-v3.yaml
+    - prepare_delete_d0_binding_v3.py
+    - test_prepare_delete_d0_binding_v3.py
+  bindings:
+    longhornClosureDigest: sha256:8c11c9bf42d25f96817c43f3e4e0b11b3ed24f15e81f163038b41d29167ae634
+    candidateFileDigest: sha256:771c09a760940afa8c04a26a79e3e921c11d87d96ae949c1781f4fd7c846074b
+    candidateSemanticDigest: sha256:fc3c68828f87cfecb2f12bbcb18188cc16f6c386993f7b2e15406c84e47baa77
+    executorDigest: sha256:66f45942bfe28d52860cb4a673bab39aa893e53952f942811ab94a41b5a4e8e5
+    queryProfileDigest: sha256:f8dbcf6195712fdac4acfa5ff5bbc2eb8694f8c1f6436e6c400758cfa5888853
+    testDigest: sha256:9df62b9a62017939c18178b21aade66020ee4c71f3ae48d6bc7964c3e4dd4479
+    readmeDigest: sha256:d0ae337f11939f5a8f0c9996287cc522561591f29ce6bd972947ca8d586f8a88
+    offlineTestsPassed: 10
+  claims:
+    d0v2StoppedFailClosed: true
+    d0v2PartialOutputWritten: false
+    d0v2RetryPerformed: false
+    retainedLonghornVolumesProvenPresent: true
+    exactPVLonghornEqualityBound: true
+    rawPVIdentityDerivedBeforeRedaction: true
+    dataVolumeV2AmendmentRetained: true
+    allOtherQueriesUnchanged: true
+    v3LiveBindingPerformed: false
+    clusterContactPerformedByAmendment: false
+    mutationPerformedByAmendment: false
+  redaction:
+    rawObjectsExcluded: true
+    endpointsExcluded: true
+    uidsExcluded: true
+    resourceVersionsExcluded: true
+    secretValuesExcluded: true
+    credentialsExcluded: true
+    kubeconfigsExcluded: true
+    privateKeysExcluded: true
+  authorization:
+    publicationGranted: false
+    commitGranted: false
+    pushGranted: false
+    pullRequestGranted: false
+    reviewGranted: false
+    mergeGranted: false
+    liveReadGranted: false
+    credentialUseGranted: false
+    secretMetadataReadGranted: false
+    mutationGranted: false
+    deleteGranted: false
+    cleanupGranted: false
+    retryGranted: false
+    rollbackGranted: false
+    outageGranted: false
+    failureInjectionGranted: false
