@@ -57,6 +57,13 @@ spec:
             {{- $backupValidity := "+168h" }}
             {{- $backupGracePeriod := "+72h" }}
             {{- $initialVerificationDeadline := "+336h" }}
+            {{- /* §13 bound 1. production's RPO bound: the maximum WAL-archive lag that counts as
+                   protected, and the maximum age of the lag MEASUREMENT itself — an old
+                   measurement is not a current claim. development requires no RPO evidence, which
+                   is a decision rather than an omission: dev tolerates loss, and demanding an
+                   observation nothing publishes yet would make every dev Database unready. */}}
+            {{- $rpoMaxWalLagSeconds := 300 }}
+            {{- $rpoEvidenceMaxAgeSeconds := 900 }}
             {{- $protectionValidReason := "BackupCompletedAvailableAndArchivingNotFailing" }}
             {{- /* §13 bound 3. The evidence Backup is a FIXED anchor: a static
                    provider-kubernetes Object cannot enumerate generated-name Backup CRs, so
@@ -149,6 +156,7 @@ spec:
                    successful backup is deliberately not required. */}}
             {{- $serverRecoveryWindows := dig "serverRecoveryWindow" (dict) $objectStoreStatus }}
             {{- $backupAvailability := dig $dbName (dict) $serverRecoveryWindows }}
+            {{- $extraResources := default (dict) $.extraResources }}
             {{- $oldEvidence := dig "status" "evidence" (dict) $xr }}
 
             {{- /* Operational evidence comes only from the current Ready sensor. */}}
@@ -184,9 +192,9 @@ spec:
             {{- $pgvectorObserved = true }}
             {{- end }}
             {{- end }}
-            {{- /* The capability DECISION is made further down, once ExtraResources has been
-                   read: it needs an admitted CapabilityVerified, and $extraResources does not
-                   exist yet at this point. Only the observation is computed here. */}}
+            {{- /* The capability DECISION is made further down, alongside the other evidence
+                   selections: it needs the observed Cluster identity and the running image digest
+                   that are resolved there. Only the observation is computed here. */}}
 
             {{- /* Protection is reduced once from three independently visible signals.
                    A Backup CR is execution history, ObjectStore is current catalogue
@@ -329,6 +337,63 @@ spec:
             {{- end }}
             {{- end }}
 
+            {{- /* RPO freshness (§13 bound 1), the third signal §11.1 named and nothing could
+                   see. ContinuousArchiving=True only means archiving is not FAILING; a slow or
+                   stalled-but-not-failed archiver satisfies it, so treating it as an RPO bound
+                   would be exactly the proxy this contract refuses. The measurement therefore
+                   arrives as a typed ArchiveFreshness observation.
+
+                   production requires it. Absent or aged-out is Unknown/RPOFreshnessUnproven —
+                   never Valid and never Failed, because being unable to observe is not a
+                   counter-proof (§11.1). A lag beyond the bound IS a counter-proof: we looked and
+                   the archive is behind. */}}
+            {{- $rpoState := "Valid" }}
+            {{- $rpoReason := "RPONotRequiredForClass" }}
+            {{- $rpoObservedAt := $initialObservedAt }}
+            {{- $rpoLagSeconds := -1 }}
+            {{- if $isProduction }}
+            {{- $rpoState = "Unknown" }}
+            {{- $rpoReason = "RPOFreshnessUnproven" }}
+            {{- $freshnessResults := index $extraResources "archive-freshness" | default (dict "items" (list)) }}
+            {{- $selectedFreshnessAt := "1970-01-01T00:00:00Z" }}
+            {{- range $required := dig "items" (list) $freshnessResults }}
+            {{- $candidate := dig "resource" (dict) $required }}
+            {{- $candidateSpec := dig "spec" (dict) $candidate }}
+            {{- $afClusterRef := dig "clusterRef" (dict) $candidateSpec }}
+            {{- $afObserved := dig "observed" (dict) $candidateSpec }}
+            {{- $canonicalAfObservedAt := include "canonicalRFC3339" (dig "timing" "observedAt" "" $candidateSpec) }}
+            {{- $afAdmissible := and
+                  (eq (dig "apiVersion" "" $candidate) "evidence.platform.openkubes.ai/v1alpha1")
+                  (eq (dig "kind" "" $candidate) "ArchiveFreshness")
+                  (eq (dig "uid" "" $afClusterRef) (dig "metadata" "uid" "" $clusterManifest))
+                  (eq (dig "namespace" "" $afClusterRef) $namespace)
+                  (eq (dig "name" "" $afClusterRef) $dbName)
+                  (ne (dig "probeDigest" "" $candidateSpec) "")
+                  (hasKey $afObserved "walLagSeconds")
+                  (ne $canonicalAfObservedAt "")
+                  (not ((toDate $layout $canonicalAfObservedAt).After now)) }}
+            {{- if and $afAdmissible ((toDate $layout $canonicalAfObservedAt).After (toDate $layout (include "canonicalRFC3339" $selectedFreshnessAt))) }}
+            {{- $selectedFreshnessAt = $canonicalAfObservedAt }}
+            {{- $rpoObservedAt = $canonicalAfObservedAt }}
+            {{- $rpoLagSeconds = int64 (dig "walLagSeconds" 0 $afObserved) }}
+            {{- end }}
+            {{- end }}
+            {{- if ne $selectedFreshnessAt "1970-01-01T00:00:00Z" }}
+            {{- $measurementExpiry := dateModify (printf "+%ds" (int $rpoEvidenceMaxAgeSeconds)) (toDate $layout $selectedFreshnessAt) }}
+            {{- if now.After $measurementExpiry }}
+            {{- /* The measurement itself aged out. Unknown, not Failed: we no longer know the
+                   lag, which is different from knowing it is bad. */}}
+            {{- $rpoReason = "RPOObservationExpired" }}
+            {{- else if gt $rpoLagSeconds (int64 $rpoMaxWalLagSeconds) }}
+            {{- $rpoState = "Failed" }}
+            {{- $rpoReason = "RPOBoundExceeded" }}
+            {{- else }}
+            {{- $rpoState = "Valid" }}
+            {{- $rpoReason = "RPOWithinBound" }}
+            {{- end }}
+            {{- end }}
+            {{- end }}
+
             {{- $protectionState := "Unknown" }}
             {{- $protectionReason := "AwaitingFirstBackup" }}
             {{- $protectionObservedAt := $executionObservedAt }}
@@ -384,8 +449,17 @@ spec:
             {{- $protectionReason = $executionReason }}
             {{- else if eq $availabilityState "Unknown" }}
             {{- $protectionReason = $availabilityReason }}
+            {{- else if eq $rpoState "Failed" }}
+            {{- $protectionState = "Failed" }}
+            {{- $protectionReason = $rpoReason }}
+            {{- $protectionObservedAt = $rpoObservedAt }}
             {{- else if eq $archivingState "Unknown" }}
             {{- $protectionReason = $archivingReason }}
+            {{- else if eq $rpoState "Unknown" }}
+            {{- /* production cannot be Valid without a current RPO measurement. This is the whole
+                   point of bound 1: previously production reached Valid on ContinuousArchiving
+                   alone, which the ADR says is not an RPO bound. */}}
+            {{- $protectionReason = $rpoReason }}
             {{- else if and $protectionExpired (eq $availabilityState "Valid") }}
             {{- if $samePriorEvidence }}
             {{- $protectionState = "Stale" }}
@@ -417,7 +491,6 @@ spec:
             {{- $selectedRestore := dict }}
             {{- $selectedCompletedAt := "1970-01-01T00:00:00Z" }}
             {{- $canonicalSelectedCompletedAt := include "canonicalRFC3339" $selectedCompletedAt }}
-            {{- $extraResources := default (dict) $.extraResources }}
             {{- $restoreResults := index $extraResources "restore-evidence" | default (dict "items" (list)) }}
             {{- range $required := dig "items" (list) $restoreResults }}
             {{- $candidate := dig "resource" (dict) $required }}
@@ -777,6 +850,13 @@ spec:
                 kind: CapabilityVerified
                 matchLabels:
                   platform.openkubes.ai/source-cluster: {{ $dbName | quote }}
+              {{- if $isProduction }}
+              archive-freshness:
+                apiVersion: evidence.platform.openkubes.ai/v1alpha1
+                kind: ArchiveFreshness
+                matchLabels:
+                  platform.openkubes.ai/source-cluster: {{ $dbName | quote }}
+              {{- end }}
               {{- if ne $dataPolicyName "" }}
               data-policy:
                 apiVersion: platform.openkubes.ai/v1alpha1
@@ -1132,6 +1212,14 @@ spec:
                       state: {{ $archivingState }}
                       reason: {{ $archivingReason }}
                       observedAt: {{ $archivingObservedAt | quote }}
+                    rpo:
+                      state: {{ $rpoState }}
+                      reason: {{ $rpoReason }}
+                      observedAt: {{ $rpoObservedAt | quote }}
+                      {{- if ge $rpoLagSeconds 0 }}
+                      walLagSeconds: {{ $rpoLagSeconds }}
+                      maxWalLagSeconds: {{ $rpoMaxWalLagSeconds }}
+                      {{- end }}
                 recovery:
                   state: {{ $recoveryState }}
                   reason: {{ $recoveryReason }}

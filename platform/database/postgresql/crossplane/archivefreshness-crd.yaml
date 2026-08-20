@@ -1,0 +1,121 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: archivefreshnesses.evidence.platform.openkubes.ai
+  labels:
+    app.kubernetes.io/part-of: openkubes-database-postgresql
+    openkubes.ai/adr: adr-platform-032
+spec:
+  group: evidence.platform.openkubes.ai
+  scope: Cluster
+  names:
+    plural: archivefreshnesses
+    singular: archivefreshness
+    kind: ArchiveFreshness
+    shortNames: [af]
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      additionalPrinterColumns:
+        - name: Lag
+          type: integer
+          jsonPath: .spec.observed.walLagSeconds
+        - name: Pending
+          type: integer
+          jsonPath: .spec.observed.pendingWalCount
+        - name: Observed
+          type: date
+          jsonPath: .spec.timing.observedAt
+      schema:
+        openAPIV3Schema:
+          type: object
+          required: [spec]
+          properties:
+            spec:
+              type: object
+              description: >-
+                A measured WAL-archive lag, which §11.1's third signal needs and
+                nothing in the platform could previously see. The Barman Cloud Plugin
+                v0.14.0 publishes no WAL age or backlog in any status field, and a
+                Composition can read Kubernetes resources rather than an operator's
+                metrics endpoint — so the observation is published as a typed resource,
+                the same pattern §11.2 uses for RestoreVerified.
+
+                Why this exists at all: `ContinuousArchiving=True` means archiving is
+                not currently FAILING. It says nothing about how far behind the archive
+                is, so a slow or stalled-but-not-failed archiver satisfies it. Treating
+                that as an RPO bound is the proxy this contract refuses to invent.
+              x-kubernetes-validations:
+                - rule: self == oldSelf
+                  message: ArchiveFreshness spec is immutable; publish a new observation.
+              required: [clusterRef, observed, timing, probeDigest, verifierVersion]
+              properties:
+                clusterRef:
+                  type: object
+                  description: The CNPG Cluster this measurement was taken against.
+                  required: [apiVersion, kind, namespace, name, uid]
+                  properties:
+                    apiVersion:
+                      type: string
+                      enum: [postgresql.cnpg.io/v1]
+                    kind:
+                      type: string
+                      enum: [Cluster]
+                    namespace:
+                      type: string
+                      minLength: 1
+                      maxLength: 63
+                    name:
+                      type: string
+                      minLength: 1
+                      maxLength: 253
+                    uid:
+                      type: string
+                      minLength: 1
+                      maxLength: 128
+                observed:
+                  type: object
+                  required: [walLagSeconds, pendingWalCount, lastArchivedWalTime]
+                  x-kubernetes-validations:
+                    # A lag of zero with WALs still pending is incoherent: the archive cannot be
+                    # perfectly current while segments are queued behind it.
+                    - rule: self.walLagSeconds > 0 || self.pendingWalCount == 0
+                      message: A zero lag cannot coexist with pending WAL segments.
+                  properties:
+                    walLagSeconds:
+                      type: integer
+                      format: int64
+                      minimum: 0
+                      description: >-
+                        Seconds between the observation and the last WAL segment
+                        successfully archived. This is the quantity an RPO bound is
+                        actually about.
+                    pendingWalCount:
+                      type: integer
+                      format: int64
+                      minimum: 0
+                      description: Segments produced but not yet archived — the backlog half.
+                    lastArchivedWalTime:
+                      type: string
+                      format: date-time
+                    lastArchivedWal:
+                      type: string
+                      maxLength: 256
+                timing:
+                  type: object
+                  required: [observedAt]
+                  properties:
+                    observedAt:
+                      type: string
+                      format: date-time
+                      description: >-
+                        When the measurement was taken. The Composition ages this out,
+                        because an old lag measurement is not a current RPO claim.
+                probeDigest:
+                  type: string
+                  pattern: '^sha256:[a-f0-9]{64}$'
+                verifierVersion:
+                  type: string
+                  minLength: 1
+                  maxLength: 64

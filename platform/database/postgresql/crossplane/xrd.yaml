@@ -250,7 +250,7 @@ spec:
                           maxLength: 253
                         signals:
                           type: object
-                          required: [execution, availability, archiving]
+                          required: [execution, availability, archiving, rpo]
                           properties:
                             execution:
                               type: object
@@ -289,6 +289,25 @@ spec:
                                 state: *evidenceState
                                 reason: *evidenceReason
                                 observedAt: *observedAt
+                            rpo:
+                              type: object
+                              required: [state, reason, observedAt]
+                              description: >-
+                                Measured WAL-archive lag. §11.1's third signal, which
+                                ContinuousArchiving cannot supply: that condition only
+                                says archiving is not failing, so a stalled-but-not-failed
+                                archiver satisfies it. Required for production; absent or
+                                aged-out is Unknown, never Valid.
+                              properties:
+                                state: *evidenceState
+                                reason: *evidenceReason
+                                observedAt: *observedAt
+                                walLagSeconds:
+                                  type: integer
+                                  format: int64
+                                maxWalLagSeconds:
+                                  type: integer
+                                  format: int64
                     recovery:
                       type: object
                       required: [state, reason, observedAt]

@@ -26,6 +26,7 @@ RENDER_FLAGS := --crossplane-version=v2.3.3
 YAML_FILES := crossplane/xrd.yaml crossplane/composition.yaml \
 	crossplane/restoreverified-crd.yaml \
 	crossplane/capabilityverified-crd.yaml crossplane/datapolicy-crd.yaml \
+	crossplane/archivefreshness-crd.yaml \
 	crossplane/claim-admission-policy.yaml \
 	crossplane/rbac/claim-editor-role.yaml crossplane/rbac/claim-editor-binding.yaml \
 	crossplane/rbac/restoreverified-writer-clusterrole.yaml \
@@ -46,6 +47,7 @@ JSON_FILES := drill/minio-policy-backups-readonly.json \
 	claim-authority-model-check claim-admission-check evidence-status-check \
 	observation-freshness-check capability-admission-check capability-evidence-check \
 	credential-overlap-check residency-resolution-check anchor-supersession-check \
+	rpo-freshness-check \
 	restoreverified-api-check api-acceptance-check drill-validate drill-policy-check minio-provisioning-check \
 	restore-evidence-check \
 	require-mgmt-context require-mgmt-approval require-explicit-cluster require-deploy-user \
@@ -93,7 +95,8 @@ render-check: render-prerequisites ## Render both fixtures and assert Objects an
 		$(PYTHON) crossplane/tests/render-check.py "$$work/observed.yaml" --policy development \
 			--expected-protection-state Unknown --expected-protection-reason BackupAvailabilityUnproven; \
 		$(PYTHON) crossplane/tests/evidence-status-check.py "$$work/observed.yaml"
-	@$(MAKE) --no-print-directory capability-evidence-check residency-resolution-check anchor-supersession-check
+	@$(MAKE) --no-print-directory capability-evidence-check residency-resolution-check anchor-supersession-check \
+		rpo-freshness-check
 
 claim-policy-check: ## Prove authority guards fail, then validate the reviewed tuple
 	@$(PYTHON) crossplane/tests/claim-policy-check.py --negative-controls
@@ -132,7 +135,8 @@ api-acceptance-check: ## Dry-run generated XRD CRDs, evidence CRD, policy and RB
 			kubectl --context $(API_CONTEXT) apply --dry-run=server -f - >/dev/null; \
 		printf 'accepted\n'; \
 		for f in crossplane/restoreverified-crd.yaml crossplane/capabilityverified-crd.yaml \
-		         crossplane/datapolicy-crd.yaml crossplane/claim-admission-policy.yaml \
+		         crossplane/datapolicy-crd.yaml crossplane/archivefreshness-crd.yaml \
+		         crossplane/claim-admission-policy.yaml \
 		         crossplane/rbac/restoreverified-writer-clusterrole.yaml \
 		         crossplane/rbac/restoreverified-reader-clusterrole.yaml; do \
 			printf '  %s: ' "$$f"; \
@@ -180,6 +184,14 @@ capability-evidence-check: render-prerequisites ## Prove capability evidence dec
 # the anchor out of the moving recovery window while backups are healthy, and reading that as
 # BackupUnavailable is a counter-proof drawn from our own bookmark. Controls guard against this
 # being a suppression rather than a correction.
+# Bound 1. §11.1's third signal. ContinuousArchiving=True only means archiving is not FAILING, so
+# a stalled-but-not-failed archiver satisfies it — before this, production reached Valid on that
+# alone, which §10 explicitly disclaims as an RPO bound. Three outcomes must stay distinct: no or
+# aged-out measurement is Unknown, a lag past the bound is Failed, within is Valid.
+rpo-freshness-check: render-prerequisites ## Prove production needs a measured WAL lag, not a proxy
+	@$(PYTHON) crossplane/tests/rpo-freshness-check.py --negative-controls
+	@$(PYTHON) crossplane/tests/rpo-freshness-check.py
+
 anchor-supersession-check: render-prerequisites ## Prove protection follows the schedule, not the anchor
 	@$(PYTHON) crossplane/tests/anchor-supersession-check.py --negative-controls
 	@$(PYTHON) crossplane/tests/anchor-supersession-check.py

@@ -476,6 +476,42 @@ def scenario_inputs(name: str, now: datetime) -> tuple[dict[str, Any], list[dict
     return xr, observed
 
 
+def archive_freshness(now: datetime, cluster_uid: str) -> dict[str, Any]:
+    """A current, in-bound WAL-lag measurement (§13 bound 1).
+
+    Production scenarios need one to keep testing what they were written to test. Without it
+    every production case now reports Unknown/RPOFreshnessUnproven, which is CORRECT — production
+    must not reach Valid on ContinuousArchiving alone — but it would mask the readiness logic
+    these scenarios exist to exercise. rpo-freshness-check.py owns the absent/stale/exceeded paths.
+    """
+    observed_at = now - timedelta(minutes=1)
+    return {
+        "apiVersion": "evidence.platform.openkubes.ai/v1alpha1",
+        "kind": "ArchiveFreshness",
+        "metadata": {
+            "name": "archive-freshness-current",
+            "labels": {"platform.openkubes.ai/source-cluster": "ok-robotics"},
+        },
+        "spec": {
+            "clusterRef": {
+                "apiVersion": "postgresql.cnpg.io/v1",
+                "kind": "Cluster",
+                "namespace": "database-ok-robotics",
+                "name": "ok-robotics",
+                "uid": cluster_uid,
+            },
+            "observed": {
+                "walLagSeconds": 20,
+                "pendingWalCount": 0,
+                "lastArchivedWalTime": rfc3339(observed_at - timedelta(seconds=20)),
+            },
+            "timing": {"observedAt": rfc3339(observed_at)},
+            "probeDigest": "sha256:" + "3" * 64,
+            "verifierVersion": "wal-lag-probe/0.1.0",
+        },
+    }
+
+
 def render_scenario(
     name: str,
     now: datetime,
@@ -553,7 +589,20 @@ def render_scenario(
                 else:
                     raise EvidenceError(f"unknown artifact case {artifact_case!r}")
                 selected_artifacts = [tampered]
-            extra_path.write_text(yaml.safe_dump_all(selected_artifacts, sort_keys=False))
+            extra_artifacts = list(selected_artifacts)
+            if xr["spec"]["protection"]["policyRef"] == "production":
+                extra_artifacts.append(
+                    archive_freshness(now, observed_manifest(observed, "Cluster")["metadata"]["uid"])
+                )
+            extra_path.write_text(yaml.safe_dump_all(extra_artifacts, sort_keys=False))
+            command.append(f"--extra-resources={extra_path}")
+        elif xr["spec"]["protection"]["policyRef"] == "production":
+            extra_path.write_text(
+                yaml.safe_dump_all(
+                    [archive_freshness(now, observed_manifest(observed, "Cluster")["metadata"]["uid"])],
+                    sort_keys=False,
+                )
+            )
             command.append(f"--extra-resources={extra_path}")
         result = subprocess.run(
             command,

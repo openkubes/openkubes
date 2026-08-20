@@ -1108,10 +1108,21 @@ installing the capability and operating it — the kind of gap only a live pipel
 contracts; each blocks *delivered-capability* acceptance.
 
 ```text
-1. RPO freshness is unobservable        → ProtectionReady=Valid unreachable, so `production` is
-   (§11.1's third signal)                 unreachable. Renders Unknown/RPOFreshnessUnproven by
-                                          design rather than via a proxy. Needs a WAL age/backlog
-                                          observation the Composition can actually see.
+1. RPO freshness is unobservable        → CLOSED under OK-150. `ArchiveFreshness` (§11.2's
+   (§11.1's third signal) — CLOSED         evidence pattern) publishes a MEASURED
+                                          walLagSeconds/pendingWalCount the Composition selects
+                                          as protection's fourth signal. production requires it:
+                                          absent or aged-out is Unknown/RPOFreshnessUnproven or
+                                          RPOObservationExpired, a lag past the bound is
+                                          Failed/RPOBoundExceeded, within is Valid. Bounds are
+                                          class attributes (300s lag, 900s measurement age).
+                                          Before this, production reached Valid on
+                                          ContinuousArchiving alone — which §10 disclaims as an
+                                          RPO bound — so the proxy this item warned about was
+                                          already in force rather than merely tempting.
+                                          development requires no RPO evidence, a decision, not
+                                          an omission. The collector that publishes the
+                                          measurement is not part of this change.
 2. RecoveryAssured needs an operator    → the re-run is DONE (2026-08-18): the drill produced
    act, not more machinery                  restoreverified-20260818t115710z.yaml against the
    (re-run completed 2026-08-18)            composed Database, carrying the databaseRef identity

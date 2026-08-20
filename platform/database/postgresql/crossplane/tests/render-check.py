@@ -60,8 +60,10 @@ def validate(
                 "development must remain unready until operational evidence is Valid")
 
     signals = evidence["protection"].get("signals", {})
-    require(set(signals) == {"execution", "availability", "archiving"},
-            "protection must expose independent execution, availability, and archiving signals")
+    require(set(signals) == {"execution", "availability", "archiving", "rpo"},
+            "protection must expose independent execution, availability, archiving and rpo "
+            "signals; rpo is §11.1's third signal and its absence is what let production reach "
+            "Valid on ContinuousArchiving alone")
 
     objects = [doc for doc in docs if doc.get("apiVersion") == "kubernetes.crossplane.io/v1alpha2" and doc.get("kind") == "Object"]
     require(len(objects) == 7, f"expected seven provider-kubernetes Objects, found {len(objects)}")
