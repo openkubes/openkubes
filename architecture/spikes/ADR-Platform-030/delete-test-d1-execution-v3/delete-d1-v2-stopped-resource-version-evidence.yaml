@@ -1,0 +1,35 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: OK141DeleteD1StoppedEvidence
+metadata:
+  name: ok141-delete-d1-v2-stopped-resource-version
+  ticket: OK-141
+spec:
+  sourceCandidateDigest: sha256:b6c7ff18498be0e06fa3753e6b4f673f20befffab13bb807cb81505a6e1eecf9
+  privateExecutionEvidenceDigest: sha256:70352464b36d650970e7bdf429ba0ee337361242ac5cc8d26398b721b61bb071
+  result: STOP-D1-PARTIAL-PRESERVE-NO-RETRY
+  completedDeleteCount: 0
+  targetResourceDeleteRequestedByRunner: false
+  mutationPerformed: false
+  retryPerformed: false
+  diagnostic:
+    exactTargetReadOnly: true
+    nameMatched: true
+    namespaceMatched: true
+    uidMatched: true
+    resourceVersionMatched: false
+    deletionTimestampAbsent: true
+    applicationFinalizersAbsent: true
+  finding: preflight resourceVersion is volatile controller status, not an immutable identity anchor
+  retained:
+    rawObjects: false
+    uidValues: false
+    resourceVersionValues: false
+    endpoints: false
+    credentials: false
+  authorization:
+    decision: NO-GO
+    deleteGranted: false
+    retryGranted: false
+    cleanupGranted: false
+    d2Granted: false
+    d3Granted: false

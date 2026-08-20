@@ -1,0 +1,42 @@
+apiVersion: publication.openkubes.io/v1alpha1
+kind: OK141DeleteD1ExecutionV3PublicationCandidate
+metadata:
+  name: ok141-delete-d1-execution-v3-checkpoint
+  ticket: OK-141
+spec:
+  state: READY-FOR-COMMIT-PUSH-DRAFT-PR
+  scope: delete D1 live resourceVersion amendment only
+  bindings:
+    baseCommit: 72aa66192fef31be13868ccdd5db751ee32b099a
+    stoppedV2EvidenceDigest: sha256:75321aeeb7ab5f86f0e9b7dc38b838faff520bfeea6c85054e245266b0e1e141
+    candidateDigest: sha256:67afb4ccedd51a95f021be459d5de4821a056de5788328a034d35727377cfef7
+    candidateSemanticDigest: sha256:b8fe9fb1ff09c2a516d247a2ca3a5c437a5bc40ae3e030076d2b011ba0a3fecc
+    executorDigest: sha256:dc1be5ffba672cf5018927fd438f18513d6b6f31b7710f820f6fa3c89b38402d
+    offlineTestsPassed: 10
+  result:
+    v2DeleteCount: 0
+    immutableIdentityAnchor: name namespace uid
+    preflightResourceVersion: observation only
+    liveResourceVersion: exact delete precondition
+    retryPerformed: false
+  publication:
+    rawEvidenceIncluded: false
+    uidValuesIncluded: false
+    resourceVersionValuesIncluded: false
+    credentialsIncluded: false
+    endpointsIncluded: false
+  authorization:
+    decision: NO-GO
+    credentialUseGranted: false
+    mutationGranted: false
+    deleteGranted: false
+    retryGranted: false
+    rollbackGranted: false
+    cleanupGranted: false
+    forceDeleteGranted: false
+    finalizerMutationGranted: false
+    d2Granted: false
+    d3Granted: false
+    publicationGranted: false
+    outageGranted: false
+    failureInjectionGranted: false
