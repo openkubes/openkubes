@@ -40,6 +40,20 @@ spec:
                 - maintenance
                 - isolation
               properties:
+                dataPolicyRef:
+                  type: object
+                  required: [name]
+                  description: >-
+                    Optional residency request. Names a cluster-scoped DataPolicy. This
+                    can make a Database non-conformant; it can never redirect where its
+                    data is stored, because placement is platform-side. Omitting it is a
+                    valid state and reports NoResidencyPolicyRequested — distinct from a
+                    reference that fails to resolve.
+                  properties:
+                    name:
+                      type: string
+                      minLength: 1
+                      maxLength: 253
                 clusterRef:
                   type: string
                   minLength: 1
@@ -158,6 +172,32 @@ spec:
             status:
               type: object
               properties:
+                residency:
+                  type: object
+                  required: [state, reason]
+                  description: >-
+                    Resolved residency (§6.1). Published BESIDE evidence, not inside
+                    it: §5.1's condition set is four, and silently making it five would
+                    change the readiness contract everywhere. A named policy that does
+                    not resolve is Failed/DataPolicyUnresolved, never Unknown — we
+                    looked, and it is absent.
+                  properties:
+                    state:
+                      type: string
+                      enum: [Valid, Failed, Unknown]
+                    reason:
+                      type: string
+                      minLength: 1
+                      maxLength: 128
+                    zone:
+                      type: string
+                      maxLength: 63
+                      description: >-
+                        The zone the PLATFORM declares for this cluster's backup store.
+                        Not claim input — a claimant cannot assert where its data lands.
+                    policyRef:
+                      type: string
+                      maxLength: 253
                 evidence:
                   type: object
                   properties:

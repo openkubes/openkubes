@@ -81,7 +81,8 @@ spec:
                   "ok-robotics" (dict
                     "bucket" "ok-db-backups"
                     "endpointURL" "https://minio.minio.svc:9000"
-                    "endpointCA" "minio-backup-store-ca") }}
+                    "endpointCA" "minio-backup-store-ca"
+                    "residencyZone" "on-prem-de") }}
             {{- $store := dict }}
             {{- if hasKey $backupStores $provider }}
             {{- $store = index $backupStores $provider }}
@@ -622,6 +623,52 @@ spec:
             {{- end }}
             {{- end }}
 
+            {{- /* Residency resolution (§13 bound 7, closing §6.1). Residency was absent from v1
+                   rather than claimant-writable and dangling, because a `dataPolicyRef` with no
+                   policy object and no resolver names nothing. Both now exist.
+
+                   The asymmetry that makes this safe to expose: a policy states where data MAY
+                   come to rest; it never places data. Placement stays platform-side in
+                   $backupStores above, so a claimant naming a strict policy can render its own
+                   Database non-conformant — it cannot redirect its storage anywhere.
+
+                   Fail-closed on a dangling reference. A named policy that does not resolve is
+                   the exact defect this bound is about, and treating it as "no constraint" would
+                   turn a governance statement into silence. Absent ref = no residency claim,
+                   which is different from an unresolvable one and is reported differently. */}}
+            {{- $residencyState := "Unknown" }}
+            {{- $residencyReason := "NoResidencyPolicyRequested" }}
+            {{- $residencyZone := dig "residencyZone" "" $store }}
+            {{- $dataPolicyName := dig "dataPolicyRef" "name" "" $spec }}
+            {{- $residencyPolicy := "" }}
+            {{- $residencyAllowed := list }}
+            {{- if ne $dataPolicyName "" }}
+            {{- $policyResults := index $extraResources "data-policy" | default (dict "items" (list)) }}
+            {{- range $required := dig "items" (list) $policyResults }}
+            {{- $candidate := dig "resource" (dict) $required }}
+            {{- if and (eq (dig "kind" "" $candidate) "DataPolicy") (eq (dig "metadata" "name" "" $candidate) $dataPolicyName) }}
+            {{- $residencyPolicy = $dataPolicyName }}
+            {{- $residencyAllowed = dig "spec" "residency" "allowedZones" (list) $candidate }}
+            {{- end }}
+            {{- end }}
+            {{- if eq $residencyPolicy "" }}
+            {{- /* Unresolvable, not unconstrained. Failed, because the claim asked for a
+                   guarantee the platform cannot evaluate — and Unknown would read as
+                   "we could not look", which is not what happened: we looked and it is absent. */}}
+            {{- $residencyState = "Failed" }}
+            {{- $residencyReason = "DataPolicyUnresolved" }}
+            {{- else if eq $residencyZone "" }}
+            {{- $residencyState = "Unknown" }}
+            {{- $residencyReason = "StoreResidencyZoneUndeclared" }}
+            {{- else if has $residencyZone $residencyAllowed }}
+            {{- $residencyState = "Valid" }}
+            {{- $residencyReason = "ResidencyWithinPolicy" }}
+            {{- else }}
+            {{- $residencyState = "Failed" }}
+            {{- $residencyReason = "ResidencyOutsidePolicy" }}
+            {{- end }}
+            {{- end }}
+
             {{- /* Observation freshness (ADR-Platform-032 §13 bound 5). Every observedAt above is
                    a SOURCE event time — lastTransitionTime, stoppedAt, lastSuccessfulBackupTime —
                    so nothing else in this status says when the platform last successfully LOOKED.
@@ -684,6 +731,12 @@ spec:
                 kind: CapabilityVerified
                 matchLabels:
                   platform.openkubes.ai/source-cluster: {{ $dbName | quote }}
+              {{- if ne $dataPolicyName "" }}
+              data-policy:
+                apiVersion: platform.openkubes.ai/v1alpha1
+                kind: DataPolicy
+                matchName: {{ $dataPolicyName | quote }}
+              {{- end }}
             ---
             # Mirror only the fixed, admission-authorized app Secret. Values are
             # never templated into this Composition; provider-kubernetes resolves
@@ -1061,6 +1114,15 @@ spec:
                 observedThrough: {{ $observedThrough | quote }}
                 quantum: {{ printf "PT%dS" (int $observationQuantumSeconds) | quote }}
                 freshnessBound: {{ $observationFreshnessBound | quote }}
+              residency:
+                state: {{ $residencyState }}
+                reason: {{ $residencyReason }}
+                {{- if ne $residencyZone "" }}
+                zone: {{ $residencyZone | quote }}
+                {{- end }}
+                {{- if ne $residencyPolicy "" }}
+                policyRef: {{ $residencyPolicy | quote }}
+                {{- end }}
               serviceReady: {{ $serviceReady }}
               serviceReadyReason: {{ $serviceReadyReason }}
               credentials:

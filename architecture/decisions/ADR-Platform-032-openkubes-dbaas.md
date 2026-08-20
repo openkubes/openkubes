@@ -1152,12 +1152,20 @@ contracts; each blocks *delivered-capability* acceptance.
                                           period to be decided; "none" is an answer that leaves
                                           the requirement owed. Needs a login-role pair sharing a
                                           non-login privilege role, or client certificates.
-7. Residency is a contract field with    → §6.1: `dataPolicyRef` describes residency as policy plus
-   no resolution mechanism                 evidence, but this platform has no policy-resolution
-   (§6.1)                                  mechanism, so the field is absent in v1 rather than
-                                          claimant-writable and dangling. `protection.policyRef`
-                                          is correspondingly a closed enum. Needs a policy object
-                                          and a resolver before residency can be asserted at all.
+7. Residency is a contract field with    → CLOSED under OK-150. `DataPolicy` (cluster-scoped,
+   no resolution mechanism                 allowedZones) is the policy object; the Composition
+   (§6.1) — CLOSED                         resolves `dataPolicyRef` by name through
+                                          ExtraResources and publishes `status.residency`. A
+                                          named policy that does not resolve is
+                                          Failed/DataPolicyUnresolved, NOT silence and not
+                                          Unknown: we looked and it is absent. Placement stays
+                                          platform-side, so a policy can make a Database
+                                          non-conformant but can never redirect its storage —
+                                          asserted by rendering the same Database under a
+                                          permissive policy, a prohibitive one and none, and
+                                          comparing the composed ObjectStore. Published BESIDE
+                                          evidence, not inside it: §5.1's condition set stays
+                                          four, and residency does not gate serviceReady in v1.
 ```
 
 The two causes behind item 4, neither of which sits in this contract:

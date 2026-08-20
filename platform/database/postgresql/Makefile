@@ -25,6 +25,7 @@ RENDER_BASE := $(CROSSPLANE) composition render
 RENDER_FLAGS := --crossplane-version=v2.3.3
 YAML_FILES := crossplane/xrd.yaml crossplane/composition.yaml \
 	crossplane/restoreverified-crd.yaml \
+	crossplane/capabilityverified-crd.yaml crossplane/datapolicy-crd.yaml \
 	crossplane/claim-admission-policy.yaml \
 	crossplane/rbac/claim-editor-role.yaml crossplane/rbac/claim-editor-binding.yaml \
 	crossplane/rbac/restoreverified-writer-clusterrole.yaml \
@@ -44,7 +45,7 @@ JSON_FILES := drill/minio-policy-backups-readonly.json \
 .PHONY: help validate render-prerequisites render render-check claim-policy-check \
 	claim-authority-model-check claim-admission-check evidence-status-check \
 	observation-freshness-check capability-admission-check capability-evidence-check \
-	credential-overlap-check \
+	credential-overlap-check residency-resolution-check \
 	restoreverified-api-check api-acceptance-check drill-validate drill-policy-check minio-provisioning-check \
 	restore-evidence-check \
 	require-mgmt-context require-mgmt-approval require-explicit-cluster require-deploy-user \
@@ -92,7 +93,7 @@ render-check: render-prerequisites ## Render both fixtures and assert Objects an
 		$(PYTHON) crossplane/tests/render-check.py "$$work/observed.yaml" --policy development \
 			--expected-protection-state Unknown --expected-protection-reason BackupAvailabilityUnproven; \
 		$(PYTHON) crossplane/tests/evidence-status-check.py "$$work/observed.yaml"
-	@$(MAKE) --no-print-directory capability-evidence-check
+	@$(MAKE) --no-print-directory capability-evidence-check residency-resolution-check
 
 claim-policy-check: ## Prove authority guards fail, then validate the reviewed tuple
 	@$(PYTHON) crossplane/tests/claim-policy-check.py --negative-controls
@@ -130,7 +131,8 @@ api-acceptance-check: ## Dry-run generated XRD CRDs, evidence CRD, policy and RB
 			$(PYTHON) -c 'import sys,yaml; docs=list(yaml.safe_load_all(sys.stdin)); [d.get("metadata", {}).pop("ownerReferences", None) for d in docs]; yaml.safe_dump_all(docs, sys.stdout, sort_keys=False)' | \
 			kubectl --context $(API_CONTEXT) apply --dry-run=server -f - >/dev/null; \
 		printf 'accepted\n'; \
-		for f in crossplane/restoreverified-crd.yaml crossplane/claim-admission-policy.yaml \
+		for f in crossplane/restoreverified-crd.yaml crossplane/capabilityverified-crd.yaml \
+		         crossplane/datapolicy-crd.yaml crossplane/claim-admission-policy.yaml \
 		         crossplane/rbac/restoreverified-writer-clusterrole.yaml \
 		         crossplane/rbac/restoreverified-reader-clusterrole.yaml; do \
 			printf '  %s: ' "$$f"; \
@@ -169,6 +171,15 @@ capability-evidence-check: render-prerequisites ## Prove capability evidence dec
 # NOLOGIN owner, each with its OWN Secret. Point both at one Secret and every status field still
 # reads correctly while the overlap is fictional — that case is a negative control, driven by
 # mutating the Composition source rather than a fixture.
+# Bound 7. Needs the render toolchain, so it hangs off render-check. Its decisive case is a
+# dangling reference: a claim asking for a residency guarantee whose policy does not exist must be
+# Failed, never silence. It also asserts the safety asymmetry — the composed backup store is
+# identical under a permissive policy, a prohibitive one, and none — because if a policy could
+# change placement, a claimant could move data by naming one.
+residency-resolution-check: render-prerequisites ## Prove residency resolves and dangling refs fail closed
+	@$(PYTHON) crossplane/tests/residency-resolution-check.py --negative-controls
+	@$(PYTHON) crossplane/tests/residency-resolution-check.py
+
 credential-overlap-check: ## Prove the rotation overlap is real and published as data
 	@$(PYTHON) crossplane/tests/credential-overlap-check.py --negative-controls
 	@$(PYTHON) crossplane/tests/credential-overlap-check.py

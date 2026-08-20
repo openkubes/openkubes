@@ -142,7 +142,25 @@ def validate(data: dict) -> None:
     served = {v["name"] for v in xrd["spec"]["versions"] if v.get("served")}
     require(served == {"v1alpha1"}, "admission policy must cover every served Claim version")
     spec = version["schema"]["openAPIV3Schema"]["properties"]["spec"]["properties"]
-    require("dataPolicyRef" not in spec, "v1 must not expose unresolved dataPolicyRef authority")
+    # Superseded under OK-150 (§13 bound 7). The old rule was "dataPolicyRef must be ABSENT",
+    # which was right only while nothing could resolve it. A policy object and a resolver now
+    # exist, so the rule becomes: if the field is exposed, it must be STRUCTURED and it must be
+    # RESOLVED. A bare string, or an exposed field with no resolver in the Composition, is the
+    # dangling authority the original rule was protecting against.
+    if "dataPolicyRef" in spec:
+        data_policy = spec["dataPolicyRef"]
+        require(
+            data_policy.get("type") == "object" and data_policy.get("required") == ["name"],
+            "dataPolicyRef must be a structured reference requiring name, not an unresolved "
+            "free-form dataPolicyRef",
+        )
+        composition_source = data["composition_text"]
+        require(
+            "kind: DataPolicy" in composition_source
+            and "DataPolicyUnresolved" in composition_source,
+            "dataPolicyRef is exposed with no resolver: the Composition must request DataPolicy "
+            "and fail closed on an unresolved dataPolicyRef",
+        )
     require(spec["engine"]["properties"]["name"].get("enum") == ["postgresql"],
             "engine.name must remain closed to postgresql")
     capabilities = spec["engine"]["properties"]["capabilities"]["items"]["properties"]
@@ -230,6 +248,9 @@ def negative_controls(source: dict) -> None:
     case("credential name opens", lambda d: schema_spec(d)["credentialsSecretRef"]["properties"]["name"].pop("enum"), "credential Secret name")
     case("credential namespace opens", lambda d: schema_spec(d)["credentialsSecretRef"]["properties"]["namespace"].pop("enum"), "credential Secret namespace")
     case("unresolved data policy", lambda d: schema_spec(d).update(dataPolicyRef={"type": "string"}), "dataPolicyRef")
+    # Exposing the field while removing the resolver is the dangling case in its purest form:
+    # the contract advertises a residency guarantee nothing can evaluate.
+    case("data policy exposed with no resolver", lambda d: d.update(composition_text=d["composition_text"].replace("DataPolicyUnresolved", "SomethingElse")), "no resolver")
     case("deprecated freshness by method", lambda d: d.update(composition_text=d["composition_text"] + "\n# lastSuccessfulBackupByMethod\n"), "forbidden/deprecated")
     case("freshness read from Cluster status", lambda d: d.update(composition_text=d["composition_text"] + '\n{{- $x := dig "lastSuccessfulBackup" "" $clusterStatus }}\n'), "from Cluster status")
     case("deprecated in-tree backup", lambda d: d.update(composition_text=d["composition_text"] + "\n# barmanObjectStore\n"), "forbidden/deprecated")
