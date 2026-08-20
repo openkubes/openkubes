@@ -1,0 +1,57 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: OK141DeleteD0V3ClosureEvidence
+metadata:
+  name: ok141-delete-d0-v3-closure
+  ticket: OK-141
+  observedAt: "2026-08-20T15:30:30Z"
+spec:
+  state: PASS-D0-V3-PRIVATE-BOUND-NO-GO
+  bindings:
+    d0CandidateDigest: sha256:771c09a760940afa8c04a26a79e3e921c11d87d96ae949c1781f4fd7c846074b
+    liveGrantCandidateDigest: sha256:08043c9b26447e546864984d9533eb1d15342479b60f3497e56959ae293b8422
+    grantDigest: sha256:02e92ff9208d8f78fcda3b779aa9e6ef5a765cb4a935ee3fec5c190d1cc29810
+    privateBindingDigest: sha256:a4379888b6e176684348c302f840642092134021b4bf29a36c65d86f87bfd075
+    privateEvidenceDigest: sha256:aa79707da0d9c071843818500348c3e4617841b6820a1ce86f7c77f1eaaa4894
+  observation:
+    sealedGetCount: 36
+    retainedObjectCounts:
+      ok-shared: 8
+      ok-mgmt: 18
+      ok-infra: 16
+      workload: 11
+    retainedObjectTotal: 53
+    bindingLifetimeSeconds: 600
+    allExpectedCountsMatched: true
+    dataVolumeCorrelationPassed: true
+    providerPVLonghornExactEqualityPassed: true
+  execution:
+    snapshotRuns: 1
+    retryPerformed: false
+    mutationPerformed: false
+    deletePerformed: false
+    cleanupPerformed: false
+  conclusions:
+    d0v3ReadBindingCreated: true
+    storageCorrelationGapClosedForD0: true
+    d1ThroughD3Authorized: false
+    bindingReusableForD5: false
+  redaction:
+    rawNamesRetained: false
+    rawObjectsRetained: false
+    endpointsRetained: false
+    uidsRetained: false
+    resourceVersionsRetained: false
+    secretValuesRetained: false
+    credentialsRetained: false
+    kubeconfigsRetained: false
+  authorization:
+    decision: NO-GO
+    d1Granted: false
+    d2Granted: false
+    d3Granted: false
+    deleteGranted: false
+    cleanupGranted: false
+    retryGranted: false
+    rollbackGranted: false
+    outageGranted: false
+    failureInjectionGranted: false
