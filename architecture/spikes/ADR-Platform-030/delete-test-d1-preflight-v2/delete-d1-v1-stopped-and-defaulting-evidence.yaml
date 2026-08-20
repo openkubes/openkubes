@@ -1,0 +1,52 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: OK141DeleteD1V1StoppedAndDefaultingEvidence
+metadata:
+  name: ok141-delete-d1-v1-stopped-and-defaulting
+  ticket: OK-141
+  observedAt: "2026-08-20T15:56:00Z"
+spec:
+  state: PASS-READ-ONLY-DIAGNOSIS-D1-V1-STOPPED-NO-GO
+  bindings:
+    failedD1CandidateDigest: sha256:b654def485a39594424e8bc6c10d74bb7f5f7a14b3ecae1052617d6d9d6a6de5
+    d0BindingDigest: sha256:5c0615b0ec0137554b10cd58a404b6b493973cc4e61e86720ef6675442f636e5
+    rvDiagnosticDigest: sha256:a242635ae52509cee6b1179a54c556bd512d723ea6377ba52b3496686b8991fd
+    fixtureCorrelationDigest: sha256:d161087e53bfd274385125be4d929e09fe7c6dffea348675887e8c83a4f2d260
+    diffPathsDiagnosticDigest: sha256:a9c39e6bcc57335ccf0c129157efac2e77e9025f0ec424c7472937417668a035
+  observation:
+    failedPreflightPrivateOutputWritten: false
+    applicationCount: 3
+    uidSameCount: 3
+    resourceVersionSameCount: 0
+    generationSameCount: 0
+    projectSyncHealthSameCount: 3
+    authoritativeFixtureMatchCountBeforeNormalization: 1
+    onlyDifferencePaths:
+      alerting: $.spec.source.directory.recurse
+      dashboards: $.spec.source.directory.recurse
+    apiRepresentationFinding: explicit-false-versus-omitted-false-default
+  conclusion:
+    retryV1Allowed: false
+    v1ExactResourceVersionBoundaryUsable: false
+    requiredNormalizationProfile: argocd-application-c14n/v1
+    normalizedSemanticDigestRequired: true
+    uidMustRemainExact: true
+    currentResourceVersionMustBeReboundAfterSemanticProof: true
+  execution:
+    diagnosticGetCount: 8
+    mutationPerformed: false
+    deletePerformed: false
+    retryPerformed: false
+  redaction:
+    rawObjectsRetained: false
+    rawValuesRetained: false
+    endpointsRetained: false
+    secretValuesRetained: false
+    credentialsRetained: false
+  authorization:
+    decision: NO-GO
+    livePreflightGranted: false
+    mutationGranted: false
+    deleteGranted: false
+    retryGranted: false
+    cleanupGranted: false
+    failureInjectionGranted: false

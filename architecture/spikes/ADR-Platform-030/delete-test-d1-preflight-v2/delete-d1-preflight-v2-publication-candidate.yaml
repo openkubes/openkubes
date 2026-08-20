@@ -1,0 +1,60 @@
+apiVersion: publication.openkubes.io/v1alpha1
+kind: OK141DeleteD1PreflightV2PublicationCandidate
+metadata:
+  name: ok141-delete-d1-preflight-v2
+  ticket: OK-141
+spec:
+  state: PREPARED-NOT-AUTHORIZED
+  baseCommit: 9482ed60fd537feb4017fb5741671ed91d55787b
+  scope:
+    - README.md
+    - delete-d1-v1-stopped-and-defaulting-evidence.yaml
+    - delete-d1-preflight-candidate-v2.yaml
+    - prepare_delete_d1_preflight_v2.py
+    - test_prepare_delete_d1_preflight_v2.py
+  bindings:
+    stoppedEvidenceDigest: sha256:153cb08e3ef45ddba17aea2c59913f1b60fc38f322ab58b834a906319a79cb40
+    candidateFileDigest: sha256:c5c78e4d82b689f645c63be3ccbb3a3c4c2f890b01d7004daad7915da6fa7276
+    candidateSemanticDigest: sha256:0667941518c88d7adaf6878014663ae68ae302173827d80e5dc249de7c3a077a
+    executorDigest: sha256:08970c4761d7a4265b900fdb1e98433cd02a5deeb1248f6975795e445b8eae99
+    testDigest: sha256:a62ffcde2e3c2e33db490fc07014300c9023dfe69d76efc2ef3f1914548ed6e8
+    readmeDigest: sha256:d713bbe412f3cac6121872a3a949873a921a20cbb0603771a09641e20a8d7ee1
+    offlineTestsPassed: 9
+  claims:
+    d1v1StoppedFailClosed: true
+    d1v1PrivateOutputWritten: false
+    applicationUIDsStable: true
+    applicationResourceVersionsAndGenerationsAdvanced: true
+    onlySemanticRepresentationGap: spec.source.directory.recurse
+    falseDefaultNormalizationBound: true
+    fullNormalizedApplicationDigestsRequired: true
+    currentResourceVersionsReboundOnlyAfterSemanticProof: true
+    liveV2PreflightPerformed: false
+    mutationPerformed: false
+    deletePerformed: false
+  redaction:
+    rawObjectsExcluded: true
+    rawValuesExcluded: true
+    endpointsExcluded: true
+    uidsExcluded: true
+    resourceVersionsExcluded: true
+    secretValuesExcluded: true
+    credentialsExcluded: true
+    kubeconfigsExcluded: true
+  authorization:
+    publicationGranted: false
+    commitGranted: false
+    pushGranted: false
+    pullRequestGranted: false
+    reviewGranted: false
+    mergeGranted: false
+    liveReadGranted: false
+    credentialUseGranted: false
+    secretContentReadGranted: false
+    mutationGranted: false
+    deleteGranted: false
+    cleanupGranted: false
+    retryGranted: false
+    rollbackGranted: false
+    outageGranted: false
+    failureInjectionGranted: false
