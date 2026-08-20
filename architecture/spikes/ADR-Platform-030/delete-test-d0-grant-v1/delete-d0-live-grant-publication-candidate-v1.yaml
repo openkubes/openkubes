@@ -1,0 +1,54 @@
+apiVersion: publication.openkubes.io/v1alpha1
+kind: OK141DeleteD0LiveGrantPublicationCandidate
+metadata:
+  name: ok141-delete-d0-live-grant-publication-v1
+  ticket: OK-141
+spec:
+  state: PREPARED-NOT-AUTHORIZED
+  baseCommit: 2d7ff53bc0840f85fcf4c96c77a3295d2c9d807a
+  scope:
+    - README.md
+    - delete-d0-live-grant-candidate-v1.yaml
+    - verify_delete_d0_live_grant_candidate_v1.py
+    - test_delete_d0_live_grant_candidate_v1.py
+  bindings:
+    candidateFileDigest: sha256:813776cf34272fd163c657a5b2911cc10a7035ffa51e6aea2d69ca729409a79e
+    candidateSemanticDigest: sha256:a904bb880d1fd3bc1a7e6e725da2e4a85795cec73af454420087547f73a124d3
+    verifierDigest: sha256:a40809640f86a98e6266da6b824e4eeb1a94ec1de7fc21690309d69b4c130d22
+    testDigest: sha256:cfe59b46611738849a81266a89f90e57709dcbc871e4050241cfdfdd9e22fd4a
+    readmeDigest: sha256:cf1bd4a04c408c162d0355219a9bb7009cfc9f68012aaff23bebff9c8bd50c63
+    offlineTestsPassed: 8
+  claims:
+    d0GrantContractPrepared: true
+    liveGrantMaterialized: false
+    liveBindingPerformed: false
+    clusterContactPerformed: false
+    mutationPerformed: false
+    deleteGranted: false
+    cleanupGranted: false
+  redaction:
+    rawObjectsExcluded: true
+    endpointsExcluded: true
+    uidsExcluded: true
+    resourceVersionsExcluded: true
+    secretValuesExcluded: true
+    credentialsExcluded: true
+    kubeconfigsExcluded: true
+    privateKeysExcluded: true
+  authorization:
+    publicationGranted: false
+    commitGranted: false
+    pushGranted: false
+    pullRequestGranted: false
+    reviewGranted: false
+    mergeGranted: false
+    liveReadGranted: false
+    credentialUseGranted: false
+    secretMetadataReadGranted: false
+    mutationGranted: false
+    deleteGranted: false
+    cleanupGranted: false
+    retryGranted: false
+    rollbackGranted: false
+    outageGranted: false
+    failureInjectionGranted: false
