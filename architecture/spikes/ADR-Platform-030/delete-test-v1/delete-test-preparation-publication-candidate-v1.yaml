@@ -1,0 +1,52 @@
+apiVersion: publication.openkubes.io/v1alpha1
+kind: OK141DeletePreparationPublicationCandidate
+metadata:
+  name: ok141-delete-test-preparation-publication-v1
+  ticket: OK-141
+  baseCommit: 5be30f5f5093787cd19d86463bc8ecd6661bd389
+spec:
+  state: PREPARED-NOT-AUTHORIZED
+  scope:
+    - README.md
+    - delete-test-protocol-v1.yaml
+    - delete-test-read-only-observation-v1.yaml
+    - verify_delete_test_v1.py
+    - test_delete_test_v1.py
+  bindings:
+    protocolSemanticDigest: sha256:4cd457c5f40bdf3ae871cbe56ba7c151f7ac3242bd73129557f25cf620a2d0bc
+    protocolFileDigest: sha256:f63a9a1fd2f46d7f8995f95e6ba75138053f9cc9b4c93467184510ec5899b989
+    observationSemanticDigest: sha256:11a8a88f82d96dd1b636e6b2d73de2e6904b6278fcd4f28eac3c81a173282f15
+    observationFileDigest: sha256:f223eef31971692471d7ad97aa976e814b9a3a55b9a21d88733fc4092a17b5a8
+    offlineTestsPassed: 11
+  claims:
+    protocolState: OFFLINE-PREPARED-BLOCKED-NO-GO
+    liveReadOnlyInventory: PASS
+    deleteGranted: false
+    cleanupGranted: false
+    infrastructureChanged: false
+    requiresReconciler: none-proven
+  redaction:
+    rawObjectsExcluded: true
+    endpointsExcluded: true
+    uidsExcluded: true
+    resourceVersionsExcluded: true
+    credentialsExcluded: true
+    secretsExcluded: true
+    kubeconfigsExcluded: true
+    privateKeysExcluded: true
+  exclusions:
+    - delete or cleanup execution
+    - infrastructure mutation
+    - retry, rollback or failure injection
+    - ADR changes
+    - shared ok147 infrastructure changes
+  authorization:
+    publicationGranted: false
+    commitGranted: false
+    pushGranted: false
+    pullRequestGranted: false
+    reviewGranted: false
+    mergeGranted: false
+    deleteGranted: false
+    cleanupGranted: false
+    infrastructureMutationGranted: false

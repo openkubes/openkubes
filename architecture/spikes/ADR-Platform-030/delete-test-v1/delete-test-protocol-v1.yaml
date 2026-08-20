@@ -1,0 +1,214 @@
+apiVersion: execution.openkubes.io/v1alpha1
+kind: OK141DeleteTestProtocol
+metadata:
+  name: ok141-delete-test-v1
+  ticket: OK-141
+  baseCommit: 5be30f5f5093787cd19d86463bc8ecd6661bd389
+spec:
+  version: ok141-delete-test/v1
+  state: OFFLINE-PREPARED-BLOCKED-NO-GO
+  purpose: Prove controller-owned deletion and complete disposable-state closure without creating a competing OpenKubes lifecycle owner.
+  predecessors:
+    controlledMechanismFailuresEvaluation:
+      path: ../controlled-mechanism-failures-evidence-evaluation-v1.md
+      digest: sha256:3c89ef20bcdb518af29aa2c05498c937e348c7b12f106b102d49a76de6548f4d
+    readOnlyObservation:
+      path: delete-test-read-only-observation-v1.yaml
+      requiredState: PASS-READ-ONLY-INVENTORY-NO-GO
+  operatingModel:
+    deleteAuthority: CAPI Cluster on ok-mgmt
+    enablementAuthority: CAAPH on ok-mgmt
+    platformAuthority: Argo CD on ok-shared
+    providerAuthority: CAPK and KubeVirt on ok-infra
+    retainedStorageAuthority: explicit bounded DEV cleanup after controller closure
+    openKubesRole: bounded sequencing, observation, evidence and exact cleanup only
+  stages:
+    - id: D0
+      name: fresh-private-runtime-binding
+      plane: all
+      mutating: false
+      enabled: false
+      operation: exact-read-only-inventory
+      requirements:
+        - bind current UID and resourceVersion privately for every future delete target
+        - bind all ownerReferences, finalizers, deletion timestamps and revision identities
+        - bind both provider PV to Longhorn-volume correlations without publishing raw identities
+        - prove the three Applications are the only members of AppProject openkubes-disposable
+        - prove shared ok147 infrastructure is excluded
+      maximumBindingAgeMinutes: 10
+
+    - id: D1
+      name: quiesce-gitops-target-binding
+      plane: ok-shared
+      mutating: true
+      enabled: false
+      operation: exact-uid-resourceVersion-preconditioned-delete
+      order:
+        - argoproj.io/v1alpha1|Application|argocd|disposable-ok141-observability-dashboards
+        - argoproj.io/v1alpha1|Application|argocd|disposable-ok141-observability-alerting
+        - argoproj.io/v1alpha1|Application|argocd|disposable-ok141-observability-core
+        - v1|Secret|argocd|disposable-ok141-cluster
+        - argoproj.io/v1alpha1|AppProject|argocd|openkubes-disposable
+      preconditions:
+        - every Application has no deletion finalizer and references the exact disposable target
+        - all three Applications are Synced and Healthy at the bound baseline
+        - no other Application references AppProject openkubes-disposable
+        - Secret contents are never output or retained
+      success:
+        - all five exact ok-shared identities are absent
+        - no target-resource deletion was requested by Argo
+      onFailure: STOP-PRESERVE-NO-RETRY
+
+    - id: D2
+      name: quiesce-enablement
+      plane: ok-mgmt
+      mutating: true
+      enabled: false
+      operation: exact-uid-resourceVersion-preconditioned-delete
+      target: addons.cluster.x-k8s.io/v1alpha1|HelmChartProxy|disposable-ok141|disposable-ok141-cilium
+      controllerOwnedObservation:
+        - HelmChartProxy becomes absent through its native finalizer
+        - the exact derived HelmReleaseProxy becomes absent through CAAPH
+        - no OpenKubes component repairs or directly deletes Cilium resources
+      success:
+        - HelmChartProxy and HelmReleaseProxy are absent
+      onFailure: STOP-PRESERVE-NO-RETRY-NO-FINALIZER-MUTATION
+
+    - id: D3
+      name: delete-authoritative-capi-cluster
+      plane: ok-mgmt
+      mutating: true
+      enabled: false
+      operation: exact-uid-resourceVersion-preconditioned-foreground-delete
+      target: cluster.x-k8s.io/v1beta2|Cluster|disposable-ok141|disposable-ok141
+      retainedDuringStage:
+        - v1|Secret|disposable-ok141|external-infra-kubeconfig-disposable-ok141
+      forbiddenDirectDeletes:
+        - Machine
+        - MachineSet
+        - MachineDeployment
+        - KubevirtMachine
+        - VirtualMachine
+        - VirtualMachineInstance
+        - DataVolume
+        - PersistentVolumeClaim
+      success:
+        - Cluster and its CAPI, control-plane, bootstrap and infrastructure owner graph are absent
+        - CAPK and KubeVirt remove both VMs, VMIs, DataVolumes and PVCs
+        - no OpenKubes component repairs or replaces source-controller behavior
+      onFailure: STOP-PRESERVE-NO-RETRY-NO-FINALIZER-MUTATION
+
+    - id: D4
+      name: prove-controller-closure
+      plane: [ok-mgmt, ok-infra]
+      mutating: false
+      enabled: false
+      operation: bounded-exact-observation
+      success:
+        - all bound CAPI, CAPK, Talos and generated Machine identities are absent
+        - all bound VM, VMI, DataVolume and PVC identities are absent
+        - the provider LoadBalancer Service is absent or is classified as an explicit residual
+        - the two provider PVs are Released and the correlated Longhorn volumes are detached before storage cleanup
+      maximumObservationMinutes: 30
+
+    - id: D5
+      name: remove-provider-residuals-and-retained-storage
+      plane: ok-infra
+      mutating: true
+      enabled: false
+      operation: exact-uid-resourceVersion-preconditioned-delete
+      prerequisites:
+        - D4 is PASS and fresh
+        - both retained PVs are Released with reclaimPolicy Retain
+        - both correlated Longhorn volumes are detached, have no backup source and match the private binding
+      order:
+        - residual Service disposable-ok141/disposable-ok141-lb only when still present and exactly bound
+        - RoleBinding ok-images/disposable-ok141-talos-golden-image-cloner
+        - Role ok-images/disposable-ok141-talos-golden-image-cloner
+        - Namespace disposable-ok141
+        - both exact Released provider PersistentVolumes
+        - both exact detached correlated Longhorn Volumes
+      success:
+        - provider namespace and golden-image RBAC are absent
+        - provider PV, Longhorn Volume, Engine and Replica graph has zero bound remnants
+      onFailure: STOP-PRESERVE-NO-RETRY-NO-FINALIZER-MUTATION
+
+    - id: D6
+      name: remove-provider-access-last-and-management-namespace
+      plane: ok-mgmt
+      mutating: true
+      enabled: false
+      operation: exact-uid-resourceVersion-preconditioned-delete
+      prerequisites:
+        - D4 and D5 are PASS and fresh
+        - all provider runtime and retained storage is absent
+        - no controller can require the provider credential anymore
+      order:
+        - v1|Secret|disposable-ok141|external-infra-kubeconfig-disposable-ok141
+        - v1|Namespace|_|disposable-ok141
+      success:
+        - provider-access Secret is absent
+        - management namespace is absent
+      onFailure: STOP-PRESERVE-NO-RETRY-NO-FINALIZER-MUTATION
+
+    - id: D7
+      name: terminal-redacted-closure
+      plane: all
+      mutating: false
+      enabled: false
+      operation: exact-read-only-absence-proof
+      success:
+        - all disposable CAPI, CAAPH, provider, Argo, RBAC, Secret, Namespace and retained-storage identities are absent
+        - shared ok147 runner infrastructure remains unchanged
+        - raw credentials, endpoints, UIDs and resourceVersions are excluded from public evidence
+        - delete is attributable to existing controller ownership rather than an OpenKubes lifecycle reconciler
+
+  excludedSharedInfrastructure:
+    namespace: openkubes-execution-system
+    namePrefixes: [ok147-]
+    classes:
+      - runner ServiceAccounts and RBAC
+      - immutable ledger claims, outcomes and receipts
+      - admission policies and bindings
+      - shared CAAPH and Argo installations
+    deletionAllowed: false
+  stopConditions:
+    - any runtime binding is absent, stale, digest-mismatched or already consumed
+    - any UID or resourceVersion differs from the private binding
+    - any target has an unexpected owner, finalizer, deletion timestamp or revision
+    - an Argo Application has a deletion finalizer
+    - any other Application references AppProject openkubes-disposable
+    - HCP or CAPI deletion exceeds its bounded observation window
+    - a provider PV is not Released or its Longhorn volume is not detached
+    - a retained volume has a backup source or ambiguous correlation
+    - any force delete, finalizer change, wildcard delete, broad cleanup or unbounded retry is required
+    - any shared ok147 infrastructure would be changed
+    - unexpected data loss, credential leak, second failure domain or unclear partial state
+  exclusions:
+    - force deletion or finalizer manipulation
+    - direct deletion of controller-owned VM, VMI, DataVolume or PVC objects
+    - retry, rollback or cleanup expansion
+    - outage or additional failure injection
+    - ADR changes
+    - deletion of shared ok147, CAAPH or Argo control-plane infrastructure
+  expectedConclusion:
+    requiresReconciler: none-proven
+    hypothesisA: strengthened-if-pass
+    overallABCD: remains-unclassified-until-delete-and-outage-evidence-complete
+  authorization:
+    decision: NO-GO
+    readOnlyBindingGranted: false
+    gitOpsQuiescenceGranted: false
+    enablementDeleteGranted: false
+    capiClusterDeleteGranted: false
+    providerResidualCleanupGranted: false
+    retainedStorageDeleteGranted: false
+    providerCredentialDeleteGranted: false
+    namespaceDeleteGranted: false
+    publicationGranted: false
+    retryGranted: false
+    rollbackGranted: false
+    forceDeleteGranted: false
+    finalizerMutationGranted: false
+    outageGranted: false
+    failureInjectionGranted: false
