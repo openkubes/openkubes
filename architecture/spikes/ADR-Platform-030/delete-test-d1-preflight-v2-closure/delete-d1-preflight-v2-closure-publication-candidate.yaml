@@ -1,0 +1,59 @@
+apiVersion: publication.openkubes.io/v1alpha1
+kind: OK141DeleteD1PreflightV2ClosurePublicationCandidate
+metadata:
+  name: ok141-delete-d1-preflight-v2-closure
+  ticket: OK-141
+spec:
+  state: PREPARED-NOT-AUTHORIZED
+  baseCommit: 1dcab1a533f6be20bb6775b8aa753a29ff15c235
+  scope:
+    - README.md
+    - delete-d1-preflight-v2-closure-evidence.yaml
+    - delete-d1-preflight-v2-closure-publication-candidate.yaml
+    - verify_delete_d1_preflight_v2_closure.py
+    - test_delete_d1_preflight_v2_closure.py
+  bindings:
+    closureFileDigest: sha256:3ab1b4b7421554198881324033b1be527ac0b3857744cbd6fd2adb6fddfec9dc
+    closureSemanticDigest: sha256:03aee9943106dbddebbe9c7d1ae245e2e8c240d066120466e1aeed3afecf7e2d
+    privateBindingDigest: sha256:c370c06b20b1d1dc42691c2dfbf383dfbbdc5192d0a672783484ce79f5b5333d
+    privateEvidenceDigest: sha256:d23bf4f21092bead626a8c0056c3470b04ce308281b816e8f0d8a0cd163f880e
+    verifierDigest: sha256:f9a876dd612d89246de4a391f2e239c20a10d989dfca422ee94cca7551a3226f
+    testDigest: sha256:a87fe40a8445b53a652a53c4b59e0c071bb73548057be978af29bca4e66c8a7a
+    readmeDigest: sha256:943a9d917d23c6f4e08d7fe0975fc41c72169ed3fc10159e952141b4a7e109f4
+    offlineTestsPassed: 7
+  claims:
+    d1v2PreflightPassed: true
+    allSixQueriesPassed: true
+    threeApplicationSemanticsMatched: true
+    targetCorrelationPassed: true
+    fiveDeleteTargetsPrivatelyBound: true
+    d1PreflightMutationPerformed: false
+    deletePerformed: false
+    cleanupPerformed: false
+  redaction:
+    rawNamesExcluded: true
+    rawObjectsExcluded: true
+    endpointsExcluded: true
+    uidsExcluded: true
+    resourceVersionsExcluded: true
+    secretValuesExcluded: true
+    tokensExcluded: true
+    credentialsExcluded: true
+    kubeconfigsExcluded: true
+  authorization:
+    publicationGranted: false
+    commitGranted: false
+    pushGranted: false
+    pullRequestGranted: false
+    reviewGranted: false
+    mergeGranted: false
+    d1DeleteGranted: false
+    d2Granted: false
+    d3Granted: false
+    mutationGranted: false
+    deleteGranted: false
+    cleanupGranted: false
+    retryGranted: false
+    rollbackGranted: false
+    outageGranted: false
+    failureInjectionGranted: false
