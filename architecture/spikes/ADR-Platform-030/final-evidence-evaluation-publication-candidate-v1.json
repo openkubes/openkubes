@@ -1,0 +1,35 @@
+{
+  "apiVersion": "publication.openkubes.io/v1alpha1",
+  "kind": "OK141FinalEvidenceEvaluationPublicationCandidate",
+  "metadata": {
+    "name": "ok141-final-evidence-evaluation-v1",
+    "ticket": "OK-141"
+  },
+  "state": "READY-FOR-COMMIT-PUSH-DRAFT-PR",
+  "bindings": {
+    "baseCommit": "797d3cf64055bdb7f191e99a4320cffd4986ceb8",
+    "evaluationDigest": "sha256:bed4058efbf9bf323101dc81edc598eb21142e73cbddaf39d78d67134e9870c4",
+    "offlineTestsPassed": 6
+  },
+  "classification": {
+    "outcome": "A",
+    "requiresReconciler": false,
+    "adr030Status": "Proposed",
+    "managementOutageExecuted": false
+  },
+  "publication": {
+    "privateEvidenceIncluded": false,
+    "rawObjectsIncluded": false,
+    "namesIncluded": false,
+    "uidValuesIncluded": false,
+    "resourceVersionValuesIncluded": false,
+    "endpointsIncluded": false,
+    "credentialsIncluded": false
+  },
+  "authorization": {
+    "decision": "NO-GO",
+    "adrStatusChangeGranted": false,
+    "outageGranted": false,
+    "failureInjectionGranted": false
+  }
+}
