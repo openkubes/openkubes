@@ -1,0 +1,72 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: OK141DeleteD1PreflightV2ClosureEvidence
+metadata:
+  name: ok141-delete-d1-preflight-v2-closure
+  ticket: OK-141
+  observedAt: "2026-08-20T16:15:15Z"
+spec:
+  state: PASS-D1-V2-PREFLIGHT-PRIVATE-BOUND-NO-GO
+  bindings:
+    d1CandidateDigest: sha256:c5c78e4d82b689f645c63be3ccbb3a3c4c2f890b01d7004daad7915da6fa7276
+    stoppedGrantDigest: sha256:a6536caa77f6113eff65a0ac9a34fb975bbf61a93bdff09cff001bf6f69c083d
+    registrationRefreshCandidateDigest: sha256:d26835f07cf28f2639c6bc1e7ab1dfe7fb069ca7d9369d1552dba6ca0307bdda
+    registrationRefreshEvidenceDigest: sha256:94193067dc47bd8e23eb1ae0fa3fc119c7535590302805d70d9fb0f5b47fbe93
+    freshD0CandidateDigest: sha256:771c09a760940afa8c04a26a79e3e921c11d87d96ae949c1781f4fd7c846074b
+    freshD0BindingDigest: sha256:2b9003263fb6e5ee3a67b3e8e4009bafd626d6bfad31260514886874934ef31c
+    freshD0EvidenceDigest: sha256:858b65b9a865f215dbb8aaae4311d8b0f9b915f0a7f52b8068e5c5d563206f3e
+    successfulGrantDigest: sha256:082dec7ba3a416f154a094a10cb2bffa06060b1dfb29347ebb98682d0458eeaa
+    privateBindingDigest: sha256:c370c06b20b1d1dc42691c2dfbf383dfbbdc5192d0a672783484ce79f5b5333d
+    privateEvidenceDigest: sha256:d23bf4f21092bead626a8c0056c3470b04ce308281b816e8f0d8a0cd163f880e
+  normalization:
+    profile: argocd-application-c14n/v1
+    defaultsApplied:
+      spec.source.directory.recurse: false
+    normalizedApplicationCount: 3
+    semanticMatchCount: 3
+  observation:
+    sealedGetCount: 6
+    deleteTargetCount: 5
+    targetCorrelationPassed: true
+    applicationImmutableIdentityPassed: true
+    appProjectMetadataPassed: true
+    registrationSecretMetadataPassed: true
+    bindingLifetimeSeconds: 300
+  execution:
+    initialV2AttemptStoppedFailClosed: true
+    stopReasonClass: PLATFORM-BASELINE-AUTHENTICATION
+    registrationTokenRefreshPerformed: true
+    registrationRefreshOptimisticConcurrencyUsed: true
+    freshD0SnapshotPerformed: true
+    diagnosisBasedSecondRunPerformed: true
+    successfulD1PreflightRuns: 1
+    d1PreflightMutationPerformed: false
+    deletePerformed: false
+    cleanupPerformed: false
+  conclusions:
+    d1v2PreflightPassed: true
+    fiveDeleteTargetsPrivatelyBound: true
+    semanticDefaultingGapClosed: true
+    d1DeleteAuthorized: false
+    d2OrD3Authorized: false
+  redaction:
+    rawNamesRetained: false
+    rawObjectsRetained: false
+    endpointsRetained: false
+    uidsRetained: false
+    resourceVersionsRetained: false
+    secretValuesRetained: false
+    tokensRetained: false
+    credentialsRetained: false
+    kubeconfigsRetained: false
+  authorization:
+    decision: NO-GO
+    d1DeleteGranted: false
+    d2Granted: false
+    d3Granted: false
+    mutationGranted: false
+    deleteGranted: false
+    cleanupGranted: false
+    retryGranted: false
+    rollbackGranted: false
+    outageGranted: false
+    failureInjectionGranted: false
