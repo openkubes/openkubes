@@ -1,0 +1,34 @@
+apiVersion: testing.openkubes.io/v1alpha1
+kind: PlatformStatusSemanticsAmendment
+metadata:
+  name: ok141-platform-status-semantics-v1
+spec:
+  state: PREPARED-NO-GO
+  observedCapability:
+    applicationObservedGenerationAvailable: false
+    applicationReconciledAtAvailable: true
+    immutableDesiredRevisionAvailable: true
+    exactDesiredPathAvailable: true
+    nonBlockingConditionTypes:
+      - OrphanedResourceWarning
+  readinessRule:
+    exactApplicationSetRequired: true
+    exactDesiredRevisionRequired: true
+    exactDesiredPathRequired: true
+    syncedRequired: true
+    healthyRequired: true
+    blockingConditionsForbidden: true
+    optionalReconciledAtFenceSupported: true
+    inventedObservedGenerationSemanticsForbidden: true
+  interpretation:
+    - Argo CD owns Platform convergence and exposes its native status.
+    - OpenKubes evaluates the exact desired projection and native freshness evidence.
+    - Informational orphan warnings do not hide blocking errors.
+    - Missing, stale, malformed, or conflicting authoritative evidence fails closed.
+  authorization:
+    decision: NO-GO
+    P1FailureInjectionGranted: false
+    liveMutationGranted: false
+    retryGranted: false
+    cleanupGranted: false
+    evidencePublicationGranted: false
