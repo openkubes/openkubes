@@ -1,0 +1,57 @@
+apiVersion: observation.openkubes.io/v1alpha1
+kind: OK141DeleteLonghornCorrelationDiagnosticCandidate
+metadata:
+  name: ok141-delete-longhorn-correlation-diagnostic-v1
+  ticket: OK-141
+spec:
+  version: ok141-delete-longhorn-correlation-diagnostic/v1
+  state: READY-FOR-EXPLICIT-READ-ONLY-GRANT
+  baseCommit: 96a57d7b84c2bda7c31287783a76d5a173457ae7
+  bindings:
+    d0V2CandidatePath: ../delete-test-d0-v2/delete-d0-binding-candidate-v2.yaml
+    d0V2CandidateDigest: sha256:6064e19d7af591a4e32835b5b4f08afccc16217beaedb3e27a9f3457238170e5
+    d0V2ExecutorPath: ../delete-test-d0-v2/prepare_delete_d0_binding_v2.py
+    d0V2ExecutorDigest: sha256:d7e75599bf369b06d8a7dd5acb28af3a850fa8a756833c541804d9a329c9467f
+    stoppedEvidencePath: delete-d0-v2-stopped-evidence.yaml
+  kubeconfigPath: /Users/arash/.kube/ok-infra.yaml
+  tool:
+    executorPath: run_delete_longhorn_correlation_diagnostic_v1.py
+    executorDigest: sha256:03323a0ce6341eb9c2bfe69e8b75793dc90eda9d7b301d3f20f19957181054ca
+    kubectlPath: /private/tmp/ok141-kubectl-v1.34.1-darwin-amd64
+    kubectlDigest: sha256:bb211f2b31f2b3bc60562b44cc1e3b712a16a98e9072968ba255beb04cefcfdf
+    queryProfileDigest: sha256:2178190922f8aeddab1fa3a60633e5aae9516d5f248b366cc0d7e47e35b6dbba
+  queries:
+    - id: provider-pvs
+      method: GET
+      collection: true
+      postFilter: claim-namespace:disposable-ok141
+      rawURI: /api/v1/persistentvolumes
+    - id: longhorn-volumes
+      method: GET
+      collection: true
+      rawURI: /apis/longhorn.io/v1beta2/namespaces/longhorn-system/volumes
+  comparisonStrategies:
+    - volumeHandleToMetadataName
+    - pvNameToMetadataName
+    - kubernetesStatusTuple
+  privateOutput:
+    path: /private/tmp/ok141-delete-longhorn-correlation-diagnostic-v1-evidence.json
+    mustBeAbsent: true
+    mode: "0600"
+    rawNamesRetained: false
+    rawObjectsRetained: false
+    publishable: false
+  authorization:
+    decision: NO-GO
+    diagnosticGranted: false
+    credentialUseGranted: false
+    mutationGranted: false
+    deleteGranted: false
+    cleanupGranted: false
+    retryGranted: false
+    publicationGranted: false
+    failureInjectionGranted: false
+  exclusions:
+    - D0 retry or D1 through D7 execution
+    - create update patch apply delete TokenRequest watch discovery logs or exec
+    - raw PV Longhorn credential endpoint UID or resourceVersion output
