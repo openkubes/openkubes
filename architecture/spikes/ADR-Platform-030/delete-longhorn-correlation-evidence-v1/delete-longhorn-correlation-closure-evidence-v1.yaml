@@ -1,0 +1,54 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: OK141DeleteLonghornCorrelationClosureEvidence
+metadata:
+  name: ok141-delete-longhorn-correlation-closure-v1
+  ticket: OK-141
+  observedAt: "2026-08-20T15:00:22Z"
+spec:
+  state: PASS-READ-ONLY-DIAGNOSTIC-NO-GO
+  bindings:
+    candidateDigest: sha256:39a715ccfe16b366f3d7fb552c7edfb585f035b0b44afce5ee814a0f1fe4525d
+    grantDigest: sha256:2b2c9594f4b19749dcf3527cbe6f56b558bc8530b694ae8be14d0725eb6b2216
+    privateEvidenceDigest: sha256:5c6f386367c0c8576b24fa149bb5b9506ed8903195709a664ca6163131299623
+    identityDigest: sha256:7d2f0a78b6409be7a1742738a7bc31fb855f81d975ecad9978b3872736e48182
+  observation:
+    providerPVCount: 2
+    longhornCollectionCount: 32
+    matchCounts:
+      volumeHandleToMetadataName: 2
+      pvNameToMetadataName: 2
+      kubernetesStatusTuple: 2
+    verdict: MULTIPLE-EQUIVALENT-CORRELATIONS
+    selectedStateCategories: [attached]
+    selectedRobustnessCategories: [degraded]
+    selectedFromBackupTrueCount: 0
+  conclusions:
+    retainedLonghornStoragePresent: true
+    missingStorageCauseDisproved: true
+    d0V2QueryOrContextPathDefective: true
+    exactEarlierZeroCause: UNRESOLVED-TRANSIENT-OR-CONTEXT-DERIVATION
+    requiredV3Correction:
+      - derive PV names handles and claim tuples from raw in-memory PV items before redaction
+      - require exact two-way equality through Longhorn kubernetesStatus
+      - retain only redacted correlation fields in the private binding
+  execution:
+    queryCount: 2
+    mutationPerformed: false
+    deletePerformed: false
+    retryPerformed: false
+  redaction:
+    rawNamesRetained: false
+    rawObjectsRetained: false
+    endpointsRetained: false
+    uidsRetained: false
+    resourceVersionsRetained: false
+    secretValuesRetained: false
+    credentialsRetained: false
+  authorization:
+    decision: NO-GO
+    d0RetryGranted: false
+    mutationGranted: false
+    deleteGranted: false
+    cleanupGranted: false
+    publicationGranted: false
+    failureInjectionGranted: false
