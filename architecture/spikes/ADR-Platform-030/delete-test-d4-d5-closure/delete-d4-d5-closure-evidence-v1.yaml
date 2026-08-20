@@ -1,0 +1,57 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: OK141DeleteD4D5ClosureEvidence
+metadata:
+  name: ok141-delete-d4-d5-v1-closure
+  ticket: OK-141
+spec:
+  state: PASS-D4-D5-PROVIDER-RESIDUALS-ABSENT-REDACTED
+  bindings:
+    d0RuntimeBindingDigest: sha256:5bbab0ea4204df4e3f0756c6af5ba48569519e95975464de45648c614097bd94
+    privateD4EvidenceDigest: sha256:a886e5feca1b18055fcf28e93638de4046877c9a2fc958ad26449148ae968d86
+    privateD5EvidenceDigest: sha256:cc798357adc53266452fe80eb1b15c782408cd8a14738645a8c5e427ecad1684
+  d4:
+    expectedControllerOwnedIdentities: 24
+    confirmedAbsentControllerOwnedIdentities: 24
+    loadBalancerServiceAbsent: true
+    providerPersistentVolumesObserved: 2
+    providerPersistentVolumesReleased: 2
+    providerPersistentVolumesRetain: 2
+    longhornVolumesObserved: 2
+    longhornVolumesDetached: 2
+    mutationPerformed: false
+  d5:
+    plannedDeletes: 7
+    completedDeletes: 7
+    categories:
+      roleBindings: 1
+      roles: 1
+      providerNamespaces: 1
+      providerPersistentVolumes: 2
+      longhornVolumes: 2
+    allBoundProviderResidualsAbsent: true
+    permanentDataLossAccepted: true
+    retryPerformed: false
+    rollbackPerformed: false
+    forceDeletePerformed: false
+    finalizerMutationPerformed: false
+  conclusion:
+    controllerGraphClosureProven: true
+    providerResidualCleanupProven: true
+    retainedStorageCleanupProven: true
+    d6Required: true
+  redaction:
+    privateEvidenceIncluded: false
+    rawObjectsIncluded: false
+    namesIncluded: false
+    uidValuesIncluded: false
+    resourceVersionValuesIncluded: false
+    endpointsIncluded: false
+    credentialsIncluded: false
+  authorization:
+    decision: NO-GO
+    d6Granted: false
+    retryGranted: false
+    forceDeleteGranted: false
+    finalizerMutationGranted: false
+    outageGranted: false
+    failureInjectionGranted: false
