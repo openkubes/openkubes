@@ -1,0 +1,28 @@
+{
+  "apiVersion": "publication.openkubes.io/v1alpha1",
+  "kind": "ADR030EvidenceAmendmentPublicationCandidate",
+  "metadata": {
+    "name": "adr030-ok141-evidence-amendment-v1",
+    "ticket": "OK-141"
+  },
+  "state": "READY-FOR-COMMIT-PUSH-DRAFT-PR",
+  "bindings": {
+    "baseCommit": "0a18a0b012d0107eb786a5b28f87662e2a992db4",
+    "finalEvaluationDigest": "sha256:bed4058efbf9bf323101dc81edc598eb21142e73cbddaf39d78d67134e9870c4",
+    "adrDigest": "sha256:10c586108405d3fa621cc485fbbe7c3ef57a51d81c7aad717c937399158d74d2",
+    "offlineTestsPassed": 6
+  },
+  "decision": {
+    "ok141Outcome": "A",
+    "adrStatus": "Proposed",
+    "boundedEvaluatorDefault": true,
+    "persistentStatusAdapterRequired": false
+  },
+  "authorization": {
+    "decision": "NO-GO",
+    "adrAcceptanceGranted": false,
+    "infrastructureMutationGranted": false,
+    "outageGranted": false,
+    "failureInjectionGranted": false
+  }
+}

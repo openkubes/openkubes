@@ -2,10 +2,11 @@
 
 **Date:** 2026-08-09
 **Status:** Proposed
+**Evidence amendment:** 2026-08-20 (OK-141 outcome A for the tested DEV profile)
 
 **Clarifies:** ADR-Platform-004
 **Extends:** ADR-Platform-007, ADR-Platform-011
-**Related:** ADR-Platform-001, ADR-Platform-003, ADR-Platform-013, ADR-Platform-015, ADR-Platform-017, ADR-Platform-021, ADR-Platform-023
+**Related:** ADR-Platform-001, ADR-Platform-003, ADR-Platform-013, ADR-Platform-015, ADR-Platform-017, ADR-Platform-021, ADR-Platform-023, ADR-Platform-031
 
 ---
 
@@ -90,6 +91,34 @@ Two hard lifecycle invariants follow:
 
 > **Executor failure must not invalidate, roll back, or orphan an already accepted
 > desired-state transition.**
+
+### OK-141 evidence outcome
+
+OK-141 selected **outcome A** for its first concrete DEV profile: no new durable
+OpenKubes-owned lifecycle control loop is required. The execution evidence demonstrated
+the following ownership split:
+
+```text
+bounded OpenKubes Runner       submit + observe + retain receipts
+CAPI / CAPK                    Cluster and infrastructure convergence
+CAAPH / Helm + Cilium          Enablement and network convergence
+Argo CD                        Platform convergence
+bounded OpenKubes evaluator    correlate R/E/P + derive fail-closed readiness
+```
+
+Happy Path, negative controls, controlled Enablement and Platform failures, process
+replacement, idempotency and terminal deletion passed with that model. No evidenced
+consumer required a continuously published OpenKubes status surface, and no failure
+required the evaluator to repair resources owned by those controllers.
+
+The bound synthesis is recorded in the
+[OK-141 final evidence evaluation](../spikes/ADR-Platform-030/final-evidence-evaluation-v1.md).
+
+This evidence constrains the Decision but does not move this ADR to `Accepted`. It is
+scoped to the tested `datacenter-isolated-v1` DEV profile and does not prove Scale,
+Upgrade, management-outage recovery, HA, disaster recovery, migration completion or a
+stable public API. Those claims remain governed by the acceptance conditions below and,
+for authority/fencing and permanent-state recovery, ADR-Platform-031.
 
 ### 1. Intent and authoritative desired state
 
@@ -233,15 +262,18 @@ boundary is:
 | ingress and `cert-manager` | Platform | Unless a specific profile proves one is a prerequisite for authenticated GitOps activation |
 | observability, shared services, and applications | Platform | Durable platform configuration |
 
-Crossing `EnablementReady=True` ends the enablement *phase*, not the Enablement
-controller's ownership. Enablement components continue to be health- and
-version-reconciled by their declared owner. Platform reconciliation MUST NOT also own
-or mutate those same resources. Each profile must publish its exact ownership set and
-the Conditions that prove the boundary.
+Crossing `EnablementReady=True` ends the enablement *phase*, not the declared
+Enablement owner's responsibility. Enablement components continue to be health- and
+version-reconciled by their existing selected controller. Platform reconciliation
+MUST NOT also own or mutate those same resources. Each profile must publish its exact
+ownership set and the Conditions that prove the boundary.
 
-Enablement MUST be reconciled by a declarative, observable mechanism. Eligible
-implementations include a dedicated add-on controller, a suitable CAPI add-on provider,
+Enablement MUST be reconciled by a declarative, observable mechanism. Profiles SHOULD
+select an existing authoritative mechanism. Eligible implementations include a
+suitable CAPI add-on provider, an existing add-on controller,
 management-cluster-driven remote reconciliation, or another controller-based profile.
+The absence of a configured mechanism is not by itself evidence that OpenKubes must
+create a new controller.
 `ClusterResourceSet` may be used only where its apply and upgrade semantics satisfy the
 declared contract; one-time application alone is not assumed to provide continuous
 health or version reconciliation.
@@ -309,11 +341,12 @@ Reasons without introducing a second lifecycle truth.
 
 ## Conditions and readiness
 
-OpenKubes lifecycle status MUST use Kubernetes `metav1.Condition` semantics rather than
-independent boolean fields. At minimum, the aggregate contract exposes or normalizes:
+OpenKubes lifecycle evaluation MUST use Kubernetes `metav1.Condition` semantics rather
+than independent boolean fields. At minimum, the aggregate result exposes or
+normalizes:
 
 - `InfrastructureReady`;
-- `ControlPlaneReady`;
+- `ControlPlaneAvailable`;
 - `NetworkReady`;
 - `EnablementReady`;
 - `PlatformReady`; and
@@ -332,32 +365,42 @@ Ready = all profile-required Conditions are True
         for the current observed generation
 ```
 
-A condition adapter may normalize provider-specific Conditions into the OpenKubes
-surface. It must preserve causal detail through `reason` and `message`; normalization
-must not hide a provider failure.
+A bounded evaluator may normalize provider-specific Conditions into the OpenKubes
+aggregate result. It must preserve causal detail through `reason` and `message`;
+normalization must not hide a provider failure.
 
-Condition ownership is single-writer and explicit:
+Source ownership and aggregate derivation are explicit:
 
-| Condition | Source of truth | Sole writer on the aggregate OpenKubes status |
+| Condition | Authoritative source | Aggregate derivation/publication |
 |---|---|---|
-| `InfrastructureReady` | Infrastructure/CAPI resources | OpenKubes Status Aggregator |
-| `ControlPlaneReady` | CAPI control-plane and Cluster resources | OpenKubes Status Aggregator |
-| `NetworkReady` | Cluster Enablement reconciler | OpenKubes Status Aggregator |
-| `EnablementReady` | Cluster Enablement reconciler | OpenKubes Status Aggregator |
-| `PlatformReady` | Selected GitOps/platform reconciler | OpenKubes Status Aggregator |
-| `Ready` | Derived from the profile-required normalized Conditions | OpenKubes Status Aggregator |
+| `InfrastructureReady` | Infrastructure/CAPI resources | bounded evaluator; optional status adapter |
+| `ControlPlaneAvailable` | CAPI control-plane and Cluster resources | bounded evaluator; optional status adapter |
+| `NetworkReady` | selected Enablement mechanism plus runtime probes | bounded evaluator; optional status adapter |
+| `EnablementReady` | selected Enablement mechanism and profile requirements | bounded evaluator; optional status adapter |
+| `PlatformReady` | selected GitOps/platform reconciler plus capability checks | bounded evaluator; optional status adapter |
+| `Ready` | profile-required normalized Conditions | bounded evaluator; optional status adapter |
 
-Source controllers continue to own Conditions on their own resources. Exactly one
-OpenKubes Status Aggregator owns the normalized Conditions on the aggregate contract;
-Executors, provider controllers, Enablement implementations, and GitOps controllers do
-not concurrently write that aggregate Condition set. The Aggregator may report the
-current OpenKubes `observedGeneration` only after every required source observation has
-been correlated with the desired projection of that generation. Until then the
-Condition is `Unknown` or carries an older `observedGeneration`; prior `True` values
-must not be copied forward optimistically.
+Source controllers continue to own Conditions on their own resources. A bounded
+evaluation is sufficient when the evidenced consumers are operation completion,
+`status`, `wait`, troubleshooting or durable evidence. Such an evaluator does not
+write aggregate status and is not a lifecycle controller.
 
-Successful Executor exit, API reachability, or CAPI `ControlPlaneReady` alone does not
-mean the OpenKubes cluster is `Ready`.
+A continuously published Kubernetes status surface is optional and requires a concrete
+forcing consumer such as Watch semantics, policy evaluation or external automation.
+If selected, exactly one narrow OpenKubes status adapter owns the normalized aggregate
+Condition set. Executors, provider controllers, Enablement implementations and GitOps
+controllers MUST NOT concurrently write it. The adapter observes, correlates,
+aggregates and publishes; it MUST NOT repair source resources or become their second
+owner.
+
+Whether evaluated on demand or published, the current OpenKubes `observedGeneration`
+may be reported only after every required source observation has been correlated with
+the desired projection of that generation. Until then the Condition is `Unknown` or
+carries an older `observedGeneration`; prior `True` values must not be copied forward
+optimistically.
+
+Successful Executor exit, API reachability, or CAPI `ControlPlaneAvailable` alone does
+not mean the OpenKubes cluster is `Ready`.
 
 ## Evidence and completion
 
@@ -423,6 +466,7 @@ semantic operation surface only after that separate governance decision.
 | Call the post-control-plane phase "Bootstrap" | Conflicts with CAPI `BootstrapConfig` and obscures the difference between node initialization and cluster enablement |
 | Expose `kubectl`, Helm, and shell as the platform operation interface | Bypasses semantic validation and policy boundaries, broadens credentials, and weakens auditability |
 | Implement each operation as an independent workflow | Creates multiple lifecycle truths and allows workflows to bypass the declarative contract |
+| Require a continuously running OpenKubes Status Aggregator for every profile | Adds an unevidenced control loop when bounded evaluation and durable receipts satisfy the actual consumers; persistent publication is justified only by a forcing consumer |
 | Define readiness as a set of booleans | Loses generation, reason, message, and transition-time semantics and cannot reliably identify stale status |
 
 ## Consequences
@@ -439,8 +483,10 @@ semantic operation surface only after that separate governance decision.
 
 **Negative / trade-offs:**
 
-- A Cluster Enablement reconciler and normalized Condition surface must be designed,
-  implemented, and operated.
+- Each profile must select and qualify an authoritative declarative Enablement
+  mechanism, and the normalized evaluator and evidence path must be designed,
+  implemented, and operated. A persistent status adapter adds operational cost only
+  when a forcing consumer requires it.
 - The transition from direct CNI installation to controller-driven Enablement adds a
   migration phase and may temporarily leave two paths in service.
 - Durable operation evidence and policy decision records add storage, retention, and
@@ -469,14 +515,15 @@ first concrete profile and produce reviewable evidence for all of the following:
    identity, and their propagation into durable evidence are demonstrated.
 3. **Forcing workflow:** at least one real KubeVirt workflow executes `CreateCluster`
    through the Contract path, reaches current-generation `InfrastructureReady`,
-   `ControlPlaneReady`, `NetworkReady`, `EnablementReady`, and `PlatformReady`, and
+   `ControlPlaneAvailable`, `NetworkReady`, `EnablementReady`, and `PlatformReady`, and
    records the resulting operation evidence.
 4. **Enablement ownership:** the first Cluster Enablement profile publishes its resource
    ownership set, its Enablement/Platform boundary, and a continuously reconciled CNI
    health and version contract.
-5. **Single-writer status:** the normalized Condition schema and Status Aggregator prove
-   that no two controllers write the same aggregate Condition and that `Ready` is only
-   derived.
+5. **Aggregate correctness:** the normalized Condition schema and bounded evaluator
+   prove that `Ready` is only derived. If a persistent status surface is selected, its
+   forcing consumer and freshness contract are documented and exactly one status
+   adapter writes the aggregate Conditions without mutating source resources.
 6. **Generation correctness:** stale-generation success is rejected; a new spec
    generation returns required Conditions to `Unknown`/reconciling until source
    observations for that generation converge.
