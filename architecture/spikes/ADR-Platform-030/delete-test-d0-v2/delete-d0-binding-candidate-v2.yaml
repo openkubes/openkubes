@@ -1,0 +1,61 @@
+apiVersion: observation.openkubes.io/v1alpha1
+kind: OK141DeleteD0BindingCandidate
+metadata:
+  name: ok141-delete-d0-binding-v2
+  ticket: OK-141
+spec:
+  version: ok141-delete-d0-binding/v2
+  state: READY-FOR-EXPLICIT-READ-ONLY-GRANT
+  baseCommit: f58068d1c509114f2868352d0a2cba08b9a830f6
+  bindings:
+    v1CandidatePath: ../delete-test-d0-v1/delete-d0-binding-candidate-v1.yaml
+    v1CandidateFileDigest: sha256:4c705a7d56e1db6828b00f720ee7ab1baed1bdc901e7b3045265184f34468f56
+    v1ExecutorPath: ../delete-test-d0-v1/prepare_delete_d0_binding_v1.py
+    v1ExecutorDigest: sha256:c8856ee3c31c5dbcf03e12a73027fa20b243bbf7e42671a96960d5e28629f8b3
+    stoppedEvidencePath: delete-d0-v1-stopped-evidence.yaml
+  amendment:
+    queryID: data-volumes
+    sourceQueryID: virtual-machines
+    sourceField: spec.dataVolumeTemplates[*].metadata.name
+    replacesRawURI: /apis/cdi.kubevirt.io/v1beta1/namespaces/disposable-ok141/datavolumes?labelSelector=cluster.x-k8s.io%2Fcluster-name%3Ddisposable-ok141
+    rawURI: /apis/cdi.kubevirt.io/v1beta1/namespaces/disposable-ok141/datavolumes
+    postFilter: derived:virtual-machine-data-volume-template-names
+    expectedCount: 2
+    allOtherQueriesUnchanged: true
+  tool:
+    executorPath: prepare_delete_d0_binding_v2.py
+    executorDigest: sha256:d7e75599bf369b06d8a7dd5acb28af3a850fa8a756833c541804d9a329c9467f
+    queryProfileDigest: sha256:7f2b5b578b94a3342fbaae38ac4a673baac542382eb3226ff530b1ecba816514
+    kubectlPath: /private/tmp/ok141-kubectl-v1.34.1-darwin-amd64
+    kubectlDigest: sha256:bb211f2b31f2b3bc60562b44cc1e3b712a16a98e9072968ba255beb04cefcfdf
+    discoveryAllowed: false
+    watchAllowed: false
+    mutationAllowed: false
+  privateOutputs:
+    bindingPath: /private/tmp/ok141-delete-d0-runtime-binding-v2.json
+    evidencePath: /private/tmp/ok141-delete-d0-evidence-v2.json
+    outputMustBeAbsent: true
+    mode: "0600"
+    maximumBindingAgeMinutes: 10
+    rawResponsesRetained: false
+    secretValuesRetained: false
+    publishable: false
+  authorization:
+    decision: NO-GO
+    readOnlyBindingGranted: false
+    credentialUseGranted: false
+    secretMetadataReadGranted: false
+    mutationGranted: false
+    deleteGranted: false
+    cleanupGranted: false
+    retryGranted: false
+    rollbackGranted: false
+    publicationGranted: false
+    outageGranted: false
+    failureInjectionGranted: false
+  exclusions:
+    - v1 retry or reuse of the consumed v1 grant
+    - D1 D2 D3 D4 D5 D6 or D7 execution
+    - create update patch apply delete TokenRequest watch discovery logs or exec
+    - raw Secret values credentials endpoints or kubeconfig content in output
+    - use of this start binding for D5 retained-storage cleanup

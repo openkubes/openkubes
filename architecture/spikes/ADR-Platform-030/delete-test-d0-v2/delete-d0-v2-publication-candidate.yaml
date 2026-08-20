@@ -1,0 +1,58 @@
+apiVersion: publication.openkubes.io/v1alpha1
+kind: OK141DeleteD0V2PublicationCandidate
+metadata:
+  name: ok141-delete-d0-datavolume-filter-v2
+  ticket: OK-141
+spec:
+  state: PREPARED-NOT-AUTHORIZED
+  baseCommit: f58068d1c509114f2868352d0a2cba08b9a830f6
+  scope:
+    - README.md
+    - delete-d0-v1-stopped-evidence.yaml
+    - delete-d0-binding-candidate-v2.yaml
+    - prepare_delete_d0_binding_v2.py
+    - test_prepare_delete_d0_binding_v2.py
+  bindings:
+    stoppedEvidenceDigest: sha256:8908134a2621947136782d1a9a3c8f57d3a346246a3df723838dd5f747a3ebf9
+    candidateFileDigest: sha256:6064e19d7af591a4e32835b5b4f08afccc16217beaedb3e27a9f3457238170e5
+    candidateSemanticDigest: sha256:596ceed2e3194ce426917403077a7d2a44b744f5ebca3a5180b2ab6c180444b1
+    executorDigest: sha256:d7e75599bf369b06d8a7dd5acb28af3a850fa8a756833c541804d9a329c9467f
+    queryProfileDigest: sha256:7f2b5b578b94a3342fbaae38ac4a673baac542382eb3226ff530b1ecba816514
+    testDigest: sha256:a1da9fd9694d59cb6b85611d6424fccc7abe66988771e9d2f5e5ec2c39efb7e1
+    readmeDigest: sha256:818e518ed960e17ae4dc8602948a5ba90f688d2abf7bb12b1e79495b2d66be3c
+    offlineTestsPassed: 9
+  claims:
+    v1StoppedFailClosed: true
+    v1PartialOutputWritten: false
+    v1RetryPerformed: false
+    v2DataVolumeNamesDerivedFromBoundVMs: true
+    allOtherQueriesUnchanged: true
+    v2LiveBindingPerformed: false
+    clusterContactPerformedByAmendment: false
+    mutationPerformedByAmendment: false
+  redaction:
+    rawObjectsExcluded: true
+    endpointsExcluded: true
+    uidsExcluded: true
+    resourceVersionsExcluded: true
+    secretValuesExcluded: true
+    credentialsExcluded: true
+    kubeconfigsExcluded: true
+    privateKeysExcluded: true
+  authorization:
+    publicationGranted: false
+    commitGranted: false
+    pushGranted: false
+    pullRequestGranted: false
+    reviewGranted: false
+    mergeGranted: false
+    liveReadGranted: false
+    credentialUseGranted: false
+    secretMetadataReadGranted: false
+    mutationGranted: false
+    deleteGranted: false
+    cleanupGranted: false
+    retryGranted: false
+    rollbackGranted: false
+    outageGranted: false
+    failureInjectionGranted: false

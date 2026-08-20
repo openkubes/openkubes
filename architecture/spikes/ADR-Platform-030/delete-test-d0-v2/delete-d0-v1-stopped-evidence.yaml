@@ -1,0 +1,40 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: OK141DeleteD0StoppedEvidence
+metadata:
+  name: ok141-delete-d0-v1-stopped-20260820
+  ticket: OK-141
+spec:
+  state: STOPPED-FAIL-CLOSED-NO-RETRY
+  observedAt: "2026-08-20T14:05:47Z"
+  bindings:
+    liveGrantCandidateDigest: sha256:813776cf34272fd163c657a5b2911cc10a7035ffa51e6aea2d69ca729409a79e
+    grantFileDigest: sha256:ce7fdc8675a9ad3dd525920d2dca49afed6547ab39f2c723f3ffadc0e159d7be
+    grantID: ok141-delete-d0-binding-v1-20260820-01
+  result:
+    failedQueryID: data-volumes
+    expectedCount: 2
+    observedCount: 0
+    runtimeBindingWritten: false
+    privateEvidenceWritten: false
+    mutationPerformed: false
+    deletePerformed: false
+    retryPerformed: false
+  causeClassification:
+    class: QUERY-SELECTOR-MISMATCH
+    evidence: rendered VM DataVolume templates do not declare the queried CAPI cluster label
+    runtimeDiskLossProven: false
+    correction: derive exact DataVolume names from the two bound VirtualMachines
+  redaction:
+    rawObjectsRetained: false
+    endpointsRetained: false
+    uidsRetained: false
+    resourceVersionsRetained: false
+    secretValuesRetained: false
+    credentialsRetained: false
+  authorization:
+    decision: NO-GO
+    retryGranted: false
+    mutationGranted: false
+    deleteGranted: false
+    cleanupGranted: false
+    publicationGranted: false
