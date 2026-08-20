@@ -1,0 +1,42 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: OK141DeleteD3ClosureEvidence
+metadata: {name: ok141-delete-d3-v1-closure, ticket: OK-141}
+spec:
+  state: PASS-D3-CAPI-CLUSTER-ABSENT-REDACTED
+  bindings:
+    candidateDigest: sha256:8579a3733c6787a487480845eebffc6a8e1548931374152a62e4e91649b3bff3
+    preflightGrantDigest: sha256:8148a4579cc7f52f07680c74661ac554b2cd7695a611664d295b9bbb094350fd
+    privateBindingDigest: sha256:0a8a560c2513ff1d7de937ec7eb4f512948b9910f9d76e1d82b11b504e198d7d
+    privatePreflightEvidenceDigest: sha256:07e4ec352234afd30e40841fe746321f430b96f8906692de42f2dc34bc9f75f6
+    executionGrantDigest: sha256:889e0ee1fbe3ef5528418824e9ede2483f06eb1b03e8fe8a1b01e475d21acb2c
+    privateExecutionEvidenceDigest: sha256:e814f218994a81b84a816c4b7e051f334676997ce7b3c3dd5782fc685903637a
+  result:
+    clusterDeleteRequested: true
+    clusterAbsent: true
+    foregroundPropagationUsed: true
+    childDeleteRequestedByRunner: false
+    providerSecretDeleteRequested: false
+    retryPerformed: false
+    rollbackPerformed: false
+    cleanupPerformed: false
+    forceDeletePerformed: false
+    finalizerMutationPerformed: false
+  conclusion:
+    detailedControllerGraphClosureProven: false
+    d4Required: true
+  redaction:
+    rawObjectsRetained: false
+    uidValuesRetained: false
+    resourceVersionValuesRetained: false
+    endpointsRetained: false
+    credentialsRetained: false
+  authorization:
+    decision: NO-GO
+    d4Granted: false
+    d5Granted: false
+    retryGranted: false
+    cleanupGranted: false
+    forceDeleteGranted: false
+    finalizerMutationGranted: false
+    outageGranted: false
+    failureInjectionGranted: false
