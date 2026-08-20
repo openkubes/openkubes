@@ -58,6 +58,15 @@ spec:
             {{- $backupGracePeriod := "+72h" }}
             {{- $initialVerificationDeadline := "+336h" }}
             {{- $protectionValidReason := "BackupCompletedAvailableAndArchivingNotFailing" }}
+            {{- /* §13 bound 3. The evidence Backup is a FIXED anchor: a static
+                   provider-kubernetes Object cannot enumerate generated-name Backup CRs, so
+                   retention eventually prunes the anchor out of the moving recovery window while
+                   scheduled backups are perfectly healthy. Reporting that as BackupUnavailable
+                   was a counter-proof drawn from the age of our bookmark rather than the state of
+                   the backups — the most dangerous possible reading, because absence demands
+                   acting. When the window itself shows a MORE RECENT success, the anchor was
+                   superseded and protection follows the schedule. */}}
+            {{- $anchorSupersededReason := "WindowSupersedesAnchor" }}
             {{- if eq $spec.availability.mode "ha" }}
             {{- $instances = 3 }}
             {{- end }}
@@ -274,8 +283,27 @@ spec:
             {{- $availabilityReason = "BackupFailed" }}
             {{- $availabilityObservedAt = $lastFailedBackupTime }}
             {{- else if $firstTime.After $stoppedTime }}
+            {{- /* The anchor predates the window, so ITS data is no longer restorable. That is
+                   only a protection failure if nothing newer is, and the window's own end is the
+                   last successful backup — so comparing against it separates "our bookmark aged
+                   out" from "there is nothing to restore".
+
+                   Be honest about what the else branch is: with a COHERENT window it cannot fire.
+                   firstRecoverabilityPoint > stoppedAt implies lastSuccessfulBackupTime >=
+                   firstRecoverabilityPoint > stoppedAt, so a newer success always exists here. It
+                   is kept as a guard against incoherent plugin data, not as a live state.
+                   The consequence must not be glossed: from recovery-window TIMES alone, positive
+                   evidence that backups are entirely gone is NOT observable — total absence shows
+                   up as an unreadable window, which §11.1 requires be Unknown rather than a
+                   counter-proof. Restoring a real BackupUnavailable verdict needs Backup
+                   enumeration, the same residual gap that leaves backupId unavailable below. */}}
+            {{- if $lastSuccessTime.After $stoppedTime }}
+            {{- $availabilityState = "Valid" }}
+            {{- $availabilityReason = $anchorSupersededReason }}
+            {{- else }}
             {{- $availabilityState = "Failed" }}
             {{- $availabilityReason = "BackupUnavailable" }}
+            {{- end }}
             {{- else if $stoppedTime.After $lastSuccessTime }}
             {{- $availabilityReason = "BackupAvailabilityUnproven" }}
             {{- else }}
@@ -322,6 +350,24 @@ spec:
             {{- $protectionBackupId = $backupId }}
             {{- $samePriorEvidence = and (eq $oldProtectionBackupId $backupId) (or (eq $oldProtectionState "Valid") (eq $oldProtectionState "Stale")) }}
             {{- $protectionExpired = now.After $validTime }}
+            {{- end }}
+            {{- if and (eq $availabilityState "Valid") (eq $availabilityReason $anchorSupersededReason) (ne $canonicalLastSuccessfulBackupTime "") }}
+            {{- /* Freshness now derives from the superseding backup, which is what makes evidence
+                   follow the schedule instead of decaying with a bookmark. The residual, stated
+                   rather than hidden: the recovery window carries TIMES, not backup identities, so
+                   backupId is cleared and the evidence reference points at the window. Naming an
+                   ID we did not observe would be worse than having none. Recovering the ID needs
+                   Backup enumeration, which no static Object can do. */}}
+            {{- $supersedingTime := toDate $layout $canonicalLastSuccessfulBackupTime }}
+            {{- $supersedingValidTime := dateModify $backupValidity $supersedingTime }}
+            {{- $protectionValidUntil = date $layout $supersedingValidTime }}
+            {{- $protectionObservedAt = $canonicalLastSuccessfulBackupTime }}
+            {{- $protectionEvidenceRef = printf "ObjectStore/%s/%s#status.serverRecoveryWindow[%s]" $namespace $objectStoreName $dbName }}
+            {{- $protectionBackupId = "" }}
+            {{- /* Continuity, not identity: with no observable ID the only honest predecessor test
+                   is that protection was already established. */}}
+            {{- $samePriorEvidence = or (eq $oldProtectionState "Valid") (eq $oldProtectionState "Stale") }}
+            {{- $protectionExpired = now.After $supersedingValidTime }}
             {{- end }}
             {{- if and (eq $availabilityState "Failed") (eq $availabilityReason "BackupUnavailable") }}
             {{- $protectionState = "Failed" }}

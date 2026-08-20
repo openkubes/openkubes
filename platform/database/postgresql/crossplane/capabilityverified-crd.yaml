@@ -152,10 +152,11 @@ spec:
                       #   failed to apply OCI options: failed to mkdir "": no such file or directory
                       # character-for-character identical across Talos v1.9.5/v1.9.6, containerd
                       # 2.0.3/2.0.5, Kubernetes v1.34.1/v1.36.2, and both gate stages (beta-enabled
-                      # and GA). Invariant across every variable except Talos itself. NOT
-                      # root-caused: confirming would mean reading the containerd config off a
-                      # node, which nobody has done — do not cite this as an isolated upstream bug.
-                      # There is no silent-empty mode; a probe need not defend against one.
+                      # and GA). Root cause: containerd added OCI Image Volume Source support in
+                      # v2.1.0 (containerd#10579), and both clusters run 2.0.x — the kubelet
+                      # forwards the field over CRI to a runtime with no handler. The requirement
+                      # is containerd >= 2.1.0 AND the gate. There is no silent-empty mode; a probe
+                      # need not defend against one.
                       enum: [BundledImage, ImageVolume]
                     imageName:
                       type: string

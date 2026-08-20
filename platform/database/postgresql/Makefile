@@ -45,7 +45,7 @@ JSON_FILES := drill/minio-policy-backups-readonly.json \
 .PHONY: help validate render-prerequisites render render-check claim-policy-check \
 	claim-authority-model-check claim-admission-check evidence-status-check \
 	observation-freshness-check capability-admission-check capability-evidence-check \
-	credential-overlap-check residency-resolution-check \
+	credential-overlap-check residency-resolution-check anchor-supersession-check \
 	restoreverified-api-check api-acceptance-check drill-validate drill-policy-check minio-provisioning-check \
 	restore-evidence-check \
 	require-mgmt-context require-mgmt-approval require-explicit-cluster require-deploy-user \
@@ -93,7 +93,7 @@ render-check: render-prerequisites ## Render both fixtures and assert Objects an
 		$(PYTHON) crossplane/tests/render-check.py "$$work/observed.yaml" --policy development \
 			--expected-protection-state Unknown --expected-protection-reason BackupAvailabilityUnproven; \
 		$(PYTHON) crossplane/tests/evidence-status-check.py "$$work/observed.yaml"
-	@$(MAKE) --no-print-directory capability-evidence-check residency-resolution-check
+	@$(MAKE) --no-print-directory capability-evidence-check residency-resolution-check anchor-supersession-check
 
 claim-policy-check: ## Prove authority guards fail, then validate the reviewed tuple
 	@$(PYTHON) crossplane/tests/claim-policy-check.py --negative-controls
@@ -176,6 +176,14 @@ capability-evidence-check: render-prerequisites ## Prove capability evidence dec
 # Failed, never silence. It also asserts the safety asymmetry — the composed backup store is
 # identical under a permissive policy, a prohibitive one, and none — because if a policy could
 # change placement, a claimant could move data by naming one.
+# Bound 3. Protection evidence must follow the schedule, not the fixed anchor: retention prunes
+# the anchor out of the moving recovery window while backups are healthy, and reading that as
+# BackupUnavailable is a counter-proof drawn from our own bookmark. Controls guard against this
+# being a suppression rather than a correction.
+anchor-supersession-check: render-prerequisites ## Prove protection follows the schedule, not the anchor
+	@$(PYTHON) crossplane/tests/anchor-supersession-check.py --negative-controls
+	@$(PYTHON) crossplane/tests/anchor-supersession-check.py
+
 residency-resolution-check: render-prerequisites ## Prove residency resolves and dangling refs fail closed
 	@$(PYTHON) crossplane/tests/residency-resolution-check.py --negative-controls
 	@$(PYTHON) crossplane/tests/residency-resolution-check.py

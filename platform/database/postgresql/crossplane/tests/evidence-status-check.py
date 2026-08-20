@@ -753,8 +753,21 @@ def render_scenario_tests(group: str = "core") -> None:
         ("valid", "protection", "Valid", valid_reason),
         ("expired-prior-valid", "protection", "Stale", "BackupEvidenceExpired"),
         ("expired-never-valid", "protection", "Pending", "FreshBackupEvidencePending"),
-        ("expired-prior-unavailable", "protection", "Failed", "BackupUnavailable"),
-        ("backup-unavailable", "protection", "Failed", "BackupUnavailable"),
+        # Both of these encoded the fixed-anchor premise, and OK-150 bound 3 removed it. An
+        # anchor outside the recovery window is no longer unavailability: the window's own end is
+        # a LATER successful backup, so something recoverable exists and the anchor was merely
+        # superseded. What remains is a freshness question, which is what these now assert.
+        #   expired-prior-unavailable: production wants evidence <=24h; the superseding backup is
+        #   24h old, so the proof is old -> Stale. "Our proof is old" is true here; "the backup is
+        #   gone" was not.
+        #   backup-unavailable: the superseding backup is fresh, so protection is simply Valid.
+        # BackupUnavailable's precedence over Stale (§11.1) is UNCHANGED and still enforced in the
+        # reduction; what changed is that the anchor's age no longer manufactures the verdict. See
+        # anchor-supersession-check.py, which also proves this is a correction and not a
+        # suppression: an incoherent window, an unreadable window and a failing archiver all still
+        # refuse to read Valid.
+        ("expired-prior-unavailable", "protection", "Stale", "BackupEvidenceExpired"),
+        ("backup-unavailable", "protection", "Valid", valid_reason),
         ("continuous-archiving-failed", "protection", "Failed", "ContinuousArchivingFailed"),
         ("backup-overdue", "protection", "Failed", "BackupOverdue"),
         ("first-backup-deadline-persisted", "protection", "Unknown", "AwaitingFirstBackup"),
