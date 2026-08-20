@@ -1,0 +1,82 @@
+apiVersion: execution.openkubes.io/v1alpha1
+kind: OK141DeleteD1ExecutionCandidate
+metadata:
+  name: ok141-delete-d1-execution-v2
+  ticket: OK-141
+spec:
+  version: ok141-delete-d1-execution/v2
+  state: OFFLINE-PREPARED-BLOCKED-NO-GO
+  baseCommit: 47238217e187e07e7b21f5b7231790c969a9d2db
+  bindings:
+    v1CandidatePath: ../delete-test-d1-execution-v1/delete-d1-execution-candidate-v1.yaml
+    v1CandidateDigest: sha256:2f8bfa6e6a622442381e57c56787a5c7804ddc40a64aefb219884ce3057848e3
+    v1ExecutorPath: ../delete-test-d1-execution-v1/bounded_delete_d1_v1.py
+    v1ExecutorDigest: sha256:8f941d5745bb7823c0ad5f449602606fe4b907a113acdae330df83b9e865c359
+    v3PreflightCandidatePath: ../delete-test-d1-preflight-v3/delete-d1-preflight-candidate-v3.yaml
+    v3PreflightCandidateDigest: sha256:7bcb68bdac1c8b17aaa3acf370ac7d4d9acc25b8d4395abd816ea6d7da0a4e9e
+    v3PreflightExecutorPath: ../delete-test-d1-preflight-v3/prepare_delete_d1_preflight_v3.py
+    v3PreflightExecutorDigest: sha256:92e2b9a7e923037e07e265cf59b4ae67b5aaa32cefdd043d8b594680c012ba9f
+    stoppedEvidencePath: ../delete-test-d1-preflight-v3/delete-d1-v1-stopped-ordering-evidence.yaml
+    stoppedEvidenceDigest: sha256:a13be619262ab926550a992ac5535b7595fcdb1a05cc25510f22bed4f8776b44
+  input:
+    bindingPath: /private/tmp/ok141-delete-d1-runtime-binding-v3.json
+    requiredFormat: ok141-delete-d1-runtime-binding/v3
+    requiredState: PASS-D1-PREFLIGHT-PRIVATE-BOUND-NO-GO
+    requiredOrderProfile: ok141-delete-d1-order/v1
+    maximumAgeMinutes: 5
+    mode: "0600"
+  plane:
+    name: ok-shared
+    kubeconfigPath: /Users/arash/.kube/ok-shared.yaml
+  deleteOrder:
+    - queryID: application-dashboards
+      namespace: argocd
+      name: disposable-ok141-observability-dashboards
+      rawURI: /apis/argoproj.io/v1alpha1/namespaces/argocd/applications/disposable-ok141-observability-dashboards
+    - queryID: application-alerting
+      namespace: argocd
+      name: disposable-ok141-observability-alerting
+      rawURI: /apis/argoproj.io/v1alpha1/namespaces/argocd/applications/disposable-ok141-observability-alerting
+    - queryID: application-core
+      namespace: argocd
+      name: disposable-ok141-observability-core
+      rawURI: /apis/argoproj.io/v1alpha1/namespaces/argocd/applications/disposable-ok141-observability-core
+    - queryID: registration-secret
+      namespace: argocd
+      name: disposable-ok141-cluster
+      rawURI: /api/v1/namespaces/argocd/secrets/disposable-ok141-cluster
+    - queryID: app-project
+      namespace: argocd
+      name: openkubes-disposable
+      rawURI: /apis/argoproj.io/v1alpha1/namespaces/argocd/appprojects/openkubes-disposable
+  operation:
+    propagationPolicy: Background
+    preconditionFields: [uid, resourceVersion]
+    exactGetImmediatelyBeforeDelete: true
+    requireApplicationFinalizersAbsent: true
+    requireDeletionTimestampAbsent: true
+    absencePollIntervalSeconds: 2
+    absencePollMaximumIterations: 30
+    onFailure: STOP-PRESERVE-NO-RETRY
+  privateOutput:
+    evidencePath: /private/tmp/ok141-delete-d1-execution-evidence-v2.json
+    mode: "0600"
+  tool:
+    path: bounded_delete_d1_v2.py
+    digest: sha256:2ef548871d225291c24a57148d10889c437ab1fbaa4ed36be01319295cb91a6a
+    kubectlPath: /private/tmp/ok141-kubectl-v1.34.1-darwin-amd64
+    kubectlDigest: sha256:bb211f2b31f2b3bc60562b44cc1e3b712a16a98e9072968ba255beb04cefcfdf
+  authorization:
+    decision: NO-GO
+    credentialUseGranted: false
+    mutationGranted: false
+    deleteGranted: false
+    retryGranted: false
+    rollbackGranted: false
+    cleanupGranted: false
+    forceDeleteGranted: false
+    finalizerMutationGranted: false
+    d2Granted: false
+    d3Granted: false
+    outageGranted: false
+    failureInjectionGranted: false

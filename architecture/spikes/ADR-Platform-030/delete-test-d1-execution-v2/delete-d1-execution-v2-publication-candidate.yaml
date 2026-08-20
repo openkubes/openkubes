@@ -1,0 +1,44 @@
+apiVersion: publication.openkubes.io/v1alpha1
+kind: OK141DeleteD1ExecutionV2PublicationCandidate
+metadata:
+  name: ok141-delete-d1-execution-v2
+  ticket: OK-141
+spec:
+  state: PREPARED-NOT-AUTHORIZED
+  baseCommit: 47238217e187e07e7b21f5b7231790c969a9d2db
+  bindings:
+    candidateDigest: sha256:b6c7ff18498be0e06fa3753e6b4f673f20befffab13bb807cb81505a6e1eecf9
+    candidateSemanticDigest: sha256:0e53d93c3b803df061061d1a8f4b53dde596c572a8691a9bbc14d40894f442ac
+    executorDigest: sha256:2ef548871d225291c24a57148d10889c437ab1fbaa4ed36be01319295cb91a6a
+    testDigest: sha256:edd3fa1dbfece661789fb904d61b744914ac802728c47eae0ecbbeb6f474929b
+    grantTemplateDigest: sha256:f7d0fb6539e4871ed4ba2eeb7859c3b377ef3086cc0edee0d4ea2c45c03e71d8
+    readmeDigest: sha256:c2360ad3c7dc48f5c7f0768582d0207569876153bfe1f4978f36b05a2e62f18d
+    offlineTestsPassed: 8
+  claims:
+    orderedV3BindingRequired: true
+    exactFiveTargetOrderBound: true
+    uidAndResourceVersionPreconditionsRequired: true
+    applicationFinalizersMustBeAbsent: true
+    backgroundPropagationRequired: true
+    targetResourceDeleteByRunnerForbidden: true
+    retryUnavailable: true
+    oldV1GrantReusable: false
+  authorization:
+    publicationGranted: false
+    commitGranted: false
+    pushGranted: false
+    pullRequestGranted: false
+    reviewGranted: false
+    mergeGranted: false
+    credentialUseGranted: false
+    mutationGranted: false
+    deleteGranted: false
+    retryGranted: false
+    rollbackGranted: false
+    cleanupGranted: false
+    forceDeleteGranted: false
+    finalizerMutationGranted: false
+    d2Granted: false
+    d3Granted: false
+    outageGranted: false
+    failureInjectionGranted: false

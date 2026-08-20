@@ -1,0 +1,56 @@
+apiVersion: execution.openkubes.io/v1alpha1
+kind: OK141DeleteD1PreflightCandidate
+metadata:
+  name: ok141-delete-d1-preflight-v3
+  ticket: OK-141
+spec:
+  version: ok141-delete-d1-preflight/v3
+  state: READY-FOR-EXPLICIT-READ-ONLY-GRANT
+  baseCommit: 47238217e187e07e7b21f5b7231790c969a9d2db
+  bindings:
+    v2CandidatePath: ../delete-test-d1-preflight-v2/delete-d1-preflight-candidate-v2.yaml
+    v2CandidateDigest: sha256:c5c78e4d82b689f645c63be3ccbb3a3c4c2f890b01d7004daad7915da6fa7276
+    v2ExecutorPath: ../delete-test-d1-preflight-v2/prepare_delete_d1_preflight_v2.py
+    v2ExecutorDigest: sha256:08970c4761d7a4265b900fdb1e98433cd02a5deeb1248f6975795e445b8eae99
+    stoppedEvidencePath: delete-d1-v1-stopped-ordering-evidence.yaml
+    stoppedEvidenceDigest: sha256:a13be619262ab926550a992ac5535b7595fcdb1a05cc25510f22bed4f8776b44
+    protocolPath: ../delete-test-v1/delete-test-protocol-v1.yaml
+    protocolSemanticDigest: sha256:4cd457c5f40bdf3ae871cbe56ba7c151f7ac3242bd73129557f25cf620a2d0bc
+  bindingOrder:
+    - application-dashboards
+    - application-alerting
+    - application-core
+    - registration-secret
+    - app-project
+  normalization:
+    profile: argocd-application-c14n/v1
+    defaults:
+      spec.source.directory.recurse: false
+  assertions:
+    allV2SemanticAssertionsRetained: true
+    bindingOrderMustEqualProtocol: true
+    bindingRecordsMustMatchAsSet: true
+    oldV2DigestReinterpreted: false
+  privateOutputs:
+    bindingPath: /private/tmp/ok141-delete-d1-runtime-binding-v3.json
+    evidencePath: /private/tmp/ok141-delete-d1-preflight-evidence-v3.json
+    mode: "0600"
+    maximumBindingAgeMinutes: 5
+  tool:
+    executorPath: prepare_delete_d1_preflight_v3.py
+    executorDigest: sha256:92e2b9a7e923037e07e265cf59b4ae67b5aaa32cefdd043d8b594680c012ba9f
+    kubectlPath: /private/tmp/ok141-kubectl-v1.34.1-darwin-amd64
+    kubectlDigest: sha256:bb211f2b31f2b3bc60562b44cc1e3b712a16a98e9072968ba255beb04cefcfdf
+  authorization:
+    decision: NO-GO
+    readOnlyGranted: false
+    credentialUseGranted: false
+    secretContentReadGranted: false
+    mutationGranted: false
+    deleteGranted: false
+    cleanupGranted: false
+    retryGranted: false
+    rollbackGranted: false
+    publicationGranted: false
+    outageGranted: false
+    failureInjectionGranted: false
