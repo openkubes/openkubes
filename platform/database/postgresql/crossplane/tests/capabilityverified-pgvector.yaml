@@ -74,5 +74,5 @@ spec:
     completedAt: "2026-08-19T15:30:00Z"
     duration: PT2.4S
   probeDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
-  verifierVersion: pgvector-probe/0.1.0
+  verifierVersion: pgvector-probe/0.2.0
   postgresMajorVersion: 18

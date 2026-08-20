@@ -1010,6 +1010,20 @@ spec:
                     namespace: {{ $namespace | quote }}
                     labels:
                       app.kubernetes.io/part-of: openkubes-database-postgresql
+                    {{- /* The capability probe runs on the WORKLOAD cluster, where the Database
+                           XR does not exist: the composed CNPG Cluster carries no ownerRef back
+                           to it and the XR lives on the management plane. Without these two
+                           annotations the probe cannot bind its artifact to a Database, and
+                           taking the uid as an argument would be exactly the substitution bound 4
+                           exists to prevent — a caller could name any Database.
+                           The composer therefore stamps the binding it alone knows. A probe run
+                           against a standalone cluster finds no annotation and emits an artifact
+                           with databaseRef OMITTED, which the API server refuses, so the same
+                           script yields admissible evidence only where the platform composed the
+                           database. There is no flag to get wrong. */}}
+                    annotations:
+                      platform.openkubes.ai/database-name: {{ $xr.metadata.name | quote }}
+                      platform.openkubes.ai/database-uid: {{ $xr.metadata.uid | quote }}
                   spec:
                     instances: {{ $instances }}
                     enableSuperuserAccess: false
