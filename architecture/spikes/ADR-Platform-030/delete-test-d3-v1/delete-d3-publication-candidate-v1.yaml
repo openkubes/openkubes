@@ -1,0 +1,39 @@
+apiVersion: publication.openkubes.io/v1alpha1
+kind: OK141DeleteD3PublicationCandidate
+metadata: {name: ok141-delete-d3-v1, ticket: OK-141}
+spec:
+  state: READY-FOR-COMMIT-PUSH-DRAFT-PR
+  bindings:
+    baseCommit: c0aeb15901e7914b4dc8e963ec29267a5e77325e
+    candidateDigest: sha256:8579a3733c6787a487480845eebffc6a8e1548931374152a62e4e91649b3bff3
+    candidateSemanticDigest: sha256:9780f83394b7a3536992991b1bc08d870a1cf0bc84a5b693adc19cbbe049ecb2
+    executorDigest: sha256:829f11a18cff5bc1e14405df19f35881a38e942f3832f90196d110d593f02f08
+    d2ClosureDigest: sha256:9c4e1bc7fd918e2a63b78a668be7beca3f5c5502d7ab589a80de0391f915dbba
+    offlineTestsPassed: 7
+  conclusions:
+    onlyCAPIClusterDeleteTarget: true
+    childClosureDelegatedToControllers: true
+    providerAccessSecretRetained: true
+    detailedClosureRequiresD4: true
+  publication:
+    privateEvidenceIncluded: false
+    uidValuesIncluded: false
+    resourceVersionValuesIncluded: false
+    endpointsIncluded: false
+    credentialsIncluded: false
+  authorization:
+    decision: NO-GO
+    credentialUseGranted: false
+    secretMetadataReadGranted: false
+    readOnlyGranted: false
+    mutationGranted: false
+    deleteGranted: false
+    retryGranted: false
+    cleanupGranted: false
+    forceDeleteGranted: false
+    finalizerMutationGranted: false
+    childDeleteGranted: false
+    providerSecretDeleteGranted: false
+    d4MutationGranted: false
+    outageGranted: false
+    failureInjectionGranted: false

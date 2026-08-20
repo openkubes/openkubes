@@ -1,0 +1,63 @@
+apiVersion: execution.openkubes.io/v1alpha1
+kind: OK141DeleteD3Candidate
+metadata: {name: ok141-delete-d3-v1, ticket: OK-141}
+spec:
+  version: ok141-delete-d3/v1
+  state: OFFLINE-PREPARED-BLOCKED-NO-GO
+  baseCommit: c0aeb15901e7914b4dc8e963ec29267a5e77325e
+  bindings:
+    protocolPath: ../delete-test-v1/delete-test-protocol-v1.yaml
+    protocolSemanticDigest: sha256:4cd457c5f40bdf3ae871cbe56ba7c151f7ac3242bd73129557f25cf620a2d0bc
+    d2ClosurePath: ../delete-test-d2-v1-closure/delete-d2-closure-evidence-v1.yaml
+    d2ClosureDigest: sha256:9c4e1bc7fd918e2a63b78a668be7beca3f5c5502d7ab589a80de0391f915dbba
+  plane: {name: ok-mgmt, kubeconfigPath: /Users/arash/.kube/ok-mgmt.yaml}
+  target:
+    namespace: disposable-ok141
+    name: disposable-ok141
+    clusterURI: /apis/cluster.x-k8s.io/v1beta2/namespaces/disposable-ok141/clusters/disposable-ok141
+    providerSecretURI: /api/v1/namespaces/disposable-ok141/secrets/external-infra-kubeconfig-disposable-ok141
+    namespaceURI: /api/v1/namespaces/disposable-ok141
+  preflight:
+    sealedGetCount: 3
+    providerSecretMustRemain: true
+    managementNamespaceMustRemain: true
+    bindingMaximumAgeMinutes: 5
+  operation:
+    deleteOnly: Cluster
+    childDelete: false
+    providerSecretDelete: false
+    immutableIdentityFields: [name, namespace, uid]
+    exactGetImmediatelyBeforeDelete: true
+    deletePreconditionFields: [uid, resourceVersion]
+    useLiveResourceVersionForDelete: true
+    propagationPolicy: Foreground
+    absencePollIntervalSeconds: 5
+    absencePollMaximumIterations: 240
+    onFailure: STOP-PRESERVE-NO-RETRY-NO-FINALIZER-MUTATION
+  privateOutputs:
+    bindingPath: /private/tmp/ok141-delete-d3-runtime-binding-v1.json
+    preflightEvidencePath: /private/tmp/ok141-delete-d3-preflight-evidence-v1.json
+    executionEvidencePath: /private/tmp/ok141-delete-d3-execution-evidence-v1.json
+    mode: "0600"
+  tool:
+    path: bounded_delete_d3_v1.py
+    digest: sha256:829f11a18cff5bc1e14405df19f35881a38e942f3832f90196d110d593f02f08
+    kubectlPath: /private/tmp/ok141-kubectl-v1.34.1-darwin-amd64
+    kubectlDigest: sha256:bb211f2b31f2b3bc60562b44cc1e3b712a16a98e9072968ba255beb04cefcfdf
+  authorization:
+    decision: NO-GO
+    credentialUseGranted: false
+    secretMetadataReadGranted: false
+    readOnlyGranted: false
+    mutationGranted: false
+    deleteGranted: false
+    retryGranted: false
+    rollbackGranted: false
+    cleanupGranted: false
+    forceDeleteGranted: false
+    finalizerMutationGranted: false
+    childDeleteGranted: false
+    providerSecretDeleteGranted: false
+    d4MutationGranted: false
+    outageGranted: false
+    failureInjectionGranted: false

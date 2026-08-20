@@ -1,0 +1,27 @@
+apiVersion: authorization.openkubes.io/v1alpha1
+kind: OK141DeleteD3ExecutionGrant
+metadata: {name: REPLACE, ticket: OK-141}
+spec:
+  state: NOT-GRANTED
+  grantID: REPLACE
+  candidateDigest: REPLACE
+  d3BindingDigest: REPLACE
+  notBefore: REPLACE
+  notAfter: REPLACE
+  maximumRuns: 1
+  consumed: false
+  credentialUseAuthorized: false
+  mutationAuthorized: false
+  deleteAuthorized: false
+  partialStateAccepted: false
+  retryAuthorized: false
+  rollbackAuthorized: false
+  cleanupAuthorized: false
+  forceDeleteAuthorized: false
+  finalizerMutationAuthorized: false
+  childDeleteAuthorized: false
+  providerSecretDeleteAuthorized: false
+  d4MutationAuthorized: false
+  outageAuthorized: false
+  failureInjectionAuthorized: false
+  stopPolicy: STOP-PRESERVE-NO-RETRY-NO-FINALIZER-MUTATION
