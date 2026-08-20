@@ -1,0 +1,48 @@
+name: verify-console
+
+on:
+  pull_request:
+    paths:
+      - "console/**"
+      - ".github/workflows/verify-console.yaml"
+  push:
+    branches: [main]
+    paths:
+      - "console/**"
+      - ".github/workflows/verify-console.yaml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verify-console-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: console
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.17.1
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: console/pnpm-lock.yaml
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Lint
+        run: pnpm lint
+      - name: Test
+        run: pnpm test
+      - name: Build
+        run: pnpm build
