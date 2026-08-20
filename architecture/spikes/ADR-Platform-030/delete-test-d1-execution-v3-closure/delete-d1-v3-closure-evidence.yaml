@@ -1,0 +1,60 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: OK141DeleteD1V3ClosureEvidence
+metadata:
+  name: ok141-delete-d1-v3-closure
+  ticket: OK-141
+  observedAt: "2026-08-20T17:20:00Z"
+spec:
+  state: PASS-D1-GITOPS-QUIESCED-REDACTED
+  bindings:
+    executionCandidateDigest: sha256:67afb4ccedd51a95f021be459d5de4821a056de5788328a034d35727377cfef7
+    d0GrantDigest: sha256:c0d5f63202e325e19339e5e9e375c1d7abe276b90a764b80cb4d6fbf4def341a
+    d0BindingDigest: sha256:5bbab0ea1364ccc21cf8eb7728e7050c25ff9a9eb120db4fdcbb604de1f27c2e
+    d0EvidenceDigest: sha256:67719ebdd15aea7e94ae961187278545da26f14ec927f99ce270f2e8e4024f85
+    d1PreflightGrantDigest: sha256:7ce27d739cc0ba61c513765635b5f2cc4076517777b93c80d2bfe562bed1284b
+    d1BindingDigest: sha256:6e73d2fc91a3e3eae84d8b2f795a00a4e15eb25f2d183046d55fdf0dc43dab2e
+    d1PreflightEvidenceDigest: sha256:a857bc1a8bcd6c63b778b30deb510038de3f2d94f5ed25dd8814c11eb2c57644
+    executionGrantDigest: sha256:fe6f3c5db49924584a25fd8074e21c3cfbf3187cb0d6d7f620c9aae8d694eb17
+    privateExecutionEvidenceDigest: sha256:18427d3f8119ad684b88f4e01d75ea85bf3305879681e4d1c50b99b18ace8e84
+  execution:
+    plannedDeleteCount: 5
+    completedDeleteCount: 5
+    orderedTargets:
+      - application-dashboards
+      - application-alerting
+      - application-core
+      - registration-secret
+      - app-project
+    allTargetsAbsent: true
+    immutableUIDBindingUsed: true
+    liveResourceVersionPreconditionUsedCount: 5
+    applicationFinalizersAbsentAtDelete: true
+    backgroundPropagationUsed: true
+    retryPerformed: false
+    rollbackPerformed: false
+    forceDeletePerformed: false
+    finalizerMutationPerformed: false
+    cleanupPerformed: false
+  boundary:
+    targetResourcesDeletedByArgo: false
+    capiClusterDeleted: false
+    virtualMachinesDeleted: false
+    persistentVolumesDeleted: false
+    retainedStorageDeleted: false
+  redaction:
+    rawObjectsRetained: false
+    uidValuesRetained: false
+    resourceVersionValuesRetained: false
+    endpointsRetained: false
+    credentialsRetained: false
+    kubeconfigsRetained: false
+  authorization:
+    decision: NO-GO
+    d2Granted: false
+    d3Granted: false
+    cleanupGranted: false
+    retryGranted: false
+    rollbackGranted: false
+    forceDeleteGranted: false
+    outageGranted: false
+    failureInjectionGranted: false
