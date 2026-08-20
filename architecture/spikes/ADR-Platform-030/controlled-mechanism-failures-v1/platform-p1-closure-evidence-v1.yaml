@@ -1,0 +1,48 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: OK141ControlledPlatformFailureClosure
+metadata:
+  name: ok141-controlled-platform-failure-p1-v1
+spec:
+  source:
+    candidateDigest: sha256:d66513ecd877dba656f0efb108c7aab1c7c496d0560f0bb65e06d068b1a536d1
+    grantID: ok141-controlled-platform-failure-p1-20260820-01
+    rawEvidenceDigest: sha256:ae2d2370b01de2469e73e09b621c19b206d5f330cb277e5ab63e78cb65bc15cf
+  result:
+    state: PASS-FAIL-CLOSED-RESTORED
+    preflightReady: true
+    faultWritten: true
+    faultObserved: true
+    failureObservationIteration: 31
+    PlatformReadyDuringFault: false
+    coreAndAlertingReadyDuringFault: true
+    protectedTargetUnchangedDuringFault: true
+    exactRestoreWritten: true
+    recoveryObserved: true
+    recoveryObservationIteration: 1
+    PlatformReadyAfterRestore: true
+  safety:
+    runnerRepairPerformed: false
+    directTargetMutationPerformed: false
+    deletePerformed: false
+    retryPerformed: false
+    rawObjectsRetained: false
+    credentialPayloadRetained: false
+    postRunApplicationsReady: true
+    postRunProtectedTargetUnchanged: true
+  ownership:
+    desiredPlatformOwner: Argo-CD
+    runnerRole: observe-correlate-evaluate-fail-closed
+    runnerOwnsPlatformRepair: false
+    newOpenKubesReconcilerProvenNecessary: false
+  interpretation:
+    - A wrong desired Platform projection makes PlatformReady fail closed while unrelated Platform Applications remain healthy.
+    - Argo CD remains responsible for manifest generation and Platform convergence.
+    - The protected dashboard data remained unchanged because the invalid path produced no alternative desired object set.
+    - Restoring the exact desired projection returned the full Platform set to the healthy baseline.
+    - The result supports architecture hypothesis A for the tested Platform failure boundary.
+  publication:
+    state: NO-GO
+    rawEvidencePublished: false
+    secretMaterialPublished: false
+    rawObjectsPublished: false
+    identifiersPublished: false
