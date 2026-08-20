@@ -1,0 +1,72 @@
+apiVersion: observation.openkubes.io/v1alpha1
+kind: OK141DeleteD1PreflightCandidate
+metadata:
+  name: ok141-delete-d1-preflight-v2
+  ticket: OK-141
+spec:
+  version: ok141-delete-d1-preflight/v2
+  state: READY-FOR-EXPLICIT-READ-ONLY-GRANT
+  baseCommit: 9482ed60fd537feb4017fb5741671ed91d55787b
+  bindings:
+    v1CandidatePath: ../delete-test-d1-preflight-v1/delete-d1-preflight-candidate-v1.yaml
+    v1CandidateDigest: sha256:b654def485a39594424e8bc6c10d74bb7f5f7a14b3ecae1052617d6d9d6a6de5
+    v1ExecutorPath: ../delete-test-d1-preflight-v1/prepare_delete_d1_preflight_v1.py
+    v1ExecutorDigest: sha256:05efc4724fe710e5e23b9d1fa857c2fb924151d92be779fcb36dcd31da1be1e0
+    stoppedEvidencePath: delete-d1-v1-stopped-and-defaulting-evidence.yaml
+    stoppedEvidenceDigest: sha256:153cb08e3ef45ddba17aea2c59913f1b60fc38f322ab58b834a906319a79cb40
+    platformProfilePath: ../harness/profiles/platform/minimal-observability-v9/profile.json
+    platformProfileDigest: sha256:5570d309696d0ba6541a998e6eee82880159ec13c4d933ef2c570a179d5fdfa1
+    platformApplicationsPath: ../harness/profiles/platform/minimal-observability-v9/applications.yaml
+    platformApplicationsDigest: sha256:5ab84ce73198b95e3ebd0947ce2ca896b40eb5e7b91a13bdf827bf0e7421a1ea
+    d0PrivateBindingPath: /private/tmp/ok141-delete-d0-runtime-binding-v3.json
+  normalization:
+    profile: argocd-application-c14n/v1
+    projection: [apiVersion, kind, metadata.name, metadata.namespace, spec]
+    defaults:
+      spec.source.directory.recurse: false
+    expectedApplicationDigests:
+      disposable-ok141-observability-core: sha256:e48724fdfb54db0b4fe6942fc4eb15e97e63c0ac987c9a70781222d35a4cd8c5
+      disposable-ok141-observability-alerting: sha256:45d34b49ea65fdb2576ea5de6d34681048d88d17aef95ddf2190208bbdbdf98c
+      disposable-ok141-observability-dashboards: sha256:9b27a1106631f0fe40d444b7227e0065910bc6c4cb963e1279afc5b923e3807e
+  assertions:
+    applicationUIDMustEqualD0: true
+    applicationResourceVersionMayAdvance: true
+    applicationGenerationMayAdvance: true
+    normalizedApplicationDigestMustMatchProfile: true
+    appProjectMetadataMustEqualD0: true
+    registrationSecretMetadataMustEqualD0: true
+    allV1TargetCorrelationAssertionsRetained: true
+  tool:
+    executorPath: prepare_delete_d1_preflight_v2.py
+    executorDigest: sha256:08970c4761d7a4265b900fdb1e98433cd02a5deeb1248f6975795e445b8eae99
+    kubectlPath: /private/tmp/ok141-kubectl-v1.34.1-darwin-amd64
+    kubectlDigest: sha256:bb211f2b31f2b3bc60562b44cc1e3b712a16a98e9072968ba255beb04cefcfdf
+  privateOutputs:
+    bindingPath: /private/tmp/ok141-delete-d1-runtime-binding-v2.json
+    evidencePath: /private/tmp/ok141-delete-d1-preflight-evidence-v2.json
+    mustBeAbsentBeforeRun: true
+    mode: "0600"
+    maximumBindingAgeMinutes: 5
+    rawResponsesRetained: false
+    secretValuesRetained: false
+    endpointsRetained: false
+    publishable: false
+  authorization:
+    decision: NO-GO
+    readOnlyPreflightGranted: false
+    credentialUseGranted: false
+    secretContentReadGranted: false
+    mutationGranted: false
+    deleteGranted: false
+    cleanupGranted: false
+    retryGranted: false
+    rollbackGranted: false
+    publicationGranted: false
+    outageGranted: false
+    failureInjectionGranted: false
+  exclusions:
+    - reuse of the stopped v1 preflight grant
+    - D1 deletion or any later delete stage
+    - acceptance of any normalized semantic digest not bound by minimal-observability-v9
+    - persistence or output of registration endpoint Secret content or raw objects
+    - create update patch apply delete TokenRequest discovery watch logs or exec
