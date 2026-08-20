@@ -1,0 +1,12 @@
+apiVersion: publication.openkubes.io/v1alpha1
+kind: OK141DeleteD3ClosurePublicationCandidate
+metadata: {name: ok141-delete-d3-v1-closure, ticket: OK-141}
+spec:
+  state: READY-FOR-COMMIT-PUSH-DRAFT-PR
+  bindings:
+    baseCommit: 071898da368297c517d370825c1b85c34e059c6e
+    closureDigest: sha256:d2bf4ce0e9fa1f3a3801060f508bf4ba69a12e55e7a109f0ef2d3fc1fb22ddec
+    closureSemanticDigest: sha256:068e0e135f2af5570e3614afd50d789aae2dcef51d3f024415caa8bc89ac5e79
+    offlineTestsPassed: 5
+  publication: {privateEvidenceIncluded: false, uidValuesIncluded: false, resourceVersionValuesIncluded: false, endpointsIncluded: false, credentialsIncluded: false}
+  authorization: {decision: NO-GO, d4Granted: false, d5Granted: false, retryGranted: false, cleanupGranted: false, outageGranted: false, failureInjectionGranted: false}
