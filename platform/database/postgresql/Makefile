@@ -35,6 +35,7 @@ YAML_FILES := crossplane/xrd.yaml crossplane/composition.yaml \
 	crossplane/tests/xr-ok-robotics.yaml crossplane/tests/xr-ok-robotics-production.yaml \
 	crossplane/tests/observed-ok-robotics-valid.yaml \
 	crossplane/tests/restoreverified-ok-robotics.yaml \
+	probe/pgvector-proof.yaml \
 	drill/recovery-cluster.template.yaml
 JSON_FILES := drill/minio-policy-backups-readonly.json \
 	drill/minio-policy-backups-ok-robotics-writer.json \
