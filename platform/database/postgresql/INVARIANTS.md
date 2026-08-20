@@ -73,6 +73,31 @@ Why this is not optional: measured on ok-mgmt, the live `Database` XR held **one
 across 350s of sampling. Status is written only when it changes, so a healthy composite and a dead
 one emit identical bytes.
 
+## Credential rotation overlap (§13 bound 6)
+`app` owns the database and is **NOLOGIN**; `app_a`/`app_b` are login roles granted into it, each
+with its **own** Secret. Two roles means two verifiers, which is the only way an overlap can exist
+at all — PostgreSQL stores one verifier per role. Pointing both slots at one Secret leaves every
+`status.credentials` field looking correct while the overlap is fictional, so that case is a
+negative control rather than a comment.
+
+`overlapWindow` is a protection-class attribute: **PT1H production, PT24H development**, production
+shorter because a previous credential that still authenticates is standing exposure.
+`previousCredentialAccepted` is published as a boolean so the consumer reads whether the old
+credential still works instead of inferring it.
+
+**Precondition on the consumer contract, not a cluster caveat.** Adopting the pair makes `app`
+NOLOGIN, so anything authenticating as `app` stops opening new sessions. Measured on ok-robotics
+(2026-08-20) there is currently no such consumer — no live backends on the `app` database, no pod
+referencing the credential Secret by volume or `secretKeyRef`, no VaultStaticSecret fanning it out,
+and the `-r`/`-ro`/`-rw` Services are all ClusterIP, so there is no out-of-cluster path. That makes
+ok-robotics a good place to exercise the cutover. Two limits on that measurement: it is
+point-in-time, so a CronJob or batch importer that connects periodically would not appear (pod
+*specs* were swept too, which covers anything already deployed in-cluster); and the RMF stack's
+`rmf-web-rmf-server-db` is a separate deployment, checked and found unrelated rather than checked
+and found safe. The residual risk is therefore **a consumer deployed later expecting `app` to be a
+login role** — new consumers must target the active login role from `status.credentials.activeRole`,
+never `app`.
+
 ## Composed resource names
 A `Pooler`'s name becomes its **Service** name, and CNPG already owns `<cluster>-rw`, `-ro` and `-r`
 for the Cluster. No composed object may take one of those names — it can never acquire ownership, and

@@ -47,7 +47,7 @@ JSON_FILES := drill/minio-policy-backups-readonly.json \
 	claim-authority-model-check claim-admission-check evidence-status-check \
 	observation-freshness-check capability-admission-check capability-evidence-check \
 	credential-overlap-check residency-resolution-check anchor-supersession-check \
-	rpo-freshness-check \
+	rpo-freshness-check condition-independence-check \
 	restoreverified-api-check api-acceptance-check drill-validate drill-policy-check minio-provisioning-check \
 	restore-evidence-check \
 	require-mgmt-context require-mgmt-approval require-explicit-cluster require-deploy-user \
@@ -96,7 +96,7 @@ render-check: render-prerequisites ## Render both fixtures and assert Objects an
 			--expected-protection-state Unknown --expected-protection-reason BackupAvailabilityUnproven; \
 		$(PYTHON) crossplane/tests/evidence-status-check.py "$$work/observed.yaml"
 	@$(MAKE) --no-print-directory capability-evidence-check residency-resolution-check anchor-supersession-check \
-		rpo-freshness-check
+		rpo-freshness-check condition-independence-check
 
 claim-policy-check: ## Prove authority guards fail, then validate the reviewed tuple
 	@$(PYTHON) crossplane/tests/claim-policy-check.py --negative-controls
@@ -188,6 +188,15 @@ capability-evidence-check: render-prerequisites ## Prove capability evidence dec
 # a stalled-but-not-failed archiver satisfies it — before this, production reached Valid on that
 # alone, which §10 explicitly disclaims as an RPO bound. Three outcomes must stay distinct: no or
 # aged-out measurement is Unknown, a lag past the bound is Failed, within is Valid.
+# PR #259 review finding 1. §5.1's conditions are a SET; the assertion that matters is the
+# NEGATIVE direction — CapabilityConformant=Failed coexisting with RecoveryAssured=Valid. If that
+# pair is unreachable the set has silently become a pipeline, and no passing-case test would show
+# it. Also reads the Composition structurally, so a future edit that couples the two is caught
+# even when no fixture happens to expose it.
+condition-independence-check: render-prerequisites ## Prove RecoveryAssured and CapabilityConformant are independent
+	@$(PYTHON) crossplane/tests/condition-independence-check.py --negative-controls
+	@$(PYTHON) crossplane/tests/condition-independence-check.py
+
 rpo-freshness-check: render-prerequisites ## Prove production needs a measured WAL lag, not a proxy
 	@$(PYTHON) crossplane/tests/rpo-freshness-check.py --negative-controls
 	@$(PYTHON) crossplane/tests/rpo-freshness-check.py
