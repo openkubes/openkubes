@@ -96,3 +96,9 @@ E1:             PREPARED / NO-GO
 P1:             PREPARED / NO-GO
 Infrastructure: unchanged
 ```
+
+The executable E1 candidate is defined separately in
+`enablement-e1-execution-candidate-v1.yaml`. Its default grant template is
+non-authorizing. The bounded runner refuses execution without a matching,
+active, single-run grant that explicitly authorizes both the fault and the
+exact restore.

@@ -1,0 +1,56 @@
+apiVersion: testing.openkubes.io/v1alpha1
+kind: ControlledEnablementFailureExecutionCandidate
+metadata:
+  name: ok141-controlled-enablement-failure-e1-v1
+spec:
+  state: PREPARED-NO-GO
+  sourceCandidateDigest: sha256:ac685b7e901ff24427b27d53c69600d0d1e93a14816149699334153c4f23e075
+  fixture:
+    R: sha256:47bb651f6bc0bdb3a7a567efcd4ca4c776f872a63496fa55c2a6aed77d6fa995
+    E: sha256:2a849d69e9c64344e907c1bce3bb1abf3d8f77217377081a5be055d62c213300
+    P: sha256:2956184005f4860607e91672fce82164095dee6ebcbe57e5af883951a199c427
+    fixtureDigest: sha256:438a6882d8e22b644c826cb0a6f2856850afd7c7ef71badb44cd66e8db0393ec
+  target:
+    plane: ok-mgmt
+    namespace: disposable-ok141
+    name: disposable-ok141-cilium
+    baselineSpecDigest: sha256:ab519add11fc8a7643f583ece39e990a63f36b2d140212a1f4ef7da0db713275
+  fault:
+    baselineVersion: 1.19.6
+    injectedVersion: 0.0.0-ok141-controlled-failure
+    exactMutationCount: 1
+    exactRestoreCount: 1
+    optimisticConcurrency: uid-resourceVersion-guarded-replace
+  management:
+    clientPath: /private/tmp/ok141-kubectl-v1.34.1-darwin-amd64
+    clientDigest: sha256:bb211f2b31f2b3bc60562b44cc1e3b712a16a98e9072968ba255beb04cefcfdf
+    kubeconfigPath: /Users/arash/.kube/ok-mgmt.yaml
+  workload:
+    clientPath: /usr/local/bin/kubectl
+    clientDigest: sha256:158b3b46cf74e8b6bd9b1d7cd30f665e3efb2bc1ec3c843ec925bcfdd2930de0
+    kubeconfigPath: /Users/arash/.kube/disposable-ok141.yaml
+  queries:
+    hcp: /apis/addons.cluster.x-k8s.io/v1alpha1/namespaces/disposable-ok141/helmchartproxies/disposable-ok141-cilium
+    hrps: /apis/addons.cluster.x-k8s.io/v1alpha1/namespaces/disposable-ok141/helmreleaseproxies?labelSelector=cluster.x-k8s.io%2Fcluster-name%3Ddisposable-ok141%2Chelmreleaseproxy.addons.cluster.x-k8s.io%2Fhelmchartproxy-name%3Ddisposable-ok141-cilium
+    nodes: /api/v1/nodes
+    ciliumDaemonSet: /apis/apps/v1/namespaces/kube-system/daemonsets/cilium
+  observation:
+    intervalSeconds: 15
+    failureMaximumIterations: 40
+    recoveryMaximumIterations: 60
+  tool:
+    path: bounded_enablement_failure_e1_v1.py
+    digest: sha256:dd3dae2c612ff94fd36de566f16c96519d97be769340af874b0cc854234d1ef8
+  semanticsDigest: sha256:93175ad1389047905d7abbf8ace5e1982bc056910c972bb5c2852e1c697381ec
+  authorization:
+    decision: NO-GO
+    managementCredentialUseGranted: false
+    workloadCredentialUseGranted: false
+    failureInjectionGranted: false
+    boundedObservationGranted: false
+    exactRestoreGranted: false
+    deleteGranted: false
+    retryGranted: false
+    generalCleanupGranted: false
+    outageGranted: false
+    evidencePublicationGranted: false
