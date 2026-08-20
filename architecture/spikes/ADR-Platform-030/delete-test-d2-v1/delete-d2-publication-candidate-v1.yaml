@@ -1,0 +1,39 @@
+apiVersion: publication.openkubes.io/v1alpha1
+kind: OK141DeleteD2PublicationCandidate
+metadata:
+  name: ok141-delete-d2-v1
+  ticket: OK-141
+spec:
+  state: READY-FOR-COMMIT-PUSH-DRAFT-PR
+  bindings:
+    baseCommit: 9f98dfc3167df647bfb1cb8e1545cc1b2caa3f2b
+    candidateDigest: sha256:6b5a289b89e11111b635a3a1f8deba95029180ca71a0b84fe2e1daa0686c9461
+    candidateSemanticDigest: sha256:06ebff7edea6f5e6c91977fe848dcd1124a9a7a8622bcf77ebcc2890616c6c70
+    executorDigest: sha256:12858565c6d0479aeca909bc1ba4a80db42210f2982868df7c9d98a830498441
+    d1ClosureDigest: sha256:0f5b25ea43f4b4d72514746916a8093214717901b625d9d568b0d73a7cf58f56
+    offlineTestsPassed: 9
+  conclusions:
+    hcpIsOnlyDeleteTarget: true
+    hrpClosureDelegatedToCAAPH: true
+    ciliumResourceDeletionByRunner: false
+  publication:
+    privateEvidenceIncluded: false
+    uidValuesIncluded: false
+    resourceVersionValuesIncluded: false
+    endpointsIncluded: false
+    credentialsIncluded: false
+  authorization:
+    decision: NO-GO
+    credentialUseGranted: false
+    readOnlyGranted: false
+    mutationGranted: false
+    deleteGranted: false
+    retryGranted: false
+    cleanupGranted: false
+    forceDeleteGranted: false
+    finalizerMutationGranted: false
+    directHRPDeleteGranted: false
+    targetResourceDeleteGranted: false
+    d3Granted: false
+    outageGranted: false
+    failureInjectionGranted: false

@@ -1,0 +1,66 @@
+apiVersion: execution.openkubes.io/v1alpha1
+kind: OK141DeleteD2Candidate
+metadata:
+  name: ok141-delete-d2-v1
+  ticket: OK-141
+spec:
+  version: ok141-delete-d2/v1
+  state: OFFLINE-PREPARED-BLOCKED-NO-GO
+  baseCommit: 9f98dfc3167df647bfb1cb8e1545cc1b2caa3f2b
+  bindings:
+    protocolPath: ../delete-test-v1/delete-test-protocol-v1.yaml
+    protocolSemanticDigest: sha256:4cd457c5f40bdf3ae871cbe56ba7c151f7ac3242bd73129557f25cf620a2d0bc
+    d1ClosurePath: ../delete-test-d1-execution-v3-closure/delete-d1-v3-closure-evidence.yaml
+    d1ClosureDigest: sha256:0f5b25ea43f4b4d72514746916a8093214717901b625d9d568b0d73a7cf58f56
+  plane:
+    name: ok-mgmt
+    kubeconfigPath: /Users/arash/.kube/ok-mgmt.yaml
+  target:
+    namespace: disposable-ok141
+    name: disposable-ok141-cilium
+    hcpURI: /apis/addons.cluster.x-k8s.io/v1alpha1/namespaces/disposable-ok141/helmchartproxies/disposable-ok141-cilium
+    hrpCollectionURI: /apis/addons.cluster.x-k8s.io/v1alpha1/namespaces/disposable-ok141/helmreleaseproxies
+  preflight:
+    sealedGetCount: 2
+    deriveHRPByControllerOwnerReference: true
+    requiredDerivedHRPCount: 1
+    bindingMaximumAgeMinutes: 5
+  operation:
+    deleteOnly: HelmChartProxy
+    directHRPDelete: false
+    targetResourceDelete: false
+    immutableIdentityFields: [name, namespace, uid]
+    exactGetImmediatelyBeforeDelete: true
+    deletePreconditionFields: [uid, resourceVersion]
+    useLiveResourceVersionForDelete: true
+    propagationPolicy: Background
+    observeNativeControllerClosure: true
+    absencePollIntervalSeconds: 5
+    absencePollMaximumIterations: 120
+    onFailure: STOP-PRESERVE-NO-RETRY-NO-FINALIZER-MUTATION
+  privateOutputs:
+    bindingPath: /private/tmp/ok141-delete-d2-runtime-binding-v1.json
+    preflightEvidencePath: /private/tmp/ok141-delete-d2-preflight-evidence-v1.json
+    executionEvidencePath: /private/tmp/ok141-delete-d2-execution-evidence-v1.json
+    mode: "0600"
+  tool:
+    path: bounded_delete_d2_v1.py
+    digest: sha256:12858565c6d0479aeca909bc1ba4a80db42210f2982868df7c9d98a830498441
+    kubectlPath: /private/tmp/ok141-kubectl-v1.34.1-darwin-amd64
+    kubectlDigest: sha256:bb211f2b31f2b3bc60562b44cc1e3b712a16a98e9072968ba255beb04cefcfdf
+  authorization:
+    decision: NO-GO
+    credentialUseGranted: false
+    readOnlyGranted: false
+    mutationGranted: false
+    deleteGranted: false
+    retryGranted: false
+    rollbackGranted: false
+    cleanupGranted: false
+    forceDeleteGranted: false
+    finalizerMutationGranted: false
+    directHRPDeleteGranted: false
+    targetResourceDeleteGranted: false
+    d3Granted: false
+    outageGranted: false
+    failureInjectionGranted: false

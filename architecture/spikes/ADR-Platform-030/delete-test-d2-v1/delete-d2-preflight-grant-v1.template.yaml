@@ -1,0 +1,21 @@
+apiVersion: authorization.openkubes.io/v1alpha1
+kind: OK141DeleteD2PreflightGrant
+metadata:
+  name: REPLACE
+  ticket: OK-141
+spec:
+  state: NOT-GRANTED
+  grantID: REPLACE
+  candidateDigest: REPLACE
+  notBefore: REPLACE
+  notAfter: REPLACE
+  maximumRuns: 1
+  consumed: false
+  credentialUseAuthorized: false
+  readOnlyAuthorized: false
+  mutationAuthorized: false
+  deleteAuthorized: false
+  retryAuthorized: false
+  cleanupAuthorized: false
+  d3Authorized: false
+  failureInjectionAuthorized: false
