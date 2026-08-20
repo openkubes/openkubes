@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import argparse
 import copy
+import re
 import subprocess
 import sys
 import tempfile
@@ -78,6 +79,19 @@ def observed_with_running_image() -> list[dict[str, Any]]:
 
 def matching_artifact() -> dict[str, Any]:
     """The fixture, re-bound to the render's XR and observed Cluster.
+
+    LIMIT OF THIS TEST, and it is not small: `crossplane composition render` does not use the
+    uid in the XR file. It synthesises a deterministic v5 UUID from the XR name and hands THAT
+    to the function as `.observed.composite.resource.metadata.uid`, while `--include-full-xr`
+    echoes the file's uid — which makes the discrepancy invisible unless you print what the
+    function sees. Measured 2026-08-20: an artifact bound to the LIVE Database uid
+    (a6b4b2ff-…) was rejected here because the function saw eee6a418-… instead.
+
+    So the positive case below binds the fixture's uid, which is itself the render-synthesised
+    value. That exercises the uid TERM (tampering with it is rejected, see the tampers) but it
+    does NOT prove binding against a real cluster identity. Only an admitted artifact selected
+    by the live composite can do that, and it is why local green here is not delivered-capability
+    evidence.
 
     The committed fixture points at the bundled-image proof cluster on purpose — it is not
     evidence for this Database. Re-binding here is what makes it admissible, and it is done
@@ -141,6 +155,60 @@ def render(artifacts: list[dict[str, Any]] | None) -> dict[str, Any]:
 def capability_of(database: dict[str, Any]) -> tuple[str, str, str]:
     evidence = database["status"]["evidence"]["capability"]
     return evidence.get("state", ""), evidence.get("reason", ""), evidence.get("evidenceRef", "")
+
+
+def check_extension_name_agreement() -> None:
+    """The reader, the composed spec and the fixture must all name the extension identically.
+
+    This is the defect's root cause, and it was invisible locally by construction: the Composition
+    composed `pgvector`, the status reader matched `vector`, and the observed fixture also said
+    `vector` — so the fixture agreed with the CODE instead of with the cluster, and every local
+    test passed while $pgvectorObserved could never be true on a real cluster. Measured on
+    ok-robotics 2026-08-20: status.pgDataImageInfo.extensions[0].name is "pgvector", and CNPG
+    echoes back exactly the name the spec asked for.
+
+    Consequence while it was broken: Pending/CapabilityProbePending was unreachable, so a
+    declared-but-unprobed extension was reported as ABSENT — the two states §13 bound 4
+    distinguishes had collapsed into one.
+    """
+    source = COMPOSITION_PATH.read_text()
+    declared = re.findall(r'\{\{- \$pgvectorExtensionName := "([a-z0-9_-]+)" \}\}', source)
+    if len(declared) != 1:
+        raise CapabilityError(
+            "the Composition must declare exactly one $pgvectorExtensionName constant; found "
+            f"{len(declared)}. Two independent literals is how the reader and the composed spec "
+            "drifted apart in the first place"
+        )
+    name = declared[0]
+
+    if re.search(r'\{\{- if eq \$extension\.name "', source):
+        raise CapabilityError(
+            "the status reader compares $extension.name to a LITERAL; it must use "
+            "$pgvectorExtensionName so it cannot drift from the name actually composed"
+        )
+    literals = re.findall(r"- name: (pgvector|vector)\b", source)
+    if literals:
+        raise CapabilityError(
+            f"composed extension name is still a literal {literals}; use $pgvectorExtensionName"
+        )
+
+    observed = [d for d in yaml.safe_load_all(OBSERVED_PATH.read_text()) if d]
+    fixture_names = []
+    for doc in observed:
+        manifest = doc.get("status", {}).get("atProvider", {}).get("manifest", {})
+        if manifest.get("kind") == "Cluster":
+            for extension in manifest["status"].get("pgDataImageInfo", {}).get("extensions", []):
+                fixture_names.append(extension.get("name"))
+    if fixture_names and set(fixture_names) != {name}:
+        raise CapabilityError(
+            f"the observed fixture declares {fixture_names} but the platform composes {name!r}. "
+            "CNPG echoes the composed name, so a fixture that disagrees tests the code against "
+            "itself instead of against the cluster"
+        )
+    print(
+        f"PASS extension name: reader, composed spec and fixture all use {name!r} "
+        "(the name ok-robotics actually reports)"
+    )
 
 
 def assert_proven() -> None:
@@ -261,6 +329,7 @@ def main() -> int:
         if args.negative_controls:
             negative_controls()
         else:
+            check_extension_name_agreement()
             assert_declaration_alone_is_not_evidence()
             assert_proven()
     except CapabilityError as exc:

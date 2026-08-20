@@ -1187,8 +1187,18 @@ The two causes behind item 4, neither of which sits in this contract:
                                                  the observed one is the stronger: extension
                                                  PRESENT but unprobed → Pending/
                                                  CapabilityProbePending; extension ABSENT →
-                                                 Failed/RequestedCapabilityAbsent, which is what
-                                                 ok-robotics reports, the gate being off
+                                                 Failed/RequestedCapabilityAbsent. ok-robotics was
+                                                 read as reporting the latter "the gate being off",
+                                                 but that attribution was wrong: the status reader
+                                                 matched "vector" while the platform composes
+                                                 "pgvector", which CNPG echoes back, so
+                                                 $pgvectorObserved was never true and PRESENT-but-
+                                                 unprobed was unreachable. With the reader fixed
+                                                 (OK-150) ok-robotics reports
+                                                 Pending/CapabilityProbePending, which is the
+                                                 truthful state: the extension IS declared there
+                                                 and cannot be exercised. The two states this item
+                                                 distinguishes had silently collapsed into one.
 2. image volumes non-functional on the       → CNPG's declarative extensions are image volumes
    target platform (k8s/runtime, not CNPG)      (KEP-4639). With the gate off none can mount;
                                                 with the gate ON the container cannot be created

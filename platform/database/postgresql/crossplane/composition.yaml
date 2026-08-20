@@ -186,9 +186,19 @@ spec:
             {{- $capabilityState := "Unknown" }}
             {{- $capabilityReason := "AwaitingCluster" }}
             {{- $capabilityObservedAt := $operationalObservedAt }}
+            {{- /* CNPG echoes back the extension name we ASKED for, so the reader must use the
+                   same name the composed spec uses. These were two independent literals that
+                   disagreed — composed "pgvector", matched "vector" — so $pgvectorObserved was
+                   never true on a real cluster: Pending/CapabilityProbePending was unreachable and
+                   a declared-but-unprobed extension reported as ABSENT. Measured on ok-robotics
+                   2026-08-20: status.pgDataImageInfo.extensions[0].name is "pgvector".
+                   The synthetic fixture said "vector" too, so it agreed with the code instead of
+                   with the cluster and no local test could see it. One constant now, referenced
+                   everywhere, so they cannot drift apart again. */}}
+            {{- $pgvectorExtensionName := "pgvector" }}
             {{- $pgvectorObserved := false }}
             {{- range $extension := dig "pgDataImageInfo" "extensions" (list) $clusterStatus }}
-            {{- if eq $extension.name "vector" }}
+            {{- if eq $extension.name $pgvectorExtensionName }}
             {{- $pgvectorObserved = true }}
             {{- end }}
             {{- end }}
@@ -927,7 +937,7 @@ spec:
                       - major: 18
                         image: ghcr.io/cloudnative-pg/postgresql:18.6-202608131513-minimal-trixie@sha256:e488b1434919f455f2ee4e18a181ce9b33f34cdd8dfb821126855486bce6ad34
                         extensions:
-                          - name: pgvector
+                          - name: {{ $pgvectorExtensionName }}
                             image:
                               reference: ghcr.io/cloudnative-pg/pgvector:0.8.6-202608090042-18-trixie@sha256:c3fe71d306fe3dfad4e71b2585c58034c2da5f234a18cd4b964ed03e1dc858a9
             ---
@@ -1083,7 +1093,7 @@ spec:
                     {{- if $requestedPgvector }}
                     postgresql:
                       extensions:
-                        - name: pgvector
+                        - name: {{ $pgvectorExtensionName }}
                     {{- end }}
             ---
             apiVersion: kubernetes.crossplane.io/v1alpha2
