@@ -1,0 +1,47 @@
+apiVersion: testing.openkubes.io/v1alpha1
+kind: ControlledPlatformFailureCandidate
+metadata:
+  name: ok141-controlled-platform-failure-v1
+spec:
+  state: PREPARED-NO-GO
+  fixture:
+    R: sha256:47bb651f6bc0bdb3a7a567efcd4ca4c776f872a63496fa55c2a6aed77d6fa995
+    E: sha256:2a849d69e9c64344e907c1bce3bb1abf3d8f77217377081a5be055d62c213300
+    P: sha256:2956184005f4860607e91672fce82164095dee6ebcbe57e5af883951a199c427
+    fixtureDigest: sha256:438a6882d8e22b644c826cb0a6f2856850afd7c7ef71badb44cd66e8db0393ec
+    sourceRevision: c09c18759aeb7526d22106ccb001599f5f06bc4e
+  target:
+    plane: ok-shared
+    apiVersion: argoproj.io/v1alpha1
+    kind: Application
+    namespace: argocd
+    name: disposable-ok141-observability-dashboards
+    liveBaselineSpecDigest: sha256:125352b2171a0e28bd33f47a17fee2247d07448d6fee62f0a12488c2d56f8b41
+  protectedTargetObject:
+    plane: disposable-ok141
+    apiVersion: v1
+    kind: ConfigMap
+    namespace: ok-observability
+    name: ok-observability-dashboard-platform-overview
+  fault:
+    field: spec.source.path
+    baselineValue: dashboards
+    injectedValue: dashboards/ok141-controlled-failure-missing
+    mutation: uid-resourceVersion-guarded-replace
+  expectedFailure:
+    manifestGenerationFails: true
+    PlatformReady: false
+    runnerRepairsPlatform: false
+    protectedTargetObjectDeleted: false
+    coreAndAlertingRemainReady: true
+  restore:
+    source: private-exact-preflight-object
+    requiredSpecDigest: sha256:125352b2171a0e28bd33f47a17fee2247d07448d6fee62f0a12488c2d56f8b41
+    mutation: uid-resourceVersion-guarded-replace
+  authorization:
+    decision: NO-GO
+    failureInjectionGranted: false
+    restoreGranted: false
+    retryGranted: false
+    cleanupGranted: false
+    deleteGranted: false

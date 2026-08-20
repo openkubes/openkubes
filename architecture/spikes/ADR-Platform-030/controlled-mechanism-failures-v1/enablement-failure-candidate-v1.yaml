@@ -1,0 +1,40 @@
+apiVersion: testing.openkubes.io/v1alpha1
+kind: ControlledEnablementFailureCandidate
+metadata:
+  name: ok141-controlled-enablement-failure-v1
+spec:
+  state: PREPARED-NO-GO
+  fixture:
+    R: sha256:47bb651f6bc0bdb3a7a567efcd4ca4c776f872a63496fa55c2a6aed77d6fa995
+    E: sha256:2a849d69e9c64344e907c1bce3bb1abf3d8f77217377081a5be055d62c213300
+    P: sha256:2956184005f4860607e91672fce82164095dee6ebcbe57e5af883951a199c427
+    fixtureDigest: sha256:438a6882d8e22b644c826cb0a6f2856850afd7c7ef71badb44cd66e8db0393ec
+  target:
+    plane: ok-mgmt
+    apiVersion: addons.cluster.x-k8s.io/v1alpha1
+    kind: HelmChartProxy
+    namespace: disposable-ok141
+    name: disposable-ok141-cilium
+    liveBaselineSpecDigest: sha256:ab519add11fc8a7643f583ece39e990a63f36b2d140212a1f4ef7da0db713275
+  fault:
+    field: spec.version
+    baselineValue: 1.19.6
+    injectedValue: 0.0.0-ok141-controlled-failure
+    mutation: uid-resourceVersion-guarded-replace
+  expectedFailure:
+    boundECurrent: false
+    NetworkReady: false
+    runnerRepairsEnablement: false
+    existingCiliumDeleted: false
+    workloadNodesRemainReady: true
+  restore:
+    source: private-exact-preflight-object
+    requiredSpecDigest: sha256:ab519add11fc8a7643f583ece39e990a63f36b2d140212a1f4ef7da0db713275
+    mutation: uid-resourceVersion-guarded-replace
+  authorization:
+    decision: NO-GO
+    failureInjectionGranted: false
+    restoreGranted: false
+    retryGranted: false
+    cleanupGranted: false
+    deleteGranted: false
