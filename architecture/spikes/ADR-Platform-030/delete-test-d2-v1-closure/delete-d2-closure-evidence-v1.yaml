@@ -1,0 +1,46 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: OK141DeleteD2ClosureEvidence
+metadata:
+  name: ok141-delete-d2-v1-closure
+  ticket: OK-141
+spec:
+  state: PASS-D2-ENABLEMENT-QUIESCED-REDACTED
+  bindings:
+    candidateDigest: sha256:6b5a289b89e11111b635a3a1f8deba95029180ca71a0b84fe2e1daa0686c9461
+    preflightGrantDigest: sha256:fb26d1ba54ae7789c00034a84cc6644ea592181729f70fed2212e18a6bcd984b
+    privateBindingDigest: sha256:21fdb7b0a1961623ce50ccfa373cf06ca0aa2aaea1901408a00d449f1de73c5d
+    privatePreflightEvidenceDigest: sha256:d380b0c829090206555593a794ce346dc2adf7aeccf7b657be5c6ebc0c632da3
+    executionGrantDigest: sha256:434cb898681eba02dbc2f586e9675851e7eda469cdcb6b50f647c89805d5873a
+    privateExecutionEvidenceDigest: sha256:19c3f9ca351d5ce10ea90b230d46f59710fa0545fed7d49c6c1b929bcf9d4cca
+  result:
+    hcpDeleteRequested: true
+    hcpAbsent: true
+    hrpAbsent: true
+    nativeControllerClosureObserved: true
+    hrpDeleteRequestedByRunner: false
+    targetResourceDeleteRequestedByRunner: false
+    retryPerformed: false
+    rollbackPerformed: false
+    forceDeletePerformed: false
+    finalizerMutationPerformed: false
+    cleanupPerformed: false
+  boundary:
+    capiClusterDeleted: false
+    virtualMachinesDeleted: false
+    persistentVolumesDeleted: false
+    retainedStorageDeleted: false
+  redaction:
+    rawObjectsRetained: false
+    uidValuesRetained: false
+    resourceVersionValuesRetained: false
+    endpointsRetained: false
+    credentialsRetained: false
+  authorization:
+    decision: NO-GO
+    d3Granted: false
+    retryGranted: false
+    cleanupGranted: false
+    forceDeleteGranted: false
+    finalizerMutationGranted: false
+    outageGranted: false
+    failureInjectionGranted: false
