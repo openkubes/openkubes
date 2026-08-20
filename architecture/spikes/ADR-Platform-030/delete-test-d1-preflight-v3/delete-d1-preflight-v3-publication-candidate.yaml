@@ -1,0 +1,39 @@
+apiVersion: publication.openkubes.io/v1alpha1
+kind: OK141DeleteD1PreflightV3PublicationCandidate
+metadata:
+  name: ok141-delete-d1-preflight-v3
+  ticket: OK-141
+spec:
+  state: PREPARED-NOT-AUTHORIZED
+  baseCommit: 47238217e187e07e7b21f5b7231790c969a9d2db
+  bindings:
+    candidateDigest: sha256:7bcb68bdac1c8b17aaa3acf370ac7d4d9acc25b8d4395abd816ea6d7da0a4e9e
+    candidateSemanticDigest: sha256:207f4185d612062ef6db3603fafa70c86f36c7e5a8eded3d3f58e07a46b825d3
+    executorDigest: sha256:92e2b9a7e923037e07e265cf59b4ae67b5aaa32cefdd043d8b594680c012ba9f
+    testDigest: sha256:2edc92972bee4812c7d3d68db303f913fe7763561eb5a4fdf981970dbceada3e
+    readmeDigest: sha256:77134fc2c935f2c75d2def1274081e5bebb57951491b189114be14533bd83639
+    stoppedEvidenceDigest: sha256:a13be619262ab926550a992ac5535b7595fcdb1a05cc25510f22bed4f8776b44
+    offlineTestsPassed: 7
+  claims:
+    v1DeleteStoppedBeforeClusterContact: true
+    v2IdentitySetPreserved: true
+    protocolOrderBoundInV3: true
+    oldDigestReinterpreted: false
+    mutationPerformed: false
+    deletePerformed: false
+  authorization:
+    publicationGranted: false
+    commitGranted: false
+    pushGranted: false
+    pullRequestGranted: false
+    reviewGranted: false
+    mergeGranted: false
+    readOnlyGranted: false
+    credentialUseGranted: false
+    mutationGranted: false
+    deleteGranted: false
+    retryGranted: false
+    rollbackGranted: false
+    cleanupGranted: false
+    outageGranted: false
+    failureInjectionGranted: false

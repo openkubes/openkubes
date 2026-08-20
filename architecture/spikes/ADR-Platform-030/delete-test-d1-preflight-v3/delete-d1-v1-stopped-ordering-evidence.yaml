@@ -1,0 +1,37 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: OK141DeleteD1StoppedOrderingEvidence
+metadata:
+  name: ok141-delete-d1-v1-stopped-ordering
+  ticket: OK-141
+  observedAt: "2026-08-20T16:32:30Z"
+spec:
+  state: STOPPED-FAIL-CLOSED-BEFORE-CLUSTER-CONTACT
+  bindings:
+    executionCandidateDigest: sha256:2f8bfa6e6a622442381e57c56787a5c7804ddc40a64aefb219884ce3057848e3
+    privateD1BindingDigest: sha256:2cd7ccc179e2564e5c402352d7d5f3f057414b3e30fdf029cea4ed8509352654
+    unusedGrantDigest: sha256:1423044c53a55646d302901b398147be91e594b1c5ffb13efb8582eaedc9be8d
+  finding:
+    expectedFinalRecords: [registration-secret, app-project]
+    observedFinalRecords: [app-project, registration-secret]
+    identitiesMatchedAsSet: true
+    authoritativeOrderMatched: false
+  execution:
+    grantVerified: false
+    clusterContactPerformed: false
+    mutationPerformed: false
+    deletePerformed: false
+    executionEvidenceCreated: false
+    grantReusable: false
+  conclusion:
+    v2BindingSuitableForDeleteExecution: false
+    additivePreflightRevisionRequired: true
+    oldDigestReinterpreted: false
+  authorization:
+    decision: NO-GO
+    retryGranted: false
+    mutationGranted: false
+    deleteGranted: false
+    cleanupGranted: false
+    rollbackGranted: false
+    outageGranted: false
+    failureInjectionGranted: false
