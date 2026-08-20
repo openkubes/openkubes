@@ -1,0 +1,70 @@
+apiVersion: testing.openkubes.io/v1alpha1
+kind: ControlledPlatformFailureExecutionCandidate
+metadata:
+  name: ok141-controlled-platform-failure-p1-v1
+spec:
+  state: PREPARED-NO-GO
+  sourceCandidateDigest: sha256:feefb595b3ead57c6cf2075dfd6183ac581e53cb32e4bf5522f6eb9a232830a0
+  fixture:
+    R: sha256:47bb651f6bc0bdb3a7a567efcd4ca4c776f872a63496fa55c2a6aed77d6fa995
+    P: sha256:2956184005f4860607e91672fce82164095dee6ebcbe57e5af883951a199c427
+    fixtureDigest: sha256:438a6882d8e22b644c826cb0a6f2856850afd7c7ef71badb44cd66e8db0393ec
+    sourceRevision: c09c18759aeb7526d22106ccb001599f5f06bc4e
+  shared:
+    clientPath: /private/tmp/ok141-kubectl-v1.34.1-darwin-amd64
+    clientDigest: sha256:bb211f2b31f2b3bc60562b44cc1e3b712a16a98e9072968ba255beb04cefcfdf
+    kubeconfigPath: /Users/arash/.kube/ok-shared.yaml
+    kubeconfigDigest: sha256:33b397e252d1e37299d2079a7a0c33f50cf515d1227e56e6e0a2c65c0fae6f77
+  workload:
+    clientPath: /usr/local/bin/kubectl
+    clientDigest: sha256:158b3b46cf74e8b6bd9b1d7cd30f665e3efb2bc1ec3c843ec925bcfdd2930de0
+    kubeconfigPath: /Users/arash/.kube/disposable-ok141.yaml
+    kubeconfigDigest: sha256:4a907ee6b596de844a3b73a5b8a27b60ee1abac72dc825320f6aff7b03afbb4b
+  target:
+    namespace: argocd
+    name: disposable-ok141-observability-dashboards
+    baselineSpecDigest: sha256:125352b2171a0e28bd33f47a17fee2247d07448d6fee62f0a12488c2d56f8b41
+  protectedTarget:
+    namespace: ok-observability
+    name: ok-observability-dashboard-platform-overview
+    dataDigest: sha256:4c128cdc7c4d5c25b6a8f778ab387b55ed4b0c56e72a835cd14be9fdae713d3d
+  queries:
+    applications:
+      core: /apis/argoproj.io/v1alpha1/namespaces/argocd/applications/disposable-ok141-observability-core
+      alerting: /apis/argoproj.io/v1alpha1/namespaces/argocd/applications/disposable-ok141-observability-alerting
+      dashboards: /apis/argoproj.io/v1alpha1/namespaces/argocd/applications/disposable-ok141-observability-dashboards
+    protectedDashboard: /api/v1/namespaces/ok-observability/configmaps/ok-observability-dashboard-platform-overview
+  fault:
+    baselinePath: dashboards
+    injectedPath: dashboards/ok141-controlled-failure-missing
+    mutation: uid-resourceVersion-guarded-replace
+  expectedFailure:
+    conditionType: ComparisonError
+    PlatformReady: false
+    coreAndAlertingRemainReady: true
+    protectedTargetUnchanged: true
+    runnerRepairsPlatform: false
+  restore:
+    source: private-exact-preflight-object
+    requiredSpecDigest: sha256:125352b2171a0e28bd33f47a17fee2247d07448d6fee62f0a12488c2d56f8b41
+    mutation: uid-resourceVersion-guarded-replace
+  observation:
+    intervalSeconds: 15
+    failureMaximumIterations: 40
+    recoveryMaximumIterations: 40
+  tool:
+    path: bounded_platform_failure_p1_v1.py
+    digest: sha256:0ec48a428784205212b3ed1d6c2c4aabe3fe5355709aab7fc9b1f5e66b8129db
+  semanticsDigest: sha256:c4f82d9c2f4951940cda9b1f1f92e8709280eb35de6630c40853996fb5e5982c
+  authorization:
+    decision: NO-GO
+    sharedCredentialUseGranted: false
+    workloadCredentialUseGranted: false
+    failureInjectionGranted: false
+    boundedObservationGranted: false
+    exactRestoreGranted: false
+    deleteGranted: false
+    retryGranted: false
+    generalCleanupGranted: false
+    outageGranted: false
+    evidencePublicationGranted: false

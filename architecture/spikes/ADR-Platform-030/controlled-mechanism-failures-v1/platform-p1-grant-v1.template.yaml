@@ -1,0 +1,24 @@
+apiVersion: authorization.openkubes.io/v1alpha1
+kind: ControlledPlatformFailureGrant
+metadata:
+  name: ok141-controlled-platform-failure-p1-v1
+spec:
+  decision: NOT-GRANTED
+  candidateDigest: CANDIDATE-DIGEST-REQUIRED
+  authority: github:arashkaffamanesh
+  grantID: GRANT-ID-REQUIRED
+  issuedAt: "ISSUED-AT-REQUIRED"
+  expiresAt: "EXPIRES-AT-REQUIRED"
+  singleRun: true
+  consumed: false
+  outputPath: /private/tmp/ok141-controlled-platform-failure-p1-v1-evidence.json
+  sharedCredentialUseGranted: false
+  workloadCredentialUseGranted: false
+  failureInjectionGranted: false
+  boundedObservationGranted: false
+  exactRestoreGranted: false
+  deleteGranted: false
+  retryGranted: false
+  generalCleanupGranted: false
+  outageGranted: false
+  evidencePublicationGranted: false

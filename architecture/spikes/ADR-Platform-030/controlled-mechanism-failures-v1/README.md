@@ -140,3 +140,30 @@ retry / rollback / cleanup  none
 This was baseline restoration, not controlled Platform failure injection.
 The raw local Evidence remains private, and the redacted closure remains
 `publication.state: NO-GO` until separately authorized.
+
+## P1 executable preparation
+
+The live Argo CD version used by OK-141 does not populate
+`Application.status.observedGeneration`. It does expose the exact desired
+source, native sync and health, condition types, and `status.reconciledAt`.
+The amended evaluator therefore uses those authoritative fields and treats
+only `OrphanedResourceWarning` as non-blocking. Every other condition remains
+fail-closed.
+
+The bounded P1 candidate now proves before any write:
+
+```text
+exact Application set       3
+exact source revision       required
+exact source paths          required
+PlatformReady baseline      True
+protected dashboard current True
+offline checks              17 PASS
+P1 authorization            NO-GO
+```
+
+The prepared execution can change only the dashboards Application path to the
+bound missing path, observe the native Argo failure, prove Core and Alerting
+remain healthy, prove the existing dashboard data remains unchanged, and
+restore the exact baseline Application spec. It remains non-authorizing until
+a separate active single-run grant is supplied.
