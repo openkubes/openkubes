@@ -1,0 +1,44 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: OK141PlatformBaselineTokenRefreshClosure
+metadata:
+  name: ok141-platform-baseline-token-refresh-v1
+spec:
+  source:
+    candidateDigest: sha256:121684acfd7c11235d50916f43da717f4dd006328bf8a9e46dc6e2834485dbfc
+    grantID: ok141-platform-baseline-token-refresh-20260820-02
+    rawEvidenceDigest: sha256:a6d832c23c6b9e94f84debf5bdcf3791cb51e108522fb8920ef0634767fd12ad
+  result:
+    state: PASS-PLATFORM-BASELINE-RESTORED
+    registrationRead: true
+    tokenRequested: true
+    targetProbeSucceeded: true
+    registrationReplaced: true
+    unchangedRegistrationDataFieldCount: 5
+    allApplicationsSyncedHealthy: true
+    observedApplicationCount: 3
+    observationIteration: 4
+  safety:
+    retryPerformed: false
+    rollbackOrCleanupPerformed: false
+    failureInjectionPerformed: false
+    credentialPayloadRetained: false
+    targetAddressPayloadRetained: false
+    rawObjectsRetained: false
+    temporaryCredentialRemoved: true
+    P1WritesPerformed: false
+  ownership:
+    platformConvergenceOwner: Argo-CD
+    runnerRole: bounded-authentication-remediation-and-observation
+    runnerOwnsPlatformRepair: false
+    newOpenKubesReconcilerProvenNecessary: false
+  interpretation:
+    - The expired short-lived registration credential was an operational authentication blocker, not P1 failure evidence.
+    - Replacing only the bounded registration token restored all three Applications at the existing immutable source revision.
+    - Argo CD resumed and completed Platform convergence without an OpenKubes-owned Platform repair loop.
+    - The healthy baseline is restored; P1 remains a separate, not-yet-authorized controlled failure.
+  publication:
+    state: NO-GO
+    rawEvidencePublished: false
+    secretMaterialPublished: false
+    rawObjectsPublished: false
+    identifiersPublished: false

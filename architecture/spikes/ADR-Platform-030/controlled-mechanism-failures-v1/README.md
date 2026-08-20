@@ -119,3 +119,24 @@ post-restore NetworkReady True
 The raw local Evidence remains private. The public closure file contains only
 redacted claims and remains `publication.state: NO-GO` until separately
 authorized.
+
+## Platform baseline credential refresh
+
+The read-only P1 preflight found the core Application blocked by an expired
+short-lived Argo registration credential. P1 performed no writes. A separately
+authorized bounded refresh changed only the registration token and then
+observed the existing Argo control loop:
+
+```text
+target probe                 PASS
+registration replacement    PASS
+unchanged registration data 5 fields
+Applications observed       3
+Platform baseline           Synced / Healthy
+P1 writes                    none
+retry / rollback / cleanup  none
+```
+
+This was baseline restoration, not controlled Platform failure injection.
+The raw local Evidence remains private, and the redacted closure remains
+`publication.state: NO-GO` until separately authorized.
