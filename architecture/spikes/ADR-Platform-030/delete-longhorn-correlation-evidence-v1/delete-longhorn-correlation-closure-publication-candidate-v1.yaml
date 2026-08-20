@@ -1,0 +1,49 @@
+apiVersion: publication.openkubes.io/v1alpha1
+kind: OK141DeleteLonghornCorrelationClosurePublicationCandidate
+metadata:
+  name: ok141-delete-longhorn-correlation-closure-v1
+  ticket: OK-141
+spec:
+  state: PREPARED-NOT-AUTHORIZED
+  baseCommit: a76d06b29773af287aae141ec8f7b67ed729af43
+  scope:
+    - README.md
+    - delete-longhorn-correlation-closure-evidence-v1.yaml
+    - verify_delete_longhorn_correlation_closure_v1.py
+    - test_delete_longhorn_correlation_closure_v1.py
+  bindings:
+    closureFileDigest: sha256:8c11c9bf42d25f96817c43f3e4e0b11b3ed24f15e81f163038b41d29167ae634
+    closureSemanticDigest: sha256:90500163fb0c61a0f7d5c6166bb46577457b17fbc1b116d2774fc9460111e7ea
+    privateEvidenceDigest: sha256:5c6f386367c0c8576b24fa149bb5b9506ed8903195709a664ca6163131299623
+    verifierDigest: sha256:7ca37ee9e811824c039a06d6fa9d3ff230f86561574c70245051047aff3bca59
+    testDigest: sha256:701898eec60551339810fc978bd8922260637511fb9d338df033743c86cd569d
+    readmeDigest: sha256:62e3ca2b180aff4844c96b61868ebbb9a484e805168f8f6874c00a1ed054528d
+    offlineTestsPassed: 5
+  claims:
+    diagnosticPassed: true
+    allThreeCorrelationsMatchedExactlyTwo: true
+    missingLonghornStorageDisproved: true
+    exactD0V2ZeroCauseUnresolved: true
+    mutationPerformed: false
+    deletePerformed: false
+  redaction:
+    rawNamesExcluded: true
+    rawObjectsExcluded: true
+    endpointsExcluded: true
+    uidsExcluded: true
+    resourceVersionsExcluded: true
+    secretValuesExcluded: true
+    credentialsExcluded: true
+    kubeconfigsExcluded: true
+  authorization:
+    publicationGranted: false
+    commitGranted: false
+    pushGranted: false
+    pullRequestGranted: false
+    reviewGranted: false
+    mergeGranted: false
+    d0RetryGranted: false
+    mutationGranted: false
+    deleteGranted: false
+    cleanupGranted: false
+    failureInjectionGranted: false
