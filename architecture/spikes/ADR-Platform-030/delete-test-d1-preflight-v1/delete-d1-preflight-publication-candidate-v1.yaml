@@ -1,0 +1,56 @@
+apiVersion: publication.openkubes.io/v1alpha1
+kind: OK141DeleteD1PreflightPublicationCandidate
+metadata:
+  name: ok141-delete-d1-preflight-v1
+  ticket: OK-141
+spec:
+  state: PREPARED-NOT-AUTHORIZED
+  baseCommit: 5730b05149acb138db9a9e5e4d6791aaa73b6056
+  scope:
+    - README.md
+    - delete-d1-preflight-candidate-v1.yaml
+    - prepare_delete_d1_preflight_v1.py
+    - test_prepare_delete_d1_preflight_v1.py
+  bindings:
+    candidateFileDigest: sha256:b654def485a39594424e8bc6c10d74bb7f5f7a14b3ecae1052617d6d9d6a6de5
+    candidateSemanticDigest: sha256:f17cc32a6b1ce4b667def6b17c810886f2940dc8a54a376bbabb093bf9446b7e
+    d0v3ClosureDigest: sha256:eb4f5366e95519ffe2ad21971a0efca928858e6dc462be72579c77ebccfb1edb
+    executorDigest: sha256:05efc4724fe710e5e23b9d1fa857c2fb924151d92be779fcb36dcd31da1be1e0
+    testDigest: sha256:555c9e0490d59d8cc7ca2b2487ea25024185500e8e138183d110191c3cbdc01c
+    readmeDigest: sha256:be2227583a8560496d369082bb405bf2dbf9b6369aaf53342e243d9040301905
+    offlineTestsPassed: 9
+  claims:
+    d1ReadOnlyPreflightPrepared: true
+    exactApplicationMembershipChecked: true
+    targetCorrelationInMemoryOnly: true
+    endpointPersistenceProhibited: true
+    secretContentPersistenceProhibited: true
+    freshD0BindingRequired: true
+    livePreflightPerformed: false
+    mutationPerformed: false
+    deletePerformed: false
+  redaction:
+    rawObjectsExcluded: true
+    endpointsExcluded: true
+    uidsExcluded: true
+    resourceVersionsExcluded: true
+    secretValuesExcluded: true
+    credentialsExcluded: true
+    kubeconfigsExcluded: true
+  authorization:
+    publicationGranted: false
+    commitGranted: false
+    pushGranted: false
+    pullRequestGranted: false
+    reviewGranted: false
+    mergeGranted: false
+    liveReadGranted: false
+    credentialUseGranted: false
+    secretContentReadGranted: false
+    mutationGranted: false
+    deleteGranted: false
+    cleanupGranted: false
+    retryGranted: false
+    rollbackGranted: false
+    outageGranted: false
+    failureInjectionGranted: false
