@@ -4,11 +4,15 @@
 
 **Status:** Proposed
 
+**Amended:** 2026-08-21 — external Cluster registration Console flow (OK-153)
+
 **Extends:** ADR-Platform-001, ADR-Platform-030, ADR-Platform-034
 
 **Related:** ADR-Platform-004, ADR-Platform-013, ADR-Platform-015, ADR-Platform-021, ADR-Platform-023, ADR-Platform-035
 
 **Spike:** OK-151
+
+**Prototype:** OK-153, [`openkubes/ok-console`](https://github.com/openkubes/ok-console)
 
 ---
 
@@ -26,7 +30,9 @@ of deliberately designed screens can cover the initial product path:
 
 1. platform and Cluster overview;
 2. Cluster lifecycle and Evidence inspection; and
-3. Cluster declaration and Contract review.
+3. Cluster declaration and Contract review; and
+4. registration of an existing external Cluster with explicit lifecycle ownership and
+   bounded management authority.
 
 It would be counterproductive to block that first feedback loop on a generic schema
 renderer, a stable public Presentation Contract, or autonomous AI-driven UI adaptation.
@@ -58,6 +64,9 @@ change executable behavior.
   transport, or frontend technology.
 - Preserve a deliberate path to stable Presentation Contracts and optional schema- and
   AI-assisted adaptation.
+- Let operators bring existing conforming Kubernetes Clusters into the product view
+  without silently transferring lifecycle ownership or browser-handling unrestricted
+  credentials.
 - Fail closed for mutation when Contract or presentation compatibility is unknown.
 
 ## Decision
@@ -121,6 +130,9 @@ The first prototype:
 - MUST NOT claim automatic adaptation to arbitrary backend changes;
 - MUST keep provider-specific resources behind OpenKubes product concepts where the
   applicable Contract already provides that abstraction; and
+- MAY prototype registration of existing external Clusters, provided ownership remains
+  explicit, observe-only is the default, and no fixture discovery result is presented
+  as authoritative readiness; and
 - MUST preserve the authority and evidence boundaries in this ADR.
 
 The prototype is permitted to support an explicitly bounded set of Contract versions.
@@ -242,6 +254,11 @@ The Console may display redaction-safe Evidence and correlation identities. It m
 require raw credentials, private Evidence payloads, or unrestricted kubeconfigs in the
 browser to prove platform state.
 
+Registration of an existing Cluster is a management-plane operation and therefore
+enters the same review, Policy, authorization, execution, observation, and Evidence
+path. Connection or discovery against the external Cluster does not itself authorize
+registration, managed operations, or lifecycle adoption.
+
 ### 8. Product objects and provider neutrality
 
 The initial primary navigation model is organized around:
@@ -251,6 +268,12 @@ The initial primary navigation model is organized around:
 - Capabilities;
 - Workloads or Claims; and
 - Evidence and Audit.
+
+The Clusters product area presents **Create Cluster** and **Register Existing Cluster**
+as distinct journeys. Creation declares OpenKubes-governed lifecycle intent;
+registration introduces an already-existing Cluster while preserving its current
+lifecycle owner unless a separate, explicitly reviewed adoption Contract later changes
+that ownership.
 
 Pods, Namespaces, CAPI resources, Crossplane managed resources, infrastructure-provider
 objects, and controller internals may appear in explicit diagnostic drill-downs, but do
@@ -262,7 +285,57 @@ observable Implementation Profiles beneath the applicable OpenKubes Contract. A 
 Presentation Contract must not make one provider's vocabulary normative for all
 conforming distributions.
 
-### 9. Version and provenance visibility
+### 9. Existing external Cluster registration
+
+The curated Console may expose a **Register Existing Cluster** journey implementing the
+registration principles of ADR-Platform-013. The UI is a presentation and invocation
+surface for that Contract; this ADR does not replace ADR-013's naming, idempotency,
+responsibility, or explicit opt-in rules.
+
+The prototype distinguishes these management modes:
+
+| Mode | Console meaning | Default authority |
+|---|---|---|
+| `ObserveOnly` | Inventory, compatible Conditions, Capability assessment, and redaction-safe Evidence | Read-only and revocable |
+| `ManagedOperations` | Separately reviewed Day-2 operations through the authoritative execution path | Explicit operation grants |
+| `FullAdoption` | Transfer of lifecycle ownership to OpenKubes | `NO-GO` without a separate accepted adoption and migration Contract |
+
+Registration MUST NOT be presented as lifecycle adoption. The external owner remains
+authoritative for Cluster creation, replacement, upgrade, and deletion unless a later
+accepted Contract explicitly transfers those responsibilities.
+
+The safe initial connection preference is an outbound, mutually authenticated connector
+or short-lived federation. The browser MUST NOT accept or retain an unrestricted
+kubeconfig, cluster-admin credential, private key, or secret value. This preference is
+not a decision selecting a connector implementation: ADR-013 remains mechanism-neutral,
+and a production connection mechanism requires its own security and operational
+evidence.
+
+Discovery is non-authorizing observation. Kubernetes version, node inventory, provider
+signals, or detected APIs may inform a compatibility and Capability assessment, but
+MUST NOT independently establish OpenKubes readiness, Policy compliance, registration,
+or management authority.
+
+An illustrative presentation shape may be rendered as:
+
+```yaml
+apiVersion: clusters.openkubes.io/v1alpha1
+kind: ExternalClusterRegistration
+spec:
+  ownership: External
+  connection:
+    type: Agent
+    direction: Outbound
+  managementMode: ObserveOnly
+```
+
+The API group, kind, fields, and connector shown above are prototype vocabulary, not an
+accepted new Domain Contract. Their purpose is to test the forcing user journey and
+Presentation Contract seam. Production execution continues to require the accepted
+registration Contract, exact identity join key, server-side Policy and authorization,
+and correlated Evidence.
+
+### 10. Version and provenance visibility
 
 The Console must make the semantic basis of its display inspectable. For views that
 support state-changing operations, the implementation must be able to identify at least:
@@ -278,7 +351,7 @@ human-visible review artifacts is a candidate mechanism, particularly where ADR-
 WYSIWYS review applies. Its exact normative shape is deferred until the forcing flow and
 artifacts exist.
 
-### 10. Normative invariants
+### 11. Normative invariants
 
 - **INV-036-1 — Curated-first delivery.** A generic renderer, stable Presentation
   Contract, and AI adaptation are not prerequisites for the first Console prototype.
@@ -301,6 +374,14 @@ artifacts exist.
 - **INV-036-8 — Provider neutrality.** Presentation MUST remain organized around
   OpenKubes Contracts and Implementation Profiles rather than promote one provider's
   resources to universal platform semantics.
+- **INV-036-9 — Registration is not adoption.** Registering an existing Cluster MUST
+  preserve explicit external lifecycle ownership. `FullAdoption` remains unavailable
+  without a separate accepted ownership-transfer and migration Contract.
+- **INV-036-10 — External credential boundary.** The Console browser MUST NOT accept or
+  retain unrestricted kubeconfigs, cluster-admin credentials, private keys, or secret
+  values for external Cluster registration.
+- **INV-036-11 — Discovery non-authority.** Discovery output MUST NOT independently
+  establish readiness, compatibility, registration, management authority, or Evidence.
 
 ## Alternatives considered
 
@@ -327,6 +408,8 @@ artifacts exist.
   of Domain semantics or authority.
 - The same versioned Domain Contracts may serve Console, CLI, and agent consumers while
   their identities and Authorities remain separate.
+- Existing Kubernetes Clusters can enter the OpenKubes fleet view incrementally without
+  conflating observation, managed operations, and lifecycle adoption.
 
 ### Costs and risks
 
@@ -370,6 +453,10 @@ demonstrate at least:
 10. **Evolution decision:** Prototype evidence records whether a stable Presentation
     Contract should proceed, be revised, or remain deferred; this ADR does not presume
     acceptance of that later Contract.
+11. **External registration boundary:** A prototype registration journey keeps
+    lifecycle ownership external, defaults to observe-only, rejects browser kubeconfig
+    handling, makes discovery non-authoritative, and requires exact review before a
+    simulated registration outcome.
 
 ## Re-evaluation triggers
 
@@ -385,3 +472,6 @@ demonstrate at least:
   Profile presentation.
 - The separation between immutable historical transition outcome and current platform
   health changes materially.
+- Full lifecycle adoption of a previously external Cluster is proposed.
+- A production connector, federation, credential exchange, rotation, deregistration,
+  or external-Cluster management mechanism is selected.
