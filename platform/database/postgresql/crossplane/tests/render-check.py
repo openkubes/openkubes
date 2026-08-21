@@ -123,22 +123,43 @@ def validate(
             "plugin serverName must equal the single protected CNPG cluster identity")
     require("backup" not in cluster["spec"], "deprecated in-tree Cluster backup surface must be absent")
     catalog = next(manifest for manifest in manifests if manifest["kind"] == "ClusterImageCatalog")
+    catalog_image = catalog["spec"]["images"][0]
+    # A requested capability is delivered by the BUNDLED `standard` image, because the catalogued
+    # per-extension image-volume model needs containerd >= 2.1.0 and these nodes run 2.0.x. So the
+    # provenance type follows the delivery mechanism rather than being a constant, and the two must
+    # agree: a `standard` label on a minimal image (or the reverse) would misstate what is running.
+    bundled = "-standard-" in catalog_image["image"]
     provenance = {
         "images.cnpg.io/date": "20260815",
         "images.cnpg.io/publisher": "cnpg.io",
-        "images.cnpg.io/type": "minimal",
+        "images.cnpg.io/type": "standard" if bundled else "minimal",
         "images.cnpg.io/os": "trixie",
     }
     labels = catalog["metadata"].get("labels", {})
     require(all(labels.get(key) == value for key, value in provenance.items()),
-            "governed catalog provenance labels must remain exact")
-    image = catalog["spec"]["images"][0]["image"]
-    require("@sha256:" in image, "PostgreSQL catalog image must be digest-pinned")
-    extensions = catalog["spec"]["images"][0]["extensions"]
-    require([extension["name"] for extension in extensions] == ["pgvector"],
-            "platform catalog must expose only the approved pgvector extension")
-    require("@sha256:" in extensions[0]["image"]["reference"],
-            "pgvector catalog image must be digest-pinned")
+            f"governed catalog provenance labels must remain exact and match the image actually "
+            f"pinned ({'standard' if bundled else 'minimal'}); got {labels}")
+    require("@sha256:" in catalog_image["image"],
+            "the catalog image must be digest-pinned, not tag-only: a re-pushed tag would change "
+            "what runs while every recorded proof still looked valid")
+    # Declaring spec.postgresql.extensions IS the image-volume mechanism, so it must not reappear
+    # alongside a bundled image — that combination is what stops the instance starting.
+    if bundled:
+        require("extensions" not in catalog_image,
+                "a bundled image must not also carry catalogued extension images: that is the "
+                "image-volume path, which containerd 2.0.x cannot mount")
+        require("extensions" not in (cluster["spec"].get("postgresql") or {}),
+                "a bundled image must not also declare spec.postgresql.extensions: CNPG would "
+                "turn it into an image volume and the instance would never start")
+    # The catalogued per-extension images are the image-volume model, which is unusable on
+    # containerd 2.0.x and therefore not composed. When it returns (containerd >= 2.1.0), these
+    # assertions apply again — §6.4's governance lives here, so keep them rather than deleting.
+    extensions = catalog_image.get("extensions")
+    if extensions is not None:
+        require([extension["name"] for extension in extensions] == ["pgvector"],
+                "platform catalog must expose only the approved pgvector extension")
+        require("@sha256:" in extensions[0]["image"]["reference"],
+                "pgvector catalog image must be digest-pinned")
 
     rendered = yaml.safe_dump_all(docs)
     # ObjectStore recovery-window fields are valid normalized status. Only the

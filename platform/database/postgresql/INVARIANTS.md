@@ -73,6 +73,27 @@ completedAt + class.maxAge`. Never trust `checks[].result: PASS` on its own.
   mutating the very cluster whose restorability the artifact attests. Artifacts therefore record
   `extensionsAfterRollback` and `probeTablesRemaining`, and residue makes an artifact inadmissible.
 
+## Capability delivery: bundled image, not image volumes (§13 bound 4)
+A requested capability is delivered by the **bundled `standard` image**, which ships
+`vector.control`. The ADR's model — a per-extension catalogued image mounted as an OCI image
+volume on a `minimal` base — is the stronger design, because §6.4 governs each extension's image,
+version and provenance separately. It does not work here: containerd added OCI Image Volume Source
+support in **v2.1.0** (containerd#10579) and these nodes run 2.0.x, so the kubelet forwards a field
+the runtime cannot handle and the instance never starts. The feature gate is necessary and not
+sufficient, and enabling it took a database down for ~8 minutes.
+
+Three things must move together, and `render-check` asserts all three:
+- the catalog image (`standard` vs `minimal`)
+- the `images.cnpg.io/type` provenance label, which must match the image actually pinned
+- the ABSENCE of both `catalog.images[].extensions` and `spec.postgresql.extensions` — declaring
+  either IS the image-volume mechanism, so a bundled image plus a declaration is the one
+  combination that stops the instance starting
+
+The cost is deliberate: `standard` carries a FIXED extension set, so per-extension governance
+degrades to "whatever this image ships". **Restore the catalogued model and the minimal base
+together** once the nodes run containerd >= 2.1.0; the per-extension assertions are kept, guarded,
+for that day rather than deleted.
+
 ## The extension has TWO names
 `pgvector` is the **catalog** name — what the composed CNPG spec asks for and what CNPG echoes
 back in `status.pgDataImageInfo.extensions[].name`. `vector` is the **SQL** name, what

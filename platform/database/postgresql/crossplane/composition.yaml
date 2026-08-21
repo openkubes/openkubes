@@ -930,16 +930,41 @@ spec:
                       app.kubernetes.io/part-of: openkubes-database-postgresql
                       images.cnpg.io/date: "20260815"
                       images.cnpg.io/publisher: cnpg.io
-                      images.cnpg.io/type: minimal
+                      images.cnpg.io/type: {{ ternary "standard" "minimal" $requestedPgvector }}
                       images.cnpg.io/os: trixie
                   spec:
                     images:
                       - major: 18
+                        {{- /* §13 bound 4 delivery. Two mechanisms, and only one of them works on
+                               this platform.
+
+                               The ADR's model is a per-extension catalogued image mounted as an
+                               OCI image volume (KEP-4639) on a MINIMAL base — the stronger design,
+                               because §6.4 governs each extension's image, version and provenance
+                               separately. It does not work here: containerd added OCI Image Volume
+                               Source support in v2.1.0 (containerd#10579) and these nodes run
+                               2.0.x, so the kubelet forwards a field the runtime cannot handle and
+                               the instance never starts (`failed to mkdir ""`). Enabling the
+                               feature gate is necessary and not sufficient; it also took a database
+                               down for ~8 minutes when tried.
+
+                               So a requested capability is delivered by the BUNDLED image instead:
+                               `standard` ships vector.control, needs no image volume, no feature
+                               gate and no machine-config change. Measured working: CREATE EXTENSION
+                               vector -> pgvector 0.8.6 with correct L2 distances.
+
+                               The cost is deliberate and worth naming — `standard` carries a FIXED
+                               extension set, so §6.4's per-extension governance degrades to
+                               "whatever this image ships". Restore the catalogued model, and the
+                               minimal base with it, once the nodes run containerd >= 2.1.0.
+
+                               Requesting nothing keeps the minimal image: smaller surface, and no
+                               reason to pay for extensions nobody asked for. */}}
+                        {{- if $requestedPgvector }}
+                        image: ghcr.io/cloudnative-pg/postgresql:18.6-standard-trixie@sha256:771f9eab5225587af259d84680cc69a5b6e374ac32bb24effafde1f3368a1241
+                        {{- else }}
                         image: ghcr.io/cloudnative-pg/postgresql:18.6-202608131513-minimal-trixie@sha256:e488b1434919f455f2ee4e18a181ce9b33f34cdd8dfb821126855486bce6ad34
-                        extensions:
-                          - name: {{ $pgvectorExtensionName }}
-                            image:
-                              reference: ghcr.io/cloudnative-pg/pgvector:0.8.6-202608090042-18-trixie@sha256:c3fe71d306fe3dfad4e71b2585c58034c2da5f234a18cd4b964ed03e1dc858a9
+                        {{- end }}
             ---
             apiVersion: kubernetes.crossplane.io/v1alpha2
             kind: Object
@@ -1090,11 +1115,17 @@ spec:
                         parameters:
                           barmanObjectName: {{ $objectStoreName | quote }}
                           serverName: {{ $dbName | quote }}
-                    {{- if $requestedPgvector }}
-                    postgresql:
-                      extensions:
-                        - name: {{ $pgvectorExtensionName }}
-                    {{- end }}
+                    {{- /* Deliberately NOT declaring spec.postgresql.extensions. That field IS
+                           the image-volume mechanism: CNPG turns each entry into an OCI image
+                           volume, which containerd 2.0.x cannot mount, so declaring it here would
+                           stop the instance starting even though the catalog now supplies a bundled
+                           image that already contains the extension. The bundled image delivers
+                           the capability; the declaration would only re-introduce the broken path.
+                           Restore this block together with the minimal base image once the nodes
+                           run containerd >= 2.1.0 — the two belong to the same mechanism and must
+                           move together. Nothing is lost in status by omitting it: capability
+                           evidence comes from a probe that exercises the extension, never from
+                           CNPG's echo of what was requested. */}}
             ---
             apiVersion: kubernetes.crossplane.io/v1alpha2
             kind: Object
