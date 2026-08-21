@@ -84,7 +84,16 @@ Governance, policy management, secret handling, and continuous delivery.
 | **011** | [GitOps](ADR-Platform-011-gitops.md) | GitOps-driven platform reconciliation |
 | **017** | [Constraint Envelopes](ADR-Platform-017-constraint-envelopes.md) | Policy & constraint enforcement |
 | **025** | [Datacenter Secret Sync Profile](ADR-Platform-025-datacenter-secret-sync-profile.md) | Multi-datacenter secret synchronization |
+| **037** | [Console Authentication, Identity Federation, and Break-glass Access](ADR-Platform-037-console-authentication-and-identity-federation.md) | Federated Console identity, server-side sessions, and exceptional local access |
 | _n/a_ | Acceptance Records (025-*) | Acceptance records for Fresh Install, Outage Recovery, Singleton Enforcement, etc. |
+
+### 🖥️ Console & Product Experience
+Contract-aligned product surfaces and their evolution.
+
+| ADR | Title | Scope |
+|:---|:---|:---|
+| **036** | [Native OpenKubes Console](ADR-Platform-036-openkubes-console-architecture.md) | Curated-first Console and evolution toward contract-adaptive UI |
+| **037** | [Console Authentication, Identity Federation, and Break-glass Access](ADR-Platform-037-console-authentication-and-identity-federation.md) | Federated-first authentication and controlled recovery access |
 
 ### 📊 Observability & Diagnostics
 Telemetry, health checks, diagnostic contracts, and gating.

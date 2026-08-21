@@ -8,6 +8,8 @@
 
 **Extends:** ADR-Platform-001, ADR-Platform-030, ADR-Platform-034
 
+**Extended by:** ADR-Platform-037
+
 **Related:** ADR-Platform-004, ADR-Platform-013, ADR-Platform-015, ADR-Platform-021, ADR-Platform-023, ADR-Platform-035
 
 **Spike:** OK-151
