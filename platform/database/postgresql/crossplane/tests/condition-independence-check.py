@@ -38,6 +38,11 @@ XR_PATH = TESTS_DIR / "xr-ok-robotics.yaml"
 OBSERVED_PATH = TESTS_DIR / "observed-ok-robotics-valid.yaml"
 RESTORE_FIXTURE = TESTS_DIR / "restoreverified-ok-robotics.yaml"
 CAPABILITY_FIXTURE = TESTS_DIR / "capabilityverified-pgvector.yaml"
+ADR_RELATIVE = "architecture/decisions/ADR-Platform-032-openkubes-dbaas.md"
+ADR_PATH = next(
+    (p / ADR_RELATIVE for p in TESTS_DIR.parents if (p / ADR_RELATIVE).is_file()),
+    TESTS_DIR / ADR_RELATIVE,
+)
 
 RUNNING_IMAGE = (
     "ghcr.io/cloudnative-pg/postgresql:18.6-202608131513-minimal-trixie"
@@ -191,6 +196,55 @@ def both_valid_together() -> None:
     print(f"PASS both Valid together: {recovery[1]} + {capability[1]}")
 
 
+def check_probe_sets_are_typed_and_disjoint() -> None:
+    """Review finding 1, box 3: the probe sets must be typed, closed, and NOT the same set.
+
+    The ADR used to say `RecoveryAssured` asserts "schema and capability conformance probes"
+    passed — claiming something the typed evidence never carried, since RestoreVerified enumerates
+    five schema/content checks and no capability probe. Two conditions with two artifacts and two
+    closed enums is what makes them independent structurally rather than by convention, so the
+    enums must stay disjoint: a shared check name would mean one verdict feeding both.
+    """
+    def checks_schema(path: Path) -> dict:
+        crd = yaml.safe_load(path.read_text())
+        spec = crd["spec"]["versions"][0]["schema"]["openAPIV3Schema"]["properties"]["spec"]
+        return spec["properties"]["checks"]
+
+    restore = checks_schema(CAPABILITY_DIR / "crossplane/restoreverified-crd.yaml")
+    capability = checks_schema(CAPABILITY_DIR / "crossplane/capabilityverified-crd.yaml")
+
+    for label, schema in (("RestoreVerified", restore), ("CapabilityVerified", capability)):
+        names = schema["items"]["properties"]["name"].get("enum")
+        assert names, f"{label}.checks[].name must be a closed enum, not free text"
+        assert schema.get("minItems") == schema.get("maxItems") == len(names), (
+            f"{label}.checks must be exactly the enumerated set (minItems == maxItems == "
+            f"{len(names)}), so a changed probe set cannot be recorded under the old contract"
+        )
+
+    restore_names = set(restore["items"]["properties"]["name"]["enum"])
+    capability_names = set(capability["items"]["properties"]["name"]["enum"])
+    shared = sorted(restore_names & capability_names)
+    assert not shared, (
+        f"the two probe sets share check name(s) {shared}: one verdict would then feed both "
+        "conditions, which is the pipeline coupling §5.1 rules out"
+    )
+
+    adr = ADR_PATH.read_text()
+    missing = sorted(name for name in restore_names if name not in adr)
+    assert not missing, (
+        f"the ADR does not name the enumerated restore probes {missing}; finding 1 asks for them "
+        "to be inspectable, and a set named nowhere cannot be reviewed for weakening"
+    )
+    assert "asserts NO capability conformance" in adr, (
+        "the ADR must state that RecoveryAssured asserts no capability conformance; without it the "
+        "independence is a convention rather than a decision"
+    )
+    print(
+        f"PASS probe sets: {len(restore_names)} restore + {len(capability_names)} capability "
+        "checks, both closed, disjoint, and named in the ADR"
+    )
+
+
 def structural_independence() -> None:
     """Neither admissibility expression may read the other's state.
 
@@ -273,6 +327,7 @@ def main() -> int:
             failed_capability_with_valid_recovery()
             residue_keeps_the_pair_honest()
         else:
+            check_probe_sets_are_typed_and_disjoint()
             structural_independence()
             valid_capability_with_unproven_recovery()
             both_valid_together()

@@ -348,12 +348,34 @@ Verifikation:
 
 ```text
 BackupAvailable → scheduled/triggered verification → disposable recovery environment
-→ selected schema/capability conformance probes → RestoreVerified{…}
+→ selected schema/content probes (enumerated, typed) → RestoreVerified{…}
 ```
 
 Scope honesty for v1: `RecoveryAssured=Valid` proves that the backup was restorable to a running
-cluster at a recovery target, and that the **selected schema and capability conformance probes**
-passed. **Application-semantic** consistency is the respective forcing consumer's concern, not the
+cluster at a recovery target, and that the **five enumerated schema/content probes** passed. Those
+five are typed and closed in the `RestoreVerified` CRD — `outside-recovery`,
+`known-row-readable`, `restore-probe-heap-readable`, `primary-key-index-readable`,
+`selected-backup-object-readable` — with `minItems == maxItems == 5`, so a probe set that changes
+cannot be recorded under the old contract, and `checkProfileDigest` binds the profile that produced
+the artifact (§11.2's "a weakened profile invalidates older evidence" rule, made mechanical).
+
+**`RecoveryAssured` asserts NO capability conformance, and that is deliberate** (review finding 1).
+Earlier wording here said "schema and capability conformance probes", which claimed something the
+typed evidence never carried. The in-restore probes and the standing `CapabilityConformant` probe
+are **two distinct checks**, not one reused verdict:
+
+| | in-restore probes | standing capability probe |
+|---|---|---|
+| subject | the restored copy, in a disposable environment | the live primary |
+| asserts | that backup is restorable and readable | the extension actually functions now |
+| artifact | `RestoreVerified.checks[]` (5, closed) | `CapabilityVerified.checks[]` (5, closed) |
+| lifetime | pinned to one backup + UID | re-proven after every image change (§6.3) |
+
+The probe *script* may be shared, because it is side-effect-free — its DDL rolls back, so running
+it inside the recovery environment cannot mutate the cluster whose restorability the artifact
+attests. Sharing an implementation is not sharing a verdict. Keeping the two conditions
+independent is what §5.1 requires, and `condition-independence-check.py` asserts the decisive
+direction: `CapabilityConformant=Failed` alongside `RecoveryAssured=Valid` is reachable. **Application-semantic** consistency is the respective forcing consumer's concern, not the
 platform's — claiming it would overstate the flag.
 
 > **Narrowed by the spike (§11.2).** This section previously said "structural integrity checks"
@@ -638,8 +660,9 @@ and nothing beyond it:
 
 > From the backup identified by `backupId`, the platform created a **new** PostgreSQL cluster
 > that left the **actually reached** recovery target (timeline/LSN) and arrived at a connectable
-> state outside recovery mode, and the **selected schema and capability conformance probes**
-> passed.
+> state outside recovery mode, and the **five enumerated schema/content probes** passed. It
+> asserts nothing about capability conformance — that is a separate condition with its own
+> artifact.
 
 The wording is deliberately weaker than "structural integrity". A relation name plus `relkind`
 proves **catalogue presence**, not readability: it says nothing about whether the relation's pages
