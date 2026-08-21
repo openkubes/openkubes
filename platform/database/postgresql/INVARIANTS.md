@@ -31,6 +31,26 @@ Never read `Cluster.status.lastSuccessfulBackup`, `firstRecoverabilityPoint`, `l
 either `*ByMethod` field: deprecated, and unset for plugin backups. The identically-named
 `ObjectStore` window fields are legitimate — the ban is on reading them *from the Cluster*.
 
+### Name enumeration cannot be confined by policy (§13 finding 4)
+Barman's HeadBucket needs **bucket-level `s3:ListBucket` with no `s3:prefix` condition** — asserted
+in `minio-provisioning-check.py`, which requires that statement to carry exactly
+`{Sid, Effect, Action, Resource}`. So every identity holding the source policy can enumerate every
+object **name** in that bucket. Prefix isolation confines `s3:GetObject` and nothing else.
+
+Two consequences, both asserted rather than described. A Sid must not claim prefix-scoped listing —
+all three policies shipped saying `ListOnlyThe…Prefix` while listing bucket-wide. And **a SEPARATE
+BUCKET is the precondition** for name isolation, not a separate prefix: the drill writes to
+`ok-db-drill`, never into `ok-db-backups`. Adding a second cluster to the shared backup bucket
+gives it visibility of the other clusters' object names — a reviewed decision, not an accident.
+
+### Denial strings are paired with the client (§13 finding 3)
+The accepted renderings (`AccessDenied`, `Insufficient permissions`, `Access Denied`) were
+**measured** against one pinned `mc` build. `isolation-policy-check.py` refuses a client bump that
+does not come with re-measurement, because an unrecognised denial exits as "not a permission
+denial" — so a wording change would turn every real refusal into a probe failure. The check targets
+the ACCEPTANCE block specifically, not the inconclusive-causes filter above it: slicing across both
+let a string deleted from one still be found in the other.
+
 Availability correlation is **window containment**, asymmetric:
 `first > stopped` → `Failed/BackupUnavailable`; `stopped > last` → `Unknown` (not caught up);
 `first > last` → `Unknown` (incoherent).

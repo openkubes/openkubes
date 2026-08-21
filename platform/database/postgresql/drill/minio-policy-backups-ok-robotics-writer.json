@@ -10,7 +10,7 @@
       "Resource": "arn:aws:s3:::ok-db-backups"
     },
     {
-      "Sid": "ListOnlyTheOkRoboticsSourcePrefix",
+      "Sid": "ListBucketWideForBarmanHeadBucketNotPrefixScoped",
       "Effect": "Allow",
       "Action": [
         "s3:ListBucket"
