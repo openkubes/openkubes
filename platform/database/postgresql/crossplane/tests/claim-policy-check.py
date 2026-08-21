@@ -11,6 +11,11 @@ from pathlib import Path
 import yaml
 
 ROOT = Path(__file__).resolve().parent.parent
+ADR_RELATIVE = "architecture/decisions/ADR-Platform-032-openkubes-dbaas.md"
+ADR_PATH = next(
+    (parent / ADR_RELATIVE for parent in ROOT.parents if (parent / ADR_RELATIVE).is_file()),
+    ROOT / ADR_RELATIVE,
+)
 EXPECTED = (
     "oidc:database-claim-editors",
     "openkubes-system",
@@ -130,6 +135,31 @@ def validate(data: dict) -> None:
         "kind": "Role", "name": "database-claim-editor",
         "apiGroup": "rbac.authorization.k8s.io",
     }, "claim-editor RoleBinding must select the claim-only Role")
+
+    # AC 7. The deprecation of v1 CompositeResourceDefinition is accepted for v1 in ADR §14,
+    # deliberately rather than by omission. This keeps the RECORD and the SERVED API in step,
+    # because a stale acceptance is worse than no acceptance: it reads as current.
+    adr = ADR_PATH.read_text()
+    accepted = "## 14. Accepted deprecations" in adr
+    served_v1 = data["xrd"]["apiVersion"] == "apiextensions.crossplane.io/v1"
+    if served_v1:
+        require(
+            accepted,
+            "the XRD is still apiextensions.crossplane.io/v1 but ADR §14 no longer records the "
+            "accepted deprecation; either restore the record or complete the v2 migration",
+        )
+        for evidence in ("v2.3.3", "consider migrating to v2"):
+            require(
+                evidence in adr,
+                f"ADR §14 must quote what the server actually said ({evidence!r}); an acceptance "
+                "without the observed warning is an assertion, not a record",
+            )
+    else:
+        require(
+            not accepted,
+            "the XRD has moved off apiextensions.crossplane.io/v1, so ADR §14's accepted "
+            "deprecation is stale and must be removed rather than left reading as current",
+        )
 
     xrd = data["xrd"]
     require(xrd["spec"]["group"] == "platform.openkubes.ai", "XRD API group regression")

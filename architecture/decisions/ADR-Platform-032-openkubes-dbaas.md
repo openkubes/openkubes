@@ -1257,6 +1257,54 @@ dann sind sie **Resultat** der Architekturarbeit, nicht ihre Ausgangsannahme.
 
 ---
 
+## 14. Accepted deprecations (OK-150)
+
+OK-150's seventh acceptance criterion offered two branches: migrate the claim model off the
+deprecated API, **or** re-accept the deadline explicitly. This records the second, taken
+deliberately rather than by omission.
+
+**What was observed, from the server rather than from documentation.** Applying the XRD to ok-mgmt
+(Crossplane **v2.3.3**, server-side dry run, 2026-08-20) returns:
+
+```text
+Warning: CompositeResourceDefinition v1 is deprecated and will be removed in a future release;
+         consider migrating to v2
+```
+
+`platform/database/postgresql/crossplane/xrd.yaml` is `apiextensions.crossplane.io/v1` with
+`claimNames`, so the warning applies to this capability. A second, unrelated warning on the same
+plane — `apiextensions.crossplane.io Usage is deprecated` — is not this ADR's concern; the
+capability declares no `Usage`.
+
+**Decision: the deprecation is accepted for v1. There is no deadline to miss.** The warning names
+no removal version and no date — "a future release" is the whole of it — so there is nothing to
+schedule against, and re-accepting is not deferring a known date.
+
+**Why not migrate now.** v2 is not a field rename. Composite resources become **namespaced**, and
+the claim tier disappears: `DatabaseClaim` is the object the entire authority model is built on.
+Migrating means rewriting the fail-closed `ValidatingAdmissionPolicy` and its binding (which
+authorize by exact cluster/namespace/Secret tuple against `databaseclaims`), the claim-editor Role
+and RoleBinding, the delegation proof in `make bind` (which asserts the group can create claims and
+cannot read Secrets or create composites directly), every example and fixture, and the identity
+binding in both evidence contracts. That is a contract change to the authority boundary — the part
+of this capability with the highest blast radius — traded for removing a warning with no deadline.
+It is its own ticket with its own review, not a tail item on a bounds ticket.
+
+**What this accepts, stated plainly:** a future Crossplane upgrade may drop v1 XRDs, and until the
+migration happens that upgrade is blocked by this capability. The cost is a coupling between our
+upgrade cadence and someone else's removal schedule.
+
+**What revokes this acceptance.** Any one of these makes it stale and the migration a scheduled
+piece of work rather than a deferred one:
+
+1. Crossplane states a **removal version or date** for v1 `CompositeResourceDefinition`.
+2. A Crossplane upgrade this platform wants for another reason requires v2 XRDs.
+3. The claim tier is being reworked anyway — migrate with that change, not against it.
+
+`claim-policy-check.py` asserts this record stays consistent with the served API: it fails if the
+XRD moves to v2 while this acceptance still stands (a stale acceptance is worse than none, because
+it reads as current), and it fails if the acceptance is removed while the XRD is still v1.
+
 ## Referenzen (Design-Grundlage, im Spike gegen Zielversion zu bestätigen)
 
 - CloudNativePG — Operator Capability Levels, Recovery/PITR, Monitoring, Pooler,
