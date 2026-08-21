@@ -1,0 +1,33 @@
+name: verify-console-observed-state-producer
+
+"on":
+  pull_request:
+    paths:
+      - "platform/console/observed-state-producer/**"
+      - ".github/workflows/verify-console-observed-state-producer.yaml"
+  push:
+    branches: [main]
+    paths:
+      - "platform/console/observed-state-producer/**"
+      - ".github/workflows/verify-console-observed-state-producer.yaml"
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out reviewed source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Verify producer, contract projection and manifests
+        run: make -C platform/console/observed-state-producer verify
+      - name: Build the non-root producer container
+        run: >-
+          docker build
+          -f platform/console/observed-state-producer/Containerfile
+          -t openkubes-observed-state-producer:ci
+          platform/console/observed-state-producer
