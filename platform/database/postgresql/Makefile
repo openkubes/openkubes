@@ -46,6 +46,7 @@ JSON_FILES := drill/minio-policy-backups-readonly.json \
 .PHONY: help validate render-prerequisites render render-check claim-policy-check \
 	claim-authority-model-check claim-admission-check evidence-status-check \
 	observation-freshness-check capability-admission-check capability-evidence-check \
+	orphan-check \
 	credential-overlap-check residency-resolution-check anchor-supersession-check \
 	rpo-freshness-check condition-independence-check \
 	restoreverified-api-check api-acceptance-check drill-validate drill-policy-check minio-provisioning-check \
@@ -386,6 +387,18 @@ deploy: validate require-explicit-cluster require-deploy-user require-mgmt-appro
 		printf '    --database-uid  %s\n' "$$($$MK get database "$$ref" -o jsonpath='{.metadata.uid}')"
 	@echo "NOTE: evidence does not appear on its own. RecoveryAssured=Valid requires a drill run and"
 	@echo "      an operator-created RestoreVerified CR (ADR-Platform-032 §11.2); see drill/README.md."
+
+# PR #259 review finding 5. Detection only, and read-only: it deletes nothing, because deciding
+# to remove a data-bearing resource is not a script's call. Needs both planes, so it is not part
+# of `validate`. Renaming a composed manifest is the usual way orphans appear — the Object keeps
+# existing and points elsewhere, so deletionPolicy never fires. This ticket created exactly that
+# case by renaming the Pooler.
+WORKLOAD_KUBECONFIG ?=
+orphan-check: ## Report resources in the Database namespace that nothing composes (needs both planes)
+	@test -n "$(MGMT_KUBECONFIG)" -a -r "$(MGMT_KUBECONFIG)" || { echo "ERROR: set MGMT_KUBECONFIG" >&2; exit 2; }
+	@test -n "$(WORKLOAD_KUBECONFIG)" -a -r "$(WORKLOAD_KUBECONFIG)" || { echo "ERROR: set WORKLOAD_KUBECONFIG to the cluster hosting the database" >&2; exit 2; }
+	@$(PYTHON) decommission/orphan-check.py --mgmt-kubeconfig "$(MGMT_KUBECONFIG)" \
+		--workload-kubeconfig "$(WORKLOAD_KUBECONFIG)" --namespace "database-$(CLUSTER)"
 
 status: require-mgmt-context ## Read DatabaseClaim and Database state from ok-mgmt
 	@$(KUBECTL) --kubeconfig "$(MGMT_KUBECONFIG)" get databaseclaims -n "$(CLAIM_NAMESPACE)"

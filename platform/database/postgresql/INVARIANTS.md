@@ -53,6 +53,20 @@ completedAt + class.maxAge`. Never trust `checks[].result: PASS` on its own.
   mutating the very cluster whose restorability the artifact attests. Artifacts therefore record
   `extensionsAfterRollback` and `probeTablesRemaining`, and residue makes an artifact inadmissible.
 
+## The extension has TWO names
+`pgvector` is the **catalog** name — what the composed CNPG spec asks for and what CNPG echoes
+back in `status.pgDataImageInfo.extensions[].name`. `vector` is the **SQL** name, what
+`CREATE EXTENSION` takes. Both are correct in their own namespace, and conflating them is what
+broke the status reader: it matched `vector` against a field that says `pgvector`, so
+`Pending/CapabilityProbePending` was unreachable and a declared-but-unprobed extension read as
+ABSENT. One `$pgvectorExtensionName` constant now drives the reader and both composed specs.
+
+**Do not "fix" the probe to use the catalog name.** It maps them explicitly (`pgvector) EXT=vector`)
+and never reads `status.pgDataImageInfo` at all — its verdicts come from `pg_available_extensions`
+and from exercising the extension. That is why this bug could not mislead it: the status field was
+actively wrong and the probe never asked. "Never read the operator's echo" stopped being a
+principle here and became a caught defect.
+
 ## Observation freshness (§13 bound 5)
 Every `evidence.*.observedAt` is a **source event** time, so it cannot say whether anyone is still
 looking. `status.observation.observedThrough` is the only field that can, and a reader **MUST** treat
@@ -99,6 +113,18 @@ login role** — new consumers must target the active login role from `status.cr
 never `app`.
 
 ## Composed resource names
+**Renaming a composed manifest ORPHANS the previous resource.** The provider-kubernetes Object
+keeps existing and simply points at a new name, so `deletionPolicy: Delete` never fires and
+Crossplane deletes nothing. Observed: renaming the Pooler under OK-150 left the old
+`<cluster>-rw` Pooler behind on ok-robotics, and it had to be removed by hand. Any rename needs a
+decommission step planned with it — `make orphan-check` reports what is left, and deliberately
+does not delete.
+
+Orphan classification has three outcomes, and the middle one is load-bearing: scheduled backups
+are `<schedule>-<timestamp>` Backups **owned** by the composed ScheduledBackup, and the platform
+cannot enumerate generated names (§13 bound 3). Without walking ownerReferences, three healthy
+daily backups on ok-robotics were reported as garbage.
+
 A `Pooler`'s name becomes its **Service** name, and CNPG already owns `<cluster>-rw`, `-ro` and `-r`
 for the Cluster. No composed object may take one of those names — it can never acquire ownership, and
 the symptom is a silent `phase=inactive` with a recurring `InvalidOwnership` warning, not a failure
