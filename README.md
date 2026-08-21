@@ -156,6 +156,8 @@ OpenKubes is built on 36 documented platform-level decisions:
 | [ADR-Platform-034](./architecture/decisions/ADR-Platform-034-ok-up.md) | `ok up` Convergence UX and Authorized Desired-State Transitions *(proposed)* |
 | [ADR-Platform-035](./architecture/decisions/ADR-Platform-035-hybrid-intent-and-control-plane-execution.md) | Hybrid Intent and Control-Plane Execution Architecture for cluster lifecycle management *(proposed)* |
 | [ADR-Platform-036](./architecture/decisions/ADR-Platform-036-openkubes-console-architecture.md) | Native OpenKubes Console — curated first delivery and evolution toward contract-adaptive UI *(proposed)* |
+| [ADR-Platform-037](./architecture/decisions/ADR-Platform-037-console-authentication-and-identity-federation.md) | Console authentication, identity federation, and break-glass access *(proposed)* |
+| [ADR-Platform-038](./architecture/decisions/ADR-Platform-038-console-session-store.md) | Console Session Store Contract and PostgreSQL reference profile *(proposed)* |
 
 → [`architecture/decisions/`](./architecture/decisions/)
 

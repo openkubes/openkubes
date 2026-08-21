@@ -6,6 +6,8 @@
 
 **Extends:** ADR-Platform-036
 
+**Extended by:** ADR-Platform-038
+
 **Related:** ADR-Platform-001, ADR-Platform-017, ADR-Platform-025, ADR-Platform-030, ADR-Platform-034, ADR-Platform-035
 
 **Prototype:** OK-154, [`openkubes/ok-console`](https://github.com/openkubes/ok-console)
@@ -355,4 +357,3 @@ session store, ingress product, secret backend, MFA mechanism, password hashing
 parameters, hardware token, or account recovery implementation. It does not define a
 general OpenKubes user or role Contract, authorize just-in-time membership, or accept
 the OK-154 fixture vocabulary as a production API.
-
