@@ -85,6 +85,7 @@ Governance, policy management, secret handling, and continuous delivery.
 | **017** | [Constraint Envelopes](ADR-Platform-017-constraint-envelopes.md) | Policy & constraint enforcement |
 | **025** | [Datacenter Secret Sync Profile](ADR-Platform-025-datacenter-secret-sync-profile.md) | Multi-datacenter secret synchronization |
 | **037** | [Console Authentication, Identity Federation, and Break-glass Access](ADR-Platform-037-console-authentication-and-identity-federation.md) | Federated Console identity, server-side sessions, and exceptional local access |
+| **038** | [Console Session Store Contract and PostgreSQL Reference Profile](ADR-Platform-038-console-session-store.md) | Strongly consistent Console sessions with a PostgreSQL reference profile |
 | _n/a_ | Acceptance Records (025-*) | Acceptance records for Fresh Install, Outage Recovery, Singleton Enforcement, etc. |
 
 ### 🖥️ Console & Product Experience
@@ -94,6 +95,7 @@ Contract-aligned product surfaces and their evolution.
 |:---|:---|:---|
 | **036** | [Native OpenKubes Console](ADR-Platform-036-openkubes-console-architecture.md) | Curated-first Console and evolution toward contract-adaptive UI |
 | **037** | [Console Authentication, Identity Federation, and Break-glass Access](ADR-Platform-037-console-authentication-and-identity-federation.md) | Federated-first authentication and controlled recovery access |
+| **038** | [Console Session Store Contract and PostgreSQL Reference Profile](ADR-Platform-038-console-session-store.md) | Portable session-store semantics and PostgreSQL reference implementation |
 
 ### 📊 Observability & Diagnostics
 Telemetry, health checks, diagnostic contracts, and gating.
