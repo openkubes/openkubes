@@ -1,14 +1,15 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { consoleData } from './data/fixtureAdapter'
-import type { Capability, Cluster, EvidenceRef, PlatformSnapshot, Readiness, WorkloadClaim } from './domain/contracts'
+import type { AgentDefinition, Capability, Cluster, EvidenceRef, PlatformSnapshot, Readiness, WorkloadClaim } from './domain/contracts'
 
-type Page = 'overview' | 'clusters' | 'workloads' | 'capabilities' | 'evidence' | 'create'
+type Page = 'overview' | 'clusters' | 'workloads' | 'agents' | 'capabilities' | 'evidence' | 'create'
 type IconName = Page | 'search' | 'bell' | 'chevron' | 'shield' | 'cube' | 'arrow' | 'menu' | 'x' | 'check' | 'clock' | 'external' | 'code' | 'terminal' | 'spark'
 
 const NAV: Array<{ id: Page; label: string; caption: string }> = [
   { id: 'overview', label: 'Platform Overview', caption: 'Fleet & posture' },
   { id: 'clusters', label: 'Clusters', caption: 'Lifecycle contracts' },
   { id: 'workloads', label: 'Workloads', caption: 'Claims & placement' },
+  { id: 'agents', label: 'AI Agents', caption: 'Catalog & deployments' },
   { id: 'capabilities', label: 'Capabilities', caption: 'Contract catalog' },
   { id: 'evidence', label: 'Evidence & Audit', caption: 'Receipts & provenance' },
 ]
@@ -23,6 +24,7 @@ function Icon({ name, size = 18 }: { name: IconName; size?: number }) {
     overview: <><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></>,
     clusters: <><path d="m12 3 8 4.5-8 4.5-8-4.5L12 3Z"/><path d="m4 12 8 4.5 8-4.5"/><path d="m4 16.5 8 4.5 8-4.5"/></>,
     workloads: <><path d="M4 5h16v14H4z"/><path d="M4 9h16M8 3v4M16 3v4"/></>,
+    agents: <><circle cx="12" cy="8" r="4"/><path d="M5 21v-2a7 7 0 0 1 14 0v2M8 8H5m14 0h-3M12 4V2"/><circle cx="10.5" cy="8" r=".5" fill="currentColor"/><circle cx="13.5" cy="8" r=".5" fill="currentColor"/></>,
     capabilities: <><path d="M8 3H5a2 2 0 0 0-2 2v3m13-5h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3m13 5h3a2 2 0 0 0 2-2v-3"/><circle cx="12" cy="12" r="4"/></>,
     evidence: <><path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13l2 2 4-5"/></>,
     create: <><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></>,
@@ -130,6 +132,54 @@ function ClusterDetail({ cluster, data, close, openEvidence, openShell }: { clus
 
 function Workloads({ claims, data, openEvidence }: { claims: WorkloadClaim[]; data: PlatformSnapshot; openEvidence: (e: EvidenceRef) => void }) {
   return <><PageTitle eyebrow="Intent & placement" title="Workloads" description="Follow each claim from team intent to capability fit and evidence."/><section className="claims-grid">{claims.map((claim) => <article className="claim-card" key={claim.id}><div className="claim-head"><span className="claim-kind">{claim.kind}</span><StatusBadge status={claim.readiness}/></div><h2>{claim.name}</h2><p>{claim.intent}</p><div className="placement-flow"><div><span>Owner</span><strong>{claim.owner}</strong></div><Icon name="arrow"/><div><span>Placed on</span><strong>{claim.targetCluster}</strong></div></div><div className="cap-tags">{claim.requiredCapabilities.map((item) => <span key={item}><Icon name="check" size={12}/>{item}</span>)}</div><div className="decision"><Icon name="shield"/><div><span>Placement decision</span><strong>{claim.decision}</strong></div></div><EvidenceLink id={claim.evidenceId} evidence={data.evidence} onSelect={openEvidence}/></article>)}</section></>
+}
+
+const agentFitsCluster = (agent: AgentDefinition, cluster: Cluster) => agent.requiredCapabilities.every((capability) => cluster.capabilities.includes(capability)) && cluster.compatibility === 'Supported'
+
+function AgentDeployWizard({ agent, data, close }: { agent: AgentDefinition; data: PlatformSnapshot; close: () => void }) {
+  const workerClusters = data.clusters.filter((cluster) => cluster.role === 'Workload cluster')
+  const recommended = workerClusters.find((cluster) => cluster.name === agent.recommendedCluster && agentFitsCluster(agent, cluster))
+  const [step, setStep] = useState(0)
+  const [targetId, setTargetId] = useState(recommended?.id ?? '')
+  const [enabledTools, setEnabledTools] = useState<string[]>(agent.tools.filter((tool) => tool.authority === 'Read only').map((tool) => tool.id))
+  const [confirmed, setConfirmed] = useState(false)
+  const target = workerClusters.find((cluster) => cluster.id === targetId)
+  const requiredNames = agent.requiredCapabilities.map((id) => data.capabilities.find((capability) => capability.id === id)?.name ?? id)
+  const claim = `apiVersion: agents.openkubes.io/v1alpha1\nkind: AgentDeploymentClaim\nmetadata:\n  name: ${agent.id.replace('agent-', '')}\n  namespace: openkubes-agents\nspec:\n  agentRef:\n    name: ${agent.id}\n    version: ${agent.version}\n    digest: ${agent.artifactDigest}\n  placement:\n    clusterRef: ${target?.name ?? '<required>'}\n  tools:\n${enabledTools.map((tool) => `    - ${tool}`).join('\n') || '    []'}\n  authority:\n    default: diagnostics.read`
+  const steps = ['Target', 'Permissions', 'Review', 'Evidence']
+
+  return <div className="agent-deploy-layer" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && close()}>
+    <section className="agent-deploy" role="dialog" aria-modal="true" aria-labelledby="deploy-agent-title">
+      <header><div className="agent-deploy-title"><span className="agent-avatar"><Icon name="agents" size={24}/></span><div><span className="eyebrow">Agent Deployment Claim</span><h2 id="deploy-agent-title">Deploy {agent.name}</h2><p>{agent.version} · {agent.publisher} · {agent.artifactDigest}</p></div></div><span className="prototype-badge">Prototype · no-op</span><button className="icon-button" onClick={close} aria-label="Close agent deployment"><Icon name="x"/></button></header>
+      <ol className="agent-steps">{steps.map((item, index) => <li className={index === step ? 'active' : index < step ? 'done' : ''} key={item}><span>{index < step ? '✓' : index + 1}</span><strong>{item}</strong></li>)}</ol>
+      <div className="agent-deploy-body">
+        {step === 0 && <><div className="deploy-section-title"><span className="eyebrow">Placement</span><h3>Choose a conformant Worker Cluster</h3><p>The Management Plane is intentionally excluded from agent placement.</p></div><div className="target-clusters">{workerClusters.map((cluster) => {
+          const matching = agent.requiredCapabilities.filter((capability) => cluster.capabilities.includes(capability)).length
+          const fit = agentFitsCluster(agent, cluster)
+          return <label className={`${fit ? '' : 'disabled'} ${targetId === cluster.id ? 'selected' : ''}`} key={cluster.id}><input type="radio" name="target-cluster" value={cluster.id} checked={targetId === cluster.id} disabled={!fit} onChange={() => setTargetId(cluster.id)}/><span className="cluster-symbol small"><Icon name="cube" size={17}/></span><span><strong>{cluster.name}</strong><small>{cluster.profile} · {cluster.provider}</small></span><span className={`fit fit-${fit ? 'yes' : 'no'}`}>{fit ? '✓ Conformant' : `NO-GO · ${matching}/${agent.requiredCapabilities.length}`}<small>{fit ? `${matching}/${agent.requiredCapabilities.length} capabilities` : cluster.compatibility === 'Read only' ? 'Read-only compatibility' : 'Missing prerequisites'}</small></span></label>
+        })}</div><div className="required-capabilities"><span>Required capabilities</span>{requiredNames.map((name) => <strong key={name}><Icon name="check" size={12}/>{name}</strong>)}</div></>}
+        {step === 1 && <><div className="deploy-section-title"><span className="eyebrow">Least authority</span><h3>Review tools and permissions</h3><p>Read-only tools are selected by default. Tools that can propose change require a separate authority path.</p></div><div className="agent-tools">{agent.tools.map((tool) => <label key={tool.id}><input type="checkbox" checked={enabledTools.includes(tool.id)} onChange={(event) => setEnabledTools((current) => event.target.checked ? [...current, tool.id] : current.filter((item) => item !== tool.id))}/><span className={`tool-authority ${tool.authority === 'Read only' ? 'read' : 'approval'}`}><Icon name={tool.authority === 'Read only' ? 'check' : 'shield'} size={15}/></span><span><strong>{tool.label}</strong><small>{tool.id}</small></span><em>{tool.authority}</em></label>)}</div><div className="permissions-note"><Icon name="shield"/><div><strong>Runtime boundary</strong><p>The Agent receives no cluster-admin role, raw kubeconfig, or secret value. Server-side Policy and Authority remain normative.</p></div></div></>}
+        {step === 2 && <><div className="deploy-section-title"><span className="eyebrow">Exact artifact review</span><h3>Review the generated AgentDeploymentClaim</h3><p>Placement, artifact digest, tools, and authority are bound into one review artifact.</p></div><div className="agent-review-grid"><div><span>Agent</span><strong>{agent.name} · {agent.version}</strong></div><div><span>Target</span><strong>{target?.name}</strong></div><div><span>Tools</span><strong>{enabledTools.length} selected</strong></div><div><span>Resource profile</span><strong>{agent.resourceProfile}</strong></div></div><pre className="contract-preview agent-claim"><code>{claim}</code></pre><div className="no-go"><Icon name="shield"/><div><strong>NO-GO conditions</strong><p>Unsigned artifact, missing capability, incompatible Contract, expanded authority, stale Evidence, or changed payload digest prevents deployment.</p></div></div><label className="confirm-box agent-confirm"><input type="checkbox" checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)}/><span>I reviewed this exact AgentDeploymentClaim and its tool authority.</span></label></>}
+        {step === 3 && <div className="agent-evidence-success"><span className="agent-success-icon"><Icon name="check" size={31}/></span><span className="eyebrow">Prototype Evidence</span><h3>Deployment journey validated</h3><p>No Agent, namespace, credential, workload, or backend resource was created. A production reconciliation would now expose correlated Conditions and Evidence.</p><dl><div><dt>Agent</dt><dd>{agent.name} · {agent.version}</dd></div><div><dt>Placement</dt><dd>{target?.name} / openkubes-agents</dd></div><div><dt>Authority</dt><dd>{enabledTools.join(', ') || 'none'}</dd></div><div><dt>Evidence</dt><dd>agent-deploy/{agent.id}/prototype-01</dd></div><div><dt>Outcome</dt><dd><StatusBadge status="Ready"/> Simulated only</dd></div></dl><button className="secondary-button" onClick={close}>Return to AI Agents</button></div>}
+      </div>
+      {step < 3 && <footer className="agent-deploy-actions"><button className="secondary-button" onClick={() => step === 0 ? close() : setStep(step - 1)}>{step === 0 ? 'Cancel' : 'Back'}</button><span><Icon name="shield" size={13}/>No live deployment</span><button className="primary-button" disabled={(step === 0 && !target) || (step === 2 && !confirmed)} onClick={() => setStep(step + 1)}>{step === 0 ? 'Review permissions' : step === 1 ? 'Generate claim' : 'Simulate deployment'}<Icon name="arrow" size={15}/></button></footer>}
+    </section>
+  </div>
+}
+
+function Agents({ data, openEvidence }: { data: PlatformSnapshot; openEvidence: (e: EvidenceRef) => void }) {
+  const [category, setCategory] = useState<'All' | AgentDefinition['category']>('All')
+  const [deployAgent, setDeployAgent] = useState<AgentDefinition>()
+  const agents = category === 'All' ? data.agents : data.agents.filter((agent) => agent.category === category)
+  const capabilityName = (id: string) => data.capabilities.find((capability) => capability.id === id)?.name ?? id
+  return <>
+    <PageTitle eyebrow="Agentic workloads" title="AI Agents" description="Discover verified Agents, inspect their authority, and place them on conformant Worker Clusters." action={<span className="agent-contract"><Icon name="shield" size={15}/><span><small>Agent Contract</small><strong>agents.openkubes.io/v1alpha1</strong></span></span>}/>
+    <section className="agent-metrics"><Metric label="Catalog" value={data.agents.length} note="Curated Agent definitions" tone="blue"/><Metric label="Verified artifacts" value={data.agents.filter((agent) => agent.verified).length} note="Signature and provenance visible" tone="green"/><Metric label="Deployments" value={data.agentDeployments.length} note="Across Worker Clusters" tone="orange"/></section>
+    <div className="agent-filter"><span>Catalog</span>{(['All', 'Platform Operations', 'Developer Experience', 'Evidence & Governance'] as const).map((item) => <button className={category === item ? 'active' : ''} onClick={() => setCategory(item)} key={item}>{item}</button>)}</div>
+    <section className="agent-grid">{agents.map((agent) => <article className="agent-card" key={agent.id}><div className="agent-card-head"><span className="agent-avatar"><Icon name="agents" size={21}/></span><span className={`publisher-badge ${agent.verified ? 'verified' : 'community'}`}><Icon name={agent.verified ? 'check' : 'clock'} size={11}/>{agent.verified ? 'Verified' : 'Community'}</span></div><span className="agent-category">{agent.category}</span><h2>{agent.name}</h2><p>{agent.description}</p><div className="agent-version"><span><small>Version</small><strong>{agent.version}</strong></span><span><small>Publisher</small><strong>{agent.publisher}</strong></span><span><small>Resources</small><strong>{agent.resourceProfile}</strong></span></div><div className="agent-requires"><span>Requires</span><div>{agent.requiredCapabilities.map((id) => <strong key={id}><Icon name="capabilities" size={11}/>{capabilityName(id)}</strong>)}</div></div><div className="agent-placement"><span><Icon name="cube" size={14}/>Recommended</span><strong>{agent.recommendedCluster}</strong></div><footer><span>{agent.deployments} deployment{agent.deployments === 1 ? '' : 's'}</span><button className="primary-button" disabled={!agent.verified} onClick={() => setDeployAgent(agent)}>{agent.verified ? 'Deploy Agent' : 'Review required'}<Icon name="arrow" size={14}/></button></footer></article>)}</section>
+    <section className="section-block"><div className="section-heading"><div><span className="eyebrow">Runtime instances</span><h2>Agent deployments</h2></div><span className="count-badge">{data.agentDeployments.length}</span></div><div className="agent-deployments">{data.agentDeployments.map((deployment) => <article key={deployment.id}><span className="agent-avatar small"><Icon name="agents" size={17}/></span><span><strong>{deployment.name}</strong><small>{deployment.agentName} · {deployment.version}</small></span><span><small>Worker Cluster</small><strong>{deployment.cluster}</strong></span><span><small>Namespace</small><strong>{deployment.namespace}</strong></span><span><small>Authority</small><strong>{deployment.authority}</strong></span><StatusBadge status={deployment.readiness}/><EvidenceLink id={deployment.evidenceId} evidence={data.evidence} onSelect={openEvidence}/></article>)}</div></section>
+    {deployAgent && <AgentDeployWizard agent={deployAgent} data={data} close={() => setDeployAgent(undefined)}/>}
+  </>
 }
 
 function CapabilityGrid({ capabilities, data, openEvidence }: { capabilities: Capability[]; data: PlatformSnapshot; openEvidence: (e: EvidenceRef) => void }) {
@@ -307,7 +357,7 @@ export default function App() {
   useEffect(() => { document.title = `${title} · OpenKubes Console` }, [title])
 
   if (!data) return <EmptyLoading/>
-  const view = selectedCluster ? <ClusterDetail cluster={selectedCluster} data={data} close={() => setSelectedCluster(undefined)} openEvidence={setSelectedEvidence} openShell={(cluster) => { setSelectedEvidence(undefined); setShellCluster(cluster) }}/> : page === 'overview' ? <Overview data={data} openCluster={setSelectedCluster} openEvidence={setSelectedEvidence}/> : page === 'clusters' ? <Clusters data={data} openCluster={setSelectedCluster} openEvidence={setSelectedEvidence}/> : page === 'workloads' ? <Workloads claims={data.claims} data={data} openEvidence={setSelectedEvidence}/> : page === 'capabilities' ? <Capabilities data={data} openEvidence={setSelectedEvidence}/> : page === 'evidence' ? <Evidence data={data} openEvidence={setSelectedEvidence}/> : <CreateCluster/>
+  const view = selectedCluster ? <ClusterDetail cluster={selectedCluster} data={data} close={() => setSelectedCluster(undefined)} openEvidence={setSelectedEvidence} openShell={(cluster) => { setSelectedEvidence(undefined); setShellCluster(cluster) }}/> : page === 'overview' ? <Overview data={data} openCluster={setSelectedCluster} openEvidence={setSelectedEvidence}/> : page === 'clusters' ? <Clusters data={data} openCluster={setSelectedCluster} openEvidence={setSelectedEvidence}/> : page === 'workloads' ? <Workloads claims={data.claims} data={data} openEvidence={setSelectedEvidence}/> : page === 'agents' ? <Agents data={data} openEvidence={setSelectedEvidence}/> : page === 'capabilities' ? <Capabilities data={data} openEvidence={setSelectedEvidence}/> : page === 'evidence' ? <Evidence data={data} openEvidence={setSelectedEvidence}/> : <CreateCluster/>
 
   return <div className="app-shell">
     <a href="#main-content" className="skip-link">Skip to content</a>

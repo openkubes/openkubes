@@ -36,14 +36,18 @@ pnpm build
 
 - All platform content comes from deterministic fixtures in `src/data/fixtures.ts`.
 - `ConsoleDataPort` is the narrow replacement seam for a future backend adapter.
-- Cluster, Capability, Workload Claim, and Evidence v0 presentation shapes live in
-  `src/domain/contracts.ts`.
+- Cluster, Capability, Workload Claim, Agent Definition, Agent Deployment, and
+  Evidence v0 presentation shapes live in `src/domain/contracts.ts`.
 - Create Cluster is a safe interaction prototype. It sends no request, grants no
   authority, and mutates no cluster or backend.
 - Cluster Shell is a simulated diagnostic experience. It keeps cluster, namespace,
   authority, expiry, and evidence context visible, but creates no terminal process,
   WebSocket, credential, kubeconfig, or backend session. A small read-only allowlist
   returns deterministic responses; mutating commands are visibly blocked.
+- AI Agents is a curated catalog and guarded placement prototype. It exposes
+  capability fit, tool authority, provenance, and a reviewable
+  `AgentDeploymentClaim`; only Worker Clusters are eligible and `ok-mgmt` is never
+  offered as a target. The flow creates no workload, API request, or backend state.
 - Authentication, RBAC, live Kubernetes access, deployment, generic schema rendering,
   and AI-driven runtime adaptation are deliberately out of scope.
 
@@ -58,6 +62,7 @@ pnpm build
 | Compatibility | `Cluster.compatibility` and visible contract strip |
 | Operation invocation | explicitly disabled Create Cluster execution preview |
 | Diagnostic session | simulated Cluster Shell with read-only guardrails |
+| Agent placement | simulated `AgentDeploymentClaim` with capability and authority review |
 
 The supported presentation mapping is inspectable as
 `console.openkubes.io/v0alpha1`. Unknown compatibility remains read-only and no UI

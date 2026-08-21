@@ -16,7 +16,7 @@ describe('OpenKubes Console', () => {
   it('exposes all curated product areas in navigation', async () => {
     render(<App />)
     await screen.findByText('Good evening, Arash.')
-    for (const label of ['Platform Overview', 'Clusters', 'Workloads', 'Capabilities', 'Evidence & Audit', 'Create Cluster']) {
+    for (const label of ['Platform Overview', 'Clusters', 'Workloads', 'AI Agents', 'Capabilities', 'Evidence & Audit', 'Create Cluster']) {
       expect(screen.getAllByText(label).length).toBeGreaterThan(0)
     }
   })
@@ -52,5 +52,30 @@ describe('OpenKubes Console', () => {
     fireEvent.click(screen.getByRole('button', { name: /^Run$/ }))
     expect(await screen.findByText(/explanation resolves to the observed contract revision/i)).toBeInTheDocument()
     expect(screen.getByText(/Suggested read-only command/i)).toBeInTheDocument()
+  })
+
+  it('deploys a verified Agent only through a conformant Worker Cluster review', async () => {
+    window.location.hash = '#/agents'
+    render(<App />)
+    expect(await screen.findByRole('heading', { name: 'AI Agents' })).toBeInTheDocument()
+    expect(screen.getByText('Kagent Platform Operator')).toBeInTheDocument()
+
+    fireEvent.click(screen.getAllByRole('button', { name: /Deploy Agent/i })[0])
+    expect(await screen.findByRole('heading', { name: /Deploy Kagent Platform Operator/i })).toBeInTheDocument()
+    const target = screen.getByRole('radio', { name: /ok-ai/i })
+    expect(target).toBeChecked()
+    expect(screen.queryByRole('radio', { name: /ok-mgmt/i })).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: /Review permissions/i }))
+    expect(await screen.findByText('Review tools and permissions')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /Generate claim/i }))
+    expect(await screen.findByText('Review the generated AgentDeploymentClaim')).toBeInTheDocument()
+    const simulate = screen.getByRole('button', { name: /Simulate deployment/i })
+    expect(simulate).toBeDisabled()
+    fireEvent.click(screen.getByRole('checkbox'))
+    expect(simulate).toBeEnabled()
+    fireEvent.click(simulate)
+    expect(await screen.findByText('Deployment journey validated')).toBeInTheDocument()
+    expect(screen.getByText(/No Agent, namespace, credential, workload, or backend resource was created/i)).toBeInTheDocument()
   })
 })

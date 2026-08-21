@@ -68,6 +68,60 @@ export const platformFixture: PlatformSnapshot = {
     { id: 'claim-event-bus', name: 'factory-event-bus', kind: 'MessagingClaim', owner: 'Edge Operations', intent: 'Durable factory event streaming', targetCluster: 'ok-shared', readiness: 'Pending', requiredCapabilities: ['Messaging', 'Observability'], decision: 'Placed on ok-shared · awaiting messaging receipt', evidenceId: 'ev-shared-pending' },
     { id: 'claim-registry', name: 'sovereign-registry', kind: 'ArtifactRegistryClaim', owner: 'Platform Engineering', intent: 'Internal OCI mirror for air-gapped sites', targetCluster: 'ok-shared', readiness: 'Pending', requiredCapabilities: ['Artifact Registry', 'Persistent Storage'], decision: 'Placement accepted · storage conformance pending', evidenceId: 'ev-shared-pending' },
   ],
+  agents: [
+    {
+      id: 'agent-kagent-operator', name: 'Kagent Platform Operator', category: 'Platform Operations',
+      description: 'Explains cluster state, investigates incidents, and proposes evidence-backed platform actions.',
+      version: 'v0.6.2', publisher: 'OpenKubes', verified: true, artifactDigest: 'sha256:9c72…81af',
+      requiredCapabilities: ['cap-observability'], resourceProfile: '1 CPU · 1 GiB', deployments: 1,
+      recommendedCluster: 'ok-ai',
+      tools: [
+        { id: 'diagnostics.read', label: 'Cluster diagnostics', authority: 'Read only' },
+        { id: 'evidence.read', label: 'Evidence lookup', authority: 'Read only' },
+        { id: 'change.propose', label: 'Change proposals', authority: 'Approval required' },
+      ],
+    },
+    {
+      id: 'agent-openclaw', name: 'OpenClaw Operations Assistant', category: 'Developer Experience',
+      description: 'Conversational operations assistant with curated MCP tools and sovereign model access.',
+      version: 'v0.4.1', publisher: 'OpenKubes Labs', verified: true, artifactDigest: 'sha256:f028…c15b',
+      requiredCapabilities: ['cap-storage', 'cap-ingress', 'cap-observability'], resourceProfile: '2 CPU · 4 GiB', deployments: 1,
+      recommendedCluster: 'ok-ai',
+      tools: [
+        { id: 'diagnostics.read', label: 'Cluster diagnostics', authority: 'Read only' },
+        { id: 'mcp.catalog.read', label: 'MCP catalog', authority: 'Read only' },
+        { id: 'workload.propose', label: 'Workload proposals', authority: 'Approval required' },
+      ],
+    },
+    {
+      id: 'agent-evidence-analyst', name: 'Evidence Analyst', category: 'Evidence & Governance',
+      description: 'Correlates receipts, observations, and authorization decisions without inventing readiness.',
+      version: 'v0.2.0', publisher: 'OpenKubes', verified: true, artifactDigest: 'sha256:cc18…7d40',
+      requiredCapabilities: ['cap-observability'], resourceProfile: '500m CPU · 768 MiB', deployments: 0,
+      recommendedCluster: 'ok-ai',
+      tools: [
+        { id: 'evidence.read', label: 'Evidence lookup', authority: 'Read only' },
+        { id: 'audit.read', label: 'Audit timeline', authority: 'Read only' },
+        { id: 'report.propose', label: 'Report proposals', authority: 'Approval required' },
+      ],
+    },
+    {
+      id: 'agent-gitops-reviewer', name: 'GitOps Review Agent', category: 'Platform Operations',
+      description: 'Reviews desired-state changes against policy, compatibility, and current evidence.',
+      version: 'v0.1.3', publisher: 'Community', verified: false, artifactDigest: 'sha256:74ef…9a11',
+      requiredCapabilities: ['cap-gitops', 'cap-observability'], resourceProfile: '1 CPU · 1 GiB', deployments: 0,
+      recommendedCluster: 'No conformant worker cluster',
+      tools: [
+        { id: 'git.read', label: 'Repository read', authority: 'Read only' },
+        { id: 'evidence.read', label: 'Evidence lookup', authority: 'Read only' },
+        { id: 'review.propose', label: 'Review proposals', authority: 'Approval required' },
+      ],
+    },
+  ],
+  agentDeployments: [
+    { id: 'agentdep-kagent-ai', name: 'platform-operator', agentId: 'agent-kagent-operator', agentName: 'Kagent Platform Operator', version: 'v0.6.2', cluster: 'ok-ai', namespace: 'openkubes-agents', readiness: 'Ready', authority: 'diagnostics.read', evidenceId: 'ev-ai-ready' },
+    { id: 'agentdep-openclaw-ai', name: 'operations-assistant', agentId: 'agent-openclaw', agentName: 'OpenClaw Operations Assistant', version: 'v0.4.1', cluster: 'ok-ai', namespace: 'openkubes-agents', readiness: 'Ready', authority: 'curated MCP tools', evidenceId: 'ev-ai-ready' },
+  ],
   evidence: [
     { id: 'ev-mgmt-ready', title: 'Management plane readiness receipt', type: 'Transition', outcome: 'Ready', cluster: 'ok-mgmt', contract: 'OpenKubesCluster/v1alpha1', revision: 'sha256:71d4…9ab2', observedAt: '2026-08-20T19:41:22Z', source: 'ok-mgmt observer', summary: 'All management-plane invariants are satisfied for generation 14.', immutable: true },
     { id: 'ev-ai-ready', title: 'AI cluster capability conformance', type: 'Observation', outcome: 'Ready', cluster: 'ok-ai', contract: 'CapabilitySet/v1alpha1', revision: 'sha256:e503…14cf', observedAt: '2026-08-20T19:39:08Z', source: 'capability observer', summary: 'Storage, ingress, and observability contracts are currently conformant.', immutable: false },

@@ -59,12 +59,43 @@ export interface WorkloadClaim {
   evidenceId: string
 }
 
+export interface AgentDefinition {
+  id: string
+  name: string
+  description: string
+  category: 'Platform Operations' | 'Developer Experience' | 'Evidence & Governance'
+  version: string
+  publisher: string
+  verified: boolean
+  artifactDigest: string
+  requiredCapabilities: string[]
+  resourceProfile: string
+  tools: Array<{ id: string; label: string; authority: 'Read only' | 'Approval required' }>
+  deployments: number
+  recommendedCluster: string
+}
+
+export interface AgentDeployment {
+  id: string
+  name: string
+  agentId: string
+  agentName: string
+  version: string
+  cluster: string
+  namespace: string
+  readiness: Readiness
+  authority: string
+  evidenceId: string
+}
+
 export interface PlatformSnapshot {
   generatedAt: string
   presentationVersion: typeof PRESENTATION_CONTRACT_VERSION
   clusters: Cluster[]
   capabilities: Capability[]
   claims: WorkloadClaim[]
+  agents: AgentDefinition[]
+  agentDeployments: AgentDeployment[]
   evidence: EvidenceRef[]
 }
 
