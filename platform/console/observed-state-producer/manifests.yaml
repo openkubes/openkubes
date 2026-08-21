@@ -1,0 +1,121 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: openkubes-console
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: observed-state-producer
+  namespace: openkubes-console
+automountServiceAccountToken: true
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: observed-state-producer
+  namespace: openkubes-system
+rules:
+  - apiGroups: ["platform.openkubes.ai"]
+    resources: ["kubevirtclusterclaims"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: observed-state-producer
+  namespace: openkubes-system
+subjects:
+  - kind: ServiceAccount
+    name: observed-state-producer
+    namespace: openkubes-console
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: observed-state-producer
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: observed-state-producer
+  namespace: openkubes-console
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: observed-state-producer
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: observed-state-producer
+    spec:
+      serviceAccountName: observed-state-producer
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: producer
+          # Replace with a reviewed immutable digest before deployment.
+          image: ghcr.io/openkubes/observed-state-producer:REPLACE_WITH_REVIEWED_DIGEST
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: OK_OBSERVER_NAMESPACE
+              value: openkubes-system
+            - name: OK_OBSERVER_MANAGEMENT_NAME
+              value: ok-mgmt
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests:
+              cpu: 20m
+              memory: 32Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: observed-state-producer
+  namespace: openkubes-console
+spec:
+  selector:
+    app.kubernetes.io/name: observed-state-producer
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: observed-state-producer
+  namespace: openkubes-console
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: observed-state-producer
+  policyTypes: ["Ingress"]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: ok-console-bff
+      ports:
+        - protocol: TCP
+          port: 8080
