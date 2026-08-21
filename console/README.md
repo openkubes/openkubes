@@ -40,6 +40,10 @@ pnpm build
   `src/domain/contracts.ts`.
 - Create Cluster is a safe interaction prototype. It sends no request, grants no
   authority, and mutates no cluster or backend.
+- Cluster Shell is a simulated diagnostic experience. It keeps cluster, namespace,
+  authority, expiry, and evidence context visible, but creates no terminal process,
+  WebSocket, credential, kubeconfig, or backend session. A small read-only allowlist
+  returns deterministic responses; mutating commands are visibly blocked.
 - Authentication, RBAC, live Kubernetes access, deployment, generic schema rendering,
   and AI-driven runtime adaptation are deliberately out of scope.
 
@@ -53,6 +57,7 @@ pnpm build
 | Presentation mapping | curated React views and design tokens |
 | Compatibility | `Cluster.compatibility` and visible contract strip |
 | Operation invocation | explicitly disabled Create Cluster execution preview |
+| Diagnostic session | simulated Cluster Shell with read-only guardrails |
 
 The supported presentation mapping is inspectable as
 `console.openkubes.io/v0alpha1`. Unknown compatibility remains read-only and no UI

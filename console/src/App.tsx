@@ -3,7 +3,7 @@ import { consoleData } from './data/fixtureAdapter'
 import type { Capability, Cluster, EvidenceRef, PlatformSnapshot, Readiness, WorkloadClaim } from './domain/contracts'
 
 type Page = 'overview' | 'clusters' | 'workloads' | 'capabilities' | 'evidence' | 'create'
-type IconName = Page | 'search' | 'bell' | 'chevron' | 'shield' | 'cube' | 'arrow' | 'menu' | 'x' | 'check' | 'clock' | 'external' | 'code'
+type IconName = Page | 'search' | 'bell' | 'chevron' | 'shield' | 'cube' | 'arrow' | 'menu' | 'x' | 'check' | 'clock' | 'external' | 'code' | 'terminal' | 'spark'
 
 const NAV: Array<{ id: Page; label: string; caption: string }> = [
   { id: 'overview', label: 'Platform Overview', caption: 'Fleet & posture' },
@@ -38,6 +38,8 @@ function Icon({ name, size = 18 }: { name: IconName; size?: number }) {
     clock: <><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></>,
     external: <><path d="M14 4h6v6M20 4l-9 9"/><path d="M18 13v6H5V6h6"/></>,
     code: <><path d="m8 9-4 3 4 3m8-6 4 3-4 3m-2-9-4 12"/></>,
+    terminal: <><rect x="3" y="4" width="18" height="16" rx="2"/><path d="m7 9 3 3-3 3m6 0h4"/></>,
+    spark: <><path d="m12 3 1.4 4.1L17.5 8.5l-4.1 1.4L12 14l-1.4-4.1-4.1-1.4 4.1-1.4L12 3Z"/><path d="m18 15 .8 2.2L21 18l-2.2.8L18 21l-.8-2.2L15 18l2.2-.8L18 15Z"/></>,
   }
   return <svg aria-hidden="true" className="icon" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{paths[name]}</svg>
 }
@@ -110,12 +112,12 @@ function Clusters({ data, openCluster, openEvidence }: { data: PlatformSnapshot;
   </>
 }
 
-function ClusterDetail({ cluster, data, close, openEvidence }: { cluster: Cluster; data: PlatformSnapshot; close: () => void; openEvidence: (e: EvidenceRef) => void }) {
+function ClusterDetail({ cluster, data, close, openEvidence, openShell }: { cluster: Cluster; data: PlatformSnapshot; close: () => void; openEvidence: (e: EvidenceRef) => void; openShell: (cluster: Cluster) => void }) {
   const [tab, setTab] = useState('Overview')
   const clusterCapabilities = data.capabilities.filter((capability) => cluster.capabilities.includes(capability.id))
   return <>
     <button className="back-button" onClick={close}>← All clusters</button>
-    <PageTitle eyebrow={cluster.role} title={cluster.name} description={`${cluster.profile} · ${cluster.provider} · ${cluster.region}`} action={<div className="title-actions"><StatusBadge status={cluster.readiness}/><button className="secondary-button">Propose change</button></div>}/>
+    <PageTitle eyebrow={cluster.role} title={cluster.name} description={`${cluster.profile} · ${cluster.provider} · ${cluster.region}`} action={<div className="title-actions"><StatusBadge status={cluster.readiness}/><button className="shell-button" onClick={() => openShell(cluster)}><Icon name="terminal"/>Open Shell</button><button className="secondary-button">Propose change</button></div>}/>
     <div className="contract-strip"><div><span>Domain contract</span><strong>{cluster.contractVersion}</strong></div><div><span>Observed revision</span><strong>{cluster.revision}</strong></div><div><span>Console compatibility</span><StatusBadge status={cluster.compatibility}/></div></div>
     <div className="tabs" role="tablist">{['Overview', 'Lifecycle', 'Capabilities', 'Evidence', 'Changes'].map((item) => <button key={item} role="tab" aria-selected={tab === item} className={tab === item ? 'active' : ''} onClick={() => setTab(item)}>{item}</button>)}</div>
     {tab === 'Overview' && <section className="detail-grid"><article className="panel"><div className="panel-title"><div><span className="eyebrow">Current observation</span><h2>Lifecycle posture</h2></div><span className="live-label"><span className="live-dot"/>Observed</span></div><div className="lifecycle">{cluster.lifecycle.map((step, index) => <div className="lifecycle-step" key={step.label}><div className={`step-dot ${step.state.toLowerCase()}`}>{step.state === 'Ready' ? '✓' : index + 1}</div><div><strong>{step.label}</strong><p>{step.detail}</p></div><StatusBadge status={step.state}/></div>)}</div></article><article className="panel"><div className="panel-title"><div><span className="eyebrow">Evidence</span><h2>Readiness basis</h2></div><Icon name="evidence"/></div>{data.evidence.filter((item) => item.cluster === cluster.name).map((item) => <button className="evidence-card" key={item.id} onClick={() => openEvidence(item)}><div><span>{item.type}</span><StatusBadge status={item.outcome}/></div><strong>{item.title}</strong><p>{item.summary}</p><small>{item.revision} · {new Date(item.observedAt).toLocaleString()}</small></button>)}</article></section>}
@@ -175,6 +177,102 @@ function CreateCluster() {
   </>
 }
 
+type ShellEntry = {
+  kind: 'system' | 'command' | 'output' | 'blocked' | 'ai' | 'proposal'
+  content: string
+}
+
+const MUTATING_COMMAND = /\b(apply|create|delete|edit|patch|replace|scale|cordon|drain|uncordon|exec|rollout\s+restart|set\s+image)\b/i
+
+function simulatedShellResponse(command: string, cluster: Cluster): ShellEntry[] {
+  const normalized = command.trim().toLowerCase()
+  if (MUTATING_COMMAND.test(normalized)) {
+    return [{ kind: 'blocked', content: 'BLOCKED · This read-only prototype cannot invoke a mutating operation. A production request would enter Review → Authorization → Execution.' }]
+  }
+  if (normalized.includes('why') || normalized.includes('explain') || normalized.includes('pending')) {
+    const pending = cluster.lifecycle.find((item) => item.state !== 'Ready')
+    const explanation = pending
+      ? `${cluster.name} is ${cluster.readiness.toLowerCase()} because ${pending.label.toLowerCase()} reports: ${pending.detail}. This is an explanation of fixture evidence, not a new readiness decision.`
+      : `${cluster.name} currently reports Ready across all required lifecycle checks. The explanation resolves to the observed contract revision and does not infer state from Kubernetes objects.`
+    return [
+      { kind: 'ai', content: explanation },
+      { kind: 'proposal', content: `Suggested read-only command · kubectl get clusterconditions -o wide` },
+    ]
+  }
+  if (normalized === 'help') {
+    return [{ kind: 'output', content: 'Allowed examples:\n  kubectl get nodes\n  kubectl get namespaces\n  kubectl get clusterconditions -o wide\n  ok evidence explain\n  why is this cluster pending?' }]
+  }
+  if (normalized.includes('get nodes')) {
+    return [{ kind: 'output', content: `NAME                    STATUS   ROLE           VERSION\n${cluster.name}-cp-01     Ready    control-plane  ${cluster.version}\n${cluster.name}-worker-01 Ready    worker         ${cluster.version}` }]
+  }
+  if (normalized.includes('get namespaces')) {
+    return [{ kind: 'output', content: 'NAME                  STATUS\ndefault               Active\nkube-system           Active\nopenkubes-system      Active\nobservability         Active' }]
+  }
+  if (normalized.includes('clusterconditions')) {
+    return [{ kind: 'output', content: cluster.lifecycle.map((item) => `${item.label.padEnd(18)} ${item.state.padEnd(8)} ${item.detail}`).join('\n') }]
+  }
+  if (normalized.includes('evidence')) {
+    return [{ kind: 'output', content: `EVIDENCE     ${cluster.evidenceId}\nCONTRACT     ${cluster.contractVersion}\nREVISION     ${cluster.revision}\nREADINESS    ${cluster.readiness}\nSOURCE       deterministic prototype fixture` }]
+  }
+  return [{ kind: 'blocked', content: 'UNKNOWN · This command is not in the prototype read-only allowlist. Type “help” to see supported diagnostics.' }]
+}
+
+function ClusterShell({ cluster, close }: { cluster: Cluster; close: () => void }) {
+  const [namespace, setNamespace] = useState('all namespaces')
+  const [command, setCommand] = useState('')
+  const [entries, setEntries] = useState<ShellEntry[]>([
+    { kind: 'system', content: `Read-only prototype session established for ${cluster.name}. No credential, kubeconfig, WebSocket, or backend connection was created.` },
+  ])
+
+  const run = (value = command) => {
+    const nextCommand = value.trim()
+    if (!nextCommand) return
+    if (nextCommand === 'clear') {
+      setEntries([])
+      setCommand('')
+      return
+    }
+    setEntries((current) => [...current, { kind: 'command', content: nextCommand }, ...simulatedShellResponse(nextCommand, cluster)])
+    setCommand('')
+  }
+
+  return <div className="shell-layer" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && close()}>
+    <section className="cluster-shell" role="dialog" aria-modal="true" aria-labelledby="shell-title">
+      <header className="shell-header">
+        <div className="shell-identity"><span className="shell-logo"><Icon name="terminal" size={22}/></span><div><span className="eyebrow">Cluster diagnostic session</span><h2 id="shell-title">Shell · {cluster.name}</h2></div></div>
+        <div className="shell-session"><span className="live-dot"/><span><small>Read-only prototype</small><strong>14:37 remaining</strong></span></div>
+        <button className="shell-close" onClick={close} aria-label="Close cluster shell"><Icon name="x"/></button>
+      </header>
+      <div className="shell-context">
+        <div><span>Cluster</span><strong><Icon name={cluster.role === 'Management plane' ? 'shield' : 'cube'} size={14}/>{cluster.name}</strong></div>
+        <label><span>Namespace</span><select aria-label="Shell namespace" value={namespace} onChange={(event) => setNamespace(event.target.value)}><option>all namespaces</option><option>openkubes-system</option><option>kube-system</option><option>observability</option></select></label>
+        <div><span>Authority</span><strong>diagnostics.read</strong></div>
+        <div><span>Session evidence</span><strong>shell/{cluster.name}/demo-01</strong></div>
+      </div>
+      {cluster.role === 'Management plane' && <div className="management-warning"><Icon name="shield"/><strong>Management Plane guardrail</strong><span>This session has the strictest diagnostic-only policy. Mutations and interactive exec are unavailable.</span></div>}
+      <div className="shell-toolbar"><span>Try a safe diagnostic</span><div>{['kubectl get nodes', 'kubectl get clusterconditions -o wide', 'ok evidence explain'].map((item) => <button key={item} onClick={() => run(item)}>{item}</button>)}</div></div>
+      <div className="terminal-output" role="log" aria-live="polite">
+        {entries.map((entry, index) => <div className={`terminal-entry terminal-${entry.kind}`} key={`${entry.kind}-${index}`}>
+          {entry.kind === 'command' && <span className="terminal-prompt">{cluster.name}<i>:</i>{namespace === 'all namespaces' ? '*' : namespace}<b>$</b></span>}
+          {entry.kind === 'ai' && <span className="entry-label"><Icon name="spark" size={14}/>AI explanation</span>}
+          {entry.kind === 'proposal' && <span className="entry-label"><Icon name="shield" size={14}/>Reviewable proposal</span>}
+          {entry.kind === 'blocked' && <span className="entry-label"><Icon name="x" size={14}/>Guardrail</span>}
+          {entry.kind === 'system' && <span className="entry-label"><Icon name="check" size={14}/>Session boundary</span>}
+          <pre>{entry.content}</pre>
+          {entry.kind === 'proposal' && <button onClick={() => run('kubectl get clusterconditions -o wide')}>Run proposed read-only command <Icon name="arrow" size={14}/></button>}
+        </div>)}
+      </div>
+      <form className="terminal-command" onSubmit={(event) => { event.preventDefault(); run() }}>
+        <label className="sr-only" htmlFor="cluster-shell-command">Command or question</label>
+        <span><strong>{cluster.name}</strong>:{namespace === 'all namespaces' ? '*' : namespace}$</span>
+        <input id="cluster-shell-command" autoFocus value={command} onChange={(event) => setCommand(event.target.value)} placeholder="Type a read-only command or ask why…" autoComplete="off"/>
+        <button type="submit">Run <Icon name="arrow" size={15}/></button>
+      </form>
+      <footer className="shell-footer"><span><Icon name="shield" size={13}/>No live connection · no credentials · no mutation</span><span>Commands and explanations would be evidence-correlated in production.</span></footer>
+    </section>
+  </div>
+}
+
 function EvidenceDrawer({ item, close }: { item: EvidenceRef; close: () => void }) {
   return <div className="drawer-layer" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && close()}><aside className="drawer" role="dialog" aria-modal="true" aria-labelledby="evidence-title"><header><div><span className="eyebrow">{item.type}</span><h2 id="evidence-title">{item.title}</h2></div><button className="icon-button" onClick={close} aria-label="Close evidence"><Icon name="x"/></button></header><StatusBadge status={item.outcome}/><p className="drawer-summary">{item.summary}</p><dl className="evidence-details"><div><dt>Cluster</dt><dd>{item.cluster}</dd></div><div><dt>Contract</dt><dd>{item.contract}</dd></div><div><dt>Revision / digest</dt><dd>{item.revision}</dd></div><div><dt>Source</dt><dd>{item.source}</dd></div><div><dt>Observed at</dt><dd>{new Date(item.observedAt).toLocaleString()}</dd></div><div><dt>Durability</dt><dd>{item.immutable ? 'Immutable receipt' : 'Current, freshness-bound observation'}</dd></div></dl><div className="provenance-box"><Icon name="shield"/><div><strong>Provenance visible</strong><p>This projection is redaction-safe fixture data. It does not expose credentials, kubeconfigs, or raw private evidence.</p></div></div><button className="secondary-button full-button" onClick={close}>Close</button></aside></div>
 }
@@ -183,6 +281,7 @@ export default function App() {
   const [data, setData] = useState<PlatformSnapshot>()
   const [page, setPage] = useState<Page>(pageFromHash)
   const [selectedCluster, setSelectedCluster] = useState<Cluster>()
+  const [shellCluster, setShellCluster] = useState<Cluster>()
   const [selectedEvidence, setSelectedEvidence] = useState<EvidenceRef>()
   const [menuOpen, setMenuOpen] = useState(false)
 
@@ -191,6 +290,7 @@ export default function App() {
     const onHash = () => {
       setPage(pageFromHash())
       setSelectedCluster(undefined)
+      setShellCluster(undefined)
       setMenuOpen(false)
       window.scrollTo({ top: 0, behavior: 'auto' })
     }
@@ -198,7 +298,7 @@ export default function App() {
     return () => window.removeEventListener('hashchange', onHash)
   }, [])
   useEffect(() => {
-    const onKey = (event: KeyboardEvent) => event.key === 'Escape' && (setSelectedEvidence(undefined), setMenuOpen(false))
+    const onKey = (event: KeyboardEvent) => event.key === 'Escape' && (setSelectedEvidence(undefined), setShellCluster(undefined), setMenuOpen(false))
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [])
@@ -207,7 +307,7 @@ export default function App() {
   useEffect(() => { document.title = `${title} · OpenKubes Console` }, [title])
 
   if (!data) return <EmptyLoading/>
-  const view = selectedCluster ? <ClusterDetail cluster={selectedCluster} data={data} close={() => setSelectedCluster(undefined)} openEvidence={setSelectedEvidence}/> : page === 'overview' ? <Overview data={data} openCluster={setSelectedCluster} openEvidence={setSelectedEvidence}/> : page === 'clusters' ? <Clusters data={data} openCluster={setSelectedCluster} openEvidence={setSelectedEvidence}/> : page === 'workloads' ? <Workloads claims={data.claims} data={data} openEvidence={setSelectedEvidence}/> : page === 'capabilities' ? <Capabilities data={data} openEvidence={setSelectedEvidence}/> : page === 'evidence' ? <Evidence data={data} openEvidence={setSelectedEvidence}/> : <CreateCluster/>
+  const view = selectedCluster ? <ClusterDetail cluster={selectedCluster} data={data} close={() => setSelectedCluster(undefined)} openEvidence={setSelectedEvidence} openShell={(cluster) => { setSelectedEvidence(undefined); setShellCluster(cluster) }}/> : page === 'overview' ? <Overview data={data} openCluster={setSelectedCluster} openEvidence={setSelectedEvidence}/> : page === 'clusters' ? <Clusters data={data} openCluster={setSelectedCluster} openEvidence={setSelectedEvidence}/> : page === 'workloads' ? <Workloads claims={data.claims} data={data} openEvidence={setSelectedEvidence}/> : page === 'capabilities' ? <Capabilities data={data} openEvidence={setSelectedEvidence}/> : page === 'evidence' ? <Evidence data={data} openEvidence={setSelectedEvidence}/> : <CreateCluster/>
 
   return <div className="app-shell">
     <a href="#main-content" className="skip-link">Skip to content</a>
@@ -225,5 +325,6 @@ export default function App() {
       <main id="main-content" className="content" tabIndex={-1}>{view}<footer className="product-footer"><span>OpenKubes Console Prototype · OK-153</span><span>{data.presentationVersion} · deterministic fixtures</span></footer></main>
     </div>
     {selectedEvidence && <EvidenceDrawer item={selectedEvidence} close={() => setSelectedEvidence(undefined)}/>} 
+    {shellCluster && <ClusterShell cluster={shellCluster} close={() => setShellCluster(undefined)}/>}
   </div>
 }

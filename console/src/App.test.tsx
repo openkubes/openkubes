@@ -32,4 +32,25 @@ describe('OpenKubes Console', () => {
     fireEvent.click(screen.getByRole('checkbox'))
     await waitFor(() => expect(authorize).toBeEnabled())
   })
+
+  it('opens a cluster-scoped shell and blocks mutating commands', async () => {
+    window.location.hash = '#/clusters'
+    render(<App />)
+    await screen.findByRole('heading', { name: 'Clusters' })
+    fireEvent.click(screen.getByRole('button', { name: 'Open ok-mgmt' }))
+    fireEvent.click(await screen.findByRole('button', { name: /Open Shell/i }))
+
+    expect(await screen.findByRole('heading', { name: 'Shell · ok-mgmt' })).toBeInTheDocument()
+    expect(screen.getByText(/No credential, kubeconfig, WebSocket, or backend connection/i)).toBeInTheDocument()
+
+    const input = screen.getByPlaceholderText(/read-only command or ask why/i)
+    fireEvent.change(input, { target: { value: 'kubectl delete node ok-mgmt-cp-01' } })
+    fireEvent.click(screen.getByRole('button', { name: /^Run$/ }))
+    expect(await screen.findByText(/BLOCKED · This read-only prototype/i)).toBeInTheDocument()
+
+    fireEvent.change(input, { target: { value: 'why is this cluster ready?' } })
+    fireEvent.click(screen.getByRole('button', { name: /^Run$/ }))
+    expect(await screen.findByText(/explanation resolves to the observed contract revision/i)).toBeInTheDocument()
+    expect(screen.getByText(/Suggested read-only command/i)).toBeInTheDocument()
+  })
 })
