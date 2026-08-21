@@ -7,7 +7,7 @@ describe('OpenKubes Console', () => {
 
   it('renders the management plane first with evidence-backed status', async () => {
     render(<App />)
-    expect(await screen.findByText('Good evening, Arash.')).toBeInTheDocument()
+    expect(await screen.findByText('Hello Arash')).toBeInTheDocument()
     const managementMarkers = screen.getAllByText('Management plane')
     expect(managementMarkers.length).toBeGreaterThan(0)
     expect(screen.getAllByText('ok-mgmt').length).toBeGreaterThan(0)
@@ -15,7 +15,7 @@ describe('OpenKubes Console', () => {
 
   it('exposes all curated product areas in navigation', async () => {
     render(<App />)
-    await screen.findByText('Good evening, Arash.')
+    await screen.findByText('Hello Arash')
     for (const label of ['Platform Overview', 'Clusters', 'Workloads', 'AI Agents', 'Capabilities', 'Evidence & Audit', 'Create Cluster']) {
       expect(screen.getAllByText(label).length).toBeGreaterThan(0)
     }

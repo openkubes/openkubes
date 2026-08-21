@@ -72,7 +72,7 @@ function EmptyLoading() {
 function Overview({ data, openCluster, openEvidence }: { data: PlatformSnapshot; openCluster: (c: Cluster) => void; openEvidence: (e: EvidenceRef) => void }) {
   const ready = data.clusters.filter((cluster) => cluster.readiness === 'Ready').length
   return <>
-    <PageTitle eyebrow="Platform posture" title="Good evening, Arash." description="One evidence-backed view across your sovereign OpenKubes platforms." action={<span className="snapshot"><span className="live-dot"/>Fixture snapshot · {new Date(data.generatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>}/>
+    <PageTitle eyebrow="Platform posture" title="Hello Arash" description="One evidence-backed view across your sovereign OpenKubes platforms." action={<span className="snapshot"><span className="live-dot"/>Fixture snapshot · {new Date(data.generatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>}/>
     <section className="metrics-grid" aria-label="Platform metrics">
       <Metric label="Clusters" value={data.clusters.length} note={`${ready} ready · 1 management plane`} tone="blue"/>
       <Metric label="Capabilities" value={data.capabilities.length} note="5 conformant · 2 converging" tone="green"/>
