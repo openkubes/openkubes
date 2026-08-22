@@ -7,6 +7,7 @@ import argparse
 import hashlib
 import json
 import re
+import shutil
 from pathlib import Path
 
 import yaml
@@ -16,6 +17,7 @@ HERE = Path(__file__).resolve().parent
 SPIKE = HERE.parent
 HARNESS = SPIKE / "harness"
 ARTIFACTS = HERE / "artifacts"
+ACTIVATION_PROJECTION = HERE / "activation-projection"
 
 R = "sha256:47bb651f6bc0bdb3a7a567efcd4ca4c776f872a63496fa55c2a6aed77d6fa995"
 E = "sha256:2a849d69e9c64344e907c1bce3bb1abf3d8f77217377081a5be055d62c213300"
@@ -220,6 +222,34 @@ def bind_workload_api_address(documents: list[dict]) -> None:
     }
 
 
+def build_activation_projection(source: Path, lifecycle: bytes) -> dict:
+    """Bind the v7 lifecycle artifact into a complete, offline projection root."""
+    ACTIVATION_PROJECTION.mkdir(parents=True, exist_ok=True)
+    copied = (
+        "authority-map.json",
+        "ok-infra-prerequisites.yaml",
+        "renderer-input.yaml",
+        "renderer-source.yaml",
+        "resolved-renderer-input.yaml",
+    )
+    for name in copied:
+        shutil.copyfile(source / name, ACTIVATION_PROJECTION / name)
+    (ACTIVATION_PROJECTION / "ok-mgmt-lifecycle.yaml").write_bytes(lifecycle)
+
+    projection = json.loads((source / "projection-manifest.json").read_text())
+    projection["artifacts"] = {
+        name: digest_bytes((ACTIVATION_PROJECTION / name).read_bytes())
+        for name in sorted((*copied, "ok-mgmt-lifecycle.yaml"))
+    }
+    management = load_documents(ACTIVATION_PROJECTION / "ok-mgmt-lifecycle.yaml")
+    projection["objectSets"]["okMgmtLifecycle"] = {
+        "count": len(management),
+        "digest": semantic_digest(management),
+    }
+    write_json(ACTIVATION_PROJECTION / "projection-manifest.json", projection)
+    return projection
+
+
 def build_plan(inputs: dict[str, list[tuple[str, str]]]) -> dict:
     rules = [
         ("provider-prerequisites", "Submission", "infrastructure", "CreateProviderPrerequisites"),
@@ -303,6 +333,7 @@ def main() -> None:
     bind_workload_api_address(lifecycle_documents)
     dump_documents(ARTIFACTS / "cluster-lifecycle.yaml", lifecycle_documents)
     lifecycle = (ARTIFACTS / "cluster-lifecycle.yaml").read_bytes()
+    activation_projection = build_activation_projection(projection_dir, lifecycle)
 
     hcp, hcp_spec_digest, hrp_spec_digest = build_enablement()
     dump_documents(ARTIFACTS / "enablement.yaml", [hcp])
@@ -432,6 +463,17 @@ def main() -> None:
         },
         "planPath": "staged-plan.json",
         "planDigest": semantic_digest(plan),
+        "activationProjection": {
+            "format": activation_projection["format"],
+            "manifestPath": "activation-projection/projection-manifest.json",
+            "manifestDigest": digest_bytes(
+                (ACTIVATION_PROJECTION / "projection-manifest.json").read_bytes()
+            ),
+            "managementObjectsPath": "activation-projection/ok-mgmt-lifecycle.yaml",
+            "infrastructurePrerequisitesPath": "activation-projection/ok-infra-prerequisites.yaml",
+            "authorityMapPath": "activation-projection/authority-map.json",
+            "objectSets": activation_projection["objectSets"],
+        },
         "artifacts": {name: digest_bytes(path.read_bytes()) for name, path in sorted({
             **{name: ARTIFACTS / name for name in json_artifacts},
             "enablement.yaml": ARTIFACTS / "enablement.yaml",

@@ -70,6 +70,35 @@ def verify(root: Path) -> str:
         "cluster-lifecycle input order",
     )
 
+    projection_claim = manifest["activationProjection"]
+    projection_manifest_path = root / projection_claim["manifestPath"]
+    projection_manifest_bytes = projection_manifest_path.read_bytes()
+    projection = json.loads(projection_manifest_bytes)
+    expect(generator.digest_bytes(projection_manifest_bytes), projection_claim["manifestDigest"], "activation projection manifest digest")
+    expect(projection["format"], projection_claim["format"], "activation projection format")
+    expect(projection["authorizationState"], "NO-GO", "activation projection authorization")
+    expect(projection["R"], generator.R, "activation projection R")
+    expect(projection["objectSets"], projection_claim["objectSets"], "activation projection object sets")
+    projection_root = projection_manifest_path.parent
+    for name, claimed in projection["artifacts"].items():
+        expect(generator.digest_bytes((projection_root / name).read_bytes()), claimed, f"activation projection artifact {name}")
+    projection_management = generator.load_documents(root / projection_claim["managementObjectsPath"])
+    projection_infrastructure = generator.load_documents(root / projection_claim["infrastructurePrerequisitesPath"])
+    expect(len(projection_management), 8, "activation management membership")
+    expect(len(projection_infrastructure), 3, "activation infrastructure membership")
+    expect(generator.semantic_digest(projection_management), projection["objectSets"]["okMgmtLifecycle"]["digest"], "activation management semantic digest")
+    expect(generator.semantic_digest(projection_infrastructure), projection["objectSets"]["okInfraPrerequisites"]["digest"], "activation infrastructure semantic digest")
+    expect(
+        generator.digest_bytes((root / projection_claim["managementObjectsPath"]).read_bytes()),
+        manifest["artifacts"]["cluster-lifecycle.yaml"],
+        "activation lifecycle equals staged lifecycle",
+    )
+    if any(
+        item.get("metadata", {}).get("annotations", {}).get("openkubes.io/intent-revision") != generator.R
+        for item in projection_management + projection_infrastructure
+    ):
+        raise VerificationError("activation projection object lacks the exact R carrier")
+
     spike = root.parent
     locations = {
         **{name: root / "artifacts" / name for name in (

@@ -10,6 +10,13 @@ the corrected CAAPH candidate, bounded network and runtime semantics, the
 proven target RBAC boundary, runtime-only target identity placeholders, the
 three P9 Applications and the final aggregate evaluator profile.
 
+The additive `activation-projection/` root closes the package boundary for
+execution: it contains the complete Phase-R projection while replacing only
+the historical management lifecycle artifact with the exact v7 artifact
+already bound by Stage 2. Its manifest binds the raw artifact identities and
+the semantic object-set identities. The historical Phase-R v6 projection is
+not changed or reinterpreted.
+
 Unlike v6, the cluster-lifecycle stage has two independently hashed inputs.
 The second input defines the exact immutable Provider-Access Secret policy;
 the private `0600` source kubeconfig is supplied only to the activation bundle.
