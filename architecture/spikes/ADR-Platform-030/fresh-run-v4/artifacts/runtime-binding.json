@@ -1,0 +1,9 @@
+{
+  "format": "ok141-runtime-binding-policy/v1",
+  "intentRevision": "sha256:47bb651f6bc0bdb3a7a567efcd4ca4c776f872a63496fa55c2a6aed77d6fa995",
+  "targetIdentityScheme": "capi-cluster-uid/v1",
+  "requiredNamespace": "kube-system",
+  "requiredStorageClass": "local-path",
+  "persistence": "private-kubernetes-secret",
+  "publicCredentialMaterial": false
+}
