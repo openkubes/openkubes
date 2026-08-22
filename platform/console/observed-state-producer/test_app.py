@@ -15,6 +15,7 @@ from app import (
     ObservedStateProducer,
     ProducerConfig,
     TlsConfig,
+    build_hosting_cluster_state,
     build_observed_state,
     handler_for,
 )
@@ -35,6 +36,27 @@ def claim(name="ok-ai", ready="True", resource_version="17"):
 
 def claim_list(*items):
     return {"apiVersion": "v1", "kind": "KubeVirtClusterClaimList", "metadata": {"resourceVersion": "84"}, "items": list(items)}
+
+
+def hosting_observation(node_statuses=("True", "True"), available_replicas=2, observed_generation=7):
+    return {
+        "version": {"gitVersion": "v1.34.1", "platform": "linux/amd64", "privateDiagnostic": "must not pass"},
+        "nodes": {
+            "metadata": {"resourceVersion": "211"},
+            "items": [
+                {
+                    "metadata": {"name": f"private-node-{index}"},
+                    "status": {"conditions": [{"type": "Ready", "status": status, "message": "private node detail"}]},
+                }
+                for index, status in enumerate(node_statuses)
+            ],
+        },
+        "deployment": {
+            "metadata": {"name": "ok-console", "namespace": "openkubes-console", "generation": 7, "resourceVersion": "377"},
+            "spec": {"replicas": 2, "template": {"spec": {"containers": [{"env": [{"name": "SECRET", "value": "private"}]}]}}},
+            "status": {"observedGeneration": observed_generation, "availableReplicas": available_replicas, "conditions": [{"message": "private rollout detail"}]},
+        },
+    }
 
 
 class ProjectionTests(unittest.TestCase):
@@ -89,6 +111,64 @@ class ProjectionTests(unittest.TestCase):
         self.assertEqual(claim_evidence["observedAt"], "2026-08-21T18:30:00Z")
 
 
+class HostingClusterProjectionTests(unittest.TestCase):
+    def test_projects_only_bounded_hosting_cluster_state(self):
+        config = ProducerConfig(
+            source_mode="hosting-cluster",
+            environment_id="ok-shared-dev",
+            environment_name="OpenKubes shared development",
+            hosting_name="ok-shared",
+            hosting_region="fra-dc1",
+        )
+        payload = build_hosting_cluster_state(hosting_observation(), config, now=lambda: NOW)
+
+        self.assertEqual(payload["metadata"], {
+            "observedAt": "2026-08-21T18:30:00Z",
+            "sourceRevision": "kubernetes:v1.34.1;nodes:211;deployment:377",
+            "partial": True,
+        })
+        self.assertEqual([item["name"] for item in payload["data"]["clusters"]], ["ok-mgmt", "ok-shared"])
+        self.assertEqual(payload["data"]["clusters"][0]["readiness"], "Unknown")
+        hosting = payload["data"]["clusters"][1]
+        self.assertEqual(hosting["role"], "Workload cluster")
+        self.assertEqual(hosting["profile"], "Console hosting cluster")
+        self.assertEqual(hosting["readiness"], "Ready")
+        self.assertEqual(hosting["kubernetesVersion"], "v1.34.1")
+        self.assertIn("Ready: 2; not ready: 0; unknown: 0", hosting["lifecycle"][1]["detail"])
+        serialized = json.dumps(payload)
+        for forbidden in ("private-node", "private node detail", "private rollout detail", "privateDiagnostic", '"SECRET"'):
+            self.assertNotIn(forbidden, serialized)
+
+    def test_reports_bounded_non_ready_and_unknown_states(self):
+        config = ProducerConfig(source_mode="hosting-cluster")
+        pending = build_hosting_cluster_state(
+            hosting_observation(node_statuses=("True", "False"), available_replicas=1),
+            config,
+            now=lambda: NOW,
+        )
+        self.assertEqual(pending["data"]["clusters"][1]["readiness"], "Pending")
+
+        unknown = build_hosting_cluster_state(
+            hosting_observation(node_statuses=(), available_replicas=2),
+            config,
+            now=lambda: NOW,
+        )
+        self.assertEqual(unknown["data"]["clusters"][1]["readiness"], "Unknown")
+
+    def test_requires_explicit_valid_and_distinct_source_identity(self):
+        config = ProducerConfig.from_environment({
+            "OK_OBSERVER_SOURCE_MODE": "hosting-cluster",
+            "OK_OBSERVER_HOSTING_NAME": "ok-shared",
+            "OK_OBSERVER_HOSTING_NAMESPACE": "openkubes-console",
+            "OK_OBSERVER_HOSTING_DEPLOYMENT": "ok-console",
+        })
+        self.assertEqual(config.source_mode, "hosting-cluster")
+        with self.assertRaisesRegex(ValueError, "kubevirt-claims or hosting-cluster"):
+            ProducerConfig.from_environment({"OK_OBSERVER_SOURCE_MODE": "automatic"})
+        with self.assertRaisesRegex(ValueError, "distinct from the management plane"):
+            ProducerConfig.from_environment({"OK_OBSERVER_HOSTING_NAME": "ok-mgmt"})
+
+
 class ApiClientTests(unittest.TestCase):
     def test_uses_namespaced_get_and_keeps_token_in_authorization_header(self):
         captured = {}
@@ -128,6 +208,51 @@ class ApiClientTests(unittest.TestCase):
         self.assertIn("/namespaces/openkubes-system/kubevirtclusterclaims?limit=500", captured["url"])
         self.assertEqual(captured["authorization"], "Bearer server-side-token")
         self.assertEqual(captured["timeout"], 3)
+
+    def test_reads_only_version_nodes_and_named_console_deployment_for_hosting_mode(self):
+        captured = []
+
+        class Response:
+            status = 200
+
+            def __init__(self, payload):
+                self.payload = payload
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_args):
+                return None
+
+            def read(self, _limit):
+                return json.dumps(self.payload).encode()
+
+        def opener(request, **_kwargs):
+            captured.append((request.full_url, request.get_header("Authorization")))
+            if request.full_url.endswith("/version"):
+                return Response({"gitVersion": "v1.34.1"})
+            if "/api/v1/nodes" in request.full_url:
+                return Response({"metadata": {"resourceVersion": "1"}, "items": []})
+            return Response({"metadata": {"generation": 1, "resourceVersion": "2"}, "spec": {"replicas": 1}, "status": {"observedGeneration": 1, "availableReplicas": 1}})
+
+        with tempfile.TemporaryDirectory() as directory:
+            token_file = Path(directory) / "token"
+            token_file.write_text("server-side-token\n", encoding="utf-8")
+            client = object.__new__(KubernetesApiClient)
+            client.base_url = "https://kubernetes.default.svc:443"
+            client.token_file = token_file
+            client.context = None
+            client.timeout_seconds = 3
+            client.opener = opener
+            result = client.read_hosting_cluster("openkubes-console", "ok-console")
+
+        self.assertEqual(result["version"]["gitVersion"], "v1.34.1")
+        self.assertEqual([url.removeprefix("https://kubernetes.default.svc:443") for url, _token in captured], [
+            "/version",
+            "/api/v1/nodes?limit=500",
+            "/apis/apps/v1/namespaces/openkubes-console/deployments/ok-console",
+        ])
+        self.assertTrue(all(token == "Bearer server-side-token" for _url, token in captured))
 
 
 class TlsConfigurationTests(unittest.TestCase):
