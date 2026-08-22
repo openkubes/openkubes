@@ -1,0 +1,67 @@
+{
+  "format": "ok147-fresh-run-v7-authority-prerequisites/v1",
+  "authorizationState": "NO-GO",
+  "planDigest": "sha256:4f61e81b3f3dba5a2819e5be93764486d5a936f3fb2ba153a80d5866801af19c",
+  "providerAccessPolicyDigest": "sha256:06c7aed0997611819acc0606dd16efc7a966a8b8d8589b290b887bed256a0a01",
+  "packages": {
+    "ok-mgmt-authority.yaml": "sha256:d8d631d63b3e094cea335238b8b336781bf4b9a87302aa97c9010262da02608c",
+    "ok-shared-authority.yaml": "sha256:ffcdab1a6d3db664d29ef9c130ec0151d8fef3a7773e2ae17967c0b28d14299d"
+  },
+  "inventory": {
+    "ok-mgmt": [
+      {
+        "kind": "ClusterRole",
+        "namespace": "",
+        "name": "ok147-fresh-run-v7-management-writer"
+      },
+      {
+        "kind": "ClusterRoleBinding",
+        "namespace": "",
+        "name": "ok147-fresh-run-v7-management-writer"
+      },
+      {
+        "kind": "ValidatingAdmissionPolicy",
+        "namespace": "",
+        "name": "ok147-fresh-run-v7-management-writer"
+      },
+      {
+        "kind": "ValidatingAdmissionPolicyBinding",
+        "namespace": "",
+        "name": "ok147-fresh-run-v7-management-writer"
+      }
+    ],
+    "ok-shared": [
+      {
+        "kind": "ServiceAccount",
+        "namespace": "argocd",
+        "name": "ok147-gitops-writer"
+      },
+      {
+        "kind": "Role",
+        "namespace": "argocd",
+        "name": "ok147-fresh-run-v7-gitops-writer"
+      },
+      {
+        "kind": "RoleBinding",
+        "namespace": "argocd",
+        "name": "ok147-fresh-run-v7-gitops-writer"
+      },
+      {
+        "kind": "ValidatingAdmissionPolicy",
+        "namespace": "",
+        "name": "ok147-fresh-run-v7-gitops-writer"
+      },
+      {
+        "kind": "ValidatingAdmissionPolicyBinding",
+        "namespace": "",
+        "name": "ok147-fresh-run-v7-gitops-writer"
+      }
+    ]
+  },
+  "boundaries": {
+    "credentialsIncluded": false,
+    "clusterContact": false,
+    "mutationAuthorized": false,
+    "wildcardsAllowed": false
+  }
+}
