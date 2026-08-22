@@ -1,0 +1,13 @@
+{
+  "format": "ok147-aggregate-evidence-profile/v1",
+  "intentRevision": "sha256:47bb651f6bc0bdb3a7a567efcd4ca4c776f872a63496fa55c2a6aed77d6fa995",
+  "enablementRevision": "sha256:2a849d69e9c64344e907c1bce3bb1abf3d8f77217377081a5be055d62c213300",
+  "platformRevision": "sha256:2956184005f4860607e91672fce82164095dee6ebcbe57e5af883951a199c427",
+  "executionFixture": "sha256:438a6882d8e22b644c826cb0a6f2856850afd7c7ef71badb44cd66e8db0393ec",
+  "required": [
+    "InfrastructureReady",
+    "ControlPlaneAvailable",
+    "NetworkReady",
+    "PlatformReady"
+  ]
+}

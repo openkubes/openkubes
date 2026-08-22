@@ -1,0 +1,26 @@
+{
+  "format": "ok147-platform-profile/v1",
+  "intentRevision": "sha256:47bb651f6bc0bdb3a7a567efcd4ca4c776f872a63496fa55c2a6aed77d6fa995",
+  "platformRevision": "sha256:2956184005f4860607e91672fce82164095dee6ebcbe57e5af883951a199c427",
+  "executionFixture": "sha256:438a6882d8e22b644c826cb0a6f2856850afd7c7ef71badb44cd66e8db0393ec",
+  "targetIdentityScheme": "capi-cluster-uid/v1",
+  "argoNamespace": "argocd",
+  "registrationName": "disposable-ok141",
+  "requiredApplications": [
+    {
+      "name": "disposable-ok141-observability-alerting",
+      "specDigest": "sha256:d570dfaa4bd43d85d643efc0372e27a7867f822be6f942aefb31fd1c8b25695d"
+    },
+    {
+      "name": "disposable-ok141-observability-core",
+      "specDigest": "sha256:95a20f6dc1a16b5126df7df6eef771d3415f624401f4e34c9296cc280cbd3a80"
+    },
+    {
+      "name": "disposable-ok141-observability-dashboards",
+      "specDigest": "sha256:8b31401f4dc0de4cb39f8b1550ea3def390c304c73282f821eceee629ac11891"
+    }
+  ],
+  "capabilityContractDigest": "sha256:b6ef10a8ecf6daf42e6d44018d51e2263f380ed649445e5a70ff5c550c73415e",
+  "capabilityExecutableDigest": "sha256:98f41106b7ddc2f7ecffaca9bd9e3c3584d97ab41b169054d8be91ae9cdfb949",
+  "maximumCapabilityAgeSeconds": 3600
+}
