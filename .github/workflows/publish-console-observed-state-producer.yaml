@@ -1,0 +1,130 @@
+name: publish-console-observed-state-producer
+
+"on":
+  push:
+    tags:
+      - 'console-observer-dev-v*'
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+  attestations: write
+
+concurrency:
+  group: publish-console-observed-state-producer-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  IMAGE_NAME: ghcr.io/openkubes/observed-state-producer
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out the tagged revision
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Require the candidate revision to be on main
+        run: |
+          git fetch --no-tags origin main
+          git merge-base --is-ancestor "${GITHUB_SHA}" origin/main
+
+      - name: Verify the tagged source
+        run: make -C platform/console/observed-state-producer verify
+
+      - name: Log in to GHCR
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+
+      - name: Refuse to overwrite a published candidate tag
+        run: |
+          if docker buildx imagetools inspect "${IMAGE_NAME}:${GITHUB_REF_NAME}" >/dev/null 2>&1; then
+            echo "Candidate tag ${GITHUB_REF_NAME} already exists in GHCR." >&2
+            exit 1
+          fi
+
+      - name: Build and publish the candidate
+        id: build
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: platform/console/observed-state-producer
+          file: platform/console/observed-state-producer/Containerfile
+          push: true
+          platforms: linux/amd64,linux/arm64
+          provenance: false
+          sbom: false
+          build-args: |
+            VCS_REF=${{ github.sha }}
+          tags: |
+            ${{ env.IMAGE_NAME }}:${{ github.ref_name }}
+            ${{ env.IMAGE_NAME }}:sha-${{ github.sha }}
+
+      - name: Generate SPDX SBOM for the published digest
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0
+        with:
+          image: ${{ env.IMAGE_NAME }}@${{ steps.build.outputs.digest }}
+          format: spdx-json
+          output-file: observed-state-producer.spdx.json
+          upload-artifact: false
+
+      - name: Enforce the development vulnerability gate
+        uses: aquasecurity/trivy-action@d2a0b60797ff03db6132bd4e2b293f9b37081297 # master pinned 2026-08-22
+        with:
+          image-ref: ${{ env.IMAGE_NAME }}@${{ steps.build.outputs.digest }}
+          format: table
+          exit-code: '1'
+          ignore-unfixed: true
+          severity: CRITICAL,HIGH
+
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2
+        with:
+          subject-name: ${{ env.IMAGE_NAME }}
+          subject-digest: ${{ steps.build.outputs.digest }}
+          push-to-registry: true
+
+      - name: Attest the SBOM
+        uses: actions/attest-sbom@bd218ad0dbcb3e146bd073d1d9c6d78e08aa8a0b # v2
+        with:
+          subject-name: ${{ env.IMAGE_NAME }}
+          subject-digest: ${{ steps.build.outputs.digest }}
+          sbom-path: observed-state-producer.spdx.json
+          push-to-registry: true
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac # v3
+
+      - name: Sign and verify the immutable digest
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          cosign sign --yes "${IMAGE_NAME}@${DIGEST}"
+          cosign verify \
+            --certificate-identity "https://github.com/openkubes/openkubes/.github/workflows/publish-console-observed-state-producer.yaml@${GITHUB_REF}" \
+            --certificate-oidc-issuer 'https://token.actions.githubusercontent.com' \
+            "${IMAGE_NAME}@${DIGEST}"
+
+      - name: Record candidate identity
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          {
+            echo '## OpenKubes observed-state producer development image'
+            echo
+            echo "- Source revision: \`${GITHUB_SHA}\`"
+            echo "- Candidate tag: \`${GITHUB_REF_NAME}\`"
+            echo "- Immutable image: \`${IMAGE_NAME}@${DIGEST}\`"
+            echo '- Platforms: linux/amd64, linux/arm64'
+            echo '- Vulnerability gate: CRITICAL,HIGH (unfixed findings ignored for this development gate)'
+          } >> "${GITHUB_STEP_SUMMARY}"

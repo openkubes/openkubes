@@ -1,6 +1,6 @@
-.PHONY: verify test compile manifest-check
+.PHONY: verify test compile manifest-check publication-check
 
-verify: test compile manifest-check
+verify: test compile manifest-check publication-check
 
 test:
 	python3 -m unittest discover -s . -p 'test_*.py'
@@ -10,3 +10,6 @@ compile:
 
 manifest-check:
 	ruby manifest_test.rb
+
+publication-check:
+	ruby publication_test.rb
