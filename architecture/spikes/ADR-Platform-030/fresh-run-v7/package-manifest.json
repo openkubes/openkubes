@@ -17,6 +17,28 @@
   },
   "planPath": "staged-plan.json",
   "planDigest": "sha256:4f61e81b3f3dba5a2819e5be93764486d5a936f3fb2ba153a80d5866801af19c",
+  "activationProjection": {
+    "format": "ok141-contract-to-capi-projection/v2",
+    "manifestPath": "activation-projection/projection-manifest.json",
+    "manifestDigest": "sha256:04ca1dff09543a062d85da8da5098095f8b2047a9d5708642965c65b62c10882",
+    "managementObjectsPath": "activation-projection/ok-mgmt-lifecycle.yaml",
+    "infrastructurePrerequisitesPath": "activation-projection/ok-infra-prerequisites.yaml",
+    "authorityMapPath": "activation-projection/authority-map.json",
+    "objectSets": {
+      "okInfraPrerequisites": {
+        "count": 3,
+        "digest": "sha256:28580b5b4960bc01a3de4a0a241c1bd3638eb45dfdd8608014733fbc497347c6"
+      },
+      "okMgmtLifecycle": {
+        "count": 8,
+        "digest": "sha256:e0a61d6470f054fed324f3f1e498682d44582bcd1f46dffaf981e0b1084750fa"
+      },
+      "rendererSource": {
+        "count": 10,
+        "digest": "sha256:3710f04235df6466febf313b6f1202fbc50b075db71e30b14299dac2b5d9d97a"
+      }
+    }
+  },
   "artifacts": {
     "aggregate-evidence-profile.json": "sha256:55182c9a484c0a4451356b41fee89ad05b1dc36849d7179c5de3dd2a0a14eb44",
     "cluster-lifecycle.yaml": "sha256:2ade54b6b4c83e3f6195769aefe428c952b96d2d059c6f34f44466ffbbb3b182",
