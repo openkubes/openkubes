@@ -1,0 +1,50 @@
+apiVersion: addons.cluster.x-k8s.io/v1alpha1
+kind: HelmChartProxy
+metadata:
+  name: disposable-ok141-cilium
+  namespace: disposable-ok141
+  annotations:
+    openkubes.io/candidate-status: fresh-run-v8-no-go
+    openkubes.io/intent-revision: sha256:47bb651f6bc0bdb3a7a567efcd4ca4c776f872a63496fa55c2a6aed77d6fa995
+    openkubes.io/enablement-revision: sha256:2a849d69e9c64344e907c1bce3bb1abf3d8f77217377081a5be055d62c213300
+    openkubes.io/execution-fixture: sha256:438a6882d8e22b644c826cb0a6f2856850afd7c7ef71badb44cd66e8db0393ec
+    openkubes.io/oci-manifest-digest: sha256:b8d600c542c97dc8652429e12487ecce922d73de9785505457a8f653833e75f9
+    openkubes.io/chart-artifact-digest: sha256:21c43cf53841f9ab0375047d95aa4c64051ea52bbd2c679416e6408f5f1c9179
+    openkubes.io/values-digest: sha256:a02a2a8b5c5213c86e482ef7421884281d00d3bae1f27c34d67b3726df12d410
+    openkubes.io/digest-enforcement: external-evidence-required
+    openkubes.io/contract-name: disposable-ok141
+    openkubes.io/contract-namespace: disposable-ok141
+spec:
+  clusterSelector:
+    matchLabels:
+      openkubes.io/type: talos
+      openkubes.io/provider: kubevirt
+  chartName: cilium
+  repoURL: oci://quay.io/cilium/charts
+  releaseName: cilium
+  namespace: kube-system
+  version: 1.19.6
+  reconcileStrategy: Continuous
+  valuesTemplate: "operator:\n  replicas: 1\nipam:\n  mode: kubernetes\nkubeProxyReplacement:\
+    \ true\nk8sServiceHost: localhost\nk8sServicePort: 7445\ntunnelPort: 8473\nk8sClientRateLimit:\n\
+    \  qps: 10\n  burst: 20\nsecurityContext:\n  capabilities:\n    ciliumAgent:\n\
+    \      - CHOWN\n      - KILL\n      - NET_ADMIN\n      - NET_RAW\n      - IPC_LOCK\n\
+    \      - SYS_ADMIN\n      - SYS_RESOURCE\n      - DAC_OVERRIDE\n      - FOWNER\n\
+    \      - SETGID\n      - SETUID\n    cleanCiliumState:\n      - NET_ADMIN\n  \
+    \    - SYS_ADMIN\n      - SYS_RESOURCE\ncgroup:\n  autoMount:\n    enabled: false\n\
+    \  hostRoot: /sys/fs/cgroup\n"
+  options:
+    atomic: true
+    wait: true
+    waitForJobs: true
+    timeout: 15m
+    takeOwnership: false
+    install:
+      createNamespace: false
+    upgrade:
+      resetValues: true
+      reuseValues: false
+      cleanupOnFail: true
+      maxHistory: 3
+    uninstall:
+      keepHistory: false

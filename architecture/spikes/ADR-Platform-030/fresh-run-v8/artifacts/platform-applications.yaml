@@ -1,0 +1,222 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: disposable-ok141-observability-core
+  namespace: argocd
+  annotations:
+    openkubes.io/intent-revision: sha256:47bb651f6bc0bdb3a7a567efcd4ca4c776f872a63496fa55c2a6aed77d6fa995
+    openkubes.io/platform-revision: sha256:2956184005f4860607e91672fce82164095dee6ebcbe57e5af883951a199c427
+    openkubes.io/execution-fixture: sha256:438a6882d8e22b644c826cb0a6f2856850afd7c7ef71badb44cd66e8db0393ec
+    openkubes.io/target-identity-digest: RUNTIME-TARGET-IDENTITY-DIGEST-REQUIRED
+spec:
+  project: openkubes-disposable
+  source:
+    repoURL: https://github.com/openkubes/ok-observability.git
+    path: profiles/ok-observability-standard
+    targetRevision: c09c18759aeb7526d22106ccb001599f5f06bc4e
+    helm:
+      valuesObject:
+        ok-observability-prometheus:
+          kube-prometheus-stack:
+            prometheus:
+              prometheusSpec:
+                retention: 3d
+                resources:
+                  requests:
+                    cpu: 250m
+                    memory: 512Mi
+                  limits:
+                    memory: 1Gi
+                storageSpec:
+                  volumeClaimTemplate:
+                    spec:
+                      storageClassName: local-path
+                      resources:
+                        requests:
+                          storage: 5Gi
+            alertmanager:
+              alertmanagerSpec:
+                resources:
+                  requests:
+                    cpu: 50m
+                    memory: 64Mi
+                storage:
+                  volumeClaimTemplate:
+                    spec:
+                      storageClassName: local-path
+                      resources:
+                        requests:
+                          storage: 1Gi
+            coreDns:
+              enabled: false
+            kubeControllerManager:
+              enabled: false
+            kubeEtcd:
+              enabled: false
+            kubeProxy:
+              enabled: false
+            kubeScheduler:
+              enabled: false
+        ok-observability-grafana:
+          grafana:
+            persistence:
+              enabled: true
+              storageClassName: local-path
+              size: 1Gi
+            resources:
+              requests:
+                cpu: 100m
+                memory: 128Mi
+              limits:
+                memory: 256Mi
+            ingress:
+              enabled: false
+        ok-observability-opensearch:
+          opensearch:
+            persistence:
+              enabled: true
+              storageClass: local-path
+              size: 5Gi
+            resources:
+              requests:
+                cpu: 250m
+                memory: 1Gi
+              limits:
+                memory: 2Gi
+          fluent-bit:
+            resources:
+              requests:
+                cpu: 50m
+                memory: 64Mi
+              limits:
+                memory: 128Mi
+  destination:
+    name: disposable-ok141
+    namespace: ok-observability
+  syncPolicy:
+    automated:
+      enabled: true
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    retry:
+      limit: 5
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 3m
+      refresh: true
+    syncOptions:
+    - CreateNamespace=true
+    - PrunePropagationPolicy=foreground
+    - PruneLast=true
+    - ServerSideApply=true
+    - ClientSideApplyMigration=false
+    managedNamespaceMetadata:
+      labels:
+        pod-security.kubernetes.io/enforce: privileged
+        pod-security.kubernetes.io/audit: privileged
+        pod-security.kubernetes.io/warn: privileged
+  ignoreDifferences:
+  - group: apps
+    kind: StatefulSet
+    name: ok-observability-opensearch
+    namespace: ok-observability
+    jsonPointers:
+    - /spec/persistentVolumeClaimRetentionPolicy
+    - /spec/revisionHistoryLimit
+    - /spec/template/spec/dnsPolicy
+    - /spec/template/spec/restartPolicy
+    - /spec/template/spec/schedulerName
+    jqPathExpressions:
+    - .spec.template.spec.containers[]?.env[]?.valueFrom.fieldRef.apiVersion
+    - .spec.template.spec.containers[]?.ports[]?.protocol
+    - .spec.template.spec.containers[]?.readinessProbe.successThreshold
+    - .spec.template.spec.containers[]?.startupProbe.successThreshold
+    - .spec.template.spec.containers[]?.terminationMessagePath
+    - .spec.template.spec.containers[]?.terminationMessagePolicy
+    - .spec.template.spec.initContainers[]?.terminationMessagePath
+    - .spec.template.spec.initContainers[]?.terminationMessagePolicy
+    - .spec.template.spec.volumes[]?.configMap.defaultMode
+    - .spec.volumeClaimTemplates[]?.apiVersion
+    - .spec.volumeClaimTemplates[]?.kind
+    - .spec.volumeClaimTemplates[]?.spec.volumeMode
+    - .spec.volumeClaimTemplates[]?.status
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: disposable-ok141-observability-alerting
+  namespace: argocd
+  annotations:
+    openkubes.io/intent-revision: sha256:47bb651f6bc0bdb3a7a567efcd4ca4c776f872a63496fa55c2a6aed77d6fa995
+    openkubes.io/platform-revision: sha256:2956184005f4860607e91672fce82164095dee6ebcbe57e5af883951a199c427
+    openkubes.io/execution-fixture: sha256:438a6882d8e22b644c826cb0a6f2856850afd7c7ef71badb44cd66e8db0393ec
+    openkubes.io/target-identity-digest: RUNTIME-TARGET-IDENTITY-DIGEST-REQUIRED
+spec:
+  project: openkubes-disposable
+  source:
+    repoURL: https://github.com/openkubes/ok-observability.git
+    path: alerting
+    targetRevision: c09c18759aeb7526d22106ccb001599f5f06bc4e
+    directory:
+      recurse: false
+      include: prometheus-rules.yaml
+  destination:
+    name: disposable-ok141
+    namespace: ok-observability
+  syncPolicy:
+    automated:
+      enabled: true
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    retry:
+      limit: 5
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 3m
+      refresh: true
+    syncOptions:
+    - PrunePropagationPolicy=foreground
+    - PruneLast=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: disposable-ok141-observability-dashboards
+  namespace: argocd
+  annotations:
+    openkubes.io/intent-revision: sha256:47bb651f6bc0bdb3a7a567efcd4ca4c776f872a63496fa55c2a6aed77d6fa995
+    openkubes.io/platform-revision: sha256:2956184005f4860607e91672fce82164095dee6ebcbe57e5af883951a199c427
+    openkubes.io/execution-fixture: sha256:438a6882d8e22b644c826cb0a6f2856850afd7c7ef71badb44cd66e8db0393ec
+    openkubes.io/target-identity-digest: RUNTIME-TARGET-IDENTITY-DIGEST-REQUIRED
+spec:
+  project: openkubes-disposable
+  source:
+    repoURL: https://github.com/openkubes/ok-observability.git
+    path: dashboards
+    targetRevision: c09c18759aeb7526d22106ccb001599f5f06bc4e
+    directory:
+      recurse: false
+      include: platform-overview-configmap.yaml
+  destination:
+    name: disposable-ok141
+    namespace: ok-observability
+  syncPolicy:
+    automated:
+      enabled: true
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    retry:
+      limit: 5
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 3m
+      refresh: true
+    syncOptions:
+    - PrunePropagationPolicy=foreground
+    - PruneLast=true
