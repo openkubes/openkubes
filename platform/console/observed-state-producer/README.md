@@ -1,16 +1,28 @@
 # OpenKubes Console observed-state producer
 
-This small management-plane service is the read-only producer for the Console
-BFF query contract `observed.openkubes.io/v0alpha1`.
+This small service is the read-only producer for the Console BFF query contract
+`observed.openkubes.io/v0alpha1`.
 
-It reads only `KubeVirtClusterClaim` resources from `openkubes-system` through a
-namespaced ServiceAccount Role and exposes one GET resource:
+It exposes one GET resource:
 
 ```text
 GET /api/console-observed-state/v0alpha1
 ```
 
 ## Honest semantic boundary
+
+The producer has two explicit source modes. It never discovers or switches a
+mode automatically:
+
+- `kubevirt-claims` reads only namespaced `KubeVirtClusterClaim` resources for
+  the first OpenKubes management-plane adapter;
+- `hosting-cluster` reads only Kubernetes `/version`, the bounded Node list and
+  one explicitly named Console Deployment for the OK-170 Phase B1 path.
+
+The hosting source projects its target as a read-only workload cluster with the
+profile `Console hosting cluster`. It keeps `ok-mgmt` separate and `Unknown`,
+because it observes neither the OpenKubes control plane nor Compositions. Node
+names, addresses, labels, pod data and Deployment templates are discarded.
 
 The current OpenKubes implementation provides cluster Claims and Crossplane
 Conditions, but not a complete Fleet, Capability, workload-placement, findings,
@@ -40,10 +52,15 @@ The runtime image removes `pip`, packaging tools and all third-party
 
 | Variable | Default |
 | --- | --- |
+| `OK_OBSERVER_SOURCE_MODE` | `kubevirt-claims` |
 | `OK_OBSERVER_NAMESPACE` | `openkubes-system` |
 | `OK_OBSERVER_MANAGEMENT_NAME` | `ok-mgmt` |
 | `OK_OBSERVER_ENVIRONMENT_ID` | `openkubes-management` |
 | `OK_OBSERVER_ENVIRONMENT_NAME` | `OpenKubes management plane` |
+| `OK_OBSERVER_HOSTING_NAME` | `ok-shared` |
+| `OK_OBSERVER_HOSTING_NAMESPACE` | `openkubes-console` |
+| `OK_OBSERVER_HOSTING_DEPLOYMENT` | `ok-console` |
+| `OK_OBSERVER_HOSTING_REGION` | `unknown` |
 | `OK_OBSERVER_API_TIMEOUT_SECONDS` | `5` |
 | `OK_OBSERVER_PORT` | `8443` |
 | `OK_OBSERVER_TLS_CERT_FILE` | required mounted server certificate chain |
@@ -54,6 +71,11 @@ The runtime image removes `pip`, packaging tools and all third-party
 The remaining management-plane display fields may be supplied through the
 `OK_OBSERVER_MANAGEMENT_*` environment variables. They are descriptive only and
 do not change readiness.
+
+The `hosting-cluster` deployment identity requires only `get/list` on Nodes,
+`get` on the exact Console Deployment, and `get` on the `/version`
+non-resource URL. It must not receive Secret, Pod, mutation, exec, log or broad
+discovery permissions.
 
 Build and test:
 

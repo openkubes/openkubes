@@ -67,6 +67,7 @@ def ready_condition(resource: dict[str, Any]) -> tuple[str, str | None]:
 
 @dataclass(frozen=True)
 class ProducerConfig:
+    source_mode: str = "kubevirt-claims"
     namespace: str = "openkubes-system"
     environment_id: str = "openkubes-management"
     environment_name: str = "OpenKubes management plane"
@@ -75,15 +76,34 @@ class ProducerConfig:
     management_profile: str = "Management plane"
     management_region: str = "unknown"
     management_kubernetes_version: str = "unknown"
+    hosting_name: str = "ok-shared"
+    hosting_namespace: str = "openkubes-console"
+    hosting_deployment: str = "ok-console"
+    hosting_region: str = "unknown"
 
     @classmethod
     def from_environment(cls, environment: dict[str, str] | os._Environ[str] = os.environ) -> "ProducerConfig":
+        source_mode = environment.get("OK_OBSERVER_SOURCE_MODE", "kubevirt-claims")
+        if source_mode not in {"kubevirt-claims", "hosting-cluster"}:
+            raise ValueError("OK_OBSERVER_SOURCE_MODE must be kubevirt-claims or hosting-cluster.")
         namespace = environment.get("OK_OBSERVER_NAMESPACE", "openkubes-system")
         management_name = environment.get("OK_OBSERVER_MANAGEMENT_NAME", "ok-mgmt")
-        for name, value in (("OK_OBSERVER_NAMESPACE", namespace), ("OK_OBSERVER_MANAGEMENT_NAME", management_name)):
+        hosting_name = environment.get("OK_OBSERVER_HOSTING_NAME", "ok-shared")
+        hosting_namespace = environment.get("OK_OBSERVER_HOSTING_NAMESPACE", "openkubes-console")
+        hosting_deployment = environment.get("OK_OBSERVER_HOSTING_DEPLOYMENT", "ok-console")
+        for name, value in (
+            ("OK_OBSERVER_NAMESPACE", namespace),
+            ("OK_OBSERVER_MANAGEMENT_NAME", management_name),
+            ("OK_OBSERVER_HOSTING_NAME", hosting_name),
+            ("OK_OBSERVER_HOSTING_NAMESPACE", hosting_namespace),
+            ("OK_OBSERVER_HOSTING_DEPLOYMENT", hosting_deployment),
+        ):
             if not DNS_LABEL.fullmatch(value):
                 raise ValueError(f"{name} must be a DNS label.")
+        if hosting_name == management_name:
+            raise ValueError("The hosting cluster must be distinct from the management plane.")
         return cls(
+            source_mode=source_mode,
             namespace=namespace,
             environment_id=bounded_string(environment.get("OK_OBSERVER_ENVIRONMENT_ID"), "openkubes-management"),
             environment_name=bounded_string(environment.get("OK_OBSERVER_ENVIRONMENT_NAME"), "OpenKubes management plane"),
@@ -92,6 +112,10 @@ class ProducerConfig:
             management_profile=bounded_string(environment.get("OK_OBSERVER_MANAGEMENT_PROFILE"), "Management plane"),
             management_region=bounded_string(environment.get("OK_OBSERVER_MANAGEMENT_REGION"), "unknown"),
             management_kubernetes_version=bounded_string(environment.get("OK_OBSERVER_MANAGEMENT_KUBERNETES_VERSION"), "unknown"),
+            hosting_name=hosting_name,
+            hosting_namespace=hosting_namespace,
+            hosting_deployment=hosting_deployment,
+            hosting_region=bounded_string(environment.get("OK_OBSERVER_HOSTING_REGION"), "unknown"),
         )
 
 
@@ -175,10 +199,25 @@ class KubernetesApiClient:
         return cls(host=host, port=port, timeout_seconds=timeout)
 
     def list_cluster_claims(self, namespace: str) -> dict[str, Any]:
+        path = f"/apis/platform.openkubes.ai/v1alpha1/namespaces/{quote(namespace, safe='')}/kubevirtclusterclaims?limit=500"
+        payload = self._get_json(path)
+        if not isinstance(payload.get("items"), list):
+            raise RuntimeError("The Kubernetes API returned an incompatible claim list.")
+        return payload
+
+    def read_hosting_cluster(self, namespace: str, deployment: str) -> dict[str, Any]:
+        return {
+            "version": self._get_json("/version"),
+            "nodes": self._get_json("/api/v1/nodes?limit=500"),
+            "deployment": self._get_json(
+                f"/apis/apps/v1/namespaces/{quote(namespace, safe='')}/deployments/{quote(deployment, safe='')}"
+            ),
+        }
+
+    def _get_json(self, path: str) -> dict[str, Any]:
         token = self.token_file.read_text(encoding="utf-8").strip()
         if not token:
             raise RuntimeError("The mounted ServiceAccount token is empty.")
-        path = f"/apis/platform.openkubes.ai/v1alpha1/namespaces/{quote(namespace, safe='')}/kubevirtclusterclaims?limit=500"
         request = Request(
             f"{self.base_url}{path}",
             method="GET",
@@ -189,10 +228,10 @@ class KubernetesApiClient:
                 raise RuntimeError("The Kubernetes API rejected the read-only observed-state query.")
             body = response.read(2 * 1024 * 1024 + 1)
             if len(body) > 2 * 1024 * 1024:
-                raise RuntimeError("The Kubernetes API claim list exceeds the response limit.")
+                raise RuntimeError("The Kubernetes API response exceeds the response limit.")
             payload = json.loads(body)
-        if not isinstance(payload, dict) or not isinstance(payload.get("items"), list):
-            raise RuntimeError("The Kubernetes API returned an incompatible claim list.")
+        if not isinstance(payload, dict):
+            raise RuntimeError("The Kubernetes API returned an incompatible response.")
         return payload
 
 
@@ -329,6 +368,171 @@ def build_observed_state(claim_list: dict[str, Any], config: ProducerConfig, now
     }
 
 
+def non_negative_integer(value: Any) -> int | None:
+    if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+        return None
+    return value
+
+
+def node_readiness(nodes: dict[str, Any]) -> tuple[str, int, int, int]:
+    items = nodes.get("items")
+    if not isinstance(items, list) or len(items) > 500:
+        raise ValueError("The Kubernetes Node list is incompatible or exceeds the item limit.")
+    ready = 0
+    not_ready = 0
+    unknown = 0
+    for node in items:
+        if not isinstance(node, dict):
+            raise ValueError("Every Kubernetes Node must be an object.")
+        conditions = node.get("status", {}).get("conditions", [])
+        ready_status = next(
+            (
+                condition.get("status")
+                for condition in conditions
+                if isinstance(condition, dict) and condition.get("type") == "Ready"
+            ),
+            None,
+        ) if isinstance(conditions, list) else None
+        if ready_status == "True":
+            ready += 1
+        elif ready_status == "False":
+            not_ready += 1
+        else:
+            unknown += 1
+    if not items or unknown:
+        overall = "Unknown"
+    elif not_ready:
+        overall = "Pending"
+    else:
+        overall = "Ready"
+    return overall, ready, not_ready, unknown
+
+
+def deployment_readiness(deployment: dict[str, Any]) -> tuple[str, int | None, int | None]:
+    metadata = deployment.get("metadata", {})
+    spec = deployment.get("spec", {})
+    status = deployment.get("status", {})
+    if not all(isinstance(value, dict) for value in (metadata, spec, status)):
+        raise ValueError("The Console Deployment response is incompatible.")
+    generation = non_negative_integer(metadata.get("generation"))
+    observed_generation = non_negative_integer(status.get("observedGeneration"))
+    desired = non_negative_integer(spec.get("replicas", 1))
+    available = non_negative_integer(status.get("availableReplicas", 0))
+    if None in (generation, observed_generation, desired, available) or desired == 0:
+        return "Unknown", desired, available
+    if observed_generation >= generation and available >= desired:
+        return "Ready", desired, available
+    return "Pending", desired, available
+
+
+def build_hosting_cluster_state(
+    observation: dict[str, Any],
+    config: ProducerConfig,
+    now: Callable[[], datetime] = utc_now,
+) -> dict[str, Any]:
+    version = observation.get("version")
+    nodes = observation.get("nodes")
+    deployment = observation.get("deployment")
+    if not all(isinstance(value, dict) for value in (version, nodes, deployment)):
+        raise ValueError("The hosting-cluster observation is incomplete.")
+    observed_at = isoformat(now())
+    kubernetes_version = bounded_string(version.get("gitVersion"), "unknown", 64)
+    node_state, ready_nodes, not_ready_nodes, unknown_nodes = node_readiness(nodes)
+    console_state, desired_replicas, available_replicas = deployment_readiness(deployment)
+    if "Pending" in {node_state, console_state}:
+        hosting_state = "Pending"
+    elif node_state == console_state == "Ready":
+        hosting_state = "Ready"
+    else:
+        hosting_state = "Unknown"
+    node_revision = bounded_string(nodes.get("metadata", {}).get("resourceVersion"), "unknown", 128)
+    deployment_revision = bounded_string(deployment.get("metadata", {}).get("resourceVersion"), "unknown", 128)
+    source_revision = f"kubernetes:{kubernetes_version};nodes:{node_revision};deployment:{deployment_revision}"
+    hosting_evidence_id = f"ev-{config.hosting_name}-hosting-state"
+    management_evidence_id = "ev-ok-mgmt-source-boundary"
+    management_cluster = {
+        "id": f"cluster-{config.management_name}",
+        "name": config.management_name,
+        "role": "Management plane",
+        "provider": config.management_provider,
+        "profile": config.management_profile,
+        "kubernetesVersion": config.management_kubernetes_version,
+        "region": config.management_region,
+        "readiness": "Unknown",
+        "compatibility": "Read only",
+        "contractVersion": "unknown",
+        "revision": "not-observed-by-hosting-source",
+        "evidenceId": management_evidence_id,
+        "capabilities": [],
+        "lifecycle": [
+            {"label": "Source boundary", "state": "Unknown", "detail": "The hosting-cluster source does not observe the OpenKubes management plane."},
+            {"label": "Compositions", "state": "Unknown", "detail": "Composition state is outside this bounded Phase B1 source."},
+        ],
+    }
+    hosting_cluster = {
+        "id": f"cluster-{config.hosting_name}",
+        "name": config.hosting_name,
+        "role": "Workload cluster",
+        "provider": "Kubernetes",
+        "profile": "Console hosting cluster",
+        "kubernetesVersion": kubernetes_version,
+        "region": config.hosting_region,
+        "readiness": hosting_state,
+        "compatibility": "Read only",
+        "contractVersion": "kubernetes.io/core+apps/v1",
+        "revision": f"nodes:{node_revision};deployment:{deployment_revision}",
+        "evidenceId": hosting_evidence_id,
+        "capabilities": [],
+        "lifecycle": [
+            {"label": "Kubernetes API", "state": "Ready", "detail": "The bounded read-only Kubernetes API queries completed."},
+            {"label": "Nodes", "state": node_state, "detail": f"Ready: {ready_nodes}; not ready: {not_ready_nodes}; unknown: {unknown_nodes}."},
+            {"label": "Console workload", "state": console_state, "detail": f"Available replicas: {available_replicas if available_replicas is not None else 'unknown'} of {desired_replicas if desired_replicas is not None else 'unknown'}."},
+            {"label": "OpenKubes Compositions", "state": "Unknown", "detail": "Composition and multi-cluster state are intentionally outside Phase B1."},
+        ],
+    }
+    return {
+        "apiVersion": QUERY_VERSION,
+        "kind": QUERY_KIND,
+        "metadata": {"observedAt": observed_at, "sourceRevision": source_revision, "partial": True},
+        "data": {
+            "environment": {"id": config.environment_id, "displayName": config.environment_name},
+            "metrics": {
+                "capabilities": {"total": 0, "ready": 0, "pending": 0, "failed": 0, "unknown": 0},
+                "workloadClaims": {"total": 0, "ready": 0, "pending": 0, "failed": 0, "unknown": 0},
+                "openFindings": {"total": 0, "critical": 0},
+            },
+            "clusters": [management_cluster, hosting_cluster],
+            "placements": [],
+            "evidence": [
+                {
+                    "id": management_evidence_id,
+                    "title": "Management plane outside hosting source",
+                    "type": "Observation",
+                    "outcome": "Unknown",
+                    "clusterId": f"cluster-{config.management_name}",
+                    "contract": "Unavailable",
+                    "revision": "not-observed-by-hosting-source",
+                    "observedAt": observed_at,
+                    "source": "OpenKubes hosting-cluster source boundary",
+                    "summary": f"{config.management_name} identity is configured, but no management-plane or Composition state is observed in Phase B1.",
+                    "classification": "Current",
+                },
+                {
+                    "id": hosting_evidence_id,
+                    "title": f"{config.hosting_name} hosting-cluster state",
+                    "type": "Observation",
+                    "outcome": hosting_state,
+                    "clusterId": f"cluster-{config.hosting_name}",
+                    "contract": "Kubernetes core/apps v1",
+                    "revision": f"nodes:{node_revision};deployment:{deployment_revision}",
+                    "observedAt": observed_at,
+                    "source": "Bounded Kubernetes API projection",
+                    "summary": f"Console hosting cluster: {ready_nodes} Ready Nodes; Console replicas {available_replicas if available_replicas is not None else 'unknown'}/{desired_replicas if desired_replicas is not None else 'unknown'} available.",
+                    "classification": "Current",
+                },
+            ],
+        },
+    }
 class ObservedStateProducer:
     def __init__(self, client: KubernetesApiClient, config: ProducerConfig, now: Callable[[], datetime] = utc_now) -> None:
         self.client = client
@@ -336,6 +540,12 @@ class ObservedStateProducer:
         self.now = now
 
     def snapshot(self) -> dict[str, Any]:
+        if self.config.source_mode == "hosting-cluster":
+            observation = self.client.read_hosting_cluster(
+                self.config.hosting_namespace,
+                self.config.hosting_deployment,
+            )
+            return build_hosting_cluster_state(observation, self.config, self.now)
         return build_observed_state(self.client.list_cluster_claims(self.config.namespace), self.config, self.now)
 
 
