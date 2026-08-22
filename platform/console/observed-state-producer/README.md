@@ -63,6 +63,12 @@ podman build -f platform/console/observed-state-producer/Containerfile \
 GitHub Actions runs the same deterministic verification and builds the non-root
 container without publishing it.
 
+The separate OK-171 trusted-tag workflow publishes reviewed development
+candidates to `ghcr.io/openkubes/observed-state-producer`. Its immutable image,
+supply-chain, signing and verification contract is documented in
+`OK-171-EVIDENCE.md`. Deployment manifests must use the recorded digest, never
+only the discovery tag.
+
 Before deployment, replace the image placeholder in `manifests.yaml` with a
 reviewed immutable digest and provision `Secret/observed-state-producer-tls`
 with `tls.crt`, `tls.key`, and `client-ca.crt`. Private keys are mounted read
