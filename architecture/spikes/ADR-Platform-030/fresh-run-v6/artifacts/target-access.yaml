@@ -1,0 +1,284 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ok-observability
+  labels:
+    pod-security.kubernetes.io/enforce: privileged
+    pod-security.kubernetes.io/audit: privileged
+    pod-security.kubernetes.io/warn: privileged
+  annotations:
+    openkubes.io/candidate-status: fresh-run-v6-no-go
+    openkubes.io/execution-fixture: sha256:438a6882d8e22b644c826cb0a6f2856850afd7c7ef71badb44cd66e8db0393ec
+    openkubes.io/intent-revision: sha256:47bb651f6bc0bdb3a7a567efcd4ca4c776f872a63496fa55c2a6aed77d6fa995
+    openkubes.io/platform-revision: sha256:2956184005f4860607e91672fce82164095dee6ebcbe57e5af883951a199c427
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ok141-argocd-manager
+  namespace: kube-system
+  annotations:
+    openkubes.io/candidate-status: fresh-run-v6-no-go
+    openkubes.io/execution-fixture: sha256:438a6882d8e22b644c826cb0a6f2856850afd7c7ef71badb44cd66e8db0393ec
+    openkubes.io/intent-revision: sha256:47bb651f6bc0bdb3a7a567efcd4ca4c776f872a63496fa55c2a6aed77d6fa995
+    openkubes.io/platform-revision: sha256:2956184005f4860607e91672fce82164095dee6ebcbe57e5af883951a199c427
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: ok141-argocd-platform-cluster
+  annotations:
+    openkubes.io/candidate-status: fresh-run-v6-no-go
+    openkubes.io/intent-revision: sha256:47bb651f6bc0bdb3a7a567efcd4ca4c776f872a63496fa55c2a6aed77d6fa995
+    openkubes.io/platform-revision: sha256:2956184005f4860607e91672fce82164095dee6ebcbe57e5af883951a199c427
+    openkubes.io/execution-fixture: sha256:438a6882d8e22b644c826cb0a6f2856850afd7c7ef71badb44cd66e8db0393ec
+rules:
+- apiGroups:
+  - ''
+  resources:
+  - namespaces
+  verbs:
+  - list
+  - watch
+- apiGroups:
+  - ''
+  resources:
+  - namespaces
+  resourceNames:
+  - ok-observability
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - apiextensions.k8s.io
+  resources:
+  - customresourcedefinitions
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - patch
+  - update
+  - delete
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - clusterroles
+  - clusterrolebindings
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - patch
+  - update
+  - delete
+- apiGroups:
+  - admissionregistration.k8s.io
+  resources:
+  - mutatingwebhookconfigurations
+  - validatingwebhookconfigurations
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - patch
+  - update
+  - delete
+- apiGroups:
+  - authorization.k8s.io
+  resources:
+  - selfsubjectaccessreviews
+  verbs:
+  - create
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - clusterroles
+  resourceNames:
+  - disposable-ok141-observability-core-kube-state-metrics
+  - ok-observability-grafana-clusterrole
+  - ok-observability-log-collector
+  - ok-observability-operator
+  - ok-observability-prometheus
+  verbs:
+  - bind
+  - escalate
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: ok141-argocd-platform-cluster
+  annotations:
+    openkubes.io/candidate-status: fresh-run-v6-no-go
+    openkubes.io/intent-revision: sha256:47bb651f6bc0bdb3a7a567efcd4ca4c776f872a63496fa55c2a6aed77d6fa995
+    openkubes.io/platform-revision: sha256:2956184005f4860607e91672fce82164095dee6ebcbe57e5af883951a199c427
+    openkubes.io/execution-fixture: sha256:438a6882d8e22b644c826cb0a6f2856850afd7c7ef71badb44cd66e8db0393ec
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: ok141-argocd-platform-cluster
+subjects:
+- kind: ServiceAccount
+  name: ok141-argocd-manager
+  namespace: kube-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: ok141-argocd-platform
+  namespace: ok-observability
+  annotations:
+    openkubes.io/candidate-status: fresh-run-v6-no-go
+    openkubes.io/intent-revision: sha256:47bb651f6bc0bdb3a7a567efcd4ca4c776f872a63496fa55c2a6aed77d6fa995
+    openkubes.io/platform-revision: sha256:2956184005f4860607e91672fce82164095dee6ebcbe57e5af883951a199c427
+    openkubes.io/execution-fixture: sha256:438a6882d8e22b644c826cb0a6f2856850afd7c7ef71badb44cd66e8db0393ec
+rules:
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  - persistentvolumeclaims
+  - pods
+  - secrets
+  - services
+  - serviceaccounts
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - patch
+  - update
+  - delete
+- apiGroups:
+  - apps
+  resources:
+  - daemonsets
+  - deployments
+  - statefulsets
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - patch
+  - update
+  - delete
+- apiGroups:
+  - batch
+  resources:
+  - jobs
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - patch
+  - update
+  - delete
+- apiGroups:
+  - policy
+  resources:
+  - poddisruptionbudgets
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - patch
+  - update
+  - delete
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - roles
+  - rolebindings
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - patch
+  - update
+  - delete
+- apiGroups:
+  - monitoring.coreos.com
+  resources:
+  - alertmanagers
+  - prometheuses
+  - prometheusrules
+  - servicemonitors
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - patch
+  - update
+  - delete
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: ok141-argocd-platform
+  namespace: ok-observability
+  annotations:
+    openkubes.io/candidate-status: fresh-run-v6-no-go
+    openkubes.io/intent-revision: sha256:47bb651f6bc0bdb3a7a567efcd4ca4c776f872a63496fa55c2a6aed77d6fa995
+    openkubes.io/platform-revision: sha256:2956184005f4860607e91672fce82164095dee6ebcbe57e5af883951a199c427
+    openkubes.io/execution-fixture: sha256:438a6882d8e22b644c826cb0a6f2856850afd7c7ef71badb44cd66e8db0393ec
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: ok141-argocd-platform
+subjects:
+- kind: ServiceAccount
+  name: ok141-argocd-manager
+  namespace: kube-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: ok141-argocd-kube-system
+  namespace: kube-system
+  annotations:
+    openkubes.io/candidate-status: fresh-run-v6-no-go
+    openkubes.io/intent-revision: sha256:47bb651f6bc0bdb3a7a567efcd4ca4c776f872a63496fa55c2a6aed77d6fa995
+    openkubes.io/platform-revision: sha256:2956184005f4860607e91672fce82164095dee6ebcbe57e5af883951a199c427
+    openkubes.io/execution-fixture: sha256:438a6882d8e22b644c826cb0a6f2856850afd7c7ef71badb44cd66e8db0393ec
+rules:
+- apiGroups:
+  - ''
+  resources:
+  - services
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - patch
+  - update
+  - delete
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: ok141-argocd-kube-system
+  namespace: kube-system
+  annotations:
+    openkubes.io/candidate-status: fresh-run-v6-no-go
+    openkubes.io/intent-revision: sha256:47bb651f6bc0bdb3a7a567efcd4ca4c776f872a63496fa55c2a6aed77d6fa995
+    openkubes.io/platform-revision: sha256:2956184005f4860607e91672fce82164095dee6ebcbe57e5af883951a199c427
+    openkubes.io/execution-fixture: sha256:438a6882d8e22b644c826cb0a6f2856850afd7c7ef71badb44cd66e8db0393ec
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: ok141-argocd-kube-system
+subjects:
+- kind: ServiceAccount
+  name: ok141-argocd-manager
+  namespace: kube-system
