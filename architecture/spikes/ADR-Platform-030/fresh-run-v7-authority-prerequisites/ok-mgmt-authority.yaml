@@ -1,0 +1,156 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: ok147-fresh-run-v7-management-writer
+rules:
+- apiGroups:
+  - ''
+  resources:
+  - secrets
+  verbs:
+  - get
+  - create
+- apiGroups:
+  - cluster.x-k8s.io
+  resources:
+  - clusters
+  - machinedeployments
+  verbs:
+  - get
+  - create
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - kubevirtclusters
+  - kubevirtmachinetemplates
+  verbs:
+  - get
+  - create
+- apiGroups:
+  - controlplane.cluster.x-k8s.io
+  resources:
+  - taloscontrolplanes
+  verbs:
+  - get
+  - create
+- apiGroups:
+  - bootstrap.cluster.x-k8s.io
+  resources:
+  - talosconfigtemplates
+  verbs:
+  - get
+  - create
+- apiGroups:
+  - addons.cluster.x-k8s.io
+  resources:
+  - helmchartproxies
+  verbs:
+  - get
+  - create
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: ok147-fresh-run-v7-management-writer
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: ok147-fresh-run-v7-management-writer
+subjects:
+- kind: ServiceAccount
+  name: ok147-management-writer
+  namespace: openkubes-execution-system
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: ok147-fresh-run-v7-management-writer
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+    - apiGroups:
+      - ''
+      apiVersions:
+      - v1
+      operations:
+      - CREATE
+      resources:
+      - secrets
+      scope: Namespaced
+    - apiGroups:
+      - cluster.x-k8s.io
+      apiVersions:
+      - v1beta2
+      operations:
+      - CREATE
+      resources:
+      - clusters
+      - machinedeployments
+      scope: Namespaced
+    - apiGroups:
+      - infrastructure.cluster.x-k8s.io
+      apiVersions:
+      - v1alpha1
+      operations:
+      - CREATE
+      resources:
+      - kubevirtclusters
+      - kubevirtmachinetemplates
+      scope: Namespaced
+    - apiGroups:
+      - controlplane.cluster.x-k8s.io
+      apiVersions:
+      - v1alpha3
+      operations:
+      - CREATE
+      resources:
+      - taloscontrolplanes
+      scope: Namespaced
+    - apiGroups:
+      - bootstrap.cluster.x-k8s.io
+      apiVersions:
+      - v1alpha3
+      operations:
+      - CREATE
+      resources:
+      - talosconfigtemplates
+      scope: Namespaced
+    - apiGroups:
+      - addons.cluster.x-k8s.io
+      apiVersions:
+      - v1alpha1
+      operations:
+      - CREATE
+      resources:
+      - helmchartproxies
+      scope: Namespaced
+  validations:
+  - expression: request.userInfo.username != 'system:serviceaccount:openkubes-execution-system:ok147-management-writer'
+      || (request.namespace == 'disposable-ok141' && ((request.resource.group == ''
+      && request.resource.resource == 'secrets' && (object.metadata.name == 'external-infra-kubeconfig-disposable-ok141'))
+      || (request.resource.group == 'cluster.x-k8s.io' && request.resource.resource
+      == 'clusters' && (object.metadata.name == 'disposable-ok141')) || (request.resource.group
+      == 'cluster.x-k8s.io' && request.resource.resource == 'machinedeployments' &&
+      (object.metadata.name == 'disposable-ok141-workers')) || (request.resource.group
+      == 'infrastructure.cluster.x-k8s.io' && request.resource.resource == 'kubevirtclusters'
+      && (object.metadata.name == 'disposable-ok141')) || (request.resource.group
+      == 'infrastructure.cluster.x-k8s.io' && request.resource.resource == 'kubevirtmachinetemplates'
+      && (object.metadata.name == 'disposable-ok141-cp-7f5dd4276432' || object.metadata.name
+      == 'disposable-ok141-workers-7f5dd4276432')) || (request.resource.group == 'controlplane.cluster.x-k8s.io'
+      && request.resource.resource == 'taloscontrolplanes' && (object.metadata.name
+      == 'disposable-ok141-cp')) || (request.resource.group == 'bootstrap.cluster.x-k8s.io'
+      && request.resource.resource == 'talosconfigtemplates' && (object.metadata.name
+      == 'disposable-ok141-workers-v1-9-6')) || (request.resource.group == 'addons.cluster.x-k8s.io'
+      && request.resource.resource == 'helmchartproxies' && (object.metadata.name
+      == 'disposable-ok141-cilium'))))
+    message: Fresh-Run-v7 management writer is restricted to exact disposable objects
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: ok147-fresh-run-v7-management-writer
+spec:
+  policyName: ok147-fresh-run-v7-management-writer
+  validationActions:
+  - Deny
