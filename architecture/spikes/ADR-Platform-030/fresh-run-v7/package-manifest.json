@@ -1,0 +1,62 @@
+{
+  "format": "ok141-fresh-run-package/v7",
+  "authorizationState": "NO-GO",
+  "phaseRFixture": "sha256:438a6882d8e22b644c826cb0a6f2856850afd7c7ef71badb44cd66e8db0393ec",
+  "intentRevision": "sha256:47bb651f6bc0bdb3a7a567efcd4ca4c776f872a63496fa55c2a6aed77d6fa995",
+  "enablementRevision": "sha256:2a849d69e9c64344e907c1bce3bb1abf3d8f77217377081a5be055d62c213300",
+  "platformRevision": "sha256:2956184005f4860607e91672fce82164095dee6ebcbe57e5af883951a199c427",
+  "runnerImage": "ghcr.io/openkubes/ok-cluster-runner@sha256:86b5b1175944785d787fcc1b408114d31341c67be90841f896aedc43389f5af2",
+  "runnerProvenance": {
+    "receiptPath": "runner-publication-receipt.json",
+    "receiptDigest": "sha256:0af7929b2e26383d175c79dd5dea8c93cdca17b3a92fecb148cc7fde5f283a67",
+    "sourceSha": "4a9a650c4270b2a572e7de4a7d3f3b45b2837330",
+    "workflowRunUrl": "https://github.com/openkubes/ok-cluster/actions/runs/32572860044",
+    "publicationContractDigest": "sha256:851ad0f6d46bcc28bd0d6a0f2c4b7c3d1696c7915098443993e644a0768c64a9",
+    "githubAttestationVerificationDigest": "sha256:f6a8c6de76c389da048c1eb2021e48a9b8b0d1910c7ff744b7c5af0d6df82e6a",
+    "pullbackByDigestVerified": true
+  },
+  "planPath": "staged-plan.json",
+  "planDigest": "sha256:4f61e81b3f3dba5a2819e5be93764486d5a936f3fb2ba153a80d5866801af19c",
+  "artifacts": {
+    "aggregate-evidence-profile.json": "sha256:55182c9a484c0a4451356b41fee89ad05b1dc36849d7179c5de3dd2a0a14eb44",
+    "cluster-lifecycle.yaml": "sha256:2ade54b6b4c83e3f6195769aefe428c952b96d2d059c6f34f44466ffbbb3b182",
+    "enablement.yaml": "sha256:de26c4b1d1cce4867b530b527a6d1c463317c151899c817355612f067dc54a79",
+    "lifecycle-observation.json": "sha256:931a060b6236b8c8b12d22583ea09caa5f8582f159603da7376f0dcacaecab7d",
+    "network-profile.json": "sha256:29c61c43f9abbfa417ef03717ad799ee49495b45a3c0da611a42831268bf182c",
+    "platform-applications.yaml": "sha256:c34281ca1c561603bd4f4e5a88b37be7c2a47dc2f2081b776e6ab1aa41a72999",
+    "platform-profile.json": "sha256:0aee86e52d62df072cfe1e4be4b5100567d6cdc9fe96fae656b87d9f1bccc895",
+    "provider-access-policy.json": "sha256:06c7aed0997611819acc0606dd16efc7a966a8b8d8589b290b887bed256a0a01",
+    "provider-prerequisites.yaml": "sha256:1e068f7dde0c89812ffb75473b62d48873ab73277e22b1f197eed7c6b28cc76a",
+    "runtime-binding.json": "sha256:fde43a70edb69dca890c35c4dd0ac9a843d2956c550247f6a2f5648c06a08dc8",
+    "target-access.yaml": "sha256:b18cd803428dbb0938156c0adc5aaa0d75d870c7fbd99c3d0c1cff196ff6f763",
+    "target-credential.json": "sha256:8877f3b43d7586789254e7debe153bd5dc3261ca58ab85196602554045408baf",
+    "target-registration.yaml": "sha256:cca5c7f8fb6fe562a0f232abc0d228e3d48b992a8a5ccbdac81e5f0e6698743d"
+  },
+  "semanticDigests": {
+    "hcpSpec": "sha256:bf4087ed76e221cf54d1cad09a5d5dfec78bcfa38d285387d93550a41dcfef81",
+    "hrpSpec": "sha256:4ab275346d1262b71106a28e0a9b4f220f3daa08aeaf69c455a6b2034ed1e552",
+    "networkProfile": "sha256:b71d6c111bb602758c9621fada83fcfaf93836ac0375ee33a07ef7439622e17e",
+    "platformProfile": "sha256:47628dda2cde37bb4eb3c49598ac85e008aafb69d6b944c50f549182c4cedac8",
+    "aggregateEvidenceProfile": "sha256:24526a7b818e3b42b69d8cb3b6148ad89bbcac30fa8a1716d419763c6c95b1cf"
+  },
+  "boundaries": {
+    "clusterContact": false,
+    "mutationAuthorized": false,
+    "credentialsIncluded": false,
+    "runtimeTargetIdentityMaterialized": false
+  },
+  "runtimeNetwork": {
+    "allocationMode": "dev-static-preflight-required",
+    "workloadAPI": {
+      "address": "192.168.100.213",
+      "cidr": "192.168.100.213/32",
+      "port": 6443
+    },
+    "evidenceCollector": {
+      "address": "192.168.100.214",
+      "cidr": "192.168.100.214/32",
+      "port": 8443
+    },
+    "allocationAuthority": "ok-infra/MetalLB"
+  }
+}
