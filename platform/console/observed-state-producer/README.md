@@ -35,6 +35,9 @@ projection without changing the Console BFF Presentation Contract.
 The service uses only the Python standard library. In-cluster configuration is
 read from the standard ServiceAccount token and CA mounts. Important values:
 
+The runtime image removes `pip`, packaging tools and all third-party
+`site-packages`; dependencies must not be installed dynamically at startup.
+
 | Variable | Default |
 | --- | --- |
 | `OK_OBSERVER_NAMESPACE` | `openkubes-system` |

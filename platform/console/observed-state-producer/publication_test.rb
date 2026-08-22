@@ -5,6 +5,7 @@ abort("producer base image must be pinned by digest") unless containerfile.match
 abort("producer source label is required") unless containerfile.include?('org.opencontainers.image.source="https://github.com/openkubes/openkubes"')
 abort("producer revision label is required") unless containerfile.include?('org.opencontainers.image.revision="${VCS_REF}"')
 abort("producer must remain non-root") unless containerfile.include?("USER 65532:65532")
+abort("runtime Python packaging tools must be removed") unless containerfile.include?("rm -rf /usr/local/lib/python3.13/site-packages/* /usr/local/bin/pip*")
 
 abort("publication must use only the bounded tag trigger") unless workflow.include?("tags:\n      - 'console-observer-dev-v*'")
 abort("publication must not run for pull requests") if workflow.match?(/^\s*pull_request:/)
@@ -20,6 +21,7 @@ abort("SPDX SBOM is required") unless workflow.include?("format: spdx-json") && 
 abort("build provenance is required") unless workflow.include?("actions/attest-build-provenance@")
 abort("HIGH/CRITICAL scan is required") unless workflow.include?("severity: CRITICAL,HIGH")
 abort("keyless signing and verification are required") unless workflow.include?("cosign sign --yes") && workflow.include?("cosign verify")
+abort("vulnerability gate must run before third-party SBOM generation") unless workflow.index("Enforce the development vulnerability gate") < workflow.index("Generate SPDX SBOM")
 
 workflow.scan(/^\s*uses:\s+([^\s#]+)/).flatten.each do |action|
   abort("workflow action is not pinned: #{action}") unless action.match?(/@[a-f0-9]{40}$/)

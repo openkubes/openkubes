@@ -33,8 +33,25 @@ docker build \
 ```
 
 The pinned Python base is a multi-platform OCI index. The runtime retains the
-existing non-root UID `65532`, contains no application credential, and remains
-compatible with the manifest's read-only root filesystem.
+existing non-root UID `65532`, removes all Python packaging tools and
+third-party `site-packages`, contains no application credential, and remains
+compatible with the manifest's read-only root filesystem. The producer uses
+only the Python standard library.
+
+## Rejected candidate
+
+`console-observer-dev-v0.1.0-rc.1` published image digest
+`sha256:f2072ebc0cc21c37a6796022daf337c1d9d102186af1431ac1910ebe9829ca1c`,
+but failed closed before attestation and signing. Trivy reported two HIGH
+findings in libraries vendored by the otherwise unused runtime `pip` package:
+
+- `msgpack 1.1.2` / `GHSA-6v7p-g79w-8964`;
+- `setuptools 70.3.0` / `CVE-2025-47273`.
+
+The candidate is rejected and must never be deployed. Its tag and digest are
+retained as failure evidence rather than overwritten. The remediation removes
+the complete unused packaging surface and scans before generating the external
+SBOM. A later signed candidate must use a new tag.
 
 ## Candidate procedure
 

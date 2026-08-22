@@ -7,7 +7,9 @@ LABEL org.opencontainers.image.source="https://github.com/openkubes/openkubes" \
       org.opencontainers.image.revision="${VCS_REF}" \
       org.opencontainers.image.title="OpenKubes observed-state producer"
 
-RUN addgroup -S openkubes && adduser -S -G openkubes -u 65532 openkubes
+RUN addgroup -S openkubes \
+    && adduser -S -G openkubes -u 65532 openkubes \
+    && rm -rf /usr/local/lib/python3.13/site-packages/* /usr/local/bin/pip*
 WORKDIR /app
 COPY app.py /app/app.py
 USER 65532:65532
