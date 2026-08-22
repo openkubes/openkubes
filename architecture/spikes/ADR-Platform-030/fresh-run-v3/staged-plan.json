@@ -1,0 +1,206 @@
+{
+  "format": "ok147-staged-execution-plan/v1",
+  "contractIdentity": {
+    "namespace": "disposable-ok141",
+    "name": "disposable-ok141"
+  },
+  "intentRevision": "sha256:47bb651f6bc0bdb3a7a567efcd4ca4c776f872a63496fa55c2a6aed77d6fa995",
+  "enablementRevision": "sha256:2a849d69e9c64344e907c1bce3bb1abf3d8f77217377081a5be055d62c213300",
+  "platformRevision": "sha256:2956184005f4860607e91672fce82164095dee6ebcbe57e5af883951a199c427",
+  "executionFixture": "sha256:438a6882d8e22b644c826cb0a6f2856850afd7c7ef71badb44cd66e8db0393ec",
+  "authorizationState": "NO-GO",
+  "authorities": {
+    "infrastructure": "ok-infra",
+    "management": "ok-mgmt",
+    "gitOps": "ok-shared",
+    "workloadIdentityMode": "capi-cluster-uid/v1",
+    "runnerIdentityMode": "bounded-job/v1"
+  },
+  "stages": [
+    {
+      "id": "provider-prerequisites",
+      "order": 1,
+      "kind": "Submission",
+      "authority": "infrastructure",
+      "requires": [],
+      "inputs": [
+        {
+          "name": "projection.provider-prerequisites",
+          "digest": "sha256:1e068f7dde0c89812ffb75473b62d48873ab73277e22b1f197eed7c6b28cc76a"
+        }
+      ],
+      "grantOperation": "CreateProviderPrerequisites"
+    },
+    {
+      "id": "cluster-lifecycle",
+      "order": 2,
+      "kind": "Submission",
+      "authority": "management",
+      "requires": [
+        "provider-prerequisites"
+      ],
+      "inputs": [
+        {
+          "name": "projection.cluster-lifecycle",
+          "digest": "sha256:ddf65af6c5968ef122b960bbe0b998c398552d2a72d8ef8a9efd89b69431614e"
+        }
+      ],
+      "grantOperation": "CreateCluster"
+    },
+    {
+      "id": "lifecycle-observation",
+      "order": 3,
+      "kind": "Observation",
+      "authority": "management",
+      "requires": [
+        "cluster-lifecycle"
+      ],
+      "inputs": [
+        {
+          "name": "stage.lifecycle-observation",
+          "digest": "sha256:931a060b6236b8c8b12d22583ea09caa5f8582f159603da7376f0dcacaecab7d"
+        }
+      ]
+    },
+    {
+      "id": "enablement",
+      "order": 4,
+      "kind": "Submission",
+      "authority": "management",
+      "requires": [
+        "lifecycle-observation"
+      ],
+      "inputs": [
+        {
+          "name": "stage.enablement",
+          "digest": "sha256:248e5d824231cdb2110dcc217033be6b138f9c5fea16b3fe95b30eb850e125ab"
+        }
+      ],
+      "grantOperation": "CreateEnablement"
+    },
+    {
+      "id": "network-observation",
+      "order": 5,
+      "kind": "Observation",
+      "authority": "workload",
+      "requires": [
+        "enablement"
+      ],
+      "inputs": [
+        {
+          "name": "stage.network-observation",
+          "digest": "sha256:b71d6c111bb602758c9621fada83fcfaf93836ac0375ee33a07ef7439622e17e"
+        }
+      ]
+    },
+    {
+      "id": "runtime-binding",
+      "order": 6,
+      "kind": "Binding",
+      "authority": "runner",
+      "requires": [
+        "network-observation"
+      ],
+      "inputs": [
+        {
+          "name": "stage.runtime-binding",
+          "digest": "sha256:fde43a70edb69dca890c35c4dd0ac9a843d2956c550247f6a2f5648c06a08dc8"
+        }
+      ]
+    },
+    {
+      "id": "target-access",
+      "order": 7,
+      "kind": "Submission",
+      "authority": "workload",
+      "requires": [
+        "runtime-binding"
+      ],
+      "inputs": [
+        {
+          "name": "stage.target-access",
+          "digest": "sha256:9e53124e9dfa5f2e3bbe022c3e0e1567a2570eec59bd8bfc73099c1e514e5596"
+        }
+      ],
+      "grantOperation": "CreateTargetAccess"
+    },
+    {
+      "id": "target-credential",
+      "order": 8,
+      "kind": "Credential",
+      "authority": "workload",
+      "requires": [
+        "target-access"
+      ],
+      "inputs": [
+        {
+          "name": "stage.target-credential",
+          "digest": "sha256:8877f3b43d7586789254e7debe153bd5dc3261ca58ab85196602554045408baf"
+        }
+      ],
+      "grantOperation": "IssueTargetCredential"
+    },
+    {
+      "id": "target-registration",
+      "order": 9,
+      "kind": "Submission",
+      "authority": "gitops",
+      "requires": [
+        "target-credential"
+      ],
+      "inputs": [
+        {
+          "name": "stage.target-registration",
+          "digest": "sha256:f415069f3f6bd918ce5aa14fe287ffaf403184a3808f44146c9c0263a47a23ef"
+        }
+      ],
+      "grantOperation": "RegisterTarget"
+    },
+    {
+      "id": "platform-applications",
+      "order": 10,
+      "kind": "Submission",
+      "authority": "gitops",
+      "requires": [
+        "target-registration"
+      ],
+      "inputs": [
+        {
+          "name": "stage.platform-applications",
+          "digest": "sha256:c34281ca1c561603bd4f4e5a88b37be7c2a47dc2f2081b776e6ab1aa41a72999"
+        }
+      ],
+      "grantOperation": "CreatePlatformApplications"
+    },
+    {
+      "id": "platform-observation",
+      "order": 11,
+      "kind": "Observation",
+      "authority": "gitops",
+      "requires": [
+        "platform-applications"
+      ],
+      "inputs": [
+        {
+          "name": "stage.platform-observation",
+          "digest": "sha256:47628dda2cde37bb4eb3c49598ac85e008aafb69d6b944c50f549182c4cedac8"
+        }
+      ]
+    },
+    {
+      "id": "aggregate-evidence",
+      "order": 12,
+      "kind": "Evaluation",
+      "authority": "runner",
+      "requires": [
+        "platform-observation"
+      ],
+      "inputs": [
+        {
+          "name": "stage.aggregate-evidence",
+          "digest": "sha256:24526a7b818e3b42b69d8cb3b6148ad89bbcac30fa8a1716d419763c6c95b1cf"
+        }
+      ]
+    }
+  ]
+}

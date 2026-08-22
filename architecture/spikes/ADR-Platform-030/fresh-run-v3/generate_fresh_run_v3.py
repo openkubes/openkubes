@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate the immutable, non-authorizing OK-141 fresh-run package."""
+"""Generate the immutable, non-authorizing OK-141 fresh-run v3 package."""
 
 from __future__ import annotations
 
@@ -24,7 +24,7 @@ FIXTURE = "sha256:438a6882d8e22b644c826cb0a6f2856850afd7c7ef71badb44cd66e8db0393
 TARGET_PLACEHOLDER = "RUNTIME-TARGET-IDENTITY-DIGEST-REQUIRED"
 SOURCE_REPOSITORY = "https://github.com/openkubes/ok-observability.git"
 RUNNER_IMAGE = re.compile(r"^ghcr\.io/openkubes/ok-cluster-runner@sha256:[0-9a-f]{64}$")
-RUNNER_SOURCE_SHA = "0ad5768b4dc35e83b4352ccb2af9bb23967712b6"
+RUNNER_SOURCE_SHA = "fe8b9d578e202d0af50bb621273a632121f6962e"
 RUNNER_RECEIPT_FORMAT = "ok147-runner-publication-receipt/v1"
 
 
@@ -89,7 +89,7 @@ def build_enablement() -> tuple[dict, str, str]:
     hcp = load_documents(source)[0]
     annotations = hcp["metadata"]["annotations"]
     annotations.update({
-        "openkubes.io/candidate-status": "fresh-run-v1-no-go",
+        "openkubes.io/candidate-status": "fresh-run-v3-no-go",
         "openkubes.io/contract-name": "disposable-ok141",
         "openkubes.io/contract-namespace": "disposable-ok141",
         "openkubes.io/intent-revision": R,
@@ -128,7 +128,7 @@ def build_target_access() -> list[dict]:
     for document in documents:
         annotations = document.setdefault("metadata", {}).setdefault("annotations", {})
         annotations.update({
-            "openkubes.io/candidate-status": "fresh-run-v1-no-go",
+            "openkubes.io/candidate-status": "fresh-run-v3-no-go",
             "openkubes.io/intent-revision": R,
             "openkubes.io/platform-revision": P,
             "openkubes.io/execution-fixture": FIXTURE,
@@ -160,7 +160,7 @@ def build_registration() -> list[dict]:
     project = load_documents(SPIKE / "m0b-target-registration-v1/appproject-v5-candidate.yaml")[0]
     secret = load_documents(SPIKE / "m0b-target-registration-v1/cluster-registration-v5.template.yaml")[0]
     project["metadata"]["annotations"] = exact_annotations()
-    project["spec"]["description"] = "Fresh-run-v1 OK-141 P9 AppProject"
+    project["spec"]["description"] = "Fresh-run-v3 OK-141 P9 AppProject"
     secret["metadata"]["annotations"] = {
         **exact_annotations(),
         "openkubes.io/capi-cluster-uid": "RUNTIME-CAPI-UID-REQUIRED",
@@ -371,7 +371,7 @@ def main() -> None:
     write_json(HERE / "staged-plan.json", plan)
 
     manifest = {
-        "format": "ok141-fresh-run-package/v1",
+        "format": "ok141-fresh-run-package/v3",
         "authorizationState": "NO-GO",
         "phaseRFixture": FIXTURE,
         "intentRevision": R,
