@@ -52,6 +52,8 @@ spec:
       serviceAccountName: observed-state-producer
       securityContext:
         runAsNonRoot: true
+        fsGroup: 65532
+        fsGroupChangePolicy: OnRootMismatch
         seccompProfile:
           type: RuntimeDefault
       containers:
@@ -60,21 +62,37 @@ spec:
           image: ghcr.io/openkubes/observed-state-producer:REPLACE_WITH_REVIEWED_DIGEST
           imagePullPolicy: IfNotPresent
           ports:
-            - name: http
-              containerPort: 8080
+            - name: https
+              containerPort: 8443
           env:
             - name: OK_OBSERVER_NAMESPACE
               value: openkubes-system
             - name: OK_OBSERVER_MANAGEMENT_NAME
               value: ok-mgmt
+            - name: OK_OBSERVER_PORT
+              value: "8443"
+            - name: OK_OBSERVER_TLS_CERT_FILE
+              value: /var/run/secrets/openkubes/producer/tls.crt
+            - name: OK_OBSERVER_TLS_KEY_FILE
+              value: /var/run/secrets/openkubes/producer/tls.key
+            - name: OK_OBSERVER_TLS_CLIENT_CA_FILE
+              value: /var/run/secrets/openkubes/producer/client-ca.crt
+            - name: OK_OBSERVER_TLS_CLIENT_IDENTITY
+              value: spiffe://openkubes.io/ns/openkubes-console/sa/ok-console-bff
+          volumeMounts:
+            - name: producer-tls
+              mountPath: /var/run/secrets/openkubes/producer
+              readOnly: true
           readinessProbe:
             httpGet:
               path: /healthz
-              port: http
+              port: https
+              scheme: HTTPS
           livenessProbe:
             httpGet:
               path: /healthz
-              port: http
+              port: https
+              scheme: HTTPS
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
@@ -87,6 +105,11 @@ spec:
             limits:
               cpu: 200m
               memory: 128Mi
+      volumes:
+        - name: producer-tls
+          secret:
+            secretName: observed-state-producer-tls
+            defaultMode: 0440
 ---
 apiVersion: v1
 kind: Service
@@ -97,9 +120,9 @@ spec:
   selector:
     app.kubernetes.io/name: observed-state-producer
   ports:
-    - name: http
-      port: 8080
-      targetPort: http
+    - name: https
+      port: 8443
+      targetPort: https
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
@@ -118,4 +141,4 @@ spec:
               app.kubernetes.io/name: ok-console-bff
       ports:
         - protocol: TCP
-          port: 8080
+          port: 8443

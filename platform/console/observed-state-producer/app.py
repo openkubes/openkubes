@@ -21,6 +21,7 @@ QUERY_PATH = "/api/console-observed-state/v0alpha1"
 CLAIM_API_VERSION = "platform.openkubes.ai/v1alpha1"
 CLAIM_KIND = "KubeVirtClusterClaim"
 DNS_LABEL = re.compile(r"^[a-z0-9]([-a-z0-9]*[a-z0-9])?$")
+MAX_TLS_FILE_BYTES = 64 * 1024
 
 
 def utc_now() -> datetime:
@@ -92,6 +93,53 @@ class ProducerConfig:
             management_region=bounded_string(environment.get("OK_OBSERVER_MANAGEMENT_REGION"), "unknown"),
             management_kubernetes_version=bounded_string(environment.get("OK_OBSERVER_MANAGEMENT_KUBERNETES_VERSION"), "unknown"),
         )
+
+
+@dataclass(frozen=True)
+class TlsConfig:
+    certificate_file: Path
+    private_key_file: Path
+    client_ca_file: Path
+    expected_client_identity: str
+
+    @classmethod
+    def from_environment(cls, environment: dict[str, str] | os._Environ[str] = os.environ) -> "TlsConfig":
+        values = {
+            "OK_OBSERVER_TLS_CERT_FILE": environment.get("OK_OBSERVER_TLS_CERT_FILE", ""),
+            "OK_OBSERVER_TLS_KEY_FILE": environment.get("OK_OBSERVER_TLS_KEY_FILE", ""),
+            "OK_OBSERVER_TLS_CLIENT_CA_FILE": environment.get("OK_OBSERVER_TLS_CLIENT_CA_FILE", ""),
+            "OK_OBSERVER_TLS_CLIENT_IDENTITY": environment.get("OK_OBSERVER_TLS_CLIENT_IDENTITY", ""),
+        }
+        missing = [name for name, value in values.items() if not value]
+        if missing:
+            raise ValueError(f"Missing required TLS file configuration: {', '.join(missing)}")
+        identity = values.pop("OK_OBSERVER_TLS_CLIENT_IDENTITY")
+        if not identity.startswith("spiffe://") or len(identity) > 512:
+            raise ValueError("OK_OBSERVER_TLS_CLIENT_IDENTITY must be a bounded SPIFFE URI.")
+        paths = {name: Path(value) for name, value in values.items()}
+        for name, path in paths.items():
+            if not path.is_file():
+                raise ValueError(f"{name} must reference a mounted regular file.")
+            size = path.stat().st_size
+            if size < 1 or size > MAX_TLS_FILE_BYTES:
+                raise ValueError(f"{name} must contain between 1 and {MAX_TLS_FILE_BYTES} bytes.")
+        return cls(
+            certificate_file=paths["OK_OBSERVER_TLS_CERT_FILE"],
+            private_key_file=paths["OK_OBSERVER_TLS_KEY_FILE"],
+            client_ca_file=paths["OK_OBSERVER_TLS_CLIENT_CA_FILE"],
+            expected_client_identity=identity,
+        )
+
+
+def server_tls_context(config: TlsConfig) -> ssl.SSLContext:
+    context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    context.minimum_version = ssl.TLSVersion.TLSv1_2
+    context.load_cert_chain(certfile=config.certificate_file, keyfile=config.private_key_file)
+    context.load_verify_locations(cafile=config.client_ca_file)
+    # Health probes carry no identity. Query authorization is enforced in the
+    # handler; any client certificate that is presented must chain to this CA.
+    context.verify_mode = ssl.CERT_OPTIONAL
+    return context
 
 
 class KubernetesApiClient:
@@ -291,7 +339,14 @@ class ObservedStateProducer:
         return build_observed_state(self.client.list_cluster_claims(self.config.namespace), self.config, self.now)
 
 
-def handler_for(producer: ObservedStateProducer) -> type[BaseHTTPRequestHandler]:
+def handler_for(
+    producer: ObservedStateProducer,
+    require_client_identity: bool = True,
+    expected_client_identity: str | None = None,
+) -> type[BaseHTTPRequestHandler]:
+    if require_client_identity and not expected_client_identity:
+        raise ValueError("An expected client workload identity is required.")
+
     class Handler(BaseHTTPRequestHandler):
         def send_json(self, status: int, payload: dict[str, Any]) -> None:
             body = json.dumps(payload, separators=(",", ":")).encode("utf-8")
@@ -310,6 +365,13 @@ def handler_for(producer: ObservedStateProducer) -> type[BaseHTTPRequestHandler]
             if self.path != QUERY_PATH:
                 self.send_json(404, {"error": "not_found"})
                 return
+            peer_certificate = getattr(self.connection, "getpeercert", lambda: None)() or {}
+            peer_identities = {
+                value for kind, value in peer_certificate.get("subjectAltName", ()) if kind == "URI"
+            }
+            if require_client_identity and expected_client_identity not in peer_identities:
+                self.send_json(403, {"error": "workload_identity_required"})
+                return
             try:
                 self.send_json(200, producer.snapshot())
             except Exception:
@@ -326,11 +388,16 @@ def handler_for(producer: ObservedStateProducer) -> type[BaseHTTPRequestHandler]
 
 def main() -> None:
     config = ProducerConfig.from_environment()
+    tls = TlsConfig.from_environment()
     client = KubernetesApiClient.from_environment()
     host = os.environ.get("OK_OBSERVER_HOST", "0.0.0.0")
-    port = int(os.environ.get("OK_OBSERVER_PORT", "8080"))
-    server = ThreadingHTTPServer((host, port), handler_for(ObservedStateProducer(client, config)))
-    print(f"OpenKubes observed-state producer listening on {host}:{port}{QUERY_PATH}")
+    port = int(os.environ.get("OK_OBSERVER_PORT", "8443"))
+    server = ThreadingHTTPServer(
+        (host, port),
+        handler_for(ObservedStateProducer(client, config), expected_client_identity=tls.expected_client_identity),
+    )
+    server.socket = server_tls_context(tls).wrap_socket(server.socket, server_side=True)
+    print(f"OpenKubes observed-state producer listening with authenticated TLS on {host}:{port}{QUERY_PATH}")
     server.serve_forever()
 
 
