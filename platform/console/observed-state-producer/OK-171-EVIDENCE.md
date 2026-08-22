@@ -53,15 +53,45 @@ retained as failure evidence rather than overwritten. The remediation removes
 the complete unused packaging surface and scans before generating the external
 SBOM. A later signed candidate must use a new tag.
 
+## Accepted candidate
+
+`console-observer-dev-v0.1.0-rc.2` is the accepted OK-171 development
+candidate:
+
+- source revision: `9ad57d333d5b279b232b20fc47769fa635dcdb23` on `main`;
+- workflow: [Publish observed-state producer run 32582418848](https://github.com/openkubes/openkubes/actions/runs/32582418848);
+- deployment digest: `sha256:e55f1c0576ab3775e7ef32deb4d991b3bed022521c5ed2ffae29241c120acffa`;
+- `linux/amd64`: `sha256:a0fc332a72b1bc791a1e1025f825d0bd5d69861d58b0cb65a5f1e76189413290`;
+- `linux/arm64`: `sha256:f20e3a69d296eec78374ff0069586cdf5e3a8efb1f8962f562f852050084aef6`.
+
+The workflow passed source reachability, unit and manifest tests, multi-platform
+build and publication, the HIGH/CRITICAL Trivy gate, SPDX SBOM generation,
+GitHub build-provenance and SBOM attestations, and keyless Cosign signing and
+verification. Independent verification confirmed that:
+
+- the immutable commit tag resolves to the deployment digest above;
+- both platform images carry the exact source revision and run as UID/GID
+  `65532:65532`;
+- GitHub attestation subjects match the deployment digest, repository, signed
+  tag and publishing workflow;
+- the Sigstore certificate identity and GitHub OIDC issuer match the publishing
+  workflow, with Rekor transparency-log index `2566647732`;
+- the amd64 image starts with a read-only root filesystem, all capabilities
+  dropped and `no-new-privileges`, while `pip`, `setuptools` and `msgpack` are
+  absent.
+
+Only the accepted deployment digest may be consumed by OK-170. The rejected
+`rc.1` digest remains explicitly excluded.
+
 ## Candidate procedure
 
 After the implementation PR is merged and the merge revision is verified on
 `main`, an authorized maintainer creates a signed annotated tag:
 
 ```bash
-git tag -s console-observer-dev-v0.1.0-rc.1 \
-  -m 'OpenKubes observed-state producer development candidate 0.1.0-rc.1'
-git push origin console-observer-dev-v0.1.0-rc.1
+git tag -s console-observer-dev-v0.1.0-rc.N \
+  -m 'OpenKubes observed-state producer development candidate 0.1.0-rc.N'
+git push origin console-observer-dev-v0.1.0-rc.N
 ```
 
 Record the exact tag, source revision, workflow run and resulting digest in
@@ -77,7 +107,7 @@ gh attestation verify \
 
 cosign verify \
   --certificate-identity \
-  'https://github.com/openkubes/openkubes/.github/workflows/publish-console-observed-state-producer.yaml@refs/tags/console-observer-dev-v0.1.0-rc.1' \
+  'https://github.com/openkubes/openkubes/.github/workflows/publish-console-observed-state-producer.yaml@refs/tags/console-observer-dev-v0.1.0-rc.N' \
   --certificate-oidc-issuer 'https://token.actions.githubusercontent.com' \
   'ghcr.io/openkubes/observed-state-producer@sha256:<digest>'
 ```
