@@ -14,6 +14,7 @@ from app import (
     KubernetesApiClient,
     ObservedStateProducer,
     ProducerConfig,
+    TlsConfig,
     build_observed_state,
     handler_for,
 )
@@ -129,6 +130,39 @@ class ApiClientTests(unittest.TestCase):
         self.assertEqual(captured["timeout"], 3)
 
 
+class TlsConfigurationTests(unittest.TestCase):
+    def test_requires_bounded_mounted_tls_files(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for name in ("server.crt", "server.key", "client-ca.crt"):
+                (root / name).write_text("test-only-material", encoding="utf-8")
+            config = TlsConfig.from_environment({
+                "OK_OBSERVER_TLS_CERT_FILE": str(root / "server.crt"),
+                "OK_OBSERVER_TLS_KEY_FILE": str(root / "server.key"),
+                "OK_OBSERVER_TLS_CLIENT_CA_FILE": str(root / "client-ca.crt"),
+                "OK_OBSERVER_TLS_CLIENT_IDENTITY": "spiffe://openkubes.io/ns/openkubes-console/sa/ok-console-bff",
+            })
+
+        self.assertEqual(config.certificate_file.name, "server.crt")
+        self.assertEqual(config.private_key_file.name, "server.key")
+        self.assertEqual(config.client_ca_file.name, "client-ca.crt")
+        self.assertEqual(config.expected_client_identity, "spiffe://openkubes.io/ns/openkubes-console/sa/ok-console-bff")
+
+    def test_rejects_missing_or_empty_tls_material(self):
+        with self.assertRaisesRegex(ValueError, "Missing required TLS"):
+            TlsConfig.from_environment({})
+        with tempfile.TemporaryDirectory() as directory:
+            empty = Path(directory) / "empty"
+            empty.touch()
+            with self.assertRaisesRegex(ValueError, "between 1 and"):
+                TlsConfig.from_environment({
+                    "OK_OBSERVER_TLS_CERT_FILE": str(empty),
+                    "OK_OBSERVER_TLS_KEY_FILE": str(empty),
+                    "OK_OBSERVER_TLS_CLIENT_CA_FILE": str(empty),
+                    "OK_OBSERVER_TLS_CLIENT_IDENTITY": "spiffe://openkubes.io/ns/openkubes-console/sa/ok-console-bff",
+                })
+
+
 class HttpBoundaryTests(unittest.TestCase):
     def setUp(self):
         class Client:
@@ -136,7 +170,7 @@ class HttpBoundaryTests(unittest.TestCase):
                 return claim_list(claim())
 
         producer = ObservedStateProducer(Client(), ProducerConfig(), now=lambda: NOW)
-        self.server = ThreadingHTTPServer(("127.0.0.1", 0), handler_for(producer))
+        self.server = ThreadingHTTPServer(("127.0.0.1", 0), handler_for(producer, require_client_identity=False))
         self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
         self.thread.start()
 
@@ -176,7 +210,7 @@ class HttpBoundaryTests(unittest.TestCase):
         self.server.server_close()
         self.thread.join(timeout=2)
         producer = ObservedStateProducer(FailingClient(), ProducerConfig(), now=lambda: NOW)
-        self.server = ThreadingHTTPServer(("127.0.0.1", 0), handler_for(producer))
+        self.server = ThreadingHTTPServer(("127.0.0.1", 0), handler_for(producer, require_client_identity=False))
         self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
         self.thread.start()
         response, body = self.request("GET", QUERY_PATH)
