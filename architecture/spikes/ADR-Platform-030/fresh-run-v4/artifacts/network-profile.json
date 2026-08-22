@@ -1,0 +1,16 @@
+{
+  "format": "ok147-network-profile/v1",
+  "intentRevision": "sha256:47bb651f6bc0bdb3a7a567efcd4ca4c776f872a63496fa55c2a6aed77d6fa995",
+  "enablementRevision": "sha256:2a849d69e9c64344e907c1bce3bb1abf3d8f77217377081a5be055d62c213300",
+  "expectedNodeCount": 2,
+  "expectedHcpSpecDigest": "sha256:bf4087ed76e221cf54d1cad09a5d5dfec78bcfa38d285387d93550a41dcfef81",
+  "expectedHrpSpecDigest": "sha256:4ab275346d1262b71106a28e0a9b4f220f3daa08aeaf69c455a6b2034ed1e552",
+  "expectedImages": {
+    "ciliumAgent": "quay.io/cilium/cilium:v1.19.6@sha256:0df5b2750b64c49843aba1d649e9eaf61467cb0645ad3171db6f6962c095ac92",
+    "ciliumEnvoy": "quay.io/cilium/cilium-envoy:v1.36.9-1782267392-edeb3f2af56c37c407efa1f63f0b32f595399bbc@sha256:767101fb8a5e38f055778cb43b7aa8eed80450b37f8121effac3d9de9e06dc99",
+    "ciliumOperator": "quay.io/cilium/operator-generic:v1.19.6@sha256:0db4ca4e06969d8904ee036617795d0e9c3228cf7b8d902ba74fc2bb98d2d665"
+  },
+  "minimumProbeFreshnessSeconds": 30,
+  "maximumProbeIntervalSeconds": 60,
+  "cacheExposureSeconds": 30
+}
