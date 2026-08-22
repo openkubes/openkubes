@@ -1,0 +1,9 @@
+{
+  "format": "ok141-lifecycle-observation-policy/v1",
+  "intentRevision": "sha256:47bb651f6bc0bdb3a7a567efcd4ca4c776f872a63496fa55c2a6aed77d6fa995",
+  "expectedControlPlaneReplicas": 1,
+  "expectedWorkerReplicas": 1,
+  "pollIntervalSeconds": 15,
+  "pollTimeoutSeconds": 1800,
+  "failClosedOnStaleGeneration": true
+}
