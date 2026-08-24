@@ -24,6 +24,7 @@ FUNCTIONS := crossplane/tests/functions.yaml
 RENDER_BASE := $(CROSSPLANE) composition render
 RENDER_FLAGS := --crossplane-version=v2.3.3
 YAML_FILES := crossplane/xrd.yaml crossplane/composition.yaml \
+	collector/archivefreshness-rbac.yaml collector/archivefreshness-cronjob.yaml \
 	crossplane/restoreverified-crd.yaml \
 	crossplane/capabilityverified-crd.yaml crossplane/datapolicy-crd.yaml \
 	crossplane/archivefreshness-crd.yaml \
@@ -64,6 +65,7 @@ validate: ## Parse all local artifacts and run static contract guards
 	@$(PYTHON) -c 'import pathlib; roots=(pathlib.Path("crossplane"), pathlib.Path("drill")); bad=sorted(str(p) for root in roots for p in root.rglob("*") if p.name in {"__pycache__", ".pytest_cache", "build", "dist"} or p.suffix in {".pyc", ".pyo", ".class", ".o", ".so"}); assert not bad, "generated/build artifacts present: " + ", ".join(bad); print("OK: no Python caches or build artifacts in the capability tree")'
 	@bash -n drill/run-restore-drill.sh
 	@bash -n probe/pgvector-probe.sh
+	@bash -n collector/measure-wal-exposure.sh
 	@$(MAKE) --no-print-directory claim-policy-check claim-authority-model-check \
 		claim-admission-check restoreverified-api-check evidence-status-check \
 		observation-freshness-check capability-admission-check credential-overlap-check \

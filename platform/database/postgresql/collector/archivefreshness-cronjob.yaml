@@ -1,0 +1,152 @@
+# Scheduled WAL-exposure collector (§13 bound 1's remaining half).
+#
+# WHY IT RUNS HERE AND WRITES THERE. The measurement needs the primary's filesystem
+# (archive_status/*.ready) and pg_stat_archiver, so it must exec inside the WORKLOAD cluster. The
+# evidence it produces is consumed by the Composition, which lives on the MANAGEMENT plane. There
+# is no single cluster that can do both, so this job runs on the workload cluster and holds a
+# management-plane token scoped to one verb on one resource.
+#
+# WHY EVERY 10 MINUTES. The Composition ages an ArchiveFreshness out at 900s
+# (RPOObservationExpired). A 10-minute schedule leaves 300s of slack for a slow run, so a single
+# missed tick does not take production unready. Observed 2026-08-21: a measurement published by
+# hand expired before it could be read, which is exactly this gap.
+#
+# WHAT THIS DOES NOT AUTOMATE. Recovery approval. §7 makes the operator group's creation of a
+# RestoreVerified the approval act, so nothing here touches recovery evidence — a collector that
+# could admit its own restore proof would automate away the one decision the contract reserves for
+# a human. This job only measures and reports; the token below cannot create anything else.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: archive-freshness-collector
+  namespace: database-ok-robotics
+  labels:
+    app.kubernetes.io/part-of: openkubes-database-postgresql
+    openkubes.ai/adr: adr-platform-032
+---
+# Workload-cluster rights: read the Cluster and its pods, and exec into the primary. `create` on
+# pods/exec is what `kubectl exec` needs. Scoped to this namespace by using a Role, not a
+# ClusterRole — the collector has no business anywhere else.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: archive-freshness-collector
+  namespace: database-ok-robotics
+  labels:
+    app.kubernetes.io/part-of: openkubes-database-postgresql
+    openkubes.ai/adr: adr-platform-032
+rules:
+  - apiGroups: [""]
+    resources: [pods]
+    verbs: [get, list]
+  - apiGroups: [""]
+    resources: [pods/exec]
+    verbs: [create]
+  - apiGroups: [postgresql.cnpg.io]
+    resources: [clusters]
+    verbs: [get]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: archive-freshness-collector
+  namespace: database-ok-robotics
+  labels:
+    app.kubernetes.io/part-of: openkubes-database-postgresql
+    openkubes.ai/adr: adr-platform-032
+subjects:
+  - kind: ServiceAccount
+    name: archive-freshness-collector
+    namespace: database-ok-robotics
+roleRef:
+  kind: Role
+  name: archive-freshness-collector
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: archive-freshness-collector
+  namespace: database-ok-robotics
+  labels:
+    app.kubernetes.io/part-of: openkubes-database-postgresql
+    openkubes.ai/adr: adr-platform-032
+spec:
+  schedule: "*/10 * * * *"
+  # A measurement is only interesting when fresh, so a missed window is skipped rather than
+  # queued: catching up would publish an observedAt that was never true.
+  startingDeadlineSeconds: 120
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      # Bounded so a hung exec cannot hold the Forbid lock indefinitely, but wide enough for a
+      # cold image pull: 240s killed the first run mid-pull and deleted the pod with its logs,
+      # which looked like a broken collector rather than a slow registry.
+      activeDeadlineSeconds: 540
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/part-of: openkubes-database-postgresql
+        spec:
+          serviceAccountName: archive-freshness-collector
+          restartPolicy: Never
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65534
+            seccompProfile: { type: RuntimeDefault }
+          containers:
+            - name: collect
+              # kubectl AND bash. The script never runs psql locally — it execs psql inside the
+              # primary — so no PostgreSQL client is needed, but the two obvious kubectl images
+              # both failed: bitnami/kubectl:1.34.1 does not exist (that repository now publishes
+              # only digest-style tags), and registry.k8s.io/kubectl is distroless with no shell
+              # at all. Digest-pinned like every other image this capability runs, so a re-pushed
+              # tag cannot change what executes.
+              image: docker.io/alpine/k8s:1.34.1@sha256:ec714df3813b5405292860f8a1c55c5727bf8c33c88992f1e981efad8065547f
+              imagePullPolicy: IfNotPresent
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities: { drop: [ALL] }
+              command: [/bin/bash, -euo, pipefail, -c]
+              args:
+                - |
+                  # Measure with the AMBIENT service account (workload cluster), then publish with
+                  # the management-plane token. Two identities, two clusters, one direction of
+                  # trust: the collector can read here and create exactly one kind there.
+                  artifact=$(/scripts/measure-wal-exposure.sh "$DB_NAMESPACE" "$CNPG_CLUSTER")
+                  printf '%s\n' "$artifact" | kubectl \
+                    --server="$MGMT_SERVER" \
+                    --certificate-authority=/mgmt/ca.crt \
+                    --token="$(cat /mgmt/token)" \
+                    create -f -
+              env:
+                - name: DB_NAMESPACE
+                  value: database-ok-robotics
+                - name: CNPG_CLUSTER
+                  value: ok-robotics
+                - name: MGMT_SERVER
+                  valueFrom:
+                    secretKeyRef: { name: archive-freshness-mgmt, key: server }
+                - name: HOME
+                  value: /tmp
+              volumeMounts:
+                - { name: scripts, mountPath: /scripts, readOnly: true }
+                - { name: mgmt, mountPath: /mgmt, readOnly: true }
+                - { name: tmp, mountPath: /tmp }
+          volumes:
+            - name: scripts
+              configMap:
+                name: archive-freshness-collector-scripts
+                defaultMode: 0555
+            - name: mgmt
+              secret:
+                secretName: archive-freshness-mgmt
+                items:
+                  - { key: token, path: token }
+                  - { key: ca.crt, path: ca.crt }
+            - name: tmp
+              emptyDir: {}

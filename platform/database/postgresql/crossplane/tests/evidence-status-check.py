@@ -504,6 +504,9 @@ def archive_freshness(now: datetime, cluster_uid: str) -> dict[str, Any]:
                 "walLagSeconds": 20,
                 "pendingWalCount": 0,
                 "lastArchivedWalTime": rfc3339(observed_at - timedelta(seconds=20)),
+                # archive_timeout as configured on ok-robotics (5min). With nothing pending it is
+                # what caps exposure, so the artifact is inadmissible without it.
+                "archiveTimeoutSeconds": 300,
             },
             "timing": {"observedAt": rfc3339(observed_at)},
             "probeDigest": "sha256:" + "3" * 64,

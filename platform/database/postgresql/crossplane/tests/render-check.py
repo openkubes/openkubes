@@ -148,9 +148,12 @@ def validate(
         require("extensions" not in catalog_image,
                 "a bundled image must not also carry catalogued extension images: that is the "
                 "image-volume path, which containerd 2.0.x cannot mount")
-        require("extensions" not in (cluster["spec"].get("postgresql") or {}),
-                "a bundled image must not also declare spec.postgresql.extensions: CNPG would "
-                "turn it into an image volume and the instance would never start")
+        # Must be EMPTY rather than absent: omitting it leaves a previous value in place on the
+        # target cluster, which put ok-robotics into "incomplete or invalid image catalog".
+        declared = (cluster["spec"].get("postgresql") or {}).get("extensions", None)
+        require(declared == [],
+                "a bundled image must declare spec.postgresql.extensions as an EMPTY list, not "
+                f"omit it: omission does not clear a previously set value. Got {declared!r}")
     # The catalogued per-extension images are the image-volume model, which is unusable on
     # containerd 2.0.x and therefore not composed. When it returns (containerd >= 2.1.0), these
     # assertions apply again — §6.4's governance lives here, so keep them rather than deleting.

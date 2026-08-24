@@ -50,7 +50,13 @@ def stamp(moment: datetime) -> str:
     return moment.strftime(RFC3339)
 
 
-def freshness(observed_at: datetime, lag: int, pending: int = 0, uid: str = CLUSTER_UID) -> dict:
+def freshness(
+    observed_at: datetime,
+    lag: int,
+    pending: int = 0,
+    uid: str = CLUSTER_UID,
+    archive_timeout: int = 300,
+) -> dict:
     return {
         "apiVersion": "evidence.platform.openkubes.ai/v1alpha1",
         "kind": "ArchiveFreshness",
@@ -70,6 +76,7 @@ def freshness(observed_at: datetime, lag: int, pending: int = 0, uid: str = CLUS
                 "walLagSeconds": lag,
                 "pendingWalCount": pending,
                 "lastArchivedWalTime": stamp(observed_at - timedelta(seconds=lag)),
+                "archiveTimeoutSeconds": archive_timeout,
             },
             "timing": {"observedAt": stamp(observed_at)},
             "probeDigest": "sha256:" + "2" * 64,
@@ -142,6 +149,27 @@ def rpo_of(status: dict[str, Any]) -> tuple[str, str]:
 def protection_of(status: dict[str, Any]) -> tuple[str, str]:
     protection = status["evidence"]["protection"]
     return protection.get("state", ""), protection.get("reason", "")
+
+
+def check_storage_is_protection_independent() -> None:
+    """Capacity must not follow the protection class (§6 orthogonality).
+
+    This is not a style rule. While storage was a protection-class attribute, switching a live
+    Database to `production` composed a 20Gi PVC against a 5Gi volume on `local-path`, whose
+    allowVolumeExpansion is unset — so the resize could not succeed and production was
+    unreachable on this platform for a reason that had nothing to do with protection. Capacity
+    belongs to `performance`.
+    """
+    source = COMPOSITION_PATH.read_text()
+    assert "$performanceStorage" in source, (
+        "storage size must derive from a performance-class registry, not from the protection class"
+    )
+    for forbidden in ('{{- $storageSize = "', "$storageSize = "):
+        assert forbidden not in source, (
+            "storage size is being REASSIGNED after its initial derivation; the only reassignment "
+            "this ever had was the production override that made capacity follow protection"
+        )
+    print("PASS storage independence: capacity derives from performance.class, never reassigned")
 
 
 def check_install_gate_text() -> None:
@@ -228,7 +256,39 @@ def negative_controls() -> None:
         f"protection {protection_of(none)[1]}, serviceReady false"
     )
 
-    over = render(PRODUCTION_XR, [freshness(now - timedelta(minutes=1), lag=3600)], now)
+    # THE case measured on ok-robotics: an idle database, 0 pending, exposure capped by
+    # archive_timeout. The original semantics ("seconds since last archived WAL") reported 747s
+    # here and would have failed a database with nothing at risk.
+    idle = render(
+        PRODUCTION_XR,
+        [freshness(now - timedelta(minutes=1), lag=300, pending=0, archive_timeout=300)],
+        now,
+    )
+    if rpo_of(idle)[0] != "Valid":
+        raise RpoError(
+            f"an idle database with no pending segments must not fail its RPO bound; exposure is "
+            f"capped by archive_timeout. Got {rpo_of(idle)}"
+        )
+    print(f"PASS idle database: {rpo_of(idle)[1]} (exposure capped by archive_timeout, not idle time)")
+
+    # A class bound tighter than archive_timeout is unsatisfiable by construction, and blaming the
+    # database for a configuration decision would be the wrong verdict.
+    tight = render(
+        PRODUCTION_XR,
+        [freshness(now - timedelta(minutes=1), lag=60, pending=1, archive_timeout=900)],
+        now,
+    )
+    if rpo_of(tight) != ("Failed", "RPOArchiveTimeoutExceedsBound"):
+        raise RpoError(
+            f"archive_timeout wider than the class bound must be named as such, got {rpo_of(tight)}"
+        )
+    print(f"PASS archive_timeout wider than bound: {rpo_of(tight)[1]}")
+
+    over = render(
+        PRODUCTION_XR,
+        [freshness(now - timedelta(minutes=1), lag=3600, pending=4, archive_timeout=300)],
+        now,
+    )
     if rpo_of(over) != ("Failed", "RPOBoundExceeded"):
         raise RpoError(
             f"NEGATIVE CONTROL FAILED: a lag past the bound is a counter-proof, got {rpo_of(over)}"
@@ -275,6 +335,7 @@ def main() -> int:
         if args.negative_controls:
             negative_controls()
         else:
+            check_storage_is_protection_independent()
             check_install_gate_text()
             positive()
     except RpoError as exc:

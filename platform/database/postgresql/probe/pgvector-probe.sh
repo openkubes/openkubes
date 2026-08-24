@@ -128,6 +128,8 @@ apiVersion: evidence.platform.openkubes.ai/v1alpha1
 kind: CapabilityVerified
 metadata:
   name: ${ART_NAME}
+  labels:
+    platform.openkubes.ai/source-cluster: ${CLUSTER}
 spec:
   capability:
     name: ${CAP_NAME}

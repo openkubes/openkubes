@@ -125,6 +125,7 @@ def parts(evidence: dict[str, Any]) -> dict[str, Any]:
         "backupId": protection.get("backupId"),
         "evidenceRef": protection.get("evidenceRef", ""),
         "validUntil": protection.get("validUntil", ""),
+        "executionBackupId": protection["signals"]["execution"].get("backupId"),
     }
 
 
@@ -178,6 +179,38 @@ def positive() -> None:
         "no invented backupId"
     )
 
+    # The case production exposed: the anchor is still INSIDE the window, but the schedule has
+    # succeeded since. Freshness must come from that newer success, or a 24h validity expires
+    # against a 3-day-old bookmark while backups are healthy.
+    newer = parts(
+        render(
+            observed(
+                anchor_stopped=stamp(now - timedelta(days=3)),
+                first_point=stamp(now - timedelta(days=4)),
+                last_success=stamp(now - timedelta(hours=13)),
+            )
+        )
+    )
+    if newer["availability"] != ("Valid", "BackupWindowContainsExecution"):
+        raise AnchorError(
+            f"a contained anchor must still read containment, got {newer['availability']}"
+        )
+    valid_until = datetime.strptime(newer["validUntil"], RFC3339).replace(tzinfo=timezone.utc)
+    if valid_until <= now + timedelta(hours=1):
+        raise AnchorError(
+            f"validUntil {newer['validUntil']} is derived from the 3-day-old anchor, not the "
+            "13-hour-old success in the window"
+        )
+    if newer["backupId"]:
+        raise AnchorError(
+            "freshness came from the window, so no backupId may be published for it: the window "
+            f"carries times, not identities (got {newer['backupId']})"
+        )
+    print(
+        f"PASS contained anchor, newer success: freshness from the window "
+        f"(validUntil {newer['validUntil']}), no invented backupId"
+    )
+
     # Regression: ordinary containment must be untouched.
     contained = parts(
         render(
@@ -193,11 +226,24 @@ def positive() -> None:
             "a contained anchor must still read BackupWindowContainsExecution, got "
             f"{contained['availability'][0]}/{contained['availability'][1]}"
         )
-    if not contained["backupId"]:
-        raise AnchorError("a contained anchor must still publish its observed backupId")
+    # protection.backupId is published only when protection's FRESHNESS derives from that anchor.
+    # Here the window holds a newer success, so freshness comes from the window and the
+    # protection-level id is correctly absent — citing an id whose timestamp is not the one that
+    # set validUntil would describe two different backups as one. The observed identity is still
+    # there on the execution signal, which is what it describes.
+    if contained["backupId"]:
+        raise AnchorError(
+            "protection published a backupId while its freshness came from the window: that "
+            f"conflates two backups (got {contained['backupId']})"
+        )
+    if not contained["executionBackupId"]:
+        raise AnchorError(
+            "the execution signal must still publish the anchor's observed backupId; that is the "
+            "identity it describes"
+        )
     print(
         f"PASS contained anchor unchanged: {contained['availability'][1]}, "
-        f"backupId {contained['backupId']}"
+        f"execution backupId {contained['executionBackupId']}"
     )
 
 

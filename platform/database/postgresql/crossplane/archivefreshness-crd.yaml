@@ -76,21 +76,52 @@ spec:
                       maxLength: 128
                 observed:
                   type: object
-                  required: [walLagSeconds, pendingWalCount, lastArchivedWalTime]
+                  required:
+                    - walLagSeconds
+                    - pendingWalCount
+                    - lastArchivedWalTime
+                    - archiveTimeoutSeconds
                   x-kubernetes-validations:
                     # A lag of zero with WALs still pending is incoherent: the archive cannot be
                     # perfectly current while segments are queued behind it.
                     - rule: self.walLagSeconds > 0 || self.pendingWalCount == 0
                       message: A zero lag cannot coexist with pending WAL segments.
+                    # With nothing pending, exposure is the still-open segment and is therefore
+                    # capped by archive_timeout. A larger lag reported with an empty queue means
+                    # the measurement used "time since last archive" on an IDLE database, which
+                    # grows without bound while archiving is perfectly healthy.
+                    - rule: self.pendingWalCount > 0 || self.walLagSeconds <= self.archiveTimeoutSeconds
+                      message: >-
+                        With no pending segments, walLagSeconds cannot exceed
+                        archiveTimeoutSeconds; measure exposure, not idle time.
                   properties:
                     walLagSeconds:
                       type: integer
                       format: int64
                       minimum: 0
                       description: >-
-                        Seconds between the observation and the last WAL segment
-                        successfully archived. This is the quantity an RPO bound is
-                        actually about.
+                        Measured RPO EXPOSURE: how much committed data could be lost.
+                        The age of the oldest UNARCHIVED segment, or — when none is
+                        pending — the time since the last archive capped by
+                        archiveTimeoutSeconds, because the only data at risk then is
+                        the still-open segment.
+
+                        NOT "seconds since the last archived WAL". Measured on
+                        ok-robotics 2026-08-21: an idle database reported 747s since
+                        its last archive with ZERO pending segments and zero failures.
+                        Under a 300s bound that reads Failed/RPOBoundExceeded — a
+                        counter-proof manufactured from idleness, on a database with
+                        nothing whatsoever at risk. An idle database produces no WAL,
+                        so it has no RPO exposure to report.
+                    archiveTimeoutSeconds:
+                      type: integer
+                      format: int64
+                      minimum: 1
+                      description: >-
+                        The cluster's archive_timeout. This is the platform's own cap on
+                        how long committed data may sit in an unarchived open segment,
+                        so it bounds exposure when nothing is pending — and a class RPO
+                        bound tighter than this is unsatisfiable by construction.
                     pendingWalCount:
                       type: integer
                       format: int64

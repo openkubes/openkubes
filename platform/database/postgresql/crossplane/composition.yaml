@@ -52,7 +52,21 @@ spec:
             {{- $policy := $spec.protection.policyRef }}
             {{- $isProduction := eq $policy "production" }}
             {{- $instances := 1 }}
-            {{- $storageSize := "5Gi" }}
+            {{- /* Capacity is an attribute of the PERFORMANCE class, never of the protection
+                   class. §6 cuts the contract into orthogonal dimensions and this is one of the
+                   places that has to hold: making storage follow protection means changing the
+                   protection policy resizes a live database. On ok-robotics that is not merely
+                   undesirable, it is impossible — the PVC is 5Gi on `local-path`, whose
+                   allowVolumeExpansion is unset, so a protection-class change would compose a
+                   resize the storage class cannot perform and leave the Cluster unhealthy.
+                   Measured 2026-08-21, which is why production was unreachable.
+                   Platform-side and fails closed, like $backupStores: an unregistered class has
+                   no capacity to guess at. */}}
+            {{- $performanceStorage := dict "standard" "5Gi" }}
+            {{- if not (hasKey $performanceStorage $spec.performance.class) }}
+            {{- fail (printf "no reviewed storage size is registered for performance class %q: refusing to compose a Database with a guessed capacity. Add it to $performanceStorage in this Composition." $spec.performance.class) }}
+            {{- end }}
+            {{- $storageSize := index $performanceStorage $spec.performance.class }}
             {{- $retention := "7d" }}
             {{- $backupValidity := "+168h" }}
             {{- $backupGracePeriod := "+72h" }}
@@ -78,7 +92,6 @@ spec:
             {{- $instances = 3 }}
             {{- end }}
             {{- if $isProduction }}
-            {{- $storageSize = "20Gi" }}
             {{- $retention = "30d" }}
             {{- $backupValidity = "+24h" }}
             {{- $backupGracePeriod = "+24h" }}
@@ -361,6 +374,7 @@ spec:
             {{- $rpoReason := "RPONotRequiredForClass" }}
             {{- $rpoObservedAt := $initialObservedAt }}
             {{- $rpoLagSeconds := -1 }}
+            {{- $rpoArchiveTimeoutSeconds := 0 }}
             {{- if $isProduction }}
             {{- $rpoState = "Unknown" }}
             {{- $rpoReason = "RPOFreshnessUnproven" }}
@@ -380,12 +394,14 @@ spec:
                   (eq (dig "name" "" $afClusterRef) $dbName)
                   (ne (dig "probeDigest" "" $candidateSpec) "")
                   (hasKey $afObserved "walLagSeconds")
+                  (hasKey $afObserved "archiveTimeoutSeconds")
                   (ne $canonicalAfObservedAt "")
                   (not ((toDate $layout $canonicalAfObservedAt).After now)) }}
             {{- if and $afAdmissible ((toDate $layout $canonicalAfObservedAt).After (toDate $layout (include "canonicalRFC3339" $selectedFreshnessAt))) }}
             {{- $selectedFreshnessAt = $canonicalAfObservedAt }}
             {{- $rpoObservedAt = $canonicalAfObservedAt }}
             {{- $rpoLagSeconds = int64 (dig "walLagSeconds" 0 $afObserved) }}
+            {{- $rpoArchiveTimeoutSeconds = int64 (dig "archiveTimeoutSeconds" 0 $afObserved) }}
             {{- end }}
             {{- end }}
             {{- if ne $selectedFreshnessAt "1970-01-01T00:00:00Z" }}
@@ -394,6 +410,14 @@ spec:
             {{- /* The measurement itself aged out. Unknown, not Failed: we no longer know the
                    lag, which is different from knowing it is bad. */}}
             {{- $rpoReason = "RPOObservationExpired" }}
+            {{- else if gt $rpoArchiveTimeoutSeconds (int64 $rpoMaxWalLagSeconds) }}
+            {{- /* The cluster's own archive_timeout caps how long committed data sits in an
+                   unarchived open segment. A class bound tighter than that is unsatisfiable by
+                   construction, and reporting it as an exceeded bound would blame the database for
+                   a configuration decision. Measured on ok-robotics: archive_timeout is 5min,
+                   exactly the production bound — tighten one and this fires. */}}
+            {{- $rpoState = "Failed" }}
+            {{- $rpoReason = "RPOArchiveTimeoutExceedsBound" }}
             {{- else if gt $rpoLagSeconds (int64 $rpoMaxWalLagSeconds) }}
             {{- $rpoState = "Failed" }}
             {{- $rpoReason = "RPOBoundExceeded" }}
@@ -426,7 +450,16 @@ spec:
             {{- $samePriorEvidence = and (eq $oldProtectionBackupId $backupId) (or (eq $oldProtectionState "Valid") (eq $oldProtectionState "Stale")) }}
             {{- $protectionExpired = now.After $validTime }}
             {{- end }}
-            {{- if and (eq $availabilityState "Valid") (eq $availabilityReason $anchorSupersededReason) (ne $canonicalLastSuccessfulBackupTime "") }}
+            {{- /* Freshness follows the NEWEST successful backup, not the anchor — which is what
+                   "evidence follows scheduled backups without a fixed anchor" actually requires.
+                   The first version of this only fired when the anchor had been PRUNED out of the
+                   window, which left the common case broken: while the anchor is still inside the
+                   window, freshness stayed pinned to it and decayed. Measured on ok-robotics under
+                   production (24h validity): the anchor stopped 2026-08-18T10:54 and the schedule
+                   succeeded 2026-08-21T01:00, so protection read expired-at-2026-08-19 while a
+                   backup from 13 hours earlier sat in the window. Pruning is just the extreme of
+                   the same condition, so this subsumes it. */}}
+            {{- if and (eq $availabilityState "Valid") (ne $canonicalLastSuccessfulBackupTime "") (ne $canonicalBackupStoppedAt "") ((toDate $layout $canonicalLastSuccessfulBackupTime).After (toDate $layout $canonicalBackupStoppedAt)) }}
             {{- /* Freshness now derives from the superseding backup, which is what makes evidence
                    follow the schedule instead of decaying with a bookmark. The residual, stated
                    rather than hidden: the recovery window carries TIMES, not backup identities, so
@@ -1115,17 +1148,23 @@ spec:
                         parameters:
                           barmanObjectName: {{ $objectStoreName | quote }}
                           serverName: {{ $dbName | quote }}
-                    {{- /* Deliberately NOT declaring spec.postgresql.extensions. That field IS
-                           the image-volume mechanism: CNPG turns each entry into an OCI image
-                           volume, which containerd 2.0.x cannot mount, so declaring it here would
-                           stop the instance starting even though the catalog now supplies a bundled
-                           image that already contains the extension. The bundled image delivers
-                           the capability; the declaration would only re-introduce the broken path.
-                           Restore this block together with the minimal base image once the nodes
-                           run containerd >= 2.1.0 — the two belong to the same mechanism and must
-                           move together. Nothing is lost in status by omitting it: capability
+                    {{- /* EXPLICITLY EMPTY, not omitted. spec.postgresql.extensions IS the
+                           image-volume mechanism — CNPG turns each entry into an OCI image volume,
+                           which containerd 2.0.x cannot mount — so the bundled image must come
+                           with no declared extensions. But omitting the field does NOT remove it
+                           from a cluster that already had it: provider-kubernetes left the previous
+                           value in place, CNPG then demanded a catalog entry for an extension the
+                           bundled catalog no longer lists, and the Cluster went to
+                           "incomplete or invalid image catalog" without ever rolling the pod.
+                           Measured on ok-robotics 2026-08-21. An empty list actively clears it and
+                           says what the platform means: no image-volume extensions here.
+                           Restore this together with the minimal base image once the nodes run
+                           containerd >= 2.1.0 — catalog entry and Cluster declaration are one
+                           mechanism and must move together. Nothing is lost in status: capability
                            evidence comes from a probe that exercises the extension, never from
                            CNPG's echo of what was requested. */}}
+                    postgresql:
+                      extensions: []
             ---
             apiVersion: kubernetes.crossplane.io/v1alpha2
             kind: Object
@@ -1274,6 +1313,7 @@ spec:
                       {{- if ge $rpoLagSeconds 0 }}
                       walLagSeconds: {{ $rpoLagSeconds }}
                       maxWalLagSeconds: {{ $rpoMaxWalLagSeconds }}
+                      archiveTimeoutSeconds: {{ $rpoArchiveTimeoutSeconds }}
                       {{- end }}
                 recovery:
                   state: {{ $recoveryState }}

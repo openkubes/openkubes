@@ -308,6 +308,9 @@ spec:
                                 maxWalLagSeconds:
                                   type: integer
                                   format: int64
+                                archiveTimeoutSeconds:
+                                  type: integer
+                                  format: int64
                     recovery:
                       type: object
                       required: [state, reason, observedAt]
