@@ -513,6 +513,34 @@ rollback mechanics where possible
 
 Prinzip: *Automate the facts and mechanics. Keep consequential authority explicit.*
 
+### 7.1 Where the authority act sits (amended under OK-150)
+
+This section was read as: a human admits every `RestoreVerified` by creating it. That
+reading is withdrawn. In practice it made an operator rubber-stamp a machine-generated
+artifact they cannot independently check, on a timer that degrades production until they
+do it. A control that must be performed to keep a status green, and that adds no
+judgement, is a control that gets bypassed — and a `serviceReady` that depends on it is
+measuring compliance-with-ritual, not recoverability.
+
+The authority moves to where judgement actually exists. A human reviews a verification
+**method** — which probes run, what the runner is, what counts as a pass — and approves
+its digests once, as a `VerificationProfile` (immutable spec, named approver, required
+rationale). An automated verifier may then admit artifacts whose
+`checkProfileDigest`/`verifierVersion` match an approved profile. Artifacts that match
+nothing read `Unknown/RestoreProfileUnapproved`, which is deliberately distinct from
+`VerificationPending`: "nobody verified this" and "someone verified it by a method nobody
+approved" call for different actions.
+
+What keeps this from becoming approval-in-bulk is that a profile binds digests computed
+**before** any artifact exists, so approving a method cannot approve a result already
+observed; and §11.2's existing rule does the revocation — changing the checks changes the
+digest, which lapses the approval and forces a fresh human decision instead of silently
+inheriting the old one.
+
+The boundary in the table above is unchanged. What moved is the granularity of *change
+approval*: per method, not per artifact. Authority is still explicit, still attributable,
+and now attached to a decision a human can actually make.
+
 ## 8. Warum ein eigener Contract statt Everest/KubeBlocks? (bewusster Trade-off)
 
 Everest/KubeBlocks liefern bereits DBaaS-UX und Multi-Engine. Ein eigener Contract
@@ -1145,16 +1173,24 @@ contracts; each blocks *delivered-capability* acceptance.
                                           already in force rather than merely tempting.
                                           development requires no RPO evidence, a decision, not
                                           an omission. The collector that publishes the
-                                          measurement is not part of this change.
+                                          measurement is composed per Database, so a database
+                                          cannot exist without the thing that measures its
+                                          exposure — the first version was hand-installed into one
+                                          namespace, which closed the bound in exactly one place
+                                          and would have read as a data problem rather than a
+                                          missing install anywhere else.
 2. RecoveryAssured needs an operator    → the re-run is DONE (2026-08-18): the drill produced
    act, not more machinery                  restoreverified-20260818t115710z.yaml against the
    (re-run completed 2026-08-18)            composed Database, carrying the databaseRef identity
                                           binding (uid a6b4b2ff-…) with all five checks derived
                                           from observed values, and the ok-mgmt API server admits
-                                          it (server-side dry run). What remains is not code: per
-                                          §7 the operator group's CREATION of that CR *is* the
-                                          approval, so `RecoveryAssured=Valid` waits on a human
-                                          act by design. Continuous re-verification is bound 3.
+                                          it (server-side dry run). The claim that
+                                          `RecoveryAssured=Valid` waits on a human act *by design*
+                                          is withdrawn: see §7.1. The act is now approving the
+                                          verification METHOD once (`VerificationProfile`), and
+                                          matching artifacts are admitted automatically — so this
+                                          reaches Valid without a standing manual step.
+                                          Continuous re-verification is bound 3.
 3. Scheduled-backup enumeration        → §12: a static provider-kubernetes `Object` cannot
    is missing                             enumerate generated-name Backup CRs, so the fixed
                                           evidence anchor eventually leaves the moving recovery
