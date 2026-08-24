@@ -24,7 +24,7 @@ FUNCTIONS := crossplane/tests/functions.yaml
 RENDER_BASE := $(CROSSPLANE) composition render
 RENDER_FLAGS := --crossplane-version=v2.3.3
 YAML_FILES := crossplane/xrd.yaml crossplane/composition.yaml \
-	collector/archivefreshness-rbac.yaml collector/archivefreshness-cronjob.yaml \
+	collector/archivefreshness-rbac.yaml \
 	crossplane/restoreverified-crd.yaml \
 	crossplane/capabilityverified-crd.yaml crossplane/datapolicy-crd.yaml \
 	crossplane/verificationprofile-crd.yaml crossplane/examples/verificationprofile-restore-drill.yaml \

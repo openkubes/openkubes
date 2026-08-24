@@ -66,13 +66,35 @@ def validate(
             "Valid on ContinuousArchiving alone")
 
     objects = [doc for doc in docs if doc.get("apiVersion") == "kubernetes.crossplane.io/v1alpha2" and doc.get("kind") == "Object"]
-    require(len(objects) == 7, f"expected seven provider-kubernetes Objects, found {len(objects)}")
+    # Twelve now: the seven database resources plus five that compose the WAL-exposure collector
+    # per Database. Verification ships WITH the capability rather than being hand-wired per cluster
+    # — the hand-written CronJob named one cluster in six places and would not have survived a
+    # second database, leaving whichever one was missed looking healthy while proving nothing.
+    require(len(objects) == 12, f"expected twelve provider-kubernetes Objects, found {len(objects)}")
     require(all(obj["spec"]["providerConfigRef"]["name"] == "ok-robotics" for obj in objects),
             "every composed Object must target the XR clusterRef")
     manifests = [obj["spec"]["forProvider"]["manifest"] for obj in objects]
     kinds = {manifest["kind"] for manifest in manifests}
-    require(kinds == {"Secret", "ClusterImageCatalog", "ObjectStore", "Cluster", "ScheduledBackup", "Backup", "Pooler"},
+    require(kinds == {"Secret", "ClusterImageCatalog", "ObjectStore", "Cluster", "ScheduledBackup",
+                      "Backup", "Pooler", "ServiceAccount", "Role", "RoleBinding", "CronJob"},
             f"unexpected composed manifest set: {sorted(kinds)}")
+
+    # The collector must be namespaced and named from the XR, never from a literal. A composed
+    # resource carrying a hardcoded cluster name is the defect this replaced.
+    composed_cluster = next(m for m in manifests if m["kind"] == "Cluster")
+    collector = [m for m in manifests if m["kind"] == "CronJob"]
+    require(len(collector) == 1, f"expected one composed CronJob, found {len(collector)}")
+    cron = collector[0]
+    require(cron["metadata"]["namespace"] == composed_cluster["metadata"]["namespace"],
+            "the collector must run in the database's own namespace")
+    require(cron["metadata"]["name"].startswith(composed_cluster["metadata"]["name"]),
+            f"the collector must be named from the composed cluster, got {cron['metadata']['name']}")
+    # It publishes evidence; it must not be able to amend or delete it, and must never reach
+    # recovery evidence — §7's approval act stays human.
+    role = next(m for m in manifests if m["kind"] == "Role")
+    verbs = {v for rule in role["rules"] for v in rule["verbs"]}
+    require(not (verbs & {"delete", "patch", "update", "deletecollection"}),
+            f"the collector Role grants mutating verbs on the database namespace: {sorted(verbs)}")
 
     # CNPG owns Services <cluster>-rw, -ro and -r for the Cluster itself, and a Pooler's name
     # becomes its Service name. No composed object may claim one of those names: the Pooler that

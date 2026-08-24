@@ -45,9 +45,16 @@ EOF
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 TEMPLATE="${SCRIPT_DIR}/recovery-cluster.template.yaml"
-EXPECTED_TARGET_CLUSTER=ok-robotics
-EXPECTED_SOURCE_CLUSTER=ok-robotics
-EXPECTED_NAMESPACE=database-ok-robotics
+# Reviewed allowlist of source clusters this drill may touch, space separated. A registry rather
+# than a single constant, for the same reason $backupStores is a registry in the Composition:
+# authorization must stay explicit and fail closed while the capability serves more than one
+# database. Adding a cluster here is a reviewed edit; it is NOT derived from the argument, so a
+# caller cannot authorize itself by passing a new name.
+#
+# The namespace is derived from the cluster (database-<cluster>) rather than listed separately:
+# two independent constants can disagree, and a drill pointed at the right cluster in the wrong
+# namespace is exactly the mistake worth making impossible.
+AUTHORIZED_SOURCE_CLUSTERS="${OK_DRILL_AUTHORIZED_CLUSTERS:-ok-robotics}"
 EXPECTED_MINIO_ENDPOINT=https://minio.minio.svc:9000
 EXPECTED_MINIO_CA_SECRET=minio-backup-store-ca
 SOURCE_CLUSTER=
@@ -133,10 +140,14 @@ RECOVERY_CLUSTER="recovery-${RUN_ID}"
 # distinct from the source reader. The property that replaced it — the recovery cluster has no WAL
 # archiver and no write destination — is asserted on the rendered manifest by
 # render-recovery-cluster-check.py, where it cannot be satisfied by argument hygiene alone.
-[[ "$SOURCE_CLUSTER" == "$EXPECTED_SOURCE_CLUSTER" ]] \
-  || { echo "ERROR: this OK-145 drill is authorized only for source cluster $EXPECTED_SOURCE_CLUSTER" >&2; exit 2; }
-[[ "$NAMESPACE" == "$EXPECTED_NAMESPACE" ]] \
-  || { echo "ERROR: this OK-145 drill is authorized only for namespace $EXPECTED_NAMESPACE" >&2; exit 2; }
+authorized=false
+for candidate in $AUTHORIZED_SOURCE_CLUSTERS; do
+  [[ "$SOURCE_CLUSTER" == "$candidate" ]] && authorized=true && break
+done
+[[ "$authorized" == true ]] \
+  || { printf 'ERROR: source cluster %s is not in the reviewed allowlist (%s)\n' "$SOURCE_CLUSTER" "$AUTHORIZED_SOURCE_CLUSTERS" >&2; exit 2; }
+[[ "$NAMESPACE" == "database-${SOURCE_CLUSTER}" ]] \
+  || { printf 'ERROR: namespace must be database-%s for source cluster %s, got %s\n' "$SOURCE_CLUSTER" "$SOURCE_CLUSTER" "$NAMESPACE" >&2; exit 2; }
 # https only, and deliberately not "https preferred": the drill authenticates to the
 # backup source with a credential whose whole purpose is custody of backups, and the
 # isolation argument in ADR-Platform-032 §11.3 assumes that credential is not observable
@@ -147,7 +158,7 @@ RECOVERY_CLUSTER="recovery-${RUN_ID}"
   || { echo "ERROR: this OK-145 drill is authorized only for the in-cluster MinIO endpoint" >&2; exit 2; }
 [[ "$MINIO_CA_SECRET" == "$EXPECTED_MINIO_CA_SECRET" ]] \
   || { echo "ERROR: this OK-145 drill is authorized only for CA Secret $EXPECTED_MINIO_CA_SECRET" >&2; exit 2; }
-[[ "$SOURCE_CREDENTIALS_SECRET" == "ok-db-backups-${EXPECTED_SOURCE_CLUSTER}-reader" ]] \
+[[ "$SOURCE_CREDENTIALS_SECRET" == "ok-db-backups-${SOURCE_CLUSTER}-reader" ]] \
   || { echo 'ERROR: source credential Secret is outside the reviewed drill tuple' >&2; exit 2; }
 [[ "$MINIO_ENDPOINT" =~ ^https://[A-Za-z0-9._:-]+(/[A-Za-z0-9._~!\$\&\(\)\*\+\,\;\=\:\@%/-]*)?$ ]] \
   || { echo 'ERROR: --minio-endpoint contains unsupported URL characters' >&2; exit 2; }
@@ -246,8 +257,8 @@ append_observation --event database \
 
 CURRENT_CONTEXT="$(kubectl --kubeconfig "$KUBECONFIG_PATH" config current-context)"
 CURRENT_CLUSTER="$(kubectl --kubeconfig "$KUBECONFIG_PATH" config view --minify -o jsonpath='{.clusters[0].name}')"
-[[ "$CURRENT_CONTEXT" == "$EXPECTED_TARGET_CLUSTER" || "$CURRENT_CLUSTER" == "$EXPECTED_TARGET_CLUSTER" ]] \
-  || { printf "ERROR: kubeconfig identifies context '%s' / cluster '%s', not %s\n" "$CURRENT_CONTEXT" "$CURRENT_CLUSTER" "$EXPECTED_TARGET_CLUSTER" >&2; exit 2; }
+[[ "$CURRENT_CONTEXT" == "$SOURCE_CLUSTER" || "$CURRENT_CLUSTER" == "$SOURCE_CLUSTER" ]] \
+  || { printf "ERROR: kubeconfig identifies context '%s' / cluster '%s', not the source cluster %s being drilled\n" "$CURRENT_CONTEXT" "$CURRENT_CLUSTER" "$SOURCE_CLUSTER" >&2; exit 2; }
 kubectl --kubeconfig "$KUBECONFIG_PATH" get namespace "$NAMESPACE" >/dev/null
 kubectl --kubeconfig "$KUBECONFIG_PATH" -n "$NAMESPACE" get secret "$SOURCE_CREDENTIALS_SECRET" >/dev/null
 for target in \

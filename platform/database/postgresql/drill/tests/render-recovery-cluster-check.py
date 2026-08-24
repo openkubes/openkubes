@@ -163,8 +163,21 @@ def negative_controls(documents: list[dict]) -> None:
     attacker = common.copy()
     attacker[attacker.index(SOURCE)] = "keycloak-db"
     attacker_result = subprocess.run(attacker, text=True, capture_output=True)
-    assert attacker_result.returncode != 0 and "authorized only for source cluster" in attacker_result.stderr
-    print("NEGATIVE CONTROL PASS: unauthorized source cluster/endpoint tuple rejected")
+    assert attacker_result.returncode != 0, "an unlisted source cluster was accepted"
+    assert "not in the reviewed allowlist" in attacker_result.stderr, (
+        f"refusal must name the allowlist, got: {attacker_result.stderr.strip()[:200]}"
+    )
+    print("NEGATIVE CONTROL PASS: source cluster outside the reviewed allowlist rejected")
+
+    # The namespace is derived from the cluster rather than passed independently, so a drill aimed
+    # at the right cluster in the wrong namespace is impossible rather than merely discouraged.
+    wrong_ns = common.copy()
+    wrong_ns[wrong_ns.index(f"database-{SOURCE}")] = "database-somewhere-else"
+    wrong_ns_result = subprocess.run(wrong_ns, text=True, capture_output=True)
+    assert wrong_ns_result.returncode != 0 and "namespace must be database-" in wrong_ns_result.stderr, (
+        f"a mismatched namespace was accepted: {wrong_ns_result.stderr.strip()[:200]}"
+    )
+    print("NEGATIVE CONTROL PASS: namespace not matching the source cluster rejected")
 
 
     # Passing a write credential must be REFUSED rather than ignored. Silently accepting an unused

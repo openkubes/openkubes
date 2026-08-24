@@ -116,6 +116,18 @@ spec:
                    `endpointCA` names a Secret carrying the CA bundle. The field and the
                    availability status path below were verified against the pinned Barman
                    Cloud Plugin v0.14.0 ObjectStore CRD. */}}
+            {{- /* Where the composed collector publishes its measurements. Platform-side and not
+                   claim input, for the same reason as $backupStores: a claimant able to redirect
+                   evidence could publish RPO measurements the platform then trusts. The token it
+                   authenticates with is minted on the management plane and mirrored in, scoped to
+                   create ArchiveFreshness and nothing else. */}}
+            {{- $managementApiServer := "https://192.168.100.200:6443" }}
+            {{- $collectorTokenSecret := "archive-freshness-publisher-token" }}
+            {{- $collectorTokenNamespace := "crossplane-system" }}
+            {{- $collectorImage := "docker.io/alpine/k8s:1.34.1@sha256:ec714df3813b5405292860f8a1c55c5727bf8c33c88992f1e981efad8065547f" }}
+            {{- /* 10 minutes against the 900s observation bound: one missed tick must not take a
+                   production Database unready. */}}
+            {{- $collectorSchedule := "*/10 * * * *" }}
             {{- $backupStores := dict
                   "ok-robotics" (dict
                     "bucket" "ok-db-backups"
@@ -952,6 +964,255 @@ spec:
                 kind: DataPolicy
                 matchName: {{ $dataPolicyName | quote }}
               {{- end }}
+            ---
+            # WAL-exposure collector, composed PER DATABASE (§13 bound 1's collector, made general).
+            #
+            # It was first installed as a hand-written CronJob naming ok-robotics in six places,
+            # which does not survive a second database: the operator would hand-wire verification
+            # again per cluster, and any that got missed would look healthy while proving nothing.
+            # Composing it means verification ships WITH the capability — every Database gets its
+            # own collector, in its own namespace, from the same reviewed definition.
+            #
+            # Everything below derives from the XR: namespace, cluster name, and the identity the
+            # measurement is bound to. Nothing names a specific cluster.
+            apiVersion: kubernetes.crossplane.io/v1alpha2
+            kind: Object
+            metadata:
+              name: database-{{ $dbName }}-collector-rbac
+              annotations:
+                gotemplating.fn.crossplane.io/composition-resource-name: collector-rbac
+            spec:
+              deletionPolicy: Delete
+              providerConfigRef:
+                name: {{ $provider | quote }}
+              forProvider:
+                manifest:
+                  apiVersion: v1
+                  kind: ServiceAccount
+                  metadata:
+                    name: {{ printf "%s-archive-collector" $dbName | quote }}
+                    namespace: {{ $namespace | quote }}
+                    labels:
+                      app.kubernetes.io/part-of: openkubes-database-postgresql
+            ---
+            apiVersion: kubernetes.crossplane.io/v1alpha2
+            kind: Object
+            metadata:
+              name: database-{{ $dbName }}-collector-role
+              annotations:
+                gotemplating.fn.crossplane.io/composition-resource-name: collector-role
+            spec:
+              deletionPolicy: Delete
+              providerConfigRef:
+                name: {{ $provider | quote }}
+              forProvider:
+                manifest:
+                  apiVersion: rbac.authorization.k8s.io/v1
+                  kind: Role
+                  metadata:
+                    name: {{ printf "%s-archive-collector" $dbName | quote }}
+                    namespace: {{ $namespace | quote }}
+                    labels:
+                      app.kubernetes.io/part-of: openkubes-database-postgresql
+                  # A Role, not a ClusterRole: the collector reads one cluster's pods and execs into
+                  # its primary. `create` on pods/exec is what kubectl exec requires.
+                  rules:
+                    - apiGroups: [""]
+                      resources: [pods]
+                      verbs: [get, list]
+                    - apiGroups: [""]
+                      resources: [pods/exec]
+                      verbs: [create]
+                    - apiGroups: [postgresql.cnpg.io]
+                      resources: [clusters]
+                      verbs: [get]
+            ---
+            apiVersion: kubernetes.crossplane.io/v1alpha2
+            kind: Object
+            metadata:
+              name: database-{{ $dbName }}-collector-binding
+              annotations:
+                gotemplating.fn.crossplane.io/composition-resource-name: collector-binding
+            spec:
+              deletionPolicy: Delete
+              providerConfigRef:
+                name: {{ $provider | quote }}
+              forProvider:
+                manifest:
+                  apiVersion: rbac.authorization.k8s.io/v1
+                  kind: RoleBinding
+                  metadata:
+                    name: {{ printf "%s-archive-collector" $dbName | quote }}
+                    namespace: {{ $namespace | quote }}
+                    labels:
+                      app.kubernetes.io/part-of: openkubes-database-postgresql
+                  subjects:
+                    - kind: ServiceAccount
+                      name: {{ printf "%s-archive-collector" $dbName | quote }}
+                      namespace: {{ $namespace | quote }}
+                  roleRef:
+                    kind: Role
+                    name: {{ printf "%s-archive-collector" $dbName | quote }}
+                    apiGroup: rbac.authorization.k8s.io
+            ---
+            # The management-plane token, mirrored in the same way as the app credential: values are
+            # never templated into this Composition, provider-kubernetes resolves the reference at
+            # reconcile time. The token authorizes create on ArchiveFreshness and nothing else — it
+            # cannot amend or delete past observations, and cannot touch recovery evidence, so §7's
+            # approval act is untouched by anything running here.
+            apiVersion: kubernetes.crossplane.io/v1alpha2
+            kind: Object
+            metadata:
+              name: database-{{ $dbName }}-collector-token
+              annotations:
+                gotemplating.fn.crossplane.io/composition-resource-name: collector-token
+            spec:
+              deletionPolicy: Delete
+              providerConfigRef:
+                name: {{ $provider | quote }}
+              references:
+                - patchesFrom:
+                    apiVersion: v1
+                    kind: Secret
+                    name: {{ $collectorTokenSecret | quote }}
+                    namespace: {{ $collectorTokenNamespace | quote }}
+                    fieldPath: data
+                  toFieldPath: data
+              forProvider:
+                manifest:
+                  apiVersion: v1
+                  kind: Secret
+                  metadata:
+                    name: {{ printf "%s-archive-collector-mgmt" $dbName | quote }}
+                    namespace: {{ $namespace | quote }}
+                    labels:
+                      app.kubernetes.io/part-of: openkubes-database-postgresql
+                  type: Opaque
+            ---
+            apiVersion: kubernetes.crossplane.io/v1alpha2
+            kind: Object
+            metadata:
+              name: database-{{ $dbName }}-collector
+              annotations:
+                gotemplating.fn.crossplane.io/composition-resource-name: collector
+            spec:
+              deletionPolicy: Delete
+              providerConfigRef:
+                name: {{ $provider | quote }}
+              forProvider:
+                manifest:
+                  apiVersion: batch/v1
+                  kind: CronJob
+                  metadata:
+                    name: {{ printf "%s-archive-collector" $dbName | quote }}
+                    namespace: {{ $namespace | quote }}
+                    labels:
+                      app.kubernetes.io/part-of: openkubes-database-postgresql
+                  spec:
+                    schedule: {{ $collectorSchedule | quote }}
+                    # A measurement is only interesting while fresh, so a missed window is skipped
+                    # rather than queued: catching up would publish an observedAt that was never true.
+                    startingDeadlineSeconds: 120
+                    concurrencyPolicy: Forbid
+                    successfulJobsHistoryLimit: 3
+                    failedJobsHistoryLimit: 3
+                    jobTemplate:
+                      spec:
+                        backoffLimit: 2
+                        # Wide enough for a cold image pull. 240s once killed a run mid-pull and
+                        # deleted the pod with its logs, which reads as a broken collector rather
+                        # than a slow registry.
+                        activeDeadlineSeconds: 540
+                        template:
+                          spec:
+                            serviceAccountName: {{ printf "%s-archive-collector" $dbName | quote }}
+                            restartPolicy: Never
+                            securityContext:
+                              runAsNonRoot: true
+                              runAsUser: 65534
+                              seccompProfile: {type: RuntimeDefault}
+                            containers:
+                              - name: collect
+                                image: {{ $collectorImage | quote }}
+                                imagePullPolicy: IfNotPresent
+                                securityContext:
+                                  allowPrivilegeEscalation: false
+                                  readOnlyRootFilesystem: true
+                                  capabilities: {drop: [ALL]}
+                                command: [/bin/bash, -euo, pipefail, -c]
+                                args:
+                                  # THREE separate execs, one quoting level each. Nesting
+                                  # kubectl exec -> bash -c -> psql -c with a to_char mask fails
+                                  # with exit 2 and no message; splitting removes the nesting
+                                  # rather than escaping through it.
+                                  #
+                                  # EXPOSURE, not idle time: the age of the oldest UNARCHIVED
+                                  # segment, or when none is pending, the time since the last
+                                  # archive capped by archive_timeout. An idle database produces no
+                                  # WAL and has no RPO exposure — measured 25904s since its last
+                                  # archive with zero pending, which the naive measure would report
+                                  # as an 86x bound violation on a database with nothing at risk.
+                                  - |
+                                    primary=$(kubectl -n "$NS" get pods -l "cnpg.io/cluster=$CL,cnpg.io/instanceRole=primary" -o jsonpath='{.items[0].metadata.name}')
+                                    test -n "$primary"
+                                    cuid=$(kubectl -n "$NS" get cluster.postgresql.cnpg.io "$CL" -o jsonpath='{.metadata.uid}')
+                                    test -n "$cuid"
+                                    pend=$(kubectl -n "$NS" exec "$primary" -c postgres -- bash -c 'd="$PGDATA/pg_wal/archive_status"; n=$(ls -1 "$d"/*.ready 2>/dev/null | wc -l); if [ "$n" -gt 0 ]; then o=$(ls -1t "$d"/*.ready | tail -1); a=$(( $(date -u +%s) - $(stat -c %Y "$o") )); else a=0; fi; echo "$n|$a"' | tail -1)
+                                    arch=$(kubectl -n "$NS" exec "$primary" -c postgres -- psql -U postgres -d postgres -X -A -t -F'|' -c "SELECT coalesce(extract(epoch from last_archived_time)::bigint, -1), coalesce(extract(epoch from (now() - last_archived_time))::bigint, -1) FROM pg_stat_archiver;" | tail -1)
+                                    ato=$(kubectl -n "$NS" exec "$primary" -c postgres -- psql -U postgres -d postgres -X -A -t -c "SELECT setting::int FROM pg_settings WHERE name = 'archive_timeout';" | tail -1)
+                                    n=${pend%%|*}; oldest=${pend##*|}
+                                    lastep=${arch%%|*}; since=${arch##*|}
+                                    test "$lastep" -ge 0
+                                    test "$ato" -gt 0
+                                    if [ "$n" -gt 0 ]; then exp=$oldest; elif [ "$since" -lt "$ato" ]; then exp=$since; else exp=$ato; fi
+                                    obs=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+                                    last=$(date -u -d "@$lastep" +%Y-%m-%dT%H:%M:%SZ)
+                                    dg=$(printf 'exposure = pending>0 ? oldest_ready_age : min(since_last_archive, archive_timeout); sources: archive_status/*.ready, pg_stat_archiver, pg_settings.archive_timeout' | sha256sum | cut -d' ' -f1)
+                                    cat <<YAML | kubectl --server="$MGMT" --certificate-authority=/mgmt/ca.crt --token="$(cat /mgmt/token)" create -f -
+                                    apiVersion: evidence.platform.openkubes.ai/v1alpha1
+                                    kind: ArchiveFreshness
+                                    metadata:
+                                      name: $CL-$(printf '%s' "$obs" | tr -d ':-' | tr 'TZ' 'tz')
+                                      labels:
+                                        platform.openkubes.ai/source-cluster: $CL
+                                    spec:
+                                      clusterRef:
+                                        apiVersion: postgresql.cnpg.io/v1
+                                        kind: Cluster
+                                        namespace: $NS
+                                        name: $CL
+                                        uid: $cuid
+                                      observed:
+                                        walLagSeconds: $exp
+                                        pendingWalCount: $n
+                                        lastArchivedWalTime: "$last"
+                                        archiveTimeoutSeconds: $ato
+                                      timing:
+                                        observedAt: "$obs"
+                                      probeDigest: sha256:$dg
+                                      verifierVersion: wal-exposure-collector/0.1.0
+                                    YAML
+                                env:
+                                  - name: NS
+                                    value: {{ $namespace | quote }}
+                                  - name: CL
+                                    value: {{ $dbName | quote }}
+                                  - name: MGMT
+                                    value: {{ $managementApiServer | quote }}
+                                  - name: HOME
+                                    value: /tmp
+                                volumeMounts:
+                                  - {name: mgmt, mountPath: /mgmt, readOnly: true}
+                                  - {name: tmp, mountPath: /tmp}
+                            volumes:
+                              - name: mgmt
+                                secret:
+                                  secretName: {{ printf "%s-archive-collector-mgmt" $dbName | quote }}
+                                  items:
+                                    - {key: token, path: token}
+                                    - {key: ca.crt, path: ca.crt}
+                              - name: tmp
+                                emptyDir: {}
             ---
             # Mirror only the fixed, admission-authorized app Secret. Values are
             # never templated into this Composition; provider-kubernetes resolves
