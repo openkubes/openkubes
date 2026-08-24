@@ -217,6 +217,32 @@ spec:
             {{- end }}
             {{- end }}
 
+            {{- /* Crossplane's OWN Ready condition, which is not `serviceReady`.
+
+                   Until now nothing in this Composition set composed-resource readiness, so all
+                   twelve resources were READY_UNSPECIFIED and the XR reported Creating forever:
+                   `kubectl wait --for=condition=Ready database/...` could never return, on a
+                   database that had been serving for days.
+
+                   The obvious fix is the wrong one. Every composed resource is a
+                   provider-kubernetes Object whose readiness policy is SuccessfulCreate, so its
+                   Ready condition means "the manifest was applied" — not "the thing works".
+                   Gating on that would publish a Ready that restates our own declaration back to
+                   us, which is the exact failure §13 bound 4 exists to prevent.
+
+                   So Ready is gated on the one composed resource whose truth is OBSERVED rather
+                   than declared: the CNPG Cluster's own Ready condition, already read above for
+                   operational evidence. Ready therefore means "the database is serving".
+                   `serviceReady` remains the stronger statement — serving AND the policy's
+                   required evidence holds. Two levels, both honest.
+
+                   Everything else is marked non-gating (see the annotation comments). That is not
+                   a claim those resources are healthy; it is a statement that their failure is
+                   reported through the evidence surface, in more detail than a boolean could
+                   carry. A missing ObjectStore does not make the database not-serving — it makes
+                   protection evidence Unknown, and that is what an operator needs to see. */}}
+            {{- $databaseReadyGate := ternary "True" "False" $clusterReady }}
+
             {{- /* Capability evidence is independent of protection/recovery. */}}
             {{- $capabilityState := "Unknown" }}
             {{- $capabilityReason := "AwaitingCluster" }}
@@ -981,6 +1007,8 @@ spec:
               name: database-{{ $dbName }}-collector-rbac
               annotations:
                 gotemplating.fn.crossplane.io/composition-resource-name: collector-rbac
+                # Non-gating for Ready: the collector measures the database; it does not constitute it.
+                gotemplating.fn.crossplane.io/ready: "True"
             spec:
               deletionPolicy: Delete
               providerConfigRef:
@@ -1001,6 +1029,8 @@ spec:
               name: database-{{ $dbName }}-collector-role
               annotations:
                 gotemplating.fn.crossplane.io/composition-resource-name: collector-role
+                # Non-gating for Ready: as collector-rbac.
+                gotemplating.fn.crossplane.io/ready: "True"
             spec:
               deletionPolicy: Delete
               providerConfigRef:
@@ -1033,6 +1063,8 @@ spec:
               name: database-{{ $dbName }}-collector-binding
               annotations:
                 gotemplating.fn.crossplane.io/composition-resource-name: collector-binding
+                # Non-gating for Ready: as collector-rbac.
+                gotemplating.fn.crossplane.io/ready: "True"
             spec:
               deletionPolicy: Delete
               providerConfigRef:
@@ -1066,6 +1098,8 @@ spec:
               name: database-{{ $dbName }}-collector-token
               annotations:
                 gotemplating.fn.crossplane.io/composition-resource-name: collector-token
+                # Non-gating for Ready: as collector-rbac.
+                gotemplating.fn.crossplane.io/ready: "True"
             spec:
               deletionPolicy: Delete
               providerConfigRef:
@@ -1095,6 +1129,8 @@ spec:
               name: database-{{ $dbName }}-collector
               annotations:
                 gotemplating.fn.crossplane.io/composition-resource-name: collector
+                # Non-gating for Ready: collector failure surfaces as RPOFreshnessUnproven, not as not-serving.
+                gotemplating.fn.crossplane.io/ready: "True"
             spec:
               deletionPolicy: Delete
               providerConfigRef:
@@ -1223,6 +1259,8 @@ spec:
               name: database-{{ $dbName }}-app-secret
               annotations:
                 gotemplating.fn.crossplane.io/composition-resource-name: app-secret
+                # Non-gating for Ready: credential delivery is reported by status.credentials, not by Ready.
+                gotemplating.fn.crossplane.io/ready: "True"
             spec:
               deletionPolicy: Orphan
               providerConfigRef:
@@ -1256,6 +1294,8 @@ spec:
               name: database-{{ $dbName }}-image-catalog
               annotations:
                 gotemplating.fn.crossplane.io/composition-resource-name: image-catalog
+                # Non-gating for Ready: an input to the Cluster; the Cluster's own readiness is the signal.
+                gotemplating.fn.crossplane.io/ready: "True"
             spec:
               deletionPolicy: Orphan
               providerConfigRef:
@@ -1312,6 +1352,8 @@ spec:
               name: database-{{ $dbName }}-object-store
               annotations:
                 gotemplating.fn.crossplane.io/composition-resource-name: object-store
+                # Non-gating for Ready: absence degrades protection evidence, not the serving database.
+                gotemplating.fn.crossplane.io/ready: "True"
             spec:
               deletionPolicy: Orphan
               providerConfigRef:
@@ -1371,6 +1413,9 @@ spec:
               name: database-{{ $dbName }}-cluster
               annotations:
                 gotemplating.fn.crossplane.io/composition-resource-name: database-cluster
+                # The ONLY resource that gates Ready, and on observed state rather than on
+                # the Object's SuccessfulCreate. See $databaseReadyGate above.
+                gotemplating.fn.crossplane.io/ready: {{ $databaseReadyGate | quote }}
             spec:
               # The database/PVC lifecycle is never coupled to Claim deletion.
               deletionPolicy: Orphan
@@ -1479,6 +1524,8 @@ spec:
               name: database-{{ $dbName }}-scheduled-backup
               annotations:
                 gotemplating.fn.crossplane.io/composition-resource-name: scheduled-backup
+                # Non-gating for Ready: absence degrades protection evidence, not the serving database.
+                gotemplating.fn.crossplane.io/ready: "True"
             spec:
               deletionPolicy: Orphan
               providerConfigRef:
@@ -1508,6 +1555,8 @@ spec:
               name: database-{{ $dbName }}-evidence-backup
               annotations:
                 gotemplating.fn.crossplane.io/composition-resource-name: evidence-backup
+                # Non-gating for Ready: an observation-only Object; it reads state, it does not provide service.
+                gotemplating.fn.crossplane.io/ready: "True"
             spec:
               deletionPolicy: Orphan
               providerConfigRef:
@@ -1533,6 +1582,8 @@ spec:
               name: database-{{ $dbName }}-pooler
               annotations:
                 gotemplating.fn.crossplane.io/composition-resource-name: pooler
+                # Non-gating for Ready: an optional access path; the database serves without it.
+                gotemplating.fn.crossplane.io/ready: "True"
             spec:
               deletionPolicy: Delete
               providerConfigRef:
