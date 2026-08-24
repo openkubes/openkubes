@@ -476,6 +476,34 @@ def scenario_inputs(name: str, now: datetime) -> tuple[dict[str, Any], list[dict
     return xr, observed
 
 
+def verification_profile(artifact: dict[str, Any]) -> dict[str, Any]:
+    """The operator approval of the method that produced `artifact` (§7, as amended).
+
+    Recovery scenarios need one for the same reason production scenarios need an ArchiveFreshness:
+    without it every artifact reads RestoreProfileUnapproved, which is CORRECT but masks the
+    state-machine behaviour these scenarios exist to exercise. restore-approval-check.py owns the
+    unapproved paths.
+    """
+    return {
+        "apiVersion": "platform.openkubes.ai/v1alpha1",
+        "kind": "VerificationProfile",
+        "metadata": {"name": f"approved-{artifact['metadata']['name']}"},
+        "spec": {
+            "checkProfileDigest": artifact["spec"]["checkProfileDigest"],
+            "verifierVersion": artifact["spec"]["verifierVersion"],
+            "checks": [c["name"] for c in artifact["spec"]["checks"]],
+            "approval": {
+                "approvedBy": "oidc:database-restore-verifiers",
+                "approvedAt": rfc3339(datetime(2026, 8, 24, tzinfo=timezone.utc)),
+                "rationale": (
+                    "Fixture approval for the reviewed five-probe restore method under test; the "
+                    "unapproved paths are asserted in restore-approval-check.py."
+                ),
+            },
+        },
+    }
+
+
 def archive_freshness(now: datetime, cluster_uid: str) -> dict[str, Any]:
     """A current, in-bound WAL-lag measurement (§13 bound 1).
 
@@ -593,6 +621,10 @@ def render_scenario(
                     raise EvidenceError(f"unknown artifact case {artifact_case!r}")
                 selected_artifacts = [tampered]
             extra_artifacts = list(selected_artifacts)
+            # Approve the method of every artifact offered, so a scenario testing the recovery
+            # state machine is not silently gated on an approval it never set up.
+            for offered in selected_artifacts:
+                extra_artifacts.append(verification_profile(offered))
             if xr["spec"]["protection"]["policyRef"] == "production":
                 extra_artifacts.append(
                     archive_freshness(now, observed_manifest(observed, "Cluster")["metadata"]["uid"])

@@ -24,7 +24,7 @@ rules:
   # DataPolicy is a platform-side policy object, not evidence, but the Composition resolves it the
   # same way and therefore needs the same read access.
   - apiGroups: [platform.openkubes.ai]
-    resources: [datapolicies]
+    resources: [datapolicies, verificationprofiles]
     verbs: [get, list, watch]
 ---
 apiVersion: rbac.authorization.k8s.io/v1

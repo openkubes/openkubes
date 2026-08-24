@@ -106,7 +106,7 @@ while (($#)); do
   esac
 done
 
-for required in SOURCE_CLUSTER RUN_ID NAMESPACE MINIO_ENDPOINT MINIO_CA_SECRET SOURCE_CREDENTIALS_SECRET DRILL_CREDENTIALS_SECRET BACKUP_ID DATABASE_API_VERSION DATABASE_KIND DATABASE_NAME DATABASE_UID POSTGRES_IMAGE STORAGE_CLASS; do
+for required in SOURCE_CLUSTER RUN_ID NAMESPACE MINIO_ENDPOINT MINIO_CA_SECRET SOURCE_CREDENTIALS_SECRET BACKUP_ID DATABASE_API_VERSION DATABASE_KIND DATABASE_NAME DATABASE_UID POSTGRES_IMAGE STORAGE_CLASS; do
   [[ -n "${!required}" ]] || { printf 'ERROR: %s is required\n' "$required" >&2; exit 2; }
 done
 DNS_LABEL_RE='^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
@@ -120,15 +120,19 @@ DNS_LABEL_RE='^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
   || { echo 'ERROR: --database-uid is malformed' >&2; exit 2; }
 [[ "$BACKUP_ID" =~ ^[0-9]{8}T[0-9]{6}$ ]] \
   || { echo 'ERROR: --backup-id must be a Barman backup ID (YYYYMMDDTHHMMSS)' >&2; exit 2; }
-for field in SOURCE_CLUSTER RUN_ID NAMESPACE MINIO_CA_SECRET SOURCE_CREDENTIALS_SECRET DRILL_CREDENTIALS_SECRET; do
+for field in SOURCE_CLUSTER RUN_ID NAMESPACE MINIO_CA_SECRET SOURCE_CREDENTIALS_SECRET; do
   value="${!field}"
   [[ ${#value} -le 63 && "$value" =~ $DNS_LABEL_RE ]] \
     || { printf 'ERROR: %s must be a DNS label of at most 63 characters\n' "$field" >&2; exit 2; }
 done
 RECOVERY_CLUSTER="recovery-${RUN_ID}"
+[[ -z "$DRILL_CREDENTIALS_SECRET" ]] \
+  || { echo 'ERROR: --drill-credentials-secret is no longer accepted: the recovery cluster has no WAL archiver, so the drill writes nowhere and needs no write identity. Remove the flag (and the provision-drill-writer.sh step) rather than passing an unused credential.' >&2; exit 2; }
 [[ ${#RECOVERY_CLUSTER} -le 63 ]] || { echo 'ERROR: recovery-RUN_ID exceeds 63 characters' >&2; exit 2; }
-[[ "$SOURCE_CREDENTIALS_SECRET" != "$DRILL_CREDENTIALS_SECRET" ]] \
-  || { echo 'ERROR: source and drill credential Secrets must be distinct' >&2; exit 2; }
+# The drill no longer holds a write credential at all, so there is no second Secret to keep
+# distinct from the source reader. The property that replaced it — the recovery cluster has no WAL
+# archiver and no write destination — is asserted on the rendered manifest by
+# render-recovery-cluster-check.py, where it cannot be satisfied by argument hygiene alone.
 [[ "$SOURCE_CLUSTER" == "$EXPECTED_SOURCE_CLUSTER" ]] \
   || { echo "ERROR: this OK-145 drill is authorized only for source cluster $EXPECTED_SOURCE_CLUSTER" >&2; exit 2; }
 [[ "$NAMESPACE" == "$EXPECTED_NAMESPACE" ]] \
@@ -145,8 +149,6 @@ RECOVERY_CLUSTER="recovery-${RUN_ID}"
   || { echo "ERROR: this OK-145 drill is authorized only for CA Secret $EXPECTED_MINIO_CA_SECRET" >&2; exit 2; }
 [[ "$SOURCE_CREDENTIALS_SECRET" == "ok-db-backups-${EXPECTED_SOURCE_CLUSTER}-reader" ]] \
   || { echo 'ERROR: source credential Secret is outside the reviewed drill tuple' >&2; exit 2; }
-[[ "$DRILL_CREDENTIALS_SECRET" == "ok-db-drill-${RUN_ID}-writer" ]] \
-  || { echo 'ERROR: drill credential Secret is outside the reviewed run tuple' >&2; exit 2; }
 [[ "$MINIO_ENDPOINT" =~ ^https://[A-Za-z0-9._:-]+(/[A-Za-z0-9._~!\$\&\(\)\*\+\,\;\=\:\@%/-]*)?$ ]] \
   || { echo 'ERROR: --minio-endpoint contains unsupported URL characters' >&2; exit 2; }
 [[ "$POSTGRES_IMAGE" =~ ^[-A-Za-z0-9._/:]+@sha256:[0-9a-f]{64}$ ]] \
@@ -181,7 +183,6 @@ cleanup() {
     CREATED=false
   fi
   if [[ "$WRITER_PROVISIONED" == true && ( "$RETAIN" != true || "$SUCCEEDED" != true ) ]]; then
-    cleanup_drill_prefix
     prefix_rc=$?
     if ((prefix_rc != 0 && rc == 0)); then rc=$prefix_rc; fi
     bash "$SCRIPT_DIR/provision-drill-writer.sh" --kubeconfig "$KUBECONFIG_PATH" --run-id "$RUN_ID" --delete
@@ -199,8 +200,8 @@ WORK_DIR="$(mktemp -d "${TMPDIR:-/tmp}/ok-db-restore-drill.XXXXXX")"
 RENDERED="${WORK_DIR}/recovery-cluster.yaml"
 [[ ! -e "$RENDERED" ]] || { echo 'ERROR: refusing to overwrite rendered manifest' >&2; exit 1; }
 export SOURCE_CLUSTER RUN_ID NAMESPACE MINIO_ENDPOINT MINIO_CA_SECRET SOURCE_CREDENTIALS_SECRET BACKUP_ID
-export DRILL_CREDENTIALS_SECRET POSTGRES_IMAGE STORAGE_CLASS STORAGE_SIZE RECOVERY_CLUSTER
-envsubst '${SOURCE_CLUSTER} ${RUN_ID} ${NAMESPACE} ${MINIO_ENDPOINT} ${MINIO_CA_SECRET} ${SOURCE_CREDENTIALS_SECRET} ${DRILL_CREDENTIALS_SECRET} ${BACKUP_ID} ${POSTGRES_IMAGE} ${STORAGE_CLASS} ${STORAGE_SIZE} ${RECOVERY_CLUSTER}' \
+export POSTGRES_IMAGE STORAGE_CLASS STORAGE_SIZE RECOVERY_CLUSTER
+envsubst '${SOURCE_CLUSTER} ${RUN_ID} ${NAMESPACE} ${MINIO_ENDPOINT} ${MINIO_CA_SECRET} ${SOURCE_CREDENTIALS_SECRET} ${BACKUP_ID} ${POSTGRES_IMAGE} ${STORAGE_CLASS} ${STORAGE_SIZE} ${RECOVERY_CLUSTER}' \
   <"$TEMPLATE" >"$RENDERED"
 if grep -q '\${[A-Z_][A-Z_]*}' "$RENDERED"; then
   echo 'ERROR: rendered manifest contains unresolved placeholders' >&2
@@ -237,55 +238,11 @@ append_observation --event database \
   --observed apiVersion "$DATABASE_API_VERSION" --observed kind "$DATABASE_KIND" \
   --observed name "$DATABASE_NAME" --observed uid "$DATABASE_UID"
 
-cleanup_drill_prefix() {
-  local cleanup_pod="ok-145-drill-prefix-cleanup-${RUN_ID}"
-  local existing_cleanup
-  existing_cleanup="$(kubectl --kubeconfig "$KUBECONFIG_PATH" -n "$NAMESPACE" get pod "$cleanup_pod" --ignore-not-found -o name)"
-  [[ -z "$existing_cleanup" ]] \
-    || { printf 'ERROR: cleanup pod %s already exists; refusing to claim it\n' "$cleanup_pod" >&2; return 1; }
-  PROBE_POD="$cleanup_pod"
-  kubectl --kubeconfig "$KUBECONFIG_PATH" apply -f - >/dev/null <<EOF
-apiVersion: v1
-kind: Pod
-metadata:
-  name: $cleanup_pod
-  namespace: $NAMESPACE
-  labels: {platform.openkubes.ai/database-drill-run: $RUN_ID}
-spec:
-  restartPolicy: Never
-  automountServiceAccountToken: false
-  securityContext: {seccompProfile: {type: RuntimeDefault}}
-  containers:
-  - name: cleanup
-    image: quay.io/minio/mc:RELEASE.2025-08-13T08-35-41Z@sha256:eb4ea9884b77704230e2423e9004d2fa738dc272876b9cc41a297d29443b8780
-    securityContext:
-      allowPrivilegeEscalation: false
-      capabilities: {drop: [ALL]}
-      runAsNonRoot: true
-      runAsUser: 1000
-      runAsGroup: 1000
-    command: [sh, -c]
-    args:
-    - |
-      set -eu
-      export SSL_CERT_FILE=/ca/ca.crt MC_CONFIG_DIR=/tmp/mc
-      export MC_HOST_drill="https://\${ACCESS_KEY_ID}:\${ACCESS_SECRET_KEY}@minio.minio.svc:9000"
-      mc rm --recursive --force "drill/ok-db-drill/$RUN_ID" >/dev/null
-      echo 'PASS: isolated drill prefix removed'
-    envFrom: [{secretRef: {name: $DRILL_CREDENTIALS_SECRET}}]
-    volumeMounts: [{name: ca, mountPath: /ca, readOnly: true}]
-  volumes:
-  - name: ca
-    secret: {secretName: $MINIO_CA_SECRET, items: [{key: ca.crt, path: ca.crt}]}
-EOF
-  if ! wait_pod_terminal "$cleanup_pod" 120; then
-    kubectl --kubeconfig "$KUBECONFIG_PATH" -n "$NAMESPACE" logs "$cleanup_pod" >&2 || true
-    return 1
-  fi
-  kubectl --kubeconfig "$KUBECONFIG_PATH" -n "$NAMESPACE" logs "$cleanup_pod"
-  kubectl --kubeconfig "$KUBECONFIG_PATH" -n "$NAMESPACE" delete pod "$cleanup_pod" --wait=true >/dev/null
-  PROBE_POD=
-}
+# The drill-prefix cleanup is gone with the prefix. It existed to delete what the recovery cluster
+# archived into ok-db-drill, and removing the WAL archiver means nothing is ever written there —
+# so there is nothing to clean up, and the cleanup pod was the last consumer of the retired write
+# credential. Deleting state you never created is not tidiness, it is a credential requirement in
+# disguise.
 
 CURRENT_CONTEXT="$(kubectl --kubeconfig "$KUBECONFIG_PATH" config current-context)"
 CURRENT_CLUSTER="$(kubectl --kubeconfig "$KUBECONFIG_PATH" config view --minify -o jsonpath='{.clusters[0].name}')"
@@ -344,7 +301,6 @@ if len(events) != 1:
 with Path(sys.argv[2]).open("a", encoding="utf-8") as stream:
     stream.write(json.dumps(events[0], separators=(",", ":"), sort_keys=True) + "\n")
 PY
-kubectl --kubeconfig "$KUBECONFIG_PATH" -n "$NAMESPACE" get secret "$DRILL_CREDENTIALS_SECRET" >/dev/null
 
 BACKUP_ROWS="$(kubectl --kubeconfig "$KUBECONFIG_PATH" -n "$NAMESPACE" get backups.postgresql.cnpg.io \
   -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.metadata.uid}{"\t"}{.status.phase}{"\t"}{.status.backupId}{"\t"}{.status.stoppedAt}{"\n"}{end}')"
@@ -688,8 +644,8 @@ python3 "$SCRIPT_DIR/write-restore-evidence.py" \
   --check-profile "$SCRIPT_DIR/check-profile.sql" --evidence-ref "$EVIDENCE_RELATIVE"
 python3 "$SCRIPT_DIR/tests/restore-evidence-check.py" "$EVIDENCE_PATH"
 SUCCEEDED=true
-printf 'RESULT: PASS recovery=%s source=ok-db-backups/%s backupId=%s destination=ok-db-drill/%s evidence=%s\n' \
-  "$RECOVERY_CLUSTER" "$SOURCE_CLUSTER" "$BACKUP_ID" "$RUN_ID" "$EVIDENCE_RELATIVE"
+printf 'RESULT: PASS recovery=%s source=ok-db-backups/%s backupId=%s destination=none-the-drill-writes-nowhere evidence=%s\n' \
+  "$RECOVERY_CLUSTER" "$SOURCE_CLUSTER" "$BACKUP_ID" "$EVIDENCE_RELATIVE"
 if [[ "$RETAIN" == true ]]; then
   printf 'RETAINED: resources with run label %s in namespace %s\n' "$RUN_ID" "$NAMESPACE"
 fi

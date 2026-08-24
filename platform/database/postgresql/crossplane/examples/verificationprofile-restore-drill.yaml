@@ -1,0 +1,44 @@
+# The operator group's approval of the restore-verification METHOD (§7, as amended under OK-150).
+#
+# This is the human act. It happens once per method, not once per artifact: a reviewer reads which
+# probes run and what counts as a pass, decides that is sufficient, and records why. Automated
+# verification then proceeds unattended until the method changes — at which point §11.2's rule that
+# a weakened profile invalidates older evidence lapses this approval and forces a fresh decision.
+#
+# The digests were computed by the runner BEFORE any artifact existed, so approving this profile
+# cannot bless a result that has already been observed.
+apiVersion: platform.openkubes.ai/v1alpha1
+kind: VerificationProfile
+metadata:
+  name: restore-drill-v1
+  labels:
+    app.kubernetes.io/part-of: openkubes-database-postgresql
+    openkubes.ai/adr: adr-platform-032
+spec:
+  checkProfileDigest: sha256:979fed018f937803ac60606b083da7a1109c45c7c48912763e1616e4152e5927
+  verifierVersion: sha256:6e99efa49e41aa6d5b93efd7a934adadb22a616d0b702da841d853643efc464c
+  checks:
+    - outside-recovery
+    - known-row-readable
+    - restore-probe-heap-readable
+    - primary-key-index-readable
+    - selected-backup-object-readable
+  approval:
+    approvedBy: oidc:database-restore-verifiers
+    approvedAt: "2026-08-24T10:30:00Z"
+    rationale: >-
+      These five probes are what makes RecoveryAssured mean something. The backup is restored into
+      a disposable cluster and the restored copy is then read: outside-recovery proves the instance
+      actually left recovery rather than merely starting; known-row-readable and
+      restore-probe-heap-readable read seeded content back out of the heap, so the claim rests on
+      data rather than on a process exiting zero; primary-key-index-readable proves an index is
+      valid and ready, which catches a restore that produced readable heap with unusable indexes;
+      and selected-backup-object-readable ties the run to the specific backup object it claims to
+      have restored. Isolation is asserted separately and independently — the source credential is
+      read-only, the write-denial probe records an authenticated refusal with the client's raw
+      response, and the recovery cluster now has no WAL archiver at all, so the drill writes
+      nowhere. Approving the method rather than each artifact is deliberate: a reviewer cannot
+      independently re-verify a machine-generated artifact, so per-instance admission adds no
+      judgement while making production degrade on a timer. Re-review is due when any probe is
+      added, removed or weakened, which the digest enforces mechanically.
+    expiresAt: "2027-08-24T10:30:00Z"

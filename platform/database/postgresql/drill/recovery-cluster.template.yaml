@@ -31,38 +31,6 @@ spec:
         cpu: 200m
         memory: 256Mi
 ---
-apiVersion: barmancloud.cnpg.io/v1
-kind: ObjectStore
-metadata:
-  name: ${RECOVERY_CLUSTER}-destination
-  namespace: ${NAMESPACE}
-  labels:
-    platform.openkubes.ai/database-drill-run: ${RUN_ID}
-spec:
-  configuration:
-    destinationPath: s3://ok-db-drill/${RUN_ID}
-    endpointURL: ${MINIO_ENDPOINT}
-    endpointCA:
-      name: ${MINIO_CA_SECRET}
-      key: ca.crt
-    s3Credentials:
-      accessKeyId:
-        name: ${DRILL_CREDENTIALS_SECRET}
-        key: ACCESS_KEY_ID
-      secretAccessKey:
-        name: ${DRILL_CREDENTIALS_SECRET}
-        key: ACCESS_SECRET_KEY
-    wal:
-      compression: gzip
-  instanceSidecarConfiguration:
-    resources:
-      requests:
-        cpu: 25m
-        memory: 64Mi
-      limits:
-        cpu: 200m
-        memory: 256Mi
----
 apiVersion: postgresql.cnpg.io/v1
 kind: Cluster
 metadata:
@@ -89,12 +57,20 @@ spec:
         parameters:
           barmanObjectName: ${RECOVERY_CLUSTER}-source
           serverName: ${SOURCE_CLUSTER}
-  plugins:
-    - name: barman-cloud.cloudnative-pg.io
-      enabled: true
-      isWALArchiver: true
-      parameters:
-        barmanObjectName: ${RECOVERY_CLUSTER}-destination
+  # NO WAL ARCHIVER, and no destination ObjectStore. The recovery cluster is a throwaway that
+  # lives minutes and is then deleted, so nothing it produces is worth archiving — and archiving
+  # was the ONLY reason the drill needed a write credential at all. Removing it deletes the per-run
+  # MinIO identity, the provisioning step that minted it, and the MinIO ROOT access that step
+  # required. The drill's total privilege is now read-only on the source bucket, which is what
+  # makes an unattended verifier safe to run.
+  #
+  # This STRENGTHENS §11.3 rather than relaxing it. The claim was "read-only source, isolated write
+  # destination" — writes went somewhere harmless. It is now "the drill writes nowhere": a simpler
+  # invariant, and one that cannot be misconfigured into pointing at the source. The write-denial
+  # probe against the source still proves the property that actually matters.
+  #
+  # Unarchived WAL accumulates on the recovery PVC for the life of the cluster, bounded by its
+  # lifetime and its storage request, and the cluster is deleted at the end of the run.
   storage:
     size: ${STORAGE_SIZE}
     storageClass: ${STORAGE_CLASS}

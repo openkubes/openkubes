@@ -110,6 +110,33 @@ def capability_artifact(residue: bool = False) -> dict[str, Any]:
     return artifact
 
 
+def approval_for(artifact: dict[str, Any]) -> dict[str, Any]:
+    """Approve the method behind a RestoreVerified (§7, as amended).
+
+    Independence has nothing to do with approval, but recovery evidence is now inadmissible without
+    it — so a test asserting the two conditions are independent has to supply one, or it measures
+    the approval gate instead of independence. restore-approval-check.py owns the approval paths.
+    """
+    return {
+        "apiVersion": "platform.openkubes.ai/v1alpha1",
+        "kind": "VerificationProfile",
+        "metadata": {"name": f"approved-{artifact['metadata']['name']}"},
+        "spec": {
+            "checkProfileDigest": artifact["spec"]["checkProfileDigest"],
+            "verifierVersion": artifact["spec"]["verifierVersion"],
+            "checks": [c["name"] for c in artifact["spec"]["checks"]],
+            "approval": {
+                "approvedBy": "oidc:database-restore-verifiers",
+                "approvedAt": "2026-08-24T00:00:00Z",
+                "rationale": (
+                    "Fixture approval so the independence assertions exercise independence rather "
+                    "than the approval gate."
+                ),
+            },
+        },
+    }
+
+
 def render(docs: list[dict[str, Any]], extras: list[dict[str, Any]]) -> dict[str, Any]:
     with tempfile.TemporaryDirectory(prefix="ok-150-independence-") as directory:
         work = Path(directory)
@@ -155,7 +182,7 @@ def pair(evidence: dict[str, Any]) -> tuple[tuple[str, str], tuple[str, str]]:
 def failed_capability_with_valid_recovery() -> None:
     """THE case. If this pair is unreachable, §5.1 is a pipeline."""
     recovery, capability = pair(
-        render(observed(with_pgvector=False, with_image_digest=False), [restore_artifact()])
+        render(observed(with_pgvector=False, with_image_digest=False), (lambda a: [a, approval_for(a)])(restore_artifact()))
     )
     if recovery[0] != "Valid":
         raise IndependenceError(
@@ -198,7 +225,7 @@ def both_valid_together() -> None:
     recovery, capability = pair(
         render(
             observed(with_pgvector=True, with_image_digest=True),
-            [restore_artifact(), capability_artifact()],
+            (lambda a: [a, approval_for(a), capability_artifact()])(restore_artifact()),
         )
     )
     if recovery[0] != "Valid" or capability[0] != "Valid":
@@ -312,7 +339,7 @@ def residue_keeps_the_pair_honest() -> None:
     recovery, capability = pair(
         render(
             observed(with_pgvector=True, with_image_digest=True),
-            [restore_artifact(), capability_artifact(residue=True)],
+            (lambda a: [a, approval_for(a), capability_artifact(residue=True)])(restore_artifact()),
         )
     )
     if capability[0] == "Valid":

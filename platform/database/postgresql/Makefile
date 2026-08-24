@@ -27,6 +27,7 @@ YAML_FILES := crossplane/xrd.yaml crossplane/composition.yaml \
 	collector/archivefreshness-rbac.yaml collector/archivefreshness-cronjob.yaml \
 	crossplane/restoreverified-crd.yaml \
 	crossplane/capabilityverified-crd.yaml crossplane/datapolicy-crd.yaml \
+	crossplane/verificationprofile-crd.yaml crossplane/examples/verificationprofile-restore-drill.yaml \
 	crossplane/archivefreshness-crd.yaml \
 	crossplane/claim-admission-policy.yaml \
 	crossplane/rbac/claim-editor-role.yaml crossplane/rbac/claim-editor-binding.yaml \
@@ -49,7 +50,7 @@ JSON_FILES := drill/minio-policy-backups-readonly.json \
 	observation-freshness-check capability-admission-check capability-evidence-check \
 	orphan-check \
 	credential-overlap-check residency-resolution-check anchor-supersession-check \
-	rpo-freshness-check condition-independence-check \
+	rpo-freshness-check condition-independence-check restore-approval-check \
 	restoreverified-api-check api-acceptance-check drill-validate drill-policy-check minio-provisioning-check \
 	restore-evidence-check \
 	require-mgmt-context require-mgmt-approval require-explicit-cluster require-deploy-user \
@@ -99,7 +100,7 @@ render-check: render-prerequisites ## Render both fixtures and assert Objects an
 			--expected-protection-state Unknown --expected-protection-reason BackupAvailabilityUnproven; \
 		$(PYTHON) crossplane/tests/evidence-status-check.py "$$work/observed.yaml"
 	@$(MAKE) --no-print-directory capability-evidence-check residency-resolution-check anchor-supersession-check \
-		rpo-freshness-check condition-independence-check
+		rpo-freshness-check condition-independence-check restore-approval-check
 
 claim-policy-check: ## Prove authority guards fail, then validate the reviewed tuple
 	@$(PYTHON) crossplane/tests/claim-policy-check.py --negative-controls
@@ -196,6 +197,13 @@ capability-evidence-check: render-prerequisites ## Prove capability evidence dec
 # pair is unreachable the set has silently become a pipeline, and no passing-case test would show
 # it. Also reads the Composition structurally, so a future edit that couples the two is caught
 # even when no fixture happens to expose it.
+# §7 as amended: the operator approves a verification METHOD once, not each artifact. That is only
+# an improvement if the approval bites, so both directions are asserted — and by render, because
+# revoking a real operator approval to watch a status change is an outage, not a test.
+restore-approval-check: render-prerequisites ## Prove recovery requires an approved verification method
+	@$(PYTHON) crossplane/tests/restore-approval-check.py --negative-controls
+	@$(PYTHON) crossplane/tests/restore-approval-check.py
+
 condition-independence-check: render-prerequisites ## Prove RecoveryAssured and CapabilityConformant are independent
 	@$(PYTHON) crossplane/tests/condition-independence-check.py --negative-controls
 	@$(PYTHON) crossplane/tests/condition-independence-check.py

@@ -535,12 +535,38 @@ spec:
                    source coordinates decide admissibility. */}}
             {{- $recoveryState := "Unknown" }}
             {{- $recoveryReason := "VerificationPending" }}
+            {{- /* Distinguished from VerificationPending on purpose: "nobody has verified" and
+                   "someone verified with a method nobody approved" call for different actions —
+                   run a drill, versus review and approve the method. */}}
+            {{- $unapprovedRestoreSeen := false }}
             {{- $recoveryObservedAt := $initialObservedAt }}
             {{- $recoveryValidUntil := "" }}
             {{- $recoveryEvidenceRef := "" }}
             {{- $recoveryBackupId := "" }}
             {{- $recoveryTarget := "" }}
             {{- $verifierVersion := "" }}
+            {{- /* Approved verification METHODS (§7, as amended under OK-150). A RestoreVerified is
+                   admissible only if an operator has approved the method that produced it — its
+                   checkProfileDigest AND its verifierVersion together. The approval is per method,
+                   not per artifact: a human reviews which probes run and what counts as a pass,
+                   once, and automated verification then proceeds unattended.
+
+                   Why this is stronger than admitting each artifact by hand: a person admitting a
+                   machine-generated artifact they cannot independently check adds no judgement,
+                   and doing it on a timer to keep the status green is a control that gets bypassed.
+                   Approving the method puts the human where judgement exists, and §11.2's rule that
+                   a weakened profile invalidates older evidence makes revocation automatic — change
+                   the checks and the approval lapses instead of being inherited. */}}
+            {{- $approvedProfiles := dict }}
+            {{- range $required := dig "items" (list) (index $extraResources "verification-profiles" | default (dict "items" (list))) }}
+            {{- $profile := dig "resource" (dict) $required }}
+            {{- if eq (dig "kind" "" $profile) "VerificationProfile" }}
+            {{- $pspec := dig "spec" (dict) $profile }}
+            {{- $key := printf "%s|%s" (dig "checkProfileDigest" "" $pspec) (dig "verifierVersion" "" $pspec) }}
+            {{- $approvedProfiles = merge $approvedProfiles (dict $key (dig "metadata" "name" "" $profile)) }}
+            {{- end }}
+            {{- end }}
+
             {{- $selectedRestore := dict }}
             {{- $selectedCompletedAt := "1970-01-01T00:00:00Z" }}
             {{- $canonicalSelectedCompletedAt := include "canonicalRFC3339" $selectedCompletedAt }}
@@ -588,12 +614,19 @@ spec:
                   $checksPass
                   (eq (dig "isolation" "writeDenialObjectAbsent" false $candidateSpec) true)
                   (hasPrefix "PASS" (dig "isolation" "effectivePolicyResult" "" $candidateSpec))
-                  (hasPrefix "PASS" (dig "isolation" "writeDenialProbeResult" "" $candidateSpec)) }}
+                  (hasPrefix "PASS" (dig "isolation" "writeDenialProbeResult" "" $candidateSpec))
+                  (hasKey $approvedProfiles (printf "%s|%s" (dig "checkProfileDigest" "" $candidateSpec) (dig "verifierVersion" "" $candidateSpec))) }}
+            {{- if and (not $admissible) (eq (dig "kind" "" $candidate) "RestoreVerified") (not (hasKey $approvedProfiles (printf "%s|%s" (dig "checkProfileDigest" "" $candidateSpec) (dig "verifierVersion" "" $candidateSpec)))) }}
+            {{- $unapprovedRestoreSeen = true }}
+            {{- end }}
             {{- if and $admissible ((toDate $layout $canonicalCompletedAt).After (toDate $layout $canonicalSelectedCompletedAt)) }}
             {{- $selectedRestore = $candidate }}
             {{- $selectedCompletedAt = $canonicalCompletedAt }}
             {{- $canonicalSelectedCompletedAt = $canonicalCompletedAt }}
             {{- end }}
+            {{- end }}
+            {{- if and (eq (len $selectedRestore) 0) $unapprovedRestoreSeen }}
+            {{- $recoveryReason = "RestoreProfileUnapproved" }}
             {{- end }}
             {{- if gt (len $selectedRestore) 0 }}
             {{- $selectedSpec := dig "spec" (dict) $selectedRestore }}
@@ -903,6 +936,9 @@ spec:
                 kind: CapabilityVerified
                 matchLabels:
                   platform.openkubes.ai/source-cluster: {{ $dbName | quote }}
+              verification-profiles:
+                apiVersion: platform.openkubes.ai/v1alpha1
+                kind: VerificationProfile
               {{- if $isProduction }}
               archive-freshness:
                 apiVersion: evidence.platform.openkubes.ai/v1alpha1

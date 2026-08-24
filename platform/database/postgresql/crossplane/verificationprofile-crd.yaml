@@ -1,0 +1,125 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: verificationprofiles.platform.openkubes.ai
+  labels:
+    app.kubernetes.io/part-of: openkubes-database-postgresql
+    openkubes.ai/adr: adr-platform-032
+spec:
+  group: platform.openkubes.ai
+  scope: Cluster
+  names:
+    plural: verificationprofiles
+    singular: verificationprofile
+    kind: VerificationProfile
+    shortNames: [vprof]
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      additionalPrinterColumns:
+        - name: Verifier
+          type: string
+          jsonPath: .spec.verifierVersion
+        - name: Approved
+          type: date
+          jsonPath: .spec.approval.approvedAt
+      schema:
+        openAPIV3Schema:
+          type: object
+          required: [spec]
+          properties:
+            spec:
+              type: object
+              description: >-
+                An operator's approval of a verification METHOD, not of one artifact.
+
+                §7 says "automate the mechanics, keep authority explicit", and until now
+                that was read as a human admitting every RestoreVerified. In practice
+                that is a person rubber-stamping a machine-generated artifact they
+                cannot independently check, on a timer that makes production degrade
+                until they do it. A control that must be performed to keep the status
+                green, and that adds no judgement, is a control that gets bypassed.
+
+                So the authority moves to where judgement actually exists: a human
+                reviews a verification method — which probes run, what the runner is,
+                what counts as a pass — and approves its digests once. Artifacts whose
+                digests match may then be admitted by an automated verifier. §11.2's
+                existing rule does the revocation: a weakened profile invalidates older
+                evidence, so changing the checks lapses this approval and forces a fresh
+                human decision rather than silently inheriting the old one.
+
+                This is deliberately NOT a way to approve evidence in bulk after the
+                fact. It binds digests computed BEFORE any artifact exists, so approving
+                a profile cannot approve a result that has already been observed.
+              x-kubernetes-validations:
+                - rule: self == oldSelf
+                  message: >-
+                    VerificationProfile spec is immutable; approving a different method
+                    is a new approval, not an edit of an old one.
+              required:
+                - checkProfileDigest
+                - verifierVersion
+                - checks
+                - approval
+              properties:
+                checkProfileDigest:
+                  type: string
+                  description: >-
+                    The digest the runner computes over its check-result stream. An
+                    artifact is admissible under this profile only if its
+                    checkProfileDigest matches exactly.
+                  pattern: '^sha256:[a-f0-9]{64}$'
+                verifierVersion:
+                  type: string
+                  description: >-
+                    Identity of the approved runner. A different runner producing the
+                    same checks is still a different method: it is the code that decides
+                    what "PASS" meant.
+                  minLength: 1
+                  maxLength: 128
+                checks:
+                  type: array
+                  description: >-
+                    The check names this profile approves, listed so the approval is
+                    reviewable by a human reading the object rather than only by a digest
+                    comparison. A digest tells you something changed; this tells you what
+                    was agreed.
+                  minItems: 1
+                  maxItems: 16
+                  x-kubernetes-list-type: set
+                  items:
+                    type: string
+                    minLength: 1
+                    maxLength: 63
+                approval:
+                  type: object
+                  description: >-
+                    Who approved this method and when. Recorded because the point of the
+                    change is that a human decision exists somewhere accountable — moving
+                    the act from per-artifact to per-method must not make it anonymous.
+                  required: [approvedBy, approvedAt, rationale]
+                  properties:
+                    approvedBy:
+                      type: string
+                      description: The reviewing identity or group.
+                      minLength: 1
+                      maxLength: 253
+                    approvedAt:
+                      type: string
+                      format: date-time
+                    rationale:
+                      type: string
+                      description: >-
+                        Why this method is sufficient. Required so an approval cannot be
+                        a bare signature — the next reviewer needs to know what the last
+                        one believed.
+                      minLength: 16
+                      maxLength: 2048
+                    expiresAt:
+                      type: string
+                      format: date-time
+                      description: >-
+                        Optional re-review deadline. The profile does not stop matching
+                        when it passes; the Composition reports the approval as expired,
+                        which surfaces a stale method instead of silently trusting it.
