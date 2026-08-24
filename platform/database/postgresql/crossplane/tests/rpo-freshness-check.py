@@ -151,6 +151,29 @@ def protection_of(status: dict[str, Any]) -> tuple[str, str]:
     return protection.get("state", ""), protection.get("reason", "")
 
 
+def check_recovery_validity_is_its_own_quantity() -> None:
+    """Restore-evidence age and backup age are different quantities (§11.1 says so explicitly).
+
+    The Composition computed recovery expiry from $backupValidity, so production — where backups
+    must be under 24h old — also demanded a completed restore drill every 24 hours. A drill
+    provisions a whole recovery cluster and each artifact is admitted by a human under §7, so that
+    made production unattainable rather than strict. Observed on ok-robotics: recovery went
+    Stale/RestoreEvidenceExpired three days after a passing drill while backups were healthy.
+    """
+    source = COMPOSITION_PATH.read_text()
+    assert "$recoveryValidity" in source, (
+        "recovery expiry must derive from its own $recoveryValidity, not from $backupValidity"
+    )
+    import re as _re
+    expiry = _re.search(r"\$recoveryExpiry := dateModify (\$[A-Za-z]+)", source)
+    assert expiry, "could not find the recovery expiry derivation"
+    assert expiry.group(1) == "$recoveryValidity", (
+        f"recovery expiry still derives from {expiry.group(1)}: backup age and restore-evidence "
+        "age are different quantities and §11.1 forbids reading one as the other"
+    )
+    print("PASS recovery validity: derived from $recoveryValidity, not from backup age")
+
+
 def check_storage_is_protection_independent() -> None:
     """Capacity must not follow the protection class (§6 orthogonality).
 
@@ -335,6 +358,7 @@ def main() -> int:
         if args.negative_controls:
             negative_controls()
         else:
+            check_recovery_validity_is_its_own_quantity()
             check_storage_is_protection_independent()
             check_install_gate_text()
             positive()

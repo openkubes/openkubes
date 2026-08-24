@@ -50,6 +50,7 @@ RUNNING_IMAGE = (
 )
 RUNNING_DIGEST = "sha256:e488b1434919f455f2ee4e18a181ce9b33f34cdd8dfb821126855486bce6ad34"
 CLUSTER_UID = "1c47d9d1-2cc2-4619-8265-a1598cb22274"
+RFC3339 = "%Y-%m-%dT%H:%M:%SZ"
 
 
 class IndependenceError(ValueError):
@@ -75,9 +76,21 @@ def observed(with_pgvector: bool, with_image_digest: bool) -> list[dict[str, Any
 
 
 def restore_artifact() -> dict[str, Any]:
-    """The admitted RestoreVerified from the shared fixture (first doc; the second is a decoy)."""
+    """The admitted RestoreVerified from the shared fixture (first doc; the second is a decoy).
+
+    Its timing is re-stamped relative to NOW. The fixture carries a fixed completedAt, and recovery
+    evidence ages out — so a test that used it verbatim passed until the wall clock crossed the
+    validity window and then failed for a reason unrelated to what it asserts. That happened:
+    once recovery validity became its own 7-day quantity, a 2026-08-17 fixture expired mid-session
+    and the independence check reported Pending/FreshVerificationPending. Independence has nothing
+    to do with the calendar, so the fixture must not depend on it.
+    """
     docs = [d for d in yaml.safe_load_all(RESTORE_FIXTURE.read_text()) if d]
-    return copy.deepcopy(docs[0])
+    artifact = copy.deepcopy(docs[0])
+    completed = datetime.now(timezone.utc).replace(microsecond=0) - timedelta(hours=1)
+    artifact["spec"]["timing"]["startedAt"] = (completed - timedelta(minutes=2)).strftime(RFC3339)
+    artifact["spec"]["timing"]["completedAt"] = completed.strftime(RFC3339)
+    return artifact
 
 
 def capability_artifact(residue: bool = False) -> dict[str, Any]:

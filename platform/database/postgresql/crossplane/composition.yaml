@@ -69,6 +69,16 @@ spec:
             {{- $storageSize := index $performanceStorage $spec.performance.class }}
             {{- $retention := "7d" }}
             {{- $backupValidity := "+168h" }}
+            {{- /* How old RESTORE EVIDENCE may be — a DIFFERENT quantity from $backupValidity,
+                   which bounds how old a BACKUP may be. §11.1 says so explicitly ("do not read
+                   its production default as the same quantity as §5.2's RecoveryAssured maxAge")
+                   and this Composition conflated them anyway: recovery expiry was computed from
+                   $backupValidity, so production demanded a completed restore drill every 24
+                   hours. A drill provisions a whole recovery cluster and, under §7, each artifact
+                   is admitted by a human — so a 24h window makes production unattainable in
+                   practice rather than merely strict. One week is the drill cadence this platform
+                   can actually sustain, and it keeps the human approval act weekly. */}}
+            {{- $recoveryValidity := "+168h" }}
             {{- $backupGracePeriod := "+72h" }}
             {{- $initialVerificationDeadline := "+336h" }}
             {{- /* §13 bound 1. production's RPO bound: the maximum WAL-archive lag that counts as
@@ -588,7 +598,7 @@ spec:
             {{- if gt (len $selectedRestore) 0 }}
             {{- $selectedSpec := dig "spec" (dict) $selectedRestore }}
             {{- $selectedReached := dig "recoveryTarget" "reached" (dict) $selectedSpec }}
-            {{- $recoveryExpiry := dateModify $backupValidity (toDate $layout $canonicalSelectedCompletedAt) }}
+            {{- $recoveryExpiry := dateModify $recoveryValidity (toDate $layout $canonicalSelectedCompletedAt) }}
             {{- $recoveryState = "Valid" }}
             {{- $recoveryReason = "RestoreVerified" }}
             {{- $recoveryObservedAt = $selectedCompletedAt }}
