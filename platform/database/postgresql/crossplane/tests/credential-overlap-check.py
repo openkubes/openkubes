@@ -181,16 +181,59 @@ def check_xrd() -> None:
         "previousRole",
         "overlapWindow",
         "previousCredentialAccepted",
+        "previousCredentialRevoked",
         "previousValidUntil",
     ):
         if field not in credentials:
             raise OverlapError(f"status.credentials.{field} is missing from the XRD")
-    if credentials["previousCredentialAccepted"].get("type") != "boolean":
-        raise OverlapError("previousCredentialAccepted must be a boolean, not a description")
+    for field in ("previousCredentialAccepted", "previousCredentialRevoked"):
+        if credentials[field].get("type") != "boolean":
+            raise OverlapError(f"{field} must be a boolean, not a description")
     for field in ("activeRole", "previousRole"):
         if credentials[field].get("pattern") != "^app_[ab]$":
             raise OverlapError(f"{field} must be constrained to the composed login-role pair")
-    print("PASS XRD schema: the overlap is published as data, including a machine-readable boolean")
+    print("PASS XRD schema: overlap and proven revocation are published as machine-readable booleans")
+
+
+def check_rotation_source(source: str | None = None) -> None:
+    """Pin the remote-RV/CNPG proof; deadline time alone is not revocation."""
+    text = source if source is not None else composition_source()
+    required = (
+        '$activeSlot := dig "platform.openkubes.ai/active-credential-slot" "a" $xrAnnotations',
+        '$previousStartVersion := dig "platform.openkubes.ai/previous-credential-resource-version" "" $xrAnnotations',
+        '$previousStartDigest := dig "platform.openkubes.ai/previous-credential-digest" "" $xrAnnotations',
+        '$previousPasswordDigest = sha256sum $previousPasswordBase64',
+        '$previousCredentialApplied := and $previousCredentialReconciled (ne $previousPublishedVersion "") (eq $previousPublishedVersion $previousAppliedVersion)',
+        '$previousStartCredentialApplied := and $previousCredentialReconciled (eq $previousAppliedVersion $previousStartVersion)',
+        '$previousPasswordReplaced := and (ne $previousPasswordDigest "") (ne $previousPasswordDigest $previousStartDigest)',
+        '$previousCredentialRevoked := and $rotationStarted $previousCredentialApplied $previousPasswordReplaced',
+        '$previousCredentialAccepted := and $rotationStarted (or $previousCredentialApplied $previousStartCredentialApplied) (not $previousCredentialRevoked)',
+        '$previousCredentialAcceptanceKnown := or (not $rotationAnnotationsPresent) $previousCredentialAccepted $previousCredentialRevoked',
+        '{{- if $previousCredentialAcceptanceKnown }}',
+        'name: {{ printf "%s-%s" $spec.credentialsSecretRef.name $slot | quote }}',
+        'gotemplating.fn.crossplane.io/composition-resource-name: app-secret-{{ $slot }}',
+        'observedAt: {{ $observedThrough | quote }}',
+    )
+    missing = [needle for needle in required if needle not in text]
+    if missing:
+        raise OverlapError("rotation source lacks remote-secret/CNPG proof: " + ", ".join(missing))
+    if ('$previousCredentialRevoked := and $rotationStarted $overlapElapsed' in text or
+            '(ne $previousPublishedVersion $previousStartVersion)' in text):
+        raise OverlapError("rotation source revokes on time or resourceVersion rather than password proof")
+    print("PASS slot mirrors and revocation require changed remote Secret RV plus matching CNPG application")
+
+
+def check_cluster_readback_heartbeat(source: str | None = None) -> None:
+    text = source if source is not None else composition_source()
+    marker = 'gotemplating.fn.crossplane.io/composition-resource-name: database-cluster'
+    start = text.find(marker)
+    if start < 0:
+        raise OverlapError("credential Cluster Object is missing")
+    block = text[start:start + 900]
+    heartbeat = 'platform.openkubes.ai/observe-through: {{ $observedThrough | quote }}'
+    if heartbeat not in block:
+        raise OverlapError("credential Cluster Object lacks the bounded provider-readback heartbeat")
+    print("PASS managed-role status Cluster Object has bounded provider-readback heartbeat")
 
 
 def evaluate(credentials: dict[str, Any], at: datetime) -> tuple[bool, str]:
@@ -214,25 +257,54 @@ def evaluate(credentials: dict[str, Any], at: datetime) -> tuple[bool, str]:
     if window <= 0:
         return False, "OverlapWindowZero"
 
-    claimed = credentials.get("previousCredentialAccepted")
-    if not isinstance(claimed, bool):
-        return False, "AcceptanceNotDeclared"
+    accepted = credentials.get("previousCredentialAccepted")
+    revoked = credentials.get("previousCredentialRevoked")
+    if not isinstance(accepted, bool) or not isinstance(revoked, bool):
+        return False, "AcceptanceOrRevocationNotDeclared"
 
     until = credentials.get("previousValidUntil")
     if until is None:
-        # No rotation has happened yet, so there is no previous credential to accept.
-        return (False, "NoRotationYet") if not claimed else (False, "AcceptedWithoutRotation")
+        # No rotation has happened yet, so there is no previous credential to accept or revoke.
+        return (False, "NoRotationYet") if not accepted and not revoked else (False, "RotationStateWithoutRotation")
 
     try:
         expiry = datetime.strptime(until, RFC3339).replace(tzinfo=timezone.utc)
     except ValueError:
         return False, "PreviousValidUntilUnparseable"
+    if accepted == revoked:
+        return False, "AcceptanceContradictsRevocationProof"
+    if accepted:
+        # The deadline is an operator SLA, not evidence that PostgreSQL rejected the verifier.
+        return (True, "PreviousCredentialAccepted") if at <= expiry else (True, "PreviousCredentialAcceptedRevocationOverdue")
+    return False, "PreviousCredentialRevoked"
 
-    actually = at <= expiry
-    if claimed != actually:
-        # The platform's boolean and its own deadline disagree: believe neither.
-        return False, "AcceptanceContradictsWindow"
-    return (True, "PreviousCredentialAccepted") if actually else (False, "OverlapElapsed")
+
+def previous_transition(start_rv: str, remote_rv: str, cnpg_rv: str,
+                        start_digest: str, remote_digest: str) -> tuple[bool, bool]:
+    """Model the Composition's old / in-flight / finalized previous-slot proof."""
+    current_applied = bool(remote_rv) and cnpg_rv == remote_rv
+    start_applied = bool(start_rv) and cnpg_rv == start_rv
+    password_replaced = bool(remote_digest) and remote_digest != start_digest
+    revoked = current_applied and password_replaced
+    accepted = (current_applied or start_applied) and not revoked
+    return accepted, revoked
+
+
+def check_previous_transition() -> None:
+    start_digest = "a" * 64
+    old = previous_transition("201", "201", "201", start_digest, start_digest)
+    inflight = previous_transition("201", "202", "201", start_digest, "b" * 64)
+    finalized = previous_transition("201", "202", "202", start_digest, "b" * 64)
+    metadata_only = previous_transition("201", "202", "202", start_digest, start_digest)
+    if old != (True, False):
+        raise OverlapError(f"old verifier transition wrong: {old}")
+    if inflight != (True, False):
+        raise OverlapError(f"in-flight replacement must retain old acceptance, got {inflight}")
+    if finalized != (False, True):
+        raise OverlapError(f"applied changed password must prove revocation, got {finalized}")
+    if metadata_only != (True, False):
+        raise OverlapError(f"metadata-only Secret update must not revoke, got {metadata_only}")
+    print("PASS previous-slot transition: old and in-flight accepted; changed digest plus applied RV revoked")
 
 
 def valid_credentials(now: datetime) -> dict[str, Any]:
@@ -243,6 +315,7 @@ def valid_credentials(now: datetime) -> dict[str, Any]:
         "previousRole": "app_a",
         "overlapWindow": "PT1H",
         "previousCredentialAccepted": True,
+        "previousCredentialRevoked": False,
         "previousValidUntil": (now + timedelta(minutes=30)).strftime(RFC3339),
     }
 
@@ -260,10 +333,13 @@ def negative_controls() -> None:
         c["overlapWindow"] = "PT0S"
         return c
 
-    def lying_boolean() -> dict[str, Any]:
-        """Window elapsed, boolean still claims the old credential works."""
+    def time_only_false_revocation() -> dict[str, Any]:
+        """A deadline alone must never turn acceptance false."""
         c = valid_credentials(now)
         c["previousValidUntil"] = (now - timedelta(minutes=1)).strftime(RFC3339)
+        c["previousCredentialAccepted"] = False
+        # No remote Secret/CNPG replacement proof accompanies this false claim.
+        c["previousCredentialRevoked"] = False
         return c
 
     def accepted_without_rotation() -> dict[str, Any]:
@@ -284,13 +360,13 @@ def negative_controls() -> None:
     controls = {
         "previous role same as active": (same_role, "NoDistinctPreviousRole"),
         "zero-length overlap window": (zero_window, "OverlapWindowZero"),
-        "boolean contradicts its own deadline": (lying_boolean, "AcceptanceContradictsWindow"),
+        "time-only false revocation": (time_only_false_revocation, "AcceptanceContradictsRevocationProof"),
         "acceptance claimed with no rotation": (
             accepted_without_rotation,
-            "AcceptedWithoutRotation",
+            "RotationStateWithoutRotation",
         ),
         "owner role presented as a login slot": (unknown_role, "RolesNotAPair"),
-        "acceptance not declared at all": (missing_boolean, "AcceptanceNotDeclared"),
+        "acceptance not declared at all": (missing_boolean, "AcceptanceOrRevocationNotDeclared"),
     }
     for name, (build, expected) in controls.items():
         accepted, reason = evaluate(build(), now)
@@ -301,6 +377,60 @@ def negative_controls() -> None:
                 f"NEGATIVE CONTROL FAILED: {name} rejected for {reason!r}, expected {expected!r}"
             )
         print(f"NEGATIVE CONTROL PASS: {name}: {reason}")
+
+    # The revocation proof must not regress to a clock-only assertion. Mutating Composition SOURCE
+    # is what makes this a source test rather than a status fixture test.
+    clock_only = composition_source().replace(
+        '$previousCredentialRevoked := and $rotationStarted $previousCredentialApplied $previousPasswordReplaced',
+        '$previousCredentialRevoked := and $rotationStarted $overlapElapsed',
+    )
+    try:
+        check_rotation_source(clock_only)
+    except OverlapError as exc:
+        if "time or resourceVersion" not in str(exc) and "remote-secret/CNPG proof" not in str(exc):
+            raise OverlapError(f"clock-only revocation rejected for wrong reason: {exc}") from exc
+        print("NEGATIVE CONTROL PASS: elapsed time alone cannot claim previous credential revoked")
+    else:
+        raise OverlapError("NEGATIVE CONTROL FAILED: clock-only revocation source was accepted")
+
+    rv_only = composition_source().replace(
+        '$previousCredentialRevoked := and $rotationStarted $previousCredentialApplied $previousPasswordReplaced',
+        '$previousCredentialRevoked := and $rotationStarted $previousCredentialApplied (ne $previousPublishedVersion $previousStartVersion)',
+    )
+    try:
+        check_rotation_source(rv_only)
+    except OverlapError as exc:
+        if "resourceVersion" not in str(exc) and "remote-secret/CNPG proof" not in str(exc):
+            raise OverlapError(f"RV-only revocation rejected for wrong reason: {exc}") from exc
+        print("NEGATIVE CONTROL PASS: metadata-only Secret resourceVersion change cannot revoke")
+    else:
+        raise OverlapError("NEGATIVE CONTROL FAILED: resourceVersion-only revocation source was accepted")
+
+    stale_observed_at = composition_source().replace(
+        'observedAt: {{ $observedThrough | quote }}',
+        'observedAt: {{ $operationalObservedAt | quote }}',
+    )
+    try:
+        check_rotation_source(stale_observed_at)
+    except OverlapError as exc:
+        if "observedAt" not in str(exc):
+            raise OverlapError(f"credential freshness source rejected for wrong reason: {exc}") from exc
+        print("NEGATIVE CONTROL PASS: credential status cannot reuse a stale Cluster Ready timestamp")
+    else:
+        raise OverlapError("NEGATIVE CONTROL FAILED: stale credential observedAt source was accepted")
+
+    missing_cluster_heartbeat = composition_source().replace(
+        'gotemplating.fn.crossplane.io/composition-resource-name: database-cluster\n                # The workload Cluster\'s managed-role passwordStatus is credential evidence.\n                # Remote changes do not enqueue this management Object, so the same bounded\n                # heartbeat as the collector/slot mirrors forces normal provider read-back\n                # without alpha watch support.\n                platform.openkubes.ai/observe-through: {{ $observedThrough | quote }}',
+        'gotemplating.fn.crossplane.io/composition-resource-name: database-cluster',
+    )
+    try:
+        check_cluster_readback_heartbeat(missing_cluster_heartbeat)
+    except OverlapError as exc:
+        if "readback heartbeat" not in str(exc):
+            raise OverlapError(f"Cluster heartbeat removal rejected for wrong reason: {exc}") from exc
+        print("NEGATIVE CONTROL PASS: managed-role status cannot rely on an unrefreshed Cluster Object")
+    else:
+        raise OverlapError("NEGATIVE CONTROL FAILED: Cluster heartbeat removal was accepted")
 
     # The structural control: both slots on one Secret. Every status field still looks right, and
     # the overlap does not exist. Mutating the Composition SOURCE is what makes this a real test.
@@ -344,13 +474,20 @@ def negative_controls() -> None:
         raise OverlapError(f"a valid mid-overlap status was rejected: {reason}")
     print(f"PASS positive control: mid-overlap status accepted ({reason})")
 
-    elapsed = valid_credentials(now)
-    elapsed["previousValidUntil"] = (now - timedelta(minutes=1)).strftime(RFC3339)
-    elapsed["previousCredentialAccepted"] = False
-    accepted, reason = evaluate(elapsed, now)
-    if accepted or reason != "OverlapElapsed":
-        raise OverlapError(f"an honestly-elapsed overlap must read OverlapElapsed, got {reason}")
-    print(f"PASS honest elapse: {reason} — the consumer is told, not left to infer")
+    overdue = valid_credentials(now)
+    overdue["previousValidUntil"] = (now - timedelta(minutes=1)).strftime(RFC3339)
+    accepted, reason = evaluate(overdue, now)
+    if not accepted or reason != "PreviousCredentialAcceptedRevocationOverdue":
+        raise OverlapError(f"an overdue but unreplaced verifier must remain accepted, got {reason}")
+    print(f"PASS honest overdue: {reason} — time alone never invents revocation")
+
+    revoked = valid_credentials(now)
+    revoked["previousCredentialAccepted"] = False
+    revoked["previousCredentialRevoked"] = True
+    accepted, reason = evaluate(revoked, now)
+    if accepted or reason != "PreviousCredentialRevoked":
+        raise OverlapError(f"a proven replacement must reject the previous credential, got {reason}")
+    print(f"PASS proven replacement: {reason}")
 
 
 def main() -> int:
@@ -364,6 +501,9 @@ def main() -> int:
             check_role_structure()
             check_declared_windows()
             check_xrd()
+            check_rotation_source()
+            check_cluster_readback_heartbeat()
+            check_previous_transition()
     except OverlapError as exc:
         print(f"FAIL: {exc}", file=sys.stderr)
         return 1

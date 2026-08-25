@@ -96,6 +96,7 @@ def render(docs: list[dict[str, Any]]) -> dict[str, Any]:
                 "--crossplane-version=v2.3.3",
                 "--include-full-xr",
                 f"--observed-resources={observed_path}",
+                f"--extra-resources={TESTS_DIR / 'target-ok-robotics.yaml'}",
             ],
             cwd=CAPABILITY_DIR,
             check=False,

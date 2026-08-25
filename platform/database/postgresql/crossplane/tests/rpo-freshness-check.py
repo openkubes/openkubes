@@ -54,35 +54,40 @@ def freshness(
     observed_at: datetime,
     lag: int,
     pending: int = 0,
-    uid: str = CLUSTER_UID,
+    name: str = "ok-robotics-archive-freshness",
     archive_timeout: int = 300,
 ) -> dict:
     return {
-        "apiVersion": "evidence.platform.openkubes.ai/v1alpha1",
-        "kind": "ArchiveFreshness",
+        "apiVersion": "kubernetes.crossplane.io/v1alpha2",
+        "kind": "Object",
         "metadata": {
-            "name": "af-" + stamp(observed_at).lower().replace(":", "").replace("-", ""),
-            "labels": {"platform.openkubes.ai/source-cluster": "ok-robotics"},
+            "name": "database-ok-robotics-collector-observation",
+            "annotations": {"crossplane.io/composition-resource-name": "collector-observation"},
         },
-        "spec": {
-            "clusterRef": {
-                "apiVersion": "postgresql.cnpg.io/v1",
-                "kind": "Cluster",
-                "namespace": "database-ok-robotics",
-                "name": "ok-robotics",
-                "uid": uid,
-            },
-            "observed": {
-                "walLagSeconds": lag,
-                "pendingWalCount": pending,
-                "lastArchivedWalTime": stamp(observed_at - timedelta(seconds=lag)),
-                "archiveTimeoutSeconds": archive_timeout,
-            },
-            "timing": {"observedAt": stamp(observed_at)},
-            "probeDigest": "sha256:" + "2" * 64,
-            "verifierVersion": "wal-lag-probe/0.1.0",
+        "status": {
+            "atProvider": {
+                "manifest": {
+                    "apiVersion": "v1",
+                    "kind": "ConfigMap",
+                    "metadata": {"name": name, "namespace": "database-ok-robotics"},
+                    "data": {
+                        "clusterUid": CLUSTER_UID,
+                        "observedAt": stamp(observed_at),
+                        "walLagSeconds": str(lag),
+                        "pendingWalCount": str(pending),
+                        "lastArchivedWalTime": stamp(observed_at - timedelta(seconds=lag)),
+                        "archiveTimeoutSeconds": str(archive_timeout),
+                        "probeDigest": "sha256:904a29ee996692fe937f6ec8e4ef140b3d115f025250daf5cabac75baaca8ef5",
+                        "verifierVersion": "wal-exposure-metrics-collector/0.2.0",
+                    },
+                }
+            }
         },
     }
+
+
+def observation_data(observation: dict[str, Any]) -> dict[str, str]:
+    return observation["status"]["atProvider"]["manifest"]["data"]
 
 
 def healthy_observed(now: datetime) -> list[dict[str, Any]]:
@@ -104,11 +109,14 @@ def healthy_observed(now: datetime) -> list[dict[str, Any]]:
     return docs
 
 
-def render(xr_path: Path, extras: list[dict] | None, now: datetime) -> dict[str, Any]:
+def render(xr_path: Path, observations: list[dict] | None, now: datetime) -> dict[str, Any]:
     with tempfile.TemporaryDirectory(prefix="ok-150-rpo-") as directory:
         work = Path(directory)
         observed_path = work / "observed.yaml"
-        observed_path.write_text(yaml.safe_dump_all(healthy_observed(now), sort_keys=False))
+        observed = healthy_observed(now)
+        if observations:
+            observed.extend(observations)
+        observed_path.write_text(yaml.safe_dump_all(observed, sort_keys=False))
         command = [
             "crossplane",
             "composition",
@@ -119,11 +127,8 @@ def render(xr_path: Path, extras: list[dict] | None, now: datetime) -> dict[str,
             "--crossplane-version=v2.3.3",
             "--include-full-xr",
             f"--observed-resources={observed_path}",
+            f"--extra-resources={TESTS_DIR / 'target-ok-robotics.yaml'}",
         ]
-        if extras:
-            extra_path = work / "extra.yaml"
-            extra_path.write_text(yaml.safe_dump_all(extras, sort_keys=False))
-            command.append(f"--extra-resources={extra_path}")
         result = subprocess.run(
             command, cwd=CAPABILITY_DIR, check=False, capture_output=True, text=True
         )
@@ -223,16 +228,17 @@ def check_install_gate_text() -> None:
             "the install gate names the ImageVolume gate as the capability prerequisite without "
             "containerd >= 2.1.0; the gate alone is necessary but not sufficient"
         )
-    # The two obligations an operator must act on BEFORE installing. Both are consequences of
-    # this ticket's changes, and both are silent failures if unread: production never becomes
-    # ready without measurements, and consumers lose their login without warning.
+    if "nothing publishes" in gate:
+        raise RpoError("the install gate still claims the now-composed collector does not exist")
+    # The two human acts remain explicit: approving the method is separate from installation,
+    # and an existing consumer must move off the owner role before it becomes NOLOGIN.
     for needle, why in (
-        ("ArchiveFreshness", "production needs published measurements or it never becomes ready"),
+        ("approve-verification-profile", "method approval must not be manufactured by setup"),
         ("NOLOGIN", "the app role stops being a login role and consumers must be repointed"),
     ):
         if needle not in gate:
             raise RpoError(f"the install gate does not mention {needle}: {why}")
-    print("PASS install gate: names the RPO obligation, the NOLOGIN cutover and containerd")
+    print("PASS install gate: names explicit method approval, the NOLOGIN cutover and containerd")
 
 
 def positive() -> None:
@@ -298,7 +304,7 @@ def negative_controls() -> None:
     # database for a configuration decision would be the wrong verdict.
     tight = render(
         PRODUCTION_XR,
-        [freshness(now - timedelta(minutes=1), lag=60, pending=1, archive_timeout=900)],
+        [freshness(now - timedelta(minutes=1), lag=60, pending=0, archive_timeout=900)],
         now,
     )
     if rpo_of(tight) != ("Failed", "RPOArchiveTimeoutExceedsBound"):
@@ -307,21 +313,18 @@ def negative_controls() -> None:
         )
     print(f"PASS archive_timeout wider than bound: {rpo_of(tight)[1]}")
 
-    over = render(
+    pending = render(
         PRODUCTION_XR,
-        [freshness(now - timedelta(minutes=1), lag=3600, pending=4, archive_timeout=300)],
+        [freshness(now - timedelta(minutes=1), lag=0, pending=4, archive_timeout=300)],
         now,
     )
-    if rpo_of(over) != ("Failed", "RPOBoundExceeded"):
+    if rpo_of(pending) != ("Unknown", "RPOPendingWALAgeUnproven"):
         raise RpoError(
-            f"NEGATIVE CONTROL FAILED: a lag past the bound is a counter-proof, got {rpo_of(over)}"
+            f"NEGATIVE CONTROL FAILED: pending WAL with unmeasured age must be Unknown, got {rpo_of(pending)}"
         )
-    if protection_of(over) != ("Failed", "RPOBoundExceeded"):
-        raise RpoError(
-            f"NEGATIVE CONTROL FAILED: protection must fail on an exceeded RPO bound, got "
-            f"{protection_of(over)}"
-        )
-    print(f"NEGATIVE CONTROL PASS: lag beyond bound: {protection_of(over)[1]} (a counter-proof)")
+    if protection_of(pending)[0] == "Valid":
+        raise RpoError("NEGATIVE CONTROL FAILED: production protection is Valid with pending WAL age unproven")
+    print("NEGATIVE CONTROL PASS: pending WAL count cannot be converted into invented age")
 
     # An old measurement is not a current claim — but it is not a counter-proof either.
     expired = render(PRODUCTION_XR, [freshness(now - timedelta(hours=2), lag=30)], now)
@@ -334,7 +337,9 @@ def negative_controls() -> None:
 
     # A measurement for a different cluster must be invisible, not borrowed.
     other = render(
-        PRODUCTION_XR, [freshness(now - timedelta(minutes=1), lag=30, uid="other-cluster-uid")], now
+        PRODUCTION_XR,
+        [freshness(now - timedelta(minutes=1), lag=30, name="another-db-archive-freshness")],
+        now,
     )
     if rpo_of(other) != ("Unknown", "RPOFreshnessUnproven"):
         raise RpoError(
@@ -342,6 +347,33 @@ def negative_controls() -> None:
             f"{rpo_of(other)}"
         )
     print(f"NEGATIVE CONTROL PASS: measurement for another cluster: {rpo_of(other)[1]}")
+
+    replaced_cluster = freshness(now - timedelta(minutes=1), lag=30)
+    observation_data(replaced_cluster)["clusterUid"] = "replaced-cluster-uid"
+    replaced_status = render(PRODUCTION_XR, [replaced_cluster], now)
+    if rpo_of(replaced_status) != ("Unknown", "RPOFreshnessUnproven"):
+        raise RpoError(f"NEGATIVE CONTROL FAILED: pre-replacement observation was reused: {rpo_of(replaced_status)}")
+    print("NEGATIVE CONTROL PASS: observation bound to a replaced Cluster UID is not admitted")
+
+    malformed = freshness(now - timedelta(minutes=1), lag=30)
+    observation_data(malformed)["walLagSeconds"] = "not-a-number"
+    malformed_status = render(PRODUCTION_XR, [malformed], now)
+    if rpo_of(malformed_status) != ("Unknown", "RPOFreshnessUnproven"):
+        raise RpoError(f"NEGATIVE CONTROL FAILED: malformed numeric data was used: {rpo_of(malformed_status)}")
+    print("NEGATIVE CONTROL PASS: malformed observation fails closed without breaking reconciliation")
+
+    incoherent = freshness(now - timedelta(minutes=1), lag=900, pending=0, archive_timeout=300)
+    incoherent_status = render(PRODUCTION_XR, [incoherent], now)
+    if rpo_of(incoherent_status) != ("Unknown", "RPOFreshnessUnproven"):
+        raise RpoError(f"NEGATIVE CONTROL FAILED: idle lag beyond archive_timeout was used: {rpo_of(incoherent_status)}")
+    print("NEGATIVE CONTROL PASS: incoherent idle exposure is not admitted")
+
+    wrong_method = freshness(now - timedelta(minutes=1), lag=30)
+    observation_data(wrong_method)["probeDigest"] = "sha256:" + "0" * 64
+    wrong_method_status = render(PRODUCTION_XR, [wrong_method], now)
+    if rpo_of(wrong_method_status) != ("Unknown", "RPOFreshnessUnproven"):
+        raise RpoError(f"NEGATIVE CONTROL FAILED: unreviewed measurement method was used: {rpo_of(wrong_method_status)}")
+    print("NEGATIVE CONTROL PASS: unreviewed collector method is not admitted")
 
     # A future measurement is a broken clock, not freshness.
     future = render(PRODUCTION_XR, [freshness(now + timedelta(hours=1), lag=30)], now)

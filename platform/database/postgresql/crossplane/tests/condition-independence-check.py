@@ -152,9 +152,9 @@ def render(docs: list[dict[str, Any]], extras: list[dict[str, Any]]) -> dict[str
             "--include-full-xr",
             f"--observed-resources={work / 'observed.yaml'}",
         ]
-        if extras:
-            (work / "extra.yaml").write_text(yaml.safe_dump_all(extras, sort_keys=False))
-            command.append(f"--extra-resources={work / 'extra.yaml'}")
+        target = yaml.safe_load((TESTS_DIR / "target-ok-robotics.yaml").read_text())
+        (work / "extra.yaml").write_text(yaml.safe_dump_all([target, *extras], sort_keys=False))
+        command.append(f"--extra-resources={work / 'extra.yaml'}")
         result = subprocess.run(
             command, cwd=CAPABILITY_DIR, check=False, capture_output=True, text=True
         )

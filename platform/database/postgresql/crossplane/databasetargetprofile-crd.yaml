@@ -1,0 +1,64 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: databasetargetprofiles.platform.openkubes.ai
+  labels:
+    app.kubernetes.io/part-of: openkubes-database-postgresql
+    openkubes.ai/adr: adr-platform-032
+spec:
+  group: platform.openkubes.ai
+  scope: Cluster
+  names:
+    plural: databasetargetprofiles
+    singular: databasetargetprofile
+    kind: DatabaseTargetProfile
+    shortNames: [dbtarget]
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          required: [spec]
+          properties:
+            spec:
+              type: object
+              description: >-
+                Platform-owned placement configuration for one registered workload cluster.
+                The object name equals Database.spec.clusterRef. Claimants may select only tuples
+                admitted by the fail-closed DatabaseClaim policy and cannot create this object.
+              x-kubernetes-validations:
+                - rule: self == oldSelf
+                  message: Target profile placement is immutable; enroll a reviewed replacement.
+              required: [clusterRef, backupStore]
+              properties:
+                clusterRef:
+                  type: string
+                  minLength: 1
+                  maxLength: 253
+                  pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
+                backupStore:
+                  type: object
+                  required: [bucket, endpointURL, endpointCA, residencyZone]
+                  properties:
+                    bucket:
+                      type: string
+                      minLength: 3
+                      maxLength: 63
+                      pattern: '^[a-z0-9][a-z0-9.-]*[a-z0-9]$'
+                    endpointURL:
+                      type: string
+                      minLength: 9
+                      maxLength: 2048
+                      pattern: '^https://[^[:space:]]+$'
+                    endpointCA:
+                      type: string
+                      minLength: 1
+                      maxLength: 253
+                      pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
+                    residencyZone:
+                      type: string
+                      minLength: 1
+                      maxLength: 63
+                      pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'

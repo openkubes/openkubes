@@ -1,0 +1,11 @@
+apiVersion: platform.openkubes.ai/v1alpha1
+kind: DatabaseTargetProfile
+metadata:
+  name: ok-robotics
+spec:
+  clusterRef: ok-robotics
+  backupStore:
+    bucket: ok-db-backups
+    endpointURL: https://minio.minio.svc:9000
+    endpointCA: minio-backup-store-ca
+    residencyZone: on-prem-de

@@ -479,7 +479,7 @@ def scenario_inputs(name: str, now: datetime) -> tuple[dict[str, Any], list[dict
 def verification_profile(artifact: dict[str, Any]) -> dict[str, Any]:
     """The operator approval of the method that produced `artifact` (§7, as amended).
 
-    Recovery scenarios need one for the same reason production scenarios need an ArchiveFreshness:
+    Recovery scenarios need one for the same reason production scenarios need a WAL observation:
     without it every artifact reads RestoreProfileUnapproved, which is CORRECT but masks the
     state-machine behaviour these scenarios exist to exercise. restore-approval-check.py owns the
     unapproved paths.
@@ -504,7 +504,7 @@ def verification_profile(artifact: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def archive_freshness(now: datetime, cluster_uid: str) -> dict[str, Any]:
+def archive_freshness(now: datetime) -> dict[str, Any]:
     """A current, in-bound WAL-lag measurement (§13 bound 1).
 
     Production scenarios need one to keep testing what they were written to test. Without it
@@ -514,31 +514,33 @@ def archive_freshness(now: datetime, cluster_uid: str) -> dict[str, Any]:
     """
     observed_at = now - timedelta(minutes=1)
     return {
-        "apiVersion": "evidence.platform.openkubes.ai/v1alpha1",
-        "kind": "ArchiveFreshness",
+        "apiVersion": "kubernetes.crossplane.io/v1alpha2",
+        "kind": "Object",
         "metadata": {
-            "name": "archive-freshness-current",
-            "labels": {"platform.openkubes.ai/source-cluster": "ok-robotics"},
+            "name": "database-ok-robotics-collector-observation",
+            "annotations": {"crossplane.io/composition-resource-name": "collector-observation"},
         },
-        "spec": {
-            "clusterRef": {
-                "apiVersion": "postgresql.cnpg.io/v1",
-                "kind": "Cluster",
-                "namespace": "database-ok-robotics",
-                "name": "ok-robotics",
-                "uid": cluster_uid,
-            },
-            "observed": {
-                "walLagSeconds": 20,
-                "pendingWalCount": 0,
-                "lastArchivedWalTime": rfc3339(observed_at - timedelta(seconds=20)),
-                # archive_timeout as configured on ok-robotics (5min). With nothing pending it is
-                # what caps exposure, so the artifact is inadmissible without it.
-                "archiveTimeoutSeconds": 300,
-            },
-            "timing": {"observedAt": rfc3339(observed_at)},
-            "probeDigest": "sha256:" + "3" * 64,
-            "verifierVersion": "wal-lag-probe/0.1.0",
+        "status": {
+            "atProvider": {
+                "manifest": {
+                    "apiVersion": "v1",
+                    "kind": "ConfigMap",
+                    "metadata": {
+                        "name": "ok-robotics-archive-freshness",
+                        "namespace": "database-ok-robotics",
+                    },
+                    "data": {
+                        "clusterUid": "1c47d9d1-2cc2-4619-8265-a1598cb22274",
+                        "observedAt": rfc3339(observed_at),
+                        "walLagSeconds": "20",
+                        "pendingWalCount": "0",
+                        "lastArchivedWalTime": rfc3339(observed_at - timedelta(seconds=20)),
+                        "archiveTimeoutSeconds": "300",
+                        "probeDigest": "sha256:904a29ee996692fe937f6ec8e4ef140b3d115f025250daf5cabac75baaca8ef5",
+                        "verifierVersion": "wal-exposure-metrics-collector/0.2.0",
+                    },
+                }
+            }
         },
     }
 
@@ -557,7 +559,6 @@ def render_scenario(
         extra_path = work / "extra.yaml"
         composition_path = work / "composition.yaml"
         xr_path.write_text(yaml.safe_dump(xr, sort_keys=False))
-        observed_path.write_text(yaml.safe_dump_all(observed, sort_keys=False))
         composition_path.write_text(
             composition_text
             if composition_text is not None
@@ -574,6 +575,7 @@ def render_scenario(
             "--include-full-xr",
             f"--observed-resources={observed_path}",
         ]
+        extra_artifacts = [yaml.safe_load((TESTS_DIR / "target-ok-robotics.yaml").read_text())]
         if name in RECOVERY_SCENARIOS:
             artifacts = load_documents(str(RESTORE_FIXTURE_PATH))
             if len(artifacts) != 2:
@@ -620,25 +622,18 @@ def render_scenario(
                 else:
                     raise EvidenceError(f"unknown artifact case {artifact_case!r}")
                 selected_artifacts = [tampered]
-            extra_artifacts = list(selected_artifacts)
+            extra_artifacts.extend(selected_artifacts)
             # Approve the method of every artifact offered, so a scenario testing the recovery
             # state machine is not silently gated on an approval it never set up.
             for offered in selected_artifacts:
                 extra_artifacts.append(verification_profile(offered))
             if xr["spec"]["protection"]["policyRef"] == "production":
-                extra_artifacts.append(
-                    archive_freshness(now, observed_manifest(observed, "Cluster")["metadata"]["uid"])
-                )
-            extra_path.write_text(yaml.safe_dump_all(extra_artifacts, sort_keys=False))
-            command.append(f"--extra-resources={extra_path}")
+                observed.append(archive_freshness(now))
         elif xr["spec"]["protection"]["policyRef"] == "production":
-            extra_path.write_text(
-                yaml.safe_dump_all(
-                    [archive_freshness(now, observed_manifest(observed, "Cluster")["metadata"]["uid"])],
-                    sort_keys=False,
-                )
-            )
-            command.append(f"--extra-resources={extra_path}")
+            observed.append(archive_freshness(now))
+        extra_path.write_text(yaml.safe_dump_all(extra_artifacts, sort_keys=False))
+        command.append(f"--extra-resources={extra_path}")
+        observed_path.write_text(yaml.safe_dump_all(observed, sort_keys=False))
         result = subprocess.run(
             command,
             cwd=CAPABILITY_DIR,

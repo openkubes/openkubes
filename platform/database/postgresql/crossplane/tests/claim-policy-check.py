@@ -59,17 +59,24 @@ def require(condition: bool, message: str) -> None:
         raise AssertionError(message)
 
 
-def mapping(policy: dict) -> tuple[str, ...]:
+def mapping(policy: dict) -> tuple[tuple[str, ...], ...]:
     variables = {v["name"]: v["expression"] for v in policy["spec"]["variables"]}
     expression = variables.get("authorizations", "")
-    values = []
-    for key in TUPLE_KEYS:
-        found = re.findall(rf"'{key}':\s*'([^']+)'", expression)
-        require(len(found) == 1, f"authorization tuple must contain exactly one {key}")
-        values.append(found[0])
-    require(expression.count("{") == 1 and expression.count("}") == 1,
-            "authorization must remain an explicit single tuple list")
-    return tuple(values)
+    blocks = re.findall(r"\{([^{}]+)\}", expression)
+    require(blocks, "authorization inventory must contain at least one exact tuple")
+    tuples = []
+    for index, block in enumerate(blocks):
+        values = []
+        for key in TUPLE_KEYS:
+            found = re.findall(rf"'{key}':\s*'([^']+)'", block)
+            require(len(found) == 1, f"authorization tuple {index} must contain exactly one {key}")
+            values.append(found[0])
+        keys = re.findall(r"'([^']+)':", block)
+        require(set(keys) == set(TUPLE_KEYS) and len(keys) == len(TUPLE_KEYS),
+                f"authorization tuple {index} must contain only the reviewed coordinates")
+        tuples.append(tuple(values))
+    require(len(set(tuples)) == len(tuples), "authorization inventory contains a duplicate tuple")
+    return tuple(tuples)
 
 
 def validate(data: dict) -> None:
@@ -86,7 +93,7 @@ def validate(data: dict) -> None:
         "resources": ["databaseclaims"],
         "scope": "Namespaced",
     }], "admission policy must cover exactly DatabaseClaim CREATE and UPDATE")
-    require(mapping(policy) == EXPECTED, "authorization tuple differs from the reviewed allocation")
+    require(EXPECTED in mapping(policy), "authorization inventory omits the reviewed ok-robotics allocation")
 
     variables = {v["name"]: v["expression"] for v in pspec["variables"]}
     allocation = variables["allocationIsAuthorized"]
@@ -216,7 +223,8 @@ def validate(data: dict) -> None:
     require("enum" not in spec["clusterRef"] and "enum" not in spec["namespace"],
             "portable target syntax must be authorized by admission, not environment enums")
     creds = spec["credentialsSecretRef"]["properties"]
-    require(creds["name"].get("enum") == [EXPECTED[5]], "credential Secret name must be schema-pinned")
+    require("enum" not in creds["name"] and creds["name"].get("pattern"),
+            "credential Secret name must remain portable syntax; admission pins the exact value")
     require(creds["namespace"].get("enum") == [EXPECTED[6]],
             "credential Secret namespace must be schema-pinned")
 
@@ -275,7 +283,7 @@ def negative_controls(source: dict) -> None:
     case("protection enum opens", lambda d: schema_spec(d)["protection"]["properties"]["policyRef"].pop("enum"), "protection.policyRef")
     case("isolation enum opens", lambda d: schema_spec(d)["isolation"]["properties"]["class"].pop("enum"), "isolation.class")
     case("major upgrade opens", lambda d: schema_spec(d)["maintenance"]["properties"]["majorVersionStrategy"]["enum"].append("inPlace"), "maintenance authority")
-    case("credential name opens", lambda d: schema_spec(d)["credentialsSecretRef"]["properties"]["name"].pop("enum"), "credential Secret name")
+    case("credential name syntax opens", lambda d: schema_spec(d)["credentialsSecretRef"]["properties"]["name"].pop("pattern"), "portable syntax")
     case("credential namespace opens", lambda d: schema_spec(d)["credentialsSecretRef"]["properties"]["namespace"].pop("enum"), "credential Secret namespace")
     case("unresolved data policy", lambda d: schema_spec(d).update(dataPolicyRef={"type": "string"}), "dataPolicyRef")
     # Exposing the field while removing the resolver is the dangling case in its purest form:

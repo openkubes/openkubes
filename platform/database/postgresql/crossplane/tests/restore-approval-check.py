@@ -70,7 +70,8 @@ def render(extras: list[dict[str, Any]]) -> tuple[str, str]:
     with tempfile.TemporaryDirectory(prefix="ok-150-approval-") as directory:
         work = Path(directory)
         extra_path = work / "extra.yaml"
-        extra_path.write_text(yaml.safe_dump_all(extras, sort_keys=False))
+        target = yaml.safe_load((TESTS_DIR / "target-ok-robotics.yaml").read_text())
+        extra_path.write_text(yaml.safe_dump_all([target, *extras], sort_keys=False))
         # Observed state is required, not optional scaffolding: recovery admissibility binds the
         # observed Backup uid, the Cluster uid and the source system identifier. Rendering without
         # it fails every identity term, so the artifact reads VerificationPending and the approval

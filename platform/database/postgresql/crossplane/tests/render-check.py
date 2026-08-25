@@ -66,17 +66,29 @@ def validate(
             "Valid on ContinuousArchiving alone")
 
     objects = [doc for doc in docs if doc.get("apiVersion") == "kubernetes.crossplane.io/v1alpha2" and doc.get("kind") == "Object"]
-    # Twelve now: the seven database resources plus five that compose the WAL-exposure collector
-    # per Database. Verification ships WITH the capability rather than being hand-wired per cluster
-    # — the hand-written CronJob named one cluster in six places and would not have survived a
-    # second database, leaving whichever one was missed looking healthy while proving nothing.
-    require(len(objects) == 12, f"expected twelve provider-kubernetes Objects, found {len(objects)}")
+    # Fifteen: seven database resources, two independently mirrored login-slot Secrets, and six
+    # resources for the per-Database WAL-exposure collector. The slot pair is load-bearing: one
+    # shared Secret cannot provide simultaneous old/new verifiers or selective revocation.
+    require(len(objects) == 15, f"expected fifteen provider-kubernetes Objects, found {len(objects)}")
     require(all(obj["spec"]["providerConfigRef"]["name"] == "ok-robotics" for obj in objects),
             "every composed Object must target the XR clusterRef")
+    observation_object = next(
+        obj for obj in objects
+        if obj["metadata"].get("annotations", {}).get("crossplane.io/composition-resource-name") == "collector-observation"
+    )
+    require(observation_object["metadata"].get("annotations", {}).get("platform.openkubes.ai/observe-through"),
+            "collector observation Object needs the bounded provider-readback heartbeat")
+    cluster_object = next(
+        obj for obj in objects
+        if obj["metadata"].get("annotations", {}).get("crossplane.io/composition-resource-name") == "database-cluster"
+    )
+    require(cluster_object["metadata"].get("annotations", {}).get("platform.openkubes.ai/observe-through"),
+            "database Cluster Object needs a bounded provider-readback heartbeat for managed-role status")
     manifests = [obj["spec"]["forProvider"]["manifest"] for obj in objects]
     kinds = {manifest["kind"] for manifest in manifests}
     require(kinds == {"Secret", "ClusterImageCatalog", "ObjectStore", "Cluster", "ScheduledBackup",
-                      "Backup", "Pooler", "ServiceAccount", "Role", "RoleBinding", "CronJob"},
+                      "Backup", "Pooler", "ServiceAccount", "Role", "RoleBinding", "CronJob",
+                      "ConfigMap", "Service"},
             f"unexpected composed manifest set: {sorted(kinds)}")
 
     # The collector must be namespaced and named from the XR, never from a literal. A composed
@@ -89,12 +101,21 @@ def validate(
             "the collector must run in the database's own namespace")
     require(cron["metadata"]["name"].startswith(composed_cluster["metadata"]["name"]),
             f"the collector must be named from the composed cluster, got {cron['metadata']['name']}")
-    # It publishes evidence; it must not be able to amend or delete it, and must never reach
-    # recovery evidence — §7's approval act stays human.
+    # The collector can mutate exactly its pre-created mailbox. It has no pod discovery/exec and
+    # no generic create authority, so neither co-resident workloads nor another Database's
+    # observation are reachable through this identity.
     role = next(m for m in manifests if m["kind"] == "Role")
-    verbs = {v for rule in role["rules"] for v in rule["verbs"]}
-    require(not (verbs & {"delete", "patch", "update", "deletecollection"}),
-            f"the collector Role grants mutating verbs on the database namespace: {sorted(verbs)}")
+    require(role["rules"] == [
+            {
+                "apiGroups": [""], "resources": ["configmaps"],
+                "resourceNames": [f"{composed_cluster['metadata']['name']}-archive-freshness"],
+                "verbs": ["get", "update", "patch"],
+            },
+            {
+                "apiGroups": ["postgresql.cnpg.io"], "resources": ["clusters"],
+                "resourceNames": [composed_cluster["metadata"]["name"]], "verbs": ["get"],
+            },
+        ], f"collector Role must be name-scoped to its observation and Cluster identity: {role['rules']}")
 
     # CNPG owns Services <cluster>-rw, -ro and -r for the Cluster itself, and a Pooler's name
     # becomes its Service name. No composed object may claim one of those names: the Pooler that
@@ -113,11 +134,29 @@ def validate(
             f"Cluster Service ({sorted(reserved)}); it can never take ownership of that name",
         )
 
-    secret = next(manifest for manifest in manifests if manifest["kind"] == "Secret")
-    require("data" not in secret and "stringData" not in secret,
-            "rendered Secret must contain references only, never credential values")
-    require(secret["metadata"].get("labels", {}).get("cnpg.io/reload") == "true",
-            "managed credential Secret must carry cnpg.io/reload=true")
+    secrets = [manifest for manifest in manifests if manifest["kind"] == "Secret"]
+    require({s["metadata"]["name"] for s in secrets} == {
+                "database-ok-robotics-app", "database-ok-robotics-app-a", "database-ok-robotics-app-b"
+            }, "base bootstrap and both independently mirrored login-slot Secrets must compose")
+    require(all("data" not in secret and "stringData" not in secret for secret in secrets),
+            "rendered Secrets must contain references only, never credential values")
+    require(all(secret["metadata"].get("labels", {}).get("cnpg.io/reload") == "true" for secret in secrets),
+            "every managed credential Secret must carry cnpg.io/reload=true")
+    credential_objects = {
+        obj["metadata"]["annotations"].get("crossplane.io/composition-resource-name"): obj
+        for obj in objects
+        if obj["metadata"].get("annotations", {}).get("crossplane.io/composition-resource-name")
+        in {"app-secret", "app-secret-a", "app-secret-b"}
+    }
+    require(set(credential_objects) == {"app-secret", "app-secret-a", "app-secret-b"},
+            "base and both slot Secret mirrors must be independently composed")
+    for slot in ("a", "b"):
+        mirror = credential_objects[f"app-secret-{slot}"]
+        patches = mirror["spec"].get("references", [{}])[0].get("patchesFrom", {})
+        require(patches == {
+            "apiVersion": "v1", "kind": "Secret", "namespace": "crossplane-system",
+            "name": f"database-ok-robotics-app-{slot}", "fieldPath": "data",
+        }, f"slot {slot} must mirror only its matching management Secret: {patches}")
     store = next(manifest for manifest in manifests if manifest["kind"] == "ObjectStore")
     require(store["spec"]["configuration"]["destinationPath"] == "s3://ok-db-backups",
             "backup root must derive its server folder only from the CNPG serverName")

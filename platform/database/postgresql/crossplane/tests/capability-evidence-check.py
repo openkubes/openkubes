@@ -132,10 +132,12 @@ def render(artifacts: list[dict[str, Any]] | None) -> dict[str, Any]:
             "--include-full-xr",
             f"--observed-resources={observed_path}",
         ]
+        extra_path = work / "extra.yaml"
+        extras = [yaml.safe_load((TESTS_DIR / "target-ok-robotics.yaml").read_text())]
         if artifacts is not None:
-            extra_path = work / "extra.yaml"
-            extra_path.write_text(yaml.safe_dump_all(artifacts, sort_keys=False))
-            command.append(f"--extra-resources={extra_path}")
+            extras.extend(artifacts)
+        extra_path.write_text(yaml.safe_dump_all(extras, sort_keys=False))
+        command.append(f"--extra-resources={extra_path}")
         result = subprocess.run(
             command, cwd=CAPABILITY_DIR, check=False, capture_output=True, text=True
         )

@@ -1,16 +1,15 @@
 # PostgreSQL database capability architecture spike
 
-This directory is the OK-145 spike/prototype for the `Database` / `DatabaseClaim`
-contract defined by ADR-Platform-032. It is not an installable or continuously delivered
-database capability. The local models and one attended restore drill provide bounded
-architecture evidence; they do not establish the current installation of this capability or
-any of its providers.
+This directory implements the `Database` / `DatabaseClaim` contract defined by
+ADR-Platform-032. OK-145 established the architecture; OK-150 closes the seven reference-profile
+delivery bounds. `make setup` is the approval-gated installation entry point, while live target
+enrollment, verification-method approval and claimant delegation remain separate explicit acts.
 
 ## Contract boundary
 
 The XRD keeps engine, performance, availability, connectivity, protection,
 maintenance, and isolation orthogonal. Authority-adjacent values are closed enums or
-fixed Secret references; the target cluster and workload namespace remain portable API
+portable Secret-reference syntax; the target cluster and workload namespace remain portable API
 fields and are authorized by the fail-closed tuple list in
 `crossplane/claim-admission-policy.yaml`. The claim-editor Role reaches
 `databaseclaims` only and cannot read Secrets or manipulate composites.
@@ -20,7 +19,10 @@ check explicitly as skipped.
 
 The CNPG profile renders provider-kubernetes `Object` resources. Every Object uses the
 XR's `clusterRef` as its `providerConfigRef.name`; there is no independent target-cluster
-default. Stateful resources use an orphan deletion posture. Backup is the CNPG-I plugin
+default. An immutable cluster-scoped `DatabaseTargetProfile` with the same exact name supplies
+platform-owned backup placement and residency. It is not claim authority: every enrolled target
+also needs its own exact tuple in `claim-admission-policy.yaml`, registration Secret, workload CA
+and backup-writer identity. The current reviewed enrollment is `crossplane/targets/ok-robotics.yaml`. Stateful resources use an orphan deletion posture. Backup is the CNPG-I plugin
 surface (`spec.plugins` plus an `ObjectStore` CR), not the deprecated in-tree
 `barmanObjectStore` surface. Execution identity and time come from observed
 `Backup.status.phase`, `stoppedAt`, and `backupId`; they never establish current
@@ -83,12 +85,13 @@ non-Valid protection while recovery is `Valid`, plus the exact initial
 `Unknown/AwaitingFirstBackup` + `Unknown/VerificationPending` bootstrap pair; it does not
 treat arbitrary Pending recovery evidence as ready. Production requires every dimension Valid.
 
-Protection `Valid` requires three independent signals: completed execution for the selected
-Backup, current availability of that same backup, and `ContinuousArchiving=True`. The last
-signal means continuous archiving is not currently reporting failure; it does not measure WAL
-age or backlog. Accordingly, v1 protection can reach `Valid`, but—as ADR-Platform-032 §10
-states explicitly—`ProtectionReady=Valid` is not an RPO bound. A consumer that requires a
-bounded RPO needs a future typed WAL-age observation and must not infer it from this status.
+Protection `Valid` requires four independent signals: completed execution for the selected
+Backup, current availability in the ObjectStore recovery window, `ContinuousArchiving=True`, and
+a fresh RPO observation. The composed collector reads CNPG's default metrics through a
+primary-selecting Service and writes one name-scoped ConfigMap; Crossplane provider read-back is
+the provenance boundary. With no pending WAL, archive_timeout caps open-segment exposure. If WAL
+is pending, default metrics prove backlog but not the oldest remaining age, so the RPO signal is
+`Unknown/RPOPendingWALAgeUnproven`, never an invented `Valid`.
 
 Development uses a 72h first-backup grace period and 14d initial-verification deadline;
 production uses 24h and 72h. These are platform attributes, never Claim fields. The first-backup clock uses
@@ -107,6 +110,47 @@ ADR-Platform-032 §5.2 maps evidence `Valid` to condition `True`, `Failed` and `
 `state` and `reason`, but no condition-status field, so that mapped Kubernetes status is
 not yet serialized by this scaffold; widening the XRD requires a separate reviewed API
 change.
+
+## Double-buffer credential lifecycle
+
+The platform source contract is two management-plane `kubernetes.io/basic-auth` Secrets,
+`<base>-a` and `<base>-b`, each with exactly `username` and `password` keys and usernames
+`app_a`/`app_b`. `credential-rotation-workflow.sh` is the executable lifecycle boundary:
+
+```bash
+make credential-rotation-check
+make credential-preflight MGMT_KUBECONFIG=<ok-mgmt> WORKLOAD_KUBECONFIG=<target> \
+  XR_NAME=<database-xr> CLUSTER=<target> WORKLOAD_NAMESPACE=<target-namespace> \
+  CNPG_CLUSTER=<cnpg-name> BASE_SECRET=<base>
+make credential-rotation-provision APPROVE_MGMT=yes APPROVE_CREDENTIAL_ROTATION=yes \
+  MGMT_KUBECONFIG=<ok-mgmt> WORKLOAD_KUBECONFIG=<target> XR_NAME=<database-xr> \
+  WORKLOAD_NAMESPACE=<target-namespace> CNPG_CLUSTER=<cnpg-name> BASE_SECRET=<base>
+make credential-rotate-start APPROVE_MGMT=yes APPROVE_CREDENTIAL_ROTATION=yes ...
+# If start switched the slot but proof was interrupted, resume proof without another rotation:
+make credential-rotate-prove-overlap APPROVE_MGMT=yes APPROVE_CREDENTIAL_ROTATION=yes \
+  PSQL_IMAGE=<reviewed@sha256:digest> ...
+make credential-rotate-finalize APPROVE_MGMT=yes APPROVE_CREDENTIAL_ROTATION=yes \
+  PSQL_IMAGE=<reviewed@sha256:digest> ...
+```
+
+`provision` refuses to overwrite either source Secret. `start` requires both slots already
+mirrored and applied, sweeps consumers of the owner role `app`, rotates only the inactive source
+via stdin, waits for the new remote resourceVersion and CNPG password status, then switches the
+XR slot annotations. If proof is interrupted after the switch, `credential-rotate-prove-overlap` reads
+rotation ID and active/previous roles from status, requires `CredentialOverlapActive` with
+`previousCredentialAccepted=true`, and runs only the two approval-gated authentication and shared-owner
+membership proofs; it never rotates or patches credentials. It records the previous remote resourceVersion and a SHA-256 fingerprint of the previous
+Secret's base64 `.data.password` representation, matching the Composition contract (the digest is
+not over decoded password bytes). `finalize` refuses before `previousValidUntil`, preserves the old password
+only in a temporary workload Secret, rotates the previous source, requires both a changed remote
+resourceVersion and changed password fingerprint, then proves active authentication succeeds and
+old authentication fails in SecretKeyRef-backed ephemeral psql Pods. Proof resources are removed
+by trap on every exit. Passwords never appear in argv, logs, or temporary files.
+
+Both mutation actions require `APPROVE_MGMT=yes` and the dedicated
+`APPROVE_CREDENTIAL_ROTATION=yes`; non-TTY execution is supported because approval is explicit,
+not inferred from terminal state. Live apply and proof execution remain separately gated operator
+actions; `credential-rotation-check` is offline only.
 
 ## Local verification
 

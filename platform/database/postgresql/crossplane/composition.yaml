@@ -107,41 +107,50 @@ spec:
             {{- $backupGracePeriod = "+24h" }}
             {{- $initialVerificationDeadline = "+72h" }}
             {{- end }}
-            {{- /* Platform-owned backup-store registry, keyed by target cluster.
-                   This is deliberately NOT claim input and NOT an XRD field: a claimant
-                   able to choose the endpoint could point backups at a store it controls,
-                   which would also remove any basis for the read-only-source reasoning in
-                   ADR-Platform-032 §11.3. Adding a cluster here is a reviewed edit, the
-                   same shape as adding an entry to the admission authority tuple list.
-                   `endpointCA` names a Secret carrying the CA bundle. The field and the
-                   availability status path below were verified against the pinned Barman
-                   Cloud Plugin v0.14.0 ObjectStore CRD. */}}
-            {{- /* Where the composed collector publishes its measurements. Platform-side and not
-                   claim input, for the same reason as $backupStores: a claimant able to redirect
-                   evidence could publish RPO measurements the platform then trusts. The token it
-                   authenticates with is minted on the management plane and mirrored in, scoped to
-                   create ArchiveFreshness and nothing else. */}}
-            {{- $managementApiServer := "https://192.168.100.200:6443" }}
-            {{- $collectorTokenSecret := "archive-freshness-publisher-token" }}
-            {{- $collectorTokenNamespace := "crossplane-system" }}
+            {{- /* Platform-owned target enrollment, keyed exactly by clusterRef. Placement is
+                   deliberately NOT claim input: a claimant able to choose an endpoint could point
+                   backups at a store it controls. DatabaseTargetProfile is cluster-scoped,
+                   immutable and separately authorized; the fail-closed admission tuple remains
+                   the claim-side authority boundary because CEL cannot query this object. */}}
+            {{- /* WAL exposure is measured on the workload cluster and written to one
+                   provider-observed ConfigMap owned by this Database. Crossplane already holds the
+                   authority to observe that cluster, so no workload receives a management-plane
+                   credential and no independent evidence writer can forge another Database's RPO.
+                   Crossplane creates and observes the identity boundary but deliberately omits
+                   `data` from its desired manifest, so the name-scoped collector owns those fields
+                   and normal provider polling publishes them through status.atProvider.manifest. */}}
             {{- $collectorImage := "docker.io/alpine/k8s:1.34.1@sha256:ec714df3813b5405292860f8a1c55c5727bf8c33c88992f1e981efad8065547f" }}
+            {{- $collectorObservationName := printf "%s-archive-freshness" $dbName }}
+            {{- $collectorMetricsServiceName := printf "%s-archive-metrics" $dbName }}
+            {{- $rpoProbeDigest := "sha256:904a29ee996692fe937f6ec8e4ef140b3d115f025250daf5cabac75baaca8ef5" }}
+            {{- $rpoVerifierVersion := "wal-exposure-metrics-collector/0.2.0" }}
             {{- /* 10 minutes against the 900s observation bound: one missed tick must not take a
                    production Database unready. */}}
             {{- $collectorSchedule := "*/10 * * * *" }}
-            {{- $backupStores := dict
-                  "ok-robotics" (dict
-                    "bucket" "ok-db-backups"
-                    "endpointURL" "https://minio.minio.svc:9000"
-                    "endpointCA" "minio-backup-store-ca"
-                    "residencyZone" "on-prem-de") }}
-            {{- $store := dict }}
-            {{- if hasKey $backupStores $provider }}
-            {{- $store = index $backupStores $provider }}
+            {{- $extraResources := default (dict) $.extraResources }}
+            {{- $targetProfile := dict }}
+            {{- $targetProfileCount := 0 }}
+            {{- $targetProfileRequested := hasKey $extraResources "database-target-profile" }}
+            {{- range $required := dig "items" (list) (index $extraResources "database-target-profile" | default (dict "items" (list))) }}
+            {{- $candidate := dig "resource" (dict) $required }}
+            {{- if and
+                  (eq (dig "apiVersion" "" $candidate) "platform.openkubes.ai/v1alpha1")
+                  (eq (dig "kind" "" $candidate) "DatabaseTargetProfile")
+                  (eq (dig "metadata" "name" "" $candidate) $provider)
+                  (eq (dig "spec" "clusterRef" "" $candidate) $provider) }}
+            {{- $targetProfile = $candidate }}
+            {{- $targetProfileCount = add $targetProfileCount 1 }}
             {{- end }}
-            {{- if not (hasKey $store "endpointURL") }}
-            {{- fail (printf "no reviewed backup store is registered for cluster %q: refusing to compose a Database with no protection destination. Add it to $backupStores in this Composition." $provider) }}
             {{- end }}
-            {{- if not (hasPrefix "https://" $store.endpointURL) }}
+            {{- if and $targetProfileRequested (ne (int $targetProfileCount) 1) }}
+            {{- fail (printf "expected exactly one reviewed DatabaseTargetProfile named %q, found %d" $provider $targetProfileCount) }}
+            {{- end }}
+            {{- $store := dig "spec" "backupStore" (dict
+                  "bucket" "unresolved"
+                  "endpointURL" "https://unresolved.invalid"
+                  "endpointCA" "unresolved"
+                  "residencyZone" "unresolved") $targetProfile }}
+            {{- if and (eq (int $targetProfileCount) 1) (not (hasPrefix "https://" $store.endpointURL)) }}
             {{- fail (printf "backup store endpoint for cluster %q must be https: backup data and the credentials authenticating to it must not cross a plaintext connection" $provider) }}
             {{- end }}
             {{- $catalogName := printf "openkubes-postgresql-18-%s" $dbName }}
@@ -167,6 +176,16 @@ spec:
             {{- $appSecretObject = (index $.observed.resources "app-secret").resource }}
             {{- end }}
             {{- $appSecretManifest := dig "status" "atProvider" "manifest" (dict) $appSecretObject }}
+            {{- $appSlotAObject := dict }}
+            {{- if hasKey $.observed.resources "app-secret-a" }}
+            {{- $appSlotAObject = (index $.observed.resources "app-secret-a").resource }}
+            {{- end }}
+            {{- $appSlotAManifest := dig "status" "atProvider" "manifest" (dict) $appSlotAObject }}
+            {{- $appSlotBObject := dict }}
+            {{- if hasKey $.observed.resources "app-secret-b" }}
+            {{- $appSlotBObject = (index $.observed.resources "app-secret-b").resource }}
+            {{- end }}
+            {{- $appSlotBManifest := dig "status" "atProvider" "manifest" (dict) $appSlotBObject }}
             {{- $backupObject := dict }}
             {{- if hasKey $.observed.resources "evidence-backup" }}
             {{- $backupObject = (index $.observed.resources "evidence-backup").resource }}
@@ -185,13 +204,18 @@ spec:
             {{- end }}
             {{- $objectStoreManifest := dig "status" "atProvider" "manifest" (dict) $objectStoreObject }}
             {{- $objectStoreStatus := dig "status" (dict) $objectStoreManifest }}
+            {{- $collectorObservationObject := dict }}
+            {{- if hasKey $.observed.resources "collector-observation" }}
+            {{- $collectorObservationObject = (index $.observed.resources "collector-observation").resource }}
+            {{- end }}
+            {{- $collectorObservationManifest := dig "status" "atProvider" "manifest" (dict) $collectorObservationObject }}
+            {{- $collectorObservationData := dig "data" (dict) $collectorObservationManifest }}
             {{- /* Barman Cloud Plugin v0.14.0 publishes one recovery window per
                    effective serverName. Containment of Backup.stoppedAt inside that
                    window is the current-availability proof; equality with the latest
                    successful backup is deliberately not required. */}}
             {{- $serverRecoveryWindows := dig "serverRecoveryWindow" (dict) $objectStoreStatus }}
             {{- $backupAvailability := dig $dbName (dict) $serverRecoveryWindows }}
-            {{- $extraResources := default (dict) $.extraResources }}
             {{- $oldEvidence := dig "status" "evidence" (dict) $xr }}
 
             {{- /* Operational evidence comes only from the current Ready sensor. */}}
@@ -220,7 +244,7 @@ spec:
             {{- /* Crossplane's OWN Ready condition, which is not `serviceReady`.
 
                    Until now nothing in this Composition set composed-resource readiness, so all
-                   twelve resources were READY_UNSPECIFIED and the XR reported Creating forever:
+                   every resource was READY_UNSPECIFIED and the XR reported Creating forever:
                    `kubectl wait --for=condition=Ready database/...` could never return, on a
                    database that had been serving for days.
 
@@ -412,7 +436,7 @@ spec:
                    see. ContinuousArchiving=True only means archiving is not FAILING; a slow or
                    stalled-but-not-failed archiver satisfies it, so treating it as an RPO bound
                    would be exactly the proxy this contract refuses. The measurement therefore
-                   arrives as a typed ArchiveFreshness observation.
+                   arrives through the provider-observed, per-Database collector ConfigMap.
 
                    production requires it. Absent or aged-out is Unknown/RPOFreshnessUnproven —
                    never Valid and never Failed, because being unable to observe is not a
@@ -422,34 +446,54 @@ spec:
             {{- $rpoReason := "RPONotRequiredForClass" }}
             {{- $rpoObservedAt := $initialObservedAt }}
             {{- $rpoLagSeconds := -1 }}
+            {{- $rpoPendingWalCount := 0 }}
             {{- $rpoArchiveTimeoutSeconds := 0 }}
             {{- if $isProduction }}
             {{- $rpoState = "Unknown" }}
             {{- $rpoReason = "RPOFreshnessUnproven" }}
-            {{- $freshnessResults := index $extraResources "archive-freshness" | default (dict "items" (list)) }}
+            {{- /* Unlike the other evidence kinds, this observation is not accepted from an
+                   independently writable management-plane API. It is read only from the composed
+                   provider-kubernetes Object named collector-observation, whose remote ConfigMap
+                   is writable by exactly this Database's collector ServiceAccount. */}}
             {{- $selectedFreshnessAt := "1970-01-01T00:00:00Z" }}
-            {{- range $required := dig "items" (list) $freshnessResults }}
-            {{- $candidate := dig "resource" (dict) $required }}
-            {{- $candidateSpec := dig "spec" (dict) $candidate }}
-            {{- $afClusterRef := dig "clusterRef" (dict) $candidateSpec }}
-            {{- $afObserved := dig "observed" (dict) $candidateSpec }}
-            {{- $canonicalAfObservedAt := include "canonicalRFC3339" (dig "timing" "observedAt" "" $candidateSpec) }}
+            {{- $canonicalAfObservedAt := include "canonicalRFC3339" (dig "observedAt" "" $collectorObservationData) }}
+            {{- $afLagText := dig "walLagSeconds" "" $collectorObservationData }}
+            {{- $afPendingText := dig "pendingWalCount" "" $collectorObservationData }}
+            {{- $afTimeoutText := dig "archiveTimeoutSeconds" "" $collectorObservationData }}
+            {{- $oldRpoObservedAt := include "canonicalRFC3339" (dig "protection" "signals" "rpo" "observedAt" "" $oldEvidence) }}
+            {{- $afNotBeforePrior := true }}
+            {{- if and (ne $canonicalAfObservedAt "") (ne $oldRpoObservedAt "") }}
+            {{- $afNotBeforePrior = not ((toDate $layout $canonicalAfObservedAt).Before (toDate $layout $oldRpoObservedAt)) }}
+            {{- end }}
+            {{- $afNumbersValid := and
+                  (regexMatch "^[0-9]+$" $afLagText)
+                  (regexMatch "^[0-9]+$" $afPendingText)
+                  (regexMatch "^[0-9]+$" $afTimeoutText) }}
             {{- $afAdmissible := and
-                  (eq (dig "apiVersion" "" $candidate) "evidence.platform.openkubes.ai/v1alpha1")
-                  (eq (dig "kind" "" $candidate) "ArchiveFreshness")
-                  (eq (dig "uid" "" $afClusterRef) (dig "metadata" "uid" "" $clusterManifest))
-                  (eq (dig "namespace" "" $afClusterRef) $namespace)
-                  (eq (dig "name" "" $afClusterRef) $dbName)
-                  (ne (dig "probeDigest" "" $candidateSpec) "")
-                  (hasKey $afObserved "walLagSeconds")
-                  (hasKey $afObserved "archiveTimeoutSeconds")
+                  (eq (dig "metadata" "name" "" $collectorObservationManifest) $collectorObservationName)
+                  (eq (dig "metadata" "namespace" "" $collectorObservationManifest) $namespace)
+                  (eq (dig "probeDigest" "" $collectorObservationData) $rpoProbeDigest)
+                  (eq (dig "verifierVersion" "" $collectorObservationData) $rpoVerifierVersion)
+                  (eq (dig "clusterUid" "" $collectorObservationData) (dig "metadata" "uid" "" $clusterManifest))
+                  $afNumbersValid
+                  $afNotBeforePrior
                   (ne $canonicalAfObservedAt "")
                   (not ((toDate $layout $canonicalAfObservedAt).After now)) }}
-            {{- if and $afAdmissible ((toDate $layout $canonicalAfObservedAt).After (toDate $layout (include "canonicalRFC3339" $selectedFreshnessAt))) }}
+            {{- if $afAdmissible }}
+            {{- $candidateLag := int64 $afLagText }}
+            {{- $candidatePending := int64 $afPendingText }}
+            {{- $candidateTimeout := int64 $afTimeoutText }}
+            {{- $afCoherent := and
+                  (gt $candidateTimeout 0)
+                  (or
+                    (and (eq $candidatePending 0) (le $candidateLag $candidateTimeout))
+                    (and (gt $candidatePending 0) (eq $candidateLag 0))) }}
+            {{- if $afCoherent }}
             {{- $selectedFreshnessAt = $canonicalAfObservedAt }}
             {{- $rpoObservedAt = $canonicalAfObservedAt }}
-            {{- $rpoLagSeconds = int64 (dig "walLagSeconds" 0 $afObserved) }}
-            {{- $rpoArchiveTimeoutSeconds = int64 (dig "archiveTimeoutSeconds" 0 $afObserved) }}
+            {{- $rpoLagSeconds = $candidateLag }}
+            {{- $rpoPendingWalCount = $candidatePending }}
+            {{- $rpoArchiveTimeoutSeconds = $candidateTimeout }}
             {{- end }}
             {{- end }}
             {{- if ne $selectedFreshnessAt "1970-01-01T00:00:00Z" }}
@@ -458,6 +502,12 @@ spec:
             {{- /* The measurement itself aged out. Unknown, not Failed: we no longer know the
                    lag, which is different from knowing it is bad. */}}
             {{- $rpoReason = "RPOObservationExpired" }}
+            {{- else if gt $rpoPendingWalCount 0 }}
+            {{- /* Default CNPG metrics expose backlog count but not the age of the oldest
+                   remaining .ready file. A recent successful archive can coexist with an older
+                   queued successor, so inferring age from last-archive time would be a false
+                   proof. Backlog is measured; its age remains Unknown. */}}
+            {{- $rpoReason = "RPOPendingWALAgeUnproven" }}
             {{- else if gt $rpoArchiveTimeoutSeconds (int64 $rpoMaxWalLagSeconds) }}
             {{- /* The cluster's own archive_timeout caps how long committed data sits in an
                    unarchived open segment. A class bound tighter than that is unsatisfiable by
@@ -718,13 +768,17 @@ spec:
                    able to open new sessions. Applying this to a live Database is a gated change
                    with a consumer cutover, never a silent reconcile.
 
-                   The active slot is platform state, not claim input: it is read from an
-                   annotation on the mirrored credential Secret, which the claimant cannot write.
-                   Absent annotation means slot a, so a database provisioned before rotation
-                   behaves deterministically instead of ambiguously. */}}
+                   The active slot is platform state, not claim input: an approval-gated rotation
+                   action writes control annotations on the composite XR, which claimants cannot
+                   update. Absent annotation means slot a, so pre-rotation databases remain
+                   deterministic. The previous slot is not called revoked until its observed
+                   Secret password fingerprint changes from the start-of-rotation value AND CNPG
+                   reports the current remote resourceVersion applied; resourceVersion alone is
+                   metadata and cannot prove verifier replacement. Elapsed wall-clock time alone
+                   never claims that an old password stopped authenticating. */}}
             {{- $credentialSlots := dict "a" "b" "b" "a" }}
-            {{- $secretAnnotations := dig "metadata" "annotations" (dict) $appSecretManifest }}
-            {{- $activeSlot := dig "platform.openkubes.ai/active-credential-slot" "a" $secretAnnotations }}
+            {{- $xrAnnotations := dig "metadata" "annotations" (dict) $xr }}
+            {{- $activeSlot := dig "platform.openkubes.ai/active-credential-slot" "a" $xrAnnotations }}
             {{- if not (hasKey $credentialSlots $activeSlot) }}
             {{- fail (printf "credential slot %q is not one of a/b: refusing to compose a Database whose active login role cannot be determined" $activeSlot) }}
             {{- end }}
@@ -739,26 +793,58 @@ spec:
                    stale credential there is an outage, not a breach. */}}
             {{- $credentialOverlapWindow := ternary "PT1H" "PT24H" $isProduction }}
             {{- $credentialOverlapSeconds := ternary 3600 86400 $isProduction }}
-            {{- $rotatedAt := include "canonicalRFC3339" (dig "platform.openkubes.ai/credential-rotated-at" "" $secretAnnotations) }}
-            {{- $previousValidUntil := "" }}
-            {{- $previousCredentialAccepted := false }}
-            {{- if ne $rotatedAt "" }}
-            {{- $previousExpiry := dateModify (printf "+%ds" (int $credentialOverlapSeconds)) (toDate $layout $rotatedAt) }}
-            {{- $previousValidUntil = date $layout $previousExpiry }}
-            {{- $previousCredentialAccepted = not (now.After $previousExpiry) }}
-            {{- end }}
-
-            {{- $publishedCredentialVersion := dig "metadata" "resourceVersion" "" $appSecretManifest }}
+            {{- $rotationId := dig "platform.openkubes.ai/credential-rotation-id" "" $xrAnnotations }}
+            {{- $rotatedAt := include "canonicalRFC3339" (dig "platform.openkubes.ai/credential-rotated-at" "" $xrAnnotations) }}
+            {{- $previousStartVersion := dig "platform.openkubes.ai/previous-credential-resource-version" "" $xrAnnotations }}
+            {{- /* The controller records the SHA-256 of the base64 password field at rotation
+                   start. The current digest is computed locally and never emitted: status exposes
+                   only boolean proof, not a password nor its fingerprint. */}}
+            {{- $previousStartDigest := dig "platform.openkubes.ai/previous-credential-digest" "" $xrAnnotations }}
+            {{- $slotManifests := dict "a" $appSlotAManifest "b" $appSlotBManifest }}
+            {{- $activeSecretManifest := index $slotManifests $activeSlot }}
+            {{- $previousSecretManifest := index $slotManifests $previousSlot }}
+            {{- $publishedCredentialVersion := dig "metadata" "resourceVersion" "" $activeSecretManifest }}
+            {{- $previousPublishedVersion := dig "metadata" "resourceVersion" "" $previousSecretManifest }}
+            {{- $previousPasswordBase64 := dig "data" "password" "" $previousSecretManifest }}
+            {{- $previousPasswordDigest := "" }}
+            {{- if ne $previousPasswordBase64 "" }}{{- $previousPasswordDigest = sha256sum $previousPasswordBase64 }}{{- end }}
             {{- $appliedCredentialVersion := dig "managedRolesStatus" "passwordStatus" $activeRole "resourceVersion" "" $clusterStatus }}
+            {{- $previousAppliedVersion := dig "managedRolesStatus" "passwordStatus" $previousRole "resourceVersion" "" $clusterStatus }}
             {{- $credentialTransactionId := dig "managedRolesStatus" "passwordStatus" $activeRole "transactionID" 0 $clusterStatus }}
             {{- $credentialReconciled := false }}
+            {{- $previousCredentialReconciled := false }}
             {{- range $role := dig "managedRolesStatus" "byStatus" "reconciled" (list) $clusterStatus }}
             {{- if eq $role $activeRole }}{{- $credentialReconciled = true }}{{- end }}
+            {{- if eq $role $previousRole }}{{- $previousCredentialReconciled = true }}{{- end }}
             {{- end }}
             {{- $credentialApplied := and $credentialReconciled (ne $publishedCredentialVersion "") (eq $publishedCredentialVersion $appliedCredentialVersion) }}
+            {{- $previousCredentialApplied := and $previousCredentialReconciled (ne $previousPublishedVersion "") (eq $previousPublishedVersion $previousAppliedVersion) }}
+            {{- $rotationAnnotationsPresent := or (hasKey $xrAnnotations "platform.openkubes.ai/active-credential-slot") (ne $rotationId "") (ne $rotatedAt "") (ne $previousStartVersion "") (ne $previousStartDigest "") }}
+            {{- $rotationStarted := and (ne $rotationId "") (ne $rotatedAt "") (ne $previousStartVersion "") (regexMatch "^[a-f0-9]{64}$" $previousStartDigest) }}
+            {{- /* A new remote Secret can arrive before CNPG applies it. In that interval
+                   passwordStatus still names the start RV, proving PostgreSQL still accepts the
+                   old verifier. Do not turn that transient into a false revocation. */}}
+            {{- $previousStartCredentialApplied := and $previousCredentialReconciled (eq $previousAppliedVersion $previousStartVersion) }}
+            {{- $previousPasswordReplaced := and (ne $previousPasswordDigest "") (ne $previousPasswordDigest $previousStartDigest) }}
+            {{- $previousCredentialRevoked := and $rotationStarted $previousCredentialApplied $previousPasswordReplaced }}
+            {{- $previousCredentialAccepted := and $rotationStarted (or $previousCredentialApplied $previousStartCredentialApplied) (not $previousCredentialRevoked) }}
+            {{- /* An absent rotation has no previous verifier and safely publishes false. A
+                   partial/contradictory rotation has no proof either way, so omit the field rather
+                   than publishing false as an invented revocation. */}}
+            {{- $previousCredentialAcceptanceKnown := or (not $rotationAnnotationsPresent) $previousCredentialAccepted $previousCredentialRevoked }}
+            {{- $previousValidUntil := "" }}
+            {{- $overlapElapsed := false }}
+            {{- if $rotationStarted }}
+            {{- $previousExpiry := dateModify (printf "+%ds" (int $credentialOverlapSeconds)) (toDate $layout $rotatedAt) }}
+            {{- $previousValidUntil = date $layout $previousExpiry }}
+            {{- $overlapElapsed = now.After $previousExpiry }}
+            {{- end }}
             {{- $credentialReason := "AwaitingCredentialPublication" }}
             {{- if and (ne $publishedCredentialVersion "") (not $credentialApplied) }}{{- $credentialReason = "AwaitingCredentialApplication" }}{{- end }}
             {{- if $credentialApplied }}{{- $credentialReason = "CredentialApplied" }}{{- end }}
+            {{- if and $credentialApplied $rotationStarted $previousCredentialAccepted }}{{- $credentialReason = "CredentialOverlapActive" }}{{- end }}
+            {{- if and $credentialApplied $rotationStarted $overlapElapsed $previousCredentialAccepted }}{{- $credentialReason = "CredentialRevocationOverdue" }}{{- end }}
+            {{- if and $credentialApplied $previousCredentialRevoked }}{{- $credentialReason = "CredentialRotationFinalized" }}{{- end }}
 
             {{- /* Capability evidence (§13 bound 4). status.pgDataImageInfo can only ever justify
                    Pending: on ok-robotics it carries a pinned pgvector digest on a cluster where
@@ -947,13 +1033,25 @@ spec:
             {{- fail (printf "refusing to publish a non-canonical observation instant %q: an unparseable observedThrough would make freshness unevaluable while still looking present" $observedThrough) }}
             {{- end }}
 
-            {{- /* DatabaseServiceReady is policy only, never a fifth sensor. */}}
+            {{- /* DatabaseServiceReady is policy only, never a fifth evidence sensor. Credential
+                   application is instead a serving precondition: production must not advertise
+                   ready while its selected login verifier is absent or unapplied. Once the
+                   promised overlap deadline passes, continuing to accept the old verifier is also
+                   a fail-closed serving block until finalization proves replacement. */}}
             {{- $serviceReady := false }}
             {{- $serviceReadyReason := "EvidencePolicyUnsatisfied" }}
             {{- if $isProduction }}
-            {{- if and (eq $operationalState "Valid") (eq $protectionState "Valid") (eq $recoveryState "Valid") (eq $capabilityState "Valid") }}
+            {{- $credentialRevocationOverdue := and $rotationStarted $overlapElapsed $previousCredentialAccepted }}
+            {{- $credentialRotationSafe := and $previousCredentialAcceptanceKnown (not $credentialRevocationOverdue) }}
+            {{- if and (eq $operationalState "Valid") (eq $protectionState "Valid") (eq $recoveryState "Valid") (eq $capabilityState "Valid") $credentialApplied $credentialRotationSafe }}
             {{- $serviceReady = true }}
             {{- $serviceReadyReason = "ProductionEvidenceValid" }}
+            {{- else if not $credentialApplied }}
+            {{- $serviceReadyReason = "CredentialApplicationUnproven" }}
+            {{- else if not $previousCredentialAcceptanceKnown }}
+            {{- $serviceReadyReason = "CredentialRotationUnproven" }}
+            {{- else if $credentialRevocationOverdue }}
+            {{- $serviceReadyReason = "CredentialRevocationOverdue" }}
             {{- end }}
             {{- else if and (eq $operationalState "Valid") (or (eq $recoveryState "Valid") (and (eq $protectionState "Unknown") (eq $protectionReason "AwaitingFirstBackup") (eq $recoveryState "Unknown") (eq $recoveryReason "VerificationPending"))) }}
             {{- $serviceReady = true }}
@@ -964,6 +1062,10 @@ spec:
             apiVersion: meta.gotemplating.fn.crossplane.io/v1alpha1
             kind: ExtraResources
             requirements:
+              database-target-profile:
+                apiVersion: platform.openkubes.ai/v1alpha1
+                kind: DatabaseTargetProfile
+                matchName: {{ $provider | quote }}
               restore-evidence:
                 apiVersion: evidence.platform.openkubes.ai/v1alpha1
                 kind: RestoreVerified
@@ -977,13 +1079,6 @@ spec:
               verification-profiles:
                 apiVersion: platform.openkubes.ai/v1alpha1
                 kind: VerificationProfile
-              {{- if $isProduction }}
-              archive-freshness:
-                apiVersion: evidence.platform.openkubes.ai/v1alpha1
-                kind: ArchiveFreshness
-                matchLabels:
-                  platform.openkubes.ai/source-cluster: {{ $dbName | quote }}
-              {{- end }}
               {{- if ne $dataPolicyName "" }}
               data-policy:
                 apiVersion: platform.openkubes.ai/v1alpha1
@@ -991,6 +1086,7 @@ spec:
                 matchName: {{ $dataPolicyName | quote }}
               {{- end }}
             ---
+            {{- if eq (int $targetProfileCount) 1 }}
             # WAL-exposure collector, composed PER DATABASE (§13 bound 1's collector, made general).
             #
             # It was first installed as a hand-written CronJob naming ok-robotics in six places,
@@ -1044,17 +1140,17 @@ spec:
                     namespace: {{ $namespace | quote }}
                     labels:
                       app.kubernetes.io/part-of: openkubes-database-postgresql
-                  # A Role, not a ClusterRole: the collector reads one cluster's pods and execs into
-                  # its primary. `create` on pods/exec is what kubectl exec requires.
+                  # The collector can amend exactly one pre-created observation object. It does
+                  # not list pods, exec into database containers, or hold any management-plane
+                  # credential. The primary-selecting Service supplies the only data source.
                   rules:
                     - apiGroups: [""]
-                      resources: [pods]
-                      verbs: [get, list]
-                    - apiGroups: [""]
-                      resources: [pods/exec]
-                      verbs: [create]
+                      resources: [configmaps]
+                      resourceNames: [{{ $collectorObservationName | quote }}]
+                      verbs: [get, update, patch]
                     - apiGroups: [postgresql.cnpg.io]
                       resources: [clusters]
+                      resourceNames: [{{ $dbName | quote }}]
                       verbs: [get]
             ---
             apiVersion: kubernetes.crossplane.io/v1alpha2
@@ -1087,41 +1183,69 @@ spec:
                     name: {{ printf "%s-archive-collector" $dbName | quote }}
                     apiGroup: rbac.authorization.k8s.io
             ---
-            # The management-plane token, mirrored in the same way as the app credential: values are
-            # never templated into this Composition, provider-kubernetes resolves the reference at
-            # reconcile time. The token authorizes create on ArchiveFreshness and nothing else — it
-            # cannot amend or delete past observations, and cannot touch recovery evidence, so §7's
-            # approval act is untouched by anything running here.
+            # Crossplane creates and observes this identity-bound mailbox but does not declare its
+            # data fields. Only the name-scoped collector Role above owns those fields. Normal
+            # provider reconciliation therefore refreshes read-back without erasing measurements.
             apiVersion: kubernetes.crossplane.io/v1alpha2
             kind: Object
             metadata:
-              name: database-{{ $dbName }}-collector-token
+              name: database-{{ $dbName }}-collector-observation
               annotations:
-                gotemplating.fn.crossplane.io/composition-resource-name: collector-token
-                # Non-gating for Ready: as collector-rbac.
+                gotemplating.fn.crossplane.io/composition-resource-name: collector-observation
+                # Change once per observation quantum so provider-kubernetes is asked to observe
+                # collector-owned data. Remote ConfigMap changes do not otherwise enqueue this
+                # management-plane Object, and watch:true is an alpha feature not enabled here.
+                platform.openkubes.ai/observe-through: {{ $observedThrough | quote }}
+                # Non-gating for Ready: stale/absent data is reported by the RPO dimension.
+                gotemplating.fn.crossplane.io/ready: "True"
+            spec:
+              deletionPolicy: Delete
+              # Explicit `*` clears the earlier Create+Observe prototype on upgrade; omitting this
+              # field would leave that old value in place under provider-kubernetes merge semantics.
+              managementPolicies: ["*"]
+              providerConfigRef:
+                name: {{ $provider | quote }}
+              forProvider:
+                manifest:
+                  apiVersion: v1
+                  kind: ConfigMap
+                  metadata:
+                    name: {{ $collectorObservationName | quote }}
+                    namespace: {{ $namespace | quote }}
+                    labels:
+                      app.kubernetes.io/part-of: openkubes-database-postgresql
+            ---
+            # Stable endpoint for the current CNPG primary. A failover changes endpoints rather
+            # than collector authority; the collector needs no pod discovery permission.
+            apiVersion: kubernetes.crossplane.io/v1alpha2
+            kind: Object
+            metadata:
+              name: database-{{ $dbName }}-collector-metrics
+              annotations:
+                gotemplating.fn.crossplane.io/composition-resource-name: collector-metrics
+                # Non-gating for Ready: missing metrics degrade RPO evidence to Unknown.
                 gotemplating.fn.crossplane.io/ready: "True"
             spec:
               deletionPolicy: Delete
               providerConfigRef:
                 name: {{ $provider | quote }}
-              references:
-                - patchesFrom:
-                    apiVersion: v1
-                    kind: Secret
-                    name: {{ $collectorTokenSecret | quote }}
-                    namespace: {{ $collectorTokenNamespace | quote }}
-                    fieldPath: data
-                  toFieldPath: data
               forProvider:
                 manifest:
                   apiVersion: v1
-                  kind: Secret
+                  kind: Service
                   metadata:
-                    name: {{ printf "%s-archive-collector-mgmt" $dbName | quote }}
+                    name: {{ $collectorMetricsServiceName | quote }}
                     namespace: {{ $namespace | quote }}
                     labels:
                       app.kubernetes.io/part-of: openkubes-database-postgresql
-                  type: Opaque
+                  spec:
+                    selector:
+                      cnpg.io/cluster: {{ $dbName | quote }}
+                      cnpg.io/instanceRole: primary
+                    ports:
+                      - name: metrics
+                        port: 9187
+                        targetPort: metrics
             ---
             apiVersion: kubernetes.crossplane.io/v1alpha2
             kind: Object
@@ -1177,82 +1301,102 @@ spec:
                                   capabilities: {drop: [ALL]}
                                 command: [/bin/bash, -euo, pipefail, -c]
                                 args:
-                                  # THREE separate execs, one quoting level each. Nesting
-                                  # kubectl exec -> bash -c -> psql -c with a to_char mask fails
-                                  # with exit 2 and no message; splitting removes the nesting
-                                  # rather than escaping through it.
-                                  #
-                                  # EXPOSURE, not idle time: the age of the oldest UNARCHIVED
-                                  # segment, or when none is pending, the time since the last
-                                  # archive capped by archive_timeout. An idle database produces no
-                                  # WAL and has no RPO exposure — measured 25904s since its last
-                                  # archive with zero pending, which the naive measure would report
-                                  # as an 86x bound violation on a database with nothing at risk.
+                                  # CNPG's default metrics expose pending count, last archive and
+                                  # archive_timeout. They do NOT expose pending age, so backlog is
+                                  # published with the age-unproven sentinel and reduced to Unknown.
+                                  # Parse exact sample names; missing, duplicate, non-finite or
+                                  # fractional values fail without changing the prior observation.
                                   - |
-                                    primary=$(kubectl -n "$NS" get pods -l "cnpg.io/cluster=$CL,cnpg.io/instanceRole=primary" -o jsonpath='{.items[0].metadata.name}')
-                                    test -n "$primary"
-                                    cuid=$(kubectl -n "$NS" get cluster.postgresql.cnpg.io "$CL" -o jsonpath='{.metadata.uid}')
-                                    test -n "$cuid"
-                                    pend=$(kubectl -n "$NS" exec "$primary" -c postgres -- bash -c 'd="$PGDATA/pg_wal/archive_status"; n=$(ls -1 "$d"/*.ready 2>/dev/null | wc -l); if [ "$n" -gt 0 ]; then o=$(ls -1t "$d"/*.ready | tail -1); a=$(( $(date -u +%s) - $(stat -c %Y "$o") )); else a=0; fi; echo "$n|$a"' | tail -1)
-                                    arch=$(kubectl -n "$NS" exec "$primary" -c postgres -- psql -U postgres -d postgres -X -A -t -F'|' -c "SELECT coalesce(extract(epoch from last_archived_time)::bigint, -1), coalesce(extract(epoch from (now() - last_archived_time))::bigint, -1) FROM pg_stat_archiver;" | tail -1)
-                                    ato=$(kubectl -n "$NS" exec "$primary" -c postgres -- psql -U postgres -d postgres -X -A -t -c "SELECT setting::int FROM pg_settings WHERE name = 'archive_timeout';" | tail -1)
-                                    n=${pend%%|*}; oldest=${pend##*|}
-                                    lastep=${arch%%|*}; since=${arch##*|}
-                                    test "$lastep" -ge 0
-                                    test "$ato" -gt 0
-                                    if [ "$n" -gt 0 ]; then exp=$oldest; elif [ "$since" -lt "$ato" ]; then exp=$since; else exp=$ato; fi
-                                    obs=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-                                    last=$(date -u -d "@$lastep" +%Y-%m-%dT%H:%M:%SZ)
-                                    dg=$(printf 'exposure = pending>0 ? oldest_ready_age : min(since_last_archive, archive_timeout); sources: archive_status/*.ready, pg_stat_archiver, pg_settings.archive_timeout' | sha256sum | cut -d' ' -f1)
-                                    cat <<YAML | kubectl --server="$MGMT" --certificate-authority=/mgmt/ca.crt --token="$(cat /mgmt/token)" create -f -
-                                    apiVersion: evidence.platform.openkubes.ai/v1alpha1
-                                    kind: ArchiveFreshness
-                                    metadata:
-                                      name: $CL-$(printf '%s' "$obs" | tr -d ':-' | tr 'TZ' 'tz')
-                                      labels:
-                                        platform.openkubes.ai/source-cluster: $CL
-                                    spec:
-                                      clusterRef:
-                                        apiVersion: postgresql.cnpg.io/v1
-                                        kind: Cluster
-                                        namespace: $NS
-                                        name: $CL
-                                        uid: $cuid
-                                      observed:
-                                        walLagSeconds: $exp
-                                        pendingWalCount: $n
-                                        lastArchivedWalTime: "$last"
-                                        archiveTimeoutSeconds: $ato
-                                      timing:
-                                        observedAt: "$obs"
-                                      probeDigest: sha256:$dg
-                                      verifierVersion: wal-exposure-collector/0.1.0
-                                    YAML
+                                    metrics=/tmp/metrics
+                                    patch=/tmp/patch.json
+                                    test ! -e "$metrics" && test ! -e "$patch"
+                                    trap 'rm -f -- "$metrics" "$patch"' EXIT
+                                    curl --fail --silent --show-error --max-time 30 "http://$METRICS_SERVICE:9187/metrics" >"$metrics"
+                                    CLUSTER_UID=$(kubectl -n "$NS" get cluster.postgresql.cnpg.io "$CL" -o jsonpath='{.metadata.uid}')
+                                    test -n "$CLUSTER_UID"
+                                    export CLUSTER_UID
+                                    python3 - "$metrics" "$patch" <<'PY'
+                                    import datetime, hashlib, json, math, os, pathlib, sys
+
+                                    metrics_path, patch_path = map(pathlib.Path, sys.argv[1:])
+                                    wanted = {
+                                        'cnpg_collector_pg_wal_archive_status{value="ready"}',
+                                        'cnpg_pg_stat_archiver_last_archived_time',
+                                        'cnpg_pg_stat_archiver_seconds_since_last_archival',
+                                        'cnpg_pg_settings_setting{name="archive_timeout"}',
+                                    }
+                                    found = {}
+                                    for raw in metrics_path.read_text().splitlines():
+                                        if not raw or raw.startswith('#'):
+                                            continue
+                                        parts = raw.rsplit(None, 1)
+                                        if len(parts) != 2 or parts[0] not in wanted:
+                                            continue
+                                        if parts[0] in found:
+                                            raise SystemExit(f'duplicate metric: {parts[0]}')
+                                        value = float(parts[1])
+                                        if not math.isfinite(value) or value < 0:
+                                            raise SystemExit(f'invalid metric {parts[0]}={parts[1]}')
+                                        found[parts[0]] = value
+                                    missing = wanted - found.keys()
+                                    if missing:
+                                        raise SystemExit('missing metrics: ' + ', '.join(sorted(missing)))
+                                    integer_metrics = [
+                                        'cnpg_collector_pg_wal_archive_status{value="ready"}',
+                                        'cnpg_pg_settings_setting{name="archive_timeout"}',
+                                    ]
+                                    if any(found[name] != math.floor(found[name]) for name in integer_metrics):
+                                        raise SystemExit('count and timeout metrics must be integral')
+                                    pending = int(found['cnpg_collector_pg_wal_archive_status{value="ready"}'])
+                                    since = found['cnpg_pg_stat_archiver_seconds_since_last_archival']
+                                    timeout = int(found['cnpg_pg_settings_setting{name="archive_timeout"}'])
+                                    last_epoch = found['cnpg_pg_stat_archiver_last_archived_time']
+                                    if timeout <= 0:
+                                        raise SystemExit('incoherent WAL exposure metrics')
+                                    # Default metrics expose backlog count but not the age of the
+                                    # oldest remaining .ready file. A recent success can leave an
+                                    # already-queued successor, so pending age is deliberately
+                                    # unproven (lag=0 is a sentinel the Composition accepts only
+                                    # beside pending>0 and reduces to Unknown).
+                                    exposure = 0 if pending else min(math.ceil(since), timeout)
+                                    observed = datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0)
+                                    last = datetime.datetime.fromtimestamp(last_epoch, datetime.timezone.utc).replace(microsecond=0)
+                                    method = 'exposure = pending>0 ? unproven : min(ceil(seconds_since_last_archive), archive_timeout); sources: CNPG default pg_wal_archive_status/pg_stat_archiver/pg_settings metrics'
+                                    digest = 'sha256:' + hashlib.sha256(method.encode()).hexdigest()
+                                    data = {
+                                        'clusterUid': os.environ['CLUSTER_UID'],
+                                        'observedAt': observed.isoformat().replace('+00:00', 'Z'),
+                                        'walLagSeconds': str(exposure),
+                                        'pendingWalCount': str(pending),
+                                        'lastArchivedWalTime': last.isoformat().replace('+00:00', 'Z'),
+                                        'archiveTimeoutSeconds': str(timeout),
+                                        'probeDigest': digest,
+                                        'verifierVersion': 'wal-exposure-metrics-collector/0.2.0',
+                                    }
+                                    patch_path.write_text(json.dumps({'data': data}, separators=(',', ':')))
+                                    PY
+                                    kubectl -n "$NS" patch configmap "$OBSERVATION" --type=merge --patch-file="$patch"
                                 env:
                                   - name: NS
                                     value: {{ $namespace | quote }}
                                   - name: CL
                                     value: {{ $dbName | quote }}
-                                  - name: MGMT
-                                    value: {{ $managementApiServer | quote }}
+                                  - name: OBSERVATION
+                                    value: {{ $collectorObservationName | quote }}
+                                  - name: METRICS_SERVICE
+                                    value: {{ $collectorMetricsServiceName | quote }}
                                   - name: HOME
                                     value: /tmp
                                 volumeMounts:
-                                  - {name: mgmt, mountPath: /mgmt, readOnly: true}
                                   - {name: tmp, mountPath: /tmp}
                             volumes:
-                              - name: mgmt
-                                secret:
-                                  secretName: {{ printf "%s-archive-collector-mgmt" $dbName | quote }}
-                                  items:
-                                    - {key: token, path: token}
-                                    - {key: ca.crt, path: ca.crt}
                               - name: tmp
                                 emptyDir: {}
             ---
-            # Mirror only the fixed, admission-authorized app Secret. Values are
+            # Mirror the fixed, admission-authorized bootstrap app Secret. Values are
             # never templated into this Composition; provider-kubernetes resolves
-            # the management-plane reference at reconciliation time.
+            # the management-plane reference at reconciliation time. The independent
+            # login-slot mirrors follow immediately below.
             apiVersion: kubernetes.crossplane.io/v1alpha2
             kind: Object
             metadata:
@@ -1285,6 +1429,45 @@ spec:
                       cnpg.io/reload: "true"
                   type: kubernetes.io/basic-auth
             ---
+            {{- range $slot := list "a" "b" }}
+            # Each login role receives an independently mirrored verifier. Keeping these as
+            # separate Secrets is what makes a real overlap possible and lets finalization
+            # revoke the old password by rotating only the inactive slot.
+            apiVersion: kubernetes.crossplane.io/v1alpha2
+            kind: Object
+            metadata:
+              name: database-{{ $dbName }}-app-secret-{{ $slot }}
+              annotations:
+                gotemplating.fn.crossplane.io/composition-resource-name: app-secret-{{ $slot }}
+                platform.openkubes.ai/observe-through: {{ $observedThrough | quote }}
+                # Non-gating for Ready: status.credentials reports publication/application.
+                gotemplating.fn.crossplane.io/ready: "True"
+            spec:
+              deletionPolicy: Orphan
+              managementPolicies: ["*"]
+              providerConfigRef:
+                name: {{ $provider | quote }}
+              references:
+                - patchesFrom:
+                    apiVersion: v1
+                    kind: Secret
+                    name: {{ printf "%s-%s" $spec.credentialsSecretRef.name $slot | quote }}
+                    namespace: {{ $spec.credentialsSecretRef.namespace | quote }}
+                    fieldPath: data
+                  toFieldPath: data
+              forProvider:
+                manifest:
+                  apiVersion: v1
+                  kind: Secret
+                  metadata:
+                    name: {{ printf "%s-%s" $spec.credentialsSecretRef.name $slot | quote }}
+                    namespace: {{ $namespace | quote }}
+                    labels:
+                      app.kubernetes.io/part-of: openkubes-database-postgresql
+                      cnpg.io/reload: "true"
+                  type: kubernetes.io/basic-auth
+            ---
+            {{- end }}
             # Claim-scoped governed catalog: PostgreSQL 18 plus the sole v1
             # allowlisted extension image. Claims select a capability name, not
             # an arbitrary image reference.
@@ -1413,6 +1596,11 @@ spec:
               name: database-{{ $dbName }}-cluster
               annotations:
                 gotemplating.fn.crossplane.io/composition-resource-name: database-cluster
+                # The workload Cluster's managed-role passwordStatus is credential evidence.
+                # Remote changes do not enqueue this management Object, so the same bounded
+                # heartbeat as the collector/slot mirrors forces normal provider read-back
+                # without alpha watch support.
+                platform.openkubes.ai/observe-through: {{ $observedThrough | quote }}
                 # The ONLY resource that gates Ready, and on observed state rather than on
                 # the Object's SuccessfulCreate. See $databaseReadyGate above.
                 gotemplating.fn.crossplane.io/ready: {{ $databaseReadyGate | quote }}
@@ -1718,17 +1906,33 @@ spec:
                 activeRole: {{ $activeRole | quote }}
                 previousRole: {{ $previousRole | quote }}
                 overlapWindow: {{ $credentialOverlapWindow | quote }}
+                {{- if $previousCredentialAcceptanceKnown }}
                 previousCredentialAccepted: {{ $previousCredentialAccepted }}
+                {{- end }}
+                previousCredentialRevoked: {{ $previousCredentialRevoked }}
+                {{- if ne $rotationId "" }}
+                rotationId: {{ $rotationId | quote }}
+                {{- end }}
                 {{- if ne $previousValidUntil "" }}
                 previousValidUntil: {{ $previousValidUntil | quote }}
                 {{- end }}
-                observedAt: {{ $operationalObservedAt | quote }}
+                # Credential resourceVersions are provider observations, not Cluster condition
+                # transitions. Publish the bounded reconciler observation instant so a fresh
+                # verifier application is not made to look stale by an old Ready timestamp.
+                observedAt: {{ $observedThrough | quote }}
                 {{- if ne $publishedCredentialVersion "" }}
                 publishedResourceVersion: {{ $publishedCredentialVersion | quote }}
                 {{- end }}
                 {{- if ne $appliedCredentialVersion "" }}
                 appliedResourceVersion: {{ $appliedCredentialVersion | quote }}
                 {{- end }}
+                {{- if ne $previousPublishedVersion "" }}
+                previousPublishedResourceVersion: {{ $previousPublishedVersion | quote }}
+                {{- end }}
+                {{- if ne $previousAppliedVersion "" }}
+                previousAppliedResourceVersion: {{ $previousAppliedVersion | quote }}
+                {{- end }}
                 {{- if gt (int64 $credentialTransactionId) 0 }}
                 transactionId: {{ $credentialTransactionId }}
                 {{- end }}
+            {{- end }}

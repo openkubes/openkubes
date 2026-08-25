@@ -67,10 +67,12 @@ def render(policy_ref: str | None, extras: list[dict[str, Any]] | None) -> dict[
             "--crossplane-version=v2.3.3",
             "--include-full-xr",
         ]
+        extra_path = work / "extra.yaml"
+        rendered_extras = [yaml.safe_load((TESTS_DIR / "target-ok-robotics.yaml").read_text())]
         if extras:
-            extra_path = work / "extra.yaml"
-            extra_path.write_text(yaml.safe_dump_all(extras, sort_keys=False))
-            command.append(f"--extra-resources={extra_path}")
+            rendered_extras.extend(extras)
+        extra_path.write_text(yaml.safe_dump_all(rendered_extras, sort_keys=False))
+        command.append(f"--extra-resources={extra_path}")
         result = subprocess.run(
             command, cwd=CAPABILITY_DIR, check=False, capture_output=True, text=True
         )

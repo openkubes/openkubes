@@ -79,7 +79,12 @@ spec:
                   properties:
                     name:
                       type: string
-                      enum: [database-ok-robotics-app]
+                      minLength: 1
+                      maxLength: 253
+                      pattern: "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+                      description: >-
+                        Portable Secret syntax only. The fail-closed admission tuple authorizes
+                        the exact name for each enrolled target; this schema is not authority.
                     namespace:
                       type: string
                       enum: [crossplane-system]
@@ -418,6 +423,14 @@ spec:
                       type: string
                       minLength: 1
                       maxLength: 253
+                    previousPublishedResourceVersion:
+                      type: string
+                      minLength: 1
+                      maxLength: 253
+                    previousAppliedResourceVersion:
+                      type: string
+                      minLength: 1
+                      maxLength: 253
                     activeRole:
                       type: string
                       pattern: '^app_[ab]$'
@@ -439,9 +452,19 @@ spec:
                     previousCredentialAccepted:
                       type: boolean
                       description: >-
-                        Whether the PREVIOUS credential still opens new sessions. This
-                        is the field that stops the consumer's rotation obligation from
-                        being prose: false means only the active credential works now.
+                        Whether the PREVIOUS credential is proven to remain applied.
+                        It stays true after the policy deadline until the old verifier
+                        is actually replaced; elapsed time alone never claims revocation.
+                    previousCredentialRevoked:
+                      type: boolean
+                      description: >-
+                        True only when the inactive slot Secret changed from its
+                        start-of-rotation resourceVersion and CNPG reports that exact
+                        replacement applied.
+                    rotationId:
+                      type: string
+                      minLength: 1
+                      maxLength: 128
                     previousValidUntil:
                       type: string
                       format: date-time

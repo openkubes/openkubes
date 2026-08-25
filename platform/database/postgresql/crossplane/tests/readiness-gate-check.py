@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Prove the XR's Crossplane `Ready` condition is gated on OBSERVED state, not on our own YAML.
 
-Before this, the Composition set no composed-resource readiness at all, so all twelve resources
+Before this, the Composition set no composed-resource readiness at all, so every resource
 were READY_UNSPECIFIED and the XR reported `Creating` forever — `kubectl wait --for=condition=Ready`
 could never return on a database that had been serving for days.
 
@@ -45,7 +45,7 @@ OBSERVED_PATH = TESTS_DIR / "observed-ok-robotics-valid.yaml"
 
 GATE_EXPR = 'ternary "True" "False" $clusterReady'
 GATED_RESOURCE = "database-cluster"
-NON_GATING_COUNT = 11
+NON_GATING_COUNT = 13
 
 
 class GateError(ValueError):
@@ -67,6 +67,7 @@ def render(observed_docs: list[dict[str, Any]] | None) -> tuple[str, str]:
             str(COMPOSITION_PATH),
             str(TESTS_DIR / "functions.yaml"),
             "--crossplane-version=v2.3.3",
+            f"--extra-resources={TESTS_DIR / 'target-ok-robotics.yaml'}",
         ]
         if observed_docs is not None:
             observed = Path(directory) / "observed.yaml"
@@ -146,6 +147,16 @@ def static_checks() -> None:
         raise GateError(f"non-gating resources without a stated reason, at lines {unexplained}")
     print("PASS every non-gating resource states its reason")
 
+    production_gate = ('(eq $operationalState "Valid") (eq $protectionState "Valid") '
+                       '(eq $recoveryState "Valid") (eq $capabilityState "Valid") '
+                       '$credentialApplied $credentialRotationSafe')
+    if production_gate not in text:
+        raise GateError(
+            "production serviceReady must require the selected credential applied and proven-safe "
+            "previous-credential rotation state"
+        )
+    print("PASS production serviceReady fails closed on unapplied active or overdue previous credential")
+
 
 def positive() -> None:
     static_checks()
@@ -192,6 +203,25 @@ def negative_controls() -> None:
             print("NEGATIVE CONTROL PASS: a gate hardcoded to True is rejected")
         else:
             raise GateError("NEGATIVE CONTROL FAILED: a gate hardcoded to True was accepted")
+    finally:
+        COMPOSITION_PATH.write_text(original)
+
+    # 4. Credential application is a production serving precondition, not merely status prose.
+    without_credential_gate = composition_text().replace(
+        ' (eq $capabilityState "Valid") $credentialApplied $credentialRotationSafe',
+        ' (eq $capabilityState "Valid")',
+    )
+    if without_credential_gate == composition_text():
+        raise GateError("NEGATIVE CONTROL FAILED: could not construct credential-gate regression")
+    original = COMPOSITION_PATH.read_text()
+    try:
+        COMPOSITION_PATH.write_text(without_credential_gate)
+        try:
+            static_checks()
+        except GateError:
+            print("NEGATIVE CONTROL PASS: production Ready without credential application is rejected")
+        else:
+            raise GateError("NEGATIVE CONTROL FAILED: production Ready omitted credential application")
     finally:
         COMPOSITION_PATH.write_text(original)
 

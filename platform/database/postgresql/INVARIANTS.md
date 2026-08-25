@@ -20,12 +20,24 @@ these rules are counter-intuitive without that reasoning.
 - Failed-reason precedence: `BackupUnavailable` > `ContinuousArchivingFailed` >
   `BackupFailed`/`BackupOverdue`.
 
-## Protection's three signals (§11.1)
+## Protection's four signals (§11.1)
 | signal | source | never |
 |---|---|---|
 | execution | `Backup` CR `phase`/`stoppedAt`/`backupId` | not proof the backup still exists |
 | availability | `ObjectStore.status.serverRecoveryWindow[<serverName>]` | keyed by server — a wrong `serverName` reads another database's window |
-| archiving | `Cluster.status.conditions[ContinuousArchiving]` | **not** an RPO bound (§10) — WAL age is unobservable in plugin v0.14.0 |
+| archiving | `Cluster.status.conditions[ContinuousArchiving]` | **not** an RPO bound (§10) |
+| rpo | CNPG default metrics, read through the composed observation ConfigMap | never accept an independently writable management-plane artifact or infer oldest-pending age from last-archive time |
+
+The RPO collector has no management-plane credential and no `pods/exec`. It reads CNPG's default
+pending-WAL count, last-archive time and archive_timeout metrics through a primary-selecting Service.
+A recent successful archive can leave an already-queued successor, so default metrics cannot bound
+the age of remaining pending WAL. Any pending count therefore reports
+`Unknown/RPOPendingWALAgeUnproven`; only the no-backlog case uses archive_timeout to cap open-segment
+exposure. The collector may update exactly one pre-created ConfigMap (`resourceNames`). Crossplane
+omits `data` from its desired manifest. Because remote changes do not enqueue the management
+Object, its metadata carries `observe-through`, changed once per five-minute observation quantum;
+that bounded heartbeat triggers provider read-back without alpha `watch:true` and without
+overwriting collector-owned data. One Database cannot publish another's RPO.
 
 Never read `Cluster.status.lastSuccessfulBackup`, `firstRecoverabilityPoint`, `lastFailedBackup` or
 either `*ByMethod` field: deprecated, and unset for plugin backups. The identically-named
@@ -58,8 +70,10 @@ Availability correlation is **window containment**, asymmetric:
 ## Recovery evidence (§11.2)
 `RecoveryAssured=Valid` requires an **admitted** `RestoreVerified` CR on the management plane, bound
 by Database UID + source Cluster UID + system identifier + backup UID + resolved store tuple +
-digests. Its *creation* by the operator group is the authority action (§7). `validUntil =
-completedAt + class.maxAge`. Never trust `checks[].result: PASS` on its own.
+digests. The authority action (§7.1) is the operator group's creation of an immutable
+`VerificationProfile` approving the method's check digest and verifier version; matching artifacts
+then admit automatically. `validUntil = completedAt + class.maxAge`. Never trust
+`checks[].result: PASS` on its own.
 
 - The in-restore capability conformance probe does **not** couple `RecoveryAssured` to
   `CapabilityConformant`. They attest different subjects — the probe inside the disposable recovery
@@ -152,6 +166,14 @@ point-in-time, so a CronJob or batch importer that connects periodically would n
 and found safe. The residual risk is therefore **a consumer deployed later expecting `app` to be a
 login role** — new consumers must target the active login role from `status.credentials.activeRole`,
 never `app`.
+
+## Credential lifecycle invariants (ADR §13 bound 6)
+- Management source credentials are two independent basic-auth Secrets, `<base>-a` and `<base>-b`, with exact keys `username`/`password` and usernames `app_a`/`app_b`; provisioning never overwrites an existing slot.
+- Preflight refuses unless both source Secrets, workload mirrors, and CNPG passwordStatus entries exist and each slot's applied resourceVersion equals its remote mirror resourceVersion.
+- Rotation is approval-gated and starts only after a fresh consumer sweep finds no pod reference or live session using owner role `app`. It rotates the inactive source first, waits for the new remote RV and matching CNPG applied RV, then changes XR active-slot/rotation annotations.
+- The start annotation records both the previous remote RV and a SHA-256 fingerprint of the previous Secret's base64 `.data.password` representation, exactly matching the Composition contract. RV change alone is not revocation evidence: finalization requires the current previous-slot fingerprint to differ too.
+- Finalization refuses before the class overlap window expires. The old password may exist only in a temporary workload proof Secret, and authentication proof uses SecretKeyRefs; cleanup is unconditional. Active login must succeed and old login must fail specifically with an authentication rejection, not merely a failed pod.
+- Password material travels through stdin or Kubernetes SecretKeyRefs only. It must not appear in argv, logs, generated manifests, or temporary files. `APPROVE_MGMT=yes` and `APPROVE_CREDENTIAL_ROTATION=yes` are separate gates.
 
 ## Composed resource names
 **Renaming a composed manifest ORPHANS the previous resource.** The provider-kubernetes Object

@@ -34,7 +34,7 @@ def policy() -> dict:
 
 def allowed(candidate: tuple[str, ...], groups: tuple[str, ...], current: dict) -> bool:
     reviewed = mapping(current)
-    return reviewed[0] in groups and candidate == reviewed[1:]
+    return any(entry[0] in groups and candidate == entry[1:] for entry in reviewed)
 
 
 def main() -> None:
