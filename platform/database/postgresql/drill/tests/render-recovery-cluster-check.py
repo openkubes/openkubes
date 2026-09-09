@@ -26,7 +26,6 @@ def render() -> tuple[str, list[dict]]:
         "--minio-endpoint", "https://minio.minio.svc:9000",
         "--minio-ca-secret", "minio-backup-store-ca",
         "--source-credentials-secret", "ok-db-backups-ok-robotics-reader",
-        "--drill-credentials-secret", f"ok-db-drill-{RUN_ID}-writer",
         "--backup-id", BACKUP_ID,
         "--database-api-version", "platform.openkubes.ai/v1alpha1",
         "--database-kind", "Database",
@@ -40,9 +39,13 @@ def render() -> tuple[str, list[dict]]:
 
 
 def validate(text: str, documents: list[dict]) -> None:
-    assert len(documents) == 3, f"expected 3 documents, got {len(documents)}"
-    source_store, destination_store, cluster = documents
-    assert [doc["kind"] for doc in documents] == ["ObjectStore", "ObjectStore", "Cluster"]
+    # TWO documents now, not three. The destination ObjectStore is gone: it existed only so the
+    # throwaway recovery cluster could archive its own WAL, and that was the sole reason the drill
+    # needed a write credential — which in turn needed MinIO root to mint per run. Removing it
+    # makes the drill read-only on the source, which is what lets a verifier run unattended.
+    assert len(documents) == 2, f"expected 2 documents, got {len(documents)}"
+    source_store, cluster = documents
+    assert [doc["kind"] for doc in documents] == ["ObjectStore", "Cluster"]
     recovery = cluster["spec"]["bootstrap"]["recovery"]["source"]
     assert cluster["spec"]["bootstrap"]["recovery"]["recoveryTarget"]["backupID"] == BACKUP_ID
     external = cluster["spec"]["externalClusters"]
@@ -54,13 +57,24 @@ def validate(text: str, documents: list[dict]) -> None:
         f"and folder must all equal {SOURCE!r}; got {(recovery, external_name, server_name)!r}"
     )
     assert source_store["spec"]["configuration"]["destinationPath"] == "s3://ok-db-backups"
-    assert destination_store["spec"]["configuration"]["destinationPath"] == f"s3://ok-db-drill/{RUN_ID}"
     source_secret = source_store["spec"]["configuration"]["s3Credentials"]["accessKeyId"]["name"]
-    destination_secret = destination_store["spec"]["configuration"]["s3Credentials"]["accessKeyId"]["name"]
     assert source_secret == "ok-db-backups-ok-robotics-reader"
-    assert destination_secret == f"ok-db-drill-{RUN_ID}-writer"
-    assert source_secret != destination_secret, "source and destination credentials must be distinct"
-    for store, expected_secret in ((source_store, source_secret), (destination_store, destination_secret)):
+
+    # THE INVARIANT THAT REPLACED "isolated write destination": the drill writes NOWHERE. No
+    # archiver on the recovery cluster, and no second store to point one at. This is stronger than
+    # the old rule, because a destination that exists can be misconfigured toward the source
+    # whereas an absent one cannot.
+    assert "isWALArchiver" not in text, (
+        "the recovery cluster must have no WAL archiver: archiving is what forced a write "
+        "credential, and a throwaway verification cluster has nothing worth archiving"
+    )
+    assert "ok-db-drill" not in text, (
+        "the render references the drill write bucket; the drill must no longer write anywhere"
+    )
+    assert "writer" not in text, (
+        "the render references a writer credential; the drill is read-only on the source now"
+    )
+    for store, expected_secret in ((source_store, source_secret),):
         credentials = store["spec"]["configuration"]["s3Credentials"]
         assert credentials == {
             "accessKeyId": {"name": expected_secret, "key": "ACCESS_KEY_ID"},
@@ -71,7 +85,8 @@ def validate(text: str, documents: list[dict]) -> None:
     lowered = text.lower()
     for forbidden in ("secretaccesskey:", "accesskeyid:"):
         # Key selector field names are expected; values must only be Secret refs.
-        assert lowered.count(forbidden) == 2
+        # ONE store now (source only), so one credential pair — not two.
+        assert lowered.count(forbidden) == 1
     assert "example-secret-value" not in lowered
 
 
@@ -91,7 +106,7 @@ def validate_runner(runner: str) -> None:
 
 def negative_controls(documents: list[dict]) -> None:
     mismatch = copy.deepcopy(documents)
-    mismatch[2]["spec"]["externalClusters"][0]["plugin"]["parameters"]["serverName"] = "other-db"
+    mismatch[1]["spec"]["externalClusters"][0]["plugin"]["parameters"]["serverName"] = "other-db"
     try:
         validate(yaml.safe_dump_all(mismatch), mismatch)
     except AssertionError as exc:
@@ -136,7 +151,6 @@ def negative_controls(documents: list[dict]) -> None:
         "--namespace", "database-ok-robotics", "--minio-endpoint", "https://minio.minio.svc:9000",
         "--minio-ca-secret", "minio-backup-store-ca",
         "--source-credentials-secret", "ok-db-backups-ok-robotics-reader",
-        "--drill-credentials-secret", f"ok-db-drill-{RUN_ID}-writer",
         "--backup-id", BACKUP_ID,
         "--database-api-version", "platform.openkubes.ai/v1alpha1",
         "--database-kind", "Database",
@@ -149,14 +163,39 @@ def negative_controls(documents: list[dict]) -> None:
     attacker = common.copy()
     attacker[attacker.index(SOURCE)] = "keycloak-db"
     attacker_result = subprocess.run(attacker, text=True, capture_output=True)
-    assert attacker_result.returncode != 0 and "authorized only for source cluster" in attacker_result.stderr
-    print("NEGATIVE CONTROL PASS: unauthorized source cluster/endpoint tuple rejected")
+    assert attacker_result.returncode != 0, "an unlisted source cluster was accepted"
+    assert "not in the reviewed allowlist" in attacker_result.stderr, (
+        f"refusal must name the allowlist, got: {attacker_result.stderr.strip()[:200]}"
+    )
+    print("NEGATIVE CONTROL PASS: source cluster outside the reviewed allowlist rejected")
 
-    shared = common.copy()
-    shared[shared.index(f"ok-db-drill-{RUN_ID}-writer")] = "ok-db-backups-ok-robotics-reader"
-    shared_result = subprocess.run(shared, text=True, capture_output=True)
-    assert shared_result.returncode != 0 and "credential Secrets must be distinct" in shared_result.stderr
-    print("NEGATIVE CONTROL PASS: shared source/destination credentials rejected")
+    # The namespace is derived from the cluster rather than passed independently, so a drill aimed
+    # at the right cluster in the wrong namespace is impossible rather than merely discouraged.
+    wrong_ns = common.copy()
+    wrong_ns[wrong_ns.index(f"database-{SOURCE}")] = "database-somewhere-else"
+    wrong_ns_result = subprocess.run(wrong_ns, text=True, capture_output=True)
+    assert wrong_ns_result.returncode != 0 and "namespace must be database-" in wrong_ns_result.stderr, (
+        f"a mismatched namespace was accepted: {wrong_ns_result.stderr.strip()[:200]}"
+    )
+    print("NEGATIVE CONTROL PASS: namespace not matching the source cluster rejected")
+
+
+    # Passing a write credential must be REFUSED rather than ignored. Silently accepting an unused
+    # --drill-credentials-secret would let a caller keep provisioning per-run MinIO identities (and
+    # keep needing MinIO root to do it) while believing the drill still writes somewhere isolated.
+    refused = subprocess.run(
+        [*common, "--drill-credentials-secret", f"ok-db-drill-{RUN_ID}-writer"],
+        capture_output=True,
+        text=True,
+    )
+    assert refused.returncode == 2, (
+        "the drill accepted a write credential it no longer uses; that hides the removal of the "
+        f"per-run identity from callers (exit {refused.returncode})"
+    )
+    assert "writes nowhere" in refused.stderr, (
+        f"refusal must explain why the flag is gone, got: {refused.stderr.strip()[:200]}"
+    )
+    print("NEGATIVE CONTROL PASS: a write credential is refused, not silently ignored")
 
     no_approval_result = subprocess.run([*common, "--execute"], text=True, capture_output=True)
     assert no_approval_result.returncode != 0 and "requires --approve-isolated-restore" in no_approval_result.stderr

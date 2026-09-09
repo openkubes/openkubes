@@ -1,0 +1,88 @@
+apiVersion: evidence.platform.openkubes.ai/v1alpha1
+kind: RestoreVerified
+metadata:
+  name: ok-145-20260824t090000z
+  labels:
+    platform.openkubes.ai/source-cluster: ok-robotics
+spec:
+  databaseRef:
+    apiVersion: platform.openkubes.ai/v1alpha1
+    kind: Database
+    name: ok-robotics-7x6l2
+    uid: a6b4b2ff-38f3-4cdf-ab2e-c7808d5e6326
+  backupId: 20260818T105441
+  backupRef:
+    apiVersion: postgresql.cnpg.io/v1
+    kind: Backup
+    namespace: database-ok-robotics
+    name: ok-robotics-evidence
+    uid: 66512cd7-116f-40f6-bda5-bd287a4e8707
+  sourceSystemIdentifier: '7675323293209042963'
+  sourceClusterRef:
+    apiVersion: postgresql.cnpg.io/v1
+    kind: Cluster
+    namespace: database-ok-robotics
+    name: ok-robotics
+    uid: 480ac7de-c4a8-405c-a198-6a25362fada7
+  source:
+    endpoint: https://minio.minio.svc:9000
+    bucket: ok-db-backups
+    pathPrefix: ok-robotics/
+    serverName: ok-robotics
+    canonicalServerDirectory: s3://ok-db-backups/ok-robotics/
+  recoveryTarget:
+    requested: backupID=20260818T105441
+    reached:
+      timelineId: '2'
+      lsn: 0/24000198
+  timing:
+    startedAt: '2026-08-24T08:56:30Z'
+    completedAt: '2026-08-24T09:02:40Z'
+    duration: PT370S
+  checks:
+  - name: outside-recovery
+    result: PASS
+    observed:
+      pgIsInRecovery: false
+  - name: known-row-readable
+    result: PASS
+    observed:
+      marker: ok-145-real-backup
+      matchingRows: 1
+  - name: restore-probe-heap-readable
+    result: PASS
+    observed:
+      maximumId: 145
+      minimumId: 145
+      rowCount: 1
+  - name: primary-key-index-readable
+    result: PASS
+    observed:
+      indexName: restore_probe_pkey
+      indexReady: true
+      indexValid: true
+      matchingRows: 1
+  - name: selected-backup-object-readable
+    result: PASS
+    observed:
+      object: ok-robotics/base/20260818T105441/backup.info
+      sha256: sha256:3d44a1bf6c105530a24ae0c0eea7c74102d50e44301fc203329eb2767dd341c4
+  checkProfileDigest: sha256:979fed018f937803ac60606b083da7a1109c45c7c48912763e1616e4152e5927
+  manifestDigest: sha256:3d3ac2321d0e62f5eac8a07f46c1d63dd5d73c984c9ee03e42031fa2dbff063e
+  isolation:
+    effectivePolicyResult: PASS
+    effectivePolicyName: ok-db-backups-reader
+    effectivePolicyDigest: sha256:479132aaf470da1dff1eb6036a2350fe3bc584a23ad3acc62b30881049ef3bdf
+    writeDenialProbeResult: PASS
+    writeDenialRawResponse: "\r 0 B / ? {\"status\":\"error\",\"error\":{\"message\"\
+      :\"Unable to write to one or more targets.\",\"cause\":{\"message\":\"Insufficient\
+      \ permissions to access this path `https://minio.minio.svc:9000/ok-db-backups/ok-robotics/ok145-write-denial-20260824t090000z`\"\
+      ,\"error\":{\"Path\":\"https://minio.minio.svc:9000/ok-db-backups/ok-robotics/ok145-write-denial-20260824t090000z\"\
+      }},\"type\":\"fatal\"}}"
+    writeDenialObject: ok-robotics/ok145-write-denial-20260824t090000z
+    writeDenialObjectAbsent: true
+  verifierVersion: sha256:6e99efa49e41aa6d5b93efd7a934adadb22a616d0b702da841d853643efc464c
+  cnpgVersion: 1.30.0
+  pluginIdentity: barman-cloud.cloudnative-pg.io
+  pluginVersion: 0.14.0
+  evidenceRef: platform/database/postgresql/drill/evidence/restoreverified-20260824t090000z.yaml

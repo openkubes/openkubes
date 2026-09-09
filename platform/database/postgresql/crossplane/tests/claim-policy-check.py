@@ -11,6 +11,11 @@ from pathlib import Path
 import yaml
 
 ROOT = Path(__file__).resolve().parent.parent
+ADR_RELATIVE = "architecture/decisions/ADR-Platform-032-openkubes-dbaas.md"
+ADR_PATH = next(
+    (parent / ADR_RELATIVE for parent in ROOT.parents if (parent / ADR_RELATIVE).is_file()),
+    ROOT / ADR_RELATIVE,
+)
 EXPECTED = (
     "oidc:database-claim-editors",
     "openkubes-system",
@@ -54,17 +59,24 @@ def require(condition: bool, message: str) -> None:
         raise AssertionError(message)
 
 
-def mapping(policy: dict) -> tuple[str, ...]:
+def mapping(policy: dict) -> tuple[tuple[str, ...], ...]:
     variables = {v["name"]: v["expression"] for v in policy["spec"]["variables"]}
     expression = variables.get("authorizations", "")
-    values = []
-    for key in TUPLE_KEYS:
-        found = re.findall(rf"'{key}':\s*'([^']+)'", expression)
-        require(len(found) == 1, f"authorization tuple must contain exactly one {key}")
-        values.append(found[0])
-    require(expression.count("{") == 1 and expression.count("}") == 1,
-            "authorization must remain an explicit single tuple list")
-    return tuple(values)
+    blocks = re.findall(r"\{([^{}]+)\}", expression)
+    require(blocks, "authorization inventory must contain at least one exact tuple")
+    tuples = []
+    for index, block in enumerate(blocks):
+        values = []
+        for key in TUPLE_KEYS:
+            found = re.findall(rf"'{key}':\s*'([^']+)'", block)
+            require(len(found) == 1, f"authorization tuple {index} must contain exactly one {key}")
+            values.append(found[0])
+        keys = re.findall(r"'([^']+)':", block)
+        require(set(keys) == set(TUPLE_KEYS) and len(keys) == len(TUPLE_KEYS),
+                f"authorization tuple {index} must contain only the reviewed coordinates")
+        tuples.append(tuple(values))
+    require(len(set(tuples)) == len(tuples), "authorization inventory contains a duplicate tuple")
+    return tuple(tuples)
 
 
 def validate(data: dict) -> None:
@@ -81,7 +93,7 @@ def validate(data: dict) -> None:
         "resources": ["databaseclaims"],
         "scope": "Namespaced",
     }], "admission policy must cover exactly DatabaseClaim CREATE and UPDATE")
-    require(mapping(policy) == EXPECTED, "authorization tuple differs from the reviewed allocation")
+    require(EXPECTED in mapping(policy), "authorization inventory omits the reviewed ok-robotics allocation")
 
     variables = {v["name"]: v["expression"] for v in pspec["variables"]}
     allocation = variables["allocationIsAuthorized"]
@@ -131,6 +143,31 @@ def validate(data: dict) -> None:
         "apiGroup": "rbac.authorization.k8s.io",
     }, "claim-editor RoleBinding must select the claim-only Role")
 
+    # AC 7. The deprecation of v1 CompositeResourceDefinition is accepted for v1 in ADR §14,
+    # deliberately rather than by omission. This keeps the RECORD and the SERVED API in step,
+    # because a stale acceptance is worse than no acceptance: it reads as current.
+    adr = ADR_PATH.read_text()
+    accepted = "## 14. Accepted deprecations" in adr
+    served_v1 = data["xrd"]["apiVersion"] == "apiextensions.crossplane.io/v1"
+    if served_v1:
+        require(
+            accepted,
+            "the XRD is still apiextensions.crossplane.io/v1 but ADR §14 no longer records the "
+            "accepted deprecation; either restore the record or complete the v2 migration",
+        )
+        for evidence in ("v2.3.3", "consider migrating to v2"):
+            require(
+                evidence in adr,
+                f"ADR §14 must quote what the server actually said ({evidence!r}); an acceptance "
+                "without the observed warning is an assertion, not a record",
+            )
+    else:
+        require(
+            not accepted,
+            "the XRD has moved off apiextensions.crossplane.io/v1, so ADR §14's accepted "
+            "deprecation is stale and must be removed rather than left reading as current",
+        )
+
     xrd = data["xrd"]
     require(xrd["spec"]["group"] == "platform.openkubes.ai", "XRD API group regression")
     require(xrd["spec"]["names"]["kind"] == "Database", "XR kind regression")
@@ -142,7 +179,25 @@ def validate(data: dict) -> None:
     served = {v["name"] for v in xrd["spec"]["versions"] if v.get("served")}
     require(served == {"v1alpha1"}, "admission policy must cover every served Claim version")
     spec = version["schema"]["openAPIV3Schema"]["properties"]["spec"]["properties"]
-    require("dataPolicyRef" not in spec, "v1 must not expose unresolved dataPolicyRef authority")
+    # Superseded under OK-150 (§13 bound 7). The old rule was "dataPolicyRef must be ABSENT",
+    # which was right only while nothing could resolve it. A policy object and a resolver now
+    # exist, so the rule becomes: if the field is exposed, it must be STRUCTURED and it must be
+    # RESOLVED. A bare string, or an exposed field with no resolver in the Composition, is the
+    # dangling authority the original rule was protecting against.
+    if "dataPolicyRef" in spec:
+        data_policy = spec["dataPolicyRef"]
+        require(
+            data_policy.get("type") == "object" and data_policy.get("required") == ["name"],
+            "dataPolicyRef must be a structured reference requiring name, not an unresolved "
+            "free-form dataPolicyRef",
+        )
+        composition_source = data["composition_text"]
+        require(
+            "kind: DataPolicy" in composition_source
+            and "DataPolicyUnresolved" in composition_source,
+            "dataPolicyRef is exposed with no resolver: the Composition must request DataPolicy "
+            "and fail closed on an unresolved dataPolicyRef",
+        )
     require(spec["engine"]["properties"]["name"].get("enum") == ["postgresql"],
             "engine.name must remain closed to postgresql")
     capabilities = spec["engine"]["properties"]["capabilities"]["items"]["properties"]
@@ -168,7 +223,8 @@ def validate(data: dict) -> None:
     require("enum" not in spec["clusterRef"] and "enum" not in spec["namespace"],
             "portable target syntax must be authorized by admission, not environment enums")
     creds = spec["credentialsSecretRef"]["properties"]
-    require(creds["name"].get("enum") == [EXPECTED[5]], "credential Secret name must be schema-pinned")
+    require("enum" not in creds["name"] and creds["name"].get("pattern"),
+            "credential Secret name must remain portable syntax; admission pins the exact value")
     require(creds["namespace"].get("enum") == [EXPECTED[6]],
             "credential Secret namespace must be schema-pinned")
 
@@ -227,9 +283,12 @@ def negative_controls(source: dict) -> None:
     case("protection enum opens", lambda d: schema_spec(d)["protection"]["properties"]["policyRef"].pop("enum"), "protection.policyRef")
     case("isolation enum opens", lambda d: schema_spec(d)["isolation"]["properties"]["class"].pop("enum"), "isolation.class")
     case("major upgrade opens", lambda d: schema_spec(d)["maintenance"]["properties"]["majorVersionStrategy"]["enum"].append("inPlace"), "maintenance authority")
-    case("credential name opens", lambda d: schema_spec(d)["credentialsSecretRef"]["properties"]["name"].pop("enum"), "credential Secret name")
+    case("credential name syntax opens", lambda d: schema_spec(d)["credentialsSecretRef"]["properties"]["name"].pop("pattern"), "portable syntax")
     case("credential namespace opens", lambda d: schema_spec(d)["credentialsSecretRef"]["properties"]["namespace"].pop("enum"), "credential Secret namespace")
     case("unresolved data policy", lambda d: schema_spec(d).update(dataPolicyRef={"type": "string"}), "dataPolicyRef")
+    # Exposing the field while removing the resolver is the dangling case in its purest form:
+    # the contract advertises a residency guarantee nothing can evaluate.
+    case("data policy exposed with no resolver", lambda d: d.update(composition_text=d["composition_text"].replace("DataPolicyUnresolved", "SomethingElse")), "no resolver")
     case("deprecated freshness by method", lambda d: d.update(composition_text=d["composition_text"] + "\n# lastSuccessfulBackupByMethod\n"), "forbidden/deprecated")
     case("freshness read from Cluster status", lambda d: d.update(composition_text=d["composition_text"] + '\n{{- $x := dig "lastSuccessfulBackup" "" $clusterStatus }}\n'), "from Cluster status")
     case("deprecated in-tree backup", lambda d: d.update(composition_text=d["composition_text"] + "\n# barmanObjectStore\n"), "forbidden/deprecated")

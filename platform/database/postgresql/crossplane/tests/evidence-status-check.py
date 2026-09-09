@@ -476,6 +476,75 @@ def scenario_inputs(name: str, now: datetime) -> tuple[dict[str, Any], list[dict
     return xr, observed
 
 
+def verification_profile(artifact: dict[str, Any]) -> dict[str, Any]:
+    """The operator approval of the method that produced `artifact` (§7, as amended).
+
+    Recovery scenarios need one for the same reason production scenarios need a WAL observation:
+    without it every artifact reads RestoreProfileUnapproved, which is CORRECT but masks the
+    state-machine behaviour these scenarios exist to exercise. restore-approval-check.py owns the
+    unapproved paths.
+    """
+    return {
+        "apiVersion": "platform.openkubes.ai/v1alpha1",
+        "kind": "VerificationProfile",
+        "metadata": {"name": f"approved-{artifact['metadata']['name']}"},
+        "spec": {
+            "checkProfileDigest": artifact["spec"]["checkProfileDigest"],
+            "verifierVersion": artifact["spec"]["verifierVersion"],
+            "checks": [c["name"] for c in artifact["spec"]["checks"]],
+            "approval": {
+                "approvedBy": "oidc:database-restore-verifiers",
+                "approvedAt": rfc3339(datetime(2026, 8, 24, tzinfo=timezone.utc)),
+                "rationale": (
+                    "Fixture approval for the reviewed five-probe restore method under test; the "
+                    "unapproved paths are asserted in restore-approval-check.py."
+                ),
+            },
+        },
+    }
+
+
+def archive_freshness(now: datetime) -> dict[str, Any]:
+    """A current, in-bound WAL-lag measurement (§13 bound 1).
+
+    Production scenarios need one to keep testing what they were written to test. Without it
+    every production case now reports Unknown/RPOFreshnessUnproven, which is CORRECT — production
+    must not reach Valid on ContinuousArchiving alone — but it would mask the readiness logic
+    these scenarios exist to exercise. rpo-freshness-check.py owns the absent/stale/exceeded paths.
+    """
+    observed_at = now - timedelta(minutes=1)
+    return {
+        "apiVersion": "kubernetes.crossplane.io/v1alpha2",
+        "kind": "Object",
+        "metadata": {
+            "name": "database-ok-robotics-collector-observation",
+            "annotations": {"crossplane.io/composition-resource-name": "collector-observation"},
+        },
+        "status": {
+            "atProvider": {
+                "manifest": {
+                    "apiVersion": "v1",
+                    "kind": "ConfigMap",
+                    "metadata": {
+                        "name": "ok-robotics-archive-freshness",
+                        "namespace": "database-ok-robotics",
+                    },
+                    "data": {
+                        "clusterUid": "1c47d9d1-2cc2-4619-8265-a1598cb22274",
+                        "observedAt": rfc3339(observed_at),
+                        "walLagSeconds": "20",
+                        "pendingWalCount": "0",
+                        "lastArchivedWalTime": rfc3339(observed_at - timedelta(seconds=20)),
+                        "archiveTimeoutSeconds": "300",
+                        "probeDigest": "sha256:904a29ee996692fe937f6ec8e4ef140b3d115f025250daf5cabac75baaca8ef5",
+                        "verifierVersion": "wal-exposure-metrics-collector/0.2.0",
+                    },
+                }
+            }
+        },
+    }
+
+
 def render_scenario(
     name: str,
     now: datetime,
@@ -490,7 +559,6 @@ def render_scenario(
         extra_path = work / "extra.yaml"
         composition_path = work / "composition.yaml"
         xr_path.write_text(yaml.safe_dump(xr, sort_keys=False))
-        observed_path.write_text(yaml.safe_dump_all(observed, sort_keys=False))
         composition_path.write_text(
             composition_text
             if composition_text is not None
@@ -507,6 +575,7 @@ def render_scenario(
             "--include-full-xr",
             f"--observed-resources={observed_path}",
         ]
+        extra_artifacts = [yaml.safe_load((TESTS_DIR / "target-ok-robotics.yaml").read_text())]
         if name in RECOVERY_SCENARIOS:
             artifacts = load_documents(str(RESTORE_FIXTURE_PATH))
             if len(artifacts) != 2:
@@ -553,8 +622,18 @@ def render_scenario(
                 else:
                     raise EvidenceError(f"unknown artifact case {artifact_case!r}")
                 selected_artifacts = [tampered]
-            extra_path.write_text(yaml.safe_dump_all(selected_artifacts, sort_keys=False))
-            command.append(f"--extra-resources={extra_path}")
+            extra_artifacts.extend(selected_artifacts)
+            # Approve the method of every artifact offered, so a scenario testing the recovery
+            # state machine is not silently gated on an approval it never set up.
+            for offered in selected_artifacts:
+                extra_artifacts.append(verification_profile(offered))
+            if xr["spec"]["protection"]["policyRef"] == "production":
+                observed.append(archive_freshness(now))
+        elif xr["spec"]["protection"]["policyRef"] == "production":
+            observed.append(archive_freshness(now))
+        extra_path.write_text(yaml.safe_dump_all(extra_artifacts, sort_keys=False))
+        command.append(f"--extra-resources={extra_path}")
+        observed_path.write_text(yaml.safe_dump_all(observed, sort_keys=False))
         result = subprocess.run(
             command,
             cwd=CAPABILITY_DIR,
@@ -753,8 +832,21 @@ def render_scenario_tests(group: str = "core") -> None:
         ("valid", "protection", "Valid", valid_reason),
         ("expired-prior-valid", "protection", "Stale", "BackupEvidenceExpired"),
         ("expired-never-valid", "protection", "Pending", "FreshBackupEvidencePending"),
-        ("expired-prior-unavailable", "protection", "Failed", "BackupUnavailable"),
-        ("backup-unavailable", "protection", "Failed", "BackupUnavailable"),
+        # Both of these encoded the fixed-anchor premise, and OK-150 bound 3 removed it. An
+        # anchor outside the recovery window is no longer unavailability: the window's own end is
+        # a LATER successful backup, so something recoverable exists and the anchor was merely
+        # superseded. What remains is a freshness question, which is what these now assert.
+        #   expired-prior-unavailable: production wants evidence <=24h; the superseding backup is
+        #   24h old, so the proof is old -> Stale. "Our proof is old" is true here; "the backup is
+        #   gone" was not.
+        #   backup-unavailable: the superseding backup is fresh, so protection is simply Valid.
+        # BackupUnavailable's precedence over Stale (§11.1) is UNCHANGED and still enforced in the
+        # reduction; what changed is that the anchor's age no longer manufactures the verdict. See
+        # anchor-supersession-check.py, which also proves this is a correction and not a
+        # suppression: an incoherent window, an unreadable window and a failing archiver all still
+        # refuse to read Valid.
+        ("expired-prior-unavailable", "protection", "Stale", "BackupEvidenceExpired"),
+        ("backup-unavailable", "protection", "Valid", valid_reason),
         ("continuous-archiving-failed", "protection", "Failed", "ContinuousArchivingFailed"),
         ("backup-overdue", "protection", "Failed", "BackupOverdue"),
         ("first-backup-deadline-persisted", "protection", "Unknown", "AwaitingFirstBackup"),

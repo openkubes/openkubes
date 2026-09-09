@@ -60,17 +60,62 @@ def validate(
                 "development must remain unready until operational evidence is Valid")
 
     signals = evidence["protection"].get("signals", {})
-    require(set(signals) == {"execution", "availability", "archiving"},
-            "protection must expose independent execution, availability, and archiving signals")
+    require(set(signals) == {"execution", "availability", "archiving", "rpo"},
+            "protection must expose independent execution, availability, archiving and rpo "
+            "signals; rpo is §11.1's third signal and its absence is what let production reach "
+            "Valid on ContinuousArchiving alone")
 
     objects = [doc for doc in docs if doc.get("apiVersion") == "kubernetes.crossplane.io/v1alpha2" and doc.get("kind") == "Object"]
-    require(len(objects) == 7, f"expected seven provider-kubernetes Objects, found {len(objects)}")
+    # Fifteen: seven database resources, two independently mirrored login-slot Secrets, and six
+    # resources for the per-Database WAL-exposure collector. The slot pair is load-bearing: one
+    # shared Secret cannot provide simultaneous old/new verifiers or selective revocation.
+    require(len(objects) == 15, f"expected fifteen provider-kubernetes Objects, found {len(objects)}")
     require(all(obj["spec"]["providerConfigRef"]["name"] == "ok-robotics" for obj in objects),
             "every composed Object must target the XR clusterRef")
+    observation_object = next(
+        obj for obj in objects
+        if obj["metadata"].get("annotations", {}).get("crossplane.io/composition-resource-name") == "collector-observation"
+    )
+    require(observation_object["metadata"].get("annotations", {}).get("platform.openkubes.ai/observe-through"),
+            "collector observation Object needs the bounded provider-readback heartbeat")
+    cluster_object = next(
+        obj for obj in objects
+        if obj["metadata"].get("annotations", {}).get("crossplane.io/composition-resource-name") == "database-cluster"
+    )
+    require(cluster_object["metadata"].get("annotations", {}).get("platform.openkubes.ai/observe-through"),
+            "database Cluster Object needs a bounded provider-readback heartbeat for managed-role status")
     manifests = [obj["spec"]["forProvider"]["manifest"] for obj in objects]
     kinds = {manifest["kind"] for manifest in manifests}
-    require(kinds == {"Secret", "ClusterImageCatalog", "ObjectStore", "Cluster", "ScheduledBackup", "Backup", "Pooler"},
+    require(kinds == {"Secret", "ClusterImageCatalog", "ObjectStore", "Cluster", "ScheduledBackup",
+                      "Backup", "Pooler", "ServiceAccount", "Role", "RoleBinding", "CronJob",
+                      "ConfigMap", "Service"},
             f"unexpected composed manifest set: {sorted(kinds)}")
+
+    # The collector must be namespaced and named from the XR, never from a literal. A composed
+    # resource carrying a hardcoded cluster name is the defect this replaced.
+    composed_cluster = next(m for m in manifests if m["kind"] == "Cluster")
+    collector = [m for m in manifests if m["kind"] == "CronJob"]
+    require(len(collector) == 1, f"expected one composed CronJob, found {len(collector)}")
+    cron = collector[0]
+    require(cron["metadata"]["namespace"] == composed_cluster["metadata"]["namespace"],
+            "the collector must run in the database's own namespace")
+    require(cron["metadata"]["name"].startswith(composed_cluster["metadata"]["name"]),
+            f"the collector must be named from the composed cluster, got {cron['metadata']['name']}")
+    # The collector can mutate exactly its pre-created mailbox. It has no pod discovery/exec and
+    # no generic create authority, so neither co-resident workloads nor another Database's
+    # observation are reachable through this identity.
+    role = next(m for m in manifests if m["kind"] == "Role")
+    require(role["rules"] == [
+            {
+                "apiGroups": [""], "resources": ["configmaps"],
+                "resourceNames": [f"{composed_cluster['metadata']['name']}-archive-freshness"],
+                "verbs": ["get", "update", "patch"],
+            },
+            {
+                "apiGroups": ["postgresql.cnpg.io"], "resources": ["clusters"],
+                "resourceNames": [composed_cluster["metadata"]["name"]], "verbs": ["get"],
+            },
+        ], f"collector Role must be name-scoped to its observation and Cluster identity: {role['rules']}")
 
     # CNPG owns Services <cluster>-rw, -ro and -r for the Cluster itself, and a Pooler's name
     # becomes its Service name. No composed object may claim one of those names: the Pooler that
@@ -89,11 +134,29 @@ def validate(
             f"Cluster Service ({sorted(reserved)}); it can never take ownership of that name",
         )
 
-    secret = next(manifest for manifest in manifests if manifest["kind"] == "Secret")
-    require("data" not in secret and "stringData" not in secret,
-            "rendered Secret must contain references only, never credential values")
-    require(secret["metadata"].get("labels", {}).get("cnpg.io/reload") == "true",
-            "managed credential Secret must carry cnpg.io/reload=true")
+    secrets = [manifest for manifest in manifests if manifest["kind"] == "Secret"]
+    require({s["metadata"]["name"] for s in secrets} == {
+                "database-ok-robotics-app", "database-ok-robotics-app-a", "database-ok-robotics-app-b"
+            }, "base bootstrap and both independently mirrored login-slot Secrets must compose")
+    require(all("data" not in secret and "stringData" not in secret for secret in secrets),
+            "rendered Secrets must contain references only, never credential values")
+    require(all(secret["metadata"].get("labels", {}).get("cnpg.io/reload") == "true" for secret in secrets),
+            "every managed credential Secret must carry cnpg.io/reload=true")
+    credential_objects = {
+        obj["metadata"]["annotations"].get("crossplane.io/composition-resource-name"): obj
+        for obj in objects
+        if obj["metadata"].get("annotations", {}).get("crossplane.io/composition-resource-name")
+        in {"app-secret", "app-secret-a", "app-secret-b"}
+    }
+    require(set(credential_objects) == {"app-secret", "app-secret-a", "app-secret-b"},
+            "base and both slot Secret mirrors must be independently composed")
+    for slot in ("a", "b"):
+        mirror = credential_objects[f"app-secret-{slot}"]
+        patches = mirror["spec"].get("references", [{}])[0].get("patchesFrom", {})
+        require(patches == {
+            "apiVersion": "v1", "kind": "Secret", "namespace": "crossplane-system",
+            "name": f"database-ok-robotics-app-{slot}", "fieldPath": "data",
+        }, f"slot {slot} must mirror only its matching management Secret: {patches}")
     store = next(manifest for manifest in manifests if manifest["kind"] == "ObjectStore")
     require(store["spec"]["configuration"]["destinationPath"] == "s3://ok-db-backups",
             "backup root must derive its server folder only from the CNPG serverName")
@@ -121,22 +184,46 @@ def validate(
             "plugin serverName must equal the single protected CNPG cluster identity")
     require("backup" not in cluster["spec"], "deprecated in-tree Cluster backup surface must be absent")
     catalog = next(manifest for manifest in manifests if manifest["kind"] == "ClusterImageCatalog")
+    catalog_image = catalog["spec"]["images"][0]
+    # A requested capability is delivered by the BUNDLED `standard` image, because the catalogued
+    # per-extension image-volume model needs containerd >= 2.1.0 and these nodes run 2.0.x. So the
+    # provenance type follows the delivery mechanism rather than being a constant, and the two must
+    # agree: a `standard` label on a minimal image (or the reverse) would misstate what is running.
+    bundled = "-standard-" in catalog_image["image"]
     provenance = {
         "images.cnpg.io/date": "20260815",
         "images.cnpg.io/publisher": "cnpg.io",
-        "images.cnpg.io/type": "minimal",
+        "images.cnpg.io/type": "standard" if bundled else "minimal",
         "images.cnpg.io/os": "trixie",
     }
     labels = catalog["metadata"].get("labels", {})
     require(all(labels.get(key) == value for key, value in provenance.items()),
-            "governed catalog provenance labels must remain exact")
-    image = catalog["spec"]["images"][0]["image"]
-    require("@sha256:" in image, "PostgreSQL catalog image must be digest-pinned")
-    extensions = catalog["spec"]["images"][0]["extensions"]
-    require([extension["name"] for extension in extensions] == ["pgvector"],
-            "platform catalog must expose only the approved pgvector extension")
-    require("@sha256:" in extensions[0]["image"]["reference"],
-            "pgvector catalog image must be digest-pinned")
+            f"governed catalog provenance labels must remain exact and match the image actually "
+            f"pinned ({'standard' if bundled else 'minimal'}); got {labels}")
+    require("@sha256:" in catalog_image["image"],
+            "the catalog image must be digest-pinned, not tag-only: a re-pushed tag would change "
+            "what runs while every recorded proof still looked valid")
+    # Declaring spec.postgresql.extensions IS the image-volume mechanism, so it must not reappear
+    # alongside a bundled image — that combination is what stops the instance starting.
+    if bundled:
+        require("extensions" not in catalog_image,
+                "a bundled image must not also carry catalogued extension images: that is the "
+                "image-volume path, which containerd 2.0.x cannot mount")
+        # Must be EMPTY rather than absent: omitting it leaves a previous value in place on the
+        # target cluster, which put ok-robotics into "incomplete or invalid image catalog".
+        declared = (cluster["spec"].get("postgresql") or {}).get("extensions", None)
+        require(declared == [],
+                "a bundled image must declare spec.postgresql.extensions as an EMPTY list, not "
+                f"omit it: omission does not clear a previously set value. Got {declared!r}")
+    # The catalogued per-extension images are the image-volume model, which is unusable on
+    # containerd 2.0.x and therefore not composed. When it returns (containerd >= 2.1.0), these
+    # assertions apply again — §6.4's governance lives here, so keep them rather than deleting.
+    extensions = catalog_image.get("extensions")
+    if extensions is not None:
+        require([extension["name"] for extension in extensions] == ["pgvector"],
+                "platform catalog must expose only the approved pgvector extension")
+        require("@sha256:" in extensions[0]["image"]["reference"],
+                "pgvector catalog image must be digest-pinned")
 
     rendered = yaml.safe_dump_all(docs)
     # ObjectStore recovery-window fields are valid normalized status. Only the

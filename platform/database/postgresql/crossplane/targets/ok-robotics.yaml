@@ -1,0 +1,29 @@
+# Enrollment assets for the ok-robotics Database target. The target name is the shared identity
+# across ProviderConfig, DatabaseTargetProfile and the fail-closed admission tuple.
+# No credential material is created or copied: ProviderConfig references the registration Secret.
+apiVersion: kubernetes.crossplane.io/v1alpha1
+kind: ProviderConfig
+metadata:
+  name: ok-robotics
+spec:
+  credentials:
+    source: Secret
+    secretRef:
+      namespace: crossplane-system
+      name: ok-robotics-kubeconfig
+      key: kubeconfig
+---
+apiVersion: platform.openkubes.ai/v1alpha1
+kind: DatabaseTargetProfile
+metadata:
+  name: ok-robotics
+  labels:
+    app.kubernetes.io/part-of: openkubes-database-postgresql
+    openkubes.ai/adr: adr-platform-032
+spec:
+  clusterRef: ok-robotics
+  backupStore:
+    bucket: ok-db-backups
+    endpointURL: https://minio.minio.svc:9000
+    endpointCA: minio-backup-store-ca
+    residencyZone: on-prem-de

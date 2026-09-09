@@ -8,8 +8,10 @@ KUBECTL ?= kubectl
 MGMT_CLUSTER ?= ok-mgmt
 MGMT_KUBECONFIG ?=
 APPROVE_MGMT ?= no
+APPROVE_CREDENTIAL_ROTATION ?= no
 ACCEPT_PROTOTYPE_LIMITS ?= no
 CLUSTER ?= ok-robotics
+TARGET_FILE = crossplane/targets/$(CLUSTER).yaml
 PROBE_NAMESPACE ?=
 PROBE_CNPG_CLUSTER ?=
 PROBE_CAPABILITY ?= pgvector
@@ -22,19 +24,26 @@ XR_PRODUCTION := crossplane/tests/xr-ok-robotics-production.yaml
 COMPOSITION := crossplane/composition.yaml
 FUNCTIONS := crossplane/tests/functions.yaml
 RENDER_BASE := $(CROSSPLANE) composition render
-RENDER_FLAGS := --crossplane-version=v2.3.3
-YAML_FILES := crossplane/xrd.yaml crossplane/composition.yaml \
-	crossplane/restoreverified-crd.yaml \
-	crossplane/claim-admission-policy.yaml \
-	crossplane/rbac/claim-editor-role.yaml crossplane/rbac/claim-editor-binding.yaml \
-	crossplane/rbac/restoreverified-writer-clusterrole.yaml \
+RENDER_FLAGS := --crossplane-version=v2.3.3 --extra-resources=crossplane/tests/target-ok-robotics.yaml
+CONTRACT_CRDS := crossplane/restoreverified-crd.yaml \
+	crossplane/capabilityverified-crd.yaml crossplane/datapolicy-crd.yaml \
+	crossplane/verificationprofile-crd.yaml crossplane/databasetargetprofile-crd.yaml
+PLATFORM_RBAC := crossplane/rbac/restoreverified-writer-clusterrole.yaml \
 	crossplane/rbac/restoreverified-writer-clusterrolebinding.yaml \
 	crossplane/rbac/restoreverified-reader-clusterrole.yaml \
 	crossplane/rbac/restoreverified-reader-clusterrolebinding.yaml \
+	crossplane/rbac/evidence-reader-clusterrole.yaml \
+	crossplane/rbac/verificationprofile-writer-clusterrole.yaml \
+	crossplane/rbac/verificationprofile-writer-clusterrolebinding.yaml
+SETUP_FILES := crossplane/claim-admission-policy.yaml $(CONTRACT_CRDS) $(PLATFORM_RBAC) \
+	crossplane/xrd.yaml crossplane/composition.yaml
+YAML_FILES := $(SETUP_FILES) $(TARGET_FILE) \
+	crossplane/examples/verificationprofile-restore-drill.yaml \
+	crossplane/rbac/claim-editor-role.yaml crossplane/rbac/claim-editor-binding.yaml \
 	crossplane/examples/ok-robotics.yaml crossplane/tests/functions.yaml \
 	crossplane/tests/xr-ok-robotics.yaml crossplane/tests/xr-ok-robotics-production.yaml \
 	crossplane/tests/observed-ok-robotics-valid.yaml \
-	crossplane/tests/restoreverified-ok-robotics.yaml \
+	crossplane/tests/restoreverified-ok-robotics.yaml crossplane/tests/target-ok-robotics.yaml \
 	probe/pgvector-proof.yaml \
 	drill/recovery-cluster.template.yaml
 JSON_FILES := drill/minio-policy-backups-readonly.json \
@@ -43,6 +52,13 @@ JSON_FILES := drill/minio-policy-backups-readonly.json \
 
 .PHONY: help validate render-prerequisites render render-check claim-policy-check \
 	claim-authority-model-check claim-admission-check evidence-status-check \
+	observation-freshness-check capability-admission-check capability-evidence-check \
+	orphan-check \
+	credential-overlap-check residency-resolution-check anchor-supersession-check \
+	rpo-freshness-check condition-independence-check restore-approval-check \
+	readiness-gate-check setup-assets-check collector-measurement-check target-profile-check approve-verification-profile \
+	credential-rotation-check credential-preflight credential-rotation-provision credential-rotate-start credential-rotate-prove-overlap credential-rotate-finalize \
+	retire-legacy-publisher \
 	restoreverified-api-check api-acceptance-check drill-validate drill-policy-check minio-provisioning-check \
 	restore-evidence-check \
 	require-mgmt-context require-mgmt-approval require-explicit-cluster require-deploy-user \
@@ -58,8 +74,12 @@ validate: ## Parse all local artifacts and run static contract guards
 	@$(PYTHON) -c 'import pathlib; roots=(pathlib.Path("crossplane"), pathlib.Path("drill")); bad=sorted(str(p) for root in roots for p in root.rglob("*") if p.name in {"__pycache__", ".pytest_cache", "build", "dist"} or p.suffix in {".pyc", ".pyo", ".class", ".o", ".so"}); assert not bad, "generated/build artifacts present: " + ", ".join(bad); print("OK: no Python caches or build artifacts in the capability tree")'
 	@bash -n drill/run-restore-drill.sh
 	@bash -n probe/pgvector-probe.sh
+	@bash -n collector/measure-wal-exposure.sh
+	@$(MAKE) --no-print-directory setup-assets-check collector-measurement-check target-profile-check credential-rotation-check
 	@$(MAKE) --no-print-directory claim-policy-check claim-authority-model-check \
-		claim-admission-check restoreverified-api-check evidence-status-check drill-validate \
+		claim-admission-check restoreverified-api-check evidence-status-check \
+		observation-freshness-check capability-admission-check credential-overlap-check \
+		drill-validate \
 		drill-policy-check minio-provisioning-check restore-evidence-check
 	@echo "OK: all offline validation targets are wired and completed or explicitly skipped"
 
@@ -80,6 +100,7 @@ render-check: render-prerequisites ## Render both fixtures and assert Objects an
 	@set -Eeuo pipefail; work="$$(mktemp -d)"; trap 'rm -rf -- "$$work"' EXIT; \
 		$(RENDER_BASE) "$(XR_DEVELOPMENT)" "$(COMPOSITION)" "$(FUNCTIONS)" $(RENDER_FLAGS) >"$$work/development.yaml"; \
 		$(PYTHON) crossplane/tests/render-check.py "$$work/development.yaml" --policy development; \
+		$(PYTHON) crossplane/tests/observation-freshness-check.py "$$work/development.yaml"; \
 		$(RENDER_BASE) "$(XR_PRODUCTION)" "$(COMPOSITION)" "$(FUNCTIONS)" $(RENDER_FLAGS) >"$$work/production.yaml"; \
 		$(PYTHON) crossplane/tests/render-check.py "$$work/production.yaml" --policy production; \
 		$(RENDER_BASE) "$(XR_DEVELOPMENT)" "$(COMPOSITION)" "$(FUNCTIONS)" $(RENDER_FLAGS) \
@@ -87,6 +108,9 @@ render-check: render-prerequisites ## Render both fixtures and assert Objects an
 		$(PYTHON) crossplane/tests/render-check.py "$$work/observed.yaml" --policy development \
 			--expected-protection-state Unknown --expected-protection-reason BackupAvailabilityUnproven; \
 		$(PYTHON) crossplane/tests/evidence-status-check.py "$$work/observed.yaml"
+	@$(MAKE) --no-print-directory capability-evidence-check residency-resolution-check anchor-supersession-check \
+		rpo-freshness-check condition-independence-check restore-approval-check \
+		readiness-gate-check
 
 claim-policy-check: ## Prove authority guards fail, then validate the reviewed tuple
 	@$(PYTHON) crossplane/tests/claim-policy-check.py --negative-controls
@@ -124,9 +148,7 @@ api-acceptance-check: ## Dry-run generated XRD CRDs, evidence CRD, policy and RB
 			$(PYTHON) -c 'import sys,yaml; docs=list(yaml.safe_load_all(sys.stdin)); [d.get("metadata", {}).pop("ownerReferences", None) for d in docs]; yaml.safe_dump_all(docs, sys.stdout, sort_keys=False)' | \
 			kubectl --context $(API_CONTEXT) apply --dry-run=server -f - >/dev/null; \
 		printf 'accepted\n'; \
-		for f in crossplane/restoreverified-crd.yaml crossplane/claim-admission-policy.yaml \
-		         crossplane/rbac/restoreverified-writer-clusterrole.yaml \
-		         crossplane/rbac/restoreverified-reader-clusterrole.yaml; do \
+		for f in $(CONTRACT_CRDS) crossplane/claim-admission-policy.yaml $(PLATFORM_RBAC); do \
 			printf '  %s: ' "$$f"; \
 			kubectl --context $(API_CONTEXT) apply --dry-run=server -f "$$f" >/dev/null; \
 			printf 'accepted\n'; \
@@ -138,6 +160,128 @@ evidence-status-check: ## Prove rendered state reachability and the production p
 		$(PYTHON) crossplane/tests/evidence-status-check.py --self-test & core_pid=$$!; \
 		$(PYTHON) crossplane/tests/evidence-status-check.py --self-test --self-test-group edges & edge_pid=$$!; \
 		wait $$core_pid; wait $$edge_pid
+
+# Bound 5. Holds the READER side of observation freshness: given a status, may it still be
+# believed? Its decisive control is `frozen-reconciler` — every dimension Valid, every
+# observedAt recent, verdict UNPROVEN — which is the shape the pre-bound-5 status could not
+# tell apart from health. Without a rendered composite it says so rather than printing OK;
+# render-check passes one in.
+# Bound 4's contract half. Installs the CapabilityVerified CRD on a DISPOSABLE API server and
+# submits artifacts the contract must refuse, so immutability, delivery coherence, the exact
+# five-check set and the governed capability list get a SERVER's verdict rather than ours. A
+# file-reading check once certified a CRD every API server rejected; this target would not have.
+# Skips loudly when no cluster is reachable.
+# Renders the real Composition and proves CapabilityConformant is decided by a PROBE, not by a
+# declaration: with no artifact it stays Pending even though the extension is declared present
+# (the ok-robotics state), and each of ten tampers — a proof for another database, against another
+# cluster, against a replaced image, a stub whose ordering is right but whose distance is wrong,
+# a probe that left tables behind — fails to reach Valid. Needs the render toolchain, so it hangs
+# off render-check rather than the offline validate list.
+capability-evidence-check: render-prerequisites ## Prove capability evidence decides CapabilityConformant
+	@$(PYTHON) crossplane/tests/capability-evidence-check.py --negative-controls
+	@$(PYTHON) crossplane/tests/capability-evidence-check.py
+
+# Bound 6. The structural assertions are the load-bearing ones: two login roles granted into a
+# NOLOGIN owner, each with its OWN Secret. Point both at one Secret and every status field still
+# reads correctly while the overlap is fictional — that case is a negative control, driven by
+# mutating the Composition source rather than a fixture.
+# Bound 7. Needs the render toolchain, so it hangs off render-check. Its decisive case is a
+# dangling reference: a claim asking for a residency guarantee whose policy does not exist must be
+# Failed, never silence. It also asserts the safety asymmetry — the composed backup store is
+# identical under a permissive policy, a prohibitive one, and none — because if a policy could
+# change placement, a claimant could move data by naming one.
+# Bound 3. Protection evidence must follow the schedule, not the fixed anchor: retention prunes
+# the anchor out of the moving recovery window while backups are healthy, and reading that as
+# BackupUnavailable is a counter-proof drawn from our own bookmark. Controls guard against this
+# being a suppression rather than a correction.
+# Bound 1. §11.1's third signal. ContinuousArchiving=True only means archiving is not FAILING, so
+# a stalled-but-not-failed archiver satisfies it — before this, production reached Valid on that
+# alone, which §10 explicitly disclaims as an RPO bound. Three outcomes must stay distinct: no or
+# aged-out measurement is Unknown, a lag past the bound is Failed, within is Valid.
+# PR #259 review finding 1. §5.1's conditions are a SET; the assertion that matters is the
+# NEGATIVE direction — CapabilityConformant=Failed coexisting with RecoveryAssured=Valid. If that
+# pair is unreachable the set has silently become a pipeline, and no passing-case test would show
+# it. Also reads the Composition structurally, so a future edit that couples the two is caught
+# even when no fixture happens to expose it.
+# §7 as amended: the operator approves a verification METHOD once, not each artifact. That is only
+# an improvement if the approval bites, so both directions are asserted — and by render, because
+# revoking a real operator approval to watch a status change is an outage, not a test.
+readiness-gate-check: render-prerequisites ## Prove Ready is gated on observed state, not on our own YAML
+	@$(PYTHON) crossplane/tests/readiness-gate-check.py --negative-controls
+	@$(PYTHON) crossplane/tests/readiness-gate-check.py
+
+restore-approval-check: render-prerequisites ## Prove recovery requires an approved verification method
+	@$(PYTHON) crossplane/tests/restore-approval-check.py --negative-controls
+	@$(PYTHON) crossplane/tests/restore-approval-check.py
+
+condition-independence-check: render-prerequisites ## Prove RecoveryAssured and CapabilityConformant are independent
+	@$(PYTHON) crossplane/tests/condition-independence-check.py --negative-controls
+	@$(PYTHON) crossplane/tests/condition-independence-check.py
+
+setup-assets-check: ## Prove setup is complete and collector authority is Database-scoped
+	@$(PYTHON) crossplane/tests/setup-assets-check.py --negative-controls
+	@$(PYTHON) crossplane/tests/setup-assets-check.py
+
+collector-measurement-check: ## Prove CNPG metrics yield exact, fail-closed WAL exposure
+	@$(PYTHON) crossplane/tests/collector-measurement-check.py
+
+target-profile-check: render-prerequisites ## Prove target placement resolves exactly once
+	@$(PYTHON) crossplane/tests/target-profile-check.py
+
+credential-rotation-check: ## Prove the credential workflow is gated and cannot leak password material
+	@$(PYTHON) crossplane/tests/credential-rotation-check.py --negative-controls
+	@$(PYTHON) crossplane/tests/credential-rotation-check.py
+
+require-credential-mgmt-context:
+	@test -n "$(MGMT_KUBECONFIG)" -a -r "$(MGMT_KUBECONFIG)" || { echo "ERROR: set MGMT_KUBECONFIG" >&2; exit 2; }
+	@context="$(shell $(KUBECTL) --kubeconfig "$(MGMT_KUBECONFIG)" config current-context 2>/dev/null)"; cluster="$(shell $(KUBECTL) --kubeconfig "$(MGMT_KUBECONFIG)" config view --minify -o jsonpath='{.clusters[0].name}' 2>/dev/null)"; \
+		test "$$context" = "$(MGMT_CLUSTER)" -o "$$cluster" = "$(MGMT_CLUSTER)" || { echo "ERROR: kubeconfig is not $(MGMT_CLUSTER)" >&2; exit 2; }
+
+require-credential-kubeconfigs: require-credential-mgmt-context
+	@test -n "$(MGMT_KUBECONFIG)" -a -r "$(MGMT_KUBECONFIG)" || { echo "ERROR: set MGMT_KUBECONFIG" >&2; exit 2; }
+	@test -n "$(WORKLOAD_KUBECONFIG)" -a -r "$(WORKLOAD_KUBECONFIG)" || { echo "ERROR: set WORKLOAD_KUBECONFIG" >&2; exit 2; }
+	@test -n "$(XR_NAME)" || { echo "ERROR: set XR_NAME to the cluster-scoped Database name" >&2; exit 2; }
+
+credential-preflight: require-credential-kubeconfigs ## Read-only: prove both slots and consumer cutover are safe
+	@MGMT_KUBECONFIG="$(MGMT_KUBECONFIG)" WORKLOAD_KUBECONFIG="$(WORKLOAD_KUBECONFIG)" XR_NAME="$(XR_NAME)" BASE_SECRET="$(BASE_SECRET)" WORKLOAD_NAMESPACE="$(WORKLOAD_NAMESPACE)" CNPG_CLUSTER="$(CNPG_CLUSTER)" ./crossplane/tests/credential-rotation-workflow.sh preflight
+
+credential-rotation-provision: require-credential-kubeconfigs ## APPROVAL: create both independent source Secret slots, never overwrite
+	@MGMT_KUBECONFIG="$(MGMT_KUBECONFIG)" WORKLOAD_KUBECONFIG="$(WORKLOAD_KUBECONFIG)" XR_NAME="$(XR_NAME)" BASE_SECRET="$(BASE_SECRET)" WORKLOAD_NAMESPACE="$(WORKLOAD_NAMESPACE)" CNPG_CLUSTER="$(CNPG_CLUSTER)" APPROVE_MGMT="$(APPROVE_MGMT)" APPROVE_CREDENTIAL_ROTATION="$(APPROVE_CREDENTIAL_ROTATION)" ./crossplane/tests/credential-rotation-workflow.sh provision
+
+credential-rotate-start: require-credential-kubeconfigs ## APPROVAL: rotate the inactive slot and switch the active role
+	@test -n "$(PSQL_IMAGE)" -a "$(findstring @sha256:,$(PSQL_IMAGE))" != "" || { echo "ERROR: PSQL_IMAGE must be a reviewed digest-pinned client image" >&2; exit 2; }
+	@MGMT_KUBECONFIG="$(MGMT_KUBECONFIG)" WORKLOAD_KUBECONFIG="$(WORKLOAD_KUBECONFIG)" XR_NAME="$(XR_NAME)" BASE_SECRET="$(BASE_SECRET)" WORKLOAD_NAMESPACE="$(WORKLOAD_NAMESPACE)" CNPG_CLUSTER="$(CNPG_CLUSTER)" PSQL_IMAGE="$(PSQL_IMAGE)" APPROVE_MGMT="$(APPROVE_MGMT)" APPROVE_CREDENTIAL_ROTATION="$(APPROVE_CREDENTIAL_ROTATION)" ./crossplane/tests/credential-rotation-workflow.sh start
+
+credential-rotate-prove-overlap: require-credential-kubeconfigs ## APPROVAL: prove both credentials for the current overlap without switching slots
+	@test -n "$(PSQL_IMAGE)" -a "$(findstring @sha256:,$(PSQL_IMAGE))" != "" || { echo "ERROR: PSQL_IMAGE must be a reviewed digest-pinned client image" >&2; exit 2; }
+	@MGMT_KUBECONFIG="$(MGMT_KUBECONFIG)" WORKLOAD_KUBECONFIG="$(WORKLOAD_KUBECONFIG)" XR_NAME="$(XR_NAME)" BASE_SECRET="$(BASE_SECRET)" WORKLOAD_NAMESPACE="$(WORKLOAD_NAMESPACE)" CNPG_CLUSTER="$(CNPG_CLUSTER)" PSQL_IMAGE="$(PSQL_IMAGE)" APPROVE_MGMT="$(APPROVE_MGMT)" APPROVE_CREDENTIAL_ROTATION="$(APPROVE_CREDENTIAL_ROTATION)" ./crossplane/tests/credential-rotation-workflow.sh prove-overlap
+
+credential-rotate-finalize: require-credential-kubeconfigs ## APPROVAL: expire and revoke the previous slot, then prove both auth outcomes
+	@test -n "$(PSQL_IMAGE)" -a "$(findstring @sha256:,$(PSQL_IMAGE))" != "" || { echo "ERROR: PSQL_IMAGE must be a reviewed digest-pinned client image" >&2; exit 2; }
+	@MGMT_KUBECONFIG="$(MGMT_KUBECONFIG)" WORKLOAD_KUBECONFIG="$(WORKLOAD_KUBECONFIG)" XR_NAME="$(XR_NAME)" BASE_SECRET="$(BASE_SECRET)" WORKLOAD_NAMESPACE="$(WORKLOAD_NAMESPACE)" CNPG_CLUSTER="$(CNPG_CLUSTER)" PSQL_IMAGE="$(PSQL_IMAGE)" APPROVE_MGMT="$(APPROVE_MGMT)" APPROVE_CREDENTIAL_ROTATION="$(APPROVE_CREDENTIAL_ROTATION)" ./crossplane/tests/credential-rotation-workflow.sh finalize
+
+rpo-freshness-check: render-prerequisites ## Prove production needs a measured WAL lag, not a proxy
+	@$(PYTHON) crossplane/tests/rpo-freshness-check.py --negative-controls
+	@$(PYTHON) crossplane/tests/rpo-freshness-check.py
+
+anchor-supersession-check: render-prerequisites ## Prove protection follows the schedule, not the anchor
+	@$(PYTHON) crossplane/tests/anchor-supersession-check.py --negative-controls
+	@$(PYTHON) crossplane/tests/anchor-supersession-check.py
+
+residency-resolution-check: render-prerequisites ## Prove residency resolves and dangling refs fail closed
+	@$(PYTHON) crossplane/tests/residency-resolution-check.py --negative-controls
+	@$(PYTHON) crossplane/tests/residency-resolution-check.py
+
+credential-overlap-check: ## Prove the rotation overlap is real and published as data
+	@$(PYTHON) crossplane/tests/credential-overlap-check.py --negative-controls
+	@$(PYTHON) crossplane/tests/credential-overlap-check.py
+
+capability-admission-check: ## Prove the API server enforces the CapabilityVerified contract
+	@$(PYTHON) crossplane/tests/capability-admission-live.py --context $(API_CONTEXT)
+
+observation-freshness-check: ## Prove a frozen reconciler is detectable from status alone
+	@$(PYTHON) crossplane/tests/observation-freshness-check.py --negative-controls
+	@$(PYTHON) crossplane/tests/observation-freshness-check.py
 
 drill-validate: ## Parse and render the unexecuted recovery-drill scaffold
 	@bash -n drill/run-restore-drill.sh
@@ -180,6 +324,8 @@ require-mgmt-approval: require-mgmt-context
 
 require-explicit-cluster:
 	@test "$(origin CLUSTER)" != file || { echo "ERROR: name CLUSTER explicitly, for example CLUSTER=ok-robotics" >&2; exit 2; }
+	@case "$(CLUSTER)" in ''|*[!a-z0-9-]*|-*|*-) echo "ERROR: CLUSTER must be one DNS label" >&2; exit 2;; esac
+	@test -f "$(TARGET_FILE)" || { echo "ERROR: no reviewed target enrollment at $(TARGET_FILE)" >&2; exit 2; }
 	@test -f "crossplane/examples/$(CLUSTER).yaml" || { echo "ERROR: no example Claim for CLUSTER=$(CLUSTER)" >&2; exit 2; }
 
 require-deploy-user:
@@ -192,31 +338,32 @@ require-deploy-user:
 # lands: warnings there mean the expressions reference fields the schema lacks, which no offline
 # model can detect (claim-authority-model-check would pass with the policy deleted).
 #
-# ACCEPT_PROTOTYPE_LIMITS is a SECOND acknowledgement, separate from APPROVE_MGMT. ADR-Platform-032
-# is Accepted *architecturally* with four open bounds; installing means accepting them knowingly, so
-# the gate names them rather than letting a successful install imply they are closed.
-setup: validate require-mgmt-approval ## APPROVAL: install policy, evidence CRD, ProviderConfig, XRD and Composition
+# ACCEPT_PROTOTYPE_LIMITS is a SECOND acknowledgement, separate from APPROVE_MGMT. OK-150 closes
+# the seven delivered-capability bounds, but two implementation tradeoffs and two explicit operator
+# acts remain. Naming them here prevents a successful install from hiding either one.
+setup: validate require-mgmt-approval require-explicit-cluster ## APPROVAL: install the complete Database capability
 	@test "$(ACCEPT_PROTOTYPE_LIMITS)" = yes || { \
-		echo "ERROR: this installs a capability with four open bounds (ADR-Platform-032 §13):" >&2; \
-		echo "         1. no automated RestoreVerified collection — an operator admits evidence by hand" >&2; \
-		echo "         2. no scheduled-Backup enumeration — the fixed evidence Backup is the anchor" >&2; \
-		echo "         3. capability delivery unproven — pgvector needs the ImageVolume feature gate" >&2; \
-		echo "         4. ProtectionReady is NOT an RPO bound (§10)" >&2; \
-		echo "       Rerun with ACCEPT_PROTOTYPE_LIMITS=yes to install knowing these." >&2; exit 2; }
+		echo "ERROR: this installs the Database capability with reviewed residuals and operator acts" >&2; \
+		echo "       (ADR-Platform-032 §13, as amended under OK-150):" >&2; \
+		echo "       REVIEWED RESIDUALS:" >&2; \
+		echo "         1. a superseding backup window carries times, not generated Backup identity;" >&2; \
+		echo "            backupId is unavailable after the fixed anchor is pruned." >&2; \
+		echo "         2. pgvector uses the bundled standard image. Per-extension image governance" >&2; \
+		echo "            still requires containerd >= 2.1.0 plus the ImageVolume gate." >&2; \
+		echo "       REQUIRES ACTION FROM YOU:" >&2; \
+		echo "         3. approve the immutable verification METHOD separately with" >&2; \
+		echo "            make approve-verification-profile; setup does not manufacture approval." >&2; \
+		echo "         4. app becomes NOLOGIN. Move consumers to status.credentials.activeRole" >&2; \
+		echo "            before installing over a database that already authenticates as app." >&2; \
+		echo "       Rerun with ACCEPT_PROTOTYPE_LIMITS=yes after reviewing these." >&2; exit 2; }
 	@set -Eeuo pipefail; \
 		MK="$(KUBECTL) --kubeconfig $(MGMT_KUBECONFIG)"; \
 		POLICY=databaseclaim-authority.platform.openkubes.ai; \
-		for f in crossplane/claim-admission-policy.yaml crossplane/restoreverified-crd.yaml \
-		         crossplane/rbac/restoreverified-writer-clusterrole.yaml \
-		         crossplane/rbac/restoreverified-writer-clusterrolebinding.yaml \
-		         crossplane/rbac/restoreverified-reader-clusterrole.yaml \
-		         crossplane/rbac/restoreverified-reader-clusterrolebinding.yaml \
-		         crossplane/providerconfig-ok-robotics.yaml \
-		         crossplane/xrd.yaml crossplane/composition.yaml; do \
+		for f in $(SETUP_FILES); do \
 			$$MK apply --dry-run=server -f "$$f" >/dev/null; \
 			if $$MK diff -f "$$f" >/dev/null 2>&1; then echo "  ($$f: no change)"; else echo "  ($$f: will change)"; fi; \
 		done; \
-		read -r -p "Install the authority policy, evidence CRD, ProviderConfig, XRD and Composition on $(MGMT_CLUSTER)? Type yes: " answer; \
+		read -r -p "Install the complete Database capability on $(MGMT_CLUSTER)? Type yes: " answer; \
 		test "$$answer" = yes || { echo "Aborted." >&2; exit 1; }; \
 		$$MK apply -f crossplane/claim-admission-policy.yaml; \
 		for i in $$(seq 1 15); do \
@@ -227,19 +374,64 @@ setup: validate require-mgmt-approval ## APPROVAL: install policy, evidence CRD,
 		warn="$$($$MK get validatingadmissionpolicy $$POLICY -o jsonpath='{range .status.typeChecking.expressionWarnings[*]}{.fieldRef}{": "}{.warning}{"\n"}{end}')"; \
 		test -z "$$warn" || { printf 'ERROR: the API server reports CEL type-check warnings; refusing to serve the XRD behind a policy it cannot evaluate:\n%s\n' "$$warn" >&2; exit 1; }; \
 		echo "  authority policy compiled with no CEL type-check warnings"; \
-		$$MK apply -f crossplane/restoreverified-crd.yaml; \
-		$$MK wait --for=condition=Established crd/restoreverifieds.evidence.platform.openkubes.ai --timeout=60s; \
-		for f in crossplane/rbac/restoreverified-writer-clusterrole.yaml \
-		         crossplane/rbac/restoreverified-writer-clusterrolebinding.yaml \
-		         crossplane/rbac/restoreverified-reader-clusterrole.yaml \
-		         crossplane/rbac/restoreverified-reader-clusterrolebinding.yaml \
-		         crossplane/providerconfig-ok-robotics.yaml; do $$MK apply -f "$$f"; done; \
+		for f in $(CONTRACT_CRDS); do $$MK apply -f "$$f"; done; \
+		for crd in restoreverifieds.evidence.platform.openkubes.ai \
+		           capabilityverifieds.evidence.platform.openkubes.ai \
+		           datapolicies.platform.openkubes.ai \
+		           verificationprofiles.platform.openkubes.ai \
+		           databasetargetprofiles.platform.openkubes.ai; do \
+			$$MK wait --for=condition=Established "crd/$$crd" --timeout=60s; \
+		done; \
+		for f in $(PLATFORM_RBAC); do $$MK apply -f "$$f"; done; \
+		$$MK apply --dry-run=server -f "$(TARGET_FILE)" >/dev/null; \
+		$$MK apply -f "$(TARGET_FILE)"; \
+		secret_name="$$($$MK get providerconfig.kubernetes.crossplane.io "$(CLUSTER)" -o jsonpath='{.spec.credentials.secretRef.name}')"; \
+		secret_ns="$$($$MK get providerconfig.kubernetes.crossplane.io "$(CLUSTER)" -o jsonpath='{.spec.credentials.secretRef.namespace}')"; \
+		secret_key="$$($$MK get providerconfig.kubernetes.crossplane.io "$(CLUSTER)" -o jsonpath='{.spec.credentials.secretRef.key}')"; \
+		test -n "$$secret_name" -a -n "$$secret_ns" -a "$$secret_key" = kubeconfig || { echo "ERROR: target ProviderConfig needs one kubeconfig Secret reference" >&2; exit 1; }; \
+		$$MK -n "$$secret_ns" get secret "$$secret_name" >/dev/null; \
+		target_ns="$$($(PYTHON) -c 'import yaml; print(yaml.safe_load(open("crossplane/examples/$(CLUSTER).yaml"))["spec"]["namespace"])')"; \
+		endpoint_ca="$$($$MK get databasetargetprofile "$(CLUSTER)" -o jsonpath='{.spec.backupStore.endpointCA}')"; \
+		db_name="$$($(PYTHON) -c 'import hashlib,yaml; n=yaml.safe_load(open("crossplane/examples/$(CLUSTER).yaml"))["metadata"]["name"]; p=n[:43]; p=p[:-1] if p.endswith("-") else p; p=p[:-1] if p.endswith(".") else p; print(n if len(n) <= 52 else p + "-" + hashlib.sha256(n.encode()).hexdigest()[:8])')"; \
+		writer_secret="ok-db-backups-$$db_name-writer"; \
+		for ref in "$$endpoint_ca:ca.crt" "$$writer_secret:ACCESS_KEY_ID" "$$writer_secret:ACCESS_SECRET_KEY"; do \
+			name="$${ref%%:*}"; key="$${ref#*:}"; \
+			$$MK -n "$$secret_ns" get secret "$$secret_name" -o go-template='{{index .data "kubeconfig" | base64decode}}' | \
+				$(KUBECTL) --kubeconfig=/dev/stdin -n "$$target_ns" get secret "$$name" -o "go-template={{index .data \"$$key\"}}" | grep -q . || { \
+				echo "ERROR: target $(CLUSTER) is missing $$target_ns/$$name key $$key" >&2; exit 1; }; \
+		done; \
+		echo "  target registration, CA and backup-writer Secret references are present"; \
 		$$MK apply -f crossplane/xrd.yaml; \
 		$$MK wait xrd/databases.platform.openkubes.ai --for=condition=Established --timeout=120s; \
 		$$MK apply -f crossplane/composition.yaml
-	@echo "OK: installed on $(MGMT_CLUSTER)."
-	@echo "    Next: make bind APPROVE_MGMT=yes   (delegate DatabaseClaim authority)"
+	@echo "OK: installed complete capability assets on $(MGMT_CLUSTER)."
+	@echo "    Next: make approve-verification-profile APPROVE_MGMT=yes (explicit method approval)"
+	@echo "    Then: make bind APPROVE_MGMT=yes   (delegate DatabaseClaim authority)"
 	@echo "    Then: make deploy CLUSTER=ok-robotics APPROVE_MGMT=yes DEPLOY_USER=<your-oidc-user>"
+	@echo "    After live RPO proof: make retire-legacy-publisher APPROVE_MGMT=yes"
+
+approve-verification-profile: require-mgmt-approval ## APPROVAL: create the reviewed restore verification method
+	@set -Eeuo pipefail; \
+		MK="$(KUBECTL) --kubeconfig $(MGMT_KUBECONFIG)"; \
+		PROFILE=crossplane/examples/verificationprofile-restore-drill.yaml; \
+		$$MK apply --dry-run=server -f "$$PROFILE" >/dev/null; \
+		read -r -p "Approve the immutable restore-drill verification method on $(MGMT_CLUSTER)? Type yes: " answer; \
+		test "$$answer" = yes || { echo "Aborted." >&2; exit 1; }; \
+		$$MK apply -f "$$PROFILE"
+
+# Migration only: revoke the globally reusable writer after every production Database has been
+# observed through the new per-Database ConfigMap path. Keep the CRD and its immutable historical
+# observations; deleting the authority closes the forgery path without deleting evidence.
+retire-legacy-publisher: require-mgmt-approval ## APPROVAL: revoke the obsolete global RPO writer
+	@set -Eeuo pipefail; \
+		MK="$(KUBECTL) --kubeconfig $(MGMT_KUBECONFIG)"; \
+		read -r -p "Revoke the legacy global ArchiveFreshness publisher on $(MGMT_CLUSTER)? Type retire: " answer; \
+		test "$$answer" = retire || { echo "Aborted." >&2; exit 1; }; \
+		$$MK delete clusterrolebinding archivefreshness-publisher --ignore-not-found; \
+		$$MK delete clusterrole archivefreshness-publisher --ignore-not-found; \
+		$$MK -n crossplane-system delete serviceaccount archive-freshness-publisher --ignore-not-found; \
+		$$MK -n crossplane-system delete secret archive-freshness-publisher-token --ignore-not-found; \
+		echo "OK: legacy publisher authority revoked; ArchiveFreshness CRD/history retained read-only."
 
 # Delegating claim authority is separate from installing the capability, because it hands a group the
 # power to create Databases. It also PROVES both halves afterwards: that the editor group can create
@@ -285,6 +477,23 @@ deploy: validate require-explicit-cluster require-deploy-user require-mgmt-appro
 		printf '    --database-uid  %s\n' "$$($$MK get database "$$ref" -o jsonpath='{.metadata.uid}')"
 	@echo "NOTE: evidence does not appear on its own. RecoveryAssured=Valid requires a drill run and"
 	@echo "      an operator-created RestoreVerified CR (ADR-Platform-032 §11.2); see drill/README.md."
+
+# PR #259 review finding 5. Detection only, and read-only: it deletes nothing, because deciding
+# to remove a data-bearing resource is not a script's call. Needs both planes, so it is not part
+# of `validate`. Renaming a composed manifest is the usual way orphans appear — the Object keeps
+# existing and points elsewhere, so deletionPolicy never fires. This ticket created exactly that
+# case by renaming the Pooler.
+WORKLOAD_KUBECONFIG ?=
+WORKLOAD_NAMESPACE ?=database-$(CLUSTER)
+CNPG_CLUSTER ?=$(CLUSTER)
+XR_NAME ?=
+BASE_SECRET ?=database-$(CLUSTER)-app
+PSQL_IMAGE ?=
+orphan-check: ## Report resources in the Database namespace that nothing composes (needs both planes)
+	@test -n "$(MGMT_KUBECONFIG)" -a -r "$(MGMT_KUBECONFIG)" || { echo "ERROR: set MGMT_KUBECONFIG" >&2; exit 2; }
+	@test -n "$(WORKLOAD_KUBECONFIG)" -a -r "$(WORKLOAD_KUBECONFIG)" || { echo "ERROR: set WORKLOAD_KUBECONFIG to the cluster hosting the database" >&2; exit 2; }
+	@$(PYTHON) decommission/orphan-check.py --mgmt-kubeconfig "$(MGMT_KUBECONFIG)" \
+		--workload-kubeconfig "$(WORKLOAD_KUBECONFIG)" --namespace "database-$(CLUSTER)"
 
 status: require-mgmt-context ## Read DatabaseClaim and Database state from ok-mgmt
 	@$(KUBECTL) --kubeconfig "$(MGMT_KUBECONFIG)" get databaseclaims -n "$(CLAIM_NAMESPACE)"

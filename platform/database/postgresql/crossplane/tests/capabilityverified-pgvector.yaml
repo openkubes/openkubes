@@ -1,0 +1,78 @@
+# Shape fixture for a valid CapabilityVerified artifact.
+#
+# clusterRef, delivery and capability.observedVersion are REAL values, measured on
+# ok-robotics 2026-08-19 in namespace pgvector-proof: a single-instance CNPG Cluster on
+# ghcr.io/cloudnative-pg/postgresql:18.6-standard-trixie, whose `standard` variant bundles
+# pgvector. The probe there returned verdict=Valid version=0.8.6, and the same script
+# against the composed Database returned Failed/RequestedCapabilityAbsent in the same
+# minute — one script, two clusters, opposite verdicts.
+#
+# imageDigest comes from the pod's containerStatuses[].imageID, NOT from spec.imageName or
+# status.pgDataImageInfo.image: on this cluster both of those are tag-only
+# (:18.6-standard-trixie) and a tag can be re-pushed under a proof that still looks valid.
+# The running image's digest is the only immutable identity available.
+#
+# databaseRef is DELIBERATELY NOT the composed Database. The proof ran on a separate
+# cluster, so it says the mechanism works — it is not delivered-capability evidence for
+# Database ok-robotics-7x6l2, and must not be admitted as such. That is also why the
+# Composition compares databaseRef AND the image digest before applying any proof: this
+# artifact is invisible to selection rather than wrongly applied. No admissible artifact
+# exists for the composed Database yet, and inventing one here would be the exact
+# substitution bound 4 exists to prevent.
+apiVersion: evidence.platform.openkubes.ai/v1alpha1
+kind: CapabilityVerified
+metadata:
+  name: pgvector-proof-20260819t153000z
+  labels:
+    openkubes.ai/database: pgvector-proof-fixture
+spec:
+  capability:
+    name: postgresql.extension.pgvector
+    observedVersion: "0.8.6"
+  databaseRef:
+    apiVersion: platform.openkubes.ai/v1alpha1
+    kind: Database
+    name: pgvector-proof-fixture
+    uid: 00000000-0000-4000-8000-000000000000
+  clusterRef:
+    apiVersion: postgresql.cnpg.io/v1
+    kind: Cluster
+    namespace: pgvector-proof
+    name: pgvector-proof
+    uid: 44367278-f16d-4ef5-8ff9-4a31fdd18bf4
+  delivery:
+    mechanism: BundledImage
+    imageName: ghcr.io/cloudnative-pg/postgresql:18.6-standard-trixie
+    imageDigest: sha256:771f9eab5225587af259d84680cc69a5b6e374ac32bb24effafde1f3368a1241
+  checks:
+    - name: catalog-lists-extension
+      observed:
+        catalogDefaultVersion: "0.8.6"
+    - name: extension-created
+      observed:
+        extensionVersion: "0.8.6"
+    - name: operator-orders-by-distance
+      observed:
+        nearestId: 1
+        orderedIds: [1, 3, 2]
+    # sqrt(27) = 5.196152422706632 for '[4,5,6]' against '[1,2,3]'. Asserting the VALUE and
+    # not just the ordering is what fails a stub that returns a constant: any placeholder
+    # still sorts, so ordering alone would certify a broken operator.
+    - name: operator-returns-true-distance
+      observed:
+        farthestDistance: "5.196152422706632"
+        expectedFarthestDistance: "5.196152422706632"
+    # The probe does its DDL inside a transaction it rolls back. Being side-effect-free is
+    # what lets the same probe run against a live primary and against a recovery-verification
+    # pod without interfering — which is why CapabilityConformant and RecoveryAssured stay
+    # independent conditions rather than becoming a pipeline.
+    - name: probe-left-no-residue
+      observed:
+        extensionsAfterRollback: [plpgsql]
+        probeTablesRemaining: 0
+  timing:
+    completedAt: "2026-08-19T15:30:00Z"
+    duration: PT2.4S
+  probeDigest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+  verifierVersion: pgvector-probe/0.2.0
+  postgresMajorVersion: 18

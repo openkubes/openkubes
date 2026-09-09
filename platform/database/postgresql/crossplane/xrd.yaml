@@ -40,6 +40,20 @@ spec:
                 - maintenance
                 - isolation
               properties:
+                dataPolicyRef:
+                  type: object
+                  required: [name]
+                  description: >-
+                    Optional residency request. Names a cluster-scoped DataPolicy. This
+                    can make a Database non-conformant; it can never redirect where its
+                    data is stored, because placement is platform-side. Omitting it is a
+                    valid state and reports NoResidencyPolicyRequested — distinct from a
+                    reference that fails to resolve.
+                  properties:
+                    name:
+                      type: string
+                      minLength: 1
+                      maxLength: 253
                 clusterRef:
                   type: string
                   minLength: 1
@@ -65,7 +79,12 @@ spec:
                   properties:
                     name:
                       type: string
-                      enum: [database-ok-robotics-app]
+                      minLength: 1
+                      maxLength: 253
+                      pattern: "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+                      description: >-
+                        Portable Secret syntax only. The fail-closed admission tuple authorizes
+                        the exact name for each enrolled target; this schema is not authority.
                     namespace:
                       type: string
                       enum: [crossplane-system]
@@ -158,6 +177,32 @@ spec:
             status:
               type: object
               properties:
+                residency:
+                  type: object
+                  required: [state, reason]
+                  description: >-
+                    Resolved residency (§6.1). Published BESIDE evidence, not inside
+                    it: §5.1's condition set is four, and silently making it five would
+                    change the readiness contract everywhere. A named policy that does
+                    not resolve is Failed/DataPolicyUnresolved, never Unknown — we
+                    looked, and it is absent.
+                  properties:
+                    state:
+                      type: string
+                      enum: [Valid, Failed, Unknown]
+                    reason:
+                      type: string
+                      minLength: 1
+                      maxLength: 128
+                    zone:
+                      type: string
+                      maxLength: 63
+                      description: >-
+                        The zone the PLATFORM declares for this cluster's backup store.
+                        Not claim input — a claimant cannot assert where its data lands.
+                    policyRef:
+                      type: string
+                      maxLength: 253
                 evidence:
                   type: object
                   properties:
@@ -210,7 +255,7 @@ spec:
                           maxLength: 253
                         signals:
                           type: object
-                          required: [execution, availability, archiving]
+                          required: [execution, availability, archiving, rpo]
                           properties:
                             execution:
                               type: object
@@ -249,6 +294,28 @@ spec:
                                 state: *evidenceState
                                 reason: *evidenceReason
                                 observedAt: *observedAt
+                            rpo:
+                              type: object
+                              required: [state, reason, observedAt]
+                              description: >-
+                                Measured WAL-archive lag. §11.1's third signal, which
+                                ContinuousArchiving cannot supply: that condition only
+                                says archiving is not failing, so a stalled-but-not-failed
+                                archiver satisfies it. Required for production; absent or
+                                aged-out is Unknown, never Valid.
+                              properties:
+                                state: *evidenceState
+                                reason: *evidenceReason
+                                observedAt: *observedAt
+                                walLagSeconds:
+                                  type: integer
+                                  format: int64
+                                maxWalLagSeconds:
+                                  type: integer
+                                  format: int64
+                                archiveTimeoutSeconds:
+                                  type: integer
+                                  format: int64
                     recovery:
                       type: object
                       required: [state, reason, observedAt]
@@ -303,6 +370,35 @@ spec:
                   type: string
                   minLength: 1
                   maxLength: 128
+                observation:
+                  type: object
+                  required: [observedThrough, quantum, freshnessBound]
+                  description: >-
+                    When the platform last successfully LOOKED, as opposed to when
+                    the observed events happened. Every evidence.observedAt is a
+                    source event time, so a stopped reconciler would otherwise keep
+                    reporting a recent, definite verdict forever. A reader MUST treat
+                    every evidence dimension as unproven once observedThrough is
+                    older than freshnessBound, whatever state that dimension claims.
+                  properties:
+                    observedThrough:
+                      type: string
+                      format: date-time
+                      description: >-
+                        Observation instant, floored to quantum so a live reconciler
+                        does not rewrite status on every pass. Never ahead of the real
+                        observation, never more than one quantum behind it.
+                    quantum:
+                      type: string
+                      pattern: '^PT[0-9]+S$'
+                      description: Accuracy bound on observedThrough.
+                    freshnessBound:
+                      type: string
+                      pattern: '^PT[0-9]+[MS]$'
+                      description: >-
+                        Age at which observedThrough makes the whole status unproven.
+                        Exceeds quantum plus the measured reconcile period, so a
+                        healthy platform never trips it.
                 credentials:
                   type: object
                   required: [applied, reason, observedAt]
@@ -327,6 +423,51 @@ spec:
                       type: string
                       minLength: 1
                       maxLength: 253
+                    previousPublishedResourceVersion:
+                      type: string
+                      minLength: 1
+                      maxLength: 253
+                    previousAppliedResourceVersion:
+                      type: string
+                      minLength: 1
+                      maxLength: 253
+                    activeRole:
+                      type: string
+                      pattern: '^app_[ab]$'
+                      description: >-
+                        The login role whose credential the consumer should be using.
+                        Ownership stays with the non-login `app` role, so rotating a
+                        login role cannot change who owns the data.
+                    previousRole:
+                      type: string
+                      pattern: '^app_[ab]$'
+                    overlapWindow:
+                      type: string
+                      pattern: '^PT[0-9]+[HMS]$'
+                      description: >-
+                        How long the platform guarantees not to rotate the previous
+                        login role after a rotation. An attribute of the protection
+                        class, shorter in production because a previous credential
+                        that still authenticates is standing exposure.
+                    previousCredentialAccepted:
+                      type: boolean
+                      description: >-
+                        Whether the PREVIOUS credential is proven to remain applied.
+                        It stays true after the policy deadline until the old verifier
+                        is actually replaced; elapsed time alone never claims revocation.
+                    previousCredentialRevoked:
+                      type: boolean
+                      description: >-
+                        True only when the inactive slot Secret changed from its
+                        start-of-rotation resourceVersion and CNPG reports that exact
+                        replacement applied.
+                    rotationId:
+                      type: string
+                      minLength: 1
+                      maxLength: 128
+                    previousValidUntil:
+                      type: string
+                      format: date-time
                     transactionId:
                       type: integer
                       format: int64

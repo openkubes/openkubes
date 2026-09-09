@@ -1,27 +1,21 @@
 # ADR-Platform-032: OpenKubes DBaaS — Database Platform Contracts (PostgreSQL Reference)
 
-- **Status:** **Accepted — architectural** (2026-08-17). The four contracts of §4.1 are decided and
-  the §13 criterion is met *as an architecture spike*: §11.1–§11.4 resolved, §12 resolved, the CNPG
-  assumptions checked against 1.30.0, and a restore drill genuinely **executed** on ok-robotics.
-  **This is explicitly not delivered-capability acceptance**, and the distinction is load-bearing
-  rather than cautious:
-  - `ProtectionReady=Valid` is reachable only under a **narrowed** RPO claim (§11.1, §10): WAL
-    age/backlog is not observable, so v1 uses `ContinuousArchiving=True` plus backup-window
-    freshness and explicitly does **not** provide an RPO bound.
-  - `RecoveryAssured=Valid` requires an **admitted** `RestoreVerified` artifact (§11.2). The drill's
-    own artifact predates that typed contract and is **not admissible** under it; it stands as the
-    historical record of the run, not as evidence satisfying v1.
-  - Capability delivery is unevidenced: no functional probe feeds `CapabilityConformant`, and
-    extension delivery additionally needs the Kubernetes `ImageVolume` feature gate, which was
-    disabled on the drill cluster (note on sources, finding 1).
-  The contracts, the evidence semantics and the drill method are accepted. The capability that
-  implements them is **installed on ok-mgmt as of 2026-08-18** — authority policy (compiled by the
-  API server with no CEL type-check warnings), `RestoreVerified` CRD, RBAC, the `ok-robotics`
-  provider-kubernetes ProviderConfig, the XRD (Established, Offered) and the Composition. Installing
-  it required a second, explicit acknowledgement (`ACCEPT_PROTOTYPE_LIMITS=yes`) precisely so a
-  successful install cannot be read as closing the bounds below: it does not.
-  Delivered-capability acceptance still needs WAL-freshness observability, an admissible
-  `RestoreVerified` artifact produced under the typed API, and a functional capability probe.
+- **Status:** **Accepted — architectural** (2026-08-17); **delivered-capability acceptance
+  candidate under OK-150**. The four contracts of §4.1 remain the governing design. OK-150 closes
+  §13's seven delivery bounds in the reference profile, pending review and merge:
+  - production RPO is measured from CNPG's default metrics; no-backlog exposure is capped by
+    archive_timeout, while a measured pending count remains `Unknown/RPOPendingWALAgeUnproven`
+    because default metrics do not expose its age. The per-Database collector writes one
+    name-scoped workload ConfigMap
+    that Crossplane observes, with no management credential or `pods/exec` authority;
+  - recovery artifacts are admitted under an immutable operator-approved `VerificationProfile`;
+  - pgvector is delivered by the bundled standard image and proved by a five-check functional
+    `CapabilityVerified` artifact bound to the running image digest;
+  - observation freshness, scheduled-backup supersession, credential overlap and residency
+    resolution are explicit status contracts rather than operational assumptions.
+  The reference capability has also reached `DatabaseServiceReady=True` under production policy on
+  ok-robotics. That live result proves the profile, while the repository's complete `make setup`
+  path and negative controls make it reproducible rather than dependent on hand-installed state.
 - **Datum:** 2026-08-14, semantics decided 2026-08-17
 - **Kontext:** OpenKubes Kubernetes Platform (OKE) / OpenKubes AI
 - **Betrifft:** Data-Capability der OpenKubes-Plattform (`ok-dbaas`, Arbeitstitel)
@@ -105,10 +99,11 @@
 >    MUST derive from a functional probe — `CREATE EXTENSION`, `pg_available_extensions`, or an
 >    actual use of the capability — never from the operator restating what it was asked for. §6.3
 >    already requires re-proving capability after every upgrade; this is that same rule applied at
->    provisioning time. The v1 Composition is correct but incomplete here: it maps the status echo to
->    `Pending/CapabilityProbePending` rather than to `Valid`, and no probe yet feeds it, so
->    `CapabilityConformant=Valid` is unreachable for a requested capability. That, not the gate, is
->    what puts extension-requesting consumers out of v1 scope.
+>    provisioning time. Under OK-150 the Composition maps the declaration alone to
+>    `Pending/CapabilityProbePending` and reaches `Valid/CapabilityProvenByFunction` only from the
+>    five-check `CapabilityVerified` artifact bound to the Database, Cluster and running image
+>    digest. Extension-requesting consumers are therefore inside the delivered bundled-image
+>    profile; the catalogued per-extension image-volume model remains the stronger future profile.
 > 2. **The obvious freshness fields are deprecated, and the obvious replacement is not enough.**
 >    `Cluster.status.lastSuccessfulBackup`, `firstRecoverabilityPoint`, `lastFailedBackup` and
 >    both `*ByMethod` variants are deprecated in 1.30 and are **not set for backup plugins**, so
@@ -348,12 +343,34 @@ Verifikation:
 
 ```text
 BackupAvailable → scheduled/triggered verification → disposable recovery environment
-→ selected schema/capability conformance probes → RestoreVerified{…}
+→ selected schema/content probes (enumerated, typed) → RestoreVerified{…}
 ```
 
 Scope honesty for v1: `RecoveryAssured=Valid` proves that the backup was restorable to a running
-cluster at a recovery target, and that the **selected schema and capability conformance probes**
-passed. **Application-semantic** consistency is the respective forcing consumer's concern, not the
+cluster at a recovery target, and that the **five enumerated schema/content probes** passed. Those
+five are typed and closed in the `RestoreVerified` CRD — `outside-recovery`,
+`known-row-readable`, `restore-probe-heap-readable`, `primary-key-index-readable`,
+`selected-backup-object-readable` — with `minItems == maxItems == 5`, so a probe set that changes
+cannot be recorded under the old contract, and `checkProfileDigest` binds the profile that produced
+the artifact (§11.2's "a weakened profile invalidates older evidence" rule, made mechanical).
+
+**`RecoveryAssured` asserts NO capability conformance, and that is deliberate** (review finding 1).
+Earlier wording here said "schema and capability conformance probes", which claimed something the
+typed evidence never carried. The in-restore probes and the standing `CapabilityConformant` probe
+are **two distinct checks**, not one reused verdict:
+
+| | in-restore probes | standing capability probe |
+|---|---|---|
+| subject | the restored copy, in a disposable environment | the live primary |
+| asserts | that backup is restorable and readable | the extension actually functions now |
+| artifact | `RestoreVerified.checks[]` (5, closed) | `CapabilityVerified.checks[]` (5, closed) |
+| lifetime | pinned to one backup + UID | re-proven after every image change (§6.3) |
+
+The probe *script* may be shared, because it is side-effect-free — its DDL rolls back, so running
+it inside the recovery environment cannot mutate the cluster whose restorability the artifact
+attests. Sharing an implementation is not sharing a verdict. Keeping the two conditions
+independent is what §5.1 requires, and `condition-independence-check.py` asserts the decisive
+direction: `CapabilityConformant=Failed` alongside `RecoveryAssured=Valid` is reachable. **Application-semantic** consistency is the respective forcing consumer's concern, not the
 platform's — claiming it would overstate the flag.
 
 > **Narrowed by the spike (§11.2).** This section previously said "structural integrity checks"
@@ -490,6 +507,34 @@ rollback mechanics where possible
 ```
 
 Prinzip: *Automate the facts and mechanics. Keep consequential authority explicit.*
+
+### 7.1 Where the authority act sits (amended under OK-150)
+
+This section was read as: a human admits every `RestoreVerified` by creating it. That
+reading is withdrawn. In practice it made an operator rubber-stamp a machine-generated
+artifact they cannot independently check, on a timer that degrades production until they
+do it. A control that must be performed to keep a status green, and that adds no
+judgement, is a control that gets bypassed — and a `serviceReady` that depends on it is
+measuring compliance-with-ritual, not recoverability.
+
+The authority moves to where judgement actually exists. A human reviews a verification
+**method** — which probes run, what the runner is, what counts as a pass — and approves
+its digests once, as a `VerificationProfile` (immutable spec, named approver, required
+rationale). An automated verifier may then admit artifacts whose
+`checkProfileDigest`/`verifierVersion` match an approved profile. Artifacts that match
+nothing read `Unknown/RestoreProfileUnapproved`, which is deliberately distinct from
+`VerificationPending`: "nobody verified this" and "someone verified it by a method nobody
+approved" call for different actions.
+
+What keeps this from becoming approval-in-bulk is that a profile binds digests computed
+**before** any artifact exists, so approving a method cannot approve a result already
+observed; and §11.2's existing rule does the revocation — changing the checks changes the
+digest, which lapses the approval and forces a fresh human decision instead of silently
+inheriting the old one.
+
+The boundary in the table above is unchanged. What moved is the granularity of *change
+approval*: per method, not per artifact. Authority is still explicit, still attributable,
+and now attached to a decision a human can actually make.
 
 ## 8. Warum ein eigener Contract statt Everest/KubeBlocks? (bewusster Trade-off)
 
@@ -638,8 +683,9 @@ and nothing beyond it:
 
 > From the backup identified by `backupId`, the platform created a **new** PostgreSQL cluster
 > that left the **actually reached** recovery target (timeline/LSN) and arrived at a connectable
-> state outside recovery mode, and the **selected schema and capability conformance probes**
-> passed.
+> state outside recovery mode, and the **five enumerated schema/content probes** passed. It
+> asserts nothing about capability conformance — that is a separate condition with its own
+> artifact.
 
 The wording is deliberately weaker than "structural integrity". A relation name plus `relkind`
 proves **catalogue presence**, not readability: it says nothing about whether the relation's pages
@@ -837,10 +883,25 @@ verifier per role, so two simultaneously valid passwords for one role do not exi
   an honest one.
 - Established sessions are **not deliberately terminated**. The old password stops starting new
   sessions once the change reaches a given server.
-- There is no overlap and no grace window for passwords in v1. The consumer therefore carries a
-  stated obligation: **reload credentials and retry authentication** during rotation, rather than
-  reading them once at boot. §6.2 names this failure mode; v1 resolves it by putting the
-  obligation in the contract instead of pretending the platform hides it.
+- ~~There is no overlap and no grace window for passwords in v1.~~ **Superseded under OK-150
+  (§13 bound 6): there is now a real overlap.** The reasoning above stands — one verifier per role
+  is mechanical — so the overlap is obtained by not using one role. `app` keeps owning the database
+  and its objects but becomes **NOLOGIN**, and two login roles `app_a`/`app_b` are granted into it,
+  each with its own Secret derived platform-side from the admission-authorized name. Two roles
+  means two verifiers, so both credentials genuinely authenticate at once. The active slot is an
+  annotation on the mirrored Secret, which the claimant cannot write.
+  `overlapWindow` is an attribute of the protection class — **PT1H production, PT24H development**,
+  production deliberately shorter because a previous credential that still authenticates is
+  standing exposure — and `status.credentials` publishes `activeRole`, `previousRole`,
+  `overlapWindow`, `previousValidUntil` and a boolean `previousCredentialAccepted`. That boolean is
+  what stops the consumer's obligation from being prose: the consumer reads whether the old
+  credential still works instead of inferring it.
+  The consumer obligation is **reduced, not removed** — reload credentials and retry
+  authentication rather than reading once at boot — because the overlap bounds the window, it does
+  not eliminate the need to pick the new credential up. §6.2 names the failure mode.
+  **MIGRATION, not a detail:** on a database that already logs in as `app`, this turns `app`
+  NOLOGIN and existing consumers authenticating as `app` stop opening new sessions. Applying it to
+  a live Database is a gated change with a consumer cutover, never a silent reconcile.
 - No timer-based expiry for application roles. Note the mechanism honestly: omitting `validUntil`
   means no expiry, but CNPG may actively set an existing role to `VALID UNTIL 'infinity'` rather
   than leaving it untouched. The contract is "no timer-based expiry", not "the field is never
@@ -1087,74 +1148,121 @@ drill 20260818t115710z · backupId 20260818T115641 · timeline 2 · lsn 0/600012
   admitted server-side dry run against the ok-mgmt CRD; databaseRef binds name AND uid
 ```
 
-**What is still NOT evidenced, and therefore bounds this acceptance.** Seven items, listed because a
-bounded acceptance is only honest if the bounds are enumerated. The last three were found by
-installing the capability and operating it — the kind of gap only a live pipeline reveals. None of them invalidates the
-contracts; each blocks *delivered-capability* acceptance.
+**The seven delivered-capability bounds and their closure under OK-150.** They remain enumerated
+because acceptance is only honest when the original gaps and the mechanism that closed each one
+are inspectable. The residuals are stated separately from closure rather than disguised as open
+acceptance criteria.
 
 ```text
-1. RPO freshness is unobservable        → ProtectionReady=Valid unreachable, so `production` is
-   (§11.1's third signal)                 unreachable. Renders Unknown/RPOFreshnessUnproven by
-                                          design rather than via a proxy. Needs a WAL age/backlog
-                                          observation the Composition can actually see.
+1. RPO freshness is unobservable        → CLOSED under OK-150. A per-Database workload collector
+   (§11.1's third signal) — CLOSED         publishes measured walLagSeconds/pendingWalCount into
+                                          one name-scoped ConfigMap Crossplane observes
+                                          as protection's fourth signal. production requires it:
+                                          absent or aged-out is Unknown/RPOFreshnessUnproven or
+                                          RPOObservationExpired, a lag past the bound is
+                                          Failed/RPOBoundExceeded, within is Valid. Bounds are
+                                          class attributes (300s lag, 900s measurement age).
+                                          Before this, production reached Valid on
+                                          ContinuousArchiving alone — which §10 disclaims as an
+                                          RPO bound — so the proxy this item warned about was
+                                          already in force rather than merely tempting.
+                                          development requires no RPO evidence, a decision, not
+                                          an omission. The collector that publishes the
+                                          measurement is composed per Database, so a database
+                                          cannot exist without the thing that measures its
+                                          exposure — the first version was hand-installed into one
+                                          namespace, which closed the bound in exactly one place
+                                          and would have read as a data problem rather than a
+                                          missing install anywhere else. A custom-query attempt
+                                          to expose exact oldest `.ready` age was rejected live:
+                                          CNPG executes user metrics as cnpg_metrics_exporter,
+                                          which receives permission denied for pg_ls_dir. Granting
+                                          it filesystem functions would widen a shared exporter;
+                                          default metrics therefore keep pending age Unknown.
 2. RecoveryAssured needs an operator    → the re-run is DONE (2026-08-18): the drill produced
    act, not more machinery                  restoreverified-20260818t115710z.yaml against the
    (re-run completed 2026-08-18)            composed Database, carrying the databaseRef identity
                                           binding (uid a6b4b2ff-…) with all five checks derived
                                           from observed values, and the ok-mgmt API server admits
-                                          it (server-side dry run). What remains is not code: per
-                                          §7 the operator group's CREATION of that CR *is* the
-                                          approval, so `RecoveryAssured=Valid` waits on a human
-                                          act by design. Continuous re-verification is bound 3.
-3. Scheduled-backup enumeration        → §12: a static provider-kubernetes `Object` cannot
-   is missing                             enumerate generated-name Backup CRs, so the fixed
-                                          evidence anchor eventually leaves the moving recovery
-                                          window even while backups are healthy. Continuous
-                                          delivery is therefore unproven; a collector is v2.
-4. Capability delivery                 → no functional probe feeds CapabilityConformant, and
-   (was the only item named before)       extension delivery additionally needs the Kubernetes
-                                          ImageVolume feature gate (disabled on the drill cluster).
-5. Observation freshness is absent      → every `observedAt` this Composition writes is a SOURCE
-   from the status surface                 event timestamp (`lastTransitionTime`, `stoppedAt`,
-   (added 2026-08-18, from the            `lastSuccessfulBackupTime`) and never an observation
-    live install)                         time, so nothing in `status` says when the platform last
-                                          successfully looked. `Stale` closes a different gap: it
-                                          fires when the SUBJECT ages out of its validity window,
-                                          not when the OBSERVER stops. The asymmetry that follows
-                                          is worth stating plainly — a frozen read-back under a
-                                          live reconciler does eventually degrade, because the
-                                          ageing check keeps re-evaluating against current time,
-                                          whereas a frozen reconciler cannot degrade at all: its
-                                          last verdict persists verbatim and, every timestamp in
-                                          it being a real source event, reads as a recent and
-                                          definite Valid. Needs an explicit observation-freshness
-                                          field and a measured propagation bound (§12).
-6. Credential rotation has no overlap    → §11.4: publishing the Secret and applying ALTER ROLE are
-   (§11.4, and OK-145's fourth AC          two separate reconciliations, so there is a window in
-    asked for this to be decided)          which the published credential is not yet the accepted
-                                          one, and v1 makes the consumer carry reconnection.
-                                          OK-145's fourth AC asked for the overlap and grace
-                                          period to be decided; "none" is an answer that leaves
-                                          the requirement owed. Needs a login-role pair sharing a
-                                          non-login privilege role, or client certificates.
-7. Residency is a contract field with    → §6.1: `dataPolicyRef` describes residency as policy plus
-   no resolution mechanism                 evidence, but this platform has no policy-resolution
-   (§6.1)                                  mechanism, so the field is absent in v1 rather than
-                                          claimant-writable and dangling. `protection.policyRef`
-                                          is correspondingly a closed enum. Needs a policy object
-                                          and a resolver before residency can be asserted at all.
+                                          it (server-side dry run). The claim that
+                                          `RecoveryAssured=Valid` waits on a human act *by design*
+                                          is withdrawn: see §7.1. The act is now approving the
+                                          verification METHOD once (`VerificationProfile`), and
+                                          matching artifacts are admitted automatically — so this
+                                          reaches Valid without a standing manual step.
+                                          Continuous re-verification is bound 3.
+3. Scheduled-backup enumeration        → CLOSED under OK-150. When the fixed anchor is pruned,
+   is missing — CLOSED                    a newer successful ObjectStore recovery window
+                                          supersedes it; freshness and observedAt follow that
+                                          success. Residual: the window carries times rather than
+                                          generated Backup identity, so backupId is unavailable.
+4. Capability delivery — CLOSED        → the bundled standard image delivers pgvector without
+                                          ImageVolume. CapabilityVerified carries five exact
+                                          functional checks and the running image digest;
+                                          declaration alone remains Pending, never Valid.
+5. Observation freshness is absent      → CLOSED under OK-150. status.observation publishes
+   from the status surface — CLOSED        observedThrough, quantum=300s and freshnessBound=900s.
+                                          A reader invalidates every verdict after that bound;
+                                          frozen-reconciler is the decisive negative control.
+6. Credential rotation has no overlap    → CLOSED under OK-150. app is a NOLOGIN owner; app_a and
+   — CLOSED                                app_b are distinct login roles with distinct Secrets.
+                                          The active/previous slots and PT1H production / PT24H
+                                          development overlap are published in status.
+7. Residency is a contract field with    → CLOSED under OK-150. `DataPolicy` (cluster-scoped,
+   no resolution mechanism                 allowedZones) is the policy object; the Composition
+   (§6.1) — CLOSED                         resolves `dataPolicyRef` by name through
+                                          ExtraResources and publishes `status.residency`. A
+                                          named policy that does not resolve is
+                                          Failed/DataPolicyUnresolved, NOT silence and not
+                                          Unknown: we looked and it is absent. Placement stays
+                                          platform-side, so a policy can make a Database
+                                          non-conformant but can never redirect its storage —
+                                          asserted by rendering the same Database under a
+                                          permissive policy, a prohibitive one and none, and
+                                          comparing the composed ObjectStore. Published BESIDE
+                                          evidence, not inside it: §5.1's condition set stays
+                                          four, and residency does not gate serviceReady in v1.
 ```
 
-The two causes behind item 4, neither of which sits in this contract:
+**RPO publisher migration.** The first OK-150 implementation mirrored one global management-plane
+bearer token into every workload Database and let it create cluster-scoped `ArchiveFreshness`
+objects. That made provenance self-asserted: any bearer could forge another Database's RPO. The
+per-Database provider-observed ConfigMap supersedes it and removes both the token and `pods/exec`.
+After the new path is proven live for every production Database,
+`make retire-legacy-publisher` revokes the old ServiceAccount, ClusterRoleBinding, ClusterRole and
+token Secret. The old CRD and immutable observations remain as read-only history; migration does
+not delete evidence merely to remove its writer.
+
+**Target portability and authority.** The Composition core no longer embeds `ok-robotics` placement:
+a cluster-scoped immutable `DatabaseTargetProfile`, selected by exact `clusterRef`, supplies the
+reviewed backup endpoint, bucket, CA reference and residency zone while `providerConfigRef` remains
+the same target identity. A profile is configuration, never claim authority. Each new target still
+requires an exact tuple in the fail-closed admission inventory plus its ProviderConfig registration
+Secret, target-local CA and backup-writer identity. The current reviewed inventory contains only
+`ok-robotics`; profile presence alone cannot authorize a claim, and adding portability must never
+turn the tuple into a pattern.
+
+The two historical causes behind item 4, retained because they explain why the delivered bundled
+profile differs from the stronger catalogued-image model:
 
 ```text
-1. no functional capability probe exists      → CapabilityConformant=Valid is unreachable for a
-   (the v1 gap that actually blocks it)          requested capability. Two distinct outcomes, and
+1. no functional capability probe existed     → Before OK-150, CapabilityConformant=Valid was
+   (the v1 gap that actually blocked it)          unreachable for a requested capability. Two distinct outcomes, and
                                                  the observed one is the stronger: extension
                                                  PRESENT but unprobed → Pending/
                                                  CapabilityProbePending; extension ABSENT →
-                                                 Failed/RequestedCapabilityAbsent, which is what
-                                                 ok-robotics reports, the gate being off
+                                                 Failed/RequestedCapabilityAbsent. ok-robotics was
+                                                 read as reporting the latter "the gate being off",
+                                                 but that attribution was wrong: the status reader
+                                                 matched "vector" while the platform composes
+                                                 "pgvector", which CNPG echoes back, so
+                                                 $pgvectorObserved was never true and PRESENT-but-
+                                                 unprobed was unreachable. With the reader fixed
+                                                 (OK-150) ok-robotics reports
+                                                 Pending/CapabilityProbePending, which is the
+                                                 truthful state: the extension IS declared there
+                                                 and cannot be exercised. The two states this item
+                                                 distinguishes had silently collapsed into one.
 2. image volumes non-functional on the       → CNPG's declarative extensions are image volumes
    target platform (k8s/runtime, not CNPG)      (KEP-4639). With the gate off none can mount;
                                                 with the gate ON the container cannot be created
@@ -1170,12 +1278,11 @@ The two causes behind item 4, neither of which sits in this contract:
                                                 of a fixed extension set (weaker than §6.4).
 ```
 
-So a `Database` requesting `postgresql.extension.pgvector` is out of v1 scope. Closing it needs a
-probe that exercises the capability (§6.3's rule, applied at provisioning) and a platform on which
-image volumes actually mount — the latter belongs in the capability's cluster requirements, alongside
-cert-manager and the pinned plugin. The probe half is delivered under OK-150: `CapabilityVerified`
-(§11.2's evidence pattern applied to capability) plus a Composition that reaches
-`CapabilityConformant=Valid` only from an admitted artifact bound to the running image digest.
+A `Database` requesting `postgresql.extension.pgvector` is therefore inside the delivered v1
+bundled-image profile. The stronger per-extension catalogued-image profile remains conditional on a
+runtime that supports image volumes (containerd >= 2.1.0 plus the Kubernetes gate). In both profiles,
+`CapabilityConformant=Valid` comes only from an admitted functional artifact bound to the running
+image digest; changing delivery does not weaken evidence.
 
 ### Spike-Definition
 
@@ -1212,6 +1319,54 @@ vorausgesetzt. Sagt der Spike am Ende, dass genau diese drei sinnvoll sind: herv
 dann sind sie **Resultat** der Architekturarbeit, nicht ihre Ausgangsannahme.
 
 ---
+
+## 14. Accepted deprecations (OK-150)
+
+OK-150's seventh acceptance criterion offered two branches: migrate the claim model off the
+deprecated API, **or** re-accept the deadline explicitly. This records the second, taken
+deliberately rather than by omission.
+
+**What was observed, from the server rather than from documentation.** Applying the XRD to ok-mgmt
+(Crossplane **v2.3.3**, server-side dry run, 2026-08-20) returns:
+
+```text
+Warning: CompositeResourceDefinition v1 is deprecated and will be removed in a future release;
+         consider migrating to v2
+```
+
+`platform/database/postgresql/crossplane/xrd.yaml` is `apiextensions.crossplane.io/v1` with
+`claimNames`, so the warning applies to this capability. A second, unrelated warning on the same
+plane — `apiextensions.crossplane.io Usage is deprecated` — is not this ADR's concern; the
+capability declares no `Usage`.
+
+**Decision: the deprecation is accepted for v1. There is no deadline to miss.** The warning names
+no removal version and no date — "a future release" is the whole of it — so there is nothing to
+schedule against, and re-accepting is not deferring a known date.
+
+**Why not migrate now.** v2 is not a field rename. Composite resources become **namespaced**, and
+the claim tier disappears: `DatabaseClaim` is the object the entire authority model is built on.
+Migrating means rewriting the fail-closed `ValidatingAdmissionPolicy` and its binding (which
+authorize by exact cluster/namespace/Secret tuple against `databaseclaims`), the claim-editor Role
+and RoleBinding, the delegation proof in `make bind` (which asserts the group can create claims and
+cannot read Secrets or create composites directly), every example and fixture, and the identity
+binding in both evidence contracts. That is a contract change to the authority boundary — the part
+of this capability with the highest blast radius — traded for removing a warning with no deadline.
+It is its own ticket with its own review, not a tail item on a bounds ticket.
+
+**What this accepts, stated plainly:** a future Crossplane upgrade may drop v1 XRDs, and until the
+migration happens that upgrade is blocked by this capability. The cost is a coupling between our
+upgrade cadence and someone else's removal schedule.
+
+**What revokes this acceptance.** Any one of these makes it stale and the migration a scheduled
+piece of work rather than a deferred one:
+
+1. Crossplane states a **removal version or date** for v1 `CompositeResourceDefinition`.
+2. A Crossplane upgrade this platform wants for another reason requires v2 XRDs.
+3. The claim tier is being reworked anyway — migrate with that change, not against it.
+
+`claim-policy-check.py` asserts this record stays consistent with the served API: it fails if the
+XRD moves to v2 while this acceptance still stands (a stale acceptance is worse than none, because
+it reads as current), and it fails if the acceptance is removed while the XRD is still v1.
 
 ## Referenzen (Design-Grundlage, im Spike gegen Zielversion zu bestätigen)
 

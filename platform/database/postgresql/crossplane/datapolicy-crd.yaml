@@ -1,0 +1,65 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: datapolicies.platform.openkubes.ai
+  labels:
+    app.kubernetes.io/part-of: openkubes-database-postgresql
+    openkubes.ai/adr: adr-platform-032
+spec:
+  group: platform.openkubes.ai
+  scope: Cluster
+  names:
+    plural: datapolicies
+    singular: datapolicy
+    kind: DataPolicy
+    shortNames: [dpol]
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      additionalPrinterColumns:
+        - name: Zones
+          type: string
+          jsonPath: .spec.residency.allowedZones
+      schema:
+        openAPIV3Schema:
+          type: object
+          required: [spec]
+          properties:
+            spec:
+              type: object
+              description: >-
+                The policy object §6.1 said residency needs before it can be asserted
+                at all. Without one, `dataPolicyRef` is a field naming nothing — which
+                is why v1 omitted the field rather than shipping it dangling.
+
+                A policy states WHERE data may come to rest. It does not place data:
+                placement is platform-side (the reviewed backup-store registry in the
+                Composition), so a claimant naming a strict policy can make its own
+                Database non-conformant, never redirect its storage. That asymmetry is
+                what makes the field safe to expose to claimants at all.
+              required: [residency]
+              properties:
+                residency:
+                  type: object
+                  required: [allowedZones]
+                  properties:
+                    allowedZones:
+                      type: array
+                      description: >-
+                        Residency zones this policy permits. A closed list, compared
+                        against the zone the platform declares for the target cluster's
+                        backup store. Empty would permit nothing and is rejected: an
+                        empty allowlist is almost always a mistake rather than a
+                        deliberate prohibition, and it fails in a way that looks like
+                        a policy problem rather than an authoring one.
+                      minItems: 1
+                      maxItems: 32
+                      items:
+                        type: string
+                        minLength: 1
+                        maxLength: 63
+                        pattern: '^[a-z0-9][a-z0-9-]*[a-z0-9]$'
+                    description:
+                      type: string
+                      maxLength: 512

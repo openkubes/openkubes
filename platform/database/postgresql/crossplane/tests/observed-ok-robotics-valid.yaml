@@ -36,14 +36,17 @@ status:
         pgDataImageInfo:
           majorVersion: 18
           extensions:
-            - name: vector
+            - name: pgvector
         managedRolesStatus:
           byStatus:
-            reconciled: [app]
+            reconciled: [app, app_a, app_b]
           passwordStatus:
-            app:
-              resourceVersion: "101"
-              transactionID: 2051
+            app_a:
+              resourceVersion: "201"
+              transactionID: 2052
+            app_b:
+              resourceVersion: "202"
+              transactionID: 2053
 ---
 apiVersion: kubernetes.crossplane.io/v1alpha2
 kind: Object
@@ -122,4 +125,44 @@ status:
         resourceVersion: "101"
         labels:
           cnpg.io/reload: "true"
+      type: kubernetes.io/basic-auth
+---
+apiVersion: kubernetes.crossplane.io/v1alpha2
+kind: Object
+metadata:
+  name: database-ok-robotics-app-secret-a
+  annotations:
+    crossplane.io/composition-resource-name: app-secret-a
+status:
+  atProvider:
+    manifest:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: database-ok-robotics-app-a
+        namespace: database-ok-robotics
+        resourceVersion: "201"
+      data:
+        # base64 fixture only; Composition hashes it locally and never emits it.
+        password: YXBwLWEtZml4dHVyZS1wYXNzd29yZA==
+      type: kubernetes.io/basic-auth
+---
+apiVersion: kubernetes.crossplane.io/v1alpha2
+kind: Object
+metadata:
+  name: database-ok-robotics-app-secret-b
+  annotations:
+    crossplane.io/composition-resource-name: app-secret-b
+status:
+  atProvider:
+    manifest:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: database-ok-robotics-app-b
+        namespace: database-ok-robotics
+        resourceVersion: "202"
+      data:
+        # base64 fixture only; Composition hashes it locally and never emits it.
+        password: YXBwLWItZml4dHVyZS1wYXNzd29yZA==
       type: kubernetes.io/basic-auth

@@ -44,10 +44,10 @@ def validate(documents: list[dict], script: str, reader_bytes: bytes, drill_byte
         for doc in documents
     ), "every persistent resource must carry the ownership label"
 
-    assert hashlib.sha256(reader_bytes).hexdigest() == "3171361cdc3706c0641bd67dd6a3b180f102eaef4606b35948eebf6ea39b2246", (
+    assert hashlib.sha256(reader_bytes).hexdigest() == "04d3a2258c0c3a12f1cbad967cd21d3d3f499fb0be4736ad5ff77f607180644a", (
         "reviewed reader policy changed"
     )
-    assert hashlib.sha256(drill_bytes).hexdigest() == "411fe6f0da806326526dfcf2404d4dc5c7205fb1ca1e0a478a30166310911408", (
+    assert hashlib.sha256(drill_bytes).hexdigest() == "22b08b1881603e3222d47efdd888bd96d228e3cd1d1f8ce3dac0bdf501eb7a0d", (
         "reviewed drill policy changed"
     )
     producer = yaml.safe_load(PRODUCER_POLICY.read_text())

@@ -10,7 +10,7 @@
       "Resource": "arn:aws:s3:::ok-db-drill"
     },
     {
-      "Sid": "ListOnlyTheDrillRunPrefix",
+      "Sid": "ListBucketWideForBarmanHeadBucketNotPrefixScoped",
       "Effect": "Allow",
       "Action": [
         "s3:ListBucket"
