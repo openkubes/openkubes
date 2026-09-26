@@ -46,6 +46,7 @@ platform/ai/platform-diagnostics/
         ├── rbac.yaml                  # read-only ClusterRole (get/list/watch, secrets EXCLUDED)
         ├── facade/                    # HTTP shim: OpenAPI function → kagent invocation → ADR-021 schema
         ├── charts/                    # Helm chart bundling CRDs + facade + RBAC
+        ├── conformance/               # Talos/RKE2 RBAC + capability-delta matrix  ← OK-95
         └── README.md
 ```
 
@@ -57,6 +58,7 @@ platform/ai/platform-diagnostics/
 | `contract/tests/` + Profile B stub | **OK-91** (executable provider-neutral conformance suite) | `openkubes` (this repo) |
 | `contract/mcp-adapter/` | **OK-93** (adapter derived from the accepted OpenAPI) | `openkubes` (this repo) |
 | `profiles/kagent/` (Profile A implementation) | **OK-92** (integrate kagent as first provider profile) | `openkubes` (generic) + `ok-cluster` (provider values) |
+| `profiles/kagent/conformance/` (Talos/RKE2 delta) | **OK-95** (RBAC audit, capability declarations, evidence behavior) | `openkubes` (generic matrix + evidence) |
 | OpenClaw as first **consumer** (diagnostics skill via MCP adapter) | **OK-94** | `openkubes` + `ok-cluster` |
 
 `contract/openapi.yaml` is the **normative, machine-readable Phase-1 contract**.
@@ -100,3 +102,4 @@ chat backend.
 - [Implementation guideline](../../../docs/agentic-ai-poc-guideline.md)
 - [Problem statement](../../../docs/problem-statement-platform-diagnostics-contract.md)
 - [OK-89](https://kubernauts.atlassian.net/browse/OK-89) · [OK-90](https://kubernauts.atlassian.net/browse/OK-90) · [OK-91](https://kubernauts.atlassian.net/browse/OK-91) · [OK-92](https://kubernauts.atlassian.net/browse/OK-92) · [OK-93](https://kubernauts.atlassian.net/browse/OK-93) · [OK-94](https://kubernauts.atlassian.net/browse/OK-94)
+- [OK-95](https://kubernauts.atlassian.net/browse/OK-95)
