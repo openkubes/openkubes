@@ -1,0 +1,526 @@
+{
+  "apiVersion": "workspace.openkubes.io/v1",
+  "kind": "DeveloperWorkspaceNamespaceRender",
+  "metadata": {
+    "name": "sample-developer-workspace"
+  },
+  "spec": {
+    "inputDigest": "sha256:1db9ae6a98f21f97e62fb5408112ff87d5e7dbf2a721c85a15539c46cb590c0d",
+    "profile": "reviewed-namespace-profile-v1",
+    "resources": [
+      {
+        "apiVersion": "v1",
+        "kind": "Namespace",
+        "metadata": {
+          "labels": {
+            "app": "developer-workspace",
+            "workspace.openkubes.io/id": "ws-sample-174"
+          },
+          "name": "dw-sample-174"
+        }
+      },
+      {
+        "apiVersion": "v1",
+        "automountServiceAccountToken": false,
+        "kind": "ServiceAccount",
+        "metadata": {
+          "labels": {
+            "app": "developer-workspace",
+            "workspace.openkubes.io/id": "ws-sample-174"
+          },
+          "name": "workspace",
+          "namespace": "dw-sample-174"
+        }
+      },
+      {
+        "apiVersion": "v1",
+        "kind": "ResourceQuota",
+        "metadata": {
+          "labels": {
+            "app": "developer-workspace",
+            "workspace.openkubes.io/id": "ws-sample-174"
+          },
+          "name": "workspace-bounds",
+          "namespace": "dw-sample-174"
+        },
+        "spec": {
+          "hard": {
+            "limits.cpu": "1000m",
+            "limits.memory": "2Gi",
+            "requests.cpu": "1000m",
+            "requests.memory": "2Gi",
+            "requests.storage": "5Gi"
+          }
+        }
+      },
+      {
+        "apiVersion": "v1",
+        "kind": "LimitRange",
+        "metadata": {
+          "labels": {
+            "app": "developer-workspace",
+            "workspace.openkubes.io/id": "ws-sample-174"
+          },
+          "name": "workspace-defaults",
+          "namespace": "dw-sample-174"
+        },
+        "spec": {
+          "limits": [
+            {
+              "default": {
+                "cpu": "1000m",
+                "memory": "2Gi"
+              },
+              "defaultRequest": {
+                "cpu": "1000m",
+                "memory": "2Gi"
+              },
+              "max": {
+                "cpu": "1000m",
+                "memory": "2Gi"
+              },
+              "type": "Container"
+            }
+          ]
+        }
+      },
+      {
+        "apiVersion": "networking.k8s.io/v1",
+        "kind": "NetworkPolicy",
+        "metadata": {
+          "labels": {
+            "app": "developer-workspace",
+            "workspace.openkubes.io/id": "ws-sample-174"
+          },
+          "name": "default-deny",
+          "namespace": "dw-sample-174"
+        },
+        "spec": {
+          "podSelector": {},
+          "policyTypes": [
+            "Ingress",
+            "Egress"
+          ]
+        }
+      },
+      {
+        "apiVersion": "v1",
+        "kind": "PersistentVolumeClaim",
+        "metadata": {
+          "labels": {
+            "app": "developer-workspace",
+            "workspace.openkubes.io/id": "ws-sample-174"
+          },
+          "name": "workspace",
+          "namespace": "dw-sample-174"
+        },
+        "spec": {
+          "accessModes": [
+            "ReadWriteOnce"
+          ],
+          "resources": {
+            "requests": {
+              "storage": "5Gi"
+            }
+          },
+          "storageClassName": "local-path"
+        }
+      },
+      {
+        "apiVersion": "networking.k8s.io/v1",
+        "kind": "NetworkPolicy",
+        "metadata": {
+          "annotations": {
+            "workspace.openkubes.io/capability-ref": "capabilityref:git-source"
+          },
+          "labels": {
+            "app": "developer-workspace",
+            "workspace.openkubes.io/id": "ws-sample-174"
+          },
+          "name": "allow-git-source",
+          "namespace": "dw-sample-174"
+        },
+        "spec": {
+          "egress": [
+            {
+              "ports": [
+                {
+                  "port": 8443,
+                  "protocol": "TCP"
+                }
+              ],
+              "to": [
+                {
+                  "namespaceSelector": {
+                    "matchLabels": {
+                      "kubernetes.io/metadata.name": "ok174-proof-services"
+                    }
+                  },
+                  "podSelector": {
+                    "matchLabels": {
+                      "app": "git-fixture"
+                    }
+                  }
+                }
+              ]
+            }
+          ],
+          "podSelector": {
+            "matchLabels": {
+              "app": "developer-workspace",
+              "workspace.openkubes.io/id": "ws-sample-174"
+            }
+          },
+          "policyTypes": [
+            "Egress"
+          ]
+        }
+      },
+      {
+        "apiVersion": "networking.k8s.io/v1",
+        "kind": "NetworkPolicy",
+        "metadata": {
+          "annotations": {
+            "workspace.openkubes.io/capability-ref": "capabilityref:inference-shared"
+          },
+          "labels": {
+            "app": "developer-workspace",
+            "workspace.openkubes.io/id": "ws-sample-174"
+          },
+          "name": "allow-inference-shared",
+          "namespace": "dw-sample-174"
+        },
+        "spec": {
+          "egress": [
+            {
+              "ports": [
+                {
+                  "port": 11434,
+                  "protocol": "TCP"
+                }
+              ],
+              "to": [
+                {
+                  "ipBlock": {
+                    "cidr": "192.168.100.202/32"
+                  }
+                }
+              ]
+            }
+          ],
+          "podSelector": {
+            "matchLabels": {
+              "app": "developer-workspace",
+              "workspace.openkubes.io/id": "ws-sample-174"
+            }
+          },
+          "policyTypes": [
+            "Egress"
+          ]
+        }
+      },
+      {
+        "apiVersion": "networking.k8s.io/v1",
+        "kind": "NetworkPolicy",
+        "metadata": {
+          "annotations": {
+            "workspace.openkubes.io/capability-ref": "capabilityref:mcp-diagnostics"
+          },
+          "labels": {
+            "app": "developer-workspace",
+            "workspace.openkubes.io/id": "ws-sample-174"
+          },
+          "name": "allow-mcp-diagnostics",
+          "namespace": "dw-sample-174"
+        },
+        "spec": {
+          "egress": [
+            {
+              "ports": [
+                {
+                  "port": 8081,
+                  "protocol": "TCP"
+                }
+              ],
+              "to": [
+                {
+                  "namespaceSelector": {
+                    "matchLabels": {
+                      "kubernetes.io/metadata.name": "ok174-proof-services"
+                    }
+                  },
+                  "podSelector": {
+                    "matchLabels": {
+                      "app": "mcp-fixture"
+                    }
+                  }
+                }
+              ]
+            }
+          ],
+          "podSelector": {
+            "matchLabels": {
+              "app": "developer-workspace",
+              "workspace.openkubes.io/id": "ws-sample-174"
+            }
+          },
+          "policyTypes": [
+            "Egress"
+          ]
+        }
+      },
+      {
+        "apiVersion": "networking.k8s.io/v1",
+        "kind": "NetworkPolicy",
+        "metadata": {
+          "labels": {
+            "app": "developer-workspace",
+            "workspace.openkubes.io/id": "ws-sample-174"
+          },
+          "name": "allow-kube-dns",
+          "namespace": "dw-sample-174"
+        },
+        "spec": {
+          "egress": [
+            {
+              "ports": [
+                {
+                  "port": 53,
+                  "protocol": "UDP"
+                },
+                {
+                  "port": 53,
+                  "protocol": "TCP"
+                }
+              ],
+              "to": [
+                {
+                  "namespaceSelector": {
+                    "matchLabels": {
+                      "kubernetes.io/metadata.name": "kube-system"
+                    }
+                  },
+                  "podSelector": {
+                    "matchLabels": {
+                      "k8s-app": "kube-dns"
+                    }
+                  }
+                }
+              ]
+            }
+          ],
+          "podSelector": {
+            "matchLabels": {
+              "app": "developer-workspace",
+              "workspace.openkubes.io/id": "ws-sample-174"
+            }
+          },
+          "policyTypes": [
+            "Egress"
+          ]
+        }
+      },
+      {
+        "apiVersion": "apps/v1",
+        "kind": "Deployment",
+        "metadata": {
+          "labels": {
+            "app": "developer-workspace",
+            "workspace.openkubes.io/id": "ws-sample-174"
+          },
+          "name": "workspace",
+          "namespace": "dw-sample-174"
+        },
+        "spec": {
+          "replicas": 1,
+          "selector": {
+            "matchLabels": {
+              "app": "developer-workspace",
+              "workspace.openkubes.io/id": "ws-sample-174"
+            }
+          },
+          "strategy": {
+            "type": "Recreate"
+          },
+          "template": {
+            "metadata": {
+              "labels": {
+                "app": "developer-workspace",
+                "workspace.openkubes.io/id": "ws-sample-174"
+              }
+            },
+            "spec": {
+              "automountServiceAccountToken": false,
+              "containers": [
+                {
+                  "env": [
+                    {
+                      "name": "OK174_INFERENCE_BASE_URL",
+                      "value": "http://192.168.100.202:11434/v1"
+                    },
+                    {
+                      "name": "OK174_MODEL",
+                      "value": "ok174-gpt-oss:20b"
+                    }
+                  ],
+                  "image": "example.invalid/opencode:reference",
+                  "name": "runtime",
+                  "resources": {
+                    "limits": {
+                      "cpu": "1000m",
+                      "memory": "2Gi"
+                    },
+                    "requests": {
+                      "cpu": "1000m",
+                      "memory": "2Gi"
+                    }
+                  },
+                  "securityContext": {
+                    "allowPrivilegeEscalation": false,
+                    "capabilities": {
+                      "drop": [
+                        "ALL"
+                      ]
+                    },
+                    "readOnlyRootFilesystem": true,
+                    "runAsNonRoot": true
+                  },
+                  "volumeMounts": [
+                    {
+                      "mountPath": "/workspace",
+                      "name": "workspace"
+                    },
+                    {
+                      "mountPath": "/tmp",
+                      "name": "runtime-tmp"
+                    },
+                    {
+                      "mountPath": "/home/workspace",
+                      "name": "runtime-home"
+                    }
+                  ]
+                }
+              ],
+              "hostIPC": false,
+              "hostNetwork": false,
+              "hostPID": false,
+              "initContainers": [
+                {
+                  "args": [
+                    "https://git-fixture.ok174-proof-services.svc.cluster.local:8443",
+                    "workspace-fixture",
+                    "86a0a5f",
+                    "/workspace"
+                  ],
+                  "command": [
+                    "checkout"
+                  ],
+                  "env": [
+                    {
+                      "name": "GIT_AUTH_TOKEN",
+                      "valueFrom": {
+                        "secretKeyRef": {
+                          "key": "token",
+                          "name": "workspace-git-auth"
+                        }
+                      }
+                    },
+                    {
+                      "name": "GIT_SSL_CAINFO",
+                      "value": "/etc/ssl/certs/source-ca/ca.crt"
+                    }
+                  ],
+                  "image": "example.invalid/opencode:reference",
+                  "name": "checkout",
+                  "resources": {
+                    "limits": {
+                      "cpu": "1000m",
+                      "memory": "2Gi"
+                    },
+                    "requests": {
+                      "cpu": "1000m",
+                      "memory": "2Gi"
+                    }
+                  },
+                  "securityContext": {
+                    "allowPrivilegeEscalation": false,
+                    "capabilities": {
+                      "drop": [
+                        "ALL"
+                      ]
+                    },
+                    "readOnlyRootFilesystem": true,
+                    "runAsNonRoot": true
+                  },
+                  "volumeMounts": [
+                    {
+                      "mountPath": "/workspace",
+                      "name": "workspace"
+                    },
+                    {
+                      "mountPath": "/tmp",
+                      "name": "checkout-tmp"
+                    },
+                    {
+                      "mountPath": "/home/workspace",
+                      "name": "checkout-home"
+                    },
+                    {
+                      "mountPath": "/etc/ssl/certs/source-ca",
+                      "name": "source-ca",
+                      "readOnly": true
+                    }
+                  ],
+                  "workingDir": "/workspace"
+                }
+              ],
+              "securityContext": {
+                "runAsNonRoot": true,
+                "seccompProfile": {
+                  "type": "RuntimeDefault"
+                }
+              },
+              "serviceAccountName": "workspace",
+              "volumes": [
+                {
+                  "name": "workspace",
+                  "persistentVolumeClaim": {
+                    "claimName": "workspace"
+                  }
+                },
+                {
+                  "emptyDir": {},
+                  "name": "checkout-tmp"
+                },
+                {
+                  "emptyDir": {},
+                  "name": "checkout-home"
+                },
+                {
+                  "emptyDir": {},
+                  "name": "runtime-tmp"
+                },
+                {
+                  "emptyDir": {},
+                  "name": "runtime-home"
+                },
+                {
+                  "configMap": {
+                    "items": [
+                      {
+                        "key": "ca.crt",
+                        "path": "ca.crt"
+                      }
+                    ],
+                    "name": "git-fixture-ca"
+                  },
+                  "name": "source-ca"
+                }
+              ]
+            }
+          }
+        }
+      }
+    ]
+  }
+}

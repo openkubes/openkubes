@@ -1,0 +1,23 @@
+apiVersion: workspace.openkubes.io/v0alpha1
+kind: DeveloperWorkspace
+metadata: {name: sample-developer-workspace}
+spec:
+  workspaceID: ws-sample-174
+  source: {repositoryRef: "sourceref:openkubes", revision: 86a0a5f}
+  runtime: {profile: opencode}
+  model: {profileRef: modelref:shared-inference}
+  storage: {mode: persistent, size: 5Gi}
+  resources: {cpu: 1000m, memory: 2Gi}
+  capabilities:
+    git: {reference: capabilityref:git-source}
+    inference: {reference: capabilityref:inference-shared}
+    mcp: {reference: capabilityref:mcp-diagnostics, approvedTools: [toolref:get-platform-health]}
+    kubernetes: {access: none}
+  credentials: [credentialref:workspace-git-auth]
+  verification: {command: [sh, verify.sh]}
+  lifecycle:
+    profile: persistent
+    idleTimeoutMinutes: 60
+    retentionMinutes: 1440
+    deletion: explicit
+    evidence: {exportBeforeCleanup: true}
