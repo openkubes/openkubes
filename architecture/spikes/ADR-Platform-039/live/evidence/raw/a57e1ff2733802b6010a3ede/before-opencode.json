@@ -1,0 +1,1 @@
+{"argv": ["kubectl", "exec", "pod/workspace-7b4b9569b7-f7snq", "-n", "dw-ok174-proof", "-c", "runtime", "--", "sh", "-ec", "sha256sum /workspace/README.md"], "returncode": 0, "stderr": "", "stdout": "3cc42a91edbdca93c983d7b83d5e8f9c670911798e0ba91b539796856e04c380  /workspace/README.md\n"}

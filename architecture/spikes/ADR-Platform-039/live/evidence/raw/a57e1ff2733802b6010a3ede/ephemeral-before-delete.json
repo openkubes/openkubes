@@ -1,0 +1,1 @@
+{"argv": ["kubectl", "get", "namespace", "dw-ok174-ephemeral", "-o", "json"], "returncode": 0, "stderr": "", "stdout": "{\"kind\": \"Namespace\", \"metadata\": {\"name\": \"dw-ok174-ephemeral\", \"uid\": \"16665157-9271-4a16-9684-0ae7d2f2075d\"}}"}

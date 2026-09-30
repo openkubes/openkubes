@@ -1,0 +1,1 @@
+{"argv": ["kubectl", "exec", "pod/workspace-7b4b9569b7-f7snq", "-n", "dw-ok174-proof", "-c", "runtime", "--", "git", "-C", "/workspace", "rev-parse", "HEAD"], "returncode": 0, "stderr": "", "stdout": "375ba7dfb4f4b49bdbd7a82c567873a59a59d37d\n"}

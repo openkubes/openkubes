@@ -1,0 +1,1 @@
+{"argv": ["kubectl", "exec", "pod/workspace-69f7589877-7v7bh", "-n", "dw-ok174-proof", "-c", "runtime", "--", "curl", "-kfsS", "https://git-fixture.ok174-proof-services.svc.cluster.local:8443/known-commit"], "returncode": 0, "stderr": "", "stdout": "375ba7dfb4f4b49bdbd7a82c567873a59a59d37d\n"}

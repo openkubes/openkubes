@@ -1,0 +1,1 @@
+{"argv": ["kubectl", "exec", "pod/workspace-769c666f5c-6wcj6", "-n", "dw-ok174-ephemeral", "-c", "runtime", "--", "sh", "-ec", "printf '%s\\n' 'a57e1ff2733802b6010a3ede' > /workspace/export.marker && sha256sum /workspace/export.marker"], "returncode": 0, "stderr": "", "stdout": "40490575416a37063ceb18fda7638138936fd25478bd78cf0dd2b2b85303c994  /workspace/export.marker\n"}

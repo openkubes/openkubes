@@ -1,0 +1,967 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: DeveloperWorkspaceLiveEvidence
+spec:
+  status: PASS
+  context: ok-obs-verify-admin@ok-obs-verify
+  cluster:
+    uidSha256: c0d2fe748219faf80f3f8a6858131aed4df2803dc1de1595a01112d9dd166bdc
+    version: v1.34.1
+  revision: 75e8acb57f631903195f4bc26a2a8845d8efda65
+  knownCommit: 375ba7dfb4f4b49bdbd7a82c567873a59a59d37d
+  model: ok174-gpt-oss:20b
+  imageReferences:
+    codex: registry.ok-shared.internal/openkubes/machine/staging/adr039-live/codex:ok174-proof@sha256:20bce2d1314cf02cf3cc3744b3a6e7f4d4b1f44c03822e1285b15226ac145459
+    fixture: registry.ok-shared.internal/openkubes/machine/staging/adr039-live/fixture:ok174-proof@sha256:1ea1d963004d1ac010a6b0c970e253a6f8ed20fcd6d8f60679ff4e6846a9e782
+    opencode: registry.ok-shared.internal/openkubes/machine/staging/adr039-live/opencode:ok174-proof@sha256:7dcc6cec7d8a918dd2d876a8faf72d765baeca61160c72611e82f8354f5ad5c2
+  imageDigests:
+    codex: sha256:20bce2d1314cf02cf3cc3744b3a6e7f4d4b1f44c03822e1285b15226ac145459
+    fixture: sha256:1ea1d963004d1ac010a6b0c970e253a6f8ed20fcd6d8f60679ff4e6846a9e782
+    opencode: sha256:7dcc6cec7d8a918dd2d876a8faf72d765baeca61160c72611e82f8354f5ad5c2
+  storageProfile:
+    name: local-path
+    provisioner: rancher.io/local-path
+    reclaimPolicy: Delete
+    volumeBindingMode: WaitForFirstConsumer
+    persistentCapacityEnforced: false
+  results:
+  - detail: workspace checkout equals fixture knownCommit
+    evidence:
+      captures:
+        head:
+          path: raw/a57e1ff2733802b6010a3ede/source-head.json
+          sha256: e02fdaccb4ba32e6904150a02ffbbb499989fb1e0a2b00d47f47105c117e192d
+      commit: 375ba7dfb4f4b49bdbd7a82c567873a59a59d37d
+    name: source-checkout
+    status: PASS
+  - detail: fixture test is initially red
+    evidence:
+      captures:
+        beforeMutation:
+          path: raw/a57e1ff2733802b6010a3ede/fixture-test-before-agent.json
+          sha256: 4c10fd2f8709e2e1b1aefe91362ac12798b9fcb5f42c187f8b2817b627bf12e0
+      test: README fixture
+    name: fixture-test
+    status: PASS
+  - detail: TLS source endpoint reports the checkout knownCommit; init checkout proves
+      CA trust
+    evidence:
+      captures:
+        knownCommit:
+          path: raw/a57e1ff2733802b6010a3ede/known-commit.json
+          sha256: a90f93a8236f543952a428f4be4086dc3e7ee93edd6ebff50fd69e9c57ae4991
+      commit: 375ba7dfb4f4b49bdbd7a82c567873a59a59d37d
+    name: known-commit-retrieval
+    status: PASS
+  - detail: no ambient Kubernetes API connectivity
+    evidence:
+      captures:
+        api:
+          path: raw/a57e1ff2733802b6010a3ede/kubernetes-denied.json
+          sha256: 993dc03f47b481236a2ddb57d6ed7f29234452ac1eba87bd20e11c9dfab050ba
+      curlExit: 28
+      httpCode: '000'
+    name: kubernetes-denied
+    status: PASS
+  - detail: token absent and can-i --list lacks broad authority
+    evidence:
+      captures:
+        canIList:
+          path: raw/a57e1ff2733802b6010a3ede/can-i-list.json
+          sha256: 3b2aced9d8dd1aba673cbaf69aa8911729351ae3f984c6dd2f7f6fadebbbb825
+        mount:
+          path: raw/a57e1ff2733802b6010a3ede/serviceaccount-denied.json
+          sha256: dc4d2776f02a449d9f1ebbf5d110c1d98bbd7ac1520c0cc7025f5580be0964ca
+      checks: 2
+    name: serviceaccount-denied
+    status: PASS
+  - detail: Git secret is checkout-init-only
+    evidence:
+      runtimeHasSecret: false
+      secretRef: workspace-git-auth
+    name: secret-reference
+    status: PASS
+  - detail: control proves API transport, credential rejection, and Git 8080, MCP
+      8081 and denied fixture 8081 answers before denial claims
+    evidence:
+      apiHttpCode: '401'
+      approvedFixtureImage: registry.ok-shared.internal/openkubes/machine/staging/adr039-live/fixture:ok174-proof@sha256:1ea1d963004d1ac010a6b0c970e253a6f8ed20fcd6d8f60679ff4e6846a9e782
+      captures:
+        denied:
+          path: raw/a57e1ff2733802b6010a3ede/control-denied.json
+          sha256: 99f5c086b5ab4581de820cd7fa3240a45d286de729a261fd709ea2b7d8c1a168
+        git-auth-absent:
+          path: raw/a57e1ff2733802b6010a3ede/control-git-auth-absent.json
+          sha256: 1d3111f8332d3e0ad05db75c250fe1ad74199444f04471625646ee0c5a109450
+        git-auth-wrong:
+          path: raw/a57e1ff2733802b6010a3ede/control-git-auth-wrong.json
+          sha256: e985c71c446c661271bfc7026beffd793fe192a70e673b3997f714193e0d54bb
+        git-undeclared:
+          path: raw/a57e1ff2733802b6010a3ede/control-git-undeclared.json
+          sha256: c27f20c92972e5bda03c2d410b9a118954a1bd8d30550780a0f461aedaab9fd3
+        kubernetes-api:
+          path: raw/a57e1ff2733802b6010a3ede/control-kubernetes-api.json
+          sha256: d6346a52ff288994081fe44af940b6a2f47c8e420678d7f1eea176eae0a9e69b
+        mcp:
+          path: raw/a57e1ff2733802b6010a3ede/control-mcp.json
+          sha256: b1693963dda396bb38a6907a25d4f0d0ff1e2111a1294670a625502897c3437a
+        pod:
+          path: raw/a57e1ff2733802b6010a3ede/network-control.json
+          sha256: aae6e7d31b6a66852eb260393e3407f48ce34a3a6308c6e76173da6745899623
+      controlPodUID: 4069401e-9fe2-4af5-8a02-643027f61893
+      fixtureImageID: registry.ok-shared.internal/openkubes/machine/staging/adr039-live/fixture@sha256:1ea1d963004d1ac010a6b0c970e253a6f8ed20fcd6d8f60679ff4e6846a9e782
+    name: denied-positive-control
+    status: PASS
+  - detail: declared TLS Git, MCP and inference connections work
+    evidence:
+      captures:
+        git:
+          path: raw/a57e1ff2733802b6010a3ede/allowed-git.json
+          sha256: a90f93a8236f543952a428f4be4086dc3e7ee93edd6ebff50fd69e9c57ae4991
+        mcp:
+          path: raw/a57e1ff2733802b6010a3ede/allowed-mcp.json
+          sha256: c706d8eb0f63c0647a2bd9c9c378bc0d7f72359822202a5b9ed34cd8a90497f3
+        ollama:
+          path: raw/a57e1ff2733802b6010a3ede/allowed-ollama.json
+          sha256: d6296d81c5177b97c63089f8216b54eb65e3a3fa261e27f8525e1b7be6f8e83c
+      inferenceEndpoint: http://192.168.100.202:11434
+      ports:
+      - 8443
+      - 11434
+      - 8081
+    name: allowed-connectivity
+    status: PASS
+  - detail: undeclared destination was connection-denied
+    evidence:
+      captures:
+        curl:
+          path: raw/a57e1ff2733802b6010a3ede/denied-egress.json
+          sha256: ad5fd755871359fa9c14dae0798d0a832a250a3c5495b245c733d2eccbffe3d0
+      endpoint: http://denied-fixture.ok174-proof-services.svc.cluster.local:8081
+    name: denied-egress
+    status: PASS
+  - detail: undeclared destination was connection-denied
+    evidence:
+      captures:
+        curl:
+          path: raw/a57e1ff2733802b6010a3ede/undeclared-port.json
+          sha256: 6c390cc1faa7a4150e928fa85f6dd46306f4c219cf2d2d6b5dbb9970ecb79179
+      endpoint: http://git-fixture.ok174-proof-services.svc.cluster.local:8080
+      ports:
+      - 8080
+    name: undeclared-port-denied
+    status: PASS
+  - detail: oversized second PVC rejected by requests.storage quota
+    evidence:
+      captures:
+        apply:
+          path: raw/a57e1ff2733802b6010a3ede/quota-rejection.json
+          sha256: ad155a500e297ada951e0c461d506a5eb488b1ac729b0167945fec28bdf72a4b
+      exceededResource: requests.storage
+      resourceQuota: workspace-bounds
+    name: quota-rejection
+    status: PASS
+  - detail: agent mutation, exact tool event, independent verification and image binding
+      observed
+    evidence:
+      afterSha256: 5919c31a5e51e35489eacc0e27b56043cdf75389ac806319d13c4f47e680a2bd
+      agent:
+        editObserved: true
+        eventCount: 11
+        typedToolEventCount: 2
+        verificationCommand: sh verify.sh
+      approvedImage: registry.ok-shared.internal/openkubes/machine/staging/adr039-live/opencode:ok174-proof@sha256:7dcc6cec7d8a918dd2d876a8faf72d765baeca61160c72611e82f8354f5ad5c2
+      beforeSha256: 3cc42a91edbdca93c983d7b83d5e8f9c670911798e0ba91b539796856e04c380
+      captures:
+        agent:
+          path: raw/a57e1ff2733802b6010a3ede/agent-opencode.json
+          sha256: a30441bec09b64b25709c3252de704415f74a80d3e8c032f97645e1dbb946b59
+        before:
+          path: raw/a57e1ff2733802b6010a3ede/before-opencode.json
+          sha256: a6bbadd40ba85543560f29809df1043dd78150c56154a81ca01855d0a5984c37
+        diff:
+          path: raw/a57e1ff2733802b6010a3ede/diff-opencode.json
+          sha256: 301950e70361380fbbee36d8475f8722c274e30c182e786dda54825d52c96fd9
+        logs:
+          checkout-current:
+            path: raw/a57e1ff2733802b6010a3ede/logs-opencode-checkout-current.json
+            sha256: 41d56d7d4deb68512df533fe12267307d821c1e1a3927af4cfdbb3100218eb05
+          pod:
+            path: raw/a57e1ff2733802b6010a3ede/logs-opencode-pod.json
+            sha256: 0b5332c7e510757e57f5ba3be7e891a7fc4b26e73942a9cbf8f1ede4513448fe
+          runtime-current:
+            path: raw/a57e1ff2733802b6010a3ede/logs-opencode-runtime-current.json
+            sha256: 6a702a09940a1a8c546433f134dcede6d20039ab00fe1b165197297652261dd0
+        marker:
+          path: raw/a57e1ff2733802b6010a3ede/marker-opencode.json
+          sha256: 94cd47a0c84bb7ab87a8893a25004e9d9ad01218c82b8802df63782017c1e0fd
+        verification:
+          path: raw/a57e1ff2733802b6010a3ede/verify-opencode.json
+          sha256: 827fcfa5075db283d712881473e5daddac683609905daa9f653e5ca2871d82cb
+        version:
+          path: raw/a57e1ff2733802b6010a3ede/version-opencode.json
+          sha256: 1e8831c93fb4723697194a3a47a53083cbec6ce8355730efdbee13e29093d97d
+      imageID: registry.ok-shared.internal/openkubes/machine/staging/adr039-live/opencode@sha256:7dcc6cec7d8a918dd2d876a8faf72d765baeca61160c72611e82f8354f5ad5c2
+      markerSha256: 5919c31a5e51e35489eacc0e27b56043cdf75389ac806319d13c4f47e680a2bd
+      podName: workspace-7b4b9569b7-f7snq
+      podUID: 0394066e-9ce8-40dc-ad0e-c6443b81b718
+      readback:
+        captures:
+          Deployment:
+            path: raw/a57e1ff2733802b6010a3ede/readback-opencode-deployment.json
+            sha256: 9de2e20572453c87f2289a04a54bee4eeaaefb275c84209499b5a895e2700289
+          LimitRange:
+            path: raw/a57e1ff2733802b6010a3ede/readback-opencode-limitrange.json
+            sha256: f3890deda822db310eb49eec77f0f98ad9e46e04dc09cfca60b1d742d3980820
+          Namespace:
+            path: raw/a57e1ff2733802b6010a3ede/readback-opencode-namespace.json
+            sha256: 62cff4266af1a047a12828f5fbf13f985e8d46521a998110ffd67cebd6dffd31
+          NetworkPolicy:
+            path: raw/a57e1ff2733802b6010a3ede/readback-opencode-networkpolicy.json
+            sha256: cb43d9e3f0468da8e090527c09267490bb2311dbadf1544ac07ef95c5b2208ed
+          PersistentVolumeClaim:
+            path: raw/a57e1ff2733802b6010a3ede/readback-opencode-persistentvolumeclaim.json
+            sha256: 25eb10addbcf48b2f1bdd260be0ffaa328cc244579d621ab132d090c811d51c6
+          ResourceQuota:
+            path: raw/a57e1ff2733802b6010a3ede/readback-opencode-resourcequota.json
+            sha256: 9154da937994bece5a9b382f84940f9c5fc334d74504ebe52f48dbf1e3def076
+          ServiceAccount:
+            path: raw/a57e1ff2733802b6010a3ede/readback-opencode-serviceaccount.json
+            sha256: cd723723153655e38eaac4f197ddaeb9fdf9236513a49e1f441e1e6c82c8c02d
+        hashes:
+          Deployment/workspace: 5232cf1571cdc07abef1a4a81d24bce1531ce30652c3f2c2dbee4dfff76462d0
+          LimitRange/workspace-defaults: 1089ea28a5996abcab2368948e84fb4a2b9150c377929ebbba3093bb72dcc6ed
+          Namespace/dw-ok174-proof: 1baf7ddfe042aeb996261a6d299507e5d42f225de5ab79147094f9ace20aad65
+          NetworkPolicy/allow-git-source: f58f9b681600e7088ebd3d7b2fbca404523d219b88f255714bd85f771d80c23d
+          NetworkPolicy/allow-inference-shared: 2e9afd3fa824f8c005fef37596cc913e6620ed29b4a55c04c14e6feefd5d67c3
+          NetworkPolicy/allow-kube-dns: 7848294d5b198baa8dd1ee56245dd769e9dc3be08edb7e7b0ce4fc323cc0b923
+          NetworkPolicy/allow-mcp-diagnostics: f06c409f3344db4cd2298719e9d0ced92948132fa63757199cecc5470b20cb71
+          NetworkPolicy/default-deny: b79ad0eeac42b29c56e83bb44c6223ed9e5f9b1f7b3446f5d7cf5880c11c7b4d
+          PersistentVolumeClaim/workspace: 8500364938f12f320304317869ae8aafb6c6c011b217b466a25baa67fdf9b692
+          ResourceQuota/workspace-bounds: 599804e3768a1ac53a4027b44abacbaa889787e316e881d7994a6fb8926a3fad
+          ServiceAccount/workspace: 9fc3a8cce789021a62eea87c81af93ebb11c359a3097af6d5c2c1362044caef2
+      runtimeVersion: 1.18.33
+      security:
+        allowedPorts:
+        - 8443
+        - 11434
+        - 8081
+        apiDenied: true
+        captures:
+          allowed-git:
+            path: raw/a57e1ff2733802b6010a3ede/allowed-git-opencode.json
+            sha256: a90f93a8236f543952a428f4be4086dc3e7ee93edd6ebff50fd69e9c57ae4991
+          allowed-mcp:
+            path: raw/a57e1ff2733802b6010a3ede/allowed-mcp-opencode.json
+            sha256: c706d8eb0f63c0647a2bd9c9c378bc0d7f72359822202a5b9ed34cd8a90497f3
+          allowed-ollama:
+            path: raw/a57e1ff2733802b6010a3ede/allowed-ollama-opencode.json
+            sha256: d6296d81c5177b97c63089f8216b54eb65e3a3fa261e27f8525e1b7be6f8e83c
+          api:
+            path: raw/a57e1ff2733802b6010a3ede/kubernetes-denied-opencode.json
+            sha256: 66c3398f81cb4a2f361bc6cfe8be961ecca464a55312963e740332da5735ce12
+          canIList:
+            path: raw/a57e1ff2733802b6010a3ede/can-i-list-opencode.json
+            sha256: 3b2aced9d8dd1aba673cbaf69aa8911729351ae3f984c6dd2f7f6fadebbbb825
+          canaryScan:
+            path: raw/a57e1ff2733802b6010a3ede/canary-scan-opencode.json
+            sha256: 5a3bd7562a4103e67b04a432a4369d378f58753528e9b58aa2843d49e45cbc27
+          cgroupLimits:
+            path: raw/a57e1ff2733802b6010a3ede/cgroup-limits-opencode.json
+            sha256: 396b2fbf3671d7bcad0a7892d17c869f82b480cde068e5cbf1fb6b80c1fff5f8
+          credentialAbsence:
+            path: raw/a57e1ff2733802b6010a3ede/credential-absence-opencode.json
+            sha256: a3c978496c84fb56bd6504147b7d16754699d4d368f2574fe4ab0db35c100e15
+          denied:
+            path: raw/a57e1ff2733802b6010a3ede/denied-opencode.json
+            sha256: c950a9ef9e45cef5749340ce178d5844cd7342f02893c83fcef673b3483d47c8
+          environment:
+            path: raw/a57e1ff2733802b6010a3ede/environment-opencode.json
+            sha256: 78ff0c871e4211171ae018089efe9a00792c832aaa7cfd65a5c0be8608e6b043
+          serviceAccountMount:
+            path: raw/a57e1ff2733802b6010a3ede/serviceaccount-mount-opencode.json
+            sha256: dc4d2776f02a449d9f1ebbf5d110c1d98bbd7ac1520c0cc7025f5580be0964ca
+          undeclared:
+            path: raw/a57e1ff2733802b6010a3ede/undeclared-opencode.json
+            sha256: ee479f9091825d393736377fefcd369d3ce3245c02c705f9b0514a21b5a1970d
+        cgroupLimits:
+        - '1073741824'
+        - '50000'
+        - '100000'
+        credentialAbsent: true
+        deniedPort: 8081
+        rbacDiscoveryOnly: true
+        serviceAccountTokenAbsent: true
+        undeclaredPort: 8080
+      verificationCommand: sh verify.sh
+    name: runtime-task-opencode
+    status: PASS
+  - detail: agent mutation, exact tool event, independent verification and image binding
+      observed
+    evidence:
+      afterSha256: 5919c31a5e51e35489eacc0e27b56043cdf75389ac806319d13c4f47e680a2bd
+      agent:
+        editObserved: true
+        eventCount: 16
+        typedToolEventCount: 2
+        verificationCommand: sh verify.sh
+      approvedImage: registry.ok-shared.internal/openkubes/machine/staging/adr039-live/codex:ok174-proof@sha256:20bce2d1314cf02cf3cc3744b3a6e7f4d4b1f44c03822e1285b15226ac145459
+      beforeSha256: 3cc42a91edbdca93c983d7b83d5e8f9c670911798e0ba91b539796856e04c380
+      captures:
+        agent:
+          path: raw/a57e1ff2733802b6010a3ede/agent-codex.json
+          sha256: f4e45a6bb513ef9f763ac4bed359870405a17b55f13bf7315baa69a79fde10d0
+        before:
+          path: raw/a57e1ff2733802b6010a3ede/before-codex.json
+          sha256: d65048d3b2a403f1cca3935cde79457d3d8a2766607152ffac57df7343660a65
+        diff:
+          path: raw/a57e1ff2733802b6010a3ede/diff-codex.json
+          sha256: f5e136b1490f77bd62745ccd004963bd6b1c489d78dc08d32088ddf8a714e553
+        logs:
+          checkout-current:
+            path: raw/a57e1ff2733802b6010a3ede/logs-codex-checkout-current.json
+            sha256: 835326999b25a3098300ca752ec9d4dee90a131d9a0a1cecf2d6ed6648fd8f13
+          pod:
+            path: raw/a57e1ff2733802b6010a3ede/logs-codex-pod.json
+            sha256: 6aaa9b7462d5584d751aab13d5191c0f0540684bc6008f6264ad2ba4d809fcf7
+          runtime-current:
+            path: raw/a57e1ff2733802b6010a3ede/logs-codex-runtime-current.json
+            sha256: 2a9fe56c3107ec1dc38471019f15713ba287e0d7d36f5d94bb61d6548e05d15b
+        marker:
+          path: raw/a57e1ff2733802b6010a3ede/marker-codex.json
+          sha256: 716e9204c7e01eb5228c9f9b9b7e0412b7f894d0d2e05c202b9b2278a8f453b4
+        verification:
+          path: raw/a57e1ff2733802b6010a3ede/verify-codex.json
+          sha256: 65e3088fade8e371ab799feffd8c846af6a2507c264f785d8fb926995f601bc8
+        version:
+          path: raw/a57e1ff2733802b6010a3ede/version-codex.json
+          sha256: b014e02d264e0aa10f18e9a168f12e6c3400a80844536f3a42ac1ac26310f831
+      imageID: registry.ok-shared.internal/openkubes/machine/staging/adr039-live/codex@sha256:20bce2d1314cf02cf3cc3744b3a6e7f4d4b1f44c03822e1285b15226ac145459
+      markerSha256: 5919c31a5e51e35489eacc0e27b56043cdf75389ac806319d13c4f47e680a2bd
+      podName: workspace-69f7589877-7v7bh
+      podUID: c2387d6b-ce2a-4d7b-91d7-9d3ec56cc6ec
+      readback:
+        captures:
+          Deployment:
+            path: raw/a57e1ff2733802b6010a3ede/readback-codex-deployment.json
+            sha256: a428c79a642234cb61d62f6e487dac4930f04c6b96393adeb6306b035d15e238
+          LimitRange:
+            path: raw/a57e1ff2733802b6010a3ede/readback-codex-limitrange.json
+            sha256: f3890deda822db310eb49eec77f0f98ad9e46e04dc09cfca60b1d742d3980820
+          Namespace:
+            path: raw/a57e1ff2733802b6010a3ede/readback-codex-namespace.json
+            sha256: 62cff4266af1a047a12828f5fbf13f985e8d46521a998110ffd67cebd6dffd31
+          NetworkPolicy:
+            path: raw/a57e1ff2733802b6010a3ede/readback-codex-networkpolicy.json
+            sha256: cb43d9e3f0468da8e090527c09267490bb2311dbadf1544ac07ef95c5b2208ed
+          PersistentVolumeClaim:
+            path: raw/a57e1ff2733802b6010a3ede/readback-codex-persistentvolumeclaim.json
+            sha256: 25eb10addbcf48b2f1bdd260be0ffaa328cc244579d621ab132d090c811d51c6
+          ResourceQuota:
+            path: raw/a57e1ff2733802b6010a3ede/readback-codex-resourcequota.json
+            sha256: 9154da937994bece5a9b382f84940f9c5fc334d74504ebe52f48dbf1e3def076
+          ServiceAccount:
+            path: raw/a57e1ff2733802b6010a3ede/readback-codex-serviceaccount.json
+            sha256: cd723723153655e38eaac4f197ddaeb9fdf9236513a49e1f441e1e6c82c8c02d
+        hashes:
+          Deployment/workspace: caa5b0701e1d66892fbdf9c7808d2133258cb97a5296999f1e1040a6d92484c6
+          LimitRange/workspace-defaults: 1089ea28a5996abcab2368948e84fb4a2b9150c377929ebbba3093bb72dcc6ed
+          Namespace/dw-ok174-proof: 1baf7ddfe042aeb996261a6d299507e5d42f225de5ab79147094f9ace20aad65
+          NetworkPolicy/allow-git-source: f58f9b681600e7088ebd3d7b2fbca404523d219b88f255714bd85f771d80c23d
+          NetworkPolicy/allow-inference-shared: 2e9afd3fa824f8c005fef37596cc913e6620ed29b4a55c04c14e6feefd5d67c3
+          NetworkPolicy/allow-kube-dns: 7848294d5b198baa8dd1ee56245dd769e9dc3be08edb7e7b0ce4fc323cc0b923
+          NetworkPolicy/allow-mcp-diagnostics: f06c409f3344db4cd2298719e9d0ced92948132fa63757199cecc5470b20cb71
+          NetworkPolicy/default-deny: b79ad0eeac42b29c56e83bb44c6223ed9e5f9b1f7b3446f5d7cf5880c11c7b4d
+          PersistentVolumeClaim/workspace: 8500364938f12f320304317869ae8aafb6c6c011b217b466a25baa67fdf9b692
+          ResourceQuota/workspace-bounds: 599804e3768a1ac53a4027b44abacbaa889787e316e881d7994a6fb8926a3fad
+          ServiceAccount/workspace: 9fc3a8cce789021a62eea87c81af93ebb11c359a3097af6d5c2c1362044caef2
+      runtimeVersion: codex-cli 0.158.0
+      security:
+        allowedPorts:
+        - 8443
+        - 11434
+        - 8081
+        apiDenied: true
+        captures:
+          allowed-git:
+            path: raw/a57e1ff2733802b6010a3ede/allowed-git-codex.json
+            sha256: a57301dc4cb9d78b95a411ba39a84ef269c0bfe43774173d2a94ecc8f6312ade
+          allowed-mcp:
+            path: raw/a57e1ff2733802b6010a3ede/allowed-mcp-codex.json
+            sha256: fdccf8bff8470232c0aa2f678dc5a2ff81736de191c796d468d5b842ed880870
+          allowed-ollama:
+            path: raw/a57e1ff2733802b6010a3ede/allowed-ollama-codex.json
+            sha256: 64c54794f24c8f14746ff42dfd50e78916827a2fcc17336a01ca4fe8e1ce0038
+          api:
+            path: raw/a57e1ff2733802b6010a3ede/kubernetes-denied-codex.json
+            sha256: 62c2e6d5cfffaeee899631205e55accb19a342180167849bf8ee1b1f238f4278
+          canIList:
+            path: raw/a57e1ff2733802b6010a3ede/can-i-list-codex.json
+            sha256: 3b2aced9d8dd1aba673cbaf69aa8911729351ae3f984c6dd2f7f6fadebbbb825
+          canaryScan:
+            path: raw/a57e1ff2733802b6010a3ede/canary-scan-codex.json
+            sha256: 6894fd2f78aa2f040b807b46e8570a0829ba359156ff2079399a5783cacbaf76
+          cgroupLimits:
+            path: raw/a57e1ff2733802b6010a3ede/cgroup-limits-codex.json
+            sha256: ae02f2c98bb91848ad551ce3aa8ac99d2d131bd8ba412354583896a2f0a36aad
+          credentialAbsence:
+            path: raw/a57e1ff2733802b6010a3ede/credential-absence-codex.json
+            sha256: a5439c7a98c90de85c8e8913724f95834a056151492d2687edebc311420ae499
+          denied:
+            path: raw/a57e1ff2733802b6010a3ede/denied-codex.json
+            sha256: 4b3a33f176c081ea4a1e965baa66242a79b8209ffe955eb84d35bce57a5b4987
+          environment:
+            path: raw/a57e1ff2733802b6010a3ede/environment-codex.json
+            sha256: 26940a4fbdc06ccf6a8e213f7be61ce325f653f959d193fc4e18337970e056e7
+          serviceAccountMount:
+            path: raw/a57e1ff2733802b6010a3ede/serviceaccount-mount-codex.json
+            sha256: 5548658bab937a2239502ab95d6be91b932786fdea502676e070bc67de039286
+          undeclared:
+            path: raw/a57e1ff2733802b6010a3ede/undeclared-codex.json
+            sha256: a74845ac5a1d45371000193302c3dbbd84fa6b9f9054dd2c31e309bf1f0f9ded
+        cgroupLimits:
+        - '1073741824'
+        - '50000'
+        - '100000'
+        credentialAbsent: true
+        deniedPort: 8081
+        rbacDiscoveryOnly: true
+        serviceAccountTokenAbsent: true
+        undeclaredPort: 8080
+      verificationCommand: sh verify.sh
+    name: runtime-task-codex
+    status: PASS
+  - detail: replacement retains marker and PVC/PV identity
+    evidence:
+      captures:
+        fixtureReset:
+          path: raw/a57e1ff2733802b6010a3ede/fixture-reset-before-codex.json
+          sha256: 3ec8d4dafbd4c9c7e1b3fb691d7fba442fe174b3632fe9ed6e5b640474364c39
+        markerRead:
+          path: raw/a57e1ff2733802b6010a3ede/persistence-marker-read.json
+          sha256: 6c317f1454563400a99bb399d080fca9a65f1f79ba5d1bb5463ccbe4ef52f5d9
+        markerWrite:
+          path: raw/a57e1ff2733802b6010a3ede/persistence-marker-write.json
+          sha256: 3cfeccc8f4e52b85b4c5aa0775c1c11e63ca406637e1c74e750d269b3ac325ce
+        pvAfter:
+          path: raw/a57e1ff2733802b6010a3ede/pv-after.json
+          sha256: f065a218a1d842fbcbc947ea9fcb93c746debeb0222dd47314d32e30e4d5b043
+        pvBefore:
+          path: raw/a57e1ff2733802b6010a3ede/pv-before.json
+          sha256: f065a218a1d842fbcbc947ea9fcb93c746debeb0222dd47314d32e30e4d5b043
+        pvcAfter:
+          path: raw/a57e1ff2733802b6010a3ede/pvc-after.json
+          sha256: 5f04a60ab879a50939ffd7c7c19af003e7c1acf121be91022c12a7970b451035
+        pvcBefore:
+          path: raw/a57e1ff2733802b6010a3ede/pvc-before.json
+          sha256: 5f04a60ab879a50939ffd7c7c19af003e7c1acf121be91022c12a7970b451035
+      markerSha256: 40490575416a37063ceb18fda7638138936fd25478bd78cf0dd2b2b85303c994
+      newPodUID: c2387d6b-ce2a-4d7b-91d7-9d3ec56cc6ec
+      oldPodUID: 0394066e-9ce8-40dc-ad0e-c6443b81b718
+      pvUID: 52e28a35-bec3-4a20-b7a7-e938a0e7aba4
+      pvcUID: b90bc85a-72a5-4007-bad0-d112b426b783
+    name: persistent-marker-survives-replacement
+    status: PASS
+  - detail: bounded scan found no canary; checkout-only writable mounts are not shared
+      with runtime
+    evidence:
+      canarySha256: 5d1ab1ee00e88d6ea42655d4d3b149983bad2a8de9c210e6c9145a30d09fe49d
+      captures:
+        runtimeWritableMounts:
+          path: raw/a57e1ff2733802b6010a3ede/runtime-writable-canary-scan.json
+          sha256: 6894fd2f78aa2f040b807b46e8570a0829ba359156ff2079399a5783cacbaf76
+      scanned: bounded-output-logs-runtime-writable-mounts-render-argv
+    name: secret-no-leak
+    status: PASS
+  - detail: workspace 8Mi emptyDir limit evicted pod, marker exported, namespace UID-deleted
+    evidence:
+      belowLimitReady: true
+      captures:
+        beforeDelete:
+          path: raw/a57e1ff2733802b6010a3ede/ephemeral-before-delete.json
+          sha256: 15b4ec84a35e602646a20ed83e172a01c82e6d92afac67a1346c0d370c6527a1
+        canaryScan:
+          path: raw/a57e1ff2733802b6010a3ede/ephemeral-canary-scan.json
+          sha256: f4b4653c89a82879ebca38e15b3014cb867b521fa466f6c4da4e68345ed61d41
+        delete:
+          path: raw/a57e1ff2733802b6010a3ede/ephemeral-delete.json
+          sha256: 104c3dfb4d90a5c016d9f10afcf7fb256e83c67326158d650774ff7fa43d003a
+        evicted:
+          path: raw/a57e1ff2733802b6010a3ede/ephemeral-evicted.json
+          sha256: 72ed4f14270763256f48b82651f964d834e043cdb00905cd62b13641ded308cd
+        export:
+          path: raw/a57e1ff2733802b6010a3ede/ephemeral-export.json
+          sha256: 06f28b3761ec46b86c17434dff3f13c78a1327c55a41961f9c9c6b64dc2eeeba
+        exportReadBack:
+          path: raw/a57e1ff2733802b6010a3ede/ephemeral-export-readback.json
+          sha256: 10004f5a9f95e166b51622e3a302516de5e1dc841a7d9bd766dd41612082f8f9
+        fill:
+          path: raw/a57e1ff2733802b6010a3ede/ephemeral-fill.json
+          sha256: 31fa7088c4e52546892d7e9bf6698b4c466152e8fc5a582c70d21ae88e8fa96c
+        logs:
+          checkout-current:
+            path: raw/a57e1ff2733802b6010a3ede/logs-ephemeral-checkout-current.json
+            sha256: dbbc4c56f8eae0de07f4b711af9fa1fbeef6d6604528e54b5f5de60a74dd50ec
+          pod:
+            path: raw/a57e1ff2733802b6010a3ede/logs-ephemeral-pod.json
+            sha256: 2162251c0041bde073b42032f3261ce13057140cc5460e9da58c06709c6426e9
+          runtime-current:
+            path: raw/a57e1ff2733802b6010a3ede/logs-ephemeral-runtime-current.json
+            sha256: 72204323133f798f928b3c32f9b80b38ed07a3d857c6be507ce8e0c8bf10c303
+        namespaceAbsent:
+          path: raw/a57e1ff2733802b6010a3ede/ephemeral-namespace-absent.json
+          sha256: 0e42b4213c155516f202418c4f99ebb051a7d965ee2f3a3e1a433c2cab368ff0
+      evicted: true
+      evictionMessage: 'Usage of EmptyDir volume "workspace" exceeds the limit "8Mi". '
+      exportReadBack: true
+      markerSha256: 40490575416a37063ceb18fda7638138936fd25478bd78cf0dd2b2b85303c994
+      namespaceAbsent: true
+      namespaceUID: 16665157-9271-4a16-9684-0ae7d2f2075d
+      podName: workspace-769c666f5c-6wcj6
+      readback:
+        captures:
+          Deployment:
+            path: raw/a57e1ff2733802b6010a3ede/readback-ephemeral-deployment.json
+            sha256: e1898751c808baa95e3cb62fa1e265cf91185102aad18352d6a82d7d6c2cedb5
+          LimitRange:
+            path: raw/a57e1ff2733802b6010a3ede/readback-ephemeral-limitrange.json
+            sha256: 81440f98b58a1130cf9eac89bd23993bcd9b843c6eb8af5b73dd3618dcfbdf45
+          Namespace:
+            path: raw/a57e1ff2733802b6010a3ede/readback-ephemeral-namespace.json
+            sha256: 4f13c623ff7e38acbb0e561f596be25760fbd552550a4c3e25d27a70cdafe2fc
+          NetworkPolicy:
+            path: raw/a57e1ff2733802b6010a3ede/readback-ephemeral-networkpolicy.json
+            sha256: 993b78ecc70dc5378fd92b1692476ebb39a783f983ce2d7e0b2d646ffb8d0025
+          ResourceQuota:
+            path: raw/a57e1ff2733802b6010a3ede/readback-ephemeral-resourcequota.json
+            sha256: 8ccd26b53c716efd1a0d8c13bb0b4dab4df1e531e8399eb5fe69687df6baceab
+          ServiceAccount:
+            path: raw/a57e1ff2733802b6010a3ede/readback-ephemeral-serviceaccount.json
+            sha256: 9e61c7867161e64a768012add650bf5db1f3d38f41a8ce19d757f4e2efba4c8d
+        hashes:
+          Deployment/workspace: 06e88e95389da79fe9d1aeebfa5856a56050d5a8cd41cf11320aac63343f7591
+          LimitRange/workspace-defaults: cb09458e384428c3f0b63682d75f40e9fba92850e0ad3b1e7793d9fe307eacbb
+          Namespace/dw-ok174-ephemeral: c635af84bf1790cf3145cd7ce5cbbfa6704e1600d98e11e2839cf85a0daeb1c3
+          NetworkPolicy/allow-git-source: 2aae9cd06a18304b48595072dfe5e2e3ca2557f3d3e7d21e4d08da48997a19d7
+          NetworkPolicy/allow-inference-shared: 86f6a898c60a21afc1ac41090b328d83bf6722964aa503aa5cbcaa1b9900b8e8
+          NetworkPolicy/allow-kube-dns: f5e72624880af9ee7fdd6c18ce8dfe6859a2a23884a21f2d99d4ae8ebf50a2bb
+          NetworkPolicy/allow-mcp-diagnostics: e4c19603137e8315b8c45d287595372da43289d9e7ee989da08803343ecde6a2
+          NetworkPolicy/default-deny: 8e8339dcc441b59045184d31256cc6c0ce3aff5cea6b86f9e6886d17427eaccd
+          ResourceQuota/workspace-bounds: f1e2733e073dfc4305e4124e2799bc80a036a7d0c935019259d85fb8b10b1d35
+          ServiceAccount/workspace: 619c7d7fb5afad35cefc61c18907afce3b6acb274b2aab9c029dc2fed4464e67
+      sizeLimit: 8Mi
+    name: ephemeral-export-cleanup
+    status: PASS
+  - detail: state-recorded namespace/PV UIDs removed
+    evidence:
+      captures:
+        after-dw-ok174-proof:
+          path: raw/a57e1ff2733802b6010a3ede/cleanup-after-dw-ok174-proof.json
+          sha256: fc8b95213dcae3fc4ae8e5f6e3a6e8eb2fc5997612e126e939b7e5722197a03b
+        after-ok174-evidence:
+          path: raw/a57e1ff2733802b6010a3ede/cleanup-after-ok174-evidence.json
+          sha256: ddd421ad708a13eaeccf5f43a5d42feb24138812f76ee4e1545af5486266402f
+        after-ok174-proof-services:
+          path: raw/a57e1ff2733802b6010a3ede/cleanup-after-ok174-proof-services.json
+          sha256: 73743214dbedfb16cdac3a79e05de20a6b0cadb599f230552f689cc57dda7980
+        before-dw-ok174-proof:
+          path: raw/a57e1ff2733802b6010a3ede/cleanup-before-dw-ok174-proof.json
+          sha256: a1214f21092b575588c51a3bdf2b0d0f8601c06f0900ecc478e3d47bdae77fc8
+        before-ok174-evidence:
+          path: raw/a57e1ff2733802b6010a3ede/cleanup-before-ok174-evidence.json
+          sha256: 0b1f134275e67eb0379c7ba4a1d796441c4a07a4f631bb6b1e5fda73fc1d1b3f
+        before-ok174-proof-services:
+          path: raw/a57e1ff2733802b6010a3ede/cleanup-before-ok174-proof-services.json
+          sha256: 70ac1d3d4cba6ce049dee96b42eaf16fcbb01a672b2ff2d00338a731e5a174ab
+        delete-dw-ok174-proof:
+          path: raw/a57e1ff2733802b6010a3ede/cleanup-delete-dw-ok174-proof.json
+          sha256: d2206d8d990663bc18254c3accaaf68953ac47f0947dd284a322f4c2441b8e81
+        delete-ok174-evidence:
+          path: raw/a57e1ff2733802b6010a3ede/cleanup-delete-ok174-evidence.json
+          sha256: 7c883105abd468c1883a423a8d0d058515a4f3f83ed6501a47c2e90228eddae7
+        delete-ok174-proof-services:
+          path: raw/a57e1ff2733802b6010a3ede/cleanup-delete-ok174-proof-services.json
+          sha256: 92c5933190830ff35e6b5d84cf51c22febfa7bea062071e68c596f57a2e65cf9
+        pvs:
+          path: raw/a57e1ff2733802b6010a3ede/cleanup-pvs.json
+          sha256: fc8c215ac8e069d866d8d8d8f03343a9f7ff9e0dbf753cce3f5ed41be30b3575
+      deletedNamespaceUIDs:
+        dw-ok174-proof: 9ce7e44a-85f0-477d-92ea-23ba07de6a79
+        ok174-evidence: 1d213d60-7bb3-4f13-87fc-9a3d260e2bd7
+        ok174-proof-services: 5693002d-e361-476c-b2cb-0a4136a131e7
+      reclaimedPVUID: 52e28a35-bec3-4a20-b7a7-e938a0e7aba4
+    name: cleanup
+    status: PASS
+  - detail: normalized cluster health unchanged
+    evidence:
+      afterSha256: 46b5e8cabb442f9739b6b996fd8ac4f4131ffdb9d0f477078690ea6a08f0f229
+      beforeSha256: 46b5e8cabb442f9739b6b996fd8ac4f4131ffdb9d0f477078690ea6a08f0f229
+      captures:
+        after:
+          path: raw/a57e1ff2733802b6010a3ede/cluster-health-after.json
+          sha256: 3210094f8f74a047fd5fe80382b752c130b93c519686125ab1534c94a08e9f98
+        before:
+          path: raw/a57e1ff2733802b6010a3ede/cluster-health-before.json
+          sha256: 3210094f8f74a047fd5fe80382b752c130b93c519686125ab1534c94a08e9f98
+    name: cluster-health
+    status: PASS
+  rawEvidence:
+    agent-codex:
+      path: raw/a57e1ff2733802b6010a3ede/agent-codex.json
+      sha256: f4e45a6bb513ef9f763ac4bed359870405a17b55f13bf7315baa69a79fde10d0
+    agent-opencode:
+      path: raw/a57e1ff2733802b6010a3ede/agent-opencode.json
+      sha256: a30441bec09b64b25709c3252de704415f74a80d3e8c032f97645e1dbb946b59
+    allowed-git:
+      path: raw/a57e1ff2733802b6010a3ede/allowed-git.json
+      sha256: a90f93a8236f543952a428f4be4086dc3e7ee93edd6ebff50fd69e9c57ae4991
+    allowed-git-codex:
+      path: raw/a57e1ff2733802b6010a3ede/allowed-git-codex.json
+      sha256: a57301dc4cb9d78b95a411ba39a84ef269c0bfe43774173d2a94ecc8f6312ade
+    allowed-git-opencode:
+      path: raw/a57e1ff2733802b6010a3ede/allowed-git-opencode.json
+      sha256: a90f93a8236f543952a428f4be4086dc3e7ee93edd6ebff50fd69e9c57ae4991
+    allowed-mcp:
+      path: raw/a57e1ff2733802b6010a3ede/allowed-mcp.json
+      sha256: c706d8eb0f63c0647a2bd9c9c378bc0d7f72359822202a5b9ed34cd8a90497f3
+    allowed-mcp-codex:
+      path: raw/a57e1ff2733802b6010a3ede/allowed-mcp-codex.json
+      sha256: fdccf8bff8470232c0aa2f678dc5a2ff81736de191c796d468d5b842ed880870
+    allowed-mcp-opencode:
+      path: raw/a57e1ff2733802b6010a3ede/allowed-mcp-opencode.json
+      sha256: c706d8eb0f63c0647a2bd9c9c378bc0d7f72359822202a5b9ed34cd8a90497f3
+    allowed-ollama:
+      path: raw/a57e1ff2733802b6010a3ede/allowed-ollama.json
+      sha256: d6296d81c5177b97c63089f8216b54eb65e3a3fa261e27f8525e1b7be6f8e83c
+    allowed-ollama-codex:
+      path: raw/a57e1ff2733802b6010a3ede/allowed-ollama-codex.json
+      sha256: 64c54794f24c8f14746ff42dfd50e78916827a2fcc17336a01ca4fe8e1ce0038
+    allowed-ollama-opencode:
+      path: raw/a57e1ff2733802b6010a3ede/allowed-ollama-opencode.json
+      sha256: d6296d81c5177b97c63089f8216b54eb65e3a3fa261e27f8525e1b7be6f8e83c
+    before-codex:
+      path: raw/a57e1ff2733802b6010a3ede/before-codex.json
+      sha256: d65048d3b2a403f1cca3935cde79457d3d8a2766607152ffac57df7343660a65
+    before-opencode:
+      path: raw/a57e1ff2733802b6010a3ede/before-opencode.json
+      sha256: a6bbadd40ba85543560f29809df1043dd78150c56154a81ca01855d0a5984c37
+    can-i-list:
+      path: raw/a57e1ff2733802b6010a3ede/can-i-list.json
+      sha256: 3b2aced9d8dd1aba673cbaf69aa8911729351ae3f984c6dd2f7f6fadebbbb825
+    can-i-list-codex:
+      path: raw/a57e1ff2733802b6010a3ede/can-i-list-codex.json
+      sha256: 3b2aced9d8dd1aba673cbaf69aa8911729351ae3f984c6dd2f7f6fadebbbb825
+    can-i-list-opencode:
+      path: raw/a57e1ff2733802b6010a3ede/can-i-list-opencode.json
+      sha256: 3b2aced9d8dd1aba673cbaf69aa8911729351ae3f984c6dd2f7f6fadebbbb825
+    canary-scan-codex:
+      path: raw/a57e1ff2733802b6010a3ede/canary-scan-codex.json
+      sha256: 6894fd2f78aa2f040b807b46e8570a0829ba359156ff2079399a5783cacbaf76
+    canary-scan-opencode:
+      path: raw/a57e1ff2733802b6010a3ede/canary-scan-opencode.json
+      sha256: 5a3bd7562a4103e67b04a432a4369d378f58753528e9b58aa2843d49e45cbc27
+    cgroup-limits-codex:
+      path: raw/a57e1ff2733802b6010a3ede/cgroup-limits-codex.json
+      sha256: ae02f2c98bb91848ad551ce3aa8ac99d2d131bd8ba412354583896a2f0a36aad
+    cgroup-limits-opencode:
+      path: raw/a57e1ff2733802b6010a3ede/cgroup-limits-opencode.json
+      sha256: 396b2fbf3671d7bcad0a7892d17c869f82b480cde068e5cbf1fb6b80c1fff5f8
+    cleanup-after-dw-ok174-proof:
+      path: raw/a57e1ff2733802b6010a3ede/cleanup-after-dw-ok174-proof.json
+      sha256: fc8b95213dcae3fc4ae8e5f6e3a6e8eb2fc5997612e126e939b7e5722197a03b
+    cleanup-after-ok174-evidence:
+      path: raw/a57e1ff2733802b6010a3ede/cleanup-after-ok174-evidence.json
+      sha256: ddd421ad708a13eaeccf5f43a5d42feb24138812f76ee4e1545af5486266402f
+    cleanup-after-ok174-proof-services:
+      path: raw/a57e1ff2733802b6010a3ede/cleanup-after-ok174-proof-services.json
+      sha256: 73743214dbedfb16cdac3a79e05de20a6b0cadb599f230552f689cc57dda7980
+    cleanup-before-dw-ok174-proof:
+      path: raw/a57e1ff2733802b6010a3ede/cleanup-before-dw-ok174-proof.json
+      sha256: a1214f21092b575588c51a3bdf2b0d0f8601c06f0900ecc478e3d47bdae77fc8
+    cleanup-before-ok174-evidence:
+      path: raw/a57e1ff2733802b6010a3ede/cleanup-before-ok174-evidence.json
+      sha256: 0b1f134275e67eb0379c7ba4a1d796441c4a07a4f631bb6b1e5fda73fc1d1b3f
+    cleanup-before-ok174-proof-services:
+      path: raw/a57e1ff2733802b6010a3ede/cleanup-before-ok174-proof-services.json
+      sha256: 70ac1d3d4cba6ce049dee96b42eaf16fcbb01a672b2ff2d00338a731e5a174ab
+    cleanup-delete-dw-ok174-proof:
+      path: raw/a57e1ff2733802b6010a3ede/cleanup-delete-dw-ok174-proof.json
+      sha256: d2206d8d990663bc18254c3accaaf68953ac47f0947dd284a322f4c2441b8e81
+    cleanup-delete-ok174-evidence:
+      path: raw/a57e1ff2733802b6010a3ede/cleanup-delete-ok174-evidence.json
+      sha256: 7c883105abd468c1883a423a8d0d058515a4f3f83ed6501a47c2e90228eddae7
+    cleanup-delete-ok174-proof-services:
+      path: raw/a57e1ff2733802b6010a3ede/cleanup-delete-ok174-proof-services.json
+      sha256: 92c5933190830ff35e6b5d84cf51c22febfa7bea062071e68c596f57a2e65cf9
+    cleanup-pvs:
+      path: raw/a57e1ff2733802b6010a3ede/cleanup-pvs.json
+      sha256: fc8c215ac8e069d866d8d8d8f03343a9f7ff9e0dbf753cce3f5ed41be30b3575
+    cluster-health-after:
+      path: raw/a57e1ff2733802b6010a3ede/cluster-health-after.json
+      sha256: 3210094f8f74a047fd5fe80382b752c130b93c519686125ab1534c94a08e9f98
+    cluster-health-before:
+      path: raw/a57e1ff2733802b6010a3ede/cluster-health-before.json
+      sha256: 3210094f8f74a047fd5fe80382b752c130b93c519686125ab1534c94a08e9f98
+    control-denied:
+      path: raw/a57e1ff2733802b6010a3ede/control-denied.json
+      sha256: 99f5c086b5ab4581de820cd7fa3240a45d286de729a261fd709ea2b7d8c1a168
+    control-git-auth-absent:
+      path: raw/a57e1ff2733802b6010a3ede/control-git-auth-absent.json
+      sha256: 1d3111f8332d3e0ad05db75c250fe1ad74199444f04471625646ee0c5a109450
+    control-git-auth-wrong:
+      path: raw/a57e1ff2733802b6010a3ede/control-git-auth-wrong.json
+      sha256: e985c71c446c661271bfc7026beffd793fe192a70e673b3997f714193e0d54bb
+    control-git-undeclared:
+      path: raw/a57e1ff2733802b6010a3ede/control-git-undeclared.json
+      sha256: c27f20c92972e5bda03c2d410b9a118954a1bd8d30550780a0f461aedaab9fd3
+    control-kubernetes-api:
+      path: raw/a57e1ff2733802b6010a3ede/control-kubernetes-api.json
+      sha256: d6346a52ff288994081fe44af940b6a2f47c8e420678d7f1eea176eae0a9e69b
+    control-mcp:
+      path: raw/a57e1ff2733802b6010a3ede/control-mcp.json
+      sha256: b1693963dda396bb38a6907a25d4f0d0ff1e2111a1294670a625502897c3437a
+    credential-absence-codex:
+      path: raw/a57e1ff2733802b6010a3ede/credential-absence-codex.json
+      sha256: a5439c7a98c90de85c8e8913724f95834a056151492d2687edebc311420ae499
+    credential-absence-opencode:
+      path: raw/a57e1ff2733802b6010a3ede/credential-absence-opencode.json
+      sha256: a3c978496c84fb56bd6504147b7d16754699d4d368f2574fe4ab0db35c100e15
+    denied-codex:
+      path: raw/a57e1ff2733802b6010a3ede/denied-codex.json
+      sha256: 4b3a33f176c081ea4a1e965baa66242a79b8209ffe955eb84d35bce57a5b4987
+    denied-egress:
+      path: raw/a57e1ff2733802b6010a3ede/denied-egress.json
+      sha256: ad5fd755871359fa9c14dae0798d0a832a250a3c5495b245c733d2eccbffe3d0
+    denied-opencode:
+      path: raw/a57e1ff2733802b6010a3ede/denied-opencode.json
+      sha256: c950a9ef9e45cef5749340ce178d5844cd7342f02893c83fcef673b3483d47c8
+    diff-codex:
+      path: raw/a57e1ff2733802b6010a3ede/diff-codex.json
+      sha256: f5e136b1490f77bd62745ccd004963bd6b1c489d78dc08d32088ddf8a714e553
+    diff-opencode:
+      path: raw/a57e1ff2733802b6010a3ede/diff-opencode.json
+      sha256: 301950e70361380fbbee36d8475f8722c274e30c182e786dda54825d52c96fd9
+    environment-codex:
+      path: raw/a57e1ff2733802b6010a3ede/environment-codex.json
+      sha256: 26940a4fbdc06ccf6a8e213f7be61ce325f653f959d193fc4e18337970e056e7
+    environment-opencode:
+      path: raw/a57e1ff2733802b6010a3ede/environment-opencode.json
+      sha256: 78ff0c871e4211171ae018089efe9a00792c832aaa7cfd65a5c0be8608e6b043
+    ephemeral-before-delete:
+      path: raw/a57e1ff2733802b6010a3ede/ephemeral-before-delete.json
+      sha256: 15b4ec84a35e602646a20ed83e172a01c82e6d92afac67a1346c0d370c6527a1
+    ephemeral-canary-scan:
+      path: raw/a57e1ff2733802b6010a3ede/ephemeral-canary-scan.json
+      sha256: f4b4653c89a82879ebca38e15b3014cb867b521fa466f6c4da4e68345ed61d41
+    ephemeral-delete:
+      path: raw/a57e1ff2733802b6010a3ede/ephemeral-delete.json
+      sha256: 104c3dfb4d90a5c016d9f10afcf7fb256e83c67326158d650774ff7fa43d003a
+    ephemeral-evicted:
+      path: raw/a57e1ff2733802b6010a3ede/ephemeral-evicted.json
+      sha256: 72ed4f14270763256f48b82651f964d834e043cdb00905cd62b13641ded308cd
+    ephemeral-export:
+      path: raw/a57e1ff2733802b6010a3ede/ephemeral-export.json
+      sha256: 06f28b3761ec46b86c17434dff3f13c78a1327c55a41961f9c9c6b64dc2eeeba
+    ephemeral-export-readback:
+      path: raw/a57e1ff2733802b6010a3ede/ephemeral-export-readback.json
+      sha256: 10004f5a9f95e166b51622e3a302516de5e1dc841a7d9bd766dd41612082f8f9
+    ephemeral-fill:
+      path: raw/a57e1ff2733802b6010a3ede/ephemeral-fill.json
+      sha256: 31fa7088c4e52546892d7e9bf6698b4c466152e8fc5a582c70d21ae88e8fa96c
+    ephemeral-namespace-absent:
+      path: raw/a57e1ff2733802b6010a3ede/ephemeral-namespace-absent.json
+      sha256: 0e42b4213c155516f202418c4f99ebb051a7d965ee2f3a3e1a433c2cab368ff0
+    fixture-reset-before-codex:
+      path: raw/a57e1ff2733802b6010a3ede/fixture-reset-before-codex.json
+      sha256: 3ec8d4dafbd4c9c7e1b3fb691d7fba442fe174b3632fe9ed6e5b640474364c39
+    fixture-test-before-agent:
+      path: raw/a57e1ff2733802b6010a3ede/fixture-test-before-agent.json
+      sha256: 4c10fd2f8709e2e1b1aefe91362ac12798b9fcb5f42c187f8b2817b627bf12e0
+    known-commit:
+      path: raw/a57e1ff2733802b6010a3ede/known-commit.json
+      sha256: a90f93a8236f543952a428f4be4086dc3e7ee93edd6ebff50fd69e9c57ae4991
+    kubernetes-denied:
+      path: raw/a57e1ff2733802b6010a3ede/kubernetes-denied.json
+      sha256: 993dc03f47b481236a2ddb57d6ed7f29234452ac1eba87bd20e11c9dfab050ba
+    kubernetes-denied-codex:
+      path: raw/a57e1ff2733802b6010a3ede/kubernetes-denied-codex.json
+      sha256: 62c2e6d5cfffaeee899631205e55accb19a342180167849bf8ee1b1f238f4278
+    kubernetes-denied-opencode:
+      path: raw/a57e1ff2733802b6010a3ede/kubernetes-denied-opencode.json
+      sha256: 66c3398f81cb4a2f361bc6cfe8be961ecca464a55312963e740332da5735ce12
+    logs-codex-checkout-current:
+      path: raw/a57e1ff2733802b6010a3ede/logs-codex-checkout-current.json
+      sha256: 835326999b25a3098300ca752ec9d4dee90a131d9a0a1cecf2d6ed6648fd8f13
+    logs-codex-pod:
+      path: raw/a57e1ff2733802b6010a3ede/logs-codex-pod.json
+      sha256: 6aaa9b7462d5584d751aab13d5191c0f0540684bc6008f6264ad2ba4d809fcf7
+    logs-codex-runtime-current:
+      path: raw/a57e1ff2733802b6010a3ede/logs-codex-runtime-current.json
+      sha256: 2a9fe56c3107ec1dc38471019f15713ba287e0d7d36f5d94bb61d6548e05d15b
+    logs-ephemeral-checkout-current:
+      path: raw/a57e1ff2733802b6010a3ede/logs-ephemeral-checkout-current.json
+      sha256: dbbc4c56f8eae0de07f4b711af9fa1fbeef6d6604528e54b5f5de60a74dd50ec
+    logs-ephemeral-pod:
+      path: raw/a57e1ff2733802b6010a3ede/logs-ephemeral-pod.json
+      sha256: 2162251c0041bde073b42032f3261ce13057140cc5460e9da58c06709c6426e9
+    logs-ephemeral-runtime-current:
+      path: raw/a57e1ff2733802b6010a3ede/logs-ephemeral-runtime-current.json
+      sha256: 72204323133f798f928b3c32f9b80b38ed07a3d857c6be507ce8e0c8bf10c303
+    logs-opencode-checkout-current:
+      path: raw/a57e1ff2733802b6010a3ede/logs-opencode-checkout-current.json
+      sha256: 41d56d7d4deb68512df533fe12267307d821c1e1a3927af4cfdbb3100218eb05
+    logs-opencode-pod:
+      path: raw/a57e1ff2733802b6010a3ede/logs-opencode-pod.json
+      sha256: 0b5332c7e510757e57f5ba3be7e891a7fc4b26e73942a9cbf8f1ede4513448fe
+    logs-opencode-runtime-current:
+      path: raw/a57e1ff2733802b6010a3ede/logs-opencode-runtime-current.json
+      sha256: 6a702a09940a1a8c546433f134dcede6d20039ab00fe1b165197297652261dd0
+    marker-codex:
+      path: raw/a57e1ff2733802b6010a3ede/marker-codex.json
+      sha256: 716e9204c7e01eb5228c9f9b9b7e0412b7f894d0d2e05c202b9b2278a8f453b4
+    marker-opencode:
+      path: raw/a57e1ff2733802b6010a3ede/marker-opencode.json
+      sha256: 94cd47a0c84bb7ab87a8893a25004e9d9ad01218c82b8802df63782017c1e0fd
+    network-control:
+      path: raw/a57e1ff2733802b6010a3ede/network-control.json
+      sha256: aae6e7d31b6a66852eb260393e3407f48ce34a3a6308c6e76173da6745899623
+    ollama-model-ready:
+      path: raw/a57e1ff2733802b6010a3ede/ollama-model-ready.json
+      sha256: d274cbe6228846c42511138cbb333e82c95cb6dd461aa11baee14f20ddbd8fe3
+    persistence-marker-read:
+      path: raw/a57e1ff2733802b6010a3ede/persistence-marker-read.json
+      sha256: 6c317f1454563400a99bb399d080fca9a65f1f79ba5d1bb5463ccbe4ef52f5d9
+    persistence-marker-write:
+      path: raw/a57e1ff2733802b6010a3ede/persistence-marker-write.json
+      sha256: 3cfeccc8f4e52b85b4c5aa0775c1c11e63ca406637e1c74e750d269b3ac325ce
+    pv-after:
+      path: raw/a57e1ff2733802b6010a3ede/pv-after.json
+      sha256: f065a218a1d842fbcbc947ea9fcb93c746debeb0222dd47314d32e30e4d5b043
+    pv-before:
+      path: raw/a57e1ff2733802b6010a3ede/pv-before.json
+      sha256: f065a218a1d842fbcbc947ea9fcb93c746debeb0222dd47314d32e30e4d5b043
+    pvc-after:
+      path: raw/a57e1ff2733802b6010a3ede/pvc-after.json
+      sha256: 5f04a60ab879a50939ffd7c7c19af003e7c1acf121be91022c12a7970b451035
+    pvc-before:
+      path: raw/a57e1ff2733802b6010a3ede/pvc-before.json
+      sha256: 5f04a60ab879a50939ffd7c7c19af003e7c1acf121be91022c12a7970b451035
+    quota-rejection:
+      path: raw/a57e1ff2733802b6010a3ede/quota-rejection.json
+      sha256: ad155a500e297ada951e0c461d506a5eb488b1ac729b0167945fec28bdf72a4b
+    readback-codex-deployment:
+      path: raw/a57e1ff2733802b6010a3ede/readback-codex-deployment.json
+      sha256: a428c79a642234cb61d62f6e487dac4930f04c6b96393adeb6306b035d15e238
+    readback-codex-limitrange:
+      path: raw/a57e1ff2733802b6010a3ede/readback-codex-limitrange.json
+      sha256: f3890deda822db310eb49eec77f0f98ad9e46e04dc09cfca60b1d742d3980820
+    readback-codex-namespace:
+      path: raw/a57e1ff2733802b6010a3ede/readback-codex-namespace.json
+      sha256: 62cff4266af1a047a12828f5fbf13f985e8d46521a998110ffd67cebd6dffd31
+    readback-codex-networkpolicy:
+      path: raw/a57e1ff2733802b6010a3ede/readback-codex-networkpolicy.json
+      sha256: cb43d9e3f0468da8e090527c09267490bb2311dbadf1544ac07ef95c5b2208ed
+    readback-codex-persistentvolumeclaim:
+      path: raw/a57e1ff2733802b6010a3ede/readback-codex-persistentvolumeclaim.json
+      sha256: 25eb10addbcf48b2f1bdd260be0ffaa328cc244579d621ab132d090c811d51c6
+    readback-codex-resourcequota:
+      path: raw/a57e1ff2733802b6010a3ede/readback-codex-resourcequota.json
+      sha256: 9154da937994bece5a9b382f84940f9c5fc334d74504ebe52f48dbf1e3def076
+    readback-codex-serviceaccount:
+      path: raw/a57e1ff2733802b6010a3ede/readback-codex-serviceaccount.json
+      sha256: cd723723153655e38eaac4f197ddaeb9fdf9236513a49e1f441e1e6c82c8c02d
+    readback-ephemeral-deployment:
+      path: raw/a57e1ff2733802b6010a3ede/readback-ephemeral-deployment.json
+      sha256: e1898751c808baa95e3cb62fa1e265cf91185102aad18352d6a82d7d6c2cedb5
+    readback-ephemeral-limitrange:
+      path: raw/a57e1ff2733802b6010a3ede/readback-ephemeral-limitrange.json
+      sha256: 81440f98b58a1130cf9eac89bd23993bcd9b843c6eb8af5b73dd3618dcfbdf45
+    readback-ephemeral-namespace:
+      path: raw/a57e1ff2733802b6010a3ede/readback-ephemeral-namespace.json
+      sha256: 4f13c623ff7e38acbb0e561f596be25760fbd552550a4c3e25d27a70cdafe2fc
+    readback-ephemeral-networkpolicy:
+      path: raw/a57e1ff2733802b6010a3ede/readback-ephemeral-networkpolicy.json
+      sha256: 993b78ecc70dc5378fd92b1692476ebb39a783f983ce2d7e0b2d646ffb8d0025
+    readback-ephemeral-resourcequota:
+      path: raw/a57e1ff2733802b6010a3ede/readback-ephemeral-resourcequota.json
+      sha256: 8ccd26b53c716efd1a0d8c13bb0b4dab4df1e531e8399eb5fe69687df6baceab
+    readback-ephemeral-serviceaccount:
+      path: raw/a57e1ff2733802b6010a3ede/readback-ephemeral-serviceaccount.json
+      sha256: 9e61c7867161e64a768012add650bf5db1f3d38f41a8ce19d757f4e2efba4c8d
+    readback-opencode-deployment:
+      path: raw/a57e1ff2733802b6010a3ede/readback-opencode-deployment.json
+      sha256: 9de2e20572453c87f2289a04a54bee4eeaaefb275c84209499b5a895e2700289
+    readback-opencode-limitrange:
+      path: raw/a57e1ff2733802b6010a3ede/readback-opencode-limitrange.json
+      sha256: f3890deda822db310eb49eec77f0f98ad9e46e04dc09cfca60b1d742d3980820
+    readback-opencode-namespace:
+      path: raw/a57e1ff2733802b6010a3ede/readback-opencode-namespace.json
+      sha256: 62cff4266af1a047a12828f5fbf13f985e8d46521a998110ffd67cebd6dffd31
+    readback-opencode-networkpolicy:
+      path: raw/a57e1ff2733802b6010a3ede/readback-opencode-networkpolicy.json
+      sha256: cb43d9e3f0468da8e090527c09267490bb2311dbadf1544ac07ef95c5b2208ed
+    readback-opencode-persistentvolumeclaim:
+      path: raw/a57e1ff2733802b6010a3ede/readback-opencode-persistentvolumeclaim.json
+      sha256: 25eb10addbcf48b2f1bdd260be0ffaa328cc244579d621ab132d090c811d51c6
+    readback-opencode-resourcequota:
+      path: raw/a57e1ff2733802b6010a3ede/readback-opencode-resourcequota.json
+      sha256: 9154da937994bece5a9b382f84940f9c5fc334d74504ebe52f48dbf1e3def076
+    readback-opencode-serviceaccount:
+      path: raw/a57e1ff2733802b6010a3ede/readback-opencode-serviceaccount.json
+      sha256: cd723723153655e38eaac4f197ddaeb9fdf9236513a49e1f441e1e6c82c8c02d
+    runtime-writable-canary-scan:
+      path: raw/a57e1ff2733802b6010a3ede/runtime-writable-canary-scan.json
+      sha256: 6894fd2f78aa2f040b807b46e8570a0829ba359156ff2079399a5783cacbaf76
+    serviceaccount-denied:
+      path: raw/a57e1ff2733802b6010a3ede/serviceaccount-denied.json
+      sha256: dc4d2776f02a449d9f1ebbf5d110c1d98bbd7ac1520c0cc7025f5580be0964ca
+    serviceaccount-mount-codex:
+      path: raw/a57e1ff2733802b6010a3ede/serviceaccount-mount-codex.json
+      sha256: 5548658bab937a2239502ab95d6be91b932786fdea502676e070bc67de039286
+    serviceaccount-mount-opencode:
+      path: raw/a57e1ff2733802b6010a3ede/serviceaccount-mount-opencode.json
+      sha256: dc4d2776f02a449d9f1ebbf5d110c1d98bbd7ac1520c0cc7025f5580be0964ca
+    source-head:
+      path: raw/a57e1ff2733802b6010a3ede/source-head.json
+      sha256: e02fdaccb4ba32e6904150a02ffbbb499989fb1e0a2b00d47f47105c117e192d
+    undeclared-codex:
+      path: raw/a57e1ff2733802b6010a3ede/undeclared-codex.json
+      sha256: a74845ac5a1d45371000193302c3dbbd84fa6b9f9054dd2c31e309bf1f0f9ded
+    undeclared-opencode:
+      path: raw/a57e1ff2733802b6010a3ede/undeclared-opencode.json
+      sha256: ee479f9091825d393736377fefcd369d3ce3245c02c705f9b0514a21b5a1970d
+    undeclared-port:
+      path: raw/a57e1ff2733802b6010a3ede/undeclared-port.json
+      sha256: 6c390cc1faa7a4150e928fa85f6dd46306f4c219cf2d2d6b5dbb9970ecb79179
+    verify-codex:
+      path: raw/a57e1ff2733802b6010a3ede/verify-codex.json
+      sha256: 65e3088fade8e371ab799feffd8c846af6a2507c264f785d8fb926995f601bc8
+    verify-opencode:
+      path: raw/a57e1ff2733802b6010a3ede/verify-opencode.json
+      sha256: 827fcfa5075db283d712881473e5daddac683609905daa9f653e5ca2871d82cb
+    version-codex:
+      path: raw/a57e1ff2733802b6010a3ede/version-codex.json
+      sha256: b014e02d264e0aa10f18e9a168f12e6c3400a80844536f3a42ac1ac26310f831
+    version-opencode:
+      path: raw/a57e1ff2733802b6010a3ede/version-opencode.json
+      sha256: 1e8831c93fb4723697194a3a47a53083cbec6ce8355730efdbee13e29093d97d
+  mismatches:
+  - imagePullSecrets operational overlay
+  - run and owner label operational overlays
+  - registry pull Secret materialization outside render
+  - source credential Secret materialization outside render
+  - source CA ConfigMap materialization outside render
+  secretValuesIncluded: false
+  unsupported: []
+  run:
+    runID: a57e1ff2733802b6010a3ede
+    startedAt: '2026-09-30T12:36:53Z'
+    finishedAt: '2026-09-30T12:45:45Z'
+    gitHead: 75e8acb57f631903195f4bc26a2a8845d8efda65
+    worktreeClean: true
+    gitStatusSha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+    implementationTreeSha256: 200ee3c295b0d43522989286d3fedc0696c8f84ae18ba6d13c372bfa8a4b5e93
+    appliedObjectsSha256: 83b98096e60eb1082efcbb1851e2ff76558787c4fc3a79384dee93850de244f1
+    cleanupLedgerSha256: 4b7304aa2ed4a8cac74d61183d04994b86e009d4fe969807f4a25ec90c9ce896
+    documentsSha256: ce2403e72d23d34a665168356720db9828ff27edb5413c717424ac4f18035387
+    overlaysSha256: ff357fe9578c7b6a2b4cccd65f092cb271e64a44bf23d326e9c2b67d7dc1900d
+    rendersSha256: 816f76a3eb985d425b34b7353fd7629c27f6aac44d9e50067d2b08357743db51

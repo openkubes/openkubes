@@ -1,0 +1,1 @@
+{"argv": ["kubectl", "get", "pvc", "workspace", "-n", "dw-ok174-proof", "-o", "json"], "returncode": 0, "stderr": "", "stdout": "{\"kind\": \"PersistentVolumeClaim\", \"metadata\": {\"name\": \"workspace\", \"uid\": \"b90bc85a-72a5-4007-bad0-d112b426b783\"}, \"spec\": {\"volumeName\": \"pvc-b90bc85a-72a5-4007-bad0-d112b426b783\"}}"}

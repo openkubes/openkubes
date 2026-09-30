@@ -1,0 +1,143 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "OK-174 DeveloperWorkspace live evidence",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["apiVersion", "kind", "spec"],
+  "properties": {
+    "apiVersion": {"const": "evidence.openkubes.io/v1alpha1"},
+    "kind": {"const": "DeveloperWorkspaceLiveEvidence"},
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "context",
+        "cluster",
+        "revision",
+        "knownCommit",
+        "model",
+        "imageReferences",
+        "imageDigests",
+        "storageProfile",
+        "results",
+        "secretValuesIncluded",
+        "unsupported",
+        "mismatches",
+        "rawEvidence",
+        "run"
+      ],
+      "properties": {
+        "status": {"enum": ["PASS", "REVISE", "STOP"]},
+        "context": {"const": "ok-obs-verify-admin@ok-obs-verify"},
+        "cluster": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["uidSha256", "version"],
+          "properties": {
+            "uidSha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+            "version": {"type": "string", "pattern": "^v[0-9]+\\.[0-9]+"}
+          }
+        },
+        "revision": {"$ref": "#/definitions/gitCommit"},
+        "knownCommit": {"$ref": "#/definitions/gitCommit"},
+        "model": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"},
+        "imageReferences": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["opencode", "codex", "fixture"],
+          "properties": {
+            "opencode": {"$ref": "#/definitions/imageReference"},
+            "codex": {"$ref": "#/definitions/imageReference"},
+            "fixture": {"$ref": "#/definitions/imageReference"}
+          }
+        },
+        "imageDigests": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["opencode", "codex", "fixture"],
+          "properties": {
+            "opencode": {"$ref": "#/definitions/sha256"},
+            "codex": {"$ref": "#/definitions/sha256"},
+            "fixture": {"$ref": "#/definitions/sha256"}
+          }
+        },
+        "storageProfile": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["name", "provisioner", "reclaimPolicy", "volumeBindingMode", "persistentCapacityEnforced"],
+          "properties": {
+            "name": {"const": "local-path"},
+            "provisioner": {"const": "rancher.io/local-path"},
+            "reclaimPolicy": {"const": "Delete"},
+            "volumeBindingMode": {"const": "WaitForFirstConsumer"},
+            "persistentCapacityEnforced": {"const": false}
+          }
+        },
+        "results": {
+          "type": "array",
+          "minItems": 18,
+          "maxItems": 18,
+          "items": {"$ref": "#/definitions/resultBase"}
+        },
+        "secretValuesIncluded": {"const": false},
+        "unsupported": {"type": "array", "items": {"type": "string", "minLength": 1}},
+        "mismatches": {"type": "array", "items": {"type": "string", "minLength": 1}},
+        "rawEvidence": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {"$ref": "#/definitions/captureBinding"}
+        },
+        "run": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["runID", "startedAt", "finishedAt", "gitHead", "worktreeClean", "gitStatusSha256", "implementationTreeSha256", "documentsSha256", "rendersSha256", "appliedObjectsSha256", "overlaysSha256", "cleanupLedgerSha256"],
+          "properties": {
+            "runID": {"type": "string", "pattern": "^[0-9a-f]{24}$"},
+            "startedAt": {"$ref": "#/definitions/timestamp"},
+            "finishedAt": {"$ref": "#/definitions/timestamp"},
+            "gitHead": {"$ref": "#/definitions/gitCommit"},
+            "worktreeClean": {"const": true},
+            "gitStatusSha256": {"$ref": "#/definitions/hash"},
+            "implementationTreeSha256": {"$ref": "#/definitions/hash"},
+            "documentsSha256": {"$ref": "#/definitions/hash"},
+            "rendersSha256": {"$ref": "#/definitions/hash"},
+            "appliedObjectsSha256": {"$ref": "#/definitions/hash"},
+            "overlaysSha256": {"$ref": "#/definitions/hash"},
+            "cleanupLedgerSha256": {"$ref": "#/definitions/hash"}
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "nonEmpty": {"type": "string", "minLength": 1},
+    "uid": {"type": "string", "minLength": 1},
+    "sha256": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "gitCommit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "timestamp": {"type": "string", "format": "date-time"},
+    "imageReference": {"type": "string", "pattern": "^[^\\s]+@sha256:[0-9a-f]{64}$"},
+    "imageID": {"type": "string", "pattern": "^[^\\s]+@sha256:[0-9a-f]{64}$"},
+    "hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "captureBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": {"type": "string", "pattern": "^raw/[A-Za-z0-9][A-Za-z0-9._/-]*$"},
+        "sha256": {"$ref": "#/definitions/hash"}
+      }
+    },
+    "resultBase": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "status", "detail", "evidence"],
+      "properties": {
+        "name": {"type": "string"},
+        "status": {"enum": ["PASS", "FAIL", "SKIPPED"]},
+        "detail": {"$ref": "#/definitions/nonEmpty"},
+        "evidence": {"type": "object"}
+      }
+    }
+  }
+}

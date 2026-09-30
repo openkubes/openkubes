@@ -1,0 +1,179 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: DeveloperWorkspaceNegativeControls
+spec:
+  status: PASS
+  runID: 0882f260441814da5b74be15
+  revision: 75e8acb57f631903195f4bc26a2a8845d8efda65
+  implementationTreeSha256: 200ee3c295b0d43522989286d3fedc0696c8f84ae18ba6d13c372bfa8a4b5e93
+  cluster:
+    uidSha256: c0d2fe748219faf80f3f8a6858131aed4df2803dc1de1595a01112d9dd166bdc
+    version: v1.34.1
+  controls:
+  - name: runtime-credential
+    baselineGreen: true
+    redOnFault: true
+    greenAfterRevert: true
+    captures:
+      baseline:
+        env:
+          path: raw/0882f260441814da5b74be15/neg-credential-baseline.json
+          sha256: a6ce1fe094ce248ded119bd94a1c54fd711694240ef21199bab423efc35a02fb
+        readbackDrift: false
+      faulted:
+        env:
+          path: raw/0882f260441814da5b74be15/neg-credential-faulted.json
+          sha256: 973220df612f2f0b8434f9351cbe0a49aa8616ebc4452628d5a7f92234b9e468
+        readbackDrift: true
+      reverted:
+        env:
+          path: raw/0882f260441814da5b74be15/neg-credential-reverted.json
+          sha256: 2e9ead966493fcbf54fe1bb30d9db2ea4bdfd29f19961399e8f68df4aecb9e5f
+        readbackDrift: false
+    status: PASS
+  - name: serviceaccount-token
+    baselineGreen: true
+    redOnFault: true
+    greenAfterRevert: true
+    captures:
+      baseline:
+        mount:
+          path: raw/0882f260441814da5b74be15/neg-token-baseline.json
+          sha256: bdea9d4ba2343db741688b577e8b78861ec063d7c0c2f35a7a3dd1aa5c69e152
+      faulted:
+        mount:
+          path: raw/0882f260441814da5b74be15/neg-token-faulted.json
+          sha256: 2fd564b03ece99ed8ce4de28f2fb0e4f1981c31882f94c16a5a71287946611b7
+      reverted:
+        mount:
+          path: raw/0882f260441814da5b74be15/neg-token-reverted.json
+          sha256: 1b074b9182a9840166a479fae1b7a2ed0e068425d8685d56c7e4bedab227303a
+    status: PASS
+  - name: rbac-discovery-only
+    baselineGreen: true
+    redOnFault: true
+    greenAfterRevert: true
+    captures:
+      baseline:
+        canIList:
+          path: raw/0882f260441814da5b74be15/neg-rbac-baseline.json
+          sha256: 3b2aced9d8dd1aba673cbaf69aa8911729351ae3f984c6dd2f7f6fadebbbb825
+      faulted:
+        canIList:
+          path: raw/0882f260441814da5b74be15/neg-rbac-faulted.json
+          sha256: 227ee24d1325cd2027ca9f96a649081533b9852c65077f6886ea4b75f543f38e
+      reverted:
+        canIList:
+          path: raw/0882f260441814da5b74be15/neg-rbac-reverted.json
+          sha256: 3b2aced9d8dd1aba673cbaf69aa8911729351ae3f984c6dd2f7f6fadebbbb825
+    status: PASS
+  - name: denied-egress
+    baselineGreen: true
+    redOnFault: true
+    greenAfterRevert: true
+    captures:
+      baseline:
+        curl:
+          path: raw/0882f260441814da5b74be15/neg-denied-baseline.json
+          sha256: dc6f27da8c93e7b03ec166d9dea6dfab1a202b0eb2e7f37c5139f6452b7b9143
+      faulted:
+        curl:
+          path: raw/0882f260441814da5b74be15/neg-denied-faulted.json
+          sha256: 84c289bd26b3c7081065c89c34bc5b80d10dafffa12d0c1b3d16220e3b69087d
+      reverted:
+        curl:
+          path: raw/0882f260441814da5b74be15/neg-denied-reverted.json
+          sha256: dc6f27da8c93e7b03ec166d9dea6dfab1a202b0eb2e7f37c5139f6452b7b9143
+    status: PASS
+  - name: undeclared-port
+    baselineGreen: true
+    redOnFault: true
+    greenAfterRevert: true
+    captures:
+      baseline:
+        curl:
+          path: raw/0882f260441814da5b74be15/neg-undeclared-baseline.json
+          sha256: 3a030cf3f8528b5c2c61dd4eef8ffefa235a0d6fed23fff0b03dfa603a5a7451
+      faulted:
+        curl:
+          path: raw/0882f260441814da5b74be15/neg-undeclared-faulted.json
+          sha256: ff089f594bfe8b481911e032ea144bb3306c226776b270315a769d8cb5cf2da4
+      reverted:
+        curl:
+          path: raw/0882f260441814da5b74be15/neg-undeclared-reverted.json
+          sha256: 3a030cf3f8528b5c2c61dd4eef8ffefa235a0d6fed23fff0b03dfa603a5a7451
+    status: PASS
+  - name: storage-quota
+    baselineGreen: true
+    redOnFault: true
+    greenAfterRevert: true
+    captures:
+      baseline:
+        apply:
+          path: raw/0882f260441814da5b74be15/neg-quota-baseline.json
+          sha256: 18a9b077e6d769be73c7805e2f408e4885eef99c07625ef014c961399fce6177
+      faulted:
+        apply:
+          path: raw/0882f260441814da5b74be15/neg-quota-faulted.json
+          sha256: f98c0a552c88270460760bdd0cea9db4ff614210973f4c22123fafdf385c8d6e
+      reverted:
+        apply:
+          path: raw/0882f260441814da5b74be15/neg-quota-reverted.json
+          sha256: 18a9b077e6d769be73c7805e2f408e4885eef99c07625ef014c961399fce6177
+    status: PASS
+  - name: secret-scan
+    baselineGreen: true
+    redOnFault: true
+    greenAfterRevert: true
+    captures:
+      baseline:
+        scan:
+          path: raw/0882f260441814da5b74be15/neg-scan-baseline.json
+          sha256: ac6d5cbdddff54632046650622cf53221c40490e0cc4c40aae96bb06a7ab21cd
+      faulted:
+        scan:
+          path: raw/0882f260441814da5b74be15/neg-scan-faulted.json
+          sha256: 02634c4589339eaa6fbd88813570c0012a1f9e8e743175649f87dfe25352874c
+      reverted:
+        scan:
+          path: raw/0882f260441814da5b74be15/neg-scan-reverted.json
+          sha256: ac6d5cbdddff54632046650622cf53221c40490e0cc4c40aae96bb06a7ab21cd
+    status: PASS
+  cleanup:
+    namespaceUIDs:
+      dw-ok174-proof: 20191109-9696-4e5f-8b84-2301df9b0376
+      ok174-evidence: 139f46d3-78ec-4a64-9017-fd12cc7bc619
+      ok174-proof-services: d5a7c44d-5289-4df4-8435-4bf8e2782e28
+    reclaimedPVUID: c974aeb0-5b45-4692-a096-9d94b0f83ce1
+  rawEvidence:
+    raw/0882f260441814da5b74be15/cleanup-before-dw-ok174-proof.json: 8576fb84d58cd624ff0ce590020d031b18014b3c9b92d6cc56046714b95b2742
+    raw/0882f260441814da5b74be15/cleanup-before-ok174-evidence.json: 921c5db39a52125e5ef0c33dd547a219fbb47354901aebe0dd161fc7b6dd9501
+    raw/0882f260441814da5b74be15/cleanup-before-ok174-proof-services.json: dc33e4542162342597ef9b5976a23e0fbcdfa2e811d545a906ade7784e9d8ec4
+    raw/0882f260441814da5b74be15/cleanup-delete-dw-ok174-proof.json: f120f5b1311b8153c0798793d30bf21cafab014a140719af824f8689d2e6f883
+    raw/0882f260441814da5b74be15/cleanup-delete-ok174-evidence.json: 72bf9a27fbadbd5ceafa1092e7b23462d61f7be056f849288098f944cc8760a9
+    raw/0882f260441814da5b74be15/cleanup-delete-ok174-proof-services.json: 90e11ec75725a04b9051cd58a5221af8bfd6ac760cf4e0286b1c41702ada9e11
+    raw/0882f260441814da5b74be15/cleanup-pvs.json: fc8c215ac8e069d866d8d8d8f03343a9f7ff9e0dbf753cce3f5ed41be30b3575
+    raw/0882f260441814da5b74be15/neg-credential-baseline.json: a6ce1fe094ce248ded119bd94a1c54fd711694240ef21199bab423efc35a02fb
+    raw/0882f260441814da5b74be15/neg-credential-faulted.json: 973220df612f2f0b8434f9351cbe0a49aa8616ebc4452628d5a7f92234b9e468
+    raw/0882f260441814da5b74be15/neg-credential-reverted.json: 2e9ead966493fcbf54fe1bb30d9db2ea4bdfd29f19961399e8f68df4aecb9e5f
+    raw/0882f260441814da5b74be15/neg-denied-baseline.json: dc6f27da8c93e7b03ec166d9dea6dfab1a202b0eb2e7f37c5139f6452b7b9143
+    raw/0882f260441814da5b74be15/neg-denied-faulted.json: 84c289bd26b3c7081065c89c34bc5b80d10dafffa12d0c1b3d16220e3b69087d
+    raw/0882f260441814da5b74be15/neg-denied-reverted.json: dc6f27da8c93e7b03ec166d9dea6dfab1a202b0eb2e7f37c5139f6452b7b9143
+    raw/0882f260441814da5b74be15/neg-quota-baseline.json: 18a9b077e6d769be73c7805e2f408e4885eef99c07625ef014c961399fce6177
+    raw/0882f260441814da5b74be15/neg-quota-faulted.json: f98c0a552c88270460760bdd0cea9db4ff614210973f4c22123fafdf385c8d6e
+    raw/0882f260441814da5b74be15/neg-quota-reverted.json: 18a9b077e6d769be73c7805e2f408e4885eef99c07625ef014c961399fce6177
+    raw/0882f260441814da5b74be15/neg-rbac-baseline.json: 3b2aced9d8dd1aba673cbaf69aa8911729351ae3f984c6dd2f7f6fadebbbb825
+    raw/0882f260441814da5b74be15/neg-rbac-faulted.json: 227ee24d1325cd2027ca9f96a649081533b9852c65077f6886ea4b75f543f38e
+    raw/0882f260441814da5b74be15/neg-rbac-reverted.json: 3b2aced9d8dd1aba673cbaf69aa8911729351ae3f984c6dd2f7f6fadebbbb825
+    raw/0882f260441814da5b74be15/neg-scan-baseline.json: ac6d5cbdddff54632046650622cf53221c40490e0cc4c40aae96bb06a7ab21cd
+    raw/0882f260441814da5b74be15/neg-scan-faulted.json: 02634c4589339eaa6fbd88813570c0012a1f9e8e743175649f87dfe25352874c
+    raw/0882f260441814da5b74be15/neg-scan-reverted.json: ac6d5cbdddff54632046650622cf53221c40490e0cc4c40aae96bb06a7ab21cd
+    raw/0882f260441814da5b74be15/neg-token-baseline.json: bdea9d4ba2343db741688b577e8b78861ec063d7c0c2f35a7a3dd1aa5c69e152
+    raw/0882f260441814da5b74be15/neg-token-faulted.json: 2fd564b03ece99ed8ce4de28f2fb0e4f1981c31882f94c16a5a71287946611b7
+    raw/0882f260441814da5b74be15/neg-token-reverted.json: 1b074b9182a9840166a479fae1b7a2ed0e068425d8685d56c7e4bedab227303a
+    raw/0882f260441814da5b74be15/neg-undeclared-baseline.json: 3a030cf3f8528b5c2c61dd4eef8ffefa235a0d6fed23fff0b03dfa603a5a7451
+    raw/0882f260441814da5b74be15/neg-undeclared-faulted.json: ff089f594bfe8b481911e032ea144bb3306c226776b270315a769d8cb5cf2da4
+    raw/0882f260441814da5b74be15/neg-undeclared-reverted.json: 3a030cf3f8528b5c2c61dd4eef8ffefa235a0d6fed23fff0b03dfa603a5a7451
+  unexpectedCanaryCaptures: []
+  notCovered:
+  - 'Kubernetes API egress: CIDR NetworkPolicy cannot select the API server under
+    Cilium, so no fault opens it; the network-control pod is the positive control'

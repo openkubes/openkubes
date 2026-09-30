@@ -1,0 +1,1 @@
+{"argv": ["kubectl", "get", "namespace", "dw-ok174-proof", "-o", "json"], "returncode": 1, "stderr": "Error from server (NotFound): namespaces \"dw-ok174-proof\" not found\n", "stdout": ""}

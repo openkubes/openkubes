@@ -1,0 +1,10 @@
+node@sha256:36ae19f59c91f3303c7a648f07493fe14c4bd91320ac8d898416327bacf1bbfa
+Inference: ok-ai's shared Ollama at 192.168.100.202:11434, model ok174-gpt-oss:20b (selected by the live Makefile)
+Shared-cluster publication target (staging; publish only with coordinator approval):
+registry.ok-shared.internal/openkubes/machine/staging/adr039-live/{opencode,codex,fixture}:ok174-proof
+
+Digest-pinned custom runtime references must be obtained from the registry after push;
+these tags are publication inputs, not evidence references.
+
+developer-workspace-opencode:1.18.33  npm opencode-ai@1.18.33
+developer-workspace-codex:0.158.0      npm @openai/codex@0.158.0

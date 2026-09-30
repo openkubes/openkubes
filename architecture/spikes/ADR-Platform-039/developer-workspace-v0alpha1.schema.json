@@ -1,0 +1,24 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object", "additionalProperties": false,
+  "required": ["apiVersion", "kind", "metadata", "spec"],
+  "properties": {
+    "apiVersion": {"const": "workspace.openkubes.io/v0alpha1"},
+    "kind": {"const": "DeveloperWorkspace"},
+    "metadata": {"type":"object", "additionalProperties":false, "required":["name"], "properties":{"name":{"type":"string","pattern":"^[a-z][a-z0-9-]{2,62}$"}}},
+    "status": {"type":"object", "additionalProperties":false, "required":["currentHealth","lifecyclePhase","terminalOutcome","evidence"], "properties":{"currentHealth":{"enum":["healthy","degraded","failed","unknown"]},"lifecyclePhase":{"enum":["pending","running","idle","terminating","deleted"]},"terminalOutcome":{"enum":[null,"succeeded","failed","cancelled"]},"evidence":{"type":"object","additionalProperties":false,"required":["exported","correlationID"],"properties":{"exported":{"type":"boolean"},"correlationID":{"type":["null","string"],"pattern":"^evidence-[a-z0-9-]{3,62}$"}}}}},
+    "spec": {"type":"object", "additionalProperties":false, "required":["workspaceID","source","runtime","model","storage","resources","capabilities","credentials","verification","lifecycle"], "properties": {
+      "workspaceID":{"type":"string","pattern":"^ws-[a-z0-9-]{3,48}$"},
+      "source":{"type":"object","additionalProperties":false,"required":["repositoryRef","revision"],"properties":{"repositoryRef":{"type":"string","pattern":"^sourceref:[a-z][a-z0-9-]{1,62}$"},"revision":{"type":"string","pattern":"^[A-Fa-f0-9]{7,64}$"}}},
+      "runtime":{"type":"object","additionalProperties":false,"required":["profile"],"properties":{"profile":{"type":"string","pattern":"^[a-z][a-z0-9-]{1,62}$"}}},
+      "model":{"type":"object","additionalProperties":false,"required":["profileRef"],"properties":{"profileRef":{"type":"string","pattern":"^modelref:[a-z][a-z0-9-]{1,62}$"}}},
+      "storage":{"type":"object","additionalProperties":false,"required":["mode","size"],"properties":{"mode":{"enum":["persistent","ephemeral"]},"size":{"type":"string","pattern":"^[1-9][0-9]*(Mi|Gi)$"}}},
+      "resources":{"type":"object","additionalProperties":false,"required":["cpu","memory"],"properties":{"cpu":{"type":"string","pattern":"^[1-9][0-9]*m?$"},"memory":{"type":"string","pattern":"^[1-9][0-9]*(Mi|Gi)$"}}},
+      "capabilities":{"type":"object","additionalProperties":false,"required":["git","inference","mcp","kubernetes"],"properties":{"git":{"$ref":"#/definitions/ref"},"inference":{"$ref":"#/definitions/ref"},"mcp":{"type":"object","additionalProperties":false,"required":["reference","approvedTools"],"properties":{"reference":{"type":"string","pattern":"^capabilityref:mcp-[a-z][a-z0-9-]{1,62}$"},"approvedTools":{"type":"array","minItems":1,"uniqueItems":true,"items":{"type":"string","pattern":"^toolref:[a-z][a-z0-9-]{1,62}$"}}}},"kubernetes":{"type":"object","additionalProperties":false,"required":["access"],"properties":{"access":{"const":"none"}}}}},
+      "credentials":{"type":"array","minItems":1,"uniqueItems":true,"items":{"type":"string","pattern":"^credentialref:[a-z][a-z0-9-]{1,62}$"}},
+      "verification":{"type":"object","additionalProperties":false,"required":["command"],"properties":{"command":{"type":"array","minItems":1,"items":{"type":"string","minLength":1}}}},
+      "lifecycle":{"type":"object","additionalProperties":false,"required":["profile","idleTimeoutMinutes","retentionMinutes","deletion","evidence"],"properties":{"profile":{"enum":["persistent","ephemeral","review"]},"idleTimeoutMinutes":{"type":"integer","minimum":1},"retentionMinutes":{"type":"integer","minimum":1},"deletion":{"enum":["explicit","after-retention"]},"evidence":{"type":"object","additionalProperties":false,"required":["exportBeforeCleanup"],"properties":{"exportBeforeCleanup":{"type":"boolean"}}}}}
+    }}
+  },
+  "definitions": {"ref":{"type":"object","additionalProperties":false,"required":["reference"],"properties":{"reference":{"type":"string","pattern":"^capabilityref:(git|inference)-[a-z][a-z0-9-]{1,62}$"}}}}
+}

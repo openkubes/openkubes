@@ -1,0 +1,54 @@
+apiVersion: workspace.openkubes.io/v1
+kind: NamespaceProfileCatalog
+metadata:
+  name: reviewed-namespace-profile-v1
+spec:
+  namespacePrefix: dw-
+  storageClassName: local-path
+  sources:
+    "sourceref:openkubes":
+      endpoint: https://git-fixture.ok174-proof-services.svc.cluster.local:8443
+      repositoryPath: workspace-fixture
+      caBundle:
+        configMapName: git-fixture-ca
+        key: ca.crt
+  runtimeProfiles:
+    opencode:
+      image: example.invalid/opencode@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+      envTemplate: &runtimeEnv
+        capabilityRef: capabilityref:inference-shared
+        endpointName: OK174_INFERENCE_BASE_URL
+        endpointScheme: http
+        endpointPath: /v1
+        modelName: OK174_MODEL
+        model: ok174-gpt-oss:20b
+    codex:
+      image: example.invalid/codex@sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+      envTemplate: *runtimeEnv
+  modelProfiles:
+    "modelref:shared-inference":
+      inferenceCapabilityRef: "capabilityref:inference-shared"
+  capabilities:
+    "capabilityref:git-source":
+      destination:
+        service: {namespace: ok174-proof-services, name: git-fixture}
+        port: 8443
+    "capabilityref:inference-shared":
+      # ok-ai's shared Ollama, outside the cluster: a reviewed host route.
+      destination:
+        cidr: 192.168.100.202/32
+        port: 11434
+    "capabilityref:mcp-diagnostics":
+      destination:
+        service: {namespace: ok174-proof-services, name: mcp-fixture}
+        port: 8081
+      approvedTools: [toolref:get-platform-health]
+  serviceSelectors:
+    "ok174-proof-services/git-fixture": {app: git-fixture}
+    "ok174-proof-services/mcp-fixture": {app: mcp-fixture}
+  credentials:
+    "credentialref:workspace-git-auth":
+      capabilityRef: "capabilityref:git-source"
+      secretName: workspace-git-auth
+      secretKey: token
+      envName: GIT_AUTH_TOKEN

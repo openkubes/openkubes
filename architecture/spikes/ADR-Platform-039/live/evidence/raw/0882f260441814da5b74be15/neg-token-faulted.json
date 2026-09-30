@@ -1,0 +1,1 @@
+{"argv": ["kubectl", "exec", "pod/workspace-56b9d8565c-bd2g4", "-n", "dw-ok174-proof", "-c", "runtime", "--", "sh", "-ec", "test ! -e /var/run/secrets/kubernetes.io/serviceaccount/token"], "returncode": 1, "stderr": "command terminated with exit code 1\n", "stdout": ""}

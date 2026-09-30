@@ -1,0 +1,1 @@
+{"argv": ["kubectl", "logs", "pod/workspace-69f7589877-7v7bh", "-n", "dw-ok174-proof", "-c", "checkout"], "returncode": 0, "stderr": "", "stdout": "HEAD is now at 375ba7d fixture\n"}

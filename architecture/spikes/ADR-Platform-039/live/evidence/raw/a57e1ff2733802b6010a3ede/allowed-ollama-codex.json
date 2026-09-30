@@ -1,0 +1,1 @@
+{"argv": ["kubectl", "exec", "pod/workspace-69f7589877-7v7bh", "-n", "dw-ok174-proof", "-c", "runtime", "--", "curl", "-fsS", "http://192.168.100.202:11434/api/tags"], "returncode": 0, "stderr": "", "stdout": "sha256:7f1c45e967fc9e71fd04f37030a87c4d55788ce750db326aa624dd4ba4beb6ab\n"}

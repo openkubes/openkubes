@@ -1,0 +1,1 @@
+{"argv": ["kubectl", "exec", "pod/workspace-7b4b9569b7-f7snq", "-n", "dw-ok174-proof", "-c", "runtime", "--", "cat", "/sys/fs/cgroup/memory.max", "/sys/fs/cgroup/cpu.max"], "returncode": 0, "stderr": "", "stdout": "1073741824\n50000 100000\n"}

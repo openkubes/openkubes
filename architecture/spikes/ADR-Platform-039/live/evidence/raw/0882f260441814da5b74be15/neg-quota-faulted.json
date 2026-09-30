@@ -1,0 +1,1 @@
+{"argv": ["kubectl", "apply", "-f", "-"], "returncode": 0, "stderr": "", "stdout": "persistentvolumeclaim/neg-oversized created\n"}

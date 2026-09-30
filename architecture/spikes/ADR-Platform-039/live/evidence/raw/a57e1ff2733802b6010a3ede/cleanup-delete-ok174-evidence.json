@@ -1,0 +1,1 @@
+{"argv": ["kubectl", "delete", "--raw", "/api/v1/namespaces/ok174-evidence", "-f", "-"], "returncode": 0, "stderr": "", "stdout": "{\"kind\": \"Namespace\", \"metadata\": {\"name\": \"ok174-evidence\", \"uid\": \"1d213d60-7bb3-4f13-87fc-9a3d260e2bd7\"}}"}

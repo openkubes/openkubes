@@ -1,0 +1,1 @@
+{"argv": ["kubectl", "exec", "pod/network-control", "-n", "ok174-proof-services", "--", "curl", "-ksS", "-o", "/dev/null", "-w", "%{http_code}", "https://git-fixture:8443/workspace-fixture.git/info/refs?service=git-upload-pack"], "returncode": 0, "stderr": "", "stdout": "401"}

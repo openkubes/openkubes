@@ -1,0 +1,1 @@
+{"argv": ["kubectl", "exec", "pod/workspace-69f7589877-7v7bh", "-n", "dw-ok174-proof", "-c", "runtime", "--", "sha256sum", "/workspace/.ok174-persistence"], "returncode": 0, "stderr": "", "stdout": "40490575416a37063ceb18fda7638138936fd25478bd78cf0dd2b2b85303c994  /workspace/.ok174-persistence\n"}

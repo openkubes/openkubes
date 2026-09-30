@@ -1,0 +1,1 @@
+{"argv": ["kubectl", "exec", "pod/network-control", "-n", "ok174-proof-services", "--", "curl", "-fsS", "--max-time", "5", "http://mcp-fixture:8081/mcp"], "returncode": 0, "stderr": "", "stdout": "{\"fixture\":\"mcp\"}\n"}

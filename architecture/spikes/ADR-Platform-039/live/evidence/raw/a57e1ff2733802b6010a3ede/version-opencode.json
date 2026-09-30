@@ -1,0 +1,1 @@
+{"argv": ["kubectl", "exec", "pod/workspace-7b4b9569b7-f7snq", "-n", "dw-ok174-proof", "-c", "runtime", "--", "opencode", "--version"], "returncode": 0, "stderr": "", "stdout": "1.18.33\n"}

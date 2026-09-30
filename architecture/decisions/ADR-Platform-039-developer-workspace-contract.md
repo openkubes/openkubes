@@ -209,9 +209,69 @@ Rejected. Coding convenience is not sufficient justification for ambient infrast
 
 Deferred. VM-backed isolation may become an implementation profile, but requiring it before a Namespace profile is tested would add infrastructure without evidence that the contract itself is correctly cut.
 
+## Validated reference-profile boundary
+
+`architecture/spikes/ADR-Platform-039/live/evidence/live-evidence-v1.yaml` records one live
+run on `ok-obs-verify` that passed all 18 required effects. The run deployed `render()` output
+for two `DeveloperWorkspace` documents that differ only in `spec.runtime.profile`: OpenCode,
+then Codex on the same volume. The workspace Namespace, Deployment, NetworkPolicies,
+ResourceQuota, LimitRange, ServiceAccount and PVC were read back and compared with the render
+plus five recorded operational overlays; the harness-materialized Secrets and ConfigMap, and
+the proof-service objects, were not. Each agent edited the fixture and ran the declared
+verification command through its own shell tool, and the harness re-ran the test
+independently. Every exec transcript is bound to the pod it ran in. The run also exercised
+default-deny policy, explicit Git, inference and MCP egress, no mounted ServiceAccount token,
+discovery-only RBAC, kernel cgroup CPU and memory limits matching the render, a
+`requests.storage` quota rejection, ephemeral `emptyDir` eviction, credential-canary scans of
+both runtime pods and the ephemeral pod, and UID-preconditioned cleanup. A separate
+fail-on-purpose run, `negative-controls-v1.yaml`, broke each probe's precondition on the
+cluster and required the probe to go red, then green after the revert.
+
+What the evidence does not show:
+- CPU and memory limits are configured in the kernel as rendered, but were not stressed.
+- The MCP capability is network reachability to one reviewed endpoint; `approvedTools` is not
+  enforced at the tool level.
+- No reconciling controller exists. The harness applies the render and orders export before
+  deletion; a future controller must own that.
+- Inference is ok-ai's shared Ollama outside the cluster, reached through a reviewed `/32` host
+  route.
+- Codex runs with its own sandbox disabled, because it cannot nest inside the unprivileged pod.
+- The raw transcripts are integrity-bound after capture, not attested. Beyond the cluster,
+  node, image and model identifiers, their content could be recomputed offline.
+
+The corrected proof fixes four profile and contract choices:
+
+- **Capability destinations.** Besides a `/32` `{cidr, port}` host route, a reviewed profile may
+  name an in-cluster `{service: {namespace, name}, port}` destination. It renders as a
+  namespace and pod selector taken from the profile's reviewed Service selector, plus a kube-dns
+  egress allow. CIDR rules cannot select cluster-managed pod backends under Cilium. The form lives
+  only in the profile, so the `DeveloperWorkspace` contract stays cluster-agnostic.
+- **Source TLS.** Source endpoints must be HTTPS. The profile names a CA bundle ConfigMap that
+  is mounted only into the checkout init container, along with the Git credential. The runtime
+  container receives neither.
+- **Declared verification.** `spec.verification.command` is a portable, runtime-agnostic test
+  declaration. The agent is told to run it, and the harness runs it again independently.
+- **Storage bounds.** A `requests.storage` quota bounds persistent claims at admission, and an
+  ephemeral `emptyDir.sizeLimit` bounds ephemeral workspaces by eviction. The `local-path`
+  provisioner does not enforce requested capacity on a persistent volume.
+
+This profile isolates workspace resources through Kubernetes Namespace, ServiceAccount, Secret,
+quota, storage and NetworkPolicy boundaries. It does not provide a separate kernel, VM or hostile
+multi-tenant boundary; it trusts the cluster, nodes, CNI, storage provisioner and reviewed runtime
+images. The credential check is a bounded scan of manifests, argv, workspace content, captured
+output and Pod logs. It does not prove that a malicious runtime could not exfiltrate a credential
+to an allowed endpoint. The evidence binds the source known commit, implementation revision, and
+image digests separately; it is not a build attestation tying those images to that revision. Stronger threat
+models require a future sandbox or VM profile.
+
 ## Required acceptance evidence
 
-ADR-Platform-039 remains **Proposed** until OK-174 or successor work records evidence for at least the following:
+ADR-Platform-039 remains **Proposed** until a human decision-holder accepts the architecture
+after reviewing the required acceptance evidence. The current evidence, recorded in
+`developer-workspace-verdict-v1.yaml`, supports a GO recommendation for the contract and
+Namespace reference-profile direction, but does not by itself waive unmet evidence items or
+implementation-profile readiness gates. The limits stated under the reference-profile boundary
+above apply to items 9 and 11. The evidence items are:
 
 1. a rendered `DeveloperWorkspace` v0alpha1 candidate independent of OpenCode internals;
 2. creation of one workspace as one dedicated Kubernetes Namespace;

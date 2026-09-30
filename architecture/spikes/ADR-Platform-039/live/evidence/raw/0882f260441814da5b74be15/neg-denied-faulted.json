@@ -1,0 +1,1 @@
+{"argv": ["kubectl", "exec", "pod/workspace-79b96b6968-whx76", "-n", "dw-ok174-proof", "-c", "runtime", "--", "curl", "-sS", "--connect-timeout", "3", "--max-time", "3", "http://denied-fixture.ok174-proof-services.svc.cluster.local:8081"], "returncode": 0, "stderr": "", "stdout": ""}
