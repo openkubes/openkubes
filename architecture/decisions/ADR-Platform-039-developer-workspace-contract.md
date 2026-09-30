@@ -266,10 +266,12 @@ models require a future sandbox or VM profile.
 
 ## Required acceptance evidence
 
-ADR-Platform-039 remains **Proposed** until a human decision-holder decides on the GO
-recommendation in `developer-workspace-verdict-v1.yaml`. That recommendation is derived from the
-recorded live evidence. The limits stated under the reference-profile boundary above apply to
-items 9 and 11. The evidence items are:
+ADR-Platform-039 remains **Proposed** until a human decision-holder accepts the architecture
+after reviewing the required acceptance evidence. The current evidence, recorded in
+`developer-workspace-verdict-v1.yaml`, supports a GO recommendation for the contract and
+Namespace reference-profile direction, but does not by itself waive unmet evidence items or
+implementation-profile readiness gates. The limits stated under the reference-profile boundary
+above apply to items 9 and 11. The evidence items are:
 
 1. a rendered `DeveloperWorkspace` v0alpha1 candidate independent of OpenCode internals;
 2. creation of one workspace as one dedicated Kubernetes Namespace;
