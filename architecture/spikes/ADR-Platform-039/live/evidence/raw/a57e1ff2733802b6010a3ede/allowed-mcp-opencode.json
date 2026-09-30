@@ -1,0 +1,1 @@
+{"argv": ["kubectl", "exec", "pod/workspace-7b4b9569b7-f7snq", "-n", "dw-ok174-proof", "-c", "runtime", "--", "curl", "-fsS", "http://mcp-fixture.ok174-proof-services.svc.cluster.local:8081/mcp"], "returncode": 0, "stderr": "", "stdout": "{\"fixture\":\"mcp\"}\n"}

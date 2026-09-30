@@ -1,0 +1,1 @@
+{"argv": ["kubectl", "exec", "pod/network-control", "-n", "ok174-proof-services", "--", "curl", "-ksS", "-o", "/dev/null", "-w", "%{http_code}", "--connect-timeout", "3", "--max-time", "5", "https://kubernetes.default.svc"], "returncode": 0, "stderr": "", "stdout": "401"}

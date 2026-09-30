@@ -117,6 +117,11 @@ those images until merge.
 
 ## Evidence status
 
-Evidence is recorded by `live-apply`, `live-probe`, `live-evidence` and `live-negative` from a
-clean tree. It binds `implementationTreeSha256`, a content hash of every implementation file in
-this spike, so it stays checkable after a rebase or squash merge. Never edit it by hand.
+`evidence/live-evidence-v1.yaml` is the current evidence: run `a57e1ff2733802b6010a3ede`, 18/18
+effects. `evidence/negative-controls-v1.yaml` is the fail-on-purpose run `0882f260441814da5b74be15`: all
+seven controls went green, then red on their live fault, then green after the revert. Both ran
+against implementation `implementationTreeSha256: 200ee3c295b0d43522989286d3fedc0696c8f84ae18ba6d13c372bfa8a4b5e93`, a
+content hash of every implementation file in this spike, so they stay checkable after a rebase
+or squash merge. `evidence/raw/<run-id>/` holds their hash-bound transcripts, reduced at capture
+time to the fields the verifier needs. Regenerate the evidence only with `live-apply`,
+`live-probe`, `live-evidence` and `live-negative` from a clean tree; never edit it by hand.

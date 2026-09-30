@@ -1,0 +1,1 @@
+{"argv": ["kubectl", "exec", "-i", "pod/workspace-69f7589877-7v7bh", "-n", "dw-ok174-proof", "-c", "runtime", "--", "sh", "-ec", "p=$(cat); test -n \"$p\" || exit 8; if grep -a -R -F -e \"$p\" /workspace /tmp /home/workspace; then exit 9; fi"], "returncode": 0, "stderr": "", "stdout": ""}

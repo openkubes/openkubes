@@ -1,0 +1,1 @@
+{"argv": ["kubectl", "exec", "pod/network-control", "-n", "ok174-proof-services", "--", "curl", "-fsS", "--max-time", "5", "http://git-fixture:8080/known-commit"], "returncode": 0, "stderr": "", "stdout": "375ba7dfb4f4b49bdbd7a82c567873a59a59d37d\n"}

@@ -1,0 +1,1 @@
+{"argv": ["kubectl", "apply", "-f", "-"], "returncode": 1, "stderr": "Error from server (Forbidden): error when creating \"STDIN\": persistentvolumeclaims \"neg-oversized\" is forbidden: exceeded quota: workspace-bounds, requested: requests.storage=100Ti, used: requests.storage=1Gi, limited: requests.storage=1Gi\n", "stdout": ""}

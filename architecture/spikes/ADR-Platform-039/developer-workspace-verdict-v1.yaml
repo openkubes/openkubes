@@ -1,0 +1,46 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: DeveloperWorkspaceVerdict
+metadata:
+  name: ok174-developer-workspace-verdict-v1
+  ticket: OK-174
+spec:
+  version: developer-workspace-verdict/v1
+  adr: ADR-Platform-039
+  adrStatus: Proposed
+  evidenceState: current
+  recommendation: GO
+  liveEvidenceComplete: true
+  unsupported: []
+  mismatches:
+    - imagePullSecrets operational overlay
+    - run and owner label operational overlays
+    - registry pull Secret materialization outside render
+    - source credential Secret materialization outside render
+    - source CA ConfigMap materialization outside render
+  artifacts:
+    developer-workspace-v0alpha1.schema.json: sha256:058baf166108ff71b67a0a33095b4b6f8479f26d036ab55fbfae2dc0f0db0c81
+    developer-workspace-v0alpha1.example.yaml: sha256:aa43747e71338f3268e2535126100352f470911c4a3b80c43e12c39e5f665ee1
+    namespace-profile-v1.yaml: sha256:ebb63fcd69d0c68f4aa06088570213220e124b265d568dc86eb6035001f05157
+    developer-workspace-v0alpha1.rendered.yaml: sha256:67d7725968a772fda54aedd9fe0133c65863035c8ad3642c3bf9bab36c4bedf3
+    verify_developer_workspace_v1.py: sha256:9b751c53f9e75f9d8875c632df72b9f1c113d8d772231a8487ef52ef08c7ed14
+    tests/test_developer_workspace_v1.py: sha256:2897b1d414065493b129dd95fadd24ec5ebe1200d5f46bcc72d09221d501481e
+    live/evidence/live-evidence-v1.yaml: sha256:be3cdf73305666d44f3329893b36d0a727baa37ed4c1f4e15d5b937284733551
+    live/evidence/negative-controls-v1.yaml: sha256:332008422ab4d0417c4dd1eb18d981a374601394fed60372cd5cf42da1296177
+  followUps:
+    - key: OK-175
+      role: namespace-opencode-implementation
+    - key: OK-176
+      role: live-isolation-lifecycle-proof
+    - key: OK-177
+      role: second-runtime-validation
+  evidenceBoundaries:
+    - live proof covers the reviewed Namespace profile on ok-obs-verify, not a VM or hostile multi-tenant boundary
+    - credential evidence is a bounded manifest, argv, workspace, output, and log scan; unobserved exfiltration is not disproved
+    - inference is ok-ai shared Ollama reached through a reviewed /32 host route; that host and the selected model are trusted inputs, and the model is a portability probe, not a production coding-quality claim
+    - persistent requested capacity is not enforced by the local-path provisioner; storage proof covers quota rejection and ephemeral emptyDir eviction
+    - source knownCommit, implementation revision, and image digests are bound separately; no build attestation binds those images to that revision
+    - Codex runs with its own sandbox disabled because it cannot nest inside the unprivileged pod; the pod securityContext and NetworkPolicy are the isolation boundary
+    - MCP capability is proven as network reachability to one reviewed endpoint; approvedTools is declared but not enforced at the tool level
+    - 'no reconciling controller exists: the harness applies the render and performs export-before-deletion ordering that a future controller must own'
+    - 'evidence is integrity-bound after capture, not attested: beyond the cluster, node, image and model identifiers, its content could be recomputed offline'
+    - no merge, release, deployment, or human approval authority is granted by runtime conformance

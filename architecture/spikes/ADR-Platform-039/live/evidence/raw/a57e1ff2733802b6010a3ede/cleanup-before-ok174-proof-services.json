@@ -1,0 +1,1 @@
+{"argv": ["kubectl", "get", "namespace", "ok174-proof-services", "-o", "json"], "returncode": 0, "stderr": "", "stdout": "{\"kind\": \"Namespace\", \"metadata\": {\"name\": \"ok174-proof-services\", \"uid\": \"5693002d-e361-476c-b2cb-0a4136a131e7\"}}"}

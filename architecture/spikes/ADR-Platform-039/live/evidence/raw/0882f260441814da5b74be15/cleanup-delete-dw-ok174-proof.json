@@ -1,0 +1,1 @@
+{"argv": ["kubectl", "delete", "--raw", "/api/v1/namespaces/dw-ok174-proof", "-f", "-"], "returncode": 0, "stderr": "", "stdout": "{\"kind\": \"Namespace\", \"metadata\": {\"name\": \"dw-ok174-proof\", \"uid\": \"20191109-9696-4e5f-8b84-2301df9b0376\"}}"}

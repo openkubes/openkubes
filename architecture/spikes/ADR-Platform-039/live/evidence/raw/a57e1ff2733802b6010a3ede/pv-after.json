@@ -1,0 +1,1 @@
+{"argv": ["kubectl", "get", "pv", "pvc-b90bc85a-72a5-4007-bad0-d112b426b783", "-o", "json"], "returncode": 0, "stderr": "", "stdout": "{\"kind\": \"PersistentVolume\", \"metadata\": {\"name\": \"pvc-b90bc85a-72a5-4007-bad0-d112b426b783\", \"uid\": \"52e28a35-bec3-4a20-b7a7-e938a0e7aba4\"}}"}

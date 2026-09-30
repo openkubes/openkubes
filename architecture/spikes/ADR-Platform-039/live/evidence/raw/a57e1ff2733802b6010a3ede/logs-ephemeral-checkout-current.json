@@ -1,0 +1,1 @@
+{"argv": ["kubectl", "logs", "pod/workspace-769c666f5c-6wcj6", "-n", "dw-ok174-ephemeral", "-c", "checkout"], "returncode": 0, "stderr": "", "stdout": "Cloning into '/workspace'...\nHEAD is now at 375ba7d fixture\n"}
