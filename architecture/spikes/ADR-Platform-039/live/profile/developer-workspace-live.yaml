@@ -1,0 +1,40 @@
+apiVersion: workspace.openkubes.io/v0alpha1
+kind: DeveloperWorkspace
+metadata:
+  name: ok174-live-proof
+spec:
+  workspaceID: ws-ok174-proof
+  source:
+    repositoryRef: sourceref:openkubes
+    # Replaced with the fixture's observed known commit before live render.
+    revision: "1111111111111111111111111111111111111111"
+  runtime:
+    profile: opencode
+  model:
+    profileRef: modelref:shared-inference
+  storage:
+    mode: persistent
+    size: 1Gi
+  resources:
+    cpu: 500m
+    memory: 1Gi
+  capabilities:
+    git:
+      reference: capabilityref:git-source
+    inference:
+      reference: capabilityref:inference-shared
+    mcp:
+      reference: capabilityref:mcp-diagnostics
+      approvedTools: [toolref:get-platform-health]
+    kubernetes:
+      access: none
+  credentials: [credentialref:workspace-git-auth]
+  lifecycle:
+    profile: persistent
+    idleTimeoutMinutes: 30
+    retentionMinutes: 120
+    deletion: explicit
+    evidence:
+      exportBeforeCleanup: true
+  verification:
+    command: [sh, verify.sh]

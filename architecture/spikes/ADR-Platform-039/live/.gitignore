@@ -1,0 +1,7 @@
+# Local run outputs. Only the verified run's evidence/raw/<run-id>/ is committed, with an
+# explicit `git add -f`; every other run directory stays local.
+rendered-live.yaml
+evidence/published-images.env
+evidence/state/
+evidence/*.candidate.json
+evidence/raw/

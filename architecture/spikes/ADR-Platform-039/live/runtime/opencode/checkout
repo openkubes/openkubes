@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+[[ $# == 4 ]] || { echo 'usage: checkout <endpoint> <repositoryPath> <revision> <workspace>' >&2; exit 64; }
+endpoint=${1%/}; repository_path=$2; revision=$3; workspace=$4
+[[ "$endpoint" =~ ^https://[^/@?#]+$ ]] || { echo 'checkout endpoint must be an HTTPS authority' >&2; exit 64; }
+[[ "$repository_path" =~ ^[A-Za-z0-9][A-Za-z0-9._/-]*$ && "$repository_path" != *..* ]] || { echo 'unsafe repository path' >&2; exit 64; }
+[[ "$revision" =~ ^[0-9a-fA-F]{7,64}$ ]] || { echo 'revision must be a Git object ID' >&2; exit 64; }
+remote="$endpoint/$repository_path.git"
+git_with_auth() {
+  if [[ -n ${GIT_AUTH_TOKEN:-} ]]; then
+    GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0="http.$endpoint/.extraHeader" GIT_CONFIG_VALUE_0="Authorization: Bearer $GIT_AUTH_TOKEN" git "$@"
+  else
+    git "$@"
+  fi
+}
+if [[ -d "$workspace/.git" ]]; then
+  [[ "$(git -C "$workspace" remote get-url origin)" == "$remote" ]] || { echo 'existing workspace origin differs from requested source' >&2; exit 65; }
+else
+  [[ ! -e "$workspace" || -d "$workspace" ]] || { echo 'workspace is not a directory' >&2; exit 65; }
+  mkdir -p "$workspace"
+  git_with_auth clone --no-checkout "$remote" "$workspace"
+fi
+git_with_auth -C "$workspace" fetch --prune origin
+git -C "$workspace" checkout --detach "$revision"
