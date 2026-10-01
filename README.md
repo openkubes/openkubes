@@ -158,6 +158,7 @@ OpenKubes is built on 36 documented platform-level decisions:
 | [ADR-Platform-036](./architecture/decisions/ADR-Platform-036-openkubes-console-architecture.md) | Native OpenKubes Console — curated first delivery and evolution toward contract-adaptive UI *(proposed)* |
 | [ADR-Platform-037](./architecture/decisions/ADR-Platform-037-console-authentication-and-identity-federation.md) | Console authentication, identity federation, and break-glass access *(proposed)* |
 | [ADR-Platform-038](./architecture/decisions/ADR-Platform-038-console-session-store.md) | Console Session Store Contract and PostgreSQL reference profile *(proposed)* |
+| [ADR-Platform-039](./architecture/decisions/ADR-Platform-039-openstack-iaas-composition.md) | OpenStack as an optional OpenKubes IaaS composition *(proposed)* |
 
 → [`architecture/decisions/`](./architecture/decisions/)
 
