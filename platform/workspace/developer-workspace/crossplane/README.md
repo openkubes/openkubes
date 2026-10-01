@@ -16,7 +16,7 @@ ADR-Platform-039 stays Proposed; this directory supplies implementation evidence
 | `xrd.yaml` | Cluster-scoped XRD, generated from the contract schema by `tests/xrd_schema.py`; the portable contract document is the composite resource, unchanged. |
 | `composition.yaml` | Template port of the spike's `render()`; function-go-templating then function-auto-ready. |
 | EnvironmentConfig `developer-workspace-profile` | Cluster-scoped input: `profile` (the reviewed NamespaceProfileCatalog), `providerConfigName`, optional `imagePullSecret`. Without it the render fails and nothing is composed. Every check `render()` makes in `validate_profile()` is a `fail` guard here, so any input `render()` rejects composes nothing. |
-| `install/` | provider-kubernetes with a named ServiceAccount and watches enabled, and the `in-cluster` ProviderConfig (InjectedIdentity). |
+| `install/` | provider-kubernetes with a named ServiceAccount and watches enabled, the `in-cluster` ProviderConfig (InjectedIdentity), and `namespace-guard.yaml`, a ValidatingAdmissionPolicy that keeps workspace Namespaces dedicated. |
 | `rbac/` | The authority this capability adds to the provider: the kinds the Composition emits. No RBAC kinds, Pods or exec. See *Provider authority*. |
 | `tests/functions.yaml` | Pinned function packages (go-templating v0.9.2, auto-ready v0.4.1). |
 
@@ -25,7 +25,18 @@ which means the checkout init container succeeded. `status.lifecyclePhase` is `p
 then and `running` after.
 
 Composed Objects are named `dw-<10 hex of sha256(workspaceID)>-<resource>`, so names stay unique
-and under 63 characters for every ID the schema allows; the template fails on any collision.
+and under 63 characters for every ID the schema allows; the template fails on a collision within
+one workspace. Two `DeveloperWorkspace`s with the same `workspaceID` would compose the same Object
+names; that case is not tested.
+
+**Dedicated Namespace.** `install/namespace-guard.yaml` lets the provider identity change or delete
+only Namespaces it created for a workspace (they carry `workspace.openkubes.io/id` from creation),
+and write only objects whose workspace label matches their Namespace's. A workspace whose
+Namespace already exists is refused it, and its `DeveloperWorkspace` never becomes Ready.
+
+**One workspace shape per cluster.** The profile is a single cluster-wide EnvironmentConfig whose
+catalogs must match each workspace's references exactly (as `render()` requires), so every
+workspace on a cluster declares the same source, model, capability and credential references.
 
 ## Provider authority
 
@@ -33,8 +44,11 @@ provider-kubernetes acts with its own identity, which a workspace never receives
 platform authority, close to cluster-admin in effect: besides `rbac/`, Crossplane's RBAC manager
 grants every provider `*` on Secrets, ConfigMaps, Events and Leases cluster-wide, and creating
 Deployments with any ServiceAccount in any Namespace reaches whatever those accounts can do. Only
-platform operators may create `objects.kubernetes.crossplane.io` or edit the `in-cluster`
-ProviderConfig; the live proof records the provider's `can-i --list` as the privileged control.
+platform operators may create `objects.kubernetes.crossplane.io`, edit the `in-cluster`
+ProviderConfig, or edit the `developer-workspace-profile` EnvironmentConfig (it chooses images,
+Secret names and the ProviderConfig). Creating a `DeveloperWorkspace` directs the provider too, so
+it is granted through cluster RBAC on the cluster-scoped kind, not to workspaces. The live proof
+records the provider's `can-i --list` as the privileged control.
 
 ## Checks
 
@@ -42,12 +56,14 @@ ProviderConfig; the live proof records the provider's `can-i --list` as the priv
 make functions-up      # function containers for the Development runtime
 make render-check      # xrd-check; Composition output == render() for 8 variants and the
                        # longest workspaceID; status phases; fails on a missing profile and on
-                       # every one of 28 inputs render() rejects
+                       # every one of 35 inputs render() rejects (IPv6 host routes are
+                       # rejected too, which render() accepts)
 make functions-down
 ```
 
 `render-check` equality is with the reviewed `render()` that OK-174's live evidence was
-recorded against, so the reconciler emits exactly the objects already proven live.
+recorded against, for the example profile; the live proof reads back the same equality for the
+live profile.
 
 ## Live proof (disposable clusters only)
 
@@ -59,6 +75,8 @@ pre-flight `kind-ok175-preflight`, requires `TARGET_CONTEXT` to repeat it, and r
 export KUBECONFIG=<disposable cluster kubeconfig> TARGET_CONTEXT=ok-175-proof-admin@ok-175-proof
 export OK175_TARGET_UID_SHA256=$(kubectl get ns kube-system -o jsonpath='{.metadata.uid}' | sha256sum | cut -d' ' -f1)
 make live-install
+# Images default to the OK-174 published digests in the spike's (untracked) published-images.env;
+# otherwise set OK175_RUNTIME_IMAGE and OK175_FIXTURE_IMAGE to digest references.
 OK175_REGISTRY_USERNAME=<pull-only user> OK175_REGISTRY_PASSWORD_FD=3 make live-run REQUIRE_CLEAN=1 3< <password file>
 make live-uninstall
 ```
@@ -70,12 +88,16 @@ a control that shows it can fail:
 - the API server rejects a persistent lifecycle with ephemeral storage (XRD CEL) and admits the
   consistent document;
 - without the profile EnvironmentConfig a workspace composes nothing and is not Ready;
+- a workspace whose Namespace already exists is refused it: no label added, nothing written,
+  the owner's data intact, not Ready (control: the persistent workspace below; with the policy
+  binding removed, the same workspace adopted the Namespace on the kind pre-flight);
 - a persistent workspace: no pre-existing Namespace; reconciled objects equal `render()`; XR
   `Ready` with `lifecyclePhase: running`;
 - a deleted `default-deny` is recreated (control: new UID) and a patched quota value is reverted;
 - the checkout is the declared revision (control: the source's default branch is a newer commit);
 - no token mounted; `can-i --list` equals an unbound identity's and passes OK-174's discovery-only
-  allowlist; no RoleBindings (control: the provider identity fails both);
+  allowlist, plus the public ClusterTrustBundle read Kubernetes grants every authenticated
+  identity; no RoleBindings (control: the provider identity fails both);
 - the Kubernetes API is unreachable from the runtime (control: reachable from the proof namespace);
 - no push or merge authority: no credential in the runtime's git config or environment, and the
   source refuses its push to `main` for lack of one (TLS verification off for that probe, so the
@@ -106,7 +128,8 @@ reused helpers, the live profile), and the target's identity hash.
 ## Limits (not claimed)
 
 - A Namespace is not a VM or a hostile multi-tenant boundary.
-- CPU and memory limits are configured, not stress-tested (OK-176).
+- CPU and memory limits are configured, not stress-tested (OK-176). The quota and limits are the
+  values the workspace declares; the profile sets no maximum, so they are not a platform cap.
 - `local-path` does not enforce PVC capacity (OK-176).
 - Push denial is shown against a source that scopes credentials, standing in for a real
   provider's read-only token; it is not a test of any particular Git host's permissions.
@@ -116,8 +139,8 @@ reused helpers, the live profile), and the target's identity hash.
   outside the rendered set (for example an extra egress rule on `default-deny`) is not removed:
   provider-kubernetes applies client-side and manages only the fields it wrote. Making that change
   needs authority no workspace holds.
-- An existing Namespace with a workspace's name would be adopted, and deleted with the workspace.
-  The live proof requires none to exist; nothing prevents it in general.
+- The namespace guard keys on the `workspace.openkubes.io/id` label. Anyone who can label a
+  Namespace can mark it as a workspace's; that authority already covers the Namespace itself.
 - `lifecycle.idleTimeoutMinutes`, `retentionMinutes`, `deletion: after-retention` and
   `evidence.exportBeforeCleanup` are accepted and validated, but not acted on.
 - Kubernetes API unreachability is sampled at `kubernetes.default.svc`; node and control-plane

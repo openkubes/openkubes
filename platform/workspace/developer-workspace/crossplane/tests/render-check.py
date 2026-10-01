@@ -84,7 +84,15 @@ def mutations(doc):
     def p(fn): return lambda d, pr: fn(pr['spec'])
     def d(fn): return lambda dd, pr: fn(dd['spec'])
     service = lambda pr: next(c['destination'] for c in pr['capabilities'].values() if 'service' in c['destination'])
+    def top(fn): return lambda d, pr: fn(pr)
     return {
+        'wrong profile kind': top(lambda x: x.update(kind='OtherCatalog')),
+        'wrong profile apiVersion': top(lambda x: x.update(apiVersion='workspace.openkubes.io/v2')),
+        'unreviewed profile name': top(lambda x: x['metadata'].update(name='unreviewed-profile')),
+        'extra profile metadata': top(lambda x: x['metadata'].update(labels={'a': 'b'})),
+        'extra top-level profile key': top(lambda x: x.update(status={})),
+        'extra spec key': p(lambda x: x.update(extra='x')),
+        'malformed IPv6 host route': p(lambda x: x['capabilities'][inference]['destination'].update(cidr=':::::/128')),
         'empty namespacePrefix': p(lambda x: x.update(namespacePrefix='')),
         'invalid storageClassName': p(lambda x: x.update(storageClassName='Bad_Class')),
         'extra source': p(lambda x: x['sources'].update({'sourceref:other': next(iter(x['sources'].values()))})),
@@ -140,7 +148,7 @@ def main():
             got, objects = composed(outputs); assert got == expected(doc, profile, ''), 'manifests differ from render()'
             checked += 1; print(f'PASS longest workspaceID: {len(objects)} uniquely named Objects equal render()')
         except AssertionError as error: failures.append(f'longest workspaceID: {error}')
-        status = lambda outputs: {k: v for k, v in next(o for o in outputs if o.get('kind') == 'DeveloperWorkspace').get('status', {}).items() if k != 'conditions'}
+        status = lambda outputs: {k: v for k, v in next((o for o in outputs if o.get('kind') == 'DeveloperWorkspace'), {}).get('status', {}).items() if k != 'conditions'}
         done, outputs = render(base, [profile_config(profile, '')], directory)
         _, objects = composed(outputs)
         if status(outputs) == {'namespace': 'dw-sample-174', 'lifecyclePhase': 'pending'}: print('PASS status: pending until the Deployment is observed available')

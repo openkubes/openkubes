@@ -1,8 +1,8 @@
 # provider-kubernetes for the DeveloperWorkspace Composition (OK-175).
 #
 # The provider runs as the named ServiceAccount below and authenticates to its own cluster with
-# that identity (InjectedIdentity). Its authority is rbac/provider-kubernetes-clusterrole.yaml:
-# exactly the kinds the Composition emits, nothing else. Install order is in ../README.md.
+# that identity (InjectedIdentity). This capability adds rbac/provider-kubernetes-clusterrole.yaml
+# to what Crossplane already grants every provider; see "Provider authority" in ../README.md.
 apiVersion: pkg.crossplane.io/v1beta1
 kind: DeploymentRuntimeConfig
 metadata:

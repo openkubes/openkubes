@@ -49,6 +49,10 @@ spec:
             {{- $s := $xr.spec }}
             {{- $data := default (dict) $config.data }}
             {{- if not (dig "profile" "spec" "" $data) }}{{ fail "profile EnvironmentConfig lacks profile.spec" }}{{ end }}
+            {{- $catalog := $data.profile }}
+            {{- if or (ne (keys $catalog | sortAlpha | toJson) (list "apiVersion" "kind" "metadata" "spec" | toJson)) (ne $catalog.apiVersion "workspace.openkubes.io/v1") (ne $catalog.kind "NamespaceProfileCatalog") }}{{ fail "invalid profile identity" }}{{ end }}
+            {{- if or (ne (keys (default (dict) $catalog.metadata) | sortAlpha | toJson) (list "name" | toJson)) (ne $catalog.metadata.name "reviewed-namespace-profile-v1") }}{{ fail "invalid profile metadata" }}{{ end }}
+            {{- if ne (keys $catalog.spec | sortAlpha | toJson) (list "capabilities" "credentials" "modelProfiles" "namespacePrefix" "runtimeProfiles" "serviceSelectors" "sources" "storageClassName" | toJson) }}{{ fail "invalid profile shape" }}{{ end }}
             {{- $p := $data.profile.spec }}
             {{- $providerConfig := index $data "providerConfigName" }}{{ if not $providerConfig }}{{ fail "profile EnvironmentConfig lacks providerConfigName" }}{{ end }}
             {{- $pullSecret := default "" (index $data "imagePullSecret") }}
@@ -78,7 +82,8 @@ spec:
             {{- $d := $item.destination }}
             {{- if or (not (or (kindIs "float64" $d.port) (kindIs "int64" $d.port) (kindIs "int" $d.port))) (ne (float64 (int $d.port)) (float64 $d.port)) (lt (int $d.port) 1) (gt (int $d.port) 65535) }}{{ fail "destination must have a valid port" }}{{ end }}
             {{- if eq (keys $d | sortAlpha | toJson) (list "cidr" "port" | toJson) }}
-            {{- if not (regexMatch "^(((25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])[.]){3}(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])/32|[0-9a-fA-F:]+/128)$" (toString $d.cidr)) }}{{ fail "destination CIDR must be a host route" }}{{ end }}
+            {{- /* IPv4 /32 only: stricter than render(), which also accepts IPv6 /128. */}}
+            {{- if not (regexMatch "^((25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])[.]){3}(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])/32$" (toString $d.cidr)) }}{{ fail "destination CIDR must be an IPv4 host route" }}{{ end }}
             {{- else }}
             {{- if or (ne (keys $d | sortAlpha | toJson) (list "port" "service" | toJson)) (not (kindIs "map" $d.service)) }}{{ fail "invalid service destination" }}{{ end }}
             {{- if or (ne (keys $d.service | sortAlpha | toJson) (list "name" "namespace" | toJson)) (not $d.service.name) (not $d.service.namespace) }}{{ fail "invalid service destination" }}{{ end }}

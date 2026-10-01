@@ -30,6 +30,7 @@ CROSSPLANE_CHART = ('https://charts.crossplane.io/stable', 'crossplane', '2.3.3'
 PROOF_NS = 'ok174-proof-services'  # the reviewed live profile's source destination
 PULL_SECRET = 'workspace-registry-pull'
 PERSISTENT, EPHEMERAL = ('ok175-live-proof', 'ws-ok175-proof'), ('ok175-ephemeral-proof', 'ws-ok175-ephemeral')
+SQUAT = ('ok175-squat-proof', 'ws-ok175-squat')
 GIT_URL = 'https://git-fixture.ok174-proof-services.svc.cluster.local:8443/workspace-fixture.git'
 KUBE_API = 'https://kubernetes.default.svc'
 
@@ -94,6 +95,10 @@ def installed_matches_local():
     expect(xrd['spec']['versions'][0]['schema'] == local('xrd.yaml')['spec']['versions'][0]['schema'], 'installed XRD schema differs from xrd.yaml')
     role = next(d for d in yaml.safe_load_all((CAPABILITY / 'rbac/provider-kubernetes-clusterrole.yaml').read_text()) if d['kind'] == 'ClusterRole')
     expect(get_json(['get', 'clusterrole', role['metadata']['name']])['rules'] == role['rules'], 'installed ClusterRole differs from rbac/')
+    policy, binding = yaml.safe_load_all((CAPABILITY / 'install/namespace-guard.yaml').read_text())
+    live = get_json(['get', 'validatingadmissionpolicy', policy['metadata']['name']])['spec']
+    expect(all(live.get(k) == policy['spec'][k] for k in ('matchConditions', 'variables', 'validations')), 'installed namespace guard differs from install/namespace-guard.yaml')
+    expect(get_json(['get', 'validatingadmissionpolicybinding', binding['metadata']['name']])['spec'].get('validationActions') == ['Deny'], 'namespace guard binding is not Deny')
     return composition
 
 def revision_matches(xr_name, composition):
@@ -111,7 +116,7 @@ def install(_args):
     subprocess.run(['helm', 'upgrade', '--install', 'crossplane', chart, '--repo', repo, '--version', version, '-n', 'crossplane-system', '--create-namespace', '--wait', '--timeout', '10m'], check=True)
     apply_file(CAPABILITY / 'tests/functions.yaml'); apply_file(CAPABILITY / 'install/provider-kubernetes.yaml')
     kubectl(['wait', '--for=condition=Healthy', 'function.pkg.crossplane.io/function-go-templating', 'function.pkg.crossplane.io/function-auto-ready', 'provider.pkg.crossplane.io/provider-kubernetes', '--timeout=600s'], timeout=630)
-    apply_file(CAPABILITY / 'rbac/provider-kubernetes-clusterrole.yaml'); apply_file(CAPABILITY / 'install/providerconfig.yaml')
+    apply_file(CAPABILITY / 'rbac/provider-kubernetes-clusterrole.yaml'); apply_file(CAPABILITY / 'install/namespace-guard.yaml'); apply_file(CAPABILITY / 'install/providerconfig.yaml')
     apply_file(CAPABILITY / 'xrd.yaml')
     kubectl(['wait', '--for=condition=Established', 'compositeresourcedefinition/developerworkspaces.workspace.openkubes.io', '--timeout=300s'], timeout=330)
     apply_file(CAPABILITY / 'composition.yaml')
@@ -121,7 +126,7 @@ def uninstall(_args):
     target()
     listed = kubectl(['get', 'developerworkspaces', '-o', 'json'], check=False)
     expect(listed.returncode != 0 and 'the server doesn' in listed.stderr or listed.returncode == 0 and not json.loads(listed.stdout)['items'], 'DeveloperWorkspaces still exist; delete them first')
-    for path in ('composition.yaml', 'xrd.yaml', 'install/providerconfig.yaml', 'rbac/provider-kubernetes-clusterrole.yaml', 'install/provider-kubernetes.yaml', 'tests/functions.yaml'):
+    for path in ('composition.yaml', 'xrd.yaml', 'install/providerconfig.yaml', 'install/namespace-guard.yaml', 'rbac/provider-kubernetes-clusterrole.yaml', 'install/provider-kubernetes.yaml', 'tests/functions.yaml'):
         done = kubectl(['delete', '--ignore-not-found', '--wait=true', '-f', str(CAPABILITY / path)], timeout=600, check=False)
         expect(done.returncode == 0 or 'no matches for kind' in done.stderr, f'deleting {path} failed: {done.stderr.strip()[:300]}')  # kind already gone with its CRD
     if subprocess.run(['helm', 'status', 'crossplane', '-n', 'crossplane-system'], capture_output=True).returncode == 0:
@@ -279,6 +284,28 @@ def run(args):
         return doc, namespace, revision
 
     try:
+        # Dedicated Namespace: a workspace whose Namespace already exists must not adopt it.
+        squat = 'dw-ok175-squat'
+        apply([{'apiVersion': 'v1', 'kind': 'Namespace', 'metadata': {'name': squat}},
+               {'apiVersion': 'v1', 'kind': 'ConfigMap', 'metadata': {'name': 'owner-data', 'namespace': squat}, 'data': {'k': 'v'}}])
+        apply([workspace_inputs(SQUAT[0], SQUAT[1], known, 'persistent')])
+        def refused():
+            for o in get_json(['get', 'objects.kubernetes.crossplane.io'])['items']:
+                if o['metadata'].get('labels', {}).get('crossplane.io/composite') == SQUAT[0] and o['spec']['forProvider']['manifest']['kind'] == 'Namespace':
+                    return any('only Namespaces it created' in c.get('message', '') for c in o.get('status', {}).get('conditions', []))
+            return False
+        wait_until('the provider to be refused the existing Namespace', refused, timeout=300, interval=3)
+        time.sleep(20)  # let every other composed Object attempt its write too
+        existing = get_json(['get', 'namespace', squat])
+        ready = {c['type']: c['status'] for c in get_json(['get', f'developerworkspace/{SQUAT[0]}']).get('status', {}).get('conditions', [])}.get('Ready')
+        written = [f"{k}/{i['metadata']['name']}" for k in ('serviceaccounts', 'resourcequotas', 'limitranges', 'networkpolicies', 'persistentvolumeclaims', 'deployments') for i in get_json(['get', k, '-n', squat])['items'] if not spike.controller_default(i)]
+        expect('workspace.openkubes.io/id' not in existing['metadata'].get('labels', {}) and not written and ready != 'True'
+               and kubectl(['get', 'configmap/owner-data', '-n', squat], check=False).returncode == 0, f'existing Namespace was adopted or written: written={written} ready={ready}')
+        kubectl(['delete', 'namespace', squat, '--wait=true'], timeout=600)  # the owner removes it, then the XR can go
+        kubectl(['delete', f'developerworkspace/{SQUAT[0]}', '--wait=true', '--timeout=300s'], timeout=330)
+        wait_until(f'composed Objects of {SQUAT[0]} to be deleted', lambda: not composed_objects(SQUAT[0]), timeout=300)
+        record('dedicated-namespace-enforced', 'a workspace whose Namespace already existed was refused it: no label, no workspace object written, owner data intact, XR not Ready; the persistent run below is the control', ready=ready)
+
         doc, ns, revision = bring_up(*PERSISTENT, 'persistent')
         xr = get_json(['get', f'developerworkspace/{PERSISTENT[0]}'])
         expect(xr.get('status', {}).get('namespace') == ns and xr['status'].get('lifecyclePhase') == 'running', f"XR status {xr.get('status', {}).get('namespace')}/{xr.get('status', {}).get('lifecyclePhase')}")
@@ -369,7 +396,8 @@ def run(args):
         delete_and_confirm_gone(EPHEMERAL[0], ens, ecount)
         record('ephemeral-cleanup', f'deleting the XR removed its Namespace and all {ecount} composed Objects')
     finally:
-        for name, _ in (EPHEMERAL, PERSISTENT, ('ok175-no-profile', '')):
+        kubectl(['delete', 'namespace', 'dw-ok175-squat', '--ignore-not-found', '--wait=true'], timeout=600, check=False)
+        for name, _ in (EPHEMERAL, PERSISTENT, SQUAT, ('ok175-no-profile', '')):
             kubectl(['delete', f'developerworkspace/{name}', '--ignore-not-found', '--wait=true', '--timeout=600s'], timeout=630, check=False)
         kubectl(['delete', 'namespace', PROOF_NS, '--ignore-not-found', '--wait=true'], timeout=600, check=False)
         kubectl(['delete', 'environmentconfig/developer-workspace-profile', '--ignore-not-found'], check=False)
@@ -382,7 +410,7 @@ def run(args):
     EVIDENCE.mkdir(exist_ok=True); out = EVIDENCE / f'live-{tgt["context"].split("@")[-1]}-{run_id}.json'
     out.write_text(json.dumps(evidence, indent=2, sort_keys=True) + '\n'); print(f'{len(results)}/{len(RESULTS)} checks passed; evidence {out.relative_to(REPO)}')
 
-RESULTS = ('admission-rules', 'no-profile-fails-closed', 'reconcile-readback', 'drift-restored', 'source-checkout', 'kubernetes-authority-denied', 'kubernetes-api-unreachable', 'runtime-push-denied',
+RESULTS = ('admission-rules', 'no-profile-fails-closed', 'dedicated-namespace-enforced', 'reconcile-readback', 'drift-restored', 'source-checkout', 'kubernetes-authority-denied', 'kubernetes-api-unreachable', 'runtime-push-denied',
            'workspace-credential-push-denied', 'write-credential-absent', 'persistent-cleanup', 'ephemeral-reconcile', 'ephemeral-cleanup')
 
 def main():
