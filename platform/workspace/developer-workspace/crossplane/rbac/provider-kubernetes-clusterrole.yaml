@@ -1,0 +1,34 @@
+# The only Kubernetes authority added for DeveloperWorkspace reconciliation (OK-175).
+#
+# Bound to provider-kubernetes's ServiceAccount, never to a workspace. It covers exactly the
+# kinds the Composition emits. It grants no RBAC kinds, Secrets, Pods or exec, so the provider
+# cannot hand a workspace authority the profile does not render; workspace ServiceAccounts
+# receive no bindings at all. Cluster scope is required because workspace Namespaces are
+# created on demand.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: developer-workspace-provider-kubernetes
+rules:
+  - apiGroups: [""]
+    resources: [namespaces, serviceaccounts, resourcequotas, limitranges, persistentvolumeclaims]
+    verbs: [get, list, watch, create, update, patch, delete]
+  - apiGroups: [networking.k8s.io]
+    resources: [networkpolicies]
+    verbs: [get, list, watch, create, update, patch, delete]
+  - apiGroups: [apps]
+    resources: [deployments]
+    verbs: [get, list, watch, create, update, patch, delete]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: developer-workspace-provider-kubernetes
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: developer-workspace-provider-kubernetes
+subjects:
+  - kind: ServiceAccount
+    name: developer-workspace-provider-kubernetes
+    namespace: crossplane-system
