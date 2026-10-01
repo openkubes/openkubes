@@ -425,7 +425,7 @@ def run(args):
         expect(rejected.returncode != 0 and 'exceeded quota' in rejected.stderr and 'requests.storage' in rejected.stderr, f'a second PVC beyond the declared size was admitted: {rejected.stderr.strip()[:200]}')
         record('storage-quota-enforced', f'a second {doc["spec"]["storage"]["size"]} PVC was rejected: the quota requests.storage equals the declared size and is fully used', hard=hard['hard'].get('requests.storage'))
 
-        # Revised claim (OK-176, option B): local-path does not enforce PVC capacity. Recorded, not asserted as a bound.
+        # Negative evidence (OK-176): local-path does not enforce PVC capacity at runtime. Recorded, not asserted as a bound.
         size_mib = int(doc['spec']['storage']['size'].rstrip('Gi')) * 1024
         over_fill = exec_in(ns, pod, ['sh', '-c', f'dd if=/dev/zero of=/workspace/.ok176-overfill bs=4M count={size_mib * 5 // 4 // 4} 2>/dev/null; rc=$?; du -sm /workspace/.ok176-overfill | cut -f1; rm -f /workspace/.ok176-overfill; exit $rc'], 'runtime')
         written = int((over_fill.stdout.split() or ['0'])[0])
