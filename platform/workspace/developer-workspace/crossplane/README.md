@@ -109,7 +109,7 @@ a control that shows it can fail:
   `OOMKilled` (control: 0.5x succeeds); the quota rejects a second PVC beyond the declared size
   (control: the quota is fully used); writing 2x the ephemeral `emptyDir` limit evicts the pod and
   the reconciler replaces it (control: half the limit is fine). Overfilling a persistent PVC is
-  recorded as an observation, not a check: local-path writes past the declared size;
+  recorded as negative evidence, not a check: local-path writes past the declared size;
 - deleting the XR removes its Namespace, every composed Object (counted first) and the PV;
 - then the same for an ephemeral workspace (`emptyDir`, no PVC), one workspace at a time.
 
@@ -136,10 +136,17 @@ reused helpers, the live profile), and the target's identity hash.
 - A Namespace is not a VM or a hostile multi-tenant boundary.
 - The quota and limits are the values the workspace declares; the profile sets no maximum, so they
   are not a platform cap.
-- Storage (revised claim, OK-176): persistent capacity is bounded at admission only. The
-  ResourceQuota rejects PVCs beyond the declared size, but `local-path` does not stop writes past
-  a PVC's size (the live run records this). Ephemeral storage is enforced at write time by kubelet
-  eviction. Write-time persistent enforcement needs a capacity-enforcing provisioner.
+- Resource bounds as proven on a disposable cluster (OK-176):
+  - CPU runtime bound: proven.
+  - Memory runtime bound: proven.
+  - Ephemeral storage runtime bound: proven.
+  - Persistent allocation/request bound: proven at admission.
+  - Persistent byte-capacity runtime bound with `local-path`: **not supported, not proven.** A
+    workspace declaring 1 GiB wrote 1280 MiB.
+- With `local-path` this is a development or constrained profile. It makes no persistent-capacity
+  isolation guarantee, and its persistent workspaces are not conforming under the proposed
+  ADR-Platform-039 persistent-capacity amendment. That needs a storage implementation that enforces
+  the declared capacity at runtime; the contract names none.
 - Push denial is shown against a source that scopes credentials, standing in for a real
   provider's read-only token; it is not a test of any particular Git host's permissions.
 - The live proof does not rerun OpenCode inference; OK-174 proved that for the same rendered
