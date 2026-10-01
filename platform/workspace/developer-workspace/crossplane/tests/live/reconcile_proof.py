@@ -383,6 +383,56 @@ def run(args):
         expect(write_token not in stored and not any(write_token in v for v in stored), 'the write credential is present in the workspace namespace')
         record('write-credential-absent', 'no Secret in the workspace namespace carries the write credential', secrets=len(stored))
 
+        # ---- OK-176: resource bounds, enforced by the kernel and the API server -------------------
+        cpu_limit, mem_limit = doc['spec']['resources']['cpu'], doc['spec']['resources']['memory']
+        cg = lambda f: exec_in(ns, pod, ['cat', f'/sys/fs/cgroup/{f}'], 'runtime')
+        stat = lambda: {k: int(v) for k, v in (line.split() for line in cg('cpu.stat').stdout.splitlines())}
+        quota_us, period_us = (int(x) for x in cg('cpu.max').stdout.split())
+        rendered_cg = spike.cgroup_limits({'cpu': cpu_limit, 'memory': mem_limit})  # [memory.max, cpu quota, cpu period]
+        expect([str(quota_us), str(period_us)] == rendered_cg[1:], f'cpu.max {quota_us} {period_us} does not encode {cpu_limit}')
+        before, started_cpu = stat(), time.monotonic()
+        # Demand of three busy loops, well above the limit; the CFS quota must hold usage to it.
+        burn = exec_in(ns, pod, ['sh', '-c', 'for i in 1 2 3; do timeout 20 sh -c "while :; do :; done" & done; wait; true'], 'runtime')
+        after, wall = stat(), time.monotonic() - started_cpu
+        cores = (after['usage_usec'] - before['usage_usec']) / 1e6 / wall
+        limit_cores = quota_us / period_us
+        expect(burn.returncode == 0 and after['nr_throttled'] > before['nr_throttled'] and after['throttled_usec'] > before['throttled_usec'], 'CPU demand above the limit was not throttled')
+        expect(cores <= limit_cores * 1.15, f'CPU usage {cores:.2f} cores exceeds the {limit_cores} limit')
+        expect(cores >= limit_cores * 0.6, f'control: the burn used only {cores:.2f} cores, so the limit was not reached')
+        record('cpu-bound-enforced', f'three busy loops for 20s used {cores:.2f} cores against a {cpu_limit} limit; the kernel throttled the container', limitCores=limit_cores, usedCores=round(cores, 2), throttledPeriods=after['nr_throttled'] - before['nr_throttled'])
+
+        mem_bytes = int(cg('memory.max').stdout.strip()); expect(str(mem_bytes) == rendered_cg[0], f'memory.max {mem_bytes} does not encode {mem_limit}')
+        # Kubernetes sets memory.oom.group, so an OOM kills the whole runtime container: the evidence is
+        # kubelet's record of the termination, not the exec's exit code or the new cgroup's counters.
+        runtime_status = lambda: next(c for c in get_json(['get', f'pod/{pod}', '-n', ns])['status']['containerStatuses'] if c['name'] == 'runtime')
+        allocate = lambda mib: exec_in(ns, pod, ['node', '-e', f'const a=[];for(let i=0;i<{mib // 64};i++)a.push(Buffer.alloc(64*1024*1024,1));console.log("allocated", a.length*64)'], 'runtime')
+        restarts = runtime_status()['restartCount']
+        fits = allocate(mem_bytes // 2**20 // 2)
+        expect(fits.returncode == 0 and 'allocated' in fits.stdout and runtime_status()['restartCount'] == restarts, f'control: half the memory limit could not be allocated (rc={fits.returncode})')
+        over = allocate(mem_bytes // 2**20 * 3 // 2)
+        expect('allocated' not in over.stdout, 'allocation above the memory limit completed')
+        wait_until('kubelet to record the OOM kill', lambda: runtime_status()['restartCount'] > restarts, timeout=120, interval=2)
+        terminated = runtime_status().get('lastState', {}).get('terminated', {})
+        expect(terminated.get('reason') == 'OOMKilled' and terminated.get('exitCode') == 137, f'runtime was not OOM-killed: {terminated}')
+        wait_until('the runtime to restart', lambda: runtime_status().get('ready') is True, timeout=180, interval=3)
+        record('memory-bound-enforced', f'allocating 1.5x the {mem_limit} limit got the runtime OOMKilled (exit 137) and restarted; 0.5x succeeded', reason=terminated['reason'], exitCode=terminated['exitCode'])
+
+        extra = {'apiVersion': 'v1', 'kind': 'PersistentVolumeClaim', 'metadata': {'name': 'over-quota', 'namespace': ns},
+                 'spec': {'storageClassName': profile['spec']['storageClassName'], 'accessModes': ['ReadWriteOnce'], 'resources': {'requests': {'storage': doc['spec']['storage']['size']}}}}
+        hard = get_json(['get', 'resourcequota/workspace-bounds', '-n', ns])['status']
+        expect(hard['used'].get('requests.storage') == hard['hard'].get('requests.storage') == doc['spec']['storage']['size'], f'control: quota is not fully used by the workspace PVC: {hard}')
+        rejected = kubectl(['apply', '-f', '-'], input_text=yaml.safe_dump(extra), check=False)
+        expect(rejected.returncode != 0 and 'exceeded quota' in rejected.stderr and 'requests.storage' in rejected.stderr, f'a second PVC beyond the declared size was admitted: {rejected.stderr.strip()[:200]}')
+        record('storage-quota-enforced', f'a second {doc["spec"]["storage"]["size"]} PVC was rejected: the quota requests.storage equals the declared size and is fully used', hard=hard['hard'].get('requests.storage'))
+
+        # Revised claim (OK-176, option B): local-path does not enforce PVC capacity. Recorded, not asserted as a bound.
+        size_mib = int(doc['spec']['storage']['size'].rstrip('Gi')) * 1024
+        over_fill = exec_in(ns, pod, ['sh', '-c', f'dd if=/dev/zero of=/workspace/.ok176-overfill bs=4M count={size_mib * 5 // 4 // 4} 2>/dev/null; rc=$?; du -sm /workspace/.ok176-overfill | cut -f1; rm -f /workspace/.ok176-overfill; exit $rc'], 'runtime')
+        written = int((over_fill.stdout.split() or ['0'])[0])
+        expect(over_fill.returncode == 0 and written > size_mib, f'expected the overfill to show local-path does not enforce capacity (rc={over_fill.returncode}, {written} MiB)')
+        results.append({'name': 'persistent-capacity-not-enforced', 'status': 'observed', 'detail': f'{written} MiB were written into a {doc["spec"]["storage"]["size"]} local-path PVC: persistent capacity is bounded at admission (quota), not at write time', 'observed': {'writtenMiB': written, 'declared': doc['spec']['storage']['size']}})
+        print(f'OBSERVED persistent-capacity-not-enforced: {written} MiB written into a {doc["spec"]["storage"]["size"]} PVC', flush=True)
+
         volumes = delete_and_confirm_gone(PERSISTENT[0], ns, count)
         expect(volumes == 1, f'persistent workspace had {volumes} PVCs')
         record('persistent-cleanup', f'deleting the XR removed its Namespace, all {count} composed Objects and the PersistentVolume')
@@ -393,6 +443,20 @@ def run(args):
         volumes = {v['name']: v for v in get_json(['get', 'deployment/workspace', '-n', ens])['spec']['template']['spec']['volumes']}
         expect('emptyDir' in volumes['workspace'] and not get_json(['get', 'pvc', '-n', ens])['items'], 'ephemeral workspace is not emptyDir-backed')
         record('ephemeral-reconcile', f'{ecount} reconciled objects equal render(); workspace volume is emptyDir, no PVC', namespace=ens)
+        epod = workspace_pod(ens); limit = edoc['spec']['storage']['size']; limit_mib = int(limit.rstrip('Mi'))
+        small = exec_in(ens, epod, ['sh', '-c', f'dd if=/dev/zero of=/workspace/.ok176-fill bs=1M count={limit_mib // 2} 2>/dev/null && rm -f /workspace/.ok176-fill'], 'runtime')
+        expect(small.returncode == 0, 'control: writing half the emptyDir limit failed')
+        exec_in(ens, epod, ['sh', '-c', f'dd if=/dev/zero of=/workspace/.ok176-fill bs=1M count={limit_mib * 2} 2>/dev/null; sleep 60'], 'runtime')
+        def evicted():
+            p = kubectl(['get', f'pod/{epod}', '-n', ens, '-o', 'json'], check=False)
+            if p.returncode: return None
+            st = json.loads(p.stdout)['status']; return st if st.get('reason') == 'Evicted' else None
+        wait_until('the overfilled ephemeral pod to be evicted', lambda: evicted() is not None, timeout=240, interval=3)
+        message = evicted()['message']
+        expect('workspace' in message and limit in message, f'eviction does not name the workspace volume and its {limit} limit: {message[:200]}')
+        wait_ready(EPHEMERAL[0]); replacement = workspace_pod(ens); expect(replacement != epod, 'no replacement pod')
+        record('ephemeral-storage-enforced', f'writing 2x the {limit} emptyDir limit evicted the pod (kubelet names the workspace volume); half the limit was fine; the reconciler brought a replacement up', limit=limit)
+
         delete_and_confirm_gone(EPHEMERAL[0], ens, ecount)
         record('ephemeral-cleanup', f'deleting the XR removed its Namespace and all {ecount} composed Objects')
     finally:
@@ -408,10 +472,12 @@ def run(args):
                 'crossplane': {'chart': CROSSPLANE_CHART[2], 'functions': 'tests/functions.yaml', 'provider': 'install/provider-kubernetes.yaml'},
                 'knownCommit': known, 'sourceTip': tip, 'results': results}
     EVIDENCE.mkdir(exist_ok=True); out = EVIDENCE / f'live-{tgt["context"].split("@")[-1]}-{run_id}.json'
-    out.write_text(json.dumps(evidence, indent=2, sort_keys=True) + '\n'); print(f'{len(results)}/{len(RESULTS)} checks passed; evidence {out.relative_to(REPO)}')
+    out.write_text(json.dumps(evidence, indent=2, sort_keys=True) + '\n'); passed = sum(r['status'] == 'pass' for r in results); observed = len(results) - passed
+    print(f'{passed} checks passed, {observed} observation(s) recorded; evidence {out.relative_to(REPO)}')
 
 RESULTS = ('admission-rules', 'no-profile-fails-closed', 'dedicated-namespace-enforced', 'reconcile-readback', 'drift-restored', 'source-checkout', 'kubernetes-authority-denied', 'kubernetes-api-unreachable', 'runtime-push-denied',
-           'workspace-credential-push-denied', 'write-credential-absent', 'persistent-cleanup', 'ephemeral-reconcile', 'ephemeral-cleanup')
+           'workspace-credential-push-denied', 'write-credential-absent', 'cpu-bound-enforced', 'memory-bound-enforced', 'storage-quota-enforced', 'persistent-capacity-not-enforced',
+           'persistent-cleanup', 'ephemeral-reconcile', 'ephemeral-storage-enforced', 'ephemeral-cleanup')
 
 def main():
     parser = argparse.ArgumentParser(); sub = parser.add_subparsers(dest='action', required=True)

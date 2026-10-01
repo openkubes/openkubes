@@ -104,6 +104,12 @@ a control that shows it can fail:
   answer is the source's); the source refuses a push with the workspace credential (403) while a
   write-credential control push succeeds; no Secret in the workspace Namespace holds the write
   credential;
+- resource bounds (OK-176): three busy loops are throttled to the CPU limit (`cpu.stat`;
+  control: usage reaches the limit); allocating 1.5x the memory limit gets the runtime
+  `OOMKilled` (control: 0.5x succeeds); the quota rejects a second PVC beyond the declared size
+  (control: the quota is fully used); writing 2x the ephemeral `emptyDir` limit evicts the pod and
+  the reconciler replaces it (control: half the limit is fine). Overfilling a persistent PVC is
+  recorded as an observation, not a check: local-path writes past the declared size;
 - deleting the XR removes its Namespace, every composed Object (counted first) and the PV;
 - then the same for an ephemeral workspace (`emptyDir`, no PVC), one workspace at a time.
 
@@ -128,9 +134,12 @@ reused helpers, the live profile), and the target's identity hash.
 ## Limits (not claimed)
 
 - A Namespace is not a VM or a hostile multi-tenant boundary.
-- CPU and memory limits are configured, not stress-tested (OK-176). The quota and limits are the
-  values the workspace declares; the profile sets no maximum, so they are not a platform cap.
-- `local-path` does not enforce PVC capacity (OK-176).
+- The quota and limits are the values the workspace declares; the profile sets no maximum, so they
+  are not a platform cap.
+- Storage (revised claim, OK-176): persistent capacity is bounded at admission only. The
+  ResourceQuota rejects PVCs beyond the declared size, but `local-path` does not stop writes past
+  a PVC's size (the live run records this). Ephemeral storage is enforced at write time by kubelet
+  eviction. Write-time persistent enforcement needs a capacity-enforcing provisioner.
 - Push denial is shown against a source that scopes credentials, standing in for a real
   provider's read-only token; it is not a test of any particular Git host's permissions.
 - The live proof does not rerun OpenCode inference; OK-174 proved that for the same rendered
