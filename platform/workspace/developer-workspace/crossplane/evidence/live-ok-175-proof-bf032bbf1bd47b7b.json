@@ -1,0 +1,209 @@
+{
+  "apiVersion": "workspace.openkubes.io/v1",
+  "crossplane": {
+    "chart": "2.3.3",
+    "functions": "tests/functions.yaml",
+    "provider": "install/provider-kubernetes.yaml"
+  },
+  "finishedAt": "2026-10-01T12:18:21Z",
+  "images": {
+    "fixture": "sha256:1ea1d963004d1ac010a6b0c970e253a6f8ed20fcd6d8f60679ff4e6846a9e782",
+    "runtime": "sha256:7dcc6cec7d8a918dd2d876a8faf72d765baeca61160c72611e82f8354f5ad5c2"
+  },
+  "implementation": {
+    "clean": true,
+    "files": {
+      "Makefile": "6514348eb75df225363ffea3b9ac226d8582bc80b51f1c893d4d4aee983a8175",
+      "README.md": "0543bbdf1a4bc11ca18970d66b3c04de814436a316448ed587aafd51308859c4",
+      "composition.yaml": "fd151440aaac5c5fea83fad11d3dff20bc7391ca07fce6686fcba0b78e775d61",
+      "install/namespace-guard.yaml": "150f7c399ffa77ea9a342220218743e252862ca3991f73031c34464e87a659b4",
+      "install/provider-kubernetes.yaml": "976411c41bdb3c5a8890ea2a8cd0fbef9cd528f33e875af920f6466f3a3260f4",
+      "install/providerconfig.yaml": "02548ac1c0ff2dfb509f7a8a7a777ccb336796af8eebfe5e4aabde2d649a9336",
+      "rbac/provider-kubernetes-clusterrole.yaml": "312fdcf5a7c0a24bbb5f8a5b9e2f2efcc37f18ad130dc94676b67d198775b7cc",
+      "tests/functions.yaml": "f3fa41e4f20583aa9b2473fd0877619e721575d3197c99c6017f01a25791a602",
+      "tests/live/reconcile_proof.py": "6f804b313cff66cdf22dd7ba1fba7e10ad3c398867d9bcaa49e35648a29a4aca",
+      "tests/live/source-server.py": "c2ade523bdabd6c91f31cd3abf1063f57b51de318201f0bfd0f9b6fd283dd02b",
+      "tests/profile_config.py": "31fc38ad94c8d6bfa4c941c98edf5f441f82e71564911586caa314f11ba03bfe",
+      "tests/render-check.py": "e7a665dcf82cbecf556c94ee730d1fd8ed946a3128ca2fb9a4da5d2dc64f70ba",
+      "tests/xrd_schema.py": "1b7e591adc33e8349e06ac9e880802b3faab16bc608b7e15394a6a49bb121a44",
+      "xrd.yaml": "b49d249b875dea4903beae65fbf5904b2bd5fd3e2d2901b9a89e22754b84193f"
+    },
+    "head": "ef2a770f4c96ea1a0bbbc6d2b1c93a2eba7fa5fa",
+    "spikeInputs": {
+      "live/fixtures/Dockerfile": "bf2624bc2b3314b143c2c325e123ebdb6c803d367d40efe9b65aca35323c1f00",
+      "live/fixtures/entrypoint.sh": "c0a2e841b064cd216838e93b7ae5a78715a8f6bcafd2335205c4ea393308a291",
+      "live/probes/live_proof.py": "a6d054ab5dd0d058da07517dd402fd6c89bfbc6795e19fe29f26f3afbe346277",
+      "live/profile/developer-workspace-live.yaml": "3cac65e53600628e7f1316dd55496804a5c2c915e2e3ff0c87c66877f24e79a6",
+      "live/profile/namespace-profile-live.yaml": "2d335173585e06a1e36adad6d0f410a1c4cf66290c58e7eddd1354dd47c9f8b4",
+      "verify_developer_workspace_v1.py": "9b751c53f9e75f9d8875c632df72b9f1c113d8d772231a8487ef52ef08c7ed14"
+    }
+  },
+  "kind": "ReconcilerLiveEvidence",
+  "knownCommit": "375ba7dfb4f4b49bdbd7a82c567873a59a59d37d",
+  "results": [
+    {
+      "detail": "the API server rejects a persistent lifecycle with ephemeral storage and admits the consistent document",
+      "name": "admission-rules",
+      "status": "pass"
+    },
+    {
+      "detail": "without the profile EnvironmentConfig the workspace reports it missing, composes nothing and is not Ready",
+      "name": "no-profile-fails-closed",
+      "observed": {
+        "ready": null
+      },
+      "status": "pass"
+    },
+    {
+      "detail": "a workspace whose Namespace already existed was refused it: no label, no workspace object written, owner data intact, XR not Ready; the persistent run below is the control",
+      "name": "dedicated-namespace-enforced",
+      "observed": {
+        "ready": "False"
+      },
+      "status": "pass"
+    },
+    {
+      "detail": "XR Ready; 11 reconciled objects equal render() for the persistent profile; the XR runs the local Composition",
+      "name": "reconcile-readback",
+      "observed": {
+        "compositionRevision": "developerworkspace-namespace.workspace.openkubes.io-1cba28f",
+        "lifecyclePhase": "running",
+        "namespace": "dw-ok175-proof"
+      },
+      "status": "pass"
+    },
+    {
+      "detail": "a deleted default-deny NetworkPolicy was recreated (new UID) and a patched quota value was reverted, both as rendered",
+      "name": "drift-restored",
+      "observed": {
+        "seconds": 11
+      },
+      "status": "pass"
+    },
+    {
+      "detail": "workspace HEAD equals the declared revision, not the newer default-branch tip",
+      "name": "source-checkout",
+      "observed": {
+        "commit": "375ba7dfb4f4b49bdbd7a82c567873a59a59d37d",
+        "sourceTip": "a07e3d71b2a4f9e8da3cc6cd0eb0fb58d1369fa0"
+      },
+      "status": "pass"
+    },
+    {
+      "detail": "no token mounted; can-i --list equals an unbound identity and is discovery-only; no RoleBindings; the provider identity fails both checks",
+      "name": "kubernetes-authority-denied",
+      "observed": {
+        "baselineRows": 19,
+        "providerRows": 55
+      },
+      "status": "pass"
+    },
+    {
+      "detail": "runtime API connection refused or timed out; control reaches API transport",
+      "name": "kubernetes-api-unreachable",
+      "observed": {
+        "controlHttp": "401",
+        "runtimeCurlExit": 28
+      },
+      "status": "pass"
+    },
+    {
+      "detail": "the runtime holds no source credential (git config, environment) and the source refuses its push to main and a new branch for lack of one",
+      "name": "runtime-push-denied",
+      "observed": {
+        "exit": 128
+      },
+      "status": "pass"
+    },
+    {
+      "detail": "source refuses push with the workspace credential (403); write-credential control push succeeds; no denied ref exists",
+      "name": "workspace-credential-push-denied",
+      "observed": {
+        "refs": [
+          "HEAD",
+          "refs/heads/control-probe",
+          "refs/heads/master"
+        ]
+      },
+      "status": "pass"
+    },
+    {
+      "detail": "no Secret in the workspace namespace carries the write credential",
+      "name": "write-credential-absent",
+      "observed": {
+        "secrets": 2
+      },
+      "status": "pass"
+    },
+    {
+      "detail": "three busy loops for 20s used 0.41 cores against a 500m limit; the kernel throttled the container",
+      "name": "cpu-bound-enforced",
+      "observed": {
+        "limitCores": 0.5,
+        "throttledPeriods": 200,
+        "usedCores": 0.41
+      },
+      "status": "pass"
+    },
+    {
+      "detail": "allocating 1.5x the 1Gi limit got the runtime OOMKilled (exit 137) and restarted; 0.5x succeeded",
+      "name": "memory-bound-enforced",
+      "observed": {
+        "exitCode": 137,
+        "reason": "OOMKilled"
+      },
+      "status": "pass"
+    },
+    {
+      "detail": "a second 1Gi PVC was rejected: the quota requests.storage equals the declared size and is fully used",
+      "name": "storage-quota-enforced",
+      "observed": {
+        "hard": "1Gi"
+      },
+      "status": "pass"
+    },
+    {
+      "detail": "1280 MiB were written into a 1Gi local-path PVC: persistent capacity is bounded at admission (quota), not at write time",
+      "name": "persistent-capacity-not-enforced",
+      "observed": {
+        "declared": "1Gi",
+        "writtenMiB": 1280
+      },
+      "status": "observed"
+    },
+    {
+      "detail": "deleting the XR removed its Namespace, all 11 composed Objects and the PersistentVolume",
+      "name": "persistent-cleanup",
+      "status": "pass"
+    },
+    {
+      "detail": "10 reconciled objects equal render(); workspace volume is emptyDir, no PVC",
+      "name": "ephemeral-reconcile",
+      "observed": {
+        "namespace": "dw-ok175-ephemeral"
+      },
+      "status": "pass"
+    },
+    {
+      "detail": "writing 2x the 8Mi emptyDir limit evicted the pod (kubelet names the workspace volume); half the limit was fine; the reconciler brought a replacement up",
+      "name": "ephemeral-storage-enforced",
+      "observed": {
+        "limit": "8Mi"
+      },
+      "status": "pass"
+    },
+    {
+      "detail": "deleting the XR removed its Namespace and all 10 composed Objects",
+      "name": "ephemeral-cleanup",
+      "status": "pass"
+    }
+  ],
+  "runID": "bf032bbf1bd47b7b",
+  "sourceTip": "a07e3d71b2a4f9e8da3cc6cd0eb0fb58d1369fa0",
+  "startedAt": "2026-10-01T12:10:27Z",
+  "target": {
+    "context": "ok-175-proof-admin@ok-175-proof",
+    "kubeSystemUidSha256": "feb87d9801945070f5065b9728cebe04f7a7ee140b3879941b7966e8525154dd",
+    "kubernetesVersion": "v1.34.1"
+  }
+}
