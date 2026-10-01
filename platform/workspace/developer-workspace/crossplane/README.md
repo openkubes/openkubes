@@ -51,12 +51,12 @@ recorded against, so the reconciler emits exactly the objects already proven liv
 
 ## Live proof (disposable clusters only)
 
-`tests/live/reconcile_proof.py` refuses any context other than `admin@ok-175-proof` or the local
+`tests/live/reconcile_proof.py` refuses any context other than `ok-175-proof-admin@ok-175-proof` or the local
 pre-flight `kind-ok175-preflight`, requires `TARGET_CONTEXT` to repeat it, and requires
 `OK175_TARGET_UID_SHA256` to equal the sha256 of the selected cluster's `kube-system` UID.
 
 ```bash
-export KUBECONFIG=<disposable cluster kubeconfig> TARGET_CONTEXT=admin@ok-175-proof
+export KUBECONFIG=<disposable cluster kubeconfig> TARGET_CONTEXT=ok-175-proof-admin@ok-175-proof
 export OK175_TARGET_UID_SHA256=$(kubectl get ns kube-system -o jsonpath='{.metadata.uid}' | sha256sum | cut -d' ' -f1)
 make live-install
 OK175_REGISTRY_USERNAME=<pull-only user> OK175_REGISTRY_PASSWORD_FD=3 make live-run REQUIRE_CLEAN=1 3< <password file>
