@@ -1,0 +1,54 @@
+# Keeps every workspace Namespace dedicated (OK-175).
+#
+# provider-kubernetes would otherwise adopt an existing Namespace with a workspace's name,
+# write the workspace into it, and delete it with the workspace. This policy limits the
+# provider identity to Namespaces it created for a workspace (they carry
+# workspace.openkubes.io/id from creation), and to objects whose workspace label matches their
+# Namespace's. Other identities are not matched.
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: developer-workspace-namespace-guard
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: ["v1"]
+        operations: [CREATE, UPDATE, DELETE]
+        resources: [namespaces, serviceaccounts, resourcequotas, limitranges, persistentvolumeclaims]
+      - apiGroups: [networking.k8s.io]
+        apiVersions: ["v1"]
+        operations: [CREATE, UPDATE, DELETE]
+        resources: [networkpolicies]
+      - apiGroups: [apps]
+        apiVersions: ["v1"]
+        operations: [CREATE, UPDATE, DELETE]
+        resources: [deployments]
+  matchConditions:
+    - name: provider-identity
+      expression: "request.userInfo.username == 'system:serviceaccount:crossplane-system:developer-workspace-provider-kubernetes'"
+  variables:
+    - name: id
+      expression: "'workspace.openkubes.io/id'"
+    - name: subject
+      expression: "request.operation == 'DELETE' ? oldObject : object"
+  validations:
+    - expression: >-
+        request.resource.resource != 'namespaces' || request.operation == 'CREATE' ||
+        (has(oldObject.metadata.labels) && variables.id in oldObject.metadata.labels)
+      message: the DeveloperWorkspace provider may change or delete only Namespaces it created for a workspace
+    - expression: >-
+        request.resource.resource == 'namespaces' ||
+        (namespaceObject != null && has(namespaceObject.metadata.labels) && variables.id in namespaceObject.metadata.labels &&
+         has(variables.subject.metadata.labels) && variables.id in variables.subject.metadata.labels &&
+         variables.subject.metadata.labels[variables.id] == namespaceObject.metadata.labels[variables.id])
+      message: the DeveloperWorkspace provider may write only into a Namespace created for the same workspace
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: developer-workspace-namespace-guard
+spec:
+  policyName: developer-workspace-namespace-guard
+  validationActions: [Deny]

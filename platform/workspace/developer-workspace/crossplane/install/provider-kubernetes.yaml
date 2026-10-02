@@ -1,0 +1,32 @@
+# provider-kubernetes for the DeveloperWorkspace Composition (OK-175).
+#
+# The provider runs as the named ServiceAccount below and authenticates to its own cluster with
+# that identity (InjectedIdentity). This capability adds rbac/provider-kubernetes-clusterrole.yaml
+# to what Crossplane already grants every provider; see "Provider authority" in ../README.md.
+apiVersion: pkg.crossplane.io/v1beta1
+kind: DeploymentRuntimeConfig
+metadata:
+  name: developer-workspace-provider-kubernetes
+spec:
+  serviceAccountTemplate:
+    metadata:
+      name: developer-workspace-provider-kubernetes
+  # Watches let composed Objects (spec.watch: true) correct drift on the event instead of
+  # on the default 10m poll.
+  deploymentTemplate:
+    spec:
+      selector: {}
+      template:
+        spec:
+          containers:
+            - name: package-runtime
+              args: [--enable-watches]
+---
+apiVersion: pkg.crossplane.io/v1
+kind: Provider
+metadata:
+  name: provider-kubernetes
+spec:
+  package: xpkg.upbound.io/crossplane-contrib/provider-kubernetes:v1.3.1
+  runtimeConfigRef:
+    name: developer-workspace-provider-kubernetes

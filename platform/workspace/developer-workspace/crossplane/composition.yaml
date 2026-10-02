@@ -1,0 +1,218 @@
+# DeveloperWorkspace -> Namespace reference profile Composition (OK-175, ADR-Platform-039).
+#
+# A template port of render() in
+# architecture/spikes/ADR-Platform-039/verify_developer_workspace_v1.py. That function stays the
+# oracle: tests/render-check.py requires every manifest emitted here to equal render() output
+# (plus the operational settings below) for the same DeveloperWorkspace and profile.
+#
+# Inputs:
+#   - the DeveloperWorkspace XR (the portable contract document, unchanged);
+#   - the reviewed NamespaceProfileCatalog, read from the cluster-scoped EnvironmentConfig
+#     developer-workspace-profile, key `profile`;
+#   - operational settings from the same EnvironmentConfig: `providerConfigName` (required) and
+#     `imagePullSecret` (optional). These are not part of the portable contract.
+# Every reference the XR makes must resolve in the profile; otherwise the template fails and
+# nothing is composed.
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: developerworkspace-namespace.workspace.openkubes.io
+  labels:
+    capability: developer-workspace
+    profile: namespace
+spec:
+  compositeTypeRef:
+    apiVersion: workspace.openkubes.io/v0alpha1
+    kind: DeveloperWorkspace
+  mode: Pipeline
+  pipeline:
+    - step: render-namespace-profile
+      functionRef:
+        name: function-go-templating
+      input:
+        apiVersion: gotemplating.fn.crossplane.io/v1beta1
+        kind: GoTemplate
+        source: Inline
+        inline:
+          template: |
+            ---
+            apiVersion: meta.gotemplating.fn.crossplane.io/v1alpha1
+            kind: ExtraResources
+            requirements:
+              profile:
+                apiVersion: apiextensions.crossplane.io/v1beta1
+                kind: EnvironmentConfig
+                matchName: developer-workspace-profile
+            {{- $config := dig "resource" (dict) (first (default (list (dict)) (dig "profile" "items" (list) (default (dict) $.extraResources)))) }}
+            {{- if $config }}
+            {{- $xr := $.observed.composite.resource }}
+            {{- $s := $xr.spec }}
+            {{- $data := default (dict) $config.data }}
+            {{- if not (dig "profile" "spec" "" $data) }}{{ fail "profile EnvironmentConfig lacks profile.spec" }}{{ end }}
+            {{- $catalog := $data.profile }}
+            {{- if or (ne (keys $catalog | sortAlpha | toJson) (list "apiVersion" "kind" "metadata" "spec" | toJson)) (ne $catalog.apiVersion "workspace.openkubes.io/v1") (ne $catalog.kind "NamespaceProfileCatalog") }}{{ fail "invalid profile identity" }}{{ end }}
+            {{- if or (ne (keys (default (dict) $catalog.metadata) | sortAlpha | toJson) (list "name" | toJson)) (ne $catalog.metadata.name "reviewed-namespace-profile-v1") }}{{ fail "invalid profile metadata" }}{{ end }}
+            {{- if ne (keys $catalog.spec | sortAlpha | toJson) (list "capabilities" "credentials" "modelProfiles" "namespacePrefix" "runtimeProfiles" "serviceSelectors" "sources" "storageClassName" | toJson) }}{{ fail "invalid profile shape" }}{{ end }}
+            {{- $p := $data.profile.spec }}
+            {{- $providerConfig := index $data "providerConfigName" }}{{ if not $providerConfig }}{{ fail "profile EnvironmentConfig lacks providerConfigName" }}{{ end }}
+            {{- $pullSecret := default "" (index $data "imagePullSecret") }}
+            {{- /* The bindings render() enforces in validate_profile(); any miss composes nothing. */}}
+            {{- $gitRef := $s.capabilities.git.reference }}{{ $infRef := $s.capabilities.inference.reference }}{{ $mcpRef := $s.capabilities.mcp.reference }}
+            {{- if or (not (kindIs "string" $p.namespacePrefix)) (not $p.namespacePrefix) }}{{ fail "invalid profile shape: namespacePrefix" }}{{ end }}
+            {{- if not (regexMatch "^[a-z0-9]([-a-z0-9.]*[a-z0-9])?$" (toString $p.storageClassName)) }}{{ fail "invalid profile shape: storageClassName" }}{{ end }}
+            {{- if ne (keys (default (dict) $p.sources) | sortAlpha | toJson) (list $s.source.repositoryRef | toJson) }}{{ fail "source catalog must exactly resolve declaration" }}{{ end }}
+            {{- $src := index $p.sources $s.source.repositoryRef }}
+            {{- if ne (keys $src | sortAlpha | toJson) (list "caBundle" "endpoint" "repositoryPath" | toJson) }}{{ fail "invalid source mapping" }}{{ end }}
+            {{- if not (regexMatch "^https://[^/@?#]+/?$" (toString $src.endpoint)) }}{{ fail "source endpoint is not a safe HTTPS authority" }}{{ end }}
+            {{- if not (regexMatch "^[A-Za-z0-9][A-Za-z0-9._-]*(/[A-Za-z0-9][A-Za-z0-9._-]*)*$" (toString $src.repositoryPath)) }}{{ fail "source repository path is unsafe" }}{{ end }}
+            {{- if or (ne (keys (default (dict) $src.caBundle) | sortAlpha | toJson) (list "configMapName" "key" | toJson)) (not $src.caBundle.configMapName) (not $src.caBundle.key) }}{{ fail "invalid source CA bundle" }}{{ end }}
+            {{- if ne (keys (default (dict) $p.runtimeProfiles) | sortAlpha | toJson) (list "codex" "opencode" | toJson) }}{{ fail "runtime profile unresolved" }}{{ end }}
+            {{- range $name, $item := $p.runtimeProfiles }}
+            {{- if or (ne (keys $item | sortAlpha | toJson) (list "envTemplate" "image" | toJson)) (not $item.image) (ne (keys (default (dict) $item.envTemplate) | sortAlpha | toJson) (list "capabilityRef" "endpointName" "endpointPath" "endpointScheme" "model" "modelName" | toJson)) }}{{ fail "invalid runtime profile" }}{{ end }}
+            {{- range $k, $v := $item.envTemplate }}{{ if or (not (kindIs "string" $v)) (not $v) }}{{ fail "invalid runtime profile" }}{{ end }}{{ end }}
+            {{- $e := $item.envTemplate }}
+            {{- if or (ne $e.capabilityRef $infRef) (not (has $e.endpointScheme (list "http" "https"))) (not (hasPrefix "/" $e.endpointPath)) (not (regexMatch "^[A-Za-z_][A-Za-z0-9_]*$" $e.endpointName)) (not (regexMatch "^[A-Za-z_][A-Za-z0-9_]*$" $e.modelName)) }}{{ fail "runtime env template is not bound to declared inference capability" }}{{ end }}
+            {{- end }}
+            {{- $declared := list $gitRef $infRef $mcpRef }}
+            {{- if or (ne (len (uniq $declared)) 3) (ne (keys (default (dict) $p.capabilities) | sortAlpha | toJson) ($declared | sortAlpha | toJson)) }}{{ fail (printf "capability catalog must exactly resolve declarations: declared %s, profile %s" ($declared | sortAlpha | toJson) (keys (default (dict) $p.capabilities) | sortAlpha | toJson)) }}{{ end }}
+            {{- $serviceKeys := list }}
+            {{- range $ref, $item := $p.capabilities }}
+            {{- $allowed := list "destination" }}{{ if eq $ref $mcpRef }}{{ $allowed = list "approvedTools" "destination" }}{{ end }}
+            {{- if or (ne (keys $item | sortAlpha | toJson) ($allowed | toJson)) (not (kindIs "map" $item.destination)) }}{{ fail (printf "invalid capability mapping %s" $ref) }}{{ end }}
+            {{- $d := $item.destination }}
+            {{- if or (not (or (kindIs "float64" $d.port) (kindIs "int64" $d.port) (kindIs "int" $d.port))) (ne (float64 (int $d.port)) (float64 $d.port)) (lt (int $d.port) 1) (gt (int $d.port) 65535) }}{{ fail "destination must have a valid port" }}{{ end }}
+            {{- if eq (keys $d | sortAlpha | toJson) (list "cidr" "port" | toJson) }}
+            {{- /* IPv4 /32 only: stricter than render(), which also accepts IPv6 /128. */}}
+            {{- if not (regexMatch "^((25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])[.]){3}(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])/32$" (toString $d.cidr)) }}{{ fail "destination CIDR must be an IPv4 host route" }}{{ end }}
+            {{- else }}
+            {{- if or (ne (keys $d | sortAlpha | toJson) (list "port" "service" | toJson)) (not (kindIs "map" $d.service)) }}{{ fail "invalid service destination" }}{{ end }}
+            {{- if or (ne (keys $d.service | sortAlpha | toJson) (list "name" "namespace" | toJson)) (not $d.service.name) (not $d.service.namespace) }}{{ fail "invalid service destination" }}{{ end }}
+            {{- $key := printf "%s/%s" $d.service.namespace $d.service.name }}{{ $serviceKeys = append $serviceKeys $key }}
+            {{- $selector := index (default (dict) $p.serviceSelectors) $key }}
+            {{- if or (not (kindIs "map" $selector)) (not $selector) }}{{ fail (printf "unresolved service selector %s" $key) }}{{ end }}
+            {{- range $k, $v := $selector }}{{ if or (not $k) (not (kindIs "string" $v)) (not $v) }}{{ fail (printf "unresolved service selector %s" $key) }}{{ end }}{{ end }}
+            {{- end }}
+            {{- end }}
+            {{- if ne (keys (default (dict) $p.serviceSelectors) | sortAlpha | toJson) ($serviceKeys | uniq | sortAlpha | toJson) }}{{ fail "service selector catalog must exactly resolve service destinations" }}{{ end }}
+            {{- if ne (keys (default (dict) $p.modelProfiles) | sortAlpha | toJson) (list $s.model.profileRef | toJson) }}{{ fail "model catalog must exactly resolve declaration" }}{{ end }}
+            {{- $model := index $p.modelProfiles $s.model.profileRef }}
+            {{- if or (ne (keys $model | sortAlpha | toJson) (list "inferenceCapabilityRef" | toJson)) (ne $model.inferenceCapabilityRef $infRef) }}{{ fail "model profile is not bound to declared inference capability" }}{{ end }}
+            {{- if ne (toJson (index $p.capabilities $mcpRef).approvedTools) (toJson $s.capabilities.mcp.approvedTools) }}{{ fail "MCP tool catalog differs from declaration" }}{{ end }}
+            {{- if ne (keys (default (dict) $p.credentials) | sortAlpha | toJson) ($s.credentials | uniq | sortAlpha | toJson) }}{{ fail "credential catalog must exactly resolve declarations" }}{{ end }}
+            {{- range $ref, $item := $p.credentials }}
+            {{- if or (ne (keys $item | sortAlpha | toJson) (list "capabilityRef" "envName" "secretKey" "secretName" | toJson)) (ne $item.capabilityRef $gitRef) (not $item.envName) (not $item.secretKey) (not $item.secretName) }}{{ fail (printf "invalid credential mapping %s" $ref) }}{{ end }}
+            {{- end }}
+
+            {{- $w := $s.workspaceID }}
+            {{- $ns := printf "%s%s" $p.namespacePrefix (trimPrefix "ws-" $w) }}
+            {{- $lab := dict "workspace.openkubes.io/id" $w "app" "developer-workspace" }}
+            {{- $cpu := $s.resources.cpu }}{{- $mem := $s.resources.memory }}
+            {{- $size := $s.storage.size }}{{- $mode := $s.storage.mode }}
+            {{- $requests := dict "cpu" $cpu "memory" $mem }}
+            {{- $limits := dict "cpu" $cpu "memory" $mem }}
+            {{- $volume := dict "name" "workspace" }}
+            {{- $quota := dict "requests.cpu" $cpu "limits.cpu" $cpu "requests.memory" $mem "limits.memory" $mem }}
+            {{- if eq $mode "persistent" }}
+            {{- $_ := set $volume "persistentVolumeClaim" (dict "claimName" "workspace") }}
+            {{- $_ := set $quota "requests.storage" $size }}
+            {{- else }}
+            {{- $_ := set $volume "emptyDir" (dict "sizeLimit" $size) }}
+            {{- $_ := set $requests "ephemeral-storage" $size }}
+            {{- $_ := set $quota "requests.ephemeral-storage" $size }}
+            {{- end }}
+            {{- $containerResources := dict "requests" $requests "limits" $limits }}
+
+            {{- $gitEnv := list }}
+            {{- range $ref := $s.credentials }}
+            {{- $c := index $p.credentials $ref }}{{ if not $c }}{{ fail (printf "credential %s is not in the profile" $ref) }}{{ end }}
+            {{- $gitEnv = append $gitEnv (dict "name" $c.envName "valueFrom" (dict "secretKeyRef" (dict "name" $c.secretName "key" $c.secretKey))) }}
+            {{- end }}
+            {{- $source := index $p.sources $s.source.repositoryRef }}{{ if not $source }}{{ fail (printf "source %s is not in the profile" $s.source.repositoryRef) }}{{ end }}
+            {{- $ca := $source.caBundle }}
+            {{- $gitEnv = append $gitEnv (dict "name" "GIT_SSL_CAINFO" "value" (printf "/etc/ssl/certs/source-ca/%s" $ca.key)) }}
+            {{- $hardening := dict "allowPrivilegeEscalation" false "capabilities" (dict "drop" (list "ALL")) "runAsNonRoot" true "readOnlyRootFilesystem" true }}
+            {{- $workspaceMount := list (dict "name" "workspace" "mountPath" "/workspace") }}
+            {{- $checkoutWritable := list (dict "name" "checkout-tmp" "mountPath" "/tmp") (dict "name" "checkout-home" "mountPath" "/home/workspace") }}
+            {{- $runtimeWritable := list (dict "name" "runtime-tmp" "mountPath" "/tmp") (dict "name" "runtime-home" "mountPath" "/home/workspace") }}
+            {{- $caMount := dict "name" "source-ca" "mountPath" "/etc/ssl/certs/source-ca" "readOnly" true }}
+            {{- $runtime := index $p.runtimeProfiles $s.runtime.profile }}{{ if not $runtime }}{{ fail (printf "runtime profile %s is not in the profile" $s.runtime.profile) }}{{ end }}
+            {{- $template := $runtime.envTemplate }}
+            {{- $inferenceCapability := index $p.capabilities $template.capabilityRef }}{{ if not $inferenceCapability }}{{ fail (printf "capability %s is not in the profile" $template.capabilityRef) }}{{ end }}
+            {{- $inference := $inferenceCapability.destination }}
+            {{- $host := "" }}
+            {{- if hasKey $inference "cidr" }}{{ $host = first (splitList "/" $inference.cidr) }}
+            {{- else }}{{ $host = printf "%s.%s.svc.cluster.local" $inference.service.name $inference.service.namespace }}{{ end }}
+            {{- $endpoint := printf "%s://%s:%v%s" $template.endpointScheme $host $inference.port $template.endpointPath }}
+            {{- $runtimeEnv := list (dict "name" $template.endpointName "value" $endpoint) (dict "name" $template.modelName "value" $template.model) }}
+            {{- $checkout := dict "name" "checkout" "image" $runtime.image "command" (list "checkout") "args" (list $source.endpoint $source.repositoryPath $s.source.revision "/workspace") "workingDir" "/workspace" "env" $gitEnv "resources" $containerResources "securityContext" $hardening "volumeMounts" (concat $workspaceMount $checkoutWritable (list $caMount)) }}
+            {{- $runtimeContainer := dict "name" "runtime" "image" $runtime.image "env" $runtimeEnv "resources" $containerResources "securityContext" $hardening "volumeMounts" (concat $workspaceMount $runtimeWritable) }}
+            {{- $volumes := list $volume (dict "name" "checkout-tmp" "emptyDir" (dict)) (dict "name" "checkout-home" "emptyDir" (dict)) (dict "name" "runtime-tmp" "emptyDir" (dict)) (dict "name" "runtime-home" "emptyDir" (dict)) (dict "name" "source-ca" "configMap" (dict "name" $ca.configMapName "items" (list (dict "key" $ca.key "path" $ca.key)))) }}
+            {{- $pod := dict "serviceAccountName" "workspace" "automountServiceAccountToken" false "hostNetwork" false "hostPID" false "hostIPC" false "securityContext" (dict "runAsNonRoot" true "seccompProfile" (dict "type" "RuntimeDefault")) "initContainers" (list $checkout) "containers" (list $runtimeContainer) "volumes" $volumes }}
+            {{- if $pullSecret }}{{ $_ := set $pod "imagePullSecrets" (list (dict "name" $pullSecret)) }}{{ end }}
+
+            {{- $resources := list }}
+            {{- $resources = append $resources (dict "key" "namespace" "manifest" (dict "apiVersion" "v1" "kind" "Namespace" "metadata" (dict "name" $ns "labels" $lab))) }}
+            {{- $resources = append $resources (dict "key" "serviceaccount" "manifest" (dict "apiVersion" "v1" "kind" "ServiceAccount" "metadata" (dict "name" "workspace" "namespace" $ns "labels" $lab) "automountServiceAccountToken" false)) }}
+            {{- $resources = append $resources (dict "key" "resourcequota" "manifest" (dict "apiVersion" "v1" "kind" "ResourceQuota" "metadata" (dict "name" "workspace-bounds" "namespace" $ns "labels" $lab) "spec" (dict "hard" $quota))) }}
+            {{- $resources = append $resources (dict "key" "limitrange" "manifest" (dict "apiVersion" "v1" "kind" "LimitRange" "metadata" (dict "name" "workspace-defaults" "namespace" $ns "labels" $lab) "spec" (dict "limits" (list (dict "type" "Container" "default" $limits "defaultRequest" $requests "max" $limits))))) }}
+            {{- $resources = append $resources (dict "key" "networkpolicy-default-deny" "manifest" (dict "apiVersion" "networking.k8s.io/v1" "kind" "NetworkPolicy" "metadata" (dict "name" "default-deny" "namespace" $ns "labels" $lab) "spec" (dict "podSelector" (dict) "policyTypes" (list "Ingress" "Egress")))) }}
+            {{- if eq $mode "persistent" }}
+            {{- $resources = append $resources (dict "key" "persistentvolumeclaim" "manifest" (dict "apiVersion" "v1" "kind" "PersistentVolumeClaim" "metadata" (dict "name" "workspace" "namespace" $ns "labels" $lab) "spec" (dict "storageClassName" $p.storageClassName "accessModes" (list "ReadWriteOnce") "resources" (dict "requests" (dict "storage" $size))))) }}
+            {{- end }}
+            {{- $anyService := false }}
+            {{- range $ref := list $s.capabilities.git.reference $s.capabilities.inference.reference $s.capabilities.mcp.reference }}
+            {{- $capability := index $p.capabilities $ref }}{{ if not $capability }}{{ fail (printf "capability %s is not in the profile" $ref) }}{{ end }}
+            {{- $d := $capability.destination }}
+            {{- $name := printf "allow-%s" (index (splitList ":" $ref) 1) }}
+            {{- $target := dict }}
+            {{- if hasKey $d "cidr" }}{{ $target = dict "ipBlock" (dict "cidr" $d.cidr) }}
+            {{- else }}{{ $anyService = true }}
+            {{- $selector := index $p.serviceSelectors (printf "%s/%s" $d.service.namespace $d.service.name) }}{{ if not $selector }}{{ fail (printf "service %s/%s has no reviewed selector" $d.service.namespace $d.service.name) }}{{ end }}
+            {{- $target = dict "namespaceSelector" (dict "matchLabels" (dict "kubernetes.io/metadata.name" $d.service.namespace)) "podSelector" (dict "matchLabels" $selector) }}
+            {{- end }}
+            {{- $resources = append $resources (dict "key" (printf "networkpolicy-%s" $name) "manifest" (dict "apiVersion" "networking.k8s.io/v1" "kind" "NetworkPolicy" "metadata" (dict "name" $name "namespace" $ns "labels" $lab "annotations" (dict "workspace.openkubes.io/capability-ref" $ref)) "spec" (dict "podSelector" (dict "matchLabels" $lab) "policyTypes" (list "Egress") "egress" (list (dict "to" (list $target) "ports" (list (dict "protocol" "TCP" "port" $d.port))))))) }}
+            {{- end }}
+            {{- if $anyService }}
+            {{- $resources = append $resources (dict "key" "networkpolicy-allow-kube-dns" "manifest" (dict "apiVersion" "networking.k8s.io/v1" "kind" "NetworkPolicy" "metadata" (dict "name" "allow-kube-dns" "namespace" $ns "labels" $lab) "spec" (dict "podSelector" (dict "matchLabels" $lab) "policyTypes" (list "Egress") "egress" (list (dict "to" (list (dict "namespaceSelector" (dict "matchLabels" (dict "kubernetes.io/metadata.name" "kube-system")) "podSelector" (dict "matchLabels" (dict "k8s-app" "kube-dns")))) "ports" (list (dict "protocol" "UDP" "port" 53) (dict "protocol" "TCP" "port" 53))))))) }}
+            {{- end }}
+            {{- $resources = append $resources (dict "key" "deployment" "manifest" (dict "apiVersion" "apps/v1" "kind" "Deployment" "metadata" (dict "name" "workspace" "namespace" $ns "labels" $lab) "spec" (dict "replicas" 1 "strategy" (dict "type" "Recreate") "selector" (dict "matchLabels" $lab) "template" (dict "metadata" (dict "labels" $lab) "spec" $pod)))) }}
+
+            {{- $objectNames := dict }}
+            {{- range $r := $resources }}{{ $n := printf "dw-%s-%s" (sha256sum $w | trunc 10) $r.key | trunc 63 | trimSuffix "-" }}{{ if hasKey $objectNames $n }}{{ fail (printf "composed Object name %s is not unique" $n) }}{{ end }}{{ $_ := set $objectNames $n true }}{{ end }}
+            {{- range $r := $resources }}
+            ---
+            apiVersion: kubernetes.crossplane.io/v1alpha2
+            kind: Object
+            metadata:
+              name: {{ printf "dw-%s-%s" (sha256sum $w | trunc 10) $r.key | trunc 63 | trimSuffix "-" }}
+              annotations:
+                gotemplating.fn.crossplane.io/composition-resource-name: {{ $r.key }}
+            spec:
+              deletionPolicy: Delete
+              watch: true
+              providerConfigRef:
+                name: {{ $providerConfig | quote }}
+              {{- if eq $r.key "deployment" }}
+              # Ready means the checkout init container succeeded and the runtime is available.
+              readiness:
+                policy: DeriveFromCelQuery
+                celQuery: "has(object.status.availableReplicas) && object.status.availableReplicas >= 1"
+              {{- end }}
+              forProvider:
+                manifest:
+                  {{- toYaml $r.manifest | nindent 18 }}
+            {{- end }}
+            ---
+            apiVersion: workspace.openkubes.io/v0alpha1
+            kind: DeveloperWorkspace
+            status:
+              namespace: {{ $ns | quote }}
+              {{- $available := dig "deployment" "resource" "status" "atProvider" "manifest" "status" "availableReplicas" 0 (default (dict) $.observed.resources) }}
+              lifecyclePhase: {{ if ge (int $available) 1 }}running{{ else }}pending{{ end }}
+            {{- else if hasKey (default (dict) $.extraResources) "profile" }}
+            {{- /* The requirement was resolved and found nothing: fail rather than report an empty XR Ready. */}}
+            {{- fail "profile EnvironmentConfig developer-workspace-profile not found" }}
+            {{- end }}
+    - step: automatically-detect-ready-composed-resources
+      functionRef:
+        name: function-auto-ready

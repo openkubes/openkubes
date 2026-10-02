@@ -1,0 +1,9 @@
+# Named by the profile EnvironmentConfig's `providerConfigName`. Apply after the Provider is
+# Healthy: the ProviderConfig kind is installed by the provider package.
+apiVersion: kubernetes.crossplane.io/v1alpha1
+kind: ProviderConfig
+metadata:
+  name: in-cluster
+spec:
+  credentials:
+    source: InjectedIdentity
