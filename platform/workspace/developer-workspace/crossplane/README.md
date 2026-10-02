@@ -16,7 +16,7 @@ ADR-Platform-039 stays Proposed; this directory supplies implementation evidence
 | `xrd.yaml` | Cluster-scoped XRD, generated from the contract schema by `tests/xrd_schema.py`; the portable contract document is the composite resource, unchanged. |
 | `composition.yaml` | Template port of the spike's `render()`; function-go-templating then function-auto-ready. |
 | EnvironmentConfig `developer-workspace-profile` | Cluster-scoped input: `profile` (the reviewed NamespaceProfileCatalog), `providerConfigName`, optional `imagePullSecret`. Without it the render fails and nothing is composed. Every check `render()` makes in `validate_profile()` is a `fail` guard here, so any input `render()` rejects composes nothing. |
-| `install/` | provider-kubernetes with a named ServiceAccount and watches enabled, the `in-cluster` ProviderConfig (InjectedIdentity), and `namespace-guard.yaml`, a ValidatingAdmissionPolicy that keeps workspace Namespaces dedicated. |
+| `install/` | provider-kubernetes with a named ServiceAccount and watches enabled, the `in-cluster` ProviderConfig (InjectedIdentity), and admission policies that keep workspace Namespaces dedicated and require user namespaces where the profile selects them. |
 | `rbac/` | The authority this capability adds to the provider: the kinds the Composition emits. No RBAC kinds, Pods or exec. See *Provider authority*. |
 | `tests/functions.yaml` | Pinned function packages (go-templating v0.9.2, auto-ready v0.4.1). |
 | `tests/profile_config.py` | Shared capability profile loader, reference rendering extension, and EnvironmentConfig builder for render-check and the live proof. |
@@ -42,8 +42,24 @@ choice; neither is a field in the portable DeveloperWorkspace contract. The chec
 `local-path` catalogs derive from the frozen spike YAML via `tests/profile_config.py`, which
 explicitly adds `hostUsers: true`. This includes the live profile used by `reconcile_proof.py`;
 the spike files stay unchanged. A capacity-enforcing profile can set it to `false`.
-Workspace identities cannot create Pods; the Composition is the enforcement point for this
-profile. An admission rule requiring this setting is later work.
+The Composition sets `workspace.openkubes.io/host-users: "false"` on the Namespace only when
+`hostUsers: false` is required. `install/pod-user-namespace-guard.yaml` binds the
+`workspace-pod-user-namespace-required` ValidatingAdmissionPolicy with `validationActions: [Deny]`
+and `failurePolicy: Fail`. In those Namespaces it requires an explicit `spec.hostUsers: false`
+on every Pod CREATE and UPDATE, including `pods/ephemeralcontainers`; it excludes `pods/status`.
+This applies to manual Pods and ReplicaSet-created Pods regardless of caller identity. Rolling
+updates create compliant replacement Pods; ordinary updates and ephemeral-container additions
+retain the existing Pod's user namespace setting. A legacy noncompliant Pod's update is denied:
+the rule does not repair or evict existing Pods. Profiles with `hostUsers: true` omit the label
+and are unaffected.
+
+Namespace-only placement keeps the selection signal off unrelated objects and Pod templates;
+the capability reference rendering adds exactly the same Namespace label as the Composition.
+Read-back equality includes it, and provider reconciliation manages that rendered field. Namespace
+label authority remains platform authority: removing the label bypasses selection until restored,
+and changing a profile or CompositionRevision does not retroactively validate existing Pods.
+Workspace identities cannot create Pods or change Namespace labels. User namespaces close the
+observed project-ID reset bypass; admission alone does not prove storage capacity enforcement.
 
 **One workspace shape per cluster.** The profile is a single cluster-wide EnvironmentConfig whose
 catalogs must match each workspace's references exactly (as `render()` requires), so every
@@ -75,7 +91,8 @@ make functions-down
 `render-check` and the live proof share `tests/profile_config.py::reference_render()`. It
 requires a boolean `spec.hostUsers`, removes only that field from a copy of the profile, calls
 the unchanged spike `render()` that OK-174's evidence was recorded against, then sets the
-Deployment pod's `hostUsers` to the supplied value. Both checks add `imagePullSecrets` when
+Deployment pod's `hostUsers` to the supplied value and adds the Namespace selection label only
+when it is false. Both checks add `imagePullSecrets` when
 configured. The Composition has matching fail guards for missing or non-boolean `hostUsers`.
 The extension lives beside the existing EnvironmentConfig helper so the function checks and
 live proof use one reference without modifying OK-174's hash-bound historical artefact.
@@ -83,7 +100,7 @@ live proof use one reference without modifying OK-174's hash-bound historical ar
 ## Live proof (disposable clusters only)
 
 `tests/live/reconcile_proof.py` accepts only `ok-175-proof-admin@ok-175-proof`,
-`ok-176-c3-admin@ok-176-c3`, or the local pre-flight `kind-ok175-preflight`,
+`ok-176-c3-admin@ok-176-c3`, `ok-178-ws-admin@ok-178-ws`, or the local pre-flight `kind-ok175-preflight`,
 requires `TARGET_CONTEXT` to repeat it, and requires
 `OK175_TARGET_UID_SHA256` to equal the sha256 of the selected cluster's `kube-system` UID.
 
@@ -99,7 +116,8 @@ OK175_REGISTRY_USERNAME=<pull-only user> OK175_REGISTRY_PASSWORD_FD=3 make live-
 make live-uninstall
 ```
 
-`live-run` first checks the installed Composition, XRD and ClusterRole equal the local files and
+`live-run` first checks the installed Composition, XRD, ClusterRole and Pod admission policy/binding
+equal the local files and
 that each XR runs a CompositionRevision with the local pipeline. It then requires, each check with
 a control that shows it can fail:
 
@@ -122,6 +140,10 @@ a control that shows it can fail:
   answer is the source's); the source refuses a push with the workspace credential (403) while a
   write-credential control push succeeds; no Secret in the workspace Namespace holds the write
   credential;
+- Pod user namespace admission (OK-178): in enforced mode, server-side dry-run Pods with
+  `hostUsers` absent or true are denied specifically by `workspace-pod-user-namespace-required`,
+  and an otherwise identical Pod with false is admitted. In observed-negative mode the Namespace
+  lacks the selection label and the policy does not select it;
 - resource bounds (OK-176): three busy loops are throttled to the CPU limit (`cpu.stat`;
   control: usage reaches the limit); allocating 1.5x the memory limit gets the runtime
   `OOMKilled` (control: 0.5x succeeds); the quota rejects a second PVC beyond the declared size
@@ -145,9 +167,9 @@ For the capacity-enforcing disposable run, the coordinator selects the existing 
 the workspace's cluster switch and supplies:
 
 ```bash
-export TARGET_CONTEXT=ok-176-c3-admin@ok-176-c3
+export TARGET_CONTEXT=ok-178-ws-admin@ok-178-ws
 export OK175_TARGET_UID_SHA256=<sha256 of that cluster's kube-system UID, without a newline>
-export OK176_STORAGE_CLASS=ok176-c3-xfs OK176_HOST_USERS=false OK176_CAPACITY_MODE=enforced
+export OK176_STORAGE_CLASS=ok-storage-local-quota OK176_HOST_USERS=false OK176_CAPACITY_MODE=enforced
 # Set OK175_RUNTIME_IMAGE and OK175_FIXTURE_IMAGE to the approved digest references,
 # or use make live-run's published-images.env inputs as above.
 make live-install
