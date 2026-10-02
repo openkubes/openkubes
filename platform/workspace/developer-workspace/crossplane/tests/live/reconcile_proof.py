@@ -3,7 +3,7 @@
 
 The OK-174 harness applied render() output itself. Here a DeveloperWorkspace XR is applied and
 Crossplane, function-go-templating and provider-kubernetes reconcile it. The proof requires:
-  - the reconciled Namespace objects equal render() for the same document and profile;
+  - the reconciled Namespace objects equal the capability reference rendering for the same inputs;
   - the checkout is the declared revision and the XR is Ready only once the workspace runs;
   - no ambient Kubernetes authority (no token, discovery-only RBAC, API unreachable);
   - no push or merge authority: the runtime has no source credential, the workspace credential
@@ -15,7 +15,7 @@ Actions: install | run | uninstall. Mutation requires an explicit KUBECONFIG who
 context is TARGET_CONTEXT and one of the disposable targets below.
 """
 from __future__ import annotations
-import argparse, base64, copy, hashlib, importlib.util, json, os, re, secrets, subprocess, sys, time
+import argparse, base64, copy, errno, hashlib, importlib.util, json, os, re, secrets, subprocess, sys, time
 from datetime import datetime, timezone
 from pathlib import Path
 import yaml
@@ -25,7 +25,7 @@ CAPABILITY = HERE.parents[1]
 REPO = CAPABILITY.parents[3]
 LIVE = REPO / 'architecture/spikes/ADR-Platform-039/live'
 EVIDENCE = CAPABILITY / 'evidence'
-DISPOSABLE_CONTEXTS = ('ok-175-proof-admin@ok-175-proof', 'kind-ok175-preflight')
+DISPOSABLE_CONTEXTS = ('ok-175-proof-admin@ok-175-proof', 'ok-176-c3-admin@ok-176-c3', 'kind-ok175-preflight')
 CROSSPLANE_CHART = ('https://charts.crossplane.io/stable', 'crossplane', '2.3.3')
 PROOF_NS = 'ok174-proof-services'  # the reviewed live profile's source destination
 PULL_SECRET = 'workspace-registry-pull'
@@ -33,6 +33,124 @@ PERSISTENT, EPHEMERAL = ('ok175-live-proof', 'ws-ok175-proof'), ('ok175-ephemera
 SQUAT = ('ok175-squat-proof', 'ws-ok175-squat')
 GIT_URL = 'https://git-fixture.ok174-proof-services.svc.cluster.local:8443/workspace-fixture.git'
 KUBE_API = 'https://kubernetes.default.svc'
+WRITE_CHUNK = 1024 * 1024
+
+PROJECT_RESET_PY = r'''import fcntl, json, os, struct, sys
+path = sys.argv[1]
+fmt = '=IIIII8s'
+size = struct.calcsize(fmt)
+def ioctl(direction, number):
+    return (direction << 30) | (size << 16) | (ord('X') << 8) | number
+getxattr, setxattr = ioctl(2, 31), ioctl(1, 32)
+fd = os.open(path, os.O_RDWR | os.O_CREAT | os.O_EXCL, 0o600)
+try:
+    raw = bytearray(size)
+    fcntl.ioctl(fd, getxattr, raw, True)
+    values = list(struct.unpack(fmt, raw)); before = values[3]; values[3] = 0
+    try:
+        fcntl.ioctl(fd, setxattr, struct.pack(fmt, *values)); rejected, error = False, 0
+    except OSError as exc:
+        rejected, error = True, exc.errno
+    raw = bytearray(size)
+    fcntl.ioctl(fd, getxattr, raw, True); after = struct.unpack(fmt, raw)[3]
+    print(json.dumps({'tool': 'python3-fcntl', 'before': before, 'after': after,
+                      'rejected': rejected, 'errno': error}, sort_keys=True))
+finally:
+    os.close(fd)
+    try: os.unlink(path)
+    except FileNotFoundError: pass
+'''
+
+PROJECT_RESET_PL = r'''use strict;
+use warnings;
+use Fcntl qw(O_CREAT O_EXCL O_RDWR);
+my $path = shift @ARGV;
+defined $path or die "project probe path is required\n";
+my $format = 'I5a8';
+my $size = length(pack($format, (0) x 6));
+$size == 28 or die "unexpected fsxattr size $size\n";
+my $getxattr = (2 << 30) | ($size << 16) | (ord('X') << 8) | 31;
+my $setxattr = (1 << 30) | ($size << 16) | (ord('X') << 8) | 32;
+sub call_ioctl { return ioctl($_[0], $_[1], $_[2]); }
+sysopen(my $fh, $path, O_RDWR | O_CREAT | O_EXCL, 0600) or die "create project probe: $!\n";
+my ($before, $after, $rejected, $error_number);
+my $error = '';
+eval {
+    my $before_buffer = pack($format, (0) x 6);
+    defined(call_ioctl($fh, $getxattr, $before_buffer)) or die "FS_IOC_FSGETXATTR before: $!\n";
+    my @values = unpack($format, $before_buffer);
+    $before = $values[3];
+    $values[3] = 0;
+    my $requested = pack($format, @values);
+    $! = 0;
+    my $set_ok = defined(call_ioctl($fh, $setxattr, $requested));
+    $error_number = $set_ok ? 0 : 0 + $!;
+    $rejected = $set_ok ? 0 : 1;
+    my $after_buffer = pack($format, (0) x 6);
+    defined(call_ioctl($fh, $getxattr, $after_buffer)) or die "FS_IOC_FSGETXATTR after: $!\n";
+    my @after_values = unpack($format, $after_buffer);
+    $after = $after_values[3];
+    1;
+} or $error = $@ || "project ioctl probe failed\n";
+close($fh) or $error ||= "close project probe: $!\n";
+unlink($path) or $error ||= "unlink project probe: $!\n";
+die $error if length($error);
+printf qq|{"after":%u,"before":%u,"errno":%u,"rejected":%s,"tool":"perl-ioctl"}\n|,
+    $after, $before, $error_number, $rejected ? 'true' : 'false';
+'''
+
+MARKER_WRITE_JS = r'''const fs=require('fs'),c=require('crypto'),v=process.argv[1],p=process.argv[2];
+let fd,created=false,keep=false;
+try {
+  fd=fs.openSync(p,'wx',0o600); created=true; fs.writeFileSync(fd,v+'\n'); fs.fsyncSync(fd);
+  fs.closeSync(fd); fd=undefined; console.log(c.createHash('sha256').update(fs.readFileSync(p)).digest('hex')); keep=true;
+} finally {
+  if(fd!==undefined) try{fs.closeSync(fd)}catch(_){}
+  if(created&&!keep) try{fs.unlinkSync(p)}catch(_){}
+}
+'''
+
+MARKER_READ_JS = r'''const fs=require('fs'),c=require('crypto'),p=process.argv[1];
+try { console.log(c.createHash('sha256').update(fs.readFileSync(p)).digest('hex')); }
+finally { fs.unlinkSync(p); }
+'''
+
+CAPACITY_PROBE_JS = r'''const fs = require('fs');
+const root = '/workspace', path = root + '/.ok176-capacity-probe';
+const limit = Number(process.argv[2]), requested = limit + Math.floor(limit / 4), chunkSize = 1024 * 1024;
+function allocated(p, seen, exclude) {
+  if (p === exclude) return 0n;
+  const st = fs.lstatSync(p, {bigint: true}), key = st.dev + ':' + st.ino;
+  if (seen.has(key)) return 0n;
+  seen.add(key); let total = st.blocks * 512n;
+  if (st.isDirectory()) for (const name of fs.readdirSync(p)) total += allocated(p + '/' + name, seen, exclude);
+  return total;
+}
+const baseline = allocated(root, new Set(), path), beforeFs = fs.statfsSync(root, {bigint: true});
+const availableBefore = beforeFs.bavail * beforeFs.bsize, reportedCapacityBefore = beforeFs.blocks * beforeFs.bsize, block = Buffer.alloc(chunkSize);
+let fd, created = false, written = 0, error = null, result;
+try {
+  fd = fs.openSync(path, 'wx', 0o600); created = true;
+  while (written < requested) {
+    const wanted = Math.min(chunkSize, requested - written);
+    try {
+      const n = fs.writeSync(fd, block, 0, wanted);
+      if (n === 0) { error = 'SHORT_WRITE'; break; }
+      written += n; fs.fsyncSync(fd);
+    } catch (e) { error = e.code || String(e); break; }
+  }
+  fs.closeSync(fd); fd = undefined;
+  const file = fs.lstatSync(path, {bigint: true}), afterFs = fs.statfsSync(root, {bigint: true});
+  result = {requestedBytes: requested, writtenBytes: written, probeAllocatedBytes: Number(file.blocks * 512n),
+    baselineAllocatedBytes: Number(baseline), totalAllocatedBytes: Number(allocated(root, new Set(), null)),
+    availableBeforeBytes: Number(availableBefore), availableAfterBytes: Number(afterFs.bavail * afterFs.bsize),
+    reportedCapacityBeforeBytes: Number(reportedCapacityBefore), reportedCapacityAfterBytes: Number(afterFs.blocks * afterFs.bsize), error};
+} finally {
+  if (fd !== undefined) try { fs.closeSync(fd); } catch (_) {}
+  if (created) try { fs.unlinkSync(path); } catch (_) {}
+}
+console.log(JSON.stringify(result));
+'''
 
 def load_module(name, path):
     spec = importlib.util.spec_from_file_location(name, path); module = importlib.util.module_from_spec(spec)
@@ -47,6 +165,53 @@ def expect(ok, message):
 def sha(data): return hashlib.sha256(data if isinstance(data, bytes) else data.encode()).hexdigest()
 def now(): return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace('+00:00', 'Z')
 
+def storage_inputs(environ=None):
+    env = os.environ if environ is None else environ
+    storage_class = env.get('OK176_STORAGE_CLASS', '')
+    host_users_raw = env.get('OK176_HOST_USERS', '')
+    mode = env.get('OK176_CAPACITY_MODE', '')
+    labels = storage_class.split('.')
+    valid_class = 0 < len(storage_class) <= 253 and all(re.fullmatch(r'[a-z0-9](?:[-a-z0-9]{0,61}[a-z0-9])?', label) for label in labels)
+    expect(valid_class, 'OK176_STORAGE_CLASS must be a valid non-empty StorageClass name')
+    expect(host_users_raw in ('true', 'false'), 'OK176_HOST_USERS must be literal true or false')
+    expect(mode in ('enforced', 'observed-negative'), 'OK176_CAPACITY_MODE must be enforced or observed-negative')
+    host_users = host_users_raw == 'true'
+    if mode == 'enforced': expect(not host_users, 'OK176_CAPACITY_MODE=enforced requires OK176_HOST_USERS=false')
+    else:
+        expect(host_users, 'OK176_CAPACITY_MODE=observed-negative requires OK176_HOST_USERS=true')
+        expect(storage_class == 'local-path', 'OK176_CAPACITY_MODE=observed-negative requires OK176_STORAGE_CLASS=local-path')
+    return {'storageClassName': storage_class, 'hostUsers': host_users, 'mode': mode}
+
+def quantity_bytes(value):
+    match = re.fullmatch(r'([1-9][0-9]*)(Mi|Gi)', value)
+    expect(match is not None, f'unsupported storage quantity {value!r}; expected Mi or Gi')
+    return int(match.group(1)) * 2 ** (20 if match.group(2) == 'Mi' else 30)
+
+def uid_boundary(uid, mapping_text, host_users):
+    entries = [tuple(int(x) for x in line.split()) for line in mapping_text.splitlines() if line.strip()]
+    expect(entries and all(len(entry) == 3 and entry[2] > 0 for entry in entries), f'invalid runtime uid_map: {mapping_text!r}')
+    match = next((entry for entry in entries if entry[0] <= uid < entry[0] + entry[2]), None)
+    expect(match is not None, f'runtime uid {uid} is absent from uid_map')
+    outside = match[1] + uid - match[0]
+    if not host_users: expect(outside != uid, f'hostUsers=false runtime uid_map is identity-mapped for uid {uid}')
+    return {'runtimeUID': uid, 'mappedHostUID': outside, 'uidMap': [list(entry) for entry in entries]}
+
+def validate_project_reset(probe):
+    expect(type(probe.get('before')) is int and probe['before'] > 0, f'project reset control lacks a nonzero project ID: {probe}')
+    expect(probe.get('rejected') is True and probe.get('errno') == errno.EINVAL, f'project ID reset was not rejected with EINVAL (errno {errno.EINVAL}): {probe}')
+    expect(probe.get('after') == probe['before'], f'project ID changed despite rejected reset: {probe}')
+
+def validate_enforced_capacity(probe, limit):
+    required = ('requestedBytes', 'writtenBytes', 'probeAllocatedBytes', 'baselineAllocatedBytes', 'totalAllocatedBytes', 'availableBeforeBytes', 'availableAfterBytes', 'reportedCapacityBeforeBytes', 'reportedCapacityAfterBytes')
+    expect(all(type(probe.get(key)) is int and probe[key] >= 0 for key in required), f'capacity probe lacks numeric boundaries: {probe}')
+    expect(probe['requestedBytes'] > limit, f'capacity probe did not request more than the {limit}-byte declaration')
+    expect(probe.get('error') in ('ENOSPC', 'EDQUOT'), f'overfill was not rejected with ENOSPC or EDQUOT: {probe}')
+    expect(probe['availableBeforeBytes'] >= max(WRITE_CHUNK, limit - probe['baselineAllocatedBytes'] - WRITE_CHUNK), f'volume lacked the declared free capacity before pressure: {probe}')
+    expect(probe['writtenBytes'] >= max(WRITE_CHUNK, limit - probe['baselineAllocatedBytes'] - WRITE_CHUNK), f'capacity probe failed before filling the declared allocation: {probe}')
+    expect(limit - WRITE_CHUNK <= probe['totalAllocatedBytes'] <= limit + WRITE_CHUNK, f'total allocated bytes are outside the one-write tolerance of the declaration: {probe}')
+    expect(all(abs(probe[key] - limit) <= WRITE_CHUNK for key in ('reportedCapacityBeforeBytes', 'reportedCapacityAfterBytes')), f'statfs reported capacity is outside the one-write tolerance of the declaration: {probe}')
+    expect(probe['availableAfterBytes'] <= WRITE_CHUNK, f'enforced volume still reports more than one write of available capacity: {probe}')
+
 def kubectl(args, *, input_text=None, timeout=120, check=True):
     done = subprocess.run(['kubectl', *args], input=input_text, text=True, capture_output=True, timeout=timeout)
     if check and done.returncode: raise ProofError(f"kubectl {' '.join(args[:3])} failed ({done.returncode}): {done.stderr.strip()[:300]}")
@@ -57,6 +222,22 @@ def get_json(args): return json.loads(kubectl([*args, '-o', 'json']).stdout)
 def exec_in(namespace, pod, command, container=None, input_text=None):
     args = ['exec', *(['-i'] if input_text is not None else []), f'pod/{pod}', '-n', namespace, *(['-c', container] if container else []), '--', *command]
     return kubectl(args, input_text=input_text, check=False)
+def project_reset_probe(namespace, pod):
+    available = exec_in(namespace, pod, ['sh', '-c', 'if command -v python3 >/dev/null; then echo python3; elif command -v perl >/dev/null; then echo perl; else exit 127; fi'], 'runtime')
+    expect(available.returncode == 0, 'runtime lacks python3 or perl required for the exact FS_IOC_FSSETXATTR errno probe')
+    tool = available.stdout.strip()
+    command, source = (['python3', '-', '/workspace/.ok176-project-probe'], PROJECT_RESET_PY) if tool == 'python3' else (['perl', '-', '/workspace/.ok176-project-probe'], PROJECT_RESET_PL)
+    done = exec_in(namespace, pod, command, 'runtime', input_text=source)
+    expect(done.returncode == 0, f'runtime project reset probe failed with {tool} (rc={done.returncode}): {done.stderr.strip()[:200]}')
+    try: probe = json.loads(done.stdout)
+    except json.JSONDecodeError as error: raise ProofError(f'runtime project reset probe returned invalid JSON: {error}') from error
+    validate_project_reset(probe); return probe
+
+def capacity_probe(namespace, pod, limit):
+    done = exec_in(namespace, pod, ['node', '-', str(limit)], 'runtime', input_text=CAPACITY_PROBE_JS)
+    expect(done.returncode == 0, f'runtime capacity probe failed (rc={done.returncode}): {done.stderr.strip()[:200]}')
+    try: return json.loads(done.stdout)
+    except json.JSONDecodeError as error: raise ProofError(f'runtime capacity probe returned invalid JSON: {error}') from error
 def wait_until(what, predicate, timeout=600, interval=5):
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
@@ -175,7 +356,7 @@ def workspace_inputs(name, workspace_id, revision, mode):
     return doc
 
 def expected_objects(doc, profile, pulls):
-    resources = copy.deepcopy(spike.renderer().render(doc, profile)['spec']['resources'])
+    resources = render_profile.reference_render(doc, profile)['spec']['resources']
     if pulls: next(r for r in resources if r['kind'] == 'Deployment')['spec']['template']['spec']['imagePullSecrets'] = [{'name': PULL_SECRET}]
     return resources
 
@@ -187,7 +368,7 @@ def normalized(item):
     return value
 
 def readback(namespace, expected):
-    """Every composed object must equal its render() counterpart; nothing unrendered may appear."""
+    """Every composed object must equal its capability reference counterpart; nothing unrendered may appear."""
     for kind in ('Namespace', 'ServiceAccount', 'ResourceQuota', 'LimitRange', 'NetworkPolicy', 'PersistentVolumeClaim', 'Deployment'):
         wanted = {o['metadata']['name']: normalized(o) for o in expected if o['kind'] == kind}
         if kind == 'Namespace': items = [get_json(['get', 'namespace', namespace])]
@@ -195,7 +376,7 @@ def readback(namespace, expected):
         got = {i['metadata']['name']: normalized(i) for i in items}
         expect(set(got) == set(wanted), f'{kind}: reconciled {sorted(got)} != rendered {sorted(wanted)}')
         for name in wanted:
-            expect(got[name] == wanted[name], f'{kind}/{name} differs from render(): got {json.dumps(got[name], sort_keys=True)[:600]}')
+            expect(got[name] == wanted[name], f'{kind}/{name} differs from capability reference rendering: got {json.dumps(got[name], sort_keys=True)[:600]}')
     return len(expected)
 
 def workspace_pod(namespace):
@@ -222,7 +403,7 @@ def delete_and_confirm_gone(name, namespace, expected_count):
 # ---- run ------------------------------------------------------------------------------------
 
 def run(args):
-    started = now(); run_id = secrets.token_hex(8); tgt = target(); impl = implementation(args.require_clean)
+    started = now(); run_id = secrets.token_hex(8); storage = storage_inputs(); tgt = target(); impl = implementation(args.require_clean)
     runtime_image, fixture_image = image('OK175_RUNTIME_IMAGE'), image('OK175_FIXTURE_IMAGE')
     username = os.environ.get('OK175_REGISTRY_USERNAME', ''); pulls = bool(username)
     password = os.read(int(os.environ['OK175_REGISTRY_PASSWORD_FD']), 4096).decode().strip() if pulls else ''
@@ -262,8 +443,9 @@ def run(args):
     kubectl(['delete', 'developerworkspace/ok175-no-profile', '--wait=true', '--timeout=300s'], timeout=330)
     record('no-profile-fails-closed', 'without the profile EnvironmentConfig the workspace reports it missing, composes nothing and is not Ready', ready=conditions.get('Ready'))
 
-    profile = yaml.safe_load((LIVE / 'profile/namespace-profile-live.yaml').read_text())
+    profile = render_profile.load_profile(LIVE / 'profile/namespace-profile-live.yaml')
     profile['spec']['runtimeProfiles']['opencode']['image'] = runtime_image
+    profile['spec']['storageClassName'] = storage['storageClassName']; profile['spec']['hostUsers'] = storage['hostUsers']
     apply([render_profile.profile_config(profile, 'in-cluster', PULL_SECRET if pulls else '')])
 
     def bring_up(name, workspace_id, mode):
@@ -310,7 +492,7 @@ def run(args):
         xr = get_json(['get', f'developerworkspace/{PERSISTENT[0]}'])
         expect(xr.get('status', {}).get('namespace') == ns and xr['status'].get('lifecyclePhase') == 'running', f"XR status {xr.get('status', {}).get('namespace')}/{xr.get('status', {}).get('lifecyclePhase')}")
         count = readback(ns, expected_objects(doc, profile, pulls))
-        record('reconcile-readback', f'XR Ready; {count} reconciled objects equal render() for the persistent profile; the XR runs the local Composition', namespace=ns, lifecyclePhase='running', compositionRevision=revision)
+        record('reconcile-readback', f'XR Ready; {count} reconciled objects equal capability reference rendering for the persistent profile; the XR runs the local Composition', namespace=ns, lifecyclePhase='running', compositionRevision=revision)
         # A reconciler, not a one-shot apply: remove the default-deny policy and require it back as rendered.
         # A new UID is the control that the policy was really deleted, however fast it returns.
         uid = lambda: (lambda d: json.loads(d.stdout)['metadata']['uid'] if d.returncode == 0 else None)(kubectl(['get', 'networkpolicy/default-deny', '-n', ns, '-o', 'json'], check=False))
@@ -325,9 +507,38 @@ def run(args):
         readback(ns, expected_objects(doc, profile, pulls))
         record('drift-restored', 'a deleted default-deny NetworkPolicy was recreated (new UID) and a patched quota value was reverted, both as rendered', seconds=round(time.monotonic() - removed))
         pod = workspace_pod(ns)
+        pod_spec = get_json(['get', 'deployment/workspace', '-n', ns])['spec']['template']['spec']
+        expect(pod_spec.get('hostUsers') is storage['hostUsers'], f'rendered pod hostUsers {pod_spec.get("hostUsers")!r} differs from explicit input {storage["hostUsers"]}')
 
         head = exec_in(ns, pod, ['git', '-C', '/workspace', 'rev-parse', 'HEAD'], 'runtime'); expect(head.returncode == 0 and head.stdout.strip() == known, 'checkout is not the declared revision')
         record('source-checkout', 'workspace HEAD equals the declared revision, not the newer default-branch tip', commit=known, sourceTip=tip)
+
+        marker_value = f'ok176-persistent-marker-{run_id}'
+        marker_path = '/workspace/.ok176-persistence-marker'
+        marker_write = exec_in(ns, pod, ['node', '-e', MARKER_WRITE_JS, marker_value, marker_path], 'runtime')
+        expect(marker_write.returncode == 0 and re.fullmatch(r'[0-9a-f]{64}', marker_write.stdout.strip()), f'could not write persistent marker: {marker_write.stderr.strip()[:200]}')
+        marker_sha = marker_write.stdout.strip(); old_uid = get_json(['get', f'pod/{pod}', '-n', ns])['metadata']['uid']
+        kubectl(['delete', f'pod/{pod}', '-n', ns, '--wait=true'])
+        replacement = {}
+        def replacement_ready():
+            pods = [p for p in get_json(['get', 'pods', '-n', ns])['items'] if p.get('status', {}).get('phase') == 'Running' and not p['metadata'].get('deletionTimestamp')]
+            if len(pods) != 1 or pods[0]['metadata']['name'] == pod: return False
+            statuses = {c['name']: c.get('ready') for c in pods[0].get('status', {}).get('containerStatuses', [])}
+            if statuses.get('runtime') is not True: return False
+            replacement.update(name=pods[0]['metadata']['name'], uid=pods[0]['metadata']['uid']); return True
+        wait_until('a ready replacement workspace pod', replacement_ready, timeout=300, interval=3)
+        expect(replacement['uid'] != old_uid, 'workspace pod replacement retained the old Pod UID')
+        pod = replacement['name']
+        live_pod = get_json(['get', f'pod/{pod}', '-n', ns])
+        expect(live_pod['spec'].get('hostUsers') is storage['hostUsers'], f'live pod hostUsers {live_pod["spec"].get("hostUsers")!r} differs from explicit input {storage["hostUsers"]}')
+        marker_read = exec_in(ns, pod, ['node', '-e', MARKER_READ_JS, marker_path], 'runtime')
+        expect(marker_read.returncode == 0 and marker_read.stdout.strip() == marker_sha, f'persistent marker changed across pod replacement: {marker_read.stderr.strip()[:200]}')
+        record('persistent-marker-survives-replacement', 'a marker retained the same sha256 after the workspace Pod was replaced', markerSha256=marker_sha, oldPodUID=old_uid, newPodUID=replacement['uid'])
+
+        runtime_uid = exec_in(ns, pod, ['id', '-u'], 'runtime'); runtime_map = exec_in(ns, pod, ['cat', '/proc/self/uid_map'], 'runtime')
+        expect(runtime_uid.returncode == runtime_map.returncode == 0 and runtime_uid.stdout.strip().isdigit(), 'could not read runtime UID mapping')
+        boundary = uid_boundary(int(runtime_uid.stdout.strip()), runtime_map.stdout, storage['hostUsers'])
+        record('runtime-user-boundary', f'the live workspace Pod has hostUsers={str(storage["hostUsers"]).lower()}; its runtime UID mapping was recorded and is nonidentity when user namespaces are required', hostUsers=storage['hostUsers'], **boundary)
 
         token = exec_in(ns, pod, ['sh', '-c', 'test ! -e /var/run/secrets/kubernetes.io/serviceaccount/token'], 'runtime'); expect(token.returncode == 0, 'a ServiceAccount token is mounted')
         sa = f'system:serviceaccount:{ns}:workspace'
@@ -425,13 +636,21 @@ def run(args):
         expect(rejected.returncode != 0 and 'exceeded quota' in rejected.stderr and 'requests.storage' in rejected.stderr, f'a second PVC beyond the declared size was admitted: {rejected.stderr.strip()[:200]}')
         record('storage-quota-enforced', f'a second {doc["spec"]["storage"]["size"]} PVC was rejected: the quota requests.storage equals the declared size and is fully used', hard=hard['hard'].get('requests.storage'))
 
-        # Negative evidence (OK-176): local-path does not enforce PVC capacity at runtime. Recorded, not asserted as a bound.
-        size_mib = int(doc['spec']['storage']['size'].rstrip('Gi')) * 1024
-        over_fill = exec_in(ns, pod, ['sh', '-c', f'dd if=/dev/zero of=/workspace/.ok176-overfill bs=4M count={size_mib * 5 // 4 // 4} 2>/dev/null; rc=$?; du -sm /workspace/.ok176-overfill | cut -f1; rm -f /workspace/.ok176-overfill; exit $rc'], 'runtime')
-        written = int((over_fill.stdout.split() or ['0'])[0])
-        expect(over_fill.returncode == 0 and written > size_mib, f'expected the overfill to show local-path does not enforce capacity (rc={over_fill.returncode}, {written} MiB)')
-        results.append({'name': 'persistent-capacity-not-enforced', 'status': 'observed', 'detail': f'{written} MiB were written into a {doc["spec"]["storage"]["size"]} local-path PVC: persistent capacity is bounded at admission (quota), not at write time', 'observed': {'writtenMiB': written, 'declared': doc['spec']['storage']['size']}})
-        print(f'OBSERVED persistent-capacity-not-enforced: {written} MiB written into a {doc["spec"]["storage"]["size"]} PVC', flush=True)
+        limit = quantity_bytes(doc['spec']['storage']['size'])
+        if storage['mode'] == 'enforced':
+            reset = project_reset_probe(ns, pod)
+            record('file-project-reset-rejected', 'the runtime file had a nonzero project ID; resetting it to zero was rejected with EINVAL (errno 22) and the ID stayed unchanged', tool=reset['tool'], projectIDBefore=reset['before'], projectIDAfter=reset['after'], errno=reset['errno'])
+            capacity = capacity_probe(ns, pod, limit); validate_enforced_capacity(capacity, limit)
+            boundaries = {'declaredBytes': limit, 'writeChunkBytes': WRITE_CHUNK, 'toleranceBytes': WRITE_CHUNK, **capacity}
+            record('persistent-capacity-enforced', f'a 1 MiB-write runtime probe filled the declared {doc["spec"]["storage"]["size"]} allocation and was rejected with {capacity["error"]}', **boundaries)
+        else:
+            # Negative evidence (OK-176): local-path does not enforce PVC capacity at runtime. Recorded, not asserted as a bound.
+            size_mib = int(doc['spec']['storage']['size'].rstrip('Gi')) * 1024
+            over_fill = exec_in(ns, pod, ['sh', '-c', f'dd if=/dev/zero of=/workspace/.ok176-overfill bs=4M count={size_mib * 5 // 4 // 4} 2>/dev/null; rc=$?; du -sm /workspace/.ok176-overfill | cut -f1; rm -f /workspace/.ok176-overfill; exit $rc'], 'runtime')
+            written = int((over_fill.stdout.split() or ['0'])[0])
+            expect(over_fill.returncode == 0 and written > size_mib, f'expected the overfill to show local-path does not enforce capacity (rc={over_fill.returncode}, {written} MiB)')
+            results.append({'name': 'persistent-capacity-not-enforced', 'status': 'observed', 'detail': f'{written} MiB were written into a {doc["spec"]["storage"]["size"]} local-path PVC: persistent capacity is bounded at admission (quota), not at write time', 'observed': {'writtenMiB': written, 'declared': doc['spec']['storage']['size']}})
+            print(f'OBSERVED persistent-capacity-not-enforced: {written} MiB written into a {doc["spec"]["storage"]["size"]} PVC', flush=True)
 
         volumes = delete_and_confirm_gone(PERSISTENT[0], ns, count)
         expect(volumes == 1, f'persistent workspace had {volumes} PVCs')
@@ -442,7 +661,7 @@ def run(args):
         ecount = readback(ens, expected_objects(edoc, profile, pulls))
         volumes = {v['name']: v for v in get_json(['get', 'deployment/workspace', '-n', ens])['spec']['template']['spec']['volumes']}
         expect('emptyDir' in volumes['workspace'] and not get_json(['get', 'pvc', '-n', ens])['items'], 'ephemeral workspace is not emptyDir-backed')
-        record('ephemeral-reconcile', f'{ecount} reconciled objects equal render(); workspace volume is emptyDir, no PVC', namespace=ens)
+        record('ephemeral-reconcile', f'{ecount} reconciled objects equal capability reference rendering; workspace volume is emptyDir, no PVC', namespace=ens)
         epod = workspace_pod(ens); limit = edoc['spec']['storage']['size']; limit_mib = int(limit.rstrip('Mi'))
         small = exec_in(ens, epod, ['sh', '-c', f'dd if=/dev/zero of=/workspace/.ok176-fill bs=1M count={limit_mib // 2} 2>/dev/null && rm -f /workspace/.ok176-fill'], 'runtime')
         expect(small.returncode == 0, 'control: writing half the emptyDir limit failed')
@@ -466,17 +685,24 @@ def run(args):
         kubectl(['delete', 'namespace', PROOF_NS, '--ignore-not-found', '--wait=true'], timeout=600, check=False)
         kubectl(['delete', 'environmentconfig/developer-workspace-profile', '--ignore-not-found'], check=False)
 
-    expect([r['name'] for r in results] == list(RESULTS), f'results out of order: {[r["name"] for r in results]}')
+    expected_results = [*RESULTS[:RESULTS.index('CAPACITY')], *(['file-project-reset-rejected', 'persistent-capacity-enforced'] if storage['mode'] == 'enforced' else ['persistent-capacity-not-enforced']), *RESULTS[RESULTS.index('CAPACITY') + 1:]]
+    expect([r['name'] for r in results] == expected_results, f'results out of order: {[r["name"] for r in results]}')
     evidence = {'apiVersion': 'workspace.openkubes.io/v1', 'kind': 'ReconcilerLiveEvidence', 'runID': run_id, 'startedAt': started, 'finishedAt': now(),
                 'target': tgt, 'implementation': impl, 'images': {'runtime': runtime_image.split('@', 1)[1], 'fixture': fixture_image.split('@', 1)[1]},
                 'crossplane': {'chart': CROSSPLANE_CHART[2], 'functions': 'tests/functions.yaml', 'provider': 'install/provider-kubernetes.yaml'},
+                'persistentCapacity': {'mode': storage['mode'], 'storageClassName': storage['storageClassName'], 'hostUsers': storage['hostUsers'],
+                                       'boundaries': {'declared': doc['spec']['storage']['size'], 'writeChunkBytes': WRITE_CHUNK,
+                                                      'toleranceBytes': WRITE_CHUNK if storage['mode'] == 'enforced' else None},
+                                       'doesNotProve': (['capacity enforcement for another storage class, declared size, runtime image or without hostUsers=false', 'every quota bypass or filesystem operation', 'provisioner restart or node reboot durability', 'production readiness']
+                                                        if storage['mode'] == 'enforced' else
+                                                        ['persistent runtime capacity enforcement', 'behavior of storage classes other than local-path', 'production readiness'])},
                 'knownCommit': known, 'sourceTip': tip, 'results': results}
     EVIDENCE.mkdir(exist_ok=True); out = EVIDENCE / f'live-{tgt["context"].split("@")[-1]}-{run_id}.json'
     out.write_text(json.dumps(evidence, indent=2, sort_keys=True) + '\n'); passed = sum(r['status'] == 'pass' for r in results); observed = len(results) - passed
     print(f'{passed} checks passed, {observed} observation(s) recorded; evidence {out.relative_to(REPO)}')
 
-RESULTS = ('admission-rules', 'no-profile-fails-closed', 'dedicated-namespace-enforced', 'reconcile-readback', 'drift-restored', 'source-checkout', 'kubernetes-authority-denied', 'kubernetes-api-unreachable', 'runtime-push-denied',
-           'workspace-credential-push-denied', 'write-credential-absent', 'cpu-bound-enforced', 'memory-bound-enforced', 'storage-quota-enforced', 'persistent-capacity-not-enforced',
+RESULTS = ('admission-rules', 'no-profile-fails-closed', 'dedicated-namespace-enforced', 'reconcile-readback', 'drift-restored', 'source-checkout', 'persistent-marker-survives-replacement', 'runtime-user-boundary',
+           'kubernetes-authority-denied', 'kubernetes-api-unreachable', 'runtime-push-denied', 'workspace-credential-push-denied', 'write-credential-absent', 'cpu-bound-enforced', 'memory-bound-enforced', 'storage-quota-enforced', 'CAPACITY',
            'persistent-cleanup', 'ephemeral-reconcile', 'ephemeral-storage-enforced', 'ephemeral-cleanup')
 
 def main():
