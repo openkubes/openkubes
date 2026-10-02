@@ -199,6 +199,37 @@ detects both tools in the runtime and fails closed if neither is available. The 
 addition is Python 3, followed by a newly published digest. An `xfs_io` exit status would not
 be an exact errno, so it is not a fallback. The probe always runs in the workspace runtime.
 
+## Hands-on OpenCode quickstart
+
+After `make live-install`, use the same disposable-context and UID guards, digest image inputs,
+`OK176_STORAGE_CLASS`, `OK176_HOST_USERS`, `OK176_CAPACITY_MODE`, and optional registry password
+descriptor as `live-run` above:
+
+```bash
+make live-up
+# With private images instead:
+# OK175_REGISTRY_USERNAME=<pull-only user> OK175_REGISTRY_PASSWORD_FD=3 make live-up 3< <password file>
+# Copy the printed kubectl exec command and replace <task> with your OpenCode task.
+# It runs opencode run --format json followed by sh verify.sh in /workspace.
+make live-down
+make live-uninstall
+```
+
+`live-up` leaves one persistent `ok-hands-on` DeveloperWorkspace (`ws-hands-on`) Ready and prints
+its Namespace, runtime Pod and exact exec command. Inference endpoint, model and MCP settings come
+from the existing live profile catalog; the selected storage class and `hostUsers` extend that
+profile. The runtime entrypoint renders OpenCode configuration and sleeps until you exec a task.
+The source fixture keeps only a read credential: writer authentication is disabled, and no
+write-credential control Pod or write Secret is created. The workspace needs fetch authority only.
+
+Both commands require the capability installed and matching the local files. `live-up` refuses
+existing workspaces, either destination Namespace, or the shared profile EnvironmentConfig.
+`live-down` validates hands-on ownership markers, deletes only that workspace and its fixture/profile,
+and waits for the workspace Namespace, composed Objects and PV to disappear. It is safe to retry;
+export any wanted workspace data before deletion. If setup fails, run `live-down` before retrying.
+Neither command writes evidence. `live-run` retains its proof controls and automatic cleanup.
+OpenCode inference under the selected user namespace setting must still be exercised live by the operator.
+
 ## Rollback and cleanup
 
 - **Remove one workspace:** `kubectl delete developerworkspace <name>`. Every composed object has
