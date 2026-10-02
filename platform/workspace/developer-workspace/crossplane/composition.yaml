@@ -107,6 +107,8 @@ spec:
             {{- $w := $s.workspaceID }}
             {{- $ns := printf "%s%s" $p.namespacePrefix (trimPrefix "ws-" $w) }}
             {{- $lab := dict "workspace.openkubes.io/id" $w "app" "developer-workspace" }}
+            {{- $namespaceLabels := deepCopy $lab }}
+            {{- if not $p.hostUsers }}{{ $_ := set $namespaceLabels "workspace.openkubes.io/host-users" "false" }}{{ end }}
             {{- $cpu := $s.resources.cpu }}{{- $mem := $s.resources.memory }}
             {{- $size := $s.storage.size }}{{- $mode := $s.storage.mode }}
             {{- $requests := dict "cpu" $cpu "memory" $mem }}
@@ -152,7 +154,7 @@ spec:
             {{- if $pullSecret }}{{ $_ := set $pod "imagePullSecrets" (list (dict "name" $pullSecret)) }}{{ end }}
 
             {{- $resources := list }}
-            {{- $resources = append $resources (dict "key" "namespace" "manifest" (dict "apiVersion" "v1" "kind" "Namespace" "metadata" (dict "name" $ns "labels" $lab))) }}
+            {{- $resources = append $resources (dict "key" "namespace" "manifest" (dict "apiVersion" "v1" "kind" "Namespace" "metadata" (dict "name" $ns "labels" $namespaceLabels))) }}
             {{- $resources = append $resources (dict "key" "serviceaccount" "manifest" (dict "apiVersion" "v1" "kind" "ServiceAccount" "metadata" (dict "name" "workspace" "namespace" $ns "labels" $lab) "automountServiceAccountToken" false)) }}
             {{- $resources = append $resources (dict "key" "resourcequota" "manifest" (dict "apiVersion" "v1" "kind" "ResourceQuota" "metadata" (dict "name" "workspace-bounds" "namespace" $ns "labels" $lab) "spec" (dict "hard" $quota))) }}
             {{- $resources = append $resources (dict "key" "limitrange" "manifest" (dict "apiVersion" "v1" "kind" "LimitRange" "metadata" (dict "name" "workspace-defaults" "namespace" $ns "labels" $lab) "spec" (dict "limits" (list (dict "type" "Container" "default" $limits "defaultRequest" $requests "max" $limits))))) }}

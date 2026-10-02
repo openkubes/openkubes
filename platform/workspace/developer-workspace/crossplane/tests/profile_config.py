@@ -1,7 +1,8 @@
 """Capability profile extension and the EnvironmentConfig consumed by the Composition.
 
 OK-174's spike is frozen. Derive local-path profiles therefrom with explicit hostUsers=True;
-reference_render validates this capability-only field, then extends the unchanged spike render.
+reference_render validates this capability-only field, then extends the unchanged spike render
+with the pod setting and Namespace policy label.
 """
 import copy, importlib.util
 from pathlib import Path
@@ -18,7 +19,7 @@ def load_profile(path):
     return profile
 
 def reference_render(doc, profile):
-    """Require hostUsers, strip it for spike validation/rendering, then set the pod field."""
+    """Require hostUsers, render through the spike oracle, then add capability policy fields."""
     selected = copy.deepcopy(profile)
     spike.expect(isinstance(selected.get('spec'), dict) and isinstance(selected['spec'].get('hostUsers'), bool),
                  'invalid profile shape: hostUsers must be a required boolean')
@@ -26,6 +27,9 @@ def reference_render(doc, profile):
     rendered = spike.render(doc, selected)
     pod = next(r for r in rendered['spec']['resources'] if r['kind'] == 'Deployment')['spec']['template']['spec']
     pod['hostUsers'] = host_users
+    namespace = next(r for r in rendered['spec']['resources'] if r['kind'] == 'Namespace')
+    if not host_users:
+        namespace['metadata']['labels']['workspace.openkubes.io/host-users'] = 'false'
     return rendered
 
 def profile_config(profile, provider_config, pull_secret=''):

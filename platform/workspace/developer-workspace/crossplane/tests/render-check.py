@@ -4,8 +4,8 @@
 render() in architecture/spikes/ADR-Platform-039/verify_developer_workspace_v1.py is the oracle
 OK-174's live evidence was recorded against. For each case this runs `crossplane render` on the
 Composition with the reviewed profile, then requires the manifests inside the composed Objects to
-equal the unchanged render(doc, profile) plus profile_config's hostUsers extension and the
-operational setting (imagePullSecrets). It also
+equal the unchanged render(doc, profile) plus profile_config's hostUsers and Namespace-label
+extensions and the operational setting (imagePullSecrets). It also
 requires the Composition to fail closed when the profile is missing or does not resolve a
 reference.
 
@@ -24,6 +24,7 @@ CROSSPLANE = os.environ.get('CROSSPLANE', 'crossplane')
 TARGETS = {'function-go-templating': os.environ.get('GOTEMPLATING_TARGET', 'localhost:9443'),
            'function-auto-ready': os.environ.get('AUTOREADY_TARGET', 'localhost:9444')}
 PROVIDER_CONFIG = 'in-cluster'
+HOST_USERS_LABEL = 'workspace.openkubes.io/host-users'
 
 spec = importlib.util.spec_from_file_location('profile_config', HERE / 'profile_config.py')
 profile_configs = importlib.util.module_from_spec(spec); spec.loader.exec_module(profile_configs)
@@ -69,6 +70,24 @@ def composed(outputs):
     assert len(set(names)) == len(names) and all(len(n) <= 63 for n in names), f'composed Object names collide or exceed 63: {names}'
     manifests = [o['spec']['forProvider']['manifest'] for o in objects]
     return {(m['kind'], m['metadata']['name']): m for m in manifests}, objects
+
+def check_user_namespace_policy():
+    docs = list(yaml.safe_load_all((CAPABILITY / 'install/pod-user-namespace-guard.yaml').read_text()))
+    policy = next(d for d in docs if d['kind'] == 'ValidatingAdmissionPolicy')
+    binding = next(d for d in docs if d['kind'] == 'ValidatingAdmissionPolicyBinding')
+    assert policy['metadata']['name'] == 'workspace-pod-user-namespace-required'
+    assert policy['spec']['failurePolicy'] == 'Fail'
+    constraints = policy['spec']['matchConstraints']
+    assert constraints['namespaceSelector'] == {'matchLabels': {HOST_USERS_LABEL: 'false'}}
+    assert constraints['resourceRules'] == [{
+        'apiGroups': [''], 'apiVersions': ['v1'], 'operations': ['CREATE', 'UPDATE'],
+        'resources': ['pods', 'pods/ephemeralcontainers'], 'scope': 'Namespaced'}]
+    assert policy['spec']['validations'] == [{
+        'expression': 'has(object.spec.hostUsers) && object.spec.hostUsers == false',
+        'message': 'Pods in this workspace Namespace must set spec.hostUsers to false'}]
+    assert binding['spec'] == {
+        'policyName': 'workspace-pod-user-namespace-required', 'validationActions': ['Deny']}
+    print('PASS pod user namespace policy: manifest defines Fail/Deny and Namespaced Pod CREATE/UPDATE scope')
 
 def variant(base, runtime='opencode', mode='persistent'):
     doc = copy.deepcopy(base); doc['spec']['runtime']['profile'] = runtime
@@ -127,6 +146,8 @@ def mutations(doc):
 def main():
     base = load(SPIKE / 'developer-workspace-v0alpha1.example.yaml'); profile = profile_configs.load_profile(SPIKE / 'namespace-profile-v1.yaml')
     failures = []; checked = 0
+    try: check_user_namespace_policy()
+    except (AssertionError, KeyError, StopIteration) as error: failures.append(f'pod user namespace policy: {error!r}')
     with tempfile.TemporaryDirectory(prefix='ok175-render-') as directory:
         for host_users in (True, False):
             selected_profile = copy.deepcopy(profile); selected_profile['spec']['hostUsers'] = host_users
@@ -137,13 +158,21 @@ def main():
                         done, outputs = render(doc, [profile_config(selected_profile, pull_secret)], directory)
                         if done.returncode: failures.append(f'{name}: render failed: {done.stderr.strip()[:300]}'); continue
                         want = expected(doc, selected_profile, pull_secret); got, objects = composed(outputs)
+                        namespace = got.get(('Namespace', 'dw-sample-174'))
+                        labels = namespace.get('metadata', {}).get('labels', {}) if namespace else {}
+                        labeled = sorted(key for key, manifest in got.items()
+                                         if HOST_USERS_LABEL in manifest.get('metadata', {}).get('labels', {}))
+                        if host_users is False and (labels.get(HOST_USERS_LABEL) != 'false' or labeled != [('Namespace', 'dw-sample-174')]):
+                            failures.append(f'{name}: expected {HOST_USERS_LABEL}=false only on the Namespace; labeled={labeled}')
+                        elif host_users is True and labeled:
+                            failures.append(f'{name}: {HOST_USERS_LABEL} unexpectedly labels {labeled}')
                         if got != want:
                             missing = sorted(set(want) - set(got)); extra = sorted(set(got) - set(want))
                             differ = sorted(k for k in set(want) & set(got) if want[k] != got[k])
                             failures.append(f'{name}: missing={missing} extra={extra} differ={differ}')
                             for k in differ[:2]: failures.append(f'  {k} want={json.dumps(want[k], sort_keys=True)[:400]}\n  {k} got ={json.dumps(got[k], sort_keys=True)[:400]}')
                         else:
-                            checked += 1; print(f'PASS {name}: {len(objects)} Objects equal capability reference rendering')
+                            checked += 1; print(f'PASS {name}: {len(objects)} Objects equal capability reference rendering; Namespace {HOST_USERS_LABEL}={labels.get(HOST_USERS_LABEL, "absent")}')
         doc = copy.deepcopy(base); doc['spec']['workspaceID'] = 'ws-' + 'a' * 48  # the schema's longest ID
         done, outputs = render(doc, [profile_config(profile, '')], directory)
         try:

@@ -25,8 +25,11 @@ CAPABILITY = HERE.parents[1]
 REPO = CAPABILITY.parents[3]
 LIVE = REPO / 'architecture/spikes/ADR-Platform-039/live'
 EVIDENCE = CAPABILITY / 'evidence'
-DISPOSABLE_CONTEXTS = ('ok-175-proof-admin@ok-175-proof', 'ok-176-c3-admin@ok-176-c3', 'kind-ok175-preflight')
+DISPOSABLE_CONTEXTS = ('ok-175-proof-admin@ok-175-proof', 'ok-176-c3-admin@ok-176-c3',
+                       'ok-178-ws-admin@ok-178-ws', 'kind-ok175-preflight')
 CROSSPLANE_CHART = ('https://charts.crossplane.io/stable', 'crossplane', '2.3.3')
+POD_USER_NAMESPACE_POLICY = 'workspace-pod-user-namespace-required'
+HOST_USERS_LABEL = 'workspace.openkubes.io/host-users'
 PROOF_NS = 'ok174-proof-services'  # the reviewed live profile's source destination
 PULL_SECRET = 'workspace-registry-pull'
 PERSISTENT, EPHEMERAL = ('ok175-live-proof', 'ws-ok175-proof'), ('ok175-ephemeral-proof', 'ws-ok175-ephemeral')
@@ -212,6 +215,43 @@ def validate_enforced_capacity(probe, limit):
     expect(all(abs(probe[key] - limit) <= WRITE_CHUNK for key in ('reportedCapacityBeforeBytes', 'reportedCapacityAfterBytes')), f'statfs reported capacity is outside the one-write tolerance of the declaration: {probe}')
     expect(probe['availableAfterBytes'] <= WRITE_CHUNK, f'enforced volume still reports more than one write of available capacity: {probe}')
 
+def validate_pod_user_namespace_admission(mode, namespace_labels, outcomes):
+    """Interpret server dry-run results; kept pure so both assertion branches can be falsified offline."""
+    expect(set(outcomes) == {'absent', 'true', 'false'}, f'incomplete Pod user-namespace probes: {sorted(outcomes)}')
+    selected = namespace_labels.get(HOST_USERS_LABEL) == 'false'
+    if mode == 'enforced':
+        expect(selected, f'enforced workspace Namespace lacks {HOST_USERS_LABEL}=false')
+        for value in ('absent', 'true'):
+            result = outcomes[value]
+            expect(result.returncode != 0 and POD_USER_NAMESPACE_POLICY in result.stderr,
+                   f'hostUsers {value} Pod was not denied specifically by {POD_USER_NAMESPACE_POLICY}: rc={result.returncode} stderr={result.stderr.strip()[:200]}')
+        allowed = outcomes['false']
+        expect(allowed.returncode == 0, f'hostUsers false control Pod was not admitted: {allowed.stderr.strip()[:200]}')
+    else:
+        expect(HOST_USERS_LABEL not in namespace_labels, f'observed-negative workspace Namespace unexpectedly carries {HOST_USERS_LABEL}')
+        for value, result in outcomes.items():
+            expect(result.returncode == 0, f'unselected hostUsers {value} control Pod was not admitted: {result.stderr.strip()[:200]}')
+    return {'policyName': POD_USER_NAMESPACE_POLICY, 'namespaceSelected': selected,
+            'namespaceLabel': namespace_labels.get(HOST_USERS_LABEL),
+            'returnCodes': {key: value.returncode for key, value in outcomes.items()}}
+
+def canonical_admission_spec(spec, binding=False):
+    """Add only documented API defaults, then permit no other installed-spec difference."""
+    value = copy.deepcopy(spec)
+    match_key = 'matchResources' if binding else 'matchConstraints'
+    match = value.setdefault(match_key, {})
+    match.setdefault('matchPolicy', 'Equivalent')
+    match.setdefault('namespaceSelector', {})
+    match.setdefault('objectSelector', {})
+    match.setdefault('resourceRules', [])
+    match.setdefault('excludeResourceRules', [])
+    for rule in [*match['resourceRules'], *match['excludeResourceRules']]: rule.setdefault('scope', '*')
+    if not binding:
+        value.setdefault('matchConditions', [])
+        value.setdefault('variables', [])
+        value.setdefault('auditAnnotations', [])
+    return value
+
 def kubectl(args, *, input_text=None, timeout=120, check=True):
     done = subprocess.run(['kubectl', *args], input=input_text, text=True, capture_output=True, timeout=timeout)
     if check and done.returncode: raise ProofError(f"kubectl {' '.join(args[:3])} failed ({done.returncode}): {done.stderr.strip()[:300]}")
@@ -276,10 +316,12 @@ def installed_matches_local():
     expect(xrd['spec']['versions'][0]['schema'] == local('xrd.yaml')['spec']['versions'][0]['schema'], 'installed XRD schema differs from xrd.yaml')
     role = next(d for d in yaml.safe_load_all((CAPABILITY / 'rbac/provider-kubernetes-clusterrole.yaml').read_text()) if d['kind'] == 'ClusterRole')
     expect(get_json(['get', 'clusterrole', role['metadata']['name']])['rules'] == role['rules'], 'installed ClusterRole differs from rbac/')
-    policy, binding = yaml.safe_load_all((CAPABILITY / 'install/namespace-guard.yaml').read_text())
-    live = get_json(['get', 'validatingadmissionpolicy', policy['metadata']['name']])['spec']
-    expect(all(live.get(k) == policy['spec'][k] for k in ('matchConditions', 'variables', 'validations')), 'installed namespace guard differs from install/namespace-guard.yaml')
-    expect(get_json(['get', 'validatingadmissionpolicybinding', binding['metadata']['name']])['spec'].get('validationActions') == ['Deny'], 'namespace guard binding is not Deny')
+    for path in ('install/namespace-guard.yaml', 'install/pod-user-namespace-guard.yaml'):
+        policy, binding = yaml.safe_load_all((CAPABILITY / path).read_text())
+        live_policy = get_json(['get', 'validatingadmissionpolicy', policy['metadata']['name']])['spec']
+        expect(canonical_admission_spec(live_policy) == canonical_admission_spec(policy['spec']), f'installed admission policy differs from {path}')
+        live_binding = get_json(['get', 'validatingadmissionpolicybinding', binding['metadata']['name']])['spec']
+        expect(canonical_admission_spec(live_binding, binding=True) == canonical_admission_spec(binding['spec'], binding=True), f'installed admission policy binding differs from {path}')
     return composition
 
 def revision_matches(xr_name, composition):
@@ -297,7 +339,8 @@ def install(_args):
     subprocess.run(['helm', 'upgrade', '--install', 'crossplane', chart, '--repo', repo, '--version', version, '-n', 'crossplane-system', '--create-namespace', '--wait', '--timeout', '10m'], check=True)
     apply_file(CAPABILITY / 'tests/functions.yaml'); apply_file(CAPABILITY / 'install/provider-kubernetes.yaml')
     kubectl(['wait', '--for=condition=Healthy', 'function.pkg.crossplane.io/function-go-templating', 'function.pkg.crossplane.io/function-auto-ready', 'provider.pkg.crossplane.io/provider-kubernetes', '--timeout=600s'], timeout=630)
-    apply_file(CAPABILITY / 'rbac/provider-kubernetes-clusterrole.yaml'); apply_file(CAPABILITY / 'install/namespace-guard.yaml'); apply_file(CAPABILITY / 'install/providerconfig.yaml')
+    apply_file(CAPABILITY / 'rbac/provider-kubernetes-clusterrole.yaml'); apply_file(CAPABILITY / 'install/namespace-guard.yaml')
+    apply_file(CAPABILITY / 'install/pod-user-namespace-guard.yaml'); apply_file(CAPABILITY / 'install/providerconfig.yaml')
     apply_file(CAPABILITY / 'xrd.yaml')
     kubectl(['wait', '--for=condition=Established', 'compositeresourcedefinition/developerworkspaces.workspace.openkubes.io', '--timeout=300s'], timeout=330)
     apply_file(CAPABILITY / 'composition.yaml')
@@ -307,7 +350,7 @@ def uninstall(_args):
     target()
     listed = kubectl(['get', 'developerworkspaces', '-o', 'json'], check=False)
     expect(listed.returncode != 0 and 'the server doesn' in listed.stderr or listed.returncode == 0 and not json.loads(listed.stdout)['items'], 'DeveloperWorkspaces still exist; delete them first')
-    for path in ('composition.yaml', 'xrd.yaml', 'install/providerconfig.yaml', 'install/namespace-guard.yaml', 'rbac/provider-kubernetes-clusterrole.yaml', 'install/provider-kubernetes.yaml', 'tests/functions.yaml'):
+    for path in ('composition.yaml', 'xrd.yaml', 'install/providerconfig.yaml', 'install/pod-user-namespace-guard.yaml', 'install/namespace-guard.yaml', 'rbac/provider-kubernetes-clusterrole.yaml', 'install/provider-kubernetes.yaml', 'tests/functions.yaml'):
         done = kubectl(['delete', '--ignore-not-found', '--wait=true', '-f', str(CAPABILITY / path)], timeout=600, check=False)
         expect(done.returncode == 0 or 'no matches for kind' in done.stderr, f'deleting {path} failed: {done.stderr.strip()[:300]}')  # kind already gone with its CRD
     if subprocess.run(['helm', 'status', 'crossplane', '-n', 'crossplane-system'], capture_output=True).returncode == 0:
@@ -382,6 +425,25 @@ def readback(namespace, expected):
 def workspace_pod(namespace):
     pods = [p for p in get_json(['get', 'pods', '-n', namespace])['items'] if p.get('status', {}).get('phase') == 'Running' and not p['metadata'].get('deletionTimestamp')]
     expect(len(pods) == 1, f'expected one running workspace pod in {namespace}, found {len(pods)}'); return pods[0]['metadata']['name']
+
+def pod_user_namespace_probes(namespace, template, mode):
+    """Dry-run Pods shaped like the workspace while avoiding unrelated quota rejection."""
+    outcomes = {}
+    for value in ('absent', 'true', 'false'):
+        spec = copy.deepcopy(template['spec'])
+        if value == 'absent': spec.pop('hostUsers', None)
+        else: spec['hostUsers'] = value == 'true'
+        # The running workspace consumes its full CPU/memory quota. Explicit zero quantities keep
+        # these CREATE dry-runs within quota; the copied security contexts satisfy Pod Security.
+        for container in [*spec.get('initContainers', []), *spec['containers']]:
+            container['resources'] = {'requests': {'cpu': '0', 'memory': '0'}, 'limits': {'cpu': '0', 'memory': '0'}}
+        probe = {'apiVersion': 'v1', 'kind': 'Pod',
+                 'metadata': {'name': f'ok178-host-users-{value}', 'namespace': namespace,
+                              'labels': copy.deepcopy(template.get('metadata', {}).get('labels', {}))},
+                 'spec': spec}
+        outcomes[value] = kubectl(['create', '--dry-run=server', '-f', '-'], input_text=yaml.safe_dump(probe), check=False)
+    labels = get_json(['get', 'namespace', namespace])['metadata'].get('labels', {})
+    return validate_pod_user_namespace_admission(mode, labels, outcomes)
 
 def wait_ready(name):
     kubectl(['wait', '--for=condition=Ready', f'developerworkspace/{name}', '--timeout=600s'], timeout=630)
@@ -507,8 +569,15 @@ def run(args):
         readback(ns, expected_objects(doc, profile, pulls))
         record('drift-restored', 'a deleted default-deny NetworkPolicy was recreated (new UID) and a patched quota value was reverted, both as rendered', seconds=round(time.monotonic() - removed))
         pod = workspace_pod(ns)
-        pod_spec = get_json(['get', 'deployment/workspace', '-n', ns])['spec']['template']['spec']
+        pod_template = get_json(['get', 'deployment/workspace', '-n', ns])['spec']['template']
+        pod_spec = pod_template['spec']
         expect(pod_spec.get('hostUsers') is storage['hostUsers'], f'rendered pod hostUsers {pod_spec.get("hostUsers")!r} differs from explicit input {storage["hostUsers"]}')
+        admission = pod_user_namespace_probes(ns, pod_template, storage['mode'])
+        if storage['mode'] == 'enforced':
+            detail = 'the selected workspace Namespace denied dry-run Pods with hostUsers absent or true specifically by the user-namespace policy; hostUsers=false was admitted'
+        else:
+            detail = 'the workspace Namespace lacks the policy selector label; dry-run Pods with hostUsers absent, true and false were admitted as unselected controls'
+        record('pod-user-namespace-admission', detail, **admission)
 
         head = exec_in(ns, pod, ['git', '-C', '/workspace', 'rev-parse', 'HEAD'], 'runtime'); expect(head.returncode == 0 and head.stdout.strip() == known, 'checkout is not the declared revision')
         record('source-checkout', 'workspace HEAD equals the declared revision, not the newer default-branch tip', commit=known, sourceTip=tip)
@@ -689,7 +758,8 @@ def run(args):
     expect([r['name'] for r in results] == expected_results, f'results out of order: {[r["name"] for r in results]}')
     evidence = {'apiVersion': 'workspace.openkubes.io/v1', 'kind': 'ReconcilerLiveEvidence', 'runID': run_id, 'startedAt': started, 'finishedAt': now(),
                 'target': tgt, 'implementation': impl, 'images': {'runtime': runtime_image.split('@', 1)[1], 'fixture': fixture_image.split('@', 1)[1]},
-                'crossplane': {'chart': CROSSPLANE_CHART[2], 'functions': 'tests/functions.yaml', 'provider': 'install/provider-kubernetes.yaml'},
+                'crossplane': {'chart': CROSSPLANE_CHART[2], 'functions': 'tests/functions.yaml', 'provider': 'install/provider-kubernetes.yaml',
+                               'admissionPolicies': ['install/namespace-guard.yaml', 'install/pod-user-namespace-guard.yaml']},
                 'persistentCapacity': {'mode': storage['mode'], 'storageClassName': storage['storageClassName'], 'hostUsers': storage['hostUsers'],
                                        'boundaries': {'declared': doc['spec']['storage']['size'], 'writeChunkBytes': WRITE_CHUNK,
                                                       'toleranceBytes': WRITE_CHUNK if storage['mode'] == 'enforced' else None},
@@ -701,7 +771,7 @@ def run(args):
     out.write_text(json.dumps(evidence, indent=2, sort_keys=True) + '\n'); passed = sum(r['status'] == 'pass' for r in results); observed = len(results) - passed
     print(f'{passed} checks passed, {observed} observation(s) recorded; evidence {out.relative_to(REPO)}')
 
-RESULTS = ('admission-rules', 'no-profile-fails-closed', 'dedicated-namespace-enforced', 'reconcile-readback', 'drift-restored', 'source-checkout', 'persistent-marker-survives-replacement', 'runtime-user-boundary',
+RESULTS = ('admission-rules', 'no-profile-fails-closed', 'dedicated-namespace-enforced', 'reconcile-readback', 'drift-restored', 'pod-user-namespace-admission', 'source-checkout', 'persistent-marker-survives-replacement', 'runtime-user-boundary',
            'kubernetes-authority-denied', 'kubernetes-api-unreachable', 'runtime-push-denied', 'workspace-credential-push-denied', 'write-credential-absent', 'cpu-bound-enforced', 'memory-bound-enforced', 'storage-quota-enforced', 'CAPACITY',
            'persistent-cleanup', 'ephemeral-reconcile', 'ephemeral-storage-enforced', 'ephemeral-cleanup')
 
