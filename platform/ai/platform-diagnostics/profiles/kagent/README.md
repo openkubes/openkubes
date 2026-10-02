@@ -50,6 +50,7 @@ collapses to a pass-through; the contract and consumers do not change either way
 | `facade/` | OpenAPI→kagent conformant provider, tests, and `Dockerfile` |
 | `charts/platform-diagnostics-facade/` | Helm chart: authenticated facade Deployment/Service |
 | `kustomization.yaml` | applies the kagent CRs (ModelConfig, Agents, Tools) as one unit |
+| `conformance/` | OK-95 Talos/RKE2 RBAC and capability-delta matrix, tests, and evidence records |
 
 ## kagent CRD shapes — confirmed against the installed version
 
