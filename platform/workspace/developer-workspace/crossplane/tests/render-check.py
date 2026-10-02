@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""The Composition must emit exactly what the reviewed render() produces.
+"""The Composition must emit exactly what the capability reference rendering produces.
 
 render() in architecture/spikes/ADR-Platform-039/verify_developer_workspace_v1.py is the oracle
 OK-174's live evidence was recorded against. For each case this runs `crossplane render` on the
 Composition with the reviewed profile, then requires the manifests inside the composed Objects to
-equal render(doc, profile) exactly, plus the one operational setting (imagePullSecrets). It also
+equal the unchanged render(doc, profile) plus profile_config's hostUsers extension and the
+operational setting (imagePullSecrets). It also
 requires the Composition to fail closed when the profile is missing or does not resolve a
 reference.
 
@@ -24,8 +25,6 @@ TARGETS = {'function-go-templating': os.environ.get('GOTEMPLATING_TARGET', 'loca
            'function-auto-ready': os.environ.get('AUTOREADY_TARGET', 'localhost:9444')}
 PROVIDER_CONFIG = 'in-cluster'
 
-spec = importlib.util.spec_from_file_location('spike_render', SPIKE / 'verify_developer_workspace_v1.py')
-spike = importlib.util.module_from_spec(spec); spec.loader.exec_module(spike)
 spec = importlib.util.spec_from_file_location('profile_config', HERE / 'profile_config.py')
 profile_configs = importlib.util.module_from_spec(spec); spec.loader.exec_module(profile_configs)
 
@@ -54,7 +53,7 @@ def render(doc, extra, directory, observed=None):
     return done, [d for d in yaml.safe_load_all(done.stdout) if d] if done.returncode == 0 else []
 
 def expected(doc, profile, pull_secret):
-    resources = copy.deepcopy(spike.render(doc, profile)['spec']['resources'])
+    resources = profile_configs.reference_render(doc, profile)['spec']['resources']
     if pull_secret:
         pod = next(r for r in resources if r['kind'] == 'Deployment')['spec']['template']['spec']
         pod['imagePullSecrets'] = [{'name': pull_secret}]
@@ -79,7 +78,7 @@ def variant(base, runtime='opencode', mode='persistent'):
     return doc
 
 def mutations(doc):
-    """Inputs render() rejects in validate_profile(); the Composition must reject each one too."""
+    """Inputs the capability reference rejects; the Composition must reject each one too."""
     s = doc['spec']; git, inference, mcp = (s['capabilities'][k]['reference'] for k in ('git', 'inference', 'mcp'))
     def p(fn): return lambda d, pr: fn(pr['spec'])
     def d(fn): return lambda dd, pr: fn(dd['spec'])
@@ -95,6 +94,8 @@ def mutations(doc):
         'malformed IPv6 host route': p(lambda x: x['capabilities'][inference]['destination'].update(cidr=':::::/128')),
         'empty namespacePrefix': p(lambda x: x.update(namespacePrefix='')),
         'invalid storageClassName': p(lambda x: x.update(storageClassName='Bad_Class')),
+        'missing hostUsers': p(lambda x: x.pop('hostUsers')),
+        'non-boolean hostUsers': p(lambda x: x.update(hostUsers='false')),
         'extra source': p(lambda x: x['sources'].update({'sourceref:other': next(iter(x['sources'].values()))})),
         'http source endpoint': p(lambda x: next(iter(x['sources'].values())).update(endpoint='http://git.example.invalid')),
         'source endpoint with path': p(lambda x: next(iter(x['sources'].values())).update(endpoint='https://git.example.invalid/sub')),
@@ -124,29 +125,31 @@ def mutations(doc):
     }
 
 def main():
-    base = load(SPIKE / 'developer-workspace-v0alpha1.example.yaml'); profile = load(SPIKE / 'namespace-profile-v1.yaml')
+    base = load(SPIKE / 'developer-workspace-v0alpha1.example.yaml'); profile = profile_configs.load_profile(SPIKE / 'namespace-profile-v1.yaml')
     failures = []; checked = 0
     with tempfile.TemporaryDirectory(prefix='ok175-render-') as directory:
-        for runtime in ('opencode', 'codex'):
-            for mode in ('persistent', 'ephemeral'):
-                for pull_secret in ('', 'registry-pull'):
-                    doc = variant(base, runtime, mode); name = f'{runtime}/{mode}/{"pull-secret" if pull_secret else "no-pull-secret"}'
-                    done, outputs = render(doc, [profile_config(profile, pull_secret)], directory)
-                    if done.returncode: failures.append(f'{name}: render failed: {done.stderr.strip()[:300]}'); continue
-                    want = expected(doc, profile, pull_secret); got, objects = composed(outputs)
-                    if got != want:
-                        missing = sorted(set(want) - set(got)); extra = sorted(set(got) - set(want))
-                        differ = sorted(k for k in set(want) & set(got) if want[k] != got[k])
-                        failures.append(f'{name}: missing={missing} extra={extra} differ={differ}')
-                        for k in differ[:2]: failures.append(f'  {k} want={json.dumps(want[k], sort_keys=True)[:400]}\n  {k} got ={json.dumps(got[k], sort_keys=True)[:400]}')
-                    else:
-                        checked += 1; print(f'PASS {name}: {len(objects)} Objects equal render()')
+        for host_users in (True, False):
+            selected_profile = copy.deepcopy(profile); selected_profile['spec']['hostUsers'] = host_users
+            for runtime in ('opencode', 'codex'):
+                for mode in ('persistent', 'ephemeral'):
+                    for pull_secret in ('', 'registry-pull'):
+                        doc = variant(base, runtime, mode); name = f'hostUsers={str(host_users).lower()}/{runtime}/{mode}/{"pull-secret" if pull_secret else "no-pull-secret"}'
+                        done, outputs = render(doc, [profile_config(selected_profile, pull_secret)], directory)
+                        if done.returncode: failures.append(f'{name}: render failed: {done.stderr.strip()[:300]}'); continue
+                        want = expected(doc, selected_profile, pull_secret); got, objects = composed(outputs)
+                        if got != want:
+                            missing = sorted(set(want) - set(got)); extra = sorted(set(got) - set(want))
+                            differ = sorted(k for k in set(want) & set(got) if want[k] != got[k])
+                            failures.append(f'{name}: missing={missing} extra={extra} differ={differ}')
+                            for k in differ[:2]: failures.append(f'  {k} want={json.dumps(want[k], sort_keys=True)[:400]}\n  {k} got ={json.dumps(got[k], sort_keys=True)[:400]}')
+                        else:
+                            checked += 1; print(f'PASS {name}: {len(objects)} Objects equal capability reference rendering')
         doc = copy.deepcopy(base); doc['spec']['workspaceID'] = 'ws-' + 'a' * 48  # the schema's longest ID
         done, outputs = render(doc, [profile_config(profile, '')], directory)
         try:
             if done.returncode: raise AssertionError(done.stderr.strip()[:300])
-            got, objects = composed(outputs); assert got == expected(doc, profile, ''), 'manifests differ from render()'
-            checked += 1; print(f'PASS longest workspaceID: {len(objects)} uniquely named Objects equal render()')
+            got, objects = composed(outputs); assert got == expected(doc, profile, ''), 'manifests differ from capability reference rendering'
+            checked += 1; print(f'PASS longest workspaceID: {len(objects)} uniquely named Objects equal capability reference rendering')
         except AssertionError as error: failures.append(f'longest workspaceID: {error}')
         status = lambda outputs: {k: v for k, v in next((o for o in outputs if o.get('kind') == 'DeveloperWorkspace'), {}).get('status', {}).items() if k != 'conditions'}
         done, outputs = render(base, [profile_config(profile, '')], directory)
@@ -164,14 +167,14 @@ def main():
         rejected = 0; cases = mutations(base)
         for label, mutate in cases.items():
             doc, broken = copy.deepcopy(base), copy.deepcopy(profile); mutate(doc, broken)
-            try: spike.render(doc, broken); failures.append(f'{label}: render() accepts it; the case is not a rejection'); continue
+            try: profile_configs.reference_render(doc, broken); failures.append(f'{label}: reference_render() accepts it; the case is not a rejection'); continue
             except Exception: pass
             done, outputs = render(doc, [profile_config(broken, '')], directory)
             if done.returncode != 0 and 'fatal result' in done.stderr: rejected += 1
-            else: failures.append(f'{label}: render() rejects it but the Composition composed {len([o for o in outputs if o.get("kind") == "Object"])} Objects')
-        if rejected == len(cases): print(f'PASS fail closed: the Composition rejects all {rejected} inputs render() rejects')
+            else: failures.append(f'{label}: reference_render() rejects it but the Composition composed {len([o for o in outputs if o.get("kind") == "Object"])} Objects')
+        if rejected == len(cases): print(f'PASS fail closed: the Composition rejects all {rejected} inputs the capability reference rejects')
     for f in failures: print('FAIL ' + f, file=sys.stderr)
-    return 1 if failures or checked != 9 else 0
+    return 1 if failures or checked != 17 else 0
 
 if __name__ == '__main__':
     raise SystemExit(main())
