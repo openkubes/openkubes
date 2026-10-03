@@ -11,12 +11,14 @@ Crossplane, function-go-templating and provider-kubernetes reconcile it. The pro
   - deleting the XR removes the Namespace and every composed object.
 Every denial has a control that shows the same check passes when the authority exists.
 
-Actions: install | run | uninstall. Mutation requires an explicit KUBECONFIG whose current
+Actions: install | run | up | down | uninstall. Mutation requires an explicit KUBECONFIG whose current
 context is TARGET_CONTEXT and one of the disposable targets below.
 """
 from __future__ import annotations
 import argparse, base64, copy, errno, hashlib, importlib.util, json, os, re, secrets, subprocess, sys, time
 from datetime import datetime, timezone
+from functools import partial
+import shlex
 from pathlib import Path
 import yaml
 
@@ -33,6 +35,9 @@ HOST_USERS_LABEL = 'workspace.openkubes.io/host-users'
 PROOF_NS = 'ok174-proof-services'  # the reviewed live profile's source destination
 PULL_SECRET = 'workspace-registry-pull'
 PERSISTENT, EPHEMERAL = ('ok175-live-proof', 'ws-ok175-proof'), ('ok175-ephemeral-proof', 'ws-ok175-ephemeral')
+HANDS_ON = ('ok-hands-on', 'ws-hands-on')
+HANDS_ON_LABEL = 'workspace.openkubes.io/hands-on'
+HANDS_ON_VOLUMES = 'workspace.openkubes.io/hands-on-volumes'
 SQUAT = ('ok175-squat-proof', 'ws-ok175-squat')
 GIT_URL = 'https://git-fixture.ok174-proof-services.svc.cluster.local:8443/workspace-fixture.git'
 KUBE_API = 'https://kubernetes.default.svc'
@@ -462,30 +467,80 @@ def delete_and_confirm_gone(name, namespace, expected_count):
     for volume in volumes: wait_until(f'PersistentVolume {volume} removal', lambda: kubectl(['get', 'pv', volume], check=False).returncode != 0, timeout=300)
     return len(volumes)
 
-# ---- run ------------------------------------------------------------------------------------
-
-def run(args):
-    started = now(); run_id = secrets.token_hex(8); storage = storage_inputs(); tgt = target(); impl = implementation(args.require_clean)
-    runtime_image, fixture_image = image('OK175_RUNTIME_IMAGE'), image('OK175_FIXTURE_IMAGE')
+def registry_inputs(runtime_image):
     username = os.environ.get('OK175_REGISTRY_USERNAME', ''); pulls = bool(username)
     password = os.read(int(os.environ['OK175_REGISTRY_PASSWORD_FD']), 4096).decode().strip() if pulls else ''
     expect(not pulls or password, 'registry password descriptor is empty')
     registry = runtime_image.split('/', 1)[0]
-    tls = spike.tls_material(); read_token, write_token = secrets.token_urlsafe(32), secrets.token_urlsafe(32)
-    results = []
-    def record(name, detail, **observed): results.append({'name': name, 'status': 'pass', 'detail': detail, **({'observed': observed} if observed else {})}); print(f'PASS {name}: {detail}', flush=True)
+    return pulls, registry, username, password
 
-    expect(not get_json(['get', 'developerworkspaces'])['items'], 'DeveloperWorkspaces already exist on the target')
-    kubectl(['create', 'namespace', PROOF_NS])
+
+def live_profile(runtime_image, storage):
+    profile = render_profile.load_profile(LIVE / 'profile/namespace-profile-live.yaml')
+    profile['spec']['runtimeProfiles']['opencode']['image'] = runtime_image
+    profile['spec']['storageClassName'] = storage['storageClassName']; profile['spec']['hostUsers'] = storage['hostUsers']
+    return profile
+
+
+def fixture_setup(fixture_image, tls, read_token, write_token, pulls, registry, username, password, hands_on=False):
+    namespace = {'apiVersion': 'v1', 'kind': 'Namespace', 'metadata': {'name': PROOF_NS}}
+    if hands_on:
+        namespace['metadata']['labels'] = {HANDS_ON_LABEL: 'true'}
+        kubectl(['create', '-f', '-'], input_text=yaml.safe_dump(namespace))
+    else: kubectl(['create', 'namespace', PROOF_NS])
     if pulls: apply([pull_secret(PROOF_NS, registry, username, password)])
-    apply(proof_services(fixture_image, tls, read_token, write_token, pulls))
+    objects = proof_services(fixture_image, tls, read_token, write_token, pulls)
+    if hands_on:
+        objects = [o for o in objects if o['kind'] not in ('Namespace', 'Pod')]
+        next(o for o in objects if o['metadata']['name'] == 'git-source-tokens')['stringData'].pop('write')
+        git = next(o for o in objects if o['kind'] == 'Deployment')['spec']['template']['spec']['containers'][0]
+        next(e for e in git['env'] if e['name'] == 'GIT_WRITE_TOKEN').update({'value': ''})
+        next(e for e in git['env'] if e['name'] == 'GIT_WRITE_TOKEN').pop('valueFrom')
+    apply(objects)
     kubectl(['rollout', 'status', 'deployment/git-fixture', '-n', PROOF_NS, '--timeout=300s'], timeout=330)
-    kubectl(['wait', '--for=condition=Ready', 'pod/control', '-n', PROOF_NS, '--timeout=300s'], timeout=330)
+    if not hands_on: kubectl(['wait', '--for=condition=Ready', 'pod/control', '-n', PROOF_NS, '--timeout=300s'], timeout=330)
     source_pod = get_json(['get', 'pods', '-n', PROOF_NS, '-l', 'app=git-fixture'])['items'][0]['metadata']['name']
     known = exec_in(PROOF_NS, source_pod, ['cat', '/srv/git/KNOWN_COMMIT']).stdout.strip(); expect(bool(re.fullmatch(r'[0-9a-f]{40}', known)), 'source did not report a known commit')
     # Control for the checkout check: the source's default branch has moved past the declared revision.
     tip = exec_in(PROOF_NS, source_pod, ['git', '--git-dir=/srv/git/workspace-fixture.git', 'rev-parse', 'HEAD']).stdout.strip()
     expect(bool(re.fullmatch(r'[0-9a-f]{40}', tip)) and tip != known, 'source tip equals the declared revision; the checkout check could not fail')
+    return known, tip
+
+
+def bring_up(name, workspace_id, mode, *, known, profile, read_token, tls, pulls, registry, username, password, composition, hands_on=False):
+    doc = workspace_inputs(name, workspace_id, known, mode); namespace = profile['spec']['namespacePrefix'] + workspace_id.removeprefix('ws-')
+    # Dedicated: the reconciler would adopt an existing Namespace, so require that none exists.
+    absent = optional_object('namespace', namespace) is None if hands_on else kubectl(['get', 'namespace', namespace], check=False).returncode != 0
+    expect(absent, f'namespace {namespace} already exists')
+    if hands_on:
+        doc['metadata'].setdefault('labels', {})[HANDS_ON_LABEL] = 'true'
+        kubectl(['create', '-f', '-'], input_text=yaml.safe_dump(doc))
+    else: apply([doc])
+    wait_until(f'namespace {namespace}', lambda: kubectl(['get', 'namespace', namespace], check=False).returncode == 0, timeout=300)
+    # Per-run values the contract only references: the source credential, CA and pull Secret.
+    support = [{'apiVersion': 'v1', 'kind': 'Secret', 'metadata': {'name': 'workspace-git-auth', 'namespace': namespace}, 'type': 'Opaque', 'stringData': {'token': read_token}},
+               {'apiVersion': 'v1', 'kind': 'ConfigMap', 'metadata': {'name': 'git-fixture-ca', 'namespace': namespace}, 'data': {'ca.crt': tls['ca']}}]
+    if pulls: support.append(pull_secret(namespace, registry, username, password))
+    apply(support)
+    wait_ready(name)
+    revision = revision_matches(name, composition)
+    xr, created = get_json(['get', f'developerworkspace/{name}']), get_json(['get', 'namespace', namespace])
+    expect(created['metadata']['creationTimestamp'] >= xr['metadata']['creationTimestamp'], f'namespace {namespace} predates its DeveloperWorkspace')
+    return doc, namespace, revision
+
+
+# ---- run ------------------------------------------------------------------------------------
+
+def run(args):
+    started = now(); run_id = secrets.token_hex(8); storage = storage_inputs(); tgt = target(); impl = implementation(args.require_clean)
+    runtime_image, fixture_image = image('OK175_RUNTIME_IMAGE'), image('OK175_FIXTURE_IMAGE')
+    pulls, registry, username, password = registry_inputs(runtime_image)
+    tls = spike.tls_material(); read_token, write_token = secrets.token_urlsafe(32), secrets.token_urlsafe(32)
+    results = []
+    def record(name, detail, **observed): results.append({'name': name, 'status': 'pass', 'detail': detail, **({'observed': observed} if observed else {})}); print(f'PASS {name}: {detail}', flush=True)
+
+    expect(not get_json(['get', 'developerworkspaces'])['items'], 'DeveloperWorkspaces already exist on the target')
+    known, tip = fixture_setup(fixture_image, tls, read_token, write_token, pulls, registry, username, password)
     composition = installed_matches_local()
 
     # Admission: the XRD's CEL rules reject an inconsistent lifecycle; the same document made consistent passes.
@@ -505,27 +560,11 @@ def run(args):
     kubectl(['delete', 'developerworkspace/ok175-no-profile', '--wait=true', '--timeout=300s'], timeout=330)
     record('no-profile-fails-closed', 'without the profile EnvironmentConfig the workspace reports it missing, composes nothing and is not Ready', ready=conditions.get('Ready'))
 
-    profile = render_profile.load_profile(LIVE / 'profile/namespace-profile-live.yaml')
-    profile['spec']['runtimeProfiles']['opencode']['image'] = runtime_image
-    profile['spec']['storageClassName'] = storage['storageClassName']; profile['spec']['hostUsers'] = storage['hostUsers']
+    profile = live_profile(runtime_image, storage)
     apply([render_profile.profile_config(profile, 'in-cluster', PULL_SECRET if pulls else '')])
 
-    def bring_up(name, workspace_id, mode):
-        doc = workspace_inputs(name, workspace_id, known, mode); namespace = profile['spec']['namespacePrefix'] + workspace_id.removeprefix('ws-')
-        # Dedicated: the reconciler would adopt an existing Namespace, so require that none exists.
-        expect(kubectl(['get', 'namespace', namespace], check=False).returncode != 0, f'namespace {namespace} already exists')
-        apply([doc])
-        wait_until(f'namespace {namespace}', lambda: kubectl(['get', 'namespace', namespace], check=False).returncode == 0, timeout=300)
-        # Per-run values the contract only references: the source credential, CA and pull Secret.
-        support = [{'apiVersion': 'v1', 'kind': 'Secret', 'metadata': {'name': 'workspace-git-auth', 'namespace': namespace}, 'type': 'Opaque', 'stringData': {'token': read_token}},
-                   {'apiVersion': 'v1', 'kind': 'ConfigMap', 'metadata': {'name': 'git-fixture-ca', 'namespace': namespace}, 'data': {'ca.crt': tls['ca']}}]
-        if pulls: support.append(pull_secret(namespace, registry, username, password))
-        apply(support)
-        wait_ready(name)
-        revision = revision_matches(name, composition)
-        xr, created = get_json(['get', f'developerworkspace/{name}']), get_json(['get', 'namespace', namespace])
-        expect(created['metadata']['creationTimestamp'] >= xr['metadata']['creationTimestamp'], f'namespace {namespace} predates its DeveloperWorkspace')
-        return doc, namespace, revision
+    bring_up_workspace = partial(bring_up, known=known, profile=profile, read_token=read_token, tls=tls, pulls=pulls,
+                                 registry=registry, username=username, password=password, composition=composition)
 
     try:
         # Dedicated Namespace: a workspace whose Namespace already exists must not adopt it.
@@ -550,7 +589,7 @@ def run(args):
         wait_until(f'composed Objects of {SQUAT[0]} to be deleted', lambda: not composed_objects(SQUAT[0]), timeout=300)
         record('dedicated-namespace-enforced', 'a workspace whose Namespace already existed was refused it: no label, no workspace object written, owner data intact, XR not Ready; the persistent run below is the control', ready=ready)
 
-        doc, ns, revision = bring_up(*PERSISTENT, 'persistent')
+        doc, ns, revision = bring_up_workspace(*PERSISTENT, 'persistent')
         xr = get_json(['get', f'developerworkspace/{PERSISTENT[0]}'])
         expect(xr.get('status', {}).get('namespace') == ns and xr['status'].get('lifecyclePhase') == 'running', f"XR status {xr.get('status', {}).get('namespace')}/{xr.get('status', {}).get('lifecyclePhase')}")
         count = readback(ns, expected_objects(doc, profile, pulls))
@@ -726,7 +765,7 @@ def run(args):
         record('persistent-cleanup', f'deleting the XR removed its Namespace, all {count} composed Objects and the PersistentVolume')
 
         # One workspace at a time: a single small worker cannot schedule two.
-        edoc, ens, _ = bring_up(*EPHEMERAL, 'ephemeral')
+        edoc, ens, _ = bring_up_workspace(*EPHEMERAL, 'ephemeral')
         ecount = readback(ens, expected_objects(edoc, profile, pulls))
         volumes = {v['name']: v for v in get_json(['get', 'deployment/workspace', '-n', ens])['spec']['template']['spec']['volumes']}
         expect('emptyDir' in volumes['workspace'] and not get_json(['get', 'pvc', '-n', ens])['items'], 'ephemeral workspace is not emptyDir-backed')
@@ -771,6 +810,102 @@ def run(args):
     out.write_text(json.dumps(evidence, indent=2, sort_keys=True) + '\n'); passed = sum(r['status'] == 'pass' for r in results); observed = len(results) - passed
     print(f'{passed} checks passed, {observed} observation(s) recorded; evidence {out.relative_to(REPO)}')
 
+def optional_object(kind, name):
+    # Only a successful empty response means absent; transport/RBAC errors fail closed.
+    text = kubectl(['get', kind, name, '--ignore-not-found', '-o', 'json']).stdout.strip()
+    return json.loads(text) if text else None
+
+
+def hands_on_namespace():
+    profile = render_profile.load_profile(LIVE / 'profile/namespace-profile-live.yaml')
+    return profile['spec']['namespacePrefix'] + HANDS_ON[1].removeprefix('ws-')
+
+
+def require_hands_on(obj):
+    if obj:
+        expect(obj['metadata'].get('labels', {}).get(HANDS_ON_LABEL) == 'true',
+               f"refusing unowned {obj['kind']}/{obj['metadata']['name']}")
+
+
+def up(_args):
+    storage = storage_inputs(); tgt = target(); composition = installed_matches_local()
+    runtime_image, fixture_image = image('OK175_RUNTIME_IMAGE'), image('OK175_FIXTURE_IMAGE')
+    namespace = hands_on_namespace()
+    expect(not get_json(['get', 'developerworkspaces'])['items'], 'DeveloperWorkspaces already exist on the target')
+    for kind, name in (('namespace', PROOF_NS), ('namespace', namespace),
+                       ('environmentconfig', 'developer-workspace-profile')):
+        expect(optional_object(kind, name) is None, f'{kind}/{name} already exists; refusing adoption')
+    pulls, registry, username, password = registry_inputs(runtime_image)
+    tls = spike.tls_material(); read_token = secrets.token_urlsafe(32)
+    # Empty write token disables writer authentication; no control Pod or write Secret is created.
+    known, _ = fixture_setup(fixture_image, tls, read_token, '', pulls, registry, username, password, hands_on=True)
+    profile = live_profile(runtime_image, storage)
+    config = render_profile.profile_config(profile, 'in-cluster', PULL_SECRET if pulls else '')
+    config['metadata']['labels'] = {HANDS_ON_LABEL: 'true'}
+    kubectl(['create', '-f', '-'], input_text=yaml.safe_dump(config))
+    try:
+        _, namespace, _ = bring_up(*HANDS_ON, 'persistent', known=known, profile=profile, read_token=read_token,
+                                  tls=tls, pulls=pulls, registry=registry, username=username, password=password,
+                                  composition=composition, hands_on=True)
+        pod = workspace_pod(namespace)
+    except (ProofError, subprocess.TimeoutExpired):
+        print('Hands-on setup incomplete; use live-down to clean up before retrying.', file=sys.stderr)
+        raise
+    print(f'Workspace: {HANDS_ON[0]}\nNamespace: {namespace}\nRuntime Pod: {pod}')
+    command = ['kubectl', '--context', tgt['context'], 'exec', '-n', namespace, f'pod/{pod}', '-c', 'runtime', '--',
+               'sh', '-c', "cd /workspace && opencode run --format json '<task>' && sh verify.sh"]
+    print(shlex.join(command))
+
+
+def down(_args):
+    storage_inputs(); target(); installed_matches_local()
+    name, workspace_id = HANDS_ON; namespace = hands_on_namespace()
+    xr = optional_object('developerworkspace', name)
+    fixture = optional_object('namespace', PROOF_NS)
+    config = optional_object('environmentconfig', 'developer-workspace-profile')
+    ns = optional_object('namespace', namespace)
+    # Validate every ownership marker before the first deletion.
+    for obj in (xr, fixture, config): require_hands_on(obj)
+    if xr: expect(xr['spec']['workspaceID'] == workspace_id, 'hands-on workspaceID was changed')
+    others = [o for o in get_json(['get', 'developerworkspaces'])['items'] if o['metadata']['name'] != name]
+    expect(not others, 'other DeveloperWorkspaces exist; refusing to remove the shared profile/fixture')
+    if ns:
+        expect(ns['metadata'].get('labels', {}).get('workspace.openkubes.io/id') == workspace_id
+               and (fixture is not None or xr is not None), f'refusing unowned namespace/{namespace}')
+    volumes = {v['metadata']['name']: v['metadata']['uid'] for v in get_json(['get', 'pv'])['items']
+               if v['spec'].get('claimRef', {}).get('namespace') == namespace}
+    if fixture:
+        saved = json.loads(fixture['metadata'].get('annotations', {}).get(HANDS_ON_VOLUMES, '{}'))
+        expect(isinstance(saved, dict), 'invalid hands-on PV cleanup journal')
+        for volume, uid in saved.items():
+            expect(volume not in volumes or volumes[volume] == uid, f'PV {volume} was replaced; refusing deletion')
+        volumes = {**saved, **volumes}
+        # Keep the journal until PV removal finishes, so an interrupted down can retry after the Namespace is gone.
+        kubectl(['annotate', 'namespace', PROOF_NS, f'{HANDS_ON_VOLUMES}={json.dumps(volumes)}', '--overwrite'])
+    else:
+        expect(not volumes or xr is not None, 'hands-on PVs remain without an ownership marker')
+    if xr: kubectl(['delete', f'developerworkspace/{name}', '--wait=true', '--timeout=600s'], timeout=630)
+    wait_until(f'namespace {namespace} removal', lambda: optional_object('namespace', namespace) is None, timeout=600)
+    wait_until(f'composed Objects of {name} removal', lambda: not composed_objects(name), timeout=300)
+    # A pending PVC may bind between the first PV snapshot and XR deletion.
+    remaining = {v['metadata']['name']: v['metadata']['uid'] for v in get_json(['get', 'pv'])['items']
+                 if v['spec'].get('claimRef', {}).get('namespace') == namespace}
+    for volume, uid in remaining.items():
+        expect(volume not in volumes or volumes[volume] == uid, f'PV {volume} was replaced')
+    if remaining:
+        volumes.update(remaining)
+        if fixture: kubectl(['annotate', 'namespace', PROOF_NS, f'{HANDS_ON_VOLUMES}={json.dumps(volumes)}', '--overwrite'])
+    for volume, uid in volumes.items():
+        def removed(volume=volume, uid=uid):
+            obj = optional_object('pv', volume)
+            expect(obj is None or obj['metadata']['uid'] == uid, f'PV {volume} was replaced')
+            return obj is None
+        wait_until(f'PersistentVolume {volume} removal', removed, timeout=300)
+    if config: kubectl(['delete', 'environmentconfig/developer-workspace-profile', '--wait=true'])
+    if fixture: kubectl(['delete', 'namespace', PROOF_NS, '--wait=true', '--timeout=600s'], timeout=630)
+    print('Hands-on workspace, Namespace, PV and fixture removed (or already absent).')
+
+
 RESULTS = ('admission-rules', 'no-profile-fails-closed', 'dedicated-namespace-enforced', 'reconcile-readback', 'drift-restored', 'pod-user-namespace-admission', 'source-checkout', 'persistent-marker-survives-replacement', 'runtime-user-boundary',
            'kubernetes-authority-denied', 'kubernetes-api-unreachable', 'runtime-push-denied', 'workspace-credential-push-denied', 'write-credential-absent', 'cpu-bound-enforced', 'memory-bound-enforced', 'storage-quota-enforced', 'CAPACITY',
            'persistent-cleanup', 'ephemeral-reconcile', 'ephemeral-storage-enforced', 'ephemeral-cleanup')
@@ -779,6 +914,8 @@ def main():
     parser = argparse.ArgumentParser(); sub = parser.add_subparsers(dest='action', required=True)
     sub.add_parser('install').set_defaults(fn=install); sub.add_parser('uninstall').set_defaults(fn=uninstall)
     r = sub.add_parser('run'); r.add_argument('--require-clean', action='store_true'); r.set_defaults(fn=run)
+    sub.add_parser('up', help='Keep one persistent OpenCode workspace (no evidence)').set_defaults(fn=up)
+    sub.add_parser('down', help='Remove only hands-on resources (no evidence)').set_defaults(fn=down)
     args = parser.parse_args()
     try: args.fn(args)
     except ProofError as error: print(f'FAIL {error}', file=sys.stderr); return 1
