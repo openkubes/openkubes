@@ -321,6 +321,26 @@
     padding:0.1rem 0.35rem;
     font-size:0.9em;
   }
+  /* Homepage hero: lightweight, responsive video with reduced-motion fallback. */
+  .platform-hero{
+    width:min(100%,880px);
+    margin:2rem auto 2.2rem;
+    aspect-ratio:16 / 9;
+    border-radius:12px;
+    overflow:hidden;
+    background:#ffffff url("openkubes-logo.png") center / contain no-repeat;
+  }
+  .platform-hero video,.platform-hero .motion-poster{
+    display:block;
+    width:100%;
+    height:100%;
+    object-fit:contain;
+  }
+  .platform-hero .motion-poster{display:none;}
+  @media (prefers-reduced-motion:reduce){
+    .platform-hero video{display:none;}
+    .platform-hero .motion-poster{display:block;}
+  }
   @media(max-width:680px){
     .universe-grid{grid-template-columns:1fr;}
     .universe-card{min-height:190px;}
@@ -338,6 +358,18 @@
   <h1>OpenKubes Kubernetes Platform Distribution Framework</h1>
   <p class="tagline">OpenKubes is a framework for building sovereign Kubernetes platform distributions — built ADR-first, reviewed three ways, run on infrastructure you control.</p>
   <p class="tagline"><strong>OpenKubes defines the framework. OKP proves it can run.</strong> OpenKubes Platform (OKP) is its official reference distribution — deploy it as provided, adapt it, or use OpenKubes to build your own OpenKubes-conformant distribution.</p>
+  <div class="platform-hero" aria-label="Animated overview of the OpenKubes Kubernetes clusters">
+    <video autoplay muted loop playsinline preload="metadata"
+           poster="media/openkubes-hero-light-poster.webp"
+           aria-label="OpenKubes platform clusters: ok-infra, ok-mgmt, ok-shared and ok-ai">
+      <source src="media/openkubes-hero-light.webm" type="video/webm">
+      <source src="media/openkubes-hero-light.mp4" type="video/mp4">
+      <img src="openkubes-logo.png" alt="OpenKubes">
+    </video>
+    <img class="motion-poster" src="media/openkubes-hero-light-poster.webp"
+         alt="OpenKubes platform clusters: ok-infra, ok-mgmt, ok-shared and ok-ai"
+         loading="lazy">
+  </div>
   <div class="cta">
     <a class="btn primary" href="https://github.com/openkubes/openkubes">View on GitHub</a>
     <a class="btn secondary" href="#contribute">Contribute</a>
