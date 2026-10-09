@@ -337,8 +337,13 @@
     object-fit:contain;
   }
   .platform-hero{position:relative;}
-  .platform-hero .motion-poster{display:none;}
-  .platform-hero.is-static video{display:none;}
+  .platform-hero .motion-poster{
+    display:none;
+    position:absolute;
+    inset:0;
+    background:#ffffff;
+    pointer-events:none;
+  }
   .platform-hero.is-static .motion-poster{display:block;}
   .hero-play{
     position:absolute;
@@ -592,29 +597,50 @@
     const hero = document.querySelector('.platform-hero');
     const video = hero?.querySelector('video');
     const playButton = hero?.querySelector('.hero-play');
-    if (!video || !playButton) return;
-    const motionReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const showPlay = () => {
+    if (!hero || !video || !playButton) return;
+
+    const showPoster = () => {
       hero.classList.add('is-static');
       playButton.hidden = false;
     };
-    if (motionReduced) {
+    const showVideo = () => {
+      hero.classList.remove('is-static');
+      playButton.hidden = true;
+    };
+
+    // Only hide the poster once playback is confirmed.
+    video.addEventListener('playing', showVideo);
+    video.addEventListener('error', showPoster);
+    video.addEventListener('stalled', () => {
+      if (video.paused) showPoster();
+    });
+
+    // Honor reduced motion while still allowing an explicit play action.
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reducedMotion) {
       video.autoplay = false;
       video.pause();
-      showPlay();
+      showPoster();
     } else {
-      video.play().catch(showPlay);
+      const attempt = video.play();
+      if (attempt && typeof attempt.catch === 'function') {
+        attempt.catch(showPoster);
+      }
     }
-    video.addEventListener('error', showPlay);
+
     playButton.addEventListener('click', () => {
-      hero.classList.remove('is-static');
       video.muted = true;
+      video.controls = false;
+      playButton.disabled = true;
       video.play().then(() => {
-        playButton.hidden = true;
+        showVideo();
+        playButton.disabled = false;
       }).catch(() => {
-        showPlay();
-        playButton.textContent = 'Video unavailable';
-        playButton.disabled = true;
+        showPoster();
+        // Native controls provide a fallback when scripted playback is denied.
+        video.controls = true;
+        playButton.disabled = false;
+        playButton.textContent = 'Retry animation';
       });
     });
   })();
