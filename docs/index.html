@@ -336,11 +336,29 @@
     height:100%;
     object-fit:contain;
   }
+  .platform-hero{position:relative;}
   .platform-hero .motion-poster{display:none;}
-  @media (prefers-reduced-motion:reduce){
-    .platform-hero video{display:none;}
-    .platform-hero .motion-poster{display:block;}
+  .platform-hero.is-static video{display:none;}
+  .platform-hero.is-static .motion-poster{display:block;}
+  .hero-play{
+    position:absolute;
+    left:50%;
+    bottom:1rem;
+    transform:translateX(-50%);
+    z-index:2;
+    padding:0.65rem 1.1rem;
+    border:1px solid var(--border);
+    border-radius:8px;
+    background:#ffffff;
+    color:var(--text);
+    box-shadow:0 2px 12px rgba(31,35,40,.15);
+    font-family:inherit;
+    font-size:0.9rem;
+    font-weight:600;
+    cursor:pointer;
   }
+  .hero-play[hidden]{display:none;}
+  .hero-play:focus-visible{outline:3px solid var(--accent);outline-offset:3px;}
   @media(max-width:680px){
     .universe-grid{grid-template-columns:1fr;}
     .universe-card{min-height:190px;}
@@ -367,8 +385,8 @@
       <img src="openkubes-logo.png" alt="OpenKubes">
     </video>
     <img class="motion-poster" src="media/openkubes-hero-light-poster.webp"
-         alt="OpenKubes platform clusters: ok-infra, ok-mgmt, ok-shared and ok-ai"
-         loading="lazy">
+         alt="OpenKubes platform clusters: ok-infra, ok-mgmt, ok-shared and ok-ai">
+    <button class="hero-play" type="button" hidden>Play animation</button>
   </div>
   <div class="cta">
     <a class="btn primary" href="https://github.com/openkubes/openkubes">View on GitHub</a>
@@ -569,5 +587,37 @@
   <a href="https://github.com/openkubes/openkubes">github.com/openkubes/openkubes</a>
 </footer>
 
+<script>
+  (() => {
+    const hero = document.querySelector('.platform-hero');
+    const video = hero?.querySelector('video');
+    const playButton = hero?.querySelector('.hero-play');
+    if (!video || !playButton) return;
+    const motionReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const showPlay = () => {
+      hero.classList.add('is-static');
+      playButton.hidden = false;
+    };
+    if (motionReduced) {
+      video.autoplay = false;
+      video.pause();
+      showPlay();
+    } else {
+      video.play().catch(showPlay);
+    }
+    video.addEventListener('error', showPlay);
+    playButton.addEventListener('click', () => {
+      hero.classList.remove('is-static');
+      video.muted = true;
+      video.play().then(() => {
+        playButton.hidden = true;
+      }).catch(() => {
+        showPlay();
+        playButton.textContent = 'Video unavailable';
+        playButton.disabled = true;
+      });
+    });
+  })();
+</script>
 </body>
 </html>
