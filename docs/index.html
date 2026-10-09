@@ -615,18 +615,35 @@
       if (video.paused) showPoster();
     });
 
-    // Honor reduced motion while still allowing an explicit play action.
-    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (reducedMotion) {
-      video.autoplay = false;
-      video.pause();
-      showPoster();
-    } else {
+    // The homepage hero is explicitly intended to autoplay without interaction.
+    // Muting before play is required for reliable browser autoplay.
+    video.defaultMuted = true;
+    video.muted = true;
+    video.autoplay = true;
+    video.loop = true;
+    video.playsInline = true;
+
+    const startAutomatically = () => {
+      if (!video.paused) {
+        showVideo();
+        return;
+      }
       const attempt = video.play();
       if (attempt && typeof attempt.catch === 'function') {
-        attempt.catch(showPoster);
+        attempt.catch((error) => {
+          // Only require a click when the browser actually denies playback.
+          if (error?.name === 'NotAllowedError' || error?.name === 'NotSupportedError') {
+            showPoster();
+          }
+        });
       }
-    }
+    };
+    startAutomatically();
+    video.addEventListener('canplay', startAutomatically, { once: true });
+    window.addEventListener('pageshow', startAutomatically);
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) startAutomatically();
+    });
 
     playButton.addEventListener('click', () => {
       video.muted = true;
