@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 780" role="img" aria-labelledby="t d">
+<title id="t">OpenKubes Agentic Operations Reference Architecture v0.1</title>
+<desc id="d">Untrusted optional AI agents submit candidates. A trusted platform governs provenance, canonical review, human approval, authorization, execution, and atomic desired-state acceptance. Existing controllers reconcile. Independent evidence verifies historical outcomes and current health.</desc>
+<defs><linearGradient id="bg" x2="1" y2="1"><stop stop-color="#07172a"/><stop offset="1" stop-color="#112842"/></linearGradient><marker id="arr" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0 0 L9 4.5 0 9 Z" fill="#a5bdd6"/></marker></defs>
+<rect width="1200" height="780" rx="24" fill="url(#bg)"/>
+<text x="52" y="54" font-family="Arial,sans-serif" font-size="29" fill="#fff" font-weight="700">OpenKubes Agentic Operations</text>
+<text x="52" y="85" font-family="Arial,sans-serif" font-size="18" fill="#a5bdd6">AI thinks. OpenKubes executes. Evidence proves.</text>
+<g font-family="Arial,sans-serif">
+<rect x="45" y="116" width="1110" height="112" rx="17" fill="#18345a" stroke="#628cc1" stroke-width="2"/>
+<text x="70" y="146" font-size="15" font-weight="700" fill="#d7e9ff">OPTIONAL AGENTIC INTELLIGENCE — UNTRUSTED</text>
+<text x="70" y="178" font-size="22" fill="#fff" font-weight="700">AI Agents · Read-only Diagnostics · Candidate Proposals</text>
+<text x="70" y="205" font-size="15" fill="#b8d0eb">Reason and propose — no mutation, approval, policy, or authority privileges</text>
+<path d="M600 228 V266" fill="none" stroke="#a5bdd6" stroke-width="3" marker-end="url(#arr)"/>
+<rect x="45" y="280" width="1110" height="235" rx="17" fill="#25374a" stroke="#dda55c" stroke-width="2"/>
+<text x="70" y="309" font-size="15" font-weight="700" fill="#ffe1b3">TRUSTED OPENKUBES CONTROL PLANE</text>
+<g font-size="17" text-anchor="middle" fill="#fff">
+<rect x="70" y="329" width="321" height="65" rx="10" fill="#334e67" stroke="#728da7"/>
+<text x="230" y="356" font-weight="700">Provenance + Candidate</text><text x="230" y="378" font-size="13" fill="#c8dbe9">Trusted identity and isolation</text>
+<rect x="437" y="329" width="326" height="65" rx="10" fill="#334e67" stroke="#728da7"/>
+<text x="600" y="356" font-weight="700">Canonical Review</text><text x="600" y="378" font-size="13" fill="#c8dbe9">Exact human approval</text>
+<rect x="809" y="329" width="321" height="65" rx="10" fill="#334e67" stroke="#728da7"/>
+<text x="970" y="356" font-weight="700">Policy Authorization</text><text x="970" y="378" font-size="13" fill="#c8dbe9">Bound, single-use grant</text>
+<rect x="251" y="419" width="300" height="65" rx="10" fill="#334e67" stroke="#728da7"/>
+<text x="401" y="446" font-weight="700">Contract Executor</text><text x="401" y="468" font-size="13" fill="#c8dbe9">Replaceable bounded Runner</text>
+<rect x="650" y="419" width="300" height="65" rx="10" fill="#334e67" stroke="#728da7"/>
+<text x="800" y="446" font-weight="700">Authority Profile</text><text x="800" y="468" font-size="13" fill="#c8dbe9">Atomic CAS acceptance</text>
+</g>
+<path d="M391 361 H430 M763 361 H802 M970 394 V408 H400 V415 M551 451 H643" stroke="#b8d0eb" stroke-width="2.3" fill="none" marker-end="url(#arr)"/>
+<path d="M800 515 V551" fill="none" stroke="#a5bdd6" stroke-width="3" marker-end="url(#arr)"/>
+<rect x="45" y="565" width="1110" height="91" rx="17" fill="#173c3d" stroke="#56b6ac" stroke-width="2"/>
+<text x="70" y="594" font-size="15" font-weight="700" fill="#adf5eb">EXISTING RECONCILIATION OWNERS</text>
+<text x="70" y="625" font-size="21" font-weight="700" fill="#fff">CAPI / Providers · Networking / Cilium · Kubernetes · GitOps</text>
+<path d="M600 656 V688" fill="none" stroke="#a5bdd6" stroke-width="3" marker-end="url(#arr)"/>
+<rect x="45" y="698" width="1110" height="61" rx="14" fill="#174042" stroke="#56b6ac" stroke-width="2"/>
+<text x="70" y="735" font-size="20" fill="#fff" font-weight="700">INDEPENDENT EVIDENCE</text>
+<text x="411" y="735" font-size="17" fill="#c5f4ed">Immutable transition outcome  ·  Dynamic current health</text>
+</g></svg>
