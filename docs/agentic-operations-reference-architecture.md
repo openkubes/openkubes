@@ -235,8 +235,8 @@ We also plan to discuss the ideas around AI Tinkerers Düsseldorf on **November 
 
 Read the design sources:
 
-- [OpenKubes Architecture Intent (Confluence)](https://kubernauts.atlassian.net/wiki/spaces/OpenKubes/pages/3167420417)
-- [OpenKubes Reference Architecture v0.1 (Confluence)](https://kubernauts.atlassian.net/wiki/spaces/OpenKubes/pages/3167584257)
+- [OpenKubes public architecture decisions](https://github.com/openkubes/openkubes/tree/main/architecture/decisions) — the authoritative design records behind this proposal
+- [Agentic Operations article and reference diagram](https://github.com/openkubes/openkubes/blob/main/docs/agentic-operations-reference-architecture.md) — publicly available source for this article
 - [ADR-Platform-001 — Contracts, not Components](https://github.com/openkubes/openkubes/blob/main/architecture/decisions/ADR-Platform-001-contracts-not-components.md)
 - [ADR-Platform-004 — Runner as Implementation Detail](https://github.com/openkubes/openkubes/blob/main/architecture/decisions/ADR-Platform-004-runner-is-implementation-detail.md)
 - [ADR-Platform-021 — Read-Only Diagnostics (Draft)](https://github.com/openkubes/openkubes/blob/main/architecture/decisions/ADR-Platform-021-read-only-platform-diagnostics-contract.md)
