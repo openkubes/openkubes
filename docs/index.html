@@ -99,6 +99,7 @@
     background:#ffffff;
   }
   .btn.secondary:hover{text-decoration:none;background:var(--card);}
+  .btn:focus-visible{outline:3px solid var(--accent);outline-offset:3px;}
   main{
     max-width:920px;
     margin:0 auto;
@@ -393,8 +394,9 @@
          alt="OpenKubes platform clusters: ok-infra, ok-mgmt, ok-shared and ok-ai">
     <button class="hero-play" type="button" hidden>Play animation</button>
   </div>
-  <div class="cta">
-    <a class="btn primary" href="https://github.com/openkubes/openkubes">View on GitHub</a>
+  <div class="cta" aria-label="Get started with OpenKubes">
+    <a class="btn primary" href="https://github.com/openkubes/ok-local">Try OpenKubes Locally →</a>
+    <a class="btn secondary" href="https://github.com/openkubes/openkubes">Explore Architecture</a>
     <a class="btn secondary" href="#contribute">Contribute</a>
   </div>
 </header>
