@@ -83,6 +83,45 @@ until rollback preparation and review are complete. Dry runs do not have
 Pages deployment permissions. If a workflow run fails after source switching,
 existing production availability must be verified immediately.
 
+## Rollback baseline checked in CI
+
+The current live GitHub Pages source is `main:/docs`. Before starting the
+first MkDocs release, the legacy source was frozen as
+`backup/ok196-pre-mkdocs-pages` at commit
+`c16fff88ddbf11f24e8e7a60e8f8dfec2527d9ee`.
+
+The manual Pages release workflow runs
+`bash website/scripts/check-legacy-rollback.sh` before building. It checks
+that the complete `docs/` tree still matches that saved commit, including the
+homepage and `CNAME=openkubes.org`. If it diverges, stop and establish a new
+approved rollback baseline. This guard is intentionally temporary for the first
+cutover; future legitimate edits to `docs/` require an explicit review.
+
+**Rollback plan A (only while `main:/docs` is unchanged):**
+1. Go to GitHub **Settings -> Pages -> Build and deployment -> Source**.
+2. Select **Deploy from a branch**, choose **main** and **/docs**, and save.
+3. Wait for GitHub Pages to redeploy, then verify `https://openkubes.org/`,
+   an existing `.html` article, the hero video, and HTTPS.
+
+**Rollback plan B (if `main:/docs` has changed):**
+1. Restore the website files from the frozen backup using a reviewed PR to
+   `main` or an independently approved deployment procedure.
+2. Then use Plan A. Merely having a backup branch does **not** automatically
+   restore the live website.
+
+Before enabling publication, record the live Pages settings and capture the
+latest working deployment in GitHub Actions. DNS and custom domain remain
+unchanged during the first MkDocs release.
+
+### Reviewer policy
+
+The project chose to operate **without required environment reviewers** for
+now. The deployment must still be manually dispatched from `main`, with
+`dry_run=false`, exact confirmation `PUBLISH_OPENKUBES_ORG`, repository
+variable `OK196_PAGES_RELEASE_ENABLED=true`, and `github-pages` branch
+restriction to `main`. These are operator gates, **not** independent approval.
+Do not enable the variable until a separate explicit release decision.
+
 ## Controlled GitHub Pages switch (separate operational approval)
 
 
