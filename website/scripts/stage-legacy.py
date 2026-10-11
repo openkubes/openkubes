@@ -22,11 +22,15 @@ def main():
         shutil.copy2(SOURCE / name, TARGET / name)
     for source in SOURCE.glob("*.svg"):
         shutil.copy2(source, TARGET / source.name)
+    logo = SOURCE / "openkubes-logo.png"
+    if not logo.is_file():
+        raise SystemExit("Legacy logo is missing.")
+    shutil.copy2(logo, TARGET / logo.name)
     media = SOURCE / "media"
     if not media.is_dir():
         raise SystemExit("Legacy media directory not found.")
     shutil.copytree(media, TARGET / "media", dirs_exist_ok=True)
-    print(f"Staged {len(ARTICLES)} existing permalink articles and homepage media.")
+    print(f"Staged {len(ARTICLES)} existing permalink articles and homepage assets.")
 
 if __name__ == "__main__":
     main()
