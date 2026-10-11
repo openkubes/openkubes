@@ -25,6 +25,7 @@ markdown_extensions:
   - tables
 nav:
   - Home: index.md
+  - Getting Started: getting-started/index.md
   - Features: features/index.md
   - Architecture: architecture/index.md
   - Blog:
