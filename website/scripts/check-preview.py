@@ -30,7 +30,7 @@ def main():
     original = LEGACY.read_text(encoding="utf-8")
     if "ok-global-nav" not in html or "OpenKubes primary navigation" not in html:
         raise SystemExit("Missing shared homepage navigation")
-    for href in ("/", "/#about", "/#governance", "/agentic-operations-reference-architecture/", "/docs/", "/#community"):
+    for href in ("/", "/features/", "/architecture/", "/blog/", "/docs/", "/community/"):
         if f'href="{href}"' not in html:
             raise SystemExit(f"Navigation link missing: {href}")
     for asset in ("media/openkubes-hero-light.webm", "media/openkubes-hero-light.mp4", "media/openkubes-hero-light-poster.webp"):
@@ -53,7 +53,7 @@ def main():
         path = (SITE / href).resolve()
         if not path.is_relative_to(SITE.resolve()) or not path.is_file():
             missing.append(href)
-    for slug in ARTICLES:
+    for section in ("features", "architecture", "blog", "community"):\n        if not (SITE / section / "index.html").is_file():\n            missing.append("/" + section + "/")\n    for slug in ARTICLES:
         if not (SITE / slug / "index.html").is_file():
             missing.append("/" + slug + "/")
     for path in ("docs/index.html", "docs/ok-local/tutorial-prerequisites/index.html",
