@@ -18,16 +18,17 @@
   .md-main__inner { margin-top: .6rem; }
 }
 
-/* Material's default 24px logo slot made the multicolor OpenKubes wordmark
-   nearly invisible against the navy header. Keep the actual branded asset
-   legible rather than enlarging it by distortion. */
+/* Keep one visible brand label, without the large white logo tile.
+   The source PNG has large internal whitespace, so zoom it only inside
+   a compact, clipped icon slot; preserve Material's accessible title. */
 .md-header__button.md-logo {
-  width: 8rem;
-  height: 2.55rem;
-  padding: .25rem .45rem;
-  margin: .18rem .55rem .18rem .2rem;
-  border-radius: .4rem;
-  background: #ffffff;
+  width: 2.7rem;
+  height: 2.7rem;
+  padding: 0;
+  margin: 0 .55rem 0 .15rem;
+  border-radius: .3rem;
+  background: transparent;
+  overflow: hidden;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -37,9 +38,15 @@
   height: 100%;
   max-width: none;
   object-fit: contain;
+  transform: scale(2.4);
+  transform-origin: center;
 }
-/* The image already contains the OpenKubes name. */
-.md-header__title { display: none; }
+.md-header__title {
+  display: flex;
+  align-items: center;
+  font-weight: 700;
+}
 @media (max-width: 720px) {
-  .md-header__button.md-logo { width: 6.5rem; height: 2.25rem; }
+  .md-header__button.md-logo { width: 2.35rem; height: 2.35rem; }
+  .md-header__title { font-size: .9rem; }
 }
