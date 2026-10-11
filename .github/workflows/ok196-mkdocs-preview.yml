@@ -44,3 +44,4 @@ jobs:
           name: ok196-mkdocs-preview
           path: .mkdocs-site/
           if-no-files-found: error
+          include-hidden-files: true
