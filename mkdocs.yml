@@ -6,10 +6,16 @@ site_dir: .mkdocs-site
 theme:
   name: material
   logo: assets/openkubes-logo.png
+  palette:
+    scheme: default
+    primary: blue
+    accent: blue
   features:
     - navigation.sections
     - navigation.indexes
     - search.suggest
+extra_css:
+  - assets/openkubes-navigation.css
 plugins:
   - search
 markdown_extensions:
@@ -17,18 +23,21 @@ markdown_extensions:
   - pymdownx.superfences
   - tables
 nav:
-  - Home (build placeholder): index.md
+  - Home: index.md
+  - Features: https://openkubes.org/#about
+  - Architecture: https://openkubes.org/#governance
   - Articles:
       - Agentic Operations: agentic-operations-reference-architecture.md
       - Vault Secret Contract: vault-secret-contract-blog-post.md
       - The Contract is the Guardrail: the-contract-is-the-guardrail-blog-post.md
       - Self-Healing: openkubes-self-healing-blog-post.md
       - OpenKubes: openkubes-blog-post.md
-  - Developer Documentation:
+  - Docs:
       - Overview: docs/index.md
       - Local:
           - Prerequisites: docs/ok-local/tutorial-prerequisites.md
       - Cluster:
           - Registry Trust: docs/ok-cluster/registry-trust.md
+  - Community: https://openkubes.org/#community
 extra:
   generator: false
