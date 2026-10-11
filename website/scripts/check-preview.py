@@ -53,7 +53,10 @@ def main():
         path = (SITE / href).resolve()
         if not path.is_relative_to(SITE.resolve()) or not path.is_file():
             missing.append(href)
-    for section in ("features", "architecture", "blog", "community"):\n        if not (SITE / section / "index.html").is_file():\n            missing.append("/" + section + "/")\n    for slug in ARTICLES:
+    for section in ("features", "architecture", "blog", "community"):
+        if not (SITE / section / "index.html").is_file():
+            missing.append("/" + section + "/")
+    for slug in ARTICLES:
         if not (SITE / slug / "index.html").is_file():
             missing.append("/" + slug + "/")
     for path in ("docs/index.html", "docs/ok-local/tutorial-prerequisites/index.html",
