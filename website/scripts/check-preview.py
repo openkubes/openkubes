@@ -77,6 +77,14 @@ def main():
                  "docs/ok-cluster/registry-trust/index.html", "search/search_index.json"):
         if not (SITE / path).is_file():
             missing.append(path)
+    for source in (ROOT / "docs").rglob("*"):
+        if source.is_file():
+            relative = source.relative_to(ROOT / "docs")
+            if relative.as_posix() in ("CNAME", "index.html"):
+                continue
+            target = SITE / relative
+            if not target.is_file() or target.read_bytes() != source.read_bytes():
+                missing.append("/" + relative.as_posix())
     if missing:
         raise SystemExit("Preview missing files/links: " + ", ".join(sorted(set(missing))))
     print("Homepage, media, five permalink articles, docs and search checks passed.")
