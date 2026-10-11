@@ -34,7 +34,7 @@ nav:
       - Vault Secret Contract: vault-secret-contract-blog-post.md
       - The Contract is the Guardrail: the-contract-is-the-guardrail-blog-post.md
       - Self-Healing: openkubes-self-healing-blog-post.md
-      - OpenKubes: openkubes-blog-post.md
+      - Kubernetes Anywhere: openkubes-blog-post.md
   - Docs:
       - Overview: docs/index.md
       - Local:
