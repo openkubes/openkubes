@@ -45,6 +45,7 @@ def main():
     missing_required = [url for url in REQUIRED if not present(url)]
     missing_raw = []
     markdown_candidates = []
+    missing_legacy_html = []
     for source in sorted(SOURCE.rglob("*")):
         if not source.is_file():
             continue
@@ -58,6 +59,8 @@ def main():
             # GitHub Pages Jekyll may render .md as .html; cannot infer
             # front matter permalink overrides without a deployed-site crawl.
             candidate = "/" + relative.with_suffix(".html").as_posix()
+            if not present(candidate):
+                missing_legacy_html.append(candidate)
             markdown_candidates.append({
                 "source": raw_url,
                 "possible_legacy_html_url": candidate,
@@ -68,6 +71,7 @@ def main():
         "required_paths": list(REQUIRED),
         "missing_required_paths": missing_required,
         "missing_source_file_paths": missing_raw,
+        "missing_legacy_html_paths": missing_legacy_html,
         "markdown_html_candidates_to_verify": markdown_candidates,
         "production_cutover_approved": False,
         "notes": "File preservation does not prove parity with Jekyll-rendered URLs, redirects, fragments or third-party inbound links.",
@@ -75,8 +79,8 @@ def main():
     REPORT.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
     print(f"URL audit: {len(REQUIRED)} required routes, {len(markdown_candidates)} Markdown/Jekyll candidates")
     print(f"Report: {REPORT}")
-    if missing_required or missing_raw:
-        raise SystemExit(f"URL audit failed: {len(missing_required)} required and {len(missing_raw)} raw paths missing")
+    if missing_required or missing_raw or missing_legacy_html:
+        raise SystemExit(f"URL audit failed: {len(missing_required)} required, {len(missing_raw)} raw, {len(missing_legacy_html)} Jekyll HTML paths missing")
 
 if __name__ == "__main__":
     main()
