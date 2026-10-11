@@ -2,6 +2,7 @@
 """Stage selected existing public articles and media without editing source docs."""
 from pathlib import Path
 import shutil
+import re
 
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE = ROOT / "docs"
@@ -28,6 +29,20 @@ def main():
         destination = TARGET / section
         destination.mkdir(parents=True, exist_ok=True)
         shutil.copy2(source_page, destination / "index.md")
+    # Preserve the historical getting-started entry point as a rendered page.
+    # Relative repository links in its source README point outside docs/.
+    getting_started = SOURCE / "getting-started" / "README.md"
+    if not getting_started.is_file():
+        raise SystemExit("Legacy getting-started README missing")
+    page = getting_started.read_text(encoding="utf-8")
+    page = re.sub(
+        r"\\]\\(\\.\\./\\.\\./([^)]*)\\)",
+        lambda m: "](https://github.com/openkubes/openkubes/blob/main/" + m.group(1) + ")",
+        page,
+    )
+    entrypoint = TARGET / "getting-started"
+    entrypoint.mkdir(parents=True, exist_ok=True)
+    (entrypoint / "index.md").write_text(page, encoding="utf-8")
     for source in SOURCE.glob("*.svg"):
         shutil.copy2(source, TARGET / source.name)
     logo = SOURCE / "openkubes-logo.png"
