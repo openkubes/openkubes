@@ -50,6 +50,23 @@ jobs:
       - run: python website/scripts/restore-legacy-urls.py
       - run: python website/scripts/check-preview.py
       - run: python website/scripts/audit-url-compatibility.py
+      - name: Compare live website with reviewed PR deployment
+        if: ${{ github.event_name == 'pull_request' }}
+        env:
+          CANDIDATE_URL: https://45657085.openkubes-preview.pages.dev
+        run: |
+          python website/scripts/compare-live-urls.py \
+            --candidate "$CANDIDATE_URL" \
+            --manifest .mkdocs-site/url-compatibility-report.json \
+            --output url-http-comparison.json \
+            --timeout 8
+      - name: Upload PR HTTP comparison report
+        if: ${{ always() && github.event_name == 'pull_request' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ok196-pr-http-comparison
+          path: url-http-comparison.json
+          if-no-files-found: warn
       - name: Compare live HTTP URLs to deployed candidate (manual only)
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.candidate_url != '' }}
         env:
