@@ -19,6 +19,30 @@ python website/scripts/audit-url-compatibility.py
 
 The machine-readable report `.mkdocs-site/url-compatibility-report.json` includes required public paths, missing raw source files, and possible Jekyll-rendered `.html` URLs that require a deployed-site comparison. A passing CI confirms only the checked paths and files, **not** full historical URL parity.
 
+## HTTP comparison from a network-enabled workstation
+
+The automated build audit cannot prove that the old GitHub Pages server and
+Cloudflare Pages behave identically. Once the PR candidate is deployed, run:
+
+```sh
+python website/scripts/compare-live-urls.py \
+  --candidate https://<PR-deployment>.openkubes-preview.pages.dev \
+  --manifest .mkdocs-site/url-compatibility-report.json \
+  --output url-http-comparison.json
+```
+
+This requires the generated JSON manifest from the GitHub Actions artifact and
+network access to **both** live and candidate websites. The comparison fails on
+missing HTTP responses or on a live 2xx/3xx URL turning into a candidate 4xx/5xx.
+Redirect destinations and content still require human verification. The JSON
+output is review evidence, not automatic authorization.
+
+Current execution environment could not resolve the website hostnames via
+HTTP; therefore no live-vs-preview comparison has yet been recorded. In particular,
+`/getting-started/` must be checked: the source contains
+`docs/getting-started/README.md`, which is not guaranteed to render a directory
+index under the new build.
+
 ## Cutover gates (all required before approval)
 
 - [ ] Inventory every existing `https://openkubes.org` URL, including Jekyll `.html`, `/getting-started/`, images, presentations, redirect behavior, and outbound/internal links. Crawl the currently live site and save the evidence.
