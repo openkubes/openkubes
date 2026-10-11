@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block header %}
+  {{ super() }}
+  <nav class="ok-global-nav" aria-label="OpenKubes primary navigation">
+    <div class="ok-global-nav__inner">
+      <a class="ok-global-nav__brand" href="/">
+        <img src="/openkubes-logo.png" alt="" aria-hidden="true">
+        OpenKubes
+      </a>
+      <div class="ok-global-nav__links">
+        <a href="/">Home</a>
+        <a href="/features/">Features</a>
+        <a href="/architecture/">Architecture</a>
+        <a href="/blog/">Blog</a>
+        <a href="/docs/">Docs</a>
+        <a href="/community/">Community</a>
+      </div>
+    </div>
+  </nav>
+{% endblock %}
