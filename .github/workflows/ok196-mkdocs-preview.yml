@@ -6,6 +6,11 @@ on:
       - 'website/**'
       - '.github/workflows/ok196-mkdocs-preview.yml'
   workflow_dispatch:
+    inputs:
+      candidate_url:
+        description: 'Deployed Cloudflare candidate origin (e.g. https://abcdef.openkubes-preview.pages.dev); leave blank for build-only'
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -45,6 +50,22 @@ jobs:
       - run: python website/scripts/restore-legacy-urls.py
       - run: python website/scripts/check-preview.py
       - run: python website/scripts/audit-url-compatibility.py
+      - name: Compare live HTTP URLs to deployed candidate (manual only)
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.candidate_url != '' }}
+        env:
+          CANDIDATE_URL: ${{ inputs.candidate_url }}
+        run: |
+          python website/scripts/compare-live-urls.py \
+            --candidate "$CANDIDATE_URL" \
+            --manifest .mkdocs-site/url-compatibility-report.json \
+            --output url-http-comparison.json
+      - name: Upload HTTP comparison evidence
+        if: ${{ always() && github.event_name == 'workflow_dispatch' && inputs.candidate_url != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ok196-live-http-comparison
+          path: url-http-comparison.json
+          if-no-files-found: warn
       - name: Upload preview HTML (not deploy)
         uses: actions/upload-artifact@v4
         with:
