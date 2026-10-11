@@ -1,74 +1,55 @@
-# OK-196 — Production cutover runbook (draft)
+# OK-196 — GitHub Pages MkDocs release runbook (draft)
 
-**State:** NOT READY / NO PRODUCTION DEPLOYMENT AUTHORIZED.
+**Status: NOT APPROVED FOR PUBLICATION.** This plan changes only the build, not the existing hosting provider or Git branches.
 
-## Architecture and isolation
+## Agreed architecture
 
-- Public site: `https://openkubes.org` currently served by the existing GitHub Pages publication from `docs/`.
-- Preview site: `https://preview.openkubes.org` on the Cloudflare Pages project `openkubes-preview` from `website-preview`.
-- Current CI/Cloudflare build is preview-only; it intentionally emits `X-Robots-Tag: noindex, nofollow` and `robots.txt` disallow. **Never deploy this artifact to the public domain.**
-- No edits to live DNS, current GitHub Pages configuration or its `docs/CNAME` in this PR.
+- GitHub `main` remains the source of truth.
+- **GitHub Pages continues to serve `https://openkubes.org`** with the existing custom domain and Route 53 DNS.
+- Cloudflare Pages continues to serve **preview only** at `https://preview.openkubes.org`.
+- Currently GitHub Pages publishes the `docs/` directory. The MkDocs production candidate is built separately into `.mkdocs-site/`.
+- This PR DOES NOT update GitHub Pages publishing settings, DNS, custom domains, or `docs/index.html`.
 
-## Automated URL audit
+## CI production candidate (no deploy)
 
-After `restore-legacy-urls.py`, run:
+The PR workflow now produces two independent artifacts:
 
-```sh
-python website/scripts/audit-url-compatibility.py
-```
+1. **Preview output** from the current MkDocs preview pipeline.
+2. **GitHub Pages candidate** produced with `bash website/scripts/build-github-pages.sh`.
 
-The machine-readable report `.mkdocs-site/url-compatibility-report.json` includes required public paths, missing raw source files, and possible Jekyll-rendered `.html` URLs that require a deployed-site comparison. A passing CI confirms only the checked paths and files, **not** full historical URL parity.
+The production candidate has:
+- The preserved `openkubes.org` CNAME.
+- `.nojekyll` so GitHub Pages will serve the pre-rendered MkDocs HTML rather than try to process Markdown with Jekyll.
+- `robots.txt` allowing indexing, with no Cloudflare preview-only `_headers`.
+- Legacy source assets, legacy `.html` pages, the original homepage plus unified navigation, MkDocs subpages and local search.
+- Automated checks from `check-github-pages-build.py`.
 
-## HTTP comparison from a network-enabled workstation
+**A generated artifact is not a production deployment.** The separate publishing workflow is intentionally not created or activated here.
 
-The automated build audit cannot prove that the old GitHub Pages server and
-Cloudflare Pages behave identically. Once the PR candidate is deployed, run:
+## Legacy URLs and comparison
 
-```sh
-python website/scripts/compare-live-urls.py \
-  --candidate https://<PR-deployment>.openkubes-preview.pages.dev \
-  --manifest .mkdocs-site/url-compatibility-report.json \
-  --output url-http-comparison.json
-```
+The prior live-versus-preview HTTP test covered 63 URLs and identified 21 historical Markdown-derived `.html` URLs serving 200 on GitHub Pages but 404 on an older Cloudflare deployment.
 
-For repeatable evidence, the `OK-196 MkDocs preview (no deployment)` GitHub Actions
-workflow now accepts an optional `candidate_url` under **Run workflow**. Supply
-the **exact immutable Cloudflare candidate deployment hostname**, not the shared
-`preview.openkubes.org` alias. It executes the same script from the GitHub runner
-and uploads `ok196-live-http-comparison` even if regression checks fail.
-`workflow_dispatch` is available for the workflow on the default branch after
-this PR is merged; until then, the script can be run from a checked-out PR branch.
+`render-legacy-html.py` now generates these paths in the preview and production candidate builds. A new live HTTP comparison is required against a fresh preview deployment containing this fix; the older `45657085` preview was missing it.
 
-This requires the generated JSON manifest from the GitHub Actions artifact and
-network access to **both** live and candidate websites. The comparison fails on
-missing HTTP responses or on a live 2xx/3xx URL turning into a candidate 4xx/5xx.
-Redirect destinations and content still require human verification. The JSON
-output is review evidence, not automatic authorization.
+The manually dispatchable URL comparison is available after the workflow changes are on the default branch. It produces JSON evidence and fails if currently reachable URLs turn into HTTP errors on the candidate. The full inventory of historical redirects, navigation and search must still be reviewed.
 
-Current execution environment could not resolve the website hostnames via
-HTTP; therefore no live-vs-preview comparison has yet been recorded. In particular,
-`/getting-started/` must be checked: the source contains
-`docs/getting-started/README.md`, which is not guaranteed to render a directory
-index under the new build.
+## Publication gates
 
-## Cutover gates (all required before approval)
+- [ ] Production candidate GitHub Action succeeds, and its artifact contains `CNAME`, `.nojekyll`, valid `robots.txt` and complete site files.
+- [ ] Fresh Cloudflare preview is visually reviewed and live HTTP comparison succeeds or every intentional redirect is documented.
+- [ ] Verify site navigation, blog, historical `.html` URLs, hero video, sponsors, Getting Started, downloadable assets, local search, mobile screens and canonical SEO tags.
+- [ ] Confirm that imported `ok-local` and `ok-cluster` documentation is accurately described; currently only a small smoke-test selection is incorporated.
+- [ ] Choose and test a **GitHub Actions deployment workflow** using GitHub's official Pages upload/deploy actions. Keep build and deploy separate, protected by environment permissions and an explicit go/no-go approval.
+- [ ] Record the currently configured GitHub Pages source, custom domain and last-known-good site files. Confirm GitHub Pages can serve the new artifact as intended.
+- [ ] Approve the exact production commit and release/rollback procedure.
 
-- [ ] Inventory every existing `https://openkubes.org` URL, including Jekyll `.html`, `/getting-started/`, images, presentations, redirect behavior, and outbound/internal links. Crawl the currently live site and save the evidence.
-- [ ] Diff current live HTTP status codes/redirect destinations against the candidate Cloudflare deployment. Resolve missing URLs with redirects or compatible output pages; preserve query/fragment behavior where practical.
-- [ ] Verify the homepage hero video, sponsors, blog permalinks, generated navigation, documentation, on-site search, mobile layout, canonical/meta tags, sitemap and accessibility on the Cloudflare candidate.
-- [ ] Document precisely which `ok-local` and `ok-cluster` documents are included; the current two-file staging is incomplete and must not be described as full documentation.
-- [ ] Configure a **separate** Cloudflare Pages production project/build path or explicitly approve a preview-to-production migration. Production artifact must not contain blanket `noindex`, `Disallow: /`, or the GitHub Pages `CNAME` file.
-- [ ] Validate the candidate on an alternate domain before touching `openkubes.org`; capture screenshots and smoke tests, check TLS, DNS and custom-domain verification on Cloudflare.
-- [ ] Record Route 53 current DNS RRsets and TTLs and current GitHub Pages publishing settings; identify authorized operator, rollback owner and maintenance window.
-- [ ] Approve the final build commit and record an explicit go/no-go decision.
+## Controlled GitHub Pages switch (future PR only)
 
-## Suggested rollout
+1. Keep the live `docs/` publication in place while testing MkDocs.
+2. Configure GitHub Pages to use a protected **GitHub Actions** deployment source only after the publication workflow is approved. A `main` push must not automatically release without the agreed gate.
+3. Build from a reviewed `main` commit and deploy the validated `github-pages` artifact using official Pages actions. Keep `openkubes.org` and DNS unchanged.
+4. Run live URL, indexing, media and navigation smoke tests.
+5. If necessary, redeploy the previously saved working site artifact via GitHub Actions. Changing the deployment source is operationally sensitive: confirm a rollback path beforehand.
 
-1. Freeze and record the current GitHub Pages publication plus Route 53 DNS values (rollback snapshot).
-2. Build the approved production artifact from a pinned reviewed `main` commit with a production-specific configuration (not the preview script).
-3. Verify the new site before DNS change and check domain binding/TLS status with Cloudflare Pages.
-4. Cut over `openkubes.org` and, if applicable, `www` using the approved Route 53 record change.
-5. Confirm all critical URLs, redirects, robots/sitemap, and media at the public domain from at least two independent clients; monitor HTTP errors.
-6. On failure, restore prior Route 53 records and GitHub Pages custom-domain setup, acknowledging DNS cache/TTL delays; validate original live site after rollback.
-
-**Rollback isn't instantaneous:** DNS caching, certificate provisioning and Cloudflare/GitHub Pages custom-domain verification can delay restoration. Prepare the exact operational steps with the real current DNS configuration before switching.
+No Cloudflare production domain, Route 53 changes, DNS cutover or GitHub Pages shutdown are part of this migration.
