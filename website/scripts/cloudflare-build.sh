@@ -19,7 +19,9 @@ mkdocs build --strict
 python website/scripts/preserve-homepage.py
 python website/scripts/render-navigation.py
 python website/scripts/restore-legacy-urls.py
+python website/scripts/render-legacy-html.py
 python website/scripts/check-preview.py
+python website/scripts/audit-url-compatibility.py
 
 # Preview pages must not be indexed; Cloudflare Pages serves _headers at its root.
 printf '/*\n  X-Robots-Tag: noindex, nofollow\n' > .mkdocs-site/_headers

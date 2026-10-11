@@ -32,9 +32,7 @@ Existing homepage, hero video, CTA destinations, legacy article permalinks, slas
 
 ## Recommended release mechanics
 
-Prefer **Cloudflare Pages for production as well**, once the complete site build is verified, keeping Route 53 authoritative. Explicitly plan the production custom-domain transfer and rollback from GitHub Pages to Cloudflare; do not merely repoint DNS without confirming Pages domain ownership and deploy behavior.
-
-Keep the `website-preview` build separate from an approved `main` release, and remove `noindex` headers only on the production build.
+**Decision:** Keep GitHub Pages serving `openkubes.org`; retain Cloudflare Pages for `preview.openkubes.org` only. Release the MkDocs output through a future approval-gated GitHub Actions Pages deployment, not via a DNS/hosting migration. Keep `website-preview` separate from reviewed `main` releases; preview `noindex` rules must never enter the production artifact. See `website/PRODUCTION-CUTOVER-RUNBOOK.md`.
 
 ## This PR
 
