@@ -38,6 +38,14 @@ def main():
             raise SystemExit(f"Hero media reference lost: {asset}")
     if not (SITE / "assets" / "openkubes-navigation.css").is_file():
         raise SystemExit("Shared brand stylesheet missing")
+    for section in ("features", "architecture", "blog", "community", "docs"):
+        output = SITE / section / "index.html"
+        if output.is_file():
+            page_html = output.read_text(encoding="utf-8")
+            if "OpenKubes primary navigation" not in page_html:
+                raise SystemExit(f"Shared navigation missing on {section}")
+    if not (SITE / "assets" / "openkubes-theme.css").is_file():
+        raise SystemExit("Shared Material theme asset missing")
     parser = Refs()
     parser.feed(html)
     missing = []
