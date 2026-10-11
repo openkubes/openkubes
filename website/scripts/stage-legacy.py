@@ -2,7 +2,6 @@
 """Stage selected existing public articles and media without editing source docs."""
 from pathlib import Path
 import shutil
-import re
 
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE = ROOT / "docs"
@@ -35,11 +34,7 @@ def main():
     if not getting_started.is_file():
         raise SystemExit("Legacy getting-started README missing")
     page = getting_started.read_text(encoding="utf-8")
-    page = re.sub(
-        r"\\]\\(\\.\\./\\.\\./([^)]*)\\)",
-        lambda m: "](https://github.com/openkubes/openkubes/blob/main/" + m.group(1) + ")",
-        page,
-    )
+    page = page.replace("](../../", "](https://github.com/openkubes/openkubes/blob/main/")
     entrypoint = TARGET / "getting-started"
     entrypoint.mkdir(parents=True, exist_ok=True)
     (entrypoint / "index.md").write_text(page, encoding="utf-8")
