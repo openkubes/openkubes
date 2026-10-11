@@ -42,6 +42,8 @@ def main():
         output = SITE / section / "index.html"
         if output.is_file():
             page_html = output.read_text(encoding="utf-8")
+            if section == "features" and '/assets/openkubes-header-logo.png' not in page_html:
+                raise SystemExit("Explicit logo missing from Material navigation")
             if "OpenKubes primary navigation" not in page_html:
                 raise SystemExit(f"Shared navigation missing on {section}")
     if not (SITE / "assets" / "openkubes-header-logo.png").is_file():
