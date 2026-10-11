@@ -37,11 +37,14 @@ jobs:
           python-version: '3.12'
       - run: pip install -r website/requirements-mkdocs.txt
       - run: python website/scripts/build-docs.py
+      - run: python website/scripts/stage-legacy.py
       - run: mkdocs build --strict
+      - run: python website/scripts/preserve-homepage.py
+      - run: python website/scripts/check-preview.py
       - name: Upload preview HTML (not deploy)
         uses: actions/upload-artifact@v4
         with:
-          name: ok196-mkdocs-preview
+          name: ok196-mkdocs-homepage-preview
           path: .mkdocs-site/
           if-no-files-found: error
           include-hidden-files: true
