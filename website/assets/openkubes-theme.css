@@ -18,18 +18,19 @@
   .md-main__inner { margin-top: .6rem; }
 }
 
-/* Material handles its search and accessibility controls in the top row.
-   Brand is rendered once as an explicit high-resolution asset in the nav. */
+/* Material keeps its search and accessible controls in the upper row.
+   The primary navigation uses a simple text wordmark with no image. */
 .md-header__button.md-logo, .md-header__title { display: none; }
 .md-header__inner { justify-content: flex-end; }
 .ok-global-nav--material .ok-global-nav__inner { justify-content: space-between; }
-.ok-global-nav__brand--image img {
-  width: 10rem;
-  height: 3.2rem;
-  object-fit: contain;
-  max-width: none;
-  transform: none;
+.ok-global-nav__brand--text {
+  color: #ffffff !important;
+  font-size: 1.25rem;
+  font-weight: 750;
+  line-height: 1.4;
+  letter-spacing: -.025em;
+  white-space: nowrap;
 }
 @media (max-width: 720px) {
-  .ok-global-nav__brand--image img { width: 8rem; height: 2.6rem; }
+  .ok-global-nav__brand--text { font-size: 1.1rem; }
 }
