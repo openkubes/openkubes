@@ -74,3 +74,12 @@ jobs:
           path: .mkdocs-site/
           if-no-files-found: error
           include-hidden-files: true
+      - name: Build GitHub Pages candidate (no publication)
+        run: bash website/scripts/build-github-pages.sh
+      - name: Upload GitHub Pages production candidate (not deploy)
+        uses: actions/upload-artifact@v4
+        with:
+          name: ok196-github-pages-candidate
+          path: .mkdocs-site/
+          if-no-files-found: error
+          include-hidden-files: true
