@@ -1,0 +1,19 @@
+:root {
+  --md-primary-fg-color: #101c30;
+  --md-primary-fg-color--light: #273955;
+  --md-primary-fg-color--dark: #101c30;
+  --md-accent-fg-color: #0969da;
+}
+.md-header { background: #101c30; }
+.md-header__title { font-weight: 700; }
+.md-main__inner { margin-top: 1.2rem; }
+.md-content h1 { font-weight: 650; color: #1f2328; }
+.md-content h2 { font-weight: 550; }
+.md-sidebar { font-size: .86rem; }
+.md-typeset a { color: #0969da; }
+.md-typeset a:hover { color: #074c9e; }
+.ok-global-nav { width: 100%; }
+@media (max-width: 720px) {
+  .md-header__title { font-size: .9rem; }
+  .md-main__inner { margin-top: .6rem; }
+}
