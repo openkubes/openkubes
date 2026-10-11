@@ -44,6 +44,7 @@ jobs:
       - run: python website/scripts/render-navigation.py
       - run: python website/scripts/restore-legacy-urls.py
       - run: python website/scripts/check-preview.py
+      - run: python website/scripts/audit-url-compatibility.py
       - name: Upload preview HTML (not deploy)
         uses: actions/upload-artifact@v4
         with:
