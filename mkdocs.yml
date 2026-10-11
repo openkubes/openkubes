@@ -1,0 +1,28 @@
+site_name: OpenKubes — Documentation Spike
+site_url: https://openkubes.org/
+site_description: Preview-only unified OpenKubes developer documentation
+docs_dir: .mkdocs-staging
+site_dir: .mkdocs-site
+theme:
+  name: material
+  logo: assets/openkubes-logo.png
+  features:
+    - navigation.sections
+    - navigation.indexes
+    - search.suggest
+plugins:
+  - search
+markdown_extensions:
+  - admonition
+  - pymdownx.superfences
+  - tables
+nav:
+  - Spike Preview: index.md
+  - Developer Documentation:
+      - Overview: docs/index.md
+      - Local:
+          - Prerequisites: docs/ok-local/tutorial-prerequisites.md
+      - Cluster:
+          - Registry Trust: docs/ok-cluster/registry-trust.md
+extra:
+  generator: false

@@ -1,0 +1,47 @@
+name: OK-196 MkDocs preview (no deployment)
+on:
+  pull_request:
+    paths:
+      - 'mkdocs.yml'
+      - 'website/**'
+      - '.github/workflows/ok196-mkdocs-preview.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout website repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Checkout pinned ok-local documentation
+        uses: actions/checkout@v4
+        with:
+          repository: openkubes/ok-local
+          ref: 60397cdb2630b0cd9cfbcb5d9a29fe2e38ce323e
+          path: .ok196-sources/ok-local
+          persist-credentials: false
+      - name: Checkout pinned ok-cluster documentation
+        uses: actions/checkout@v4
+        with:
+          repository: openkubes/ok-cluster
+          ref: a341f4ad4eff73e3cf7a69a38d1de8e2455e73a6
+          path: .ok196-sources/ok-cluster
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r website/requirements-mkdocs.txt
+      - run: python website/scripts/build-docs.py
+      - run: mkdocs build --strict
+      - name: Upload preview HTML (not deploy)
+        uses: actions/upload-artifact@v4
+        with:
+          name: ok196-mkdocs-preview
+          path: .mkdocs-site/
+          if-no-files-found: error
+          include-hidden-files: true

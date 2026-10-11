@@ -20,3 +20,8 @@ docs/*-whitepaper*.pdf
 __pycache__/
 *.py[cod]
 .pytest_cache/
+
+# OK-196 preview-only generated artifacts
+.mkdocs-staging/
+.mkdocs-site/
+.ok196-sources/
