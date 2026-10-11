@@ -20,6 +20,14 @@ def main():
         if not (SOURCE / name).is_file():
             raise SystemExit(f"Missing legacy article: {name}")
         shutil.copy2(SOURCE / name, TARGET / name)
+    pages = ROOT / "website" / "pages"
+    for section in ("features", "architecture", "blog", "community"):
+        source_page = pages / section / "index.md"
+        if not source_page.is_file():
+            raise SystemExit(f"Missing standalone page: {source_page}")
+        destination = TARGET / section
+        destination.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source_page, destination / "index.md")
     for source in SOURCE.glob("*.svg"):
         shutil.copy2(source, TARGET / source.name)
     logo = SOURCE / "openkubes-logo.png"

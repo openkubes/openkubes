@@ -24,9 +24,10 @@ markdown_extensions:
   - tables
 nav:
   - Home: index.md
-  - Features: https://openkubes.org/#about
-  - Architecture: https://openkubes.org/#governance
-  - Articles:
+  - Features: features/index.md
+  - Architecture: architecture/index.md
+  - Blog:
+      - Overview: blog/index.md
       - Agentic Operations: agentic-operations-reference-architecture.md
       - Vault Secret Contract: vault-secret-contract-blog-post.md
       - The Contract is the Guardrail: the-contract-is-the-guardrail-blog-post.md
@@ -38,6 +39,6 @@ nav:
           - Prerequisites: docs/ok-local/tutorial-prerequisites.md
       - Cluster:
           - Registry Trust: docs/ok-cluster/registry-trust.md
-  - Community: https://openkubes.org/#community
+  - Community: community/index.md
 extra:
   generator: false

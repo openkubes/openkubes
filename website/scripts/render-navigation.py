@@ -13,11 +13,11 @@ OUTPUT = ROOT / ".mkdocs-site" / "index.html"
 CSS = ROOT / "website" / "assets" / "openkubes-navigation.css"
 NAV = [
     ("Home", "/"),
-    ("Features", "/#about"),
-    ("Architecture", "/#governance"),
-    ("Blog", "/agentic-operations-reference-architecture/"),
+    ("Features", "/features/"),
+    ("Architecture", "/architecture/"),
+    ("Blog", "/blog/"),
     ("Docs", "/docs/"),
-    ("Community", "/#community"),
+    ("Community", "/community/"),
 ]
 def main():
     if not SOURCE.is_file() or not OUTPUT.is_file() or not CSS.is_file():
