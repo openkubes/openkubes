@@ -6,7 +6,6 @@ site_dir: .mkdocs-site
 theme:
   name: material
   custom_dir: website/overrides
-  logo: assets/openkubes-header-logo.png
   palette:
     scheme: default
     primary: blue
