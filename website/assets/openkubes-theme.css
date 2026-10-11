@@ -13,6 +13,7 @@
 .md-typeset a { color: #0969da; }
 .md-typeset a:hover { color: #074c9e; }
 .ok-global-nav { width: 100%; }
+.ok-global-nav--material .ok-global-nav__inner { justify-content: flex-end; }
 @media (max-width: 720px) {
   .md-header__title { font-size: .9rem; }
   .md-main__inner { margin-top: .6rem; }
