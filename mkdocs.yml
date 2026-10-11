@@ -1,6 +1,6 @@
-site_name: OpenKubes — Documentation Spike
+site_name: OpenKubes — Website Migration Preview
 site_url: https://openkubes.org/
-site_description: Preview-only unified OpenKubes developer documentation
+site_description: Preview-only unified OpenKubes website and developer documentation
 docs_dir: .mkdocs-staging
 site_dir: .mkdocs-site
 theme:
@@ -17,7 +17,13 @@ markdown_extensions:
   - pymdownx.superfences
   - tables
 nav:
-  - Spike Preview: index.md
+  - Home (build placeholder): index.md
+  - Articles:
+      - Agentic Operations: agentic-operations-reference-architecture.md
+      - Vault Secret Contract: vault-secret-contract-blog-post.md
+      - The Contract is the Guardrail: the-contract-is-the-guardrail-blog-post.md
+      - Self-Healing: openkubes-self-healing-blog-post.md
+      - OpenKubes: openkubes-blog-post.md
   - Developer Documentation:
       - Overview: docs/index.md
       - Local:
