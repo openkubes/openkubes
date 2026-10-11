@@ -36,8 +36,7 @@ def main():
     menu = (
         '<nav class="ok-global-nav" aria-label="OpenKubes primary navigation">'
         '<div class="ok-global-nav__inner">'
-        '<a class="ok-global-nav__brand" href="/">'
-        '<img src="/openkubes-logo.png" alt="" aria-hidden="true">OpenKubes</a>'
+        '<a class="ok-global-nav__brand ok-global-nav__brand--text" href="/">OpenKubes</a>'
         '<div class="ok-global-nav__links">' + links + '</div></div></nav>'
     )
     html = source.replace(
