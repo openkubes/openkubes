@@ -43,10 +43,6 @@ def main():
     if not theme_css.is_file():
         raise SystemExit("Shared theme CSS missing")
     shutil.copy2(theme_css, TARGET / "assets" / theme_css.name)
-    header_logo = ROOT / "website" / "assets" / "openkubes-header-logo.png"
-    if not header_logo.is_file():
-        raise SystemExit("Optimized header logo missing")
-    shutil.copy2(header_logo, TARGET / "assets" / header_logo.name)
     media = SOURCE / "media"
     if not media.is_dir():
         raise SystemExit("Legacy media directory not found.")
