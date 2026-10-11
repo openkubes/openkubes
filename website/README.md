@@ -1,7 +1,8 @@
-# OK-196 — MkDocs foundation spike
+# OK-196 — Stacked MkDocs homepage migration preview
 
-This is **preview-only**. Production still uses the existing `docs/index.html` and
-`docs/CNAME`; do not enable deployment from this pipeline.
+**Preview-only.** This branch is based on the foundation spike PR #344, not on main.
+PR #344 must be merged first, then this PR can be retargeted to main.
+There is no deployment action; the existing production website and CNAME remain unchanged.
 
 ## Local preview
 
@@ -15,19 +16,24 @@ git clone https://github.com/openkubes/ok-cluster.git .ok196-sources/ok-cluster
 git -C .ok196-sources/ok-local checkout 60397cdb2630b0cd9cfbcb5d9a29fe2e38ce323e
 git -C .ok196-sources/ok-cluster checkout a341f4ad4eff73e3cf7a69a38d1de8e2455e73a6
 python website/scripts/build-docs.py
+python website/scripts/stage-legacy.py
 mkdocs build --strict
-mkdocs serve
+python website/scripts/preserve-homepage.py
+python website/scripts/check-preview.py
 ```
 
-The pinned commits are a spike baseline, not an update mechanism. Upstream content remains
-owned by the original repositories. The generated `.mkdocs-staging/` and
-`.mkdocs-site/` are ephemeral; no source documentation is moved.
+The source HTML homepage is copied byte-for-byte **after** MkDocs builds.
+This intentionally preserves the existing hero video, CTAs and CSS but means
+the legacy homepage does not yet use the shared MkDocs theme/navigation.
+The same old article routes are rendered to directories with index.html.
+The artifact should be opened through a local web server, not as file:// URLs.
 
-## Scope / limitations
+## Limitations and follow-up
 
-- Only two selected upstream pages are included in this first smoke test.
-- Theme and navigation are provisional; existing homepage, blog, hero media and URLs
-  will be migrated only in separately reviewed PRs.
-- The preview workflow uploads a build artifact, not a GitHub Pages deployment.
-- Before cutover: full content manifest, internal/external link validation,
-  URL compatibility inventory, accessibility and visual regression review.
+- Only five current homepage articles are staged, not the complete URL inventory.
+- Only two selected upstream documentation pages are included.
+- Material search works for staged Markdown; the copied homepage is not indexed
+  automatically or rendered with the Material navigation.
+- Do not deploy this preview. Prior to cutover we need a complete URL inventory,
+  linked-content checks, visual parity, shared navigation design, accessibility
+  checks, and rollback approval.
