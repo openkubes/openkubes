@@ -31,6 +31,14 @@ python website/scripts/compare-live-urls.py \
   --output url-http-comparison.json
 ```
 
+For repeatable evidence, the `OK-196 MkDocs preview (no deployment)` GitHub Actions
+workflow now accepts an optional `candidate_url` under **Run workflow**. Supply
+the **exact immutable Cloudflare candidate deployment hostname**, not the shared
+`preview.openkubes.org` alias. It executes the same script from the GitHub runner
+and uploads `ok196-live-http-comparison` even if regression checks fail.
+`workflow_dispatch` is available for the workflow on the default branch after
+this PR is merged; until then, the script can be run from a checked-out PR branch.
+
 This requires the generated JSON manifest from the GitHub Actions artifact and
 network access to **both** live and candidate websites. The comparison fails on
 missing HTTP responses or on a live 2xx/3xx URL turning into a candidate 4xx/5xx.
