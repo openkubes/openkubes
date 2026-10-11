@@ -1,10 +1,11 @@
-site_name: OpenKubes — Website Migration Preview
+site_name: OpenKubes
 site_url: https://openkubes.org/
 site_description: Preview-only unified OpenKubes website and developer documentation
 docs_dir: .mkdocs-staging
 site_dir: .mkdocs-site
 theme:
   name: material
+  custom_dir: website/overrides
   logo: assets/openkubes-logo.png
   palette:
     scheme: default
@@ -16,6 +17,7 @@ theme:
     - search.suggest
 extra_css:
   - assets/openkubes-navigation.css
+  - assets/openkubes-theme.css
 plugins:
   - search
 markdown_extensions:
