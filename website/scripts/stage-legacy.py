@@ -26,6 +26,11 @@ def main():
     if not logo.is_file():
         raise SystemExit("Legacy logo is missing.")
     shutil.copy2(logo, TARGET / logo.name)
+    shared_css = ROOT / "website" / "assets" / "openkubes-navigation.css"
+    if not shared_css.is_file():
+        raise SystemExit("Shared navigation CSS missing")
+    (TARGET / "assets").mkdir(exist_ok=True)
+    shutil.copy2(shared_css, TARGET / "assets" / shared_css.name)
     media = SOURCE / "media"
     if not media.is_dir():
         raise SystemExit("Legacy media directory not found.")
