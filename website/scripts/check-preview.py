@@ -30,6 +30,10 @@ def main():
     original = LEGACY.read_text(encoding="utf-8")
     if "ok-global-nav" not in html or "OpenKubes primary navigation" not in html:
         raise SystemExit("Missing shared homepage navigation")
+    if 'class="ok-global-nav__brand ok-global-nav__brand--text"' not in html:
+        raise SystemExit("Missing text-only homepage branding")
+    if '<img src="/openkubes-logo.png"' in html.split('ok-global-nav__links',1)[0]:
+        raise SystemExit("Unexpected logo image in shared homepage navigation")
     for href in ("/", "/features/", "/architecture/", "/blog/", "/docs/", "/community/"):
         if f'href="{href}"' not in html:
             raise SystemExit(f"Navigation link missing: {href}")
