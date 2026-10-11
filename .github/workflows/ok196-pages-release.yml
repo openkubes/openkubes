@@ -30,6 +30,9 @@ jobs:
         uses: actions/checkout@v4
         with:
           persist-credentials: false
+          fetch-depth: 0
+      - name: Check legacy Pages rollback baseline
+        run: bash website/scripts/check-legacy-rollback.sh
       - name: Checkout pinned ok-local docs
         uses: actions/checkout@v4
         with:
@@ -64,7 +67,7 @@ jobs:
     # Manual approval has three independent controls:
     # 1. workflow_dispatch with dry_run explicitly switched off
     # 2. exact confirmation phrase and a release-enable repository variable
-    # 3. required reviewers on the github-pages GitHub environment (configure first!)
+    # 3. github-pages environment branch restriction to main (reviewers optional)
     # Never enabled by a regular commit or pull request.
     if: ${{ github.ref == 'refs/heads/main' && inputs.dry_run == false && inputs.release_confirmation == 'PUBLISH_OPENKUBES_ORG' && vars.OK196_PAGES_RELEASE_ENABLED == 'true' }}
     needs: build
