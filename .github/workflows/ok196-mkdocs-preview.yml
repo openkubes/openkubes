@@ -35,16 +35,18 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - run: bash -n website/scripts/cloudflare-build.sh
       - run: pip install -r website/requirements-mkdocs.txt
       - run: python website/scripts/build-docs.py
       - run: python website/scripts/stage-legacy.py
       - run: mkdocs build --strict
       - run: python website/scripts/preserve-homepage.py
+      - run: python website/scripts/render-navigation.py
       - run: python website/scripts/check-preview.py
       - name: Upload preview HTML (not deploy)
         uses: actions/upload-artifact@v4
         with:
-          name: ok196-mkdocs-homepage-preview
+          name: ok196-unified-navigation-preview
           path: .mkdocs-site/
           if-no-files-found: error
           include-hidden-files: true

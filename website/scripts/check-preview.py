@@ -26,10 +26,20 @@ class Refs(HTMLParser):
 
 def main():
     index = SITE / "index.html"
-    if index.read_bytes() != LEGACY.read_bytes():
-        raise SystemExit("Homepage preservation failed.")
+    html = index.read_text(encoding="utf-8")
+    original = LEGACY.read_text(encoding="utf-8")
+    if "ok-global-nav" not in html or "OpenKubes primary navigation" not in html:
+        raise SystemExit("Missing shared homepage navigation")
+    for href in ("/", "/#about", "/#governance", "/agentic-operations-reference-architecture/", "/docs/", "/#community"):
+        if f'href="{href}"' not in html:
+            raise SystemExit(f"Navigation link missing: {href}")
+    for asset in ("media/openkubes-hero-light.webm", "media/openkubes-hero-light.mp4", "media/openkubes-hero-light-poster.webp"):
+        if asset not in html or asset not in original:
+            raise SystemExit(f"Hero media reference lost: {asset}")
+    if not (SITE / "assets" / "openkubes-navigation.css").is_file():
+        raise SystemExit("Shared brand stylesheet missing")
     parser = Refs()
-    parser.feed(index.read_text(encoding="utf-8"))
+    parser.feed(html)
     missing = []
     for href in parser.refs:
         href = href.split("#", 1)[0].split("?", 1)[0]
