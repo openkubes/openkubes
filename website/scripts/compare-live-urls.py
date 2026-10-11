@@ -60,7 +60,7 @@ def main():
     print(f"Full HTTP comparison: {args.output}")
     for path in regressions:
         row = next(item for item in rows if item["path"] == path)
-        print(f"REGRESSION {path}: live={row[\u0022live\u0022][\u0022status\u0022]}, candidate={row[\u0022candidate\u0022][\u0022status\u0022]}")
+        print("REGRESSION {}: live={}, candidate={}".format(path, row["live"]["status"], row["candidate"]["status"]))
     for path in unresolved:
         print(f"UNRESOLVED {path}")
     if regressions or unresolved:
