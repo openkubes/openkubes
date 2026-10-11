@@ -39,6 +39,10 @@ def main():
         raise SystemExit("Shared navigation CSS missing")
     (TARGET / "assets").mkdir(exist_ok=True)
     shutil.copy2(shared_css, TARGET / "assets" / shared_css.name)
+    theme_css = ROOT / "website" / "assets" / "openkubes-theme.css"
+    if not theme_css.is_file():
+        raise SystemExit("Shared theme CSS missing")
+    shutil.copy2(theme_css, TARGET / "assets" / theme_css.name)
     media = SOURCE / "media"
     if not media.is_dir():
         raise SystemExit("Legacy media directory not found.")
