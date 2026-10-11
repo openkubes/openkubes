@@ -58,6 +58,11 @@ def main():
     args.output.write_text(json.dumps(output, indent=2) + "\n", encoding="utf-8")
     print(f"Compared {len(rows)} URLs; regressions={len(regressions)}, unreachable={len(unresolved)}")
     print(f"Full HTTP comparison: {args.output}")
+    for path in regressions:
+        row = next(item for item in rows if item["path"] == path)
+        print(f"REGRESSION {path}: live={row[\u0022live\u0022][\u0022status\u0022]}, candidate={row[\u0022candidate\u0022][\u0022status\u0022]}")
+    for path in unresolved:
+        print(f"UNRESOLVED {path}")
     if regressions or unresolved:
         raise SystemExit("HTTP comparison incomplete or regressions present; not approved for cutover")
     print("No HTTP status regressions in checked candidate set; review redirects and page content manually.")
