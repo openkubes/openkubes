@@ -16,6 +16,7 @@ REPORT = ROOT / ".mkdocs-site" / "url-compatibility-report.json"
 REQUIRED = (
     "/",
     "/features/",
+    "/getting-started/",
     "/architecture/",
     "/blog/",
     "/docs/",
