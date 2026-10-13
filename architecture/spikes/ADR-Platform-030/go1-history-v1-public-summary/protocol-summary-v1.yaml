@@ -1,0 +1,52 @@
+apiVersion: documentation.openkubes.io/v1alpha1
+kind: HistoricalProtocolSummary
+metadata:
+  name: ok141-go1-v1-public-summary
+  annotations:
+    documentation.openkubes.io/classification: PUBLIC-SANITIZED-DERIVATIVE
+    documentation.openkubes.io/original-evidence: "false"
+spec:
+  purpose: >-
+    Summarize an early proposal for one bounded disposable-cluster
+    create-converge-observe experiment.
+  historicalState:
+    protocolReadiness: BLOCKED
+    go1: NOT-GRANTED
+    infrastructureMutation: NOT-AUTHORIZED
+    failureInjection: NOT-AUTHORIZED
+  intendedBoundary:
+    clusterCount: 1
+    lifecycleSubmissionCount: 1
+    convergenceOwners:
+      lifecycle: existing-cluster-lifecycle-controllers
+      enablement: existing-enable-controller-candidate
+      platform: existing-gitops-controller-candidate
+    runnerRole:
+      - submit-only-an-exact-reviewed-object-set
+      - observe-and-correlate-current-state
+      - stop-fail-closed-on-any-discrepancy
+    excludedOperations:
+      - failure-injection
+      - exploratory-mutation
+      - scaling-or-upgrade
+      - implicit-retry
+      - cleanup-or-deletion
+  unresolvedPrerequisites:
+    - exact-contract-to-object-set-projection
+    - complete-worker-and-renderer-semantics
+    - proven-enable-controller-and-immutable-source
+    - selected-gitops-placement-and-secure-target-registration
+    - independent-observers-and-authorities
+    - independent-evidence-retention
+    - independently-authorized-recovery
+  disclosure:
+    sanitizedDerivative: true
+    immutableOriginal: false
+    authorizationArtifact: false
+    executionInput: false
+    omittedCategories:
+      - internal-network-identities
+      - credential-and-identity-fingerprints
+      - private-paths-and-evidence-identifiers
+      - operational-grants-and-windows
+      - original-artifact-checksums
