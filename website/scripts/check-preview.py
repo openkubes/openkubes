@@ -52,6 +52,11 @@ def main():
                 raise SystemExit(f"Shared navigation missing on {section}")
     if not (SITE / "assets" / "openkubes-theme.css").is_file():
         raise SystemExit("Shared Material theme asset missing")
+    guide_path = SITE / "community" / "how-to-update-docs" / "index.html"
+    if not guide_path.is_file():
+        raise SystemExit("Missing community documentation contribution guide")
+    if "How to update the docs" not in guide_path.read_text(encoding="utf-8"):
+        raise SystemExit("Incomplete community contribution guide")
     # Guard the OK AI navigation and generated capability entry points.
     for ai_path in ("ai/index.html", "ai/open-webui/index.html",
                     "ai/openclaw/index.html", "ai/agentic-operations/index.html"):
