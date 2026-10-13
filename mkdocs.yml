@@ -38,6 +38,11 @@ nav:
       - Observability Stack: observability/stack.md
       - Capability Contract: observability/contract.md
       - Installation & Verification: observability/installation.md
+  - Developer Workspace:
+      - Overview: developer-workspace/index.md
+      - Architecture & Contract: developer-workspace/architecture.md
+      - OpenCode & Coding Agents: developer-workspace/coding-agents.md
+      - Validation & Roadmap: developer-workspace/status.md
   - Blog:
       - Overview: blog/index.md
       - Agentic Operations: agentic-operations-reference-architecture.md
