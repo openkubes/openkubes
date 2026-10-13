@@ -75,7 +75,7 @@ case "${1:-}" in
     trap reset_switch EXIT
     gh variable set OK196_PAGES_RELEASE_ENABLED --repo "$repo" --body true
     started="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-    gh workflow run "$workflow" --repo "$repo" --ref main -f dry_run=false -f release_confirmation=PUBLISH_OPENKUBES_ORG
+    gh workflow run "$workflow" --repo "$repo" --ref main -f dry_run=false -f expected_sha="$target" -f release_confirmation=PUBLISH_OPENKUBES_ORG
     run_id=""
     for attempt in $(seq 1 30); do
       run_id="$(gh run list --repo "$repo" --workflow "$workflow" --event workflow_dispatch --json databaseId,headSha,createdAt --limit 20 --jq "[.[] | select(.headSha == \"$target\" and .createdAt >= \"$started\")] | sort_by(.createdAt) | reverse | .[0].databaseId // empty")"
