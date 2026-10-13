@@ -1,0 +1,432 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Aia at the Gate — Medium-ready copy</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+        "Segoe UI", sans-serif;
+      color: #242424;
+      background: #f6f6f3;
+    }
+
+    body {
+      margin: 0;
+    }
+
+    .controls {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 20px;
+      border-bottom: 1px solid #dfdfdc;
+      background: rgba(255, 255, 255, 0.96);
+      backdrop-filter: blur(10px);
+    }
+
+    .controls button {
+      appearance: none;
+      border: 0;
+      border-radius: 999px;
+      padding: 10px 18px;
+      color: white;
+      background: #1a8917;
+      font: 600 14px/1.2 Inter, ui-sans-serif, system-ui, sans-serif;
+      cursor: pointer;
+    }
+
+    .controls button:hover {
+      background: #156d12;
+    }
+
+    .controls p {
+      margin: 0;
+      color: #5f5f5f;
+      font-size: 14px;
+    }
+
+    #copy-status {
+      min-width: 160px;
+      color: #156d12;
+      font-weight: 600;
+    }
+
+    .hero-reminder {
+      max-width: 760px;
+      margin: 28px auto 0;
+      padding: 14px 18px;
+      border: 1px solid #e5d8a8;
+      border-radius: 8px;
+      color: #5f5125;
+      background: #fff9df;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .medium-article {
+      box-sizing: border-box;
+      max-width: 760px;
+      margin: 24px auto 80px;
+      padding: 54px 64px 72px;
+      background: white;
+      box-shadow: 0 8px 40px rgba(0, 0, 0, 0.06);
+      font-family: Georgia, Cambria, "Times New Roman", Times, serif;
+      font-size: 20px;
+      line-height: 1.58;
+    }
+
+    .medium-article h1,
+    .medium-article h2 {
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+        "Segoe UI", sans-serif;
+      letter-spacing: -0.025em;
+    }
+
+    .medium-article h1 {
+      margin: 0 0 14px;
+      font-size: 44px;
+      line-height: 1.08;
+    }
+
+    .medium-article h2 {
+      margin: 54px 0 14px;
+      font-size: 28px;
+      line-height: 1.2;
+    }
+
+    .medium-article p {
+      margin: 0 0 26px;
+    }
+
+    .medium-article blockquote {
+      margin: 34px 0;
+      padding-left: 24px;
+      border-left: 3px solid #242424;
+      font-style: italic;
+    }
+
+    .medium-article ul,
+    .medium-article ol {
+      margin: 0 0 28px;
+      padding-left: 30px;
+    }
+
+    .medium-article li {
+      margin: 8px 0;
+    }
+
+    .medium-article pre {
+      overflow-x: auto;
+      margin: 32px 0;
+      padding: 22px;
+      border-radius: 6px;
+      background: #f2f2f2;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font: 14px/1.55 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+        "Liberation Mono", monospace;
+    }
+
+    .medium-article code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+        "Liberation Mono", monospace;
+      font-size: 0.86em;
+    }
+
+    .medium-article a {
+      color: inherit;
+      text-decoration: underline;
+      text-decoration-thickness: 1px;
+      text-underline-offset: 3px;
+    }
+
+    .medium-article hr {
+      width: 120px;
+      margin: 52px auto;
+      border: 0;
+      border-top: 1px solid #a7a7a7;
+    }
+
+    @media (max-width: 820px) {
+      .hero-reminder {
+        margin-inline: 16px;
+      }
+
+      .medium-article {
+        margin-top: 16px;
+        padding: 36px 22px 56px;
+        box-shadow: none;
+      }
+
+      .medium-article h1 {
+        font-size: 36px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="controls" data-editorial-only>
+    <button id="copy-medium" type="button">Copy formatted article for Medium</button>
+    <span id="copy-status" role="status" aria-live="polite"></span>
+    <p>Then paste into a new, empty Medium draft. Upload the hero image separately.</p>
+  </div>
+
+  <aside class="hero-reminder" data-editorial-only>
+    <strong>Before publishing:</strong> upload the “Aia at the Gate” hero image above the
+    opening paragraph and use the alt text from the Markdown source. This reminder is not
+    included by the copy button.
+  </aside>
+
+  <article id="medium-article" class="medium-article">
+<h1>Aia at the Gate: AI Proposes, Humans Hold the Key</h1>
+<p><em>How OpenKubes is designing safe agentic cluster lifecycle management</em></p>
+<p><em>By Arash Kaffamanesh</em></p>
+<blockquote>
+<p><strong>TL;DR:</strong> OpenKubes is proposing a human-approved architecture in which AI may
+diagnose and draft cluster lifecycle changes but cannot authorize, accept, execute,
+or reconcile them. ADR-035 is public and remains <code>Proposed</code>; implementation and
+acceptance evidence still have to follow.</p>
+</blockquote>
+<hr>
+<p>Aia arrives with a purple backpack that is far too full.</p>
+<p>Inside are plans, observations, possible improvements, and probably several ideas nobody
+asked for yet. She reads quickly, compares clues, notices when a path no longer matches
+the Book of Promises, and drafts a better one.</p>
+<p>Then she reaches the gate.</p>
+<p>Behind it, a proposal can become a real change. A cluster can be created, upgraded, or
+deleted. Infrastructure can move. Machines can disappear. The consequences are no longer
+part of a conversation; they become part of the world.</p>
+<p>Aia looks for the key. The human builder is holding it.</p>
+<p>This is not because the builder distrusts Aia. It is because trust works best when every
+participant has a clear responsibility. Aia helps with thinking. Sensors check facts.
+Contracts define the promises. Humans carry responsibility for consequential decisions.</p>
+<p>That scene from the <a href="https://oki.openkubes.org/#start">Oki Universe</a> has become the most
+useful explanation of how we want AI to participate in the OpenKubes control plane.</p>
+<p>It is also the story behind our new architecture decision,
+<a href="https://github.com/openkubes/openkubes/blob/main/architecture/decisions/ADR-Platform-035-hybrid-intent-and-control-plane-execution.md">ADR-Platform-035</a>.</p>
+<h2>The Question That Sent Us to the Gate</h2>
+<p>Our starting question sounded simple:</p>
+<blockquote>
+<p>Could an AI agent replace the custom runner that helps provision and manage OpenKubes
+workload clusters?</p>
+</blockquote>
+<p>The runner contains deterministic Go and Python logic. It validates declarations,
+submits lifecycle changes, observes Cluster API and related controllers, and records
+evidence. An agent can reason across more context, explain failures, and translate natural
+language into configuration. Why maintain both?</p>
+<p>Because this is not really a choice between two components.</p>
+<p>The runner itself is replaceable. It is one implementation of a deeper architectural
+role: the <strong>Contract Executor</strong>. The safety property we need to preserve is not a specific
+container, language, or API. It is the boundary between reasoning about a change and
+authoritatively accepting and executing that change.</p>
+<p>Once we framed the problem that way, the answer became clear:</p>
+<blockquote>
+<p>The agent may help create intent. It must not become the authority, executor, or
+reconciler merely because it can call tools.</p>
+</blockquote>
+<h2>Aia Is an Author, Not an Authority</h2>
+<p>In the Oki Universe, the metaphors already line up with the architecture.</p>
+<p>Aia and her backpack represent the untrusted authoring layer and its candidate proposals.
+The Book of Promises represents versioned OpenKubes Contracts. The sensors represent
+read-only diagnostics and evidence. Reviewing the plan together represents deterministic
+canonicalization and a human-readable semantic review. The builder holding the key is the
+authenticated Human Approver. The gate represents the Policy, Authority, and Contract
+Executor boundary. Beyond the gate, controllers reconcile the accepted state across the
+islands.</p>
+<p>The resulting principle is simple enough to remember:</p>
+<blockquote>
+<p><strong>Aia helps us think. Humans approve. Policies authorize. Executors submit. Controllers
+reconcile.</strong></p>
+</blockquote>
+<p>The implementation behind that sentence is deliberately less magical.</p>
+<h2>From a Candidate to a Real Cluster Change</h2>
+<p>An agent-originated lifecycle proposal follows the same control-plane model as any other
+request. It does not receive a privileged shortcut.</p>
+<pre><code class="language-text">User and Aia
+    -&gt; untrusted candidate input
+    -&gt; server-attested proposal provenance
+    -&gt; deterministic canonicalization and transition planning
+    -&gt; authenticated human review of the exact semantic change
+    -&gt; policy authorization bound to that exact transition
+    -&gt; Executor verification and single-use authorization claim
+    -&gt; atomic compare-and-swap acceptance by the Authority Profile
+    -&gt; asynchronous reconciliation by GitOps and lifecycle controllers
+    -&gt; generation-correlated Conditions and durable evidence
+</code></pre>
+<p>Each arrow matters.</p>
+<p>The Candidate Proposal service records who produced the proposal using server-attested
+workload identity. An agent cannot simply label its own work as human-authored.</p>
+<p>The Canonicalizer converts flexible authoring input into one deterministic representation.
+It rejects duplicate keys, ambiguous fields, unsupported schema versions, and
+parser-dependent interpretations. Semantically identical input must produce identical
+canonical bytes and the same digest.</p>
+<p>The human reviews the effective change, including defaults, rather than approving an
+opaque hash. The human-visible review artifact is derived from the exact canonical
+predecessor and requested revision. Its digest, renderer version, canonicalization profile,
+and request digest remain bound together.</p>
+<p>The Policy Authority verifies that protected approval and issues a single-use decision for
+one exact transition. The Contract Executor independently verifies and durably claims that
+authorization. Only then may the selected Authority Profile atomically accept the new
+desired revision.</p>
+<p>Acceptance changes authority. It does not prove convergence.</p>
+<p>Cluster API, infrastructure providers, Cluster Enablement, GitOps, and other responsible
+controllers still reconcile asynchronously. Their revision- and generation-correlated
+Conditions determine whether the requested state was realized. An LLM response and a
+successful runner exit code do not.</p>
+<h2>Human Approval Must Mean More Than Clicking “Approve”</h2>
+<p>Digest binding solves only part of the problem. A person cannot meaningfully approve a
+digest they do not understand.</p>
+<p>The security property we need is often called <strong>WYSIWYS: What You See Is What You Sign</strong>.
+The semantic change shown to the reviewer, the canonical representation used to compute
+the request digest, and the revision later presented for acceptance must remain
+inseparably correlated.</p>
+<p>If the proposal changes after review, the approval becomes invalid. If the canonicalizer
+profile changes, the proposal must be reviewed again. If the human-visible artifact
+changes, its protected binding changes too. A later deployment of the renderer does not
+rewrite history; the immutable versioned review artifact remains the evidence of what the
+person actually approved.</p>
+<p>This may sound strict for creating a Kubernetes cluster. It is exactly as strict as we
+want it to be for deleting one.</p>
+<h2>Why the Agent Never Sees the Full Executor API</h2>
+<p>One tempting design is to expose the entire mutating API through MCP and rely on RBAC to
+deny dangerous calls.</p>
+<p>We rejected that design.</p>
+<p>An authorization defect, confused-deputy path, or accidentally broadened role would turn
+an advertised tool into a real mutation capability. Instead, the agent-facing MCP surface
+is constructed from two intentionally narrow contracts:</p>
+<ul>
+<li>the existing Read-Only Platform Diagnostics Contract; and</li>
+<li>a separate, non-authoritative Candidate Proposal Contract.</li>
+</ul>
+<p>It is not produced by taking a powerful Executor API and subtracting methods until it
+looks safe. Mutating Executor and Authority operations live behind separate identity,
+authorization, and network boundaries. They do not appear in the agent-facing tool
+surface at all.</p>
+<p>Prompts and tool descriptions remain helpful interaction material. They are never
+validation logic, policy, provenance, authorization, or readiness evidence.</p>
+<h2>Prompt Injection Does Not Disappear at the Gate</h2>
+<p>Read-only is not the same as harmless.</p>
+<p>Poisoned documentation, logs, diagnostic output, or retrieval context can influence the
+model&#39;s next proposal. An agent can create a syntactically valid but undesirable candidate.
+It can consume review capacity. It may expose information available to its read identity.
+And a human reviewer can still be deceived into approving a manipulated proposal.</p>
+<p>Human approval bounds this risk; it does not eliminate it.</p>
+<p>That is why the design also requires least-privilege read identities, server-attested
+provenance, quotas, rate limits, audit records, deterministic canonicalization, explicit
+semantic review, and a policy decision bound to the exact transition. The gate is a system
+of independent controls, not a ceremonial button.</p>
+<h2>What Exists Today — and What Is Still a Target</h2>
+<p>We want to be precise about current reality.</p>
+<p>OpenKubes has already validated the read-only diagnostic foundation in the OK-14/OK-92
+proof of concept: agents access platform state through scoped contracts and dedicated
+workload identities, while writes and Secrets are denied. This boundary is documented in
+ADR-015 and ADR-021. OpenClaw remains an optional broad assistant, while kagent is the
+first diagnostics implementation behind the OpenKubes-owned contract. The
+candidate-to-acceptance lifecycle path defined by ADR-035 remains target architecture and
+still requires its acceptance evidence.</p>
+<p>ADR-Platform-035 is the next architectural step. It has been merged into the public
+repository with <strong>Status: Proposed</strong>. Merging the document means the design is available
+for review and implementation. It does not mean the end-to-end Candidate Proposal,
+approval, Authority, and Executor path already exists or has passed conformance.</p>
+<p>Before the ADR can move to <code>Accepted</code>, OpenKubes requires reviewed evidence for fourteen
+criteria. They cover provenance and identity isolation, GitOps reconciliation isolation,
+human-approval enforcement, digest and transition locking, stale-write rejection, replay
+and crash recovery, MCP attack-surface verification, Condition correctness, WYSIWYS
+review, canonical-form correlation, parser-differential resistance, and renderer binding.</p>
+<p>This distinction matters. We are publishing an architecture and an evidence bar, not
+announcing an autonomous production feature.</p>
+<h2>Why We Are Publishing Before We Build</h2>
+<p>Agentic infrastructure management is moving quickly. The easy demonstrations are
+impressive: give a model cluster-admin, ask it to fix something, and watch the terminal.</p>
+<p>The harder questions begin after the demo:</p>
+<ul>
+<li>Who owns the desired state?</li>
+<li>What exactly did the human approve?</li>
+<li>Can the model alter the evidence shown to the reviewer?</li>
+<li>What happens after a stale plan or a lost response?</li>
+<li>Can a candidate branch ever be reconciled accidentally?</li>
+<li>How do we prove that an MCP surface contains no mutation path?</li>
+<li>Which state remains authoritative after the Executor crashes?</li>
+</ul>
+<p>We would rather expose those questions now than hide them behind an apparently seamless
+chat interface.</p>
+<p>The implementation work is tracked under OpenKubes Epic <code>OK-149</code>. We are deliberately
+starting with this article and community discussion. Feedback that changes a contract
+will go back through the ADR process. Public feedback is design input; it does not silently
+become platform authority either.</p>
+<h2>We Would Like Your Feedback</h2>
+<p>If you operate Kubernetes platforms, build agent frameworks, design authorization
+systems, or work on GitOps control planes, we would especially value your perspective:</p>
+<ol>
+<li>Where do you place the human approval boundary for agent-originated infrastructure
+changes?</li>
+<li>Have you implemented WYSIWYS review for declarative configuration or GitOps changes?</li>
+<li>How do you perform atomic, transition-correlated acceptance with Git as authority?</li>
+<li>Do your agent-facing APIs expose a safe contract by construction, or a filtered view of
+a more powerful API?</li>
+<li>Which lifecycle changes, if any, could eventually qualify for scoped standing approval?</li>
+<li>What evidence would you require before trusting this design in production?</li>
+</ol>
+<p>We have intentionally excluded autonomous and standing approval from this ADR. If we ever
+introduce it, it will require a separate decision, a bounded operation scope, an explicit
+threat model, and its own acceptance evidence.</p>
+<h2>The Key Stays Visible</h2>
+<p>Aia&#39;s backpack will keep getting fuller. That is a feature.</p>
+<p>We want agents that can read more evidence, connect more clues, explain failures, and
+prepare better proposals. We want the interaction to feel natural and the underlying
+platform to remain boringly explicit about authority.</p>
+<p>The goal is not to keep AI away from infrastructure engineering. The goal is to give AI a
+valuable role without allowing convenience to erase responsibility.</p>
+<p>At the OpenKubes gate, Aia brings the plan. The sensors bring the evidence. The Contracts
+define the promises. A human turns the key. Deterministic systems carry the accepted
+change into the world.</p>
+<p>That is how we intend to make agentic cluster lifecycle management useful, reviewable,
+and worthy of trust.</p>
+<hr>
+<h2>References</h2>
+<ul>
+<li><a href="https://github.com/openkubes/openkubes/blob/main/architecture/decisions/ADR-Platform-035-hybrid-intent-and-control-plane-execution.md">ADR-Platform-035: Hybrid Intent and Control-Plane Execution Architecture</a></li>
+<li><a href="https://github.com/openkubes/openkubes/pull/258">ADR-Platform-035 pull request and design discussion</a></li>
+<li><a href="https://github.com/openkubes/openkubes/blob/main/architecture/decisions/ADR-Platform-015-agentic-ai.md">ADR-Platform-015: Agentic AI</a></li>
+<li><a href="https://github.com/openkubes/openkubes/blob/main/architecture/decisions/ADR-Platform-021-read-only-platform-diagnostics-contract.md">ADR-Platform-021: Read-Only Platform Diagnostics Contract</a></li>
+<li><a href="https://oki.openkubes.org/#start">Oki Universe — Oki und das Geheimnis der Inseln</a></li>
+<li><a href="https://github.com/openkubes/openkubes">OpenKubes on GitHub</a></li>
+</ul>
+<hr>
+<p><em>Author&#39;s note: This article was developed from ADR-Platform-035 through a human-led
+review involving Codex, Claude, and Gemini. The architectural decision, editorial
+framing, and final publication authority remain with the author.</em></p>
+
+  </article>
+
+  <script>
+    const button = document.getElementById("copy-medium");
+    const status = document.getElementById("copy-status");
+    const article = document.getElementById("medium-article");
+
+    button.addEventListener("click", () => {
+      const selection = window.getSelection();
+      const range = document.createRange();
+      range.selectNodeContents(article);
+      selection.removeAllRanges();
+      selection.addRange(range);
+
+      const copied = document.execCommand("copy");
+      status.textContent = copied
+        ? "Copied as formatted text."
+        : "Selected — press Cmd/Ctrl+C.";
+
+      if (copied) {
+        selection.removeAllRanges();
+      }
+    });
+  </script>
+</body>
+</html>
