@@ -65,6 +65,18 @@ def main():
     ai_html = (SITE / "ai" / "index.html").read_text(encoding="utf-8")
     if "Open WebUI" not in ai_html or "OpenClaw" not in ai_html:
         raise SystemExit("OK AI overview incomplete")
+    # Require all OK Observability pages in the generated preview.
+    for observability_path in (
+        "observability/index.html",
+        "observability/stack/index.html",
+        "observability/contract/index.html",
+        "observability/installation/index.html",
+    ):
+        if not (SITE / observability_path).is_file():
+            raise SystemExit(f"Missing OK Observability page: {observability_path}")
+    observability_html = (SITE / "observability" / "index.html").read_text(encoding="utf-8")
+    if "Observability Capability" not in observability_html or "Capability Contract" not in observability_html:
+        raise SystemExit("OK Observability overview incomplete")
     parser = Refs()
     parser.feed(html)
     missing = []

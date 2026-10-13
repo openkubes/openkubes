@@ -41,6 +41,15 @@ def main():
         if not source_page.is_file():
             raise SystemExit(f"Missing OK AI page: {source_page}")
         shutil.copy2(source_page, ai_target / filename)
+    # Stage the source-owned OK Observability capability pages.
+    observability_source = pages / "observability"
+    observability_target = TARGET / "observability"
+    observability_target.mkdir(parents=True, exist_ok=True)
+    for filename in ("index.md", "stack.md", "contract.md", "installation.md"):
+        source_page = observability_source / filename
+        if not source_page.is_file():
+            raise SystemExit(f"Missing OK Observability page: {source_page}")
+        shutil.copy2(source_page, observability_target / filename)
     # Preserve the historical getting-started entry point as a rendered page.
     # Relative repository links in its source README point outside docs/.
     getting_started = SOURCE / "getting-started" / "README.md"
