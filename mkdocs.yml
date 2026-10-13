@@ -48,7 +48,7 @@ nav:
       - Agentic Operations: agentic-operations-reference-architecture.md
       - Vault Secret Contract: vault-secret-contract-blog-post.md
       - The Contract is the Guardrail: the-contract-is-the-guardrail-blog-post.md
-      - Self-Healing: openkubes-self-healing-blog-post.md
+      - The Immortal Platform: openkubes-self-healing-blog-post.md
       - Kubernetes Anywhere: openkubes-blog-post.md
   - Docs:
       - Overview: docs/index.md
