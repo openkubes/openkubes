@@ -46,6 +46,8 @@ nav:
           - Prerequisites: docs/ok-local/tutorial-prerequisites.md
       - Cluster:
           - Registry Trust: docs/ok-cluster/registry-trust.md
-  - Community: community/index.md
+  - Community:
+      - Overview: community/index.md
+      - How to update the docs: community/how-to-update-docs.md
 extra:
   generator: false

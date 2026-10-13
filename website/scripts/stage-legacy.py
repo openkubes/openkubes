@@ -28,6 +28,10 @@ def main():
         destination = TARGET / section
         destination.mkdir(parents=True, exist_ok=True)
         shutil.copy2(source_page, destination / "index.md")
+    guide = pages / "community" / "how-to-update-docs.md"
+    if not guide.is_file():
+        raise SystemExit(f"Missing community contribution guide: {guide}")
+    shutil.copy2(guide, TARGET / "community" / "how-to-update-docs.md")
     # Stage the dedicated OK AI capability pages from source-owned Markdown.
     ai_source = pages / "ai"
     ai_target = TARGET / "ai"

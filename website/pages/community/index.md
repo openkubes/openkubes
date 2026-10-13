@@ -12,6 +12,10 @@ OpenKubes develops in the open. Explore the repositories, ask questions, discuss
 - [Kubernauts Meetup — Open Hours](https://www.meetup.com/kubernauts/)
 - [Kubernauts Slack](https://slack.kubernauts.io)
 
+## Contribute to the documentation
+
+Want to improve a tutorial, correct a page, or add documentation? Read [How to update the docs](how-to-update-docs.md) for the source repositories, pull-request workflow, preview and publication steps.
+
 ## Collaboration
 
 OpenKubes is developed with support from [Clouds Sky GmbH](https://cloudssky.com/) and [Kubernauts GmbH](https://kubernauts.de/). We welcome additional contributors, sponsors and partners.
