@@ -37,6 +37,9 @@ SQUAT = ('ws-ok175-squat-xr', 'ws-ok175-squat')
 NO_PROFILE = ('ws-ok175-no-profile-xr', 'ws-ok175-no-profile')
 OPERATOR_SA, OBSERVER_SA = 'developer-workspace-operator', 'developer-workspace-observer'
 OPERATOR_BINDING, OBSERVER_BINDING = 'ok175-proof-developer-workspace-operator', 'ok175-proof-developer-workspace-observer'
+STEERING_NS = 'ok175-provider-steering-proof'
+STEERING_SA = 'provider-steering-nonoperator'
+STEERING_POLICY = 'developer-workspace-provider-steering'
 GIT_URL = 'https://git-fixture.ok174-proof-services.svc.cluster.local:8443/workspace-fixture.git'
 KUBE_API = 'https://kubernetes.default.svc'
 
@@ -94,6 +97,15 @@ def implementation(require_clean):
     return {'head': head, 'clean': not dirty, 'files': {str(p.relative_to(CAPABILITY)): sha(p.read_bytes()) for p in files},
             'spikeInputs': {x: sha((LIVE.parent / x).read_bytes()) for x in SPIKE_INPUTS}}
 
+def normalized_match_resources(value):
+    normalized = copy.deepcopy(value or {})
+    normalized.setdefault('matchPolicy', 'Equivalent')
+    normalized.setdefault('namespaceSelector', {})
+    normalized.setdefault('objectSelector', {})
+    normalized.setdefault('resourceRules', [])
+    normalized.setdefault('excludeResourceRules', [])
+    return normalized
+
 def installed_matches_local():
     """The objects that ran must be the files the evidence hashes, not an earlier install."""
     local = lambda path: yaml.safe_load((CAPABILITY / path).read_text())
@@ -119,10 +131,25 @@ def installed_matches_local():
     for authority_role in authority_roles:
         live_role = get_json(['get', 'clusterrole', authority_role['metadata']['name']])
         expect(live_role['rules'] == authority_role['rules'], f"installed ClusterRole {authority_role['metadata']['name']} differs from authority-boundary.yaml")
-    policy, binding = yaml.safe_load_all((CAPABILITY / 'install/namespace-guard.yaml').read_text())
-    live = get_json(['get', 'validatingadmissionpolicy', policy['metadata']['name']])['spec']
-    expect(all(live.get(k) == policy['spec'][k] for k in ('matchConditions', 'variables', 'validations')), 'installed namespace guard differs from install/namespace-guard.yaml')
-    expect(get_json(['get', 'validatingadmissionpolicybinding', binding['metadata']['name']])['spec'].get('validationActions') == ['Deny'], 'namespace guard binding is not Deny')
+    for path, description in (('install/namespace-guard.yaml', 'namespace guard'),
+                              ('install/provider-steering-guard.yaml', 'provider steering guard')):
+        policy, binding = [d for d in yaml.safe_load_all((CAPABILITY / path).read_text()) if d]
+        live_policy = get_json(['get', 'validatingadmissionpolicy', policy['metadata']['name']])['spec']
+        expect(normalized_match_resources(live_policy.get('matchConstraints')) ==
+               normalized_match_resources(policy['spec'].get('matchConstraints')) and
+               live_policy.get('failurePolicy', 'Fail') == policy['spec'].get('failurePolicy', 'Fail') and
+               live_policy.get('paramKind') == policy['spec'].get('paramKind') and
+               all((live_policy.get(k) or []) == (policy['spec'].get(k) or [])
+                   for k in ('matchConditions', 'variables', 'validations')),
+               f'installed {description} policy differs from {path}')
+        live_binding = get_json(['get', 'validatingadmissionpolicybinding', binding['metadata']['name']])['spec']
+        expect(live_binding.get('policyName') == binding['spec'].get('policyName') and
+               normalized_match_resources(live_binding.get('matchResources')) ==
+               normalized_match_resources(binding['spec'].get('matchResources')) and
+               live_binding.get('paramRef') == binding['spec'].get('paramRef') and
+               live_binding.get('parameterNotFoundAction') == binding['spec'].get('parameterNotFoundAction') and
+               live_binding.get('validationActions') == binding['spec'].get('validationActions'),
+               f'installed {description} binding differs from {path}')
     return composition
 
 def revision_matches(xr_name, composition):
@@ -141,7 +168,8 @@ def install(_args):
     apply_file(CAPABILITY / 'tests/functions.yaml'); apply_file(CAPABILITY / 'install/provider-kubernetes.yaml')
     kubectl(['wait', '--for=condition=Healthy', 'function.pkg.crossplane.io/function-go-templating', 'function.pkg.crossplane.io/function-auto-ready', 'provider.pkg.crossplane.io/provider-kubernetes', '--timeout=600s'], timeout=630)
     apply_file(CAPABILITY / 'rbac/provider-kubernetes-clusterrole.yaml'); apply_file(CAPABILITY / 'rbac/authority-boundary.yaml')
-    apply_file(CAPABILITY / 'install/namespace-guard.yaml'); apply_file(CAPABILITY / 'install/providerconfig.yaml')
+    apply_file(CAPABILITY / 'install/namespace-guard.yaml'); apply_file(CAPABILITY / 'install/provider-steering-guard.yaml')
+    apply_file(CAPABILITY / 'install/providerconfig.yaml')
     apply_file(CAPABILITY / 'xrd.yaml')
     kubectl(['wait', '--for=condition=Established', 'compositeresourcedefinition/developerworkspaces.workspace.openkubes.io', '--timeout=300s'], timeout=330)
     apply_file(CAPABILITY / 'composition.yaml')
@@ -151,7 +179,9 @@ def uninstall(_args):
     target()
     listed = kubectl(['get', 'developerworkspaces', '-o', 'json'], check=False)
     expect(listed.returncode != 0 and 'the server doesn' in listed.stderr or listed.returncode == 0 and not json.loads(listed.stdout)['items'], 'DeveloperWorkspaces still exist; delete them first')
-    for path in ('composition.yaml', 'xrd.yaml', 'install/providerconfig.yaml', 'install/namespace-guard.yaml', 'rbac/authority-boundary.yaml', 'rbac/provider-kubernetes-clusterrole.yaml', 'install/provider-kubernetes.yaml', 'tests/functions.yaml'):
+    for path in ('composition.yaml', 'xrd.yaml', 'install/providerconfig.yaml', 'install/provider-steering-guard.yaml',
+                 'install/namespace-guard.yaml', 'rbac/authority-boundary.yaml',
+                 'rbac/provider-kubernetes-clusterrole.yaml', 'install/provider-kubernetes.yaml', 'tests/functions.yaml'):
         done = kubectl(['delete', '--ignore-not-found', '--wait=true', '-f', str(CAPABILITY / path)], timeout=600, check=False)
         expect(done.returncode == 0 or 'no matches for kind' in done.stderr, f'deleting {path} failed: {done.stderr.strip()[:300]}')  # kind already gone with its CRD
     if subprocess.run(['helm', 'status', 'crossplane', '-n', 'crossplane-system'], capture_output=True).returncode == 0:
@@ -372,12 +402,29 @@ def authority_identities():
 
 # Expected holders come from the pinned chart/RBAC-manager sources linked in README,
 # Kubernetes' default cluster-admin binding, and this capability's shipped operator role.
+# The provider v1.3.1 package installs both legacy cluster-scoped APIs and v2 namespaced APIs.
+# Keep the scope alongside each resource so RoleBindings are counted exactly as Kubernetes does.
 AUTHORITY_RESOURCES = {
-    'DeveloperWorkspace': ('workspace.openkubes.io', 'developerworkspaces'),
-    'Object': ('kubernetes.crossplane.io', 'objects'),
-    'ProviderConfig': ('kubernetes.crossplane.io', 'providerconfigs'),
-    'EnvironmentConfig': ('apiextensions.crossplane.io', 'environmentconfigs'),
+    'DeveloperWorkspace': ('workspace.openkubes.io', 'developerworkspaces', 'Cluster'),
+    'Object': ('kubernetes.crossplane.io', 'objects', 'Cluster'),
+    'ProviderConfig': ('kubernetes.crossplane.io', 'providerconfigs', 'Cluster'),
+    'EnvironmentConfig': ('apiextensions.crossplane.io', 'environmentconfigs', 'Cluster'),
+    'NamespacedObject': ('kubernetes.m.crossplane.io', 'objects', 'Namespaced'),
+    'NamespacedProviderConfig': ('kubernetes.m.crossplane.io', 'providerconfigs', 'Namespaced'),
+    'NamespacedObservedObjectCollection': ('kubernetes.m.crossplane.io', 'observedobjectcollections', 'Namespaced'),
+    'NamespacedProviderConfigUsage': ('kubernetes.m.crossplane.io', 'providerconfigusages', 'Namespaced'),
+    'ClusterProviderConfig': ('kubernetes.m.crossplane.io', 'clusterproviderconfigs', 'Cluster'),
+    'ObservedObjectCollection': ('kubernetes.crossplane.io', 'observedobjectcollections', 'Cluster'),
 }
+# These sets are source assertions, not observations. Crossplane 2.3.3 aggregates every provider
+# CRD into its controller/admin roles; provider system roles have C/U/P but no delete. The shipped
+# OK-175 operator predates the provider v2 APIs and grants only these four kinds.
+PROVIDER_SYSTEM_RESOURCES = frozenset({
+    'Object', 'ProviderConfig', 'NamespacedObject', 'NamespacedProviderConfig',
+    'NamespacedObservedObjectCollection', 'NamespacedProviderConfigUsage',
+    'ClusterProviderConfig', 'ObservedObjectCollection',
+})
+SHIPPED_OPERATOR_RESOURCES = frozenset({'DeveloperWorkspace', 'Object', 'ProviderConfig', 'EnvironmentConfig'})
 AUTHORITY_VERBS = ('create', 'update', 'patch', 'delete', 'deletecollection')
 INDIRECT_AUTHORITY = {
     'impersonate-users': ('', 'users', 'impersonate', None),
@@ -429,12 +476,14 @@ def expected_authority_holders(default_group_present):
     for kind in AUTHORITY_RESOURCES:
         result[kind] = {}
         for verb in AUTHORITY_VERBS:
-            holders = {superuser, controller, operator} | group
+            holders = {superuser, controller} | group
+            if kind in SHIPPED_OPERATOR_RESOURCES:
+                holders.add(operator)
             if verb in ('update', 'patch', 'delete'):
                 holders.add(garbage_collector)
             if verb in ('delete', 'deletecollection'):
                 holders.add(namespace_controller)
-            if kind in ('Object', 'ProviderConfig') and verb in ('create', 'update', 'patch'):
+            if kind in PROVIDER_SYSTEM_RESOURCES and verb in ('create', 'update', 'patch'):
                 holders.add(provider)  # provider system role deliberately omits delete
             if verb == 'deletecollection':
                 holders.discard(operator)  # the shipped operator role intentionally omits it
@@ -513,11 +562,16 @@ def assert_indirect_authority_holder_sets(holders, expected):
     expect(not differences, 'indirect authority holder mismatch: ' + '; '.join(differences))
 
 
+def rolebinding_grants_resource(cluster_binding, scope):
+    return cluster_binding or scope == 'Namespaced'
+
+
 def prove_authority_who_can():
     # Scope is checked against the installed CRDs, rather than inferred from a kind name.
-    for kind, (group, resource) in AUTHORITY_RESOURCES.items():
+    for kind, (group, resource, scope) in AUTHORITY_RESOURCES.items():
         crd = get_json(['get', 'crd', f'{resource}.{group}'])
-        expect(crd['spec']['scope'] == 'Cluster', f'authority-who-can {kind} must be cluster-scoped')
+        expect(crd['spec']['scope'] == scope,
+               f'authority-who-can {kind} must be {scope}, got {crd["spec"]["scope"]}')
     cluster_roles = get_json(['get', 'clusterroles'])['items']
     cluster_bindings = get_json(['get', 'clusterrolebindings'])['items']
     roles = get_json(['get', 'roles', '--all-namespaces'])['items']
@@ -527,6 +581,7 @@ def prove_authority_who_can():
     holders = {kind: {verb: set() for verb in AUTHORITY_VERBS} for kind in AUTHORITY_RESOURCES}
     indirect = {name: set() for name in INDIRECT_AUTHORITY}
     non_effective = []
+    effective_role_bindings = []
     for binding in [*cluster_bindings, *bindings]:
         cluster_binding = binding['kind'] == 'ClusterRoleBinding'
         namespace = binding['metadata'].get('namespace')
@@ -543,13 +598,18 @@ def prove_authority_who_can():
         if role is None:
             continue
         subjects = {authority_subject(subject, namespace) for subject in binding.get('subjects', [])}
-        for kind, (group, resource) in AUTHORITY_RESOURCES.items():
+        for kind, (group, resource, scope) in AUTHORITY_RESOURCES.items():
             for verb in AUTHORITY_VERBS:
                 # The aggregation controller materializes rules. Never resolve selectors here.
                 if not any(authority_rule_matches(rule, group, resource, verb) for rule in role.get('rules', [])):
                     continue
-                if cluster_binding:
+                if rolebinding_grants_resource(cluster_binding, scope):
                     holders[kind][verb].update(subjects)
+                    if not cluster_binding:
+                        effective_role_bindings.append({'binding': {'name': binding['metadata']['name'], 'namespace': namespace},
+                                                        'kind': kind, 'verb': verb,
+                                                        'subjects': list(map(authority_subject_record, sorted(subjects))),
+                                                        'reason': 'RoleBinding grants access to this namespaced resource in its namespace'})
                 else:
                     non_effective.append({'binding': {'name': binding['metadata']['name'], 'namespace': namespace},
                                           'kind': kind, 'verb': verb,
@@ -567,13 +627,16 @@ def prove_authority_who_can():
                               for verb, subjects in verbs.items()} for kind, verbs in holders.items()},
             'indirectHolders': {name: list(map(authority_subject_record, sorted(subjects)))
                                 for name, subjects in indirect.items()},
+            'effectiveRoleBindings': effective_role_bindings,
             'nonEffectiveRoleBindings': non_effective,
-            'scope': 'Cluster', 'defaultCrossplaneGroupBindingPresent': default_group_present}
+            'scopes': {kind: scope for kind, (_group, _resource, scope) in AUTHORITY_RESOURCES.items()},
+            'defaultCrossplaneGroupBindingPresent': default_group_present}
 
 
-def assert_can_i(identity, verb, resource, allowed, name=None):
+def assert_can_i(identity, verb, resource, allowed, name=None, namespace=None):
     target = f'{resource}/{name}' if name else resource
-    done = kubectl(['auth', 'can-i', verb, target, f'--as={identity}'], check=False)
+    done = kubectl(['auth', 'can-i', verb, target, f'--as={identity}',
+                    *(['--namespace', namespace] if namespace else [])], check=False)
     answer = done.stdout.strip()
     expect(answer == ('yes' if allowed else 'no') and (done.returncode == 0) == allowed,
            f'auth can-i {verb} {target} for {identity} returned rc={done.returncode} {answer!r}, expected {allowed}')
@@ -648,6 +711,89 @@ def prove_authority_boundary(owner_name, owner_doc, profile_doc):
             assert_server_dry_run(identity, 'create', resource, create_doc, allowed)
             assert_server_dry_run(identity, 'replace', resource, replace_doc, allowed)
     return {'operator': operator, 'observer': observer, 'resources': [resource for resource, _, _ in documents]}
+
+
+def provider_api_document(group, resource, namespace, name):
+    crd = get_json(['get', 'crd', f'{resource}.{group}'])
+    version = next((v['name'] for v in crd['spec']['versions'] if v.get('storage')),
+                   next(v['name'] for v in crd['spec']['versions'] if v.get('served')))
+    kind = crd['spec']['names']['kind']
+    metadata = {'name': name, 'namespace': namespace}
+    if resource == 'providerconfigs':
+        spec = {'credentials': {'source': 'InjectedIdentity'}}
+    elif resource == 'objects':
+        spec = {
+            'forProvider': {'manifest': {'apiVersion': 'v1', 'kind': 'ConfigMap',
+                                         'metadata': {'name': 'provider-steering-probe', 'namespace': namespace},
+                                         'data': {'proof': 'denied'}}},
+            'providerConfigRef': {'kind': 'ProviderConfig', 'name': 'provider-steering-probe'},
+        }
+    else:
+        raise ProofError(f'no provider steering proof fixture for {resource}.{group}')
+    return {'apiVersion': f'{group}/{version}', 'kind': kind, 'metadata': metadata, 'spec': spec}
+
+
+def assert_provider_steering_denied(identity, resource, document):
+    done = kubectl(['create', '-f', '-', f'--as={identity}'], input_text=yaml.safe_dump(document), check=False)
+    expect(done.returncode != 0 and STEERING_POLICY in done.stderr,
+           f'{identity} real create {resource} was not denied by {STEERING_POLICY}: '
+           f'rc={done.returncode} {done.stderr.strip()[:300]}')
+
+
+def prove_namespaced_provider_steering_denied():
+    operator = f'system:serviceaccount:{PROOF_NS}:{OPERATOR_SA}'
+    nonoperator = f'system:serviceaccount:{STEERING_NS}:{STEERING_SA}'
+    subjects = (
+        {'kind': 'ServiceAccount', 'name': STEERING_SA, 'namespace': STEERING_NS},
+        {'kind': 'ServiceAccount', 'name': OPERATOR_SA, 'namespace': PROOF_NS},
+    )
+    fixtures = (
+        ('providerconfigs', provider_api_document('kubernetes.m.crossplane.io', 'providerconfigs',
+                                                  STEERING_NS, 'provider-steering-probe')),
+        ('objects', provider_api_document('kubernetes.m.crossplane.io', 'objects',
+                                          STEERING_NS, 'provider-steering-probe')),
+    )
+    existing = kubectl(['get', 'namespace', STEERING_NS], check=False)
+    expect(is_not_found(existing),
+           f'provider steering proof Namespace must not pre-exist: rc={existing.returncode} '
+           f'{existing.stderr.strip()[:300]}')
+    try:
+        apply([
+            {'apiVersion': 'v1', 'kind': 'Namespace', 'metadata': {'name': STEERING_NS}},
+            {'apiVersion': 'v1', 'kind': 'ServiceAccount', 'metadata': {'name': STEERING_SA, 'namespace': STEERING_NS}},
+            {'apiVersion': 'rbac.authorization.k8s.io/v1', 'kind': 'RoleBinding',
+             'metadata': {'name': 'provider-steering-crossplane-edit', 'namespace': STEERING_NS},
+             'roleRef': {'apiGroup': 'rbac.authorization.k8s.io', 'kind': 'ClusterRole', 'name': 'crossplane-edit'},
+             'subjects': list(subjects)},
+        ])
+        assert_can_i(nonoperator, 'update', 'environmentconfigs.apiextensions.crossplane.io', False,
+                     name='developer-workspace-profile')
+        assert_can_i(operator, 'update', 'environmentconfigs.apiextensions.crossplane.io', True,
+                     name='developer-workspace-profile')
+        for resource, document in fixtures:
+            target_resource = f'{resource}.kubernetes.m.crossplane.io'
+            # This is the attack precondition and the control for a false RBAC denial.
+            assert_can_i(nonoperator, 'create', target_resource, True, namespace=STEERING_NS)
+            assert_provider_steering_denied(nonoperator, resource, document)
+            missing = kubectl(['get', f'{target_resource}/{document["metadata"]["name"]}',
+                               '-n', STEERING_NS], check=False)
+            expect(is_not_found(missing),
+                   f'denied {target_resource} persisted or absence was not confirmed by NotFound: '
+                   f'{missing.stderr.strip()[:300]}')
+            # crossplane-edit supplies namespaced CRUD; named profile update authority is the
+            # policy's independent operator definition.
+            assert_can_i(operator, 'create', target_resource, True, namespace=STEERING_NS)
+            admitted = kubectl(['create', '--dry-run=server', '-f', '-', f'--as={operator}'],
+                               input_text=yaml.safe_dump(document), check=False)
+            expect(admitted.returncode == 0,
+                   f'operator dry-run create {resource} was not admitted: {admitted.stderr.strip()[:300]}')
+        return {'namespace': STEERING_NS, 'nonoperator': nonoperator, 'operator': operator,
+                'resources': [resource for resource, _document in fixtures], 'policy': STEERING_POLICY}
+    finally:
+        kubectl(['delete', 'namespace', STEERING_NS, '--ignore-not-found', '--wait=true'], timeout=600, check=False)
+        missing = kubectl(['get', 'namespace', STEERING_NS], check=False)
+        expect(is_not_found(missing),
+               f'cleanup did not confirm provider steering proof Namespace absent: {missing.stderr.strip()[:300]}')
 
 def delete_and_confirm_gone(name, namespace, expected_count):
     # Counting first keeps the "none left" check from passing on a label that never matched.
@@ -787,9 +933,15 @@ def run(args):
         authority = prove_authority_boundary(PERSISTENT[0], doc, profile_config)
         record('authority-boundary-rbac', 'observer is read-only for DeveloperWorkspace and denied every mutation; operator passes documented can-i checks and real server dry-run create/update checks for all four resource types', **authority)
 
+        provider_steering = prove_namespaced_provider_steering_denied()
+        record('namespaced-provider-steering-denied',
+               'a non-operator with namespaced crossplane-edit RBAC is denied real ProviderConfig and Object creates by the named admission policy; the operator is admitted by server dry-run',
+               **provider_steering)
+
         who_can = prove_authority_who_can()
-        record('authority-who-can', 'all cluster RBAC holders equal the documented expected subject sets for every steering kind and mutation verb',
-               holders=who_can['holders'], nonEffectiveRoleBindings=who_can['nonEffectiveRoleBindings'], scope=who_can['scope'],
+        record('authority-who-can', 'all RBAC holders equal the documented expected subject sets for every cluster and namespaced steering kind and mutation verb',
+               holders=who_can['holders'], effectiveRoleBindings=who_can['effectiveRoleBindings'],
+               nonEffectiveRoleBindings=who_can['nonEffectiveRoleBindings'], scopes=who_can['scopes'],
                defaultCrossplaneGroupBindingPresent=who_can['defaultCrossplaneGroupBindingPresent'])
         record('authority-indirect-who-can', 'all RBAC holders of impersonation, bind, escalate, binding mutation, service-account token, Pod creation and Secret read paths equal the source-derived expected sets',
                holders=who_can['indirectHolders'], defaultCrossplaneGroupBindingPresent=who_can['defaultCrossplaneGroupBindingPresent'])
@@ -909,6 +1061,7 @@ def run(args):
         record('ephemeral-cleanup', f'deleting the remaining XR removed its Namespace and all {first["count"]} composed Objects')
     finally:
         kubectl(['delete', 'namespace', 'dw-ok175-squat', '--ignore-not-found', '--wait=true'], timeout=600, check=False)
+        kubectl(['delete', 'namespace', STEERING_NS, '--ignore-not-found', '--wait=true'], timeout=600, check=False)
         for binding in (OPERATOR_BINDING, OBSERVER_BINDING):
             kubectl(['delete', 'clusterrolebinding', binding, '--ignore-not-found', '--wait=true'], check=False)
         for name, _ in (*DISTINCT, PERSISTENT, SQUAT, NO_PROFILE):
@@ -920,6 +1073,7 @@ def run(args):
             expect(is_not_found(missing),
                    f'cleanup did not confirm {description} absent: rc={missing.returncode} {missing.stderr.strip()[:300]}')
         require_not_found(['namespace', 'dw-ok175-squat'], 'squat Namespace')
+        require_not_found(['namespace', STEERING_NS], 'provider steering proof Namespace')
         require_not_found(['namespace', PROOF_NS], 'proof services Namespace and its generated credentials')
         require_not_found(['environmentconfig', 'developer-workspace-profile'], 'profile EnvironmentConfig')
         for binding in (OPERATOR_BINDING, OBSERVER_BINDING):
@@ -938,7 +1092,7 @@ def run(args):
     EVIDENCE.mkdir(exist_ok=True); out = EVIDENCE / f'live-{tgt["context"].split("@")[-1]}-{run_id}.json'
     out.write_text(json.dumps(evidence, indent=2, sort_keys=True) + '\n'); print(f'{len(results)}/{len(RESULTS)} checks passed; evidence {out.relative_to(REPO)}')
 
-RESULTS = ('admission-rules', 'canonical-name-rule', 'no-profile-fails-closed', 'dedicated-namespace-enforced', 'reconcile-readback', 'workspace-id-immutable', 'authority-boundary-rbac', 'authority-who-can', 'authority-indirect-who-can',
+RESULTS = ('admission-rules', 'canonical-name-rule', 'no-profile-fails-closed', 'dedicated-namespace-enforced', 'reconcile-readback', 'workspace-id-immutable', 'authority-boundary-rbac', 'namespaced-provider-steering-denied', 'authority-who-can', 'authority-indirect-who-can',
            'workspace-id-duplicate-create-refused', 'drift-restored', 'source-checkout', 'kubernetes-authority-denied', 'kubernetes-api-unreachable', 'runtime-push-denied',
            'workspace-credential-push-denied', 'write-credential-absent', 'persistent-cleanup', 'ephemeral-reconcile', 'distinct-workspace-isolation', 'ephemeral-cleanup', 'harness-cleanup')
 

@@ -16,6 +16,7 @@ SPEC = importlib.util.spec_from_file_location('ok175_reconcile_proof', HERE / 'r
 proof = importlib.util.module_from_spec(SPEC)
 sys.modules[SPEC.name] = proof
 SPEC.loader.exec_module(proof)
+DISABLE_PROVIDER_STEERING_POLICY = '--disable-provider-steering-policy' in sys.argv
 
 
 def completed(args, returncode=0, stdout='', stderr=''):
@@ -25,6 +26,7 @@ def completed(args, returncode=0, stdout='', stderr=''):
 class FakeKubectl:
     def __init__(self):
         self.enforce_denial = True
+        self.provider_steering_policy_enabled = not DISABLE_PROVIDER_STEERING_POLICY
         self.candidate_exists = False
         self.object_refs = []
         self.candidate_get_error = None
@@ -38,12 +40,18 @@ class FakeKubectl:
             for d in proof.authority_identities() if d.get('kind') == 'ClusterRoleBinding'
             for s in d['subjects'] if s['kind'] == 'ServiceAccount'
         }
+        self.namespaced_edit_identities = {
+            f'system:serviceaccount:{proof.STEERING_NS}:{proof.STEERING_SA}',
+            f'system:serviceaccount:{proof.PROOF_NS}:{proof.OPERATOR_SA}',
+        }
 
     def add_observer_mutation(self, api_group, resource, verb):
         role = self.roles['developer-workspace-observer']
         role.append({'apiGroups': [api_group], 'resources': [resource], 'verbs': [verb]})
 
-    def allowed(self, identity, verb, api_group, resource, name=None):
+    def allowed(self, identity, verb, api_group, resource, name=None, namespace=None):
+        if api_group == 'kubernetes.m.crossplane.io' and identity in self.namespaced_edit_identities:
+            return namespace == proof.STEERING_NS
         role_name = self.subject_roles.get(identity)
         for rule in self.roles.get(role_name, []):
             if api_group not in rule.get('apiGroups', []) and '*' not in rule.get('apiGroups', []):
@@ -64,8 +72,13 @@ class FakeKubectl:
             verb, target = args[2], args[3]
             target, _, name = target.partition('/')
             resource, _, api_group = target.partition('.')
-            allowed = self.allowed(identity, verb, api_group, resource, name or None)
+            namespace = None
+            if '--namespace' in args:
+                namespace = args[args.index('--namespace') + 1]
+            allowed = self.allowed(identity, verb, api_group, resource, name or None, namespace)
             return completed(args, 0 if allowed else 1, 'yes\n' if allowed else 'no\n')
+        if args[:2] == ['apply', '-f']:
+            return completed(args)
         if args[0] in ('create', 'replace'):
             identity = next(value.removeprefix('--as=') for value in args if value.startswith('--as='))
             verb = 'create' if args[0] == 'create' else 'update'
@@ -76,15 +89,36 @@ class FakeKubectl:
                         'ProviderConfig': 'providerconfigs', 'EnvironmentConfig': 'environmentconfigs'}[kind]
             name = doc.get('metadata', {}).get('name')
             authorization_name = None if verb == 'create' else name
-            if not self.allowed(identity, verb, api_group, resource, authorization_name):
+            namespace = doc.get('metadata', {}).get('namespace')
+            if not self.allowed(identity, verb, api_group, resource, authorization_name, namespace):
                 if identity.endswith(':developer-workspace-observer') and not self.enforce_denial:
                     return completed(args)
                 error = (f'Error from server (Forbidden): {resource} is forbidden: User "{identity}" '
                          f'cannot {verb} resource "{resource}" in API group "{api_group}" at the cluster scope\n')
                 return completed(args, 1, stderr=error)
+            operator = self.allowed(identity, 'update', 'apiextensions.crossplane.io',
+                                    'environmentconfigs', 'developer-workspace-profile')
+            if (self.provider_steering_policy_enabled and not operator and
+                    api_group == 'kubernetes.m.crossplane.io' and resource in ('objects', 'providerconfigs')):
+                error = (f'Error from server (Invalid): ValidatingAdmissionPolicy '
+                         f'"{proof.STEERING_POLICY}" denied request: only a DeveloperWorkspace operator may '
+                         'create or update provider steering resources\n')
+                return completed(args, 1, stderr=error)
             return completed(args)
         if args[0] == 'delete':
             return completed(args)
+        if args[:2] == ['get', 'crd']:
+            name = args[2]
+            resource, group = name.split('.', 1)
+            kind = {'objects': 'Object', 'providerconfigs': 'ProviderConfig'}[resource]
+            return completed(args, stdout=json.dumps({
+                'spec': {'scope': 'Namespaced', 'names': {'kind': kind},
+                         'versions': [{'name': 'v1alpha1', 'served': True, 'storage': True}]},
+            }))
+        if len(args) > 1 and (args[1].startswith('objects.kubernetes.m.crossplane.io/') or
+                              args[1].startswith('providerconfigs.kubernetes.m.crossplane.io/') or
+                              args[1] == 'namespace'):
+            return completed(args, 1, stderr='Error from server (NotFound): resource not found\n')
         if len(args) > 1 and args[0] == 'get' and args[1].startswith('developerworkspace/'):
             if self.candidate_get_error:
                 return completed(args, 1, stderr=self.candidate_get_error)
@@ -142,7 +176,7 @@ def authority_fixture(include_group=True):
 
     wildcard = [{'apiGroups': ['*'], 'resources': ['*'], 'verbs': ['*']}]
     steering = [{'apiGroups': [group], 'resources': [resource], 'verbs': ['*']}
-                for group, resource in proof.AUTHORITY_RESOURCES.values()]
+                for group, resource, _scope in proof.AUTHORITY_RESOURCES.values()]
     grant('cluster-admin', [{'kind': 'Group', 'name': 'system:masters'}], wildcard)
     grant('system:controller:generic-garbage-collector',
           [{'kind': 'ServiceAccount', 'name': 'generic-garbage-collector', 'namespace': 'kube-system'}],
@@ -188,10 +222,13 @@ def authority_fixture(include_group=True):
             'verbs': ['get', 'list', 'watch', 'create', 'update', 'patch', 'escalate']},
            {'apiGroups': ['rbac.authorization.k8s.io'], 'resources': ['clusterroles'], 'verbs': ['bind']},
            {'apiGroups': ['rbac.authorization.k8s.io'], 'resources': ['clusterrolebindings'], 'verbs': ['*']}])
+    provider_rules = [{'apiGroups': [proof.AUTHORITY_RESOURCES[kind][0]],
+                       'resources': [proof.AUTHORITY_RESOURCES[kind][1]],
+                       'verbs': ['get', 'list', 'watch', 'create', 'update', 'patch']}
+                      for kind in sorted(proof.PROVIDER_SYSTEM_RESOURCES)]
     grant('provider-system', [{'kind': 'ServiceAccount', 'name': 'developer-workspace-provider-kubernetes',
                                'namespace': 'crossplane-system'}],
-          [{'apiGroups': ['kubernetes.crossplane.io'], 'resources': ['objects', 'providerconfigs'],
-            'verbs': ['get', 'list', 'watch', 'create', 'update', 'patch']},
+          [*provider_rules,
            {'apiGroups': [''], 'resources': ['serviceaccounts'],
             'verbs': ['get', 'list', 'watch', 'create', 'update', 'patch', 'delete']},
            {'apiGroups': [''], 'resources': ['secrets'], 'verbs': ['*']}])
@@ -211,7 +248,8 @@ class AuthorityWhoCanTest(unittest.TestCase):
     def setUp(self):
         self.original_get_json = proof.get_json
         self.fixture = authority_fixture()
-        self.scopes = {f'{resource}.{group}': 'Cluster' for group, resource in proof.AUTHORITY_RESOURCES.values()}
+        self.scopes = {f'{resource}.{group}': scope
+                       for group, resource, scope in proof.AUTHORITY_RESOURCES.values()}
         self.reads = []
         def fake_get_json(args):
             self.reads.append(args)
@@ -238,6 +276,7 @@ class AuthorityWhoCanTest(unittest.TestCase):
             result = proof.prove_authority_who_can()
             self.assertEqual(include_group, result['defaultCrossplaneGroupBindingPresent'])
             self.assertEqual([], result['nonEffectiveRoleBindings'])
+            self.assertEqual([], result['effectiveRoleBindings'])
             self.assertEqual({'clusterroles', 'clusterrolebindings', 'roles', 'rolebindings'},
                              {args[1] for args in self.reads if args[1] != 'crd'})
             self.assertTrue(all('--all-namespaces' in args for args in self.reads if args[1] in ('roles', 'rolebindings')))
@@ -254,6 +293,10 @@ class AuthorityWhoCanTest(unittest.TestCase):
             self.assertIn(nc, object_holders['deletecollection'])
             operator = {'kind': 'ServiceAccount', 'name': proof.OPERATOR_SA, 'namespace': proof.PROOF_NS}
             self.assertNotIn(operator, object_holders['deletecollection'])
+            self.assertNotIn(operator, result['holders']['NamespacedObject']['create'])
+            self.assertIn(provider, result['holders']['NamespacedObject']['create'])
+            self.assertEqual('Namespaced', result['scopes']['NamespacedObject'])
+            self.assertEqual('Cluster', result['scopes']['ClusterProviderConfig'])
             controller = {'kind': 'ServiceAccount', 'name': 'crossplane', 'namespace': 'crossplane-system'}
             self.assertIn(controller, result['indirectHolders']['impersonate-serviceaccounts'])
             self.assertNotIn(controller, result['indirectHolders']['impersonate-users'])
@@ -288,24 +331,31 @@ class AuthorityWhoCanTest(unittest.TestCase):
                     proof.prove_authority_who_can()
                 print(f'CONTROL FAILS AS EXPECTED: {rejected.exception}')
 
-    def test_rolebinding_only_is_reported_non_effective(self):
+    def test_rolebinding_is_effective_only_for_namespaced_resources(self):
         direct_rules = [{'apiGroups': [group], 'resources': [resource], 'verbs': list(proof.AUTHORITY_VERBS)}
-                        for group, resource in proof.AUTHORITY_RESOURCES.values()]
+                        for group, resource, _scope in proof.AUTHORITY_RESOURCES.values()]
         self.fixture['clusterroles'].append({'kind': 'ClusterRole', 'metadata': {'name': 'steering-only'}, 'rules': direct_rules})
         self.add_binding('steering-only', {'kind': 'ServiceAccount', 'name': 'namespace-only', 'namespace': 'team'}, 'RoleBinding', 'team')
-        role = {'kind': 'Role', 'metadata': {'name': 'local-editor', 'namespace': 'team'},
-                'rules': direct_rules}
-        self.fixture['roles'].append(role)
-        binding = self.add_binding('local-editor', {'kind': 'User', 'name': 'local-only'}, 'RoleBinding', 'team')
-        binding['roleRef']['kind'] = 'Role'
+        with self.assertRaisesRegex(
+                proof.ProofError,
+                'NamespacedObject/create: extra=.*namespace-only') as rejected:
+            proof.prove_authority_who_can()
+        print(f'CONTROL FAILS AS EXPECTED: namespaced RoleBinding is an effective extra holder: {rejected.exception}')
+
+        # With only cluster-scoped rules, the same RoleBinding grants nothing and is reported.
+        self.fixture = authority_fixture()
+        cluster_rules = [{'apiGroups': [group], 'resources': [resource], 'verbs': list(proof.AUTHORITY_VERBS)}
+                         for group, resource, scope in proof.AUTHORITY_RESOURCES.values() if scope == 'Cluster']
+        self.fixture['clusterroles'].append({'kind': 'ClusterRole', 'metadata': {'name': 'cluster-steering-only'},
+                                             'rules': cluster_rules})
+        self.add_binding('cluster-steering-only',
+                         {'kind': 'ServiceAccount', 'name': 'namespace-only', 'namespace': 'team'},
+                         'RoleBinding', 'team')
         result = proof.prove_authority_who_can()
-        self.assertEqual(40, len(result['nonEffectiveRoleBindings']))
-        for entry in result['nonEffectiveRoleBindings']:
-            self.assertIn('cluster-scoped', entry['reason'])
-            self.assertNotIn(entry['subjects'][0], result['holders'][entry['kind']][entry['verb']])
-        self.assertIn({'kind': 'ServiceAccount', 'name': 'namespace-only', 'namespace': 'team'},
-                      result['nonEffectiveRoleBindings'][0]['subjects'])
-        print('CONTROL PASS: RoleBinding references to Role and ClusterRole grant no cluster-scoped mutation; subjects reported')
+        self.assertEqual(len(cluster_rules) * len(proof.AUTHORITY_VERBS), len(result['nonEffectiveRoleBindings']))
+        self.assertTrue(all('cluster-scoped' in entry['reason'] for entry in result['nonEffectiveRoleBindings']))
+        self.assertEqual([], result['effectiveRoleBindings'])
+        print('CONTROL PASS: the same RoleBinding is non-effective for cluster-scoped kinds and is reported')
 
     def test_deletecollection_removal_fails(self):
         role = next(r for r in self.fixture['clusterroles']
@@ -407,11 +457,15 @@ class AuthorityWhoCanTest(unittest.TestCase):
         self.assertNotIn('create-pods-crossplane-system: extra=', message)
         print('CONTROL FAILS AS EXPECTED: a team RoleBinding counts for all-namespace SA impersonation/Role bind but not crossplane-system Pod create')
 
-    def test_namespaced_kind_is_rejected_before_ignoring_rolebindings(self):
+    def test_installed_crd_scope_must_match_declared_scope(self):
         self.scopes['objects.kubernetes.crossplane.io'] = 'Namespaced'
-        with self.assertRaisesRegex(proof.ProofError, 'Object must be cluster-scoped'):
+        with self.assertRaisesRegex(proof.ProofError, 'Object must be Cluster, got Namespaced'):
             proof.prove_authority_who_can()
-        print('CONTROL FAILS AS EXPECTED: installed namespaced Object invalidates the scope premise')
+        self.scopes['objects.kubernetes.crossplane.io'] = 'Cluster'
+        self.scopes['objects.kubernetes.m.crossplane.io'] = 'Cluster'
+        with self.assertRaisesRegex(proof.ProofError, 'NamespacedObject must be Namespaced, got Cluster'):
+            proof.prove_authority_who_can()
+        print('CONTROL FAILS AS EXPECTED: installed CRD scope drift is rejected for both cluster and namespaced kinds')
 
     def test_missing_expected_subject_or_changed_default_group_fails(self):
         self.fixture['clusterrolebindings'] = [b for b in self.fixture['clusterrolebindings'] if b['metadata']['name'] != 'crossplane']
@@ -475,6 +529,20 @@ class ReconcileProofAssertionsTest(unittest.TestCase):
         proof.assert_can_i(observer, 'create', 'objects.kubernetes.crossplane.io', False)
         with self.assertRaisesRegex(proof.ProofError, 'expected False'):
             proof.assert_can_i(operator, 'create', 'objects.kubernetes.crossplane.io', False)
+
+    def test_namespaced_provider_steering_policy_denial_and_operator_control(self):
+        result = proof.prove_namespaced_provider_steering_denied()
+        self.assertEqual(proof.STEERING_POLICY, result['policy'])
+        self.assertEqual(['providerconfigs', 'objects'], result['resources'])
+        document = proof.provider_api_document('kubernetes.m.crossplane.io', 'objects',
+                                               proof.STEERING_NS, 'provider-steering-probe')
+        self.assertEqual({'kind': 'ProviderConfig', 'name': 'provider-steering-probe'},
+                         document['spec']['providerConfigRef'])
+        nonoperator = f'system:serviceaccount:{proof.STEERING_NS}:{proof.STEERING_SA}'
+        proof.assert_can_i(nonoperator, 'create', 'objects.kubernetes.m.crossplane.io', True,
+                           namespace=proof.STEERING_NS)
+        proof.assert_can_i(nonoperator, 'create', 'objects.kubernetes.m.crossplane.io', False)
+        print('CONTROL PASS: namespaced RBAC says yes, the named policy denies real non-operator creates, and the independently defined operator dry-run is admitted')
 
     def test_can_i_checks_operator_allow_and_observer_mutation_denial_from_role_manifest(self):
         operator = f'system:serviceaccount:{proof.PROOF_NS}:developer-workspace-operator'
@@ -544,7 +612,8 @@ class ReconcileProofAssertionsTest(unittest.TestCase):
             xrd = read('xrd.yaml')
             provider_role = next(d for d in read_all('rbac/provider-kubernetes-clusterrole.yaml') if d['kind'] == 'ClusterRole')
             authority_roles = [d for d in read_all('rbac/authority-boundary.yaml') if d]
-            policy, binding = read_all('install/namespace-guard.yaml')
+            policies = [read_all(path) for path in
+                        ('install/namespace-guard.yaml', 'install/provider-steering-guard.yaml')]
             version = xrd['spec']['versions'][0]
             crd_name = f"{xrd['spec']['names']['plural']}.{xrd['spec']['group']}"
             generated_crd = {
@@ -558,8 +627,10 @@ class ReconcileProofAssertionsTest(unittest.TestCase):
                 ('crd', crd_name): generated_crd,
                 ('clusterrole', provider_role['metadata']['name']): provider_role,
                 **{('clusterrole', role['metadata']['name']): role for role in authority_roles},
-                ('validatingadmissionpolicy', policy['metadata']['name']): policy,
-                ('validatingadmissionpolicybinding', binding['metadata']['name']): binding,
+                **{('validatingadmissionpolicy', policy['metadata']['name']): policy
+                   for policy, _binding in policies},
+                **{('validatingadmissionpolicybinding', binding['metadata']['name']): binding
+                   for _policy, binding in policies},
             }
             return mapping
 
@@ -596,10 +667,89 @@ class ReconcileProofAssertionsTest(unittest.TestCase):
             print('CONTROL FAILS AS EXPECTED: generated CRD workspaceID maxLength drift is rejected')
             workspace_id['maxLength'] += 1
 
+            # The API server materializes harmless defaults. The gate accepts only those exact
+            # defaults and still rejects selectors, exclusions and parameter bypasses.
+            steering_policy = current[('validatingadmissionpolicy', proof.STEERING_POLICY)]
+            steering_binding = current[('validatingadmissionpolicybinding', proof.STEERING_POLICY)]
+            steering_policy['spec']['matchConstraints'].update({
+                'matchPolicy': 'Equivalent', 'namespaceSelector': {}, 'objectSelector': {},
+                'excludeResourceRules': [],
+            })
+            steering_binding['spec']['matchResources'] = {
+                'matchPolicy': 'Equivalent', 'namespaceSelector': {}, 'objectSelector': {},
+                'resourceRules': [], 'excludeResourceRules': [],
+            }
             proof.installed_matches_local()
-            print('CONTROL PASS: generated CRD root/spec CEL and workspaceID maxLength match current XRD')
+            steering_policy['spec']['matchConstraints']['namespaceSelector'] = {
+                'matchLabels': {'policy-bypass': 'true'},
+            }
+            with self.assertRaisesRegex(proof.ProofError, 'provider steering guard policy differs'):
+                proof.installed_matches_local()
+            print('CONTROL FAILS AS EXPECTED: an installed provider guard Namespace selector cannot narrow enforcement')
+            steering_policy['spec']['matchConstraints']['namespaceSelector'] = {}
+            steering_policy['spec']['paramKind'] = {'apiVersion': 'v1', 'kind': 'ConfigMap'}
+            steering_binding['spec']['paramRef'] = {'name': 'missing'}
+            steering_binding['spec']['parameterNotFoundAction'] = 'Allow'
+            with self.assertRaisesRegex(proof.ProofError, 'provider steering guard policy differs'):
+                proof.installed_matches_local()
+            print('CONTROL FAILS AS EXPECTED: installed policy parameterization cannot bypass the provider steering guard')
+            steering_policy['spec'].pop('paramKind')
+            steering_binding['spec'].pop('paramRef')
+            steering_binding['spec'].pop('parameterNotFoundAction')
+
+            proof.installed_matches_local()
+            print('CONTROL PASS: generated CRD guards and both admission policies/bindings match local files including harmless API defaults')
         finally:
             proof.get_json = original_get_json
+
+    def test_install_applies_provider_steering_guard(self):
+        original_target = proof.target
+        original_run = proof.subprocess.run
+        original_apply_file = proof.apply_file
+        original_kubectl = proof.kubectl
+        applied = []
+        proof.target = lambda: {'context': 'offline'}
+        proof.subprocess.run = lambda *args, **kwargs: completed(list(args[0]))
+        proof.apply_file = lambda path: applied.append(str(path.relative_to(proof.CAPABILITY)))
+        proof.kubectl = lambda args, **kwargs: completed(args)
+        try:
+            proof.install(None)
+            self.assertIn('install/provider-steering-guard.yaml', applied)
+            self.assertLess(applied.index('install/provider-steering-guard.yaml'),
+                            applied.index('install/providerconfig.yaml'))
+            print('CONTROL PASS: install recipe applies the provider steering policy before the ProviderConfig')
+        finally:
+            proof.target = original_target
+            proof.subprocess.run = original_run
+            proof.apply_file = original_apply_file
+            proof.kubectl = original_kubectl
+
+    def test_uninstall_deletes_provider_steering_guard(self):
+        original_target = proof.target
+        original_run = proof.subprocess.run
+        original_kubectl = proof.kubectl
+        deleted = []
+        proof.target = lambda: {'context': 'offline'}
+        def fake_run(args, **_kwargs):
+            return completed(list(args), returncode=1 if args[:2] == ['helm', 'status'] else 0)
+        def fake_kubectl(args, **_kwargs):
+            if args[:2] == ['get', 'developerworkspaces']:
+                return completed(args, stdout=json.dumps({'items': []}))
+            if args[:2] == ['get', 'crd']:
+                return completed(args, stdout=json.dumps({'items': []}))
+            if args[0] == 'delete' and '-f' in args:
+                deleted.append(str(Path(args[args.index('-f') + 1]).relative_to(proof.CAPABILITY)))
+            return completed(args)
+        proof.subprocess.run = fake_run
+        proof.kubectl = fake_kubectl
+        try:
+            proof.uninstall(None)
+            self.assertIn('install/provider-steering-guard.yaml', deleted)
+            print('CONTROL PASS: uninstall recipe deletes the provider steering policy and binding')
+        finally:
+            proof.target = original_target
+            proof.subprocess.run = original_run
+            proof.kubectl = original_kubectl
 
     def test_noncanonical_name_refusal_requires_admission_denial_and_no_object_refs(self):
         rejected = completed(['create'], 1, stderr="metadata.name must equal spec.workspaceID + '-xr'")
@@ -783,4 +933,9 @@ if __name__ == '__main__':
     if '--disable-canonical-collision-check' in sys.argv:
         sys.argv.remove('--disable-canonical-collision-check')
         proof.assert_canonical_create_already_exists = without_expect(proof.assert_canonical_create_already_exists)
+    if '--disable-provider-steering-policy' in sys.argv:
+        sys.argv.remove('--disable-provider-steering-policy')
+    if '--treat-namespaced-rolebindings-as-non-effective' in sys.argv:
+        sys.argv.remove('--treat-namespaced-rolebindings-as-non-effective')
+        proof.rolebinding_grants_resource = lambda cluster_binding, _scope: cluster_binding
     unittest.main(verbosity=2)

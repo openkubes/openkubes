@@ -16,7 +16,7 @@ ADR-Platform-039 stays Proposed; this directory supplies implementation evidence
 | `xrd.yaml` | Cluster-scoped XRD, generated from the contract schema by `tests/xrd_schema.py`; the contract fields remain profile-independent, while this profile also requires the Kubernetes resource envelope name described below. |
 | `composition.yaml` | Template port of the spike's `render()`; function-go-templating then function-auto-ready. |
 | EnvironmentConfig `developer-workspace-profile` | Cluster-scoped input: `profile` (the reviewed NamespaceProfileCatalog), `providerConfigName`, optional `imagePullSecret`. Without it the render fails and nothing is composed. Every check `render()` makes in `validate_profile()` is a `fail` guard here, so any input `render()` rejects composes nothing. |
-| `install/` | provider-kubernetes with a named ServiceAccount and watches enabled, the `in-cluster` ProviderConfig (InjectedIdentity), and `namespace-guard.yaml`, a ValidatingAdmissionPolicy that keeps workspace Namespaces dedicated. |
+| `install/` | provider-kubernetes with a named ServiceAccount and watches enabled, the `in-cluster` ProviderConfig (InjectedIdentity), and the Namespace and provider-steering ValidatingAdmissionPolicies described below. |
 | `rbac/provider-kubernetes-clusterrole.yaml` | The authority this capability adds to the provider: the kinds the Composition emits. No RBAC kinds, Pods or exec. |
 | `rbac/authority-boundary.yaml` | Unbound operator and observer ClusterRoles. There is no requester role in this increment. See *Provider and human authority*. |
 | `tests/functions.yaml` | Pinned function packages (go-templating v0.9.2, auto-ready v0.4.1). |
@@ -115,21 +115,23 @@ policy, as described in the
 [Kubernetes RBAC reference](https://kubernetes.io/docs/reference/access-authn-authz/rbac/#referring-to-resources).
 
 The direct holder policy checked by `authority-who-can` is below. `C/U/P/D/DC` means
-`create/update/patch/delete/deletecollection`; “all four” means DeveloperWorkspace, Object,
-ProviderConfig and EnvironmentConfig. ServiceAccount subjects are written as `namespace:name`.
+`create/update/patch/delete/deletecollection`; “original four” means DeveloperWorkspace, cluster
+Object, cluster ProviderConfig and EnvironmentConfig. “all audited kinds” adds the provider APIs
+listed below (including ProviderConfigUsage for the complete namespaced inventory).
+ServiceAccount subjects are written as `namespace:name`.
 The table counts any name-restricted mutation grant on a kind, not only grants on the two installed
 config names.
 
 | Subject | Binding / role | Kind | Mutation verbs |
 |---|---|---|---|
-| Group `system:masters` | Kubernetes `cluster-admin` | all four | C/U/P/D/DC |
-| ServiceAccount `kube-system:generic-garbage-collector` | `system:controller:generic-garbage-collector` | all four | U/P/D |
-| ServiceAccount `kube-system:namespace-controller` | `system:controller:namespace-controller` | all four | D/DC |
-| ServiceAccount `crossplane-system:crossplane` | `crossplane`, including materialized system aggregates | all four | C/U/P/D/DC |
-| Group `crossplane:masters`, if default binding exists | `crossplane-admin` | all four | C/U/P/D/DC |
-| ServiceAccount `crossplane-system:rbac-manager` | `crossplane-rbac-manager` | none of the four | none (manages RBAC instead) |
-| ServiceAccount `crossplane-system:developer-workspace-provider-kubernetes` | generated provider-revision system role | Object, ProviderConfig | C/U/P (no D) |
-| ServiceAccount `ok174-proof-services:developer-workspace-operator` | temporary proof binding to `developer-workspace-operator` | all four | C/U/P/D, no DC (config U/P/D have the name boundary above) |
+| Group `system:masters` | Kubernetes `cluster-admin` | all audited kinds | C/U/P/D/DC |
+| ServiceAccount `kube-system:generic-garbage-collector` | `system:controller:generic-garbage-collector` | all audited kinds | U/P/D |
+| ServiceAccount `kube-system:namespace-controller` | `system:controller:namespace-controller` | all audited kinds | D/DC |
+| ServiceAccount `crossplane-system:crossplane` | `crossplane`, including materialized system aggregates | all audited kinds | C/U/P/D/DC |
+| Group `crossplane:masters`, if default binding exists | `crossplane-admin` | all audited kinds | C/U/P/D/DC |
+| ServiceAccount `crossplane-system:rbac-manager` | `crossplane-rbac-manager` | none of the audited kinds | none (manages RBAC instead) |
+| ServiceAccount `crossplane-system:developer-workspace-provider-kubernetes` | generated provider-revision system role | all provider-kubernetes audited kinds | C/U/P (no D) |
+| ServiceAccount `ok174-proof-services:developer-workspace-operator` | temporary proof binding to `developer-workspace-operator` | original four | C/U/P/D, no DC (config U/P/D have the name boundary above) |
 
 This expected set is written explicitly in the harness, derived from documented sources rather
 than a cluster dump. The pinned Crossplane 2.3.3 chart defines the
@@ -142,7 +144,7 @@ and [provider roles](https://github.com/crossplane/crossplane/blob/v2.3.3/intern
 aggregate the XR/provider CRD kinds into `crossplane-admin`/`crossplane-edit` and the core controller
 role. The provider's own system role omits `delete`. The pinned provider-kubernetes
 [v1.3.1 CRDs](https://github.com/crossplane-contrib/provider-kubernetes/tree/v1.3.1/package/crds)
-supply Object and ProviderConfig. Kubernetes v1.34.1 (the live profile's tested version) defines the
+supply the cluster and namespaced provider kinds listed below. Kubernetes v1.34.1 (the live profile's tested version) defines the
 [controller wildcard grants and default ServiceAccount bindings](https://github.com/kubernetes/kubernetes/blob/v1.34.1/plugin/pkg/auth/authorizer/rbac/bootstrappolicy/controller_policy.go)
 and the [cluster-admin role and system:masters binding](https://github.com/kubernetes/kubernetes/blob/v1.34.1/plugin/pkg/auth/authorizer/rbac/bootstrappolicy/policy.go).
 The controller ServiceAccount bindings are RBAC holders even if controller loops use a shared
@@ -191,12 +193,14 @@ The live proof enumerates all ClusterRoles, ClusterRoleBindings, Roles and RoleB
 the documented direct holder set on the disposable cluster for each kind and verb. It uses the server's
 materialized `rules`, including any `admin`/`edit` aggregation, matches API-group/resource/verb
 wildcards, and fails with the names of extra or missing subjects. Evidence records only subject
-kind/name/namespace per kind/verb, never credentials or group membership. All four installed CRDs
-must be cluster-scoped; a RoleBinding to either a Role or ClusterRole therefore cannot grant these
-mutations and is reported separately as non-effective. A production installation must keep that
+kind/name/namespace per kind/verb, never credentials or group membership. The harness checks each
+installed CRD against its expected scope. RoleBindings to Roles or ClusterRoles count as effective
+for Namespaced kinds in their namespace, and are reported as non-effective only for Cluster kinds. A production installation must keep that
 set: operators add subjects only via the operator role (in place of the temporary proof
 identity), retaining the same name boundaries. Broader human bindings to `cluster-admin`,
-`crossplane-admin`, `admin` or `edit` violate this policy. The group subjects denote trusted
+`crossplane-admin` or `crossplane-edit` violate this policy. Kubernetes `admin`/`edit`/`view`
+do not aggregate these provider kinds in the pinned installation; namespace wildcard Roles still
+grant them. The group subjects denote trusted
 administrative membership; RBAC enumeration does not enumerate external identity-provider members
 or authorization from non-RBAC authorizers.
 
@@ -221,6 +225,44 @@ profile authority and is therefore trusted platform authority; the guards do not
 operator to the contract-only interface. A requester role would require additional authorization
 and resource-bound evidence, so it is intentionally deferred.
 
+The additional provider-kubernetes v1.3.1 API inventory is:
+
+| API group | Resources | Scope |
+|---|---|---|
+| `kubernetes.m.crossplane.io` | `objects`, `providerconfigs`, `providerconfigusages`, `observedobjectcollections` | Namespaced |
+| `kubernetes.m.crossplane.io` | `clusterproviderconfigs` | Cluster |
+| `kubernetes.crossplane.io` | `observedobjectcollections` | Cluster |
+
+A namespace RoleBinding to `crossplane-edit` (or a namespace Role with wildcard rules) can grant
+creation and updates of the namespaced kinds. Crossplane aggregates these APIs into
+`crossplane-admin` and `crossplane-edit` with `*` verbs. A namespaced ProviderConfig can select
+`credentials.source: InjectedIdentity`; paired with an Object it directs the provider's own
+privileged identity. A namespaced grant therefore reaches cluster-wide provider authority even
+though the original four APIs are Cluster scoped.
+
+`install/provider-steering-guard.yaml` closes this admission path. The
+`developer-workspace-provider-steering` policy and Deny binding use `failurePolicy: Fail` and
+permit CREATE/UPDATE only when the caller is authorized to update EnvironmentConfig
+`developer-workspace-profile` in `apiextensions.crossplane.io`. That named-profile authorization
+is the operator definition; a role name or provider identity alone is no exemption. The policy
+covers namespaced Objects, ProviderConfigs and ObservedObjectCollections, plus ClusterProviderConfigs
+and cluster ObservedObjectCollections, for every served API version. RBAC remains necessary:
+passing admission grants no permission, and the shipped operator role does not add these APIs.
+
+The policy denies all non-operator writes to these kinds rather than filtering only
+`InjectedIdentity`. This capability uses none of them, so non-operators have no supported use that
+requires an exception. Denying the whole kind also covers alternative credential sources and
+provider references without depending on their field layout. Operators remain trusted platform
+authority. ProviderConfigUsage is inventoried by who-can but is not an admission target: it tracks
+usage rather than supplying a credential or manifest to reconcile.
+
+The `namespaced-provider-steering-denied` live check temporarily grants a non-operator
+`crossplane-edit` in a scratch Namespace, proves its RBAC create permission, and submits real
+ProviderConfig (InjectedIdentity) and Object creates. Both must fail naming the steering policy;
+operator controls use server dry-run. The proof removes its temporary resources even on failure.
+Offline CEL and harness selftests exercise this path; only a live run establishes API-server
+admission enforcement.
+
 ## Checks
 
 Install the CEL evaluator used by `xrd-check` in a virtual environment (recommended on systems
@@ -233,6 +275,7 @@ source .venv/bin/activate
 ```
 
 ```bash
+make admission-cel-check # provider-steering policy, matching, operator and negative controls
 make functions-up      # function containers for the Development runtime
 make render-check      # xrd-check; Composition output == render() for 8 variants and the
                        # longest workspaceID; status phases; fails on a missing profile and on
@@ -309,9 +352,12 @@ a control that shows it can fail:
   an operator allowed control. Positive XR attempts pass admission, while the canonical-name-rule
   request independently proves that the server executes its CEL;
 - `authority-who-can` enumerates cluster RBAC holders for
-  `create/update/patch/delete/deletecollection` on all four steering kinds, asserts the documented
-  direct sets, and records subject identities and non-effective RoleBinding rules; extra bindings or
+  `create/update/patch/delete/deletecollection` on every audited steering kind, asserts the documented
+  direct sets, and records effective namespaced grants and non-effective cluster RoleBinding rules; extra bindings or
   wildcard grants fail the proof. The shipped operator role has no `deletecollection` grant;
+- `namespaced-provider-steering-denied` creates a scratch namespace RoleBinding to
+  `crossplane-edit` for a non-operator. Real ProviderConfig/InjectedIdentity and Object creates must
+  fail naming the steering policy, with admitted operator dry-run controls and cleanup;
 - `authority-indirect-who-can` enumerates the documented indirect RBAC paths, using the scopes in
   the table above; extra subjects fail the proof. External identity-group
   membership and non-RBAC authorizers remain outside this enumeration;
