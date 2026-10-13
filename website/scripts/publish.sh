@@ -99,9 +99,9 @@ publish() {
     verify_preview_ancestry "$target"
   fi
   echo "Ready to publish main commit $target to https://openkubes.org/"
-  printf 'Type PUBLISH_OPENKUBES_ORG to continue: '
+  printf 'Type OK to continue: '
   IFS= read -r confirmation </dev/tty || fail "Interactive confirmation required."
-  test "$confirmation" = PUBLISH_OPENKUBES_ORG || fail "Publication cancelled."
+  test "$confirmation" = OK || fail "Publication cancelled."
   verify_remote_revision "$target"
   enabled="$(gh variable get OK196_PAGES_RELEASE_ENABLED --repo "$repo" 2>/dev/null || true)"
   test "$enabled" = false || fail "Repository release switch must be false before starting (got '$enabled')."
