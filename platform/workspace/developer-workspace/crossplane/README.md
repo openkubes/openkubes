@@ -173,7 +173,7 @@ ServiceAccount (`namespace:name`) exactly as shown.
 | `update` or `patch` RoleBindings | M; `kube-system:generic-garbage-collector`; G |
 | `create` ServiceAccounts in `crossplane-system` | M; User `system:kube-controller-manager`; `kube-system:service-account-controller`; `crossplane-system:crossplane`; `crossplane-system:developer-workspace-provider-kubernetes` |
 | `create` `serviceaccounts/token` in `crossplane-system` | M; User `system:kube-controller-manager` |
-| `create` Pods in `crossplane-system` | M; `kube-system:daemon-set-controller`; `kube-system:job-controller`; `kube-system:persistent-volume-binder`; `kube-system:replicaset-controller`; `kube-system:replication-controller`; `kube-system:statefulset-controller` |
+| `create` Pods in `crossplane-system` | M; `kube-system:daemon-set-controller`; `kube-system:job-controller`; `kube-system:persistent-volume-binder`; `kube-system:replicaset-controller`; `kube-system:replication-controller`; `kube-system:statefulset-controller`; when the ok-storage `ok-storage-local-quota` profile is installed, `ok-storage-local-quota:ok-storage-local-quota-provisioner` |
 | `get` Secrets in `crossplane-system` | M; User `system:kube-controller-manager`; `kube-system:generic-garbage-collector`; `kube-system:namespace-controller`; `crossplane-system:crossplane`; `crossplane-system:developer-workspace-provider-kubernetes`; `kube-system:cilium-operator`; G |
 | `list` Secrets in `crossplane-system` | the `get` set plus `kube-system:resourcequota-controller` |
 
@@ -188,6 +188,11 @@ The pinned local-path manifest grants its provisioner Pod creation only through 
 `local-path-storage`; its ClusterRole grants Pod reads but no Secret reads, so it contributes no
 subject to these Pod-create or Secret-read rows in `crossplane-system`. Talos uses
 the Kubernetes controller identities in the pinned v1.34.1 bootstrap policy linked above.
+The ok-storage `ok-storage-local-quota` profile (pinned OpenEBS localpv 4.6.0) binds a ClusterRole
+granting its provisioner all verbs on Pods and Namespaces cluster-wide, so that ServiceAccount can
+start a Pod under the provider's ServiceAccount: it is platform authority, like the controllers
+above. The proof expects it only when that exact ClusterRoleBinding (that ServiceAccount to that
+ClusterRole) exists; any other shape of the grant fails the check. ok-storage documents the grant.
 
 The live proof enumerates all ClusterRoles, ClusterRoleBindings, Roles and RoleBindings and asserts
 the documented direct holder set on the disposable cluster for each kind and verb. It uses the server's

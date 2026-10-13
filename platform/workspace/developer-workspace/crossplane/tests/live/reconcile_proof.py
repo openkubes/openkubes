@@ -495,7 +495,19 @@ def expected_authority_holders(default_group_present):
     return result
 
 
-def expected_indirect_holders(default_group_present):
+LOCAL_QUOTA_PROVISIONER = ('ServiceAccount', 'ok-storage-local-quota-provisioner', 'ok-storage-local-quota')
+
+
+def local_quota_binding_present(cluster_bindings):
+    """Only the exact ok-storage binding (this SA to its own ClusterRole) makes the SA expected."""
+    return any(b['metadata']['name'] == 'ok-storage-local-quota-provisioner'
+               and b.get('roleRef', {}).get('name') == 'ok-storage-local-quota-provisioner'
+               and [(s.get('kind'), s.get('name'), s.get('namespace', '')) for s in b.get('subjects', [])]
+                   == [LOCAL_QUOTA_PROVISIONER]
+               for b in cluster_bindings)
+
+
+def expected_indirect_holders(default_group_present, local_quota_present=False):
     master = ('Group', 'system:masters', '')
     group = {('Group', 'crossplane:masters', '')} if default_group_present else set()
     sa = lambda name, namespace='kube-system': ('ServiceAccount', name, namespace)
@@ -521,6 +533,10 @@ def expected_indirect_holders(default_group_present):
     result['create-pods-crossplane-system'].update(sa(name) for name in (
         'daemon-set-controller', 'job-controller', 'persistent-volume-binder',
         'replicaset-controller', 'replication-controller', 'statefulset-controller'))
+    if local_quota_present:
+        # ok-storage's pinned OpenEBS localpv 4.6.0 ClusterRole grants its provisioner all verbs on
+        # pods and namespaces cluster-wide (helper Pods); documented in ok-storage README.
+        result['create-pods-crossplane-system'].add(LOCAL_QUOTA_PROVISIONER)
     secret_readers = {kcm, gc, namespace_controller, controller, provider, sa('cilium-operator'), *group}
     result['get-secrets-crossplane-system'].update(secret_readers)
     result['list-secrets-crossplane-system'].update({*secret_readers, sa('resourcequota-controller')})
@@ -625,8 +641,9 @@ def prove_authority_who_can():
             if cluster_binding or scope == '*' or namespace == scope:
                 indirect[name].update(subjects)
     default_group_present = any(b['metadata']['name'] == 'crossplane-admin' for b in cluster_bindings)
+    local_quota_present = local_quota_binding_present(cluster_bindings)
     assert_authority_holder_sets(holders, expected_authority_holders(default_group_present))
-    assert_indirect_authority_holder_sets(indirect, expected_indirect_holders(default_group_present))
+    assert_indirect_authority_holder_sets(indirect, expected_indirect_holders(default_group_present, local_quota_present))
     return {'holders': {kind: {verb: list(map(authority_subject_record, sorted(subjects)))
                               for verb, subjects in verbs.items()} for kind, verbs in holders.items()},
             'indirectHolders': {name: list(map(authority_subject_record, sorted(subjects)))
@@ -634,7 +651,8 @@ def prove_authority_who_can():
             'effectiveRoleBindings': effective_role_bindings,
             'nonEffectiveRoleBindings': non_effective,
             'scopes': {kind: scope for kind, (_group, _resource, scope) in AUTHORITY_RESOURCES.items()},
-            'defaultCrossplaneGroupBindingPresent': default_group_present}
+            'defaultCrossplaneGroupBindingPresent': default_group_present,
+            'localQuotaProvisionerBindingPresent': local_quota_present}
 
 
 def assert_can_i(identity, verb, resource, allowed, name=None, namespace=None):

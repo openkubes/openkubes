@@ -389,6 +389,27 @@ class AuthorityWhoCanTest(unittest.TestCase):
                     proof.prove_authority_who_can()
                 print(f'CONTROL FAILS AS EXPECTED: {rejected.exception}')
 
+    def test_local_quota_provisioner_is_expected_only_with_its_exact_binding(self):
+        provisioner = {'kind': 'ServiceAccount', 'name': 'ok-storage-local-quota-provisioner',
+                       'namespace': 'ok-storage-local-quota'}
+        role = {'kind': 'ClusterRole', 'metadata': {'name': 'ok-storage-local-quota-provisioner'},
+                'rules': [{'apiGroups': ['*'], 'resources': ['namespaces', 'pods', 'events', 'endpoints'],
+                           'verbs': ['*']}]}
+        self.fixture = authority_fixture()
+        self.fixture['clusterroles'].append(role)
+        self.add_binding('ok-storage-local-quota-provisioner', provisioner)['metadata']['name'] = 'ok-storage-local-quota-provisioner'
+        result = proof.prove_authority_who_can()
+        self.assertTrue(result['localQuotaProvisionerBindingPresent'])
+        print('CONTROL PASS: the exact ok-storage binding makes its provisioner an expected Pod creator')
+        # The same grant under any other binding shape is an unexpected holder.
+        self.fixture = authority_fixture()
+        self.fixture['clusterroles'].append(role)
+        self.add_binding('ok-storage-local-quota-provisioner', provisioner)['metadata']['name'] = 'ok-storage-local-quota-provisioner'
+        self.fixture['clusterrolebindings'][-1]['subjects'].append({'kind': 'User', 'name': 'extra-user'})
+        with self.assertRaisesRegex(proof.ProofError, r'create-pods-crossplane-system: extra=') as rejected:
+            proof.prove_authority_who_can()
+        print(f'CONTROL FAILS AS EXPECTED: {rejected.exception}')
+
     def test_subresource_and_resource_name_matching_matches_kubernetes(self):
         named_token = {'apiGroups': [''], 'resources': ['*/token'], 'verbs': ['create'],
                        'resourceNames': ['crossplane']}
