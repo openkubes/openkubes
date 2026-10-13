@@ -50,6 +50,15 @@ def main():
         if not source_page.is_file():
             raise SystemExit(f"Missing OK Observability page: {source_page}")
         shutil.copy2(source_page, observability_target / filename)
+    # Stage the source-owned Developer Workspace capability pages.
+    workspace_source = pages / "developer-workspace"
+    workspace_target = TARGET / "developer-workspace"
+    workspace_target.mkdir(parents=True, exist_ok=True)
+    for filename in ("index.md", "architecture.md", "coding-agents.md", "status.md"):
+        source_page = workspace_source / filename
+        if not source_page.is_file():
+            raise SystemExit(f"Missing Developer Workspace page: {source_page}")
+        shutil.copy2(source_page, workspace_target / filename)
     # Preserve the historical getting-started entry point as a rendered page.
     # Relative repository links in its source README point outside docs/.
     getting_started = SOURCE / "getting-started" / "README.md"

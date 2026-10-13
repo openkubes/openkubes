@@ -26,6 +26,10 @@ Use [OpenKubes Local tutorials](/docs/ok-local/tutorial-prerequisites/) for hand
 
 [OK Observability](/observability/) defines per-cluster metrics, dashboards, searchable logs, alerting and autonomy as testable platform guarantees. The [Observability Capability Contract](/observability/contract/) and gated installation make those claims verifiable rather than relying on deployment status alone.
 
+### Developer Workspace
+
+[Developer Workspace](/developer-workspace/) explores contract-driven, bounded AI-assisted coding on Kubernetes. OpenCode is the first reference runtime, with a second-runtime proof using Codex. This is an active capability implementation, not yet a general self-service workspace offering.
+
 ## Explore
 
 - [Platform architecture](/architecture/)
