@@ -6,7 +6,8 @@
 # (plus the operational settings below) for the same DeveloperWorkspace and profile.
 #
 # Inputs:
-#   - the DeveloperWorkspace XR (the portable contract document, unchanged);
+#   - the DeveloperWorkspace XR (portable contract fields; this profile requires
+#     metadata.name == spec.workspaceID + '-xr' at XRD admission);
 #   - the reviewed NamespaceProfileCatalog, read from the cluster-scoped EnvironmentConfig
 #     developer-workspace-profile, key `profile`;
 #   - operational settings from the same EnvironmentConfig: `providerConfigName` (required) and

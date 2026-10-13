@@ -5,7 +5,7 @@ GOTEMPLATING_IMAGE := xpkg.upbound.io/crossplane-contrib/function-go-templating:
 AUTOREADY_IMAGE := xpkg.upbound.io/crossplane-contrib/function-auto-ready:v0.4.1
 SPIKE_IMAGES := ../../../../architecture/spikes/ADR-Platform-039/live/evidence/published-images.env
 
-.PHONY: help xrd xrd-check functions-up functions-down render-check live-install live-run live-uninstall
+.PHONY: help xrd xrd-check cel-check functions-up functions-down render-check live-install live-run live-uninstall
 
 help: ## Show targets
 	@grep -E '^[a-z-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-15s %s\n", $$1, $$2}'
@@ -15,6 +15,10 @@ xrd: ## Regenerate xrd.yaml from the contract schema
 
 xrd-check: ## Fail if xrd.yaml drifts from the contract schema
 	@python3 tests/xrd_schema.py --check
+	@python3 tests/xrd-cel-check.py
+
+cel-check: ## Evaluate XRD admission CEL offline (needs tests/cel-requirements.txt)
+	@python3 tests/xrd-cel-check.py
 
 functions-up: ## Run both functions as Development-runtime containers for render-check
 	@$(DOCKER) run -d --rm --name ok175-fn-gotemplating -p 127.0.0.1:9443:9443 $(GOTEMPLATING_IMAGE) --insecure >/dev/null

@@ -20,6 +20,7 @@ CAPABILITY = HERE.parent
 REPO = CAPABILITY.parents[3]
 SPIKE = REPO / 'architecture/spikes/ADR-Platform-039'
 CROSSPLANE = os.environ.get('CROSSPLANE', 'crossplane')
+RENDER_BINARY = os.environ.get('CROSSPLANE_RENDER_BINARY', '')
 TARGETS = {'function-go-templating': os.environ.get('GOTEMPLATING_TARGET', 'localhost:9443'),
            'function-auto-ready': os.environ.get('AUTOREADY_TARGET', 'localhost:9444')}
 PROVIDER_CONFIG = 'in-cluster'
@@ -45,7 +46,8 @@ def profile_config(profile, pull_secret): return profile_configs.profile_config(
 def render(doc, extra, directory, observed=None):
     xr = Path(directory) / 'xr.yaml'; xr.write_text(yaml.safe_dump(doc, sort_keys=False))
     args = [CROSSPLANE, 'composition', 'render', str(xr), str(CAPABILITY / 'composition.yaml'),
-            str(functions_file(directory)), '--crossplane-version=v2.3.3']
+            str(functions_file(directory))]
+    args.append(f'--crossplane-binary={RENDER_BINARY}' if RENDER_BINARY else '--crossplane-version=v2.3.3')
     if observed is not None:
         path = Path(directory) / 'observed.yaml'; path.write_text(yaml.safe_dump_all(observed)); args.append(f'--observed-resources={path}')
     if extra is not None:
@@ -76,6 +78,11 @@ def variant(base, runtime='opencode', mode='persistent'):
     if mode == 'ephemeral':
         doc['spec']['storage']['mode'] = 'ephemeral'
         doc['spec']['lifecycle'].update({'profile': 'ephemeral', 'deletion': 'after-retention'})
+    return doc
+
+def canonicalize_name(doc):
+    """Use the XRD admission envelope's canonical XR name for positive render inputs."""
+    doc['metadata']['name'] = doc['spec']['workspaceID'] + '-xr'
     return doc
 
 def mutations(doc):
@@ -124,7 +131,9 @@ def mutations(doc):
     }
 
 def main():
-    base = load(SPIKE / 'developer-workspace-v0alpha1.example.yaml'); profile = load(SPIKE / 'namespace-profile-v1.yaml')
+    # crossplane render does not execute XRD admission CEL, so keep every render oracle input
+    # independently admissible instead of treating a successful render as admission evidence.
+    base = canonicalize_name(load(SPIKE / 'developer-workspace-v0alpha1.example.yaml')); profile = load(SPIKE / 'namespace-profile-v1.yaml')
     failures = []; checked = 0
     with tempfile.TemporaryDirectory(prefix='ok175-render-') as directory:
         for runtime in ('opencode', 'codex'):
@@ -142,6 +151,7 @@ def main():
                     else:
                         checked += 1; print(f'PASS {name}: {len(objects)} Objects equal render()')
         doc = copy.deepcopy(base); doc['spec']['workspaceID'] = 'ws-' + 'a' * 48  # the schema's longest ID
+        canonicalize_name(doc)
         done, outputs = render(doc, [profile_config(profile, '')], directory)
         try:
             if done.returncode: raise AssertionError(done.stderr.strip()[:300])
@@ -150,10 +160,18 @@ def main():
         except AssertionError as error: failures.append(f'longest workspaceID: {error}')
         status = lambda outputs: {k: v for k, v in next((o for o in outputs if o.get('kind') == 'DeveloperWorkspace'), {}).get('status', {}).items() if k != 'conditions'}
         done, outputs = render(base, [profile_config(profile, '')], directory)
+        if done.returncode:
+            for failure in failures: print('FAIL ' + failure, file=sys.stderr)
+            print(f'FAIL status render: {done.stderr.strip()[:600]}', file=sys.stderr)
+            return 1
         _, objects = composed(outputs)
         if status(outputs) == {'namespace': 'dw-sample-174', 'lifecyclePhase': 'pending'}: print('PASS status: pending until the Deployment is observed available')
         else: failures.append(f'status before availability: {status(outputs)}')
-        deployment = copy.deepcopy(next(o for o in objects if o['spec']['forProvider']['manifest']['kind'] == 'Deployment'))
+        deployment = next((o for o in objects if o['spec']['forProvider']['manifest']['kind'] == 'Deployment'), None)
+        if deployment is None:
+            print('FAIL status render: no composed Deployment', file=sys.stderr)
+            return 1
+        deployment = copy.deepcopy(deployment)
         deployment['status'] = {'atProvider': {'manifest': {'status': {'availableReplicas': 1}}}}
         done, outputs = render(base, [profile_config(profile, '')], directory, [deployment])
         if done.returncode == 0 and status(outputs).get('lifecyclePhase') == 'running': print('PASS status: running once the Deployment is available')

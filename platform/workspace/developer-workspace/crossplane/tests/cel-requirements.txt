@@ -1,0 +1,3 @@
+cel-python==0.4.0
+# render-check's reviewed render() oracle validates the contract with jsonschema.
+jsonschema==4.26.0
