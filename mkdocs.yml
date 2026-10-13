@@ -28,6 +28,11 @@ nav:
   - Getting Started: getting-started/index.md
   - Features: features/index.md
   - Architecture: architecture/index.md
+  - OK AI:
+      - Overview: ai/index.md
+      - Open WebUI: ai/open-webui.md
+      - OpenClaw: ai/openclaw.md
+      - Agentic Operations: ai/agentic-operations.md
   - Blog:
       - Overview: blog/index.md
       - Agentic Operations: agentic-operations-reference-architecture.md
