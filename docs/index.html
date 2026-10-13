@@ -69,6 +69,17 @@
     margin-left:auto;
     margin-right:auto;
   }
+  .brand-hero{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:0.15rem;
+    max-width:900px;
+    margin:0 auto 1.5rem;
+    line-height:1.25;
+  }
+  .brand-hero-name{font-size:clamp(2rem,5vw,3rem);}
+  .brand-hero-line{font-size:clamp(1.35rem,3.5vw,2.25rem);}
   .tagline{
     font-size:1.15rem;
     color:var(--muted);
@@ -395,7 +406,11 @@
     <a href="https://aia.openkubes.org/en">Aia <span aria-hidden="true">↗</span></a>
   </nav>
   <img class="logo-img" src="openkubes-logo.png" alt="OpenKubes logo">
-  <h1>OpenKubes Kubernetes Platform Distribution Framework</h1>
+  <h1 class="brand-hero">
+    <span class="brand-hero-name">OpenKubes.</span>
+    <span class="brand-hero-line">Your Kubernetes Framework.</span>
+    <span class="brand-hero-line">Built for the Age of AI.</span>
+  </h1>
   <p class="tagline">OpenKubes is a framework for building sovereign Kubernetes platform distributions — built ADR-first, reviewed three ways, run on infrastructure you control.</p>
   <p class="tagline"><strong>OpenKubes defines the framework. OKP proves it can run.</strong> OpenKubes Platform (OKP) is its official reference distribution — deploy it as provided, adapt it, or use OpenKubes to build your own OpenKubes-conformant distribution.</p>
   <div class="platform-hero" aria-label="Animated overview of the OpenKubes Kubernetes clusters">
