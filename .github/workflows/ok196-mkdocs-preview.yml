@@ -87,17 +87,7 @@ jobs:
           if-no-files-found: error
           include-hidden-files: true
 
-      - name: Compare live URLs against approved Cloudflare deployment c35fbbec
-        if: ${{ github.event_name == 'pull_request' }}
-        run: |
-          python website/scripts/compare-live-urls.py \
-            --candidate https://c35fbbec.openkubes-preview.pages.dev \
-            --manifest .mkdocs-site/url-compatibility-report.json \
-            --output url-http-comparison.json
-      - name: Archive c35fbbec HTTP comparison evidence
-        if: ${{ always() && github.event_name == 'pull_request' }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: ok196-c35fbbec-http-parity
-          path: url-http-comparison.json
-          if-no-files-found: warn
+      # PRs validate the exact built candidate with check-preview.py and
+      # audit-url-compatibility.py above. HTTP parity against a *deployed*
+      # candidate is available via workflow_dispatch(candidate_url) and must
+      # never use a permanently pinned old Cloudflare deployment as a PR gate.
