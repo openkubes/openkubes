@@ -100,6 +100,35 @@ def yaml_docs(path):
     return [d for d in proof.yaml.safe_load_all(path.read_text()) if d]
 
 
+def sample_snapshot(label='a'):
+    namespace = f'dw-{label}'
+    xr_uid = f'xr-{label}-uid'
+    return {
+        'xrUID': xr_uid, 'xrResourceVersion': '10', 'xrGeneration': 1,
+        'xrSpec': {'workspaceID': f'ws-{label}'},
+        'namespace': {'uid': f'ns-{label}-uid', 'resourceVersion': '20',
+                      'content': {'kind': 'Namespace', 'metadata': {'name': namespace}}},
+        'objects': {f'object-{label}': {
+            'uid': f'object-{label}-uid', 'resourceVersion': '30', 'generation': 1,
+            'metadata': {'name': f'object-{label}', 'uid': f'object-{label}-uid',
+                         'labels': {'crossplane.io/composite': f'ws-{label}-xr'},
+                         'annotations': {'example': label}, 'finalizers': ['example/finalizer'],
+                         'creationTimestamp': '2026-10-13T00:00:00Z', 'generation': 1,
+                         'deletionTimestamp': None},
+            'ownerReferences': [{'uid': xr_uid, 'controller': True}],
+            'spec': {'forProvider': {'manifest': {'kind': 'Namespace', 'metadata': {'name': namespace}}}},
+        }},
+        'resources': {f'Namespace/{namespace}': {
+            'uid': f'ns-{label}-uid', 'resourceVersion': '20',
+            'content': {'kind': 'Namespace', 'metadata': {'name': namespace}},
+        }, f'Deployment/workspace-{label}': {
+            'uid': f'deployment-{label}-uid', 'resourceVersion': '40',
+            'content': {'kind': 'Deployment', 'metadata': {'name': f'workspace-{label}', 'namespace': namespace},
+                        'spec': {'replicas': 1}},
+        }},
+    }
+
+
 def authority_fixture(include_group=True):
     """Independent source-based RBAC fixture, not a copy of the expected-set function."""
     roles = []
@@ -121,21 +150,61 @@ def authority_fixture(include_group=True):
     grant('system:controller:namespace-controller',
           [{'kind': 'ServiceAccount', 'name': 'namespace-controller', 'namespace': 'kube-system'}],
           [{'apiGroups': ['*'], 'resources': ['*'], 'verbs': ['get', 'list', 'watch', 'delete', 'deletecollection']}])
+    grant('system:controller:clusterrole-aggregation-controller',
+          [{'kind': 'ServiceAccount', 'name': 'clusterrole-aggregation-controller', 'namespace': 'kube-system'}],
+          [{'apiGroups': ['rbac.authorization.k8s.io'], 'resources': ['clusterroles'],
+            'verbs': ['escalate', 'get', 'list', 'watch', 'update', 'patch']}])
+    for controller in ('daemon-set-controller', 'job-controller', 'persistent-volume-binder',
+                       'replicaset-controller', 'replication-controller', 'statefulset-controller'):
+        grant(f'system:controller:{controller}',
+              [{'kind': 'ServiceAccount', 'name': controller, 'namespace': 'kube-system'}],
+              [{'apiGroups': [''], 'resources': ['pods'], 'verbs': ['create']}])
+    grant('system:controller:service-account-controller',
+          [{'kind': 'ServiceAccount', 'name': 'service-account-controller', 'namespace': 'kube-system'}],
+          [{'apiGroups': [''], 'resources': ['serviceaccounts'], 'verbs': ['create']}])
+    grant('system:controller:resourcequota-controller',
+          [{'kind': 'ServiceAccount', 'name': 'resourcequota-controller', 'namespace': 'kube-system'}],
+          [{'apiGroups': ['*'], 'resources': ['*'], 'verbs': ['list', 'watch']}])
+    grant('system:kube-controller-manager', [{'kind': 'User', 'name': 'system:kube-controller-manager'}], [
+        {'apiGroups': [''], 'resources': ['secrets', 'serviceaccounts'], 'verbs': ['create']},
+        {'apiGroups': [''], 'resources': ['secrets'], 'verbs': ['get']},
+        {'apiGroups': ['*'], 'resources': ['*'], 'verbs': ['list', 'watch']},
+        {'apiGroups': [''], 'resources': ['serviceaccounts/token'], 'verbs': ['create']},
+    ])
     # Server-materialized aggregate rules are authoritative even if selectors match nothing.
     aggregation = {'aggregationRule': {'clusterRoleSelectors': [{'matchLabels': {'unused': 'true'}}]}}
     grant('crossplane', [{'kind': 'ServiceAccount', 'name': 'crossplane', 'namespace': 'crossplane-system'}],
-          steering, **aggregation)
+          [*steering,
+           {'apiGroups': [''], 'resources': ['secrets'], 'verbs': ['get', 'list', 'watch', 'create', 'update', 'patch', 'delete']},
+           {'apiGroups': [''], 'resources': ['serviceaccounts'], 'verbs': ['*']}], **aggregation)
     if include_group:
-        grant('crossplane-admin', [{'kind': 'Group', 'name': 'crossplane:masters'}], steering, **aggregation)
+        grant('crossplane-admin', [{'kind': 'Group', 'name': 'crossplane:masters'}],
+              [*steering,
+               {'apiGroups': [''], 'resources': ['secrets', 'namespaces'], 'verbs': ['*']},
+               {'apiGroups': ['rbac.authorization.k8s.io'], 'resources': ['clusterrolebindings', 'rolebindings'], 'verbs': ['*']}],
+              **aggregation)
     grant('crossplane-rbac-manager', [{'kind': 'ServiceAccount', 'name': 'rbac-manager', 'namespace': 'crossplane-system'}],
-          [{'apiGroups': ['rbac.authorization.k8s.io'], 'resources': ['*'], 'verbs': ['*']}])
+          [{'apiGroups': ['rbac.authorization.k8s.io'], 'resources': ['clusterroles', 'roles'],
+            'verbs': ['get', 'list', 'watch', 'create', 'update', 'patch', 'escalate']},
+           {'apiGroups': ['rbac.authorization.k8s.io'], 'resources': ['clusterroles'], 'verbs': ['bind']},
+           {'apiGroups': ['rbac.authorization.k8s.io'], 'resources': ['clusterrolebindings'], 'verbs': ['*']}])
     grant('provider-system', [{'kind': 'ServiceAccount', 'name': 'developer-workspace-provider-kubernetes',
                                'namespace': 'crossplane-system'}],
           [{'apiGroups': ['kubernetes.crossplane.io'], 'resources': ['objects', 'providerconfigs'],
-            'verbs': ['get', 'list', 'watch', 'create', 'update', 'patch']}])
+            'verbs': ['get', 'list', 'watch', 'create', 'update', 'patch']},
+           {'apiGroups': [''], 'resources': ['serviceaccounts'],
+            'verbs': ['get', 'list', 'watch', 'create', 'update', 'patch', 'delete']},
+           {'apiGroups': [''], 'resources': ['secrets'], 'verbs': ['*']}])
+    grant('cilium-operator', [{'kind': 'ServiceAccount', 'name': 'cilium-operator', 'namespace': 'kube-system'}],
+          [{'apiGroups': [''], 'resources': ['secrets'], 'verbs': ['get', 'list', 'watch']}])
     roles.extend(yaml_docs(proof.CAPABILITY / 'rbac/authority-boundary.yaml'))
     bindings.extend(d for d in proof.authority_identities() if d['kind'] == 'ClusterRoleBinding')
-    return {'clusterroles': roles, 'clusterrolebindings': bindings, 'roles': [], 'rolebindings': []}
+    local_role = {'kind': 'Role', 'metadata': {'name': 'local-path-provisioner-role', 'namespace': 'local-path-storage'},
+                  'rules': [{'apiGroups': [''], 'resources': ['pods'], 'verbs': ['create']}]}
+    local_binding = {'kind': 'RoleBinding', 'metadata': {'name': 'local-path-provisioner-bind', 'namespace': 'local-path-storage'},
+                     'roleRef': {'apiGroup': 'rbac.authorization.k8s.io', 'kind': 'Role', 'name': local_role['metadata']['name']},
+                     'subjects': [{'kind': 'ServiceAccount', 'name': 'local-path-provisioner-service-account', 'namespace': 'local-path-storage'}]}
+    return {'clusterroles': roles, 'clusterrolebindings': bindings, 'roles': [local_role], 'rolebindings': [local_binding]}
 
 
 class AuthorityWhoCanTest(unittest.TestCase):
@@ -182,6 +251,12 @@ class AuthorityWhoCanTest(unittest.TestCase):
             self.assertIn(gc, object_holders['update'])
             self.assertNotIn(nc, object_holders['patch'])
             self.assertIn(nc, object_holders['delete'])
+            self.assertIn(nc, object_holders['deletecollection'])
+            operator = {'kind': 'ServiceAccount', 'name': proof.OPERATOR_SA, 'namespace': proof.PROOF_NS}
+            self.assertNotIn(operator, object_holders['deletecollection'])
+            controller = {'kind': 'ServiceAccount', 'name': 'crossplane', 'namespace': 'crossplane-system'}
+            self.assertIn(controller, result['indirectHolders']['impersonate-serviceaccounts'])
+            self.assertNotIn(controller, result['indirectHolders']['impersonate-users'])
         print('CONTROL PASS: complete expected sets, optional default group, materialized aggregates and provider delete asymmetry')
 
     def test_extra_object_create_via_each_wildcard_fails(self):
@@ -214,20 +289,123 @@ class AuthorityWhoCanTest(unittest.TestCase):
                 print(f'CONTROL FAILS AS EXPECTED: {rejected.exception}')
 
     def test_rolebinding_only_is_reported_non_effective(self):
-        self.add_binding('cluster-admin', {'kind': 'ServiceAccount', 'name': 'namespace-only'}, 'RoleBinding', 'team')
+        direct_rules = [{'apiGroups': [group], 'resources': [resource], 'verbs': list(proof.AUTHORITY_VERBS)}
+                        for group, resource in proof.AUTHORITY_RESOURCES.values()]
+        self.fixture['clusterroles'].append({'kind': 'ClusterRole', 'metadata': {'name': 'steering-only'}, 'rules': direct_rules})
+        self.add_binding('steering-only', {'kind': 'ServiceAccount', 'name': 'namespace-only', 'namespace': 'team'}, 'RoleBinding', 'team')
         role = {'kind': 'Role', 'metadata': {'name': 'local-editor', 'namespace': 'team'},
-                'rules': [{'apiGroups': ['*'], 'resources': ['*'], 'verbs': ['*']}]}
+                'rules': direct_rules}
         self.fixture['roles'].append(role)
         binding = self.add_binding('local-editor', {'kind': 'User', 'name': 'local-only'}, 'RoleBinding', 'team')
         binding['roleRef']['kind'] = 'Role'
         result = proof.prove_authority_who_can()
-        self.assertEqual(32, len(result['nonEffectiveRoleBindings']))
+        self.assertEqual(40, len(result['nonEffectiveRoleBindings']))
         for entry in result['nonEffectiveRoleBindings']:
             self.assertIn('cluster-scoped', entry['reason'])
             self.assertNotIn(entry['subjects'][0], result['holders'][entry['kind']][entry['verb']])
         self.assertIn({'kind': 'ServiceAccount', 'name': 'namespace-only', 'namespace': 'team'},
                       result['nonEffectiveRoleBindings'][0]['subjects'])
         print('CONTROL PASS: RoleBinding references to Role and ClusterRole grant no cluster-scoped mutation; subjects reported')
+
+    def test_deletecollection_removal_fails(self):
+        role = next(r for r in self.fixture['clusterroles']
+                    if r['metadata']['name'] == 'system:controller:namespace-controller')
+        role['rules'][0]['verbs'].remove('deletecollection')
+        with self.assertRaisesRegex(proof.ProofError, 'deletecollection:.*missing=.*namespace-controller') as rejected:
+            proof.prove_authority_who_can()
+        print(f'CONTROL FAILS AS EXPECTED: {rejected.exception}')
+
+    def test_extra_impersonate_holder_fails(self):
+        self.fixture['clusterroles'].append({
+            'kind': 'ClusterRole', 'metadata': {'name': 'unexpected-impersonator'},
+            'rules': [{'apiGroups': [''], 'resources': ['users', 'groups', 'serviceaccounts'], 'verbs': ['impersonate']}],
+        })
+        self.add_binding('unexpected-impersonator', {'kind': 'User', 'name': 'unexpected-impersonator'})
+        with self.assertRaisesRegex(proof.ProofError, 'impersonate-users: extra=.*unexpected-impersonator') as rejected:
+            proof.prove_authority_who_can()
+        print(f'CONTROL FAILS AS EXPECTED: {rejected.exception}')
+
+    def test_every_indirect_authority_row_rejects_an_extra_holder(self):
+        for name, (group, resource, verb, _scope) in proof.INDIRECT_AUTHORITY.items():
+            self.fixture = authority_fixture()
+            role_name = f'unexpected-{name}'
+            self.fixture['clusterroles'].append({
+                'kind': 'ClusterRole', 'metadata': {'name': role_name},
+                'rules': [{'apiGroups': [group], 'resources': [resource], 'verbs': [verb]}],
+            })
+            self.add_binding(role_name, {'kind': 'User', 'name': role_name})
+            with self.subTest(authority=name):
+                with self.assertRaisesRegex(proof.ProofError, rf'{name}: extra=.*{role_name}') as rejected:
+                    proof.prove_authority_who_can()
+                print(f'CONTROL FAILS AS EXPECTED: {rejected.exception}')
+
+    def test_subresource_and_resource_name_matching_matches_kubernetes(self):
+        named_token = {'apiGroups': [''], 'resources': ['*/token'], 'verbs': ['create'],
+                       'resourceNames': ['crossplane']}
+        unsupported_prefix = {'apiGroups': [''], 'resources': ['serviceaccounts/*'], 'verbs': ['create']}
+        named_serviceaccount = {'apiGroups': [''], 'resources': ['serviceaccounts'], 'verbs': ['create'],
+                                'resourceNames': ['crossplane']}
+        named_secret_list = {'apiGroups': [''], 'resources': ['secrets'], 'verbs': ['list'],
+                             'resourceNames': ['crossplane-root-ca']}
+        self.assertTrue(proof.authority_rule_matches(named_token, '', 'serviceaccounts/token', 'create'))
+        self.assertFalse(proof.authority_rule_matches(unsupported_prefix, '', 'serviceaccounts/token', 'create'))
+        self.assertFalse(proof.authority_rule_matches(named_serviceaccount, '', 'serviceaccounts', 'create'))
+        self.assertTrue(proof.authority_rule_matches(named_secret_list, '', 'secrets', 'list'))
+        print('CONTROL PASS: */token and named list match; serviceaccounts/* and named top-level create do not')
+
+    def test_named_secret_list_holder_is_not_hidden(self):
+        role_name = 'named-secret-lister'
+        self.fixture['clusterroles'].append({
+            'kind': 'ClusterRole', 'metadata': {'name': role_name},
+            'rules': [{'apiGroups': [''], 'resources': ['secrets'], 'verbs': ['list'],
+                       'resourceNames': ['named-secret']}],
+        })
+        self.add_binding(role_name, {'kind': 'User', 'name': role_name}, 'RoleBinding', 'crossplane-system')
+        with self.assertRaisesRegex(
+                proof.ProofError,
+                'list-secrets-crossplane-system: extra=.*named-secret-lister') as rejected:
+            proof.prove_authority_who_can()
+        print(f'CONTROL FAILS AS EXPECTED: {rejected.exception}')
+
+    def test_rolebinding_to_clusterrole_can_grant_bind_clusterroles_in_any_namespace(self):
+        for namespace in ('crossplane-system', 'team'):
+            self.fixture = authority_fixture()
+            role_name = f'{namespace}-clusterrole-grantor'
+            self.fixture['clusterroles'].append({
+                'kind': 'ClusterRole', 'metadata': {'name': role_name},
+                'rules': [{'apiGroups': ['rbac.authorization.k8s.io'], 'resources': ['clusterroles'],
+                           'verbs': ['bind'], 'resourceNames': ['admin']}],
+            })
+            self.add_binding(role_name, {'kind': 'User', 'name': role_name}, 'RoleBinding', namespace)
+            with self.subTest(namespace=namespace):
+                with self.assertRaisesRegex(
+                        proof.ProofError,
+                        rf'bind-clusterroles: extra=.*{role_name}') as rejected:
+                    proof.prove_authority_who_can()
+                print(f'CONTROL FAILS AS EXPECTED: {rejected.exception}')
+
+    def test_serviceaccount_subject_requires_explicit_namespace(self):
+        with self.assertRaisesRegex(proof.ProofError, 'has no namespace'):
+            proof.authority_subject({'kind': 'ServiceAccount', 'name': 'ambiguous'}, 'binding-namespace')
+        print('CONTROL FAILS AS EXPECTED: binding namespace is not substituted for a ServiceAccount subject namespace')
+
+    def test_rolebinding_scope_is_all_namespaces_only_for_declared_rows(self):
+        role = {'kind': 'Role', 'metadata': {'name': 'team-authority', 'namespace': 'team'},
+                'rules': [
+                    {'apiGroups': [''], 'resources': ['serviceaccounts'], 'verbs': ['impersonate']},
+                    {'apiGroups': ['rbac.authorization.k8s.io'], 'resources': ['roles'], 'verbs': ['bind']},
+                    {'apiGroups': [''], 'resources': ['pods'], 'verbs': ['create']},
+                ]}
+        self.fixture['roles'].append(role)
+        binding = self.add_binding('team-authority', {'kind': 'User', 'name': 'team-authority'}, 'RoleBinding', 'team')
+        binding['roleRef']['kind'] = 'Role'
+        with self.assertRaises(proof.ProofError) as rejected:
+            proof.prove_authority_who_can()
+        message = str(rejected.exception)
+        self.assertIn('impersonate-serviceaccounts: extra=', message)
+        self.assertIn('bind-roles: extra=', message)
+        self.assertNotIn('create-pods-crossplane-system: extra=', message)
+        print('CONTROL FAILS AS EXPECTED: a team RoleBinding counts for all-namespace SA impersonation/Role bind but not crossplane-system Pod create')
 
     def test_namespaced_kind_is_rejected_before_ignoring_rolebindings(self):
         self.scopes['objects.kubernetes.crossplane.io'] = 'Namespaced'
@@ -423,73 +601,186 @@ class ReconcileProofAssertionsTest(unittest.TestCase):
         finally:
             proof.get_json = original_get_json
 
-    def test_collision_refusal_requires_admission_denial_and_no_object_refs(self):
+    def test_noncanonical_name_refusal_requires_admission_denial_and_no_object_refs(self):
         rejected = completed(['create'], 1, stderr="metadata.name must equal spec.workspaceID + '-xr'")
-        observed = proof.assert_collision_refused(rejected, 'ws-duplicate-collision')
+        observed = proof.assert_noncanonical_name_refused(rejected, 'ws-duplicate-collision')
         self.assertEqual({'name': 'ws-duplicate-collision', 'exists': False, 'ready': False, 'objectRefs': []}, observed)
         with self.assertRaisesRegex(proof.ProofError, 'was not rejected'):
-            proof.assert_collision_refused(completed(['create']), 'ws-duplicate-collision')
+            proof.assert_noncanonical_name_refused(completed(['create']), 'ws-duplicate-collision')
 
         # Exercise both postconditions independently after an otherwise-valid denial.
         self.fake.candidate_exists = True
-        with self.assertRaisesRegex(proof.ProofError, 'exists'):
-            proof.assert_collision_refused(rejected, 'ws-duplicate-collision')
-        print('CONTROL FAILS AS EXPECTED: denied collision with candidate still present fails NotFound postcondition')
+        with self.assertRaisesRegex(proof.ProofError, 'absence was not confirmed by NotFound'):
+            proof.assert_noncanonical_name_refused(rejected, 'ws-duplicate-collision')
+        print('CONTROL FAILS AS EXPECTED: denied noncanonical owner still present fails NotFound postcondition')
         self.fake.candidate_exists = False
         self.fake.object_refs = [{'metadata': {'name': 'composed-collision', 'labels': {'crossplane.io/composite': 'ws-duplicate-collision'}}}]
         with self.assertRaisesRegex(proof.ProofError, 'composed Object references'):
-            proof.assert_collision_refused(rejected, 'ws-duplicate-collision')
-        print('CONTROL FAILS AS EXPECTED: denied collision with composed Object refs fails reference postcondition')
-
-    def test_rejected_collision_delete_requires_not_found(self):
-        proof.delete_rejected_collision('ws-duplicate-collision')
+            proof.assert_noncanonical_name_refused(rejected, 'ws-duplicate-collision')
+        print('CONTROL FAILS AS EXPECTED: denied noncanonical owner with composed Object refs fails reference postcondition')
+        self.fake.object_refs = []
         self.fake.candidate_get_error = 'Unable to connect to the server: network is unreachable\n'
-        with self.assertRaisesRegex(proof.ProofError, 'not confirmed absent'):
-            proof.delete_rejected_collision('ws-duplicate-collision')
-        print('CONTROL FAILS AS EXPECTED: arbitrary get error does not prove rejected collision absent')
+        with self.assertRaisesRegex(proof.ProofError, 'absence was not confirmed by NotFound'):
+            proof.assert_noncanonical_name_refused(rejected, 'ws-duplicate-collision')
+        print('CONTROL FAILS AS EXPECTED: a transport error cannot prove the noncanonical owner absent')
 
-    def test_owner_snapshot_allows_status_rv_churn_but_rejects_state_changes(self):
-        before = {
-            'xrUID': 'xr-uid',
-            'namespace': {'uid': 'ns-uid', 'resourceVersion': '10', 'content': {'kind': 'Namespace', 'metadata': {'name': 'dw-a'}}},
-            'objects': {'object-a': {'uid': 'object-uid', 'resourceVersion': '20',
-                                     'metadata': {'name': 'object-a', 'uid': 'object-uid', 'labels': {'crossplane.io/composite': 'dw-a'},
-                                                  'annotations': {'example': 'before'}, 'finalizers': ['example/finalizer'],
-                                                  'creationTimestamp': '2026-10-13T00:00:00Z', 'generation': 1,
-                                                  'deletionTimestamp': None},
-                                     'ownerReferences': [{'uid': 'xr-uid', 'controller': True}],
-                                     'spec': {'forProvider': {'manifest': {'kind': 'Namespace'}}}}},
-        }
+    def test_delete_cleanup_requires_exact_not_found_for_namespace_and_volume(self):
+        original_get_json = proof.get_json
+        original_composed_objects = proof.composed_objects
+        original_wait_until = proof.wait_until
+
+        def exercise(namespace_error, volume_error=None):
+            volumes = ['pv-a'] if volume_error is not None else []
+            proof.get_json = lambda args: {'items': [{'spec': {'volumeName': volume}} for volume in volumes]}
+            proof.composed_objects = lambda _name: []
+            proof.wait_until = lambda what, predicate, **_kwargs: proof.expect(predicate(), f'{what} absence was not confirmed')
+            def fake_kubectl(args, **_kwargs):
+                if args[0] == 'delete':
+                    return completed(args)
+                if args[:2] == ['get', 'namespace']:
+                    return completed(args, 1, stderr=namespace_error)
+                if args[:2] == ['get', 'pv']:
+                    return completed(args, 1, stderr=volume_error)
+                raise AssertionError(args)
+            proof.kubectl = fake_kubectl
+            return proof.delete_and_confirm_gone('ws-a-xr', 'dw-a', 0)
+
+        not_found = 'Error from server (NotFound): resource not found\n'
+        try:
+            self.assertEqual(0, exercise(not_found))
+            self.assertEqual(1, exercise(not_found, not_found))
+            for error in ('Error from server (Forbidden): forbidden\n',
+                          'Unable to connect to the server: network is unreachable\n'):
+                with self.subTest(namespace_error=error):
+                    with self.assertRaisesRegex(proof.ProofError, 'namespace dw-a removal absence was not confirmed'):
+                        exercise(error)
+                with self.subTest(volume_error=error):
+                    with self.assertRaisesRegex(proof.ProofError, 'PersistentVolume pv-a removal absence was not confirmed'):
+                        exercise(not_found, error)
+            print('CONTROL FAILS AS EXPECTED: Forbidden and transport errors cannot prove Namespace or PersistentVolume deletion')
+        finally:
+            proof.kubectl = self.fake
+            proof.get_json = original_get_json
+            proof.composed_objects = original_composed_objects
+            proof.wait_until = original_wait_until
+
+    def test_canonical_collision_requires_exact_already_exists(self):
+        owner = 'ws-ok175-proof-xr'
+        rejected = completed(['create'], 1, stderr=(
+            'Error from server (AlreadyExists): developerworkspaces.workspace.openkubes.io '
+            f'"{owner}" already exists\n'))
+        self.assertEqual({'name': owner, 'reason': 'AlreadyExists', 'created': False},
+                         proof.assert_canonical_create_already_exists(rejected, owner))
+        for bad in (
+            completed(['create']),
+            completed(['create'], 1, stderr=f'Error from server (NotFound): "{owner}" not found\n'),
+            completed(['create'], 1, stderr='Error from server (AlreadyExists): "another-owner" already exists\n'),
+        ):
+            with self.subTest(stderr=bad.stderr):
+                with self.assertRaisesRegex(proof.ProofError, 'did not report AlreadyExists'):
+                    proof.assert_canonical_create_already_exists(bad, owner)
+        print('CONTROL FAILS AS EXPECTED: success, another reason, or another owner cannot satisfy canonical collision proof')
+
+    def test_owner_snapshot_strict_collision_and_relaxed_isolation_controls(self):
+        before = sample_snapshot()
         after = copy.deepcopy(before)
-        after['objects']['object-a']['resourceVersion'] = '21'
         observed = proof.assert_owner_unchanged(before, after)
-        self.assertEqual('20', observed['objects'][0]['resourceVersionBefore'])
-        self.assertEqual('21', observed['objects'][0]['resourceVersionAfter'])
+        self.assertEqual('30', observed['objects'][0]['resourceVersionBefore'])
+        self.assertEqual('30', observed['objects'][0]['resourceVersionAfter'])
 
-        changed_spec = copy.deepcopy(after)
+        changed_rv = copy.deepcopy(after)
+        changed_rv['xrResourceVersion'] = '11'
+        changed_rv['objects']['object-a']['resourceVersion'] = '31'
+        changed_rv['resources']['Deployment/workspace-a']['resourceVersion'] = '41'
+        with self.assertRaisesRegex(proof.ProofError, 'DeveloperWorkspace resourceVersion changed'):
+            proof.assert_owner_unchanged(before, changed_rv)
+        relaxed = proof.assert_owner_unchanged(before, changed_rv, strict_object_rv=False, strict_resource_rv=False)
+        self.assertEqual('31', relaxed['objects'][0]['resourceVersionAfter'])
+        self.assertEqual('41', next(r for r in relaxed['readback'] if r['name'].startswith('Deployment/'))['resourceVersionAfter'])
+
+        changed_spec = copy.deepcopy(before)
         changed_spec['objects']['object-a']['spec']['forProvider']['manifest']['kind'] = 'ConfigMap'
         with self.assertRaisesRegex(proof.ProofError, 'spec changed'):
             proof.assert_owner_unchanged(before, changed_spec)
-        changed_namespace = copy.deepcopy(after)
-        changed_namespace['namespace']['resourceVersion'] = '11'
+        changed_xr = copy.deepcopy(before)
+        changed_xr['xrSpec']['workspaceID'] = 'ws-other'
+        with self.assertRaisesRegex(proof.ProofError, 'DeveloperWorkspace spec changed'):
+            proof.assert_owner_unchanged(before, changed_xr)
+        changed_namespace = copy.deepcopy(before)
+        changed_namespace['namespace']['resourceVersion'] = '21'
         with self.assertRaisesRegex(proof.ProofError, 'Namespace identity'):
             proof.assert_owner_unchanged(before, changed_namespace)
+
+        changed_readback = copy.deepcopy(before)
+        changed_readback['resources']['Deployment/workspace-a']['content']['spec']['replicas'] = 2
+        with self.assertRaisesRegex(proof.ProofError, 'readback .* content changed'):
+            proof.assert_owner_unchanged(before, changed_readback, strict_object_rv=False, strict_resource_rv=False)
+        changed_readback_uid = copy.deepcopy(before)
+        changed_readback_uid['resources']['Deployment/workspace-a']['uid'] = 'replacement-uid'
+        with self.assertRaisesRegex(proof.ProofError, 'readback .* UID changed'):
+            proof.assert_owner_unchanged(before, changed_readback_uid, strict_object_rv=False, strict_resource_rv=False)
 
         for key, value in (('labels', {'crossplane.io/composite': 'other'}),
                            ('annotations', {'example': 'changed'}),
                            ('finalizers', ['example/changed']),
                            ('creationTimestamp', '2026-10-13T00:01:00Z'),
                            ('generation', 2), ('deletionTimestamp', '2026-10-13T00:01:00Z')):
-            changed_metadata = copy.deepcopy(after)
+            changed_metadata = copy.deepcopy(before)
             changed_metadata['objects']['object-a']['metadata'][key] = value
             with self.subTest(metadata=key):
                 with self.assertRaisesRegex(proof.ProofError, 'metadata changed'):
                     proof.assert_owner_unchanged(before, changed_metadata)
             print(f'CONTROL FAILS AS EXPECTED: owner Object metadata {key} mutation is detected')
 
+    def test_distinct_workspace_snapshot_controls(self):
+        first, second = sample_snapshot('c69924'), sample_snapshot('cd9634')
+        result = proof.assert_distinct_workspace_snapshots(first, second)
+        self.assertEqual([['object-c69924'], ['object-cd9634']], result['objectNames'])
+        mutations = []
+        same_namespace = copy.deepcopy(second)
+        same_namespace['namespace']['uid'] = first['namespace']['uid']
+        mutations.append((same_namespace, 'share a Namespace'))
+        same_object_name = copy.deepcopy(second)
+        same_object_name['objects']['object-c69924'] = same_object_name['objects'].pop('object-cd9634')
+        mutations.append((same_object_name, 'share composed Object names'))
+        same_object_uid = copy.deepcopy(second)
+        same_object_uid['objects']['object-cd9634']['uid'] = first['objects']['object-c69924']['uid']
+        mutations.append((same_object_uid, 'share composed Object UIDs'))
+        same_resource_uid = copy.deepcopy(second)
+        same_resource_uid['resources']['Deployment/workspace-cd9634']['uid'] = \
+            first['resources']['Deployment/workspace-c69924']['uid']
+        mutations.append((same_resource_uid, 'share rendered-resource UIDs'))
+        for changed, message in mutations:
+            with self.subTest(message=message):
+                with self.assertRaisesRegex(proof.ProofError, message):
+                    proof.assert_distinct_workspace_snapshots(first, changed)
+        print('CONTROL FAILS AS EXPECTED: shared Namespace, Object, or rendered-resource identities fail isolation')
+
 
 if __name__ == '__main__':
+    def without_expect(assertion):
+        def unchecked(*args, **kwargs):
+            original_expect = proof.expect
+            proof.expect = lambda *_args, **_kwargs: None
+            try:
+                return assertion(*args, **kwargs)
+            finally:
+                proof.expect = original_expect
+        return unchecked
+
     if '--disable-who-can-check' in sys.argv:
         sys.argv.remove('--disable-who-can-check')
         proof.assert_authority_holder_sets = lambda holders, expected: None
+    if '--disable-indirect-check' in sys.argv:
+        sys.argv.remove('--disable-indirect-check')
+        proof.assert_indirect_authority_holder_sets = lambda holders, expected: None
+    if '--disable-owner-unchanged-check' in sys.argv:
+        sys.argv.remove('--disable-owner-unchanged-check')
+        proof.assert_owner_unchanged = without_expect(proof.assert_owner_unchanged)
+    if '--disable-distinct-workspace-check' in sys.argv:
+        sys.argv.remove('--disable-distinct-workspace-check')
+        proof.assert_distinct_workspace_snapshots = without_expect(proof.assert_distinct_workspace_snapshots)
+    if '--disable-canonical-collision-check' in sys.argv:
+        sys.argv.remove('--disable-canonical-collision-check')
+        proof.assert_canonical_create_already_exists = without_expect(proof.assert_canonical_create_already_exists)
     unittest.main(verbosity=2)

@@ -35,19 +35,25 @@ uses `metadata.name: alice-review` must rename the resource before this profile 
 
 The schema permits a `workspaceID` of at most 51 characters. Appending `-xr` produces a canonical
 name of at most 54 characters that remains a valid DNS subdomain, including when the ID itself ends
-in a hyphen (the result contains two adjacent hyphens but ends in `r`). The name rule also makes the
-`workspaceID` unique in the cluster: a second document with the same ID has the same Kubernetes
-object key and the API server rejects its create with AlreadyExists. A distinct XR name with that
-workspaceID is instead rejected by CEL before it is persisted or reconciled; this is the negative
-case in the live proof. Deleting this rejected distinct name first returns NotFound and leaves the first workspace and its
-resources intact; deleting the first document first cleans up its resources, and a later delete of
-the rejected distinct name still returns NotFound because that XR never existed. Deleting the
-canonical name always targets the owner, even if it is read from a duplicate manifest.
+in a hyphen (the result contains two adjacent hyphens but ends in `r`). The live proof separates two
+properties of this rule. `canonical-name-rule` shows that CEL rejects a noncanonical
+`metadata.name` before persistence or reconciliation. `workspace-id-duplicate-create-refused`
+submits a second real `kubectl create` with the owner's canonical name and requires the API server's
+`AlreadyExists` response while the owner and its resources remain unchanged.
 
-Composed Objects are named `dw-<10 hex of sha256(workspaceID)>-<resource>` and stay under 63
-characters for every ID the schema allows; the template fails on a collision within one workspace.
-The truncated hash is not a uniqueness guarantee between different workspaceIDs. The admission
-rule closes reuse of the same workspaceID; distinct-ID hash collisions remain outside this proof.
+The canonical name is the Kubernetes object key, not a second authorization boundary. Applying,
+replacing or deleting a duplicate manifest addresses the existing owner. Those actions require the
+trusted `developer-workspace-operator` authority described below; this increment has no requester
+role.
+
+Composed Objects are named `dw-<32 lowercase hex characters of sha256(workspaceID)>-<resource-key>`,
+then truncated to 63 characters and stripped of a trailing hyphen. The prefix, 128-bit digest and
+separator consume 36 characters, leaving 27 visible resource-key characters. A capability-derived
+key can reach 93 characters, so the final name intentionally retains only its first 27 characters.
+The template fails closed if two keys in one workspace produce the same final name. The live
+`distinct-workspace-isolation` check uses `ws-c69924` and `ws-cd9634`,
+which collided under the former 40-bit names, and requires disjoint Object names and UIDs and
+separate Namespaces before deleting either workspace.
 Crossplane 2.3.3 supplies a secondary safeguard: its function composer uses
 server-side apply and records that adding a controller owner reference fails when the object already
 has a different controller. Its observer also ignores a referenced composed resource controlled by
@@ -55,8 +61,8 @@ a different XR before a later apply fails. See the pinned
 [Crossplane 2.3.3 composer source](https://github.com/crossplane/crossplane/blob/v2.3.3/internal/controller/apiextensions/composite/composition_functions.go#L615-L628)
 and [observer source](https://github.com/crossplane/crossplane/blob/v2.3.3/internal/controller/apiextensions/composite/composition_functions.go#L824-L829).
 The capability does not rely on that implementation behavior for workspace identity: Kubernetes
-object-key uniqueness rejects a canonical duplicate, while XRD admission rejects a distinct-name
-duplicate before reconciliation.
+object-key uniqueness rejects a second create at the canonical name, while XRD admission rejects a
+noncanonical name before reconciliation.
 
 **Dedicated Namespace.** `install/namespace-guard.yaml` lets the provider identity change or delete
 only Namespaces it created for a workspace (they carry `workspace.openkubes.io/id` from creation),
@@ -108,21 +114,22 @@ than their named read/write/delete partners; constraining creation further requi
 policy, as described in the
 [Kubernetes RBAC reference](https://kubernetes.io/docs/reference/access-authn-authz/rbac/#referring-to-resources).
 
-The complete default holder policy checked by `authority-who-can` is below. `C/U/P/D` means
-`create/update/patch/delete`; “all four” means DeveloperWorkspace, Object, ProviderConfig and
-EnvironmentConfig. ServiceAccount subjects are written as `namespace:name`. The table counts any
-name-restricted mutation grant on a kind, not only grants on the two installed config names.
+The direct holder policy checked by `authority-who-can` is below. `C/U/P/D/DC` means
+`create/update/patch/delete/deletecollection`; “all four” means DeveloperWorkspace, Object,
+ProviderConfig and EnvironmentConfig. ServiceAccount subjects are written as `namespace:name`.
+The table counts any name-restricted mutation grant on a kind, not only grants on the two installed
+config names.
 
 | Subject | Binding / role | Kind | Mutation verbs |
 |---|---|---|---|
-| Group `system:masters` | Kubernetes `cluster-admin` | all four | C/U/P/D |
+| Group `system:masters` | Kubernetes `cluster-admin` | all four | C/U/P/D/DC |
 | ServiceAccount `kube-system:generic-garbage-collector` | `system:controller:generic-garbage-collector` | all four | U/P/D |
-| ServiceAccount `kube-system:namespace-controller` | `system:controller:namespace-controller` | all four | D |
-| ServiceAccount `crossplane-system:crossplane` | `crossplane`, including materialized system aggregates | all four | C/U/P/D |
-| Group `crossplane:masters`, if default binding exists | `crossplane-admin` | all four | C/U/P/D |
+| ServiceAccount `kube-system:namespace-controller` | `system:controller:namespace-controller` | all four | D/DC |
+| ServiceAccount `crossplane-system:crossplane` | `crossplane`, including materialized system aggregates | all four | C/U/P/D/DC |
+| Group `crossplane:masters`, if default binding exists | `crossplane-admin` | all four | C/U/P/D/DC |
 | ServiceAccount `crossplane-system:rbac-manager` | `crossplane-rbac-manager` | none of the four | none (manages RBAC instead) |
 | ServiceAccount `crossplane-system:developer-workspace-provider-kubernetes` | generated provider-revision system role | Object, ProviderConfig | C/U/P (no D) |
-| ServiceAccount `ok174-proof-services:developer-workspace-operator` | temporary proof binding to `developer-workspace-operator` | all four | C/U/P/D (config U/P/D have the name boundary above) |
+| ServiceAccount `ok174-proof-services:developer-workspace-operator` | temporary proof binding to `developer-workspace-operator` | all four | C/U/P/D, no DC (config U/P/D have the name boundary above) |
 
 This expected set is written explicitly in the harness, derived from documented sources rather
 than a cluster dump. The pinned Crossplane 2.3.3 chart defines the
@@ -142,8 +149,46 @@ The controller ServiceAccount bindings are RBAC holders even if controller loops
 credential; they are not workspace identities. Feature-gated or site-specific additional holders
 are not silently accepted.
 
+`authority-indirect-who-can` checks the following ways to mint or use authority. Cluster-scoped
+mutations and User/Group impersonation count ClusterRoleBindings; ServiceAccount impersonation,
+Role bind/escalate, ClusterRole bind through RoleBindings and RoleBinding mutations count grants
+in every namespace. The token, Pod and Secret rows are
+restricted to `crossplane-system`. `M` is Group `system:masters`; `G` is the optional Group
+`crossplane:masters` when the chart's default binding exists. Every other entry is a User or
+ServiceAccount (`namespace:name`) exactly as shown.
+
+| Permission | Expected subjects |
+|---|---|
+| `impersonate` users or groups | M |
+| `impersonate` serviceaccounts | M; `crossplane-system:crossplane` |
+| `bind` Roles | M |
+| `bind` ClusterRoles | M; `crossplane-system:rbac-manager` |
+| `escalate` Roles | M; `crossplane-system:rbac-manager` |
+| `escalate` ClusterRoles | M; `crossplane-system:rbac-manager`; `kube-system:clusterrole-aggregation-controller` |
+| `create` ClusterRoleBindings | M; `crossplane-system:rbac-manager`; G |
+| `update` or `patch` ClusterRoleBindings | M; `crossplane-system:rbac-manager`; `kube-system:generic-garbage-collector`; G |
+| `create` RoleBindings | M; G |
+| `update` or `patch` RoleBindings | M; `kube-system:generic-garbage-collector`; G |
+| `create` ServiceAccounts in `crossplane-system` | M; User `system:kube-controller-manager`; `kube-system:service-account-controller`; `crossplane-system:crossplane`; `crossplane-system:developer-workspace-provider-kubernetes` |
+| `create` `serviceaccounts/token` in `crossplane-system` | M; User `system:kube-controller-manager` |
+| `create` Pods in `crossplane-system` | M; `kube-system:daemon-set-controller`; `kube-system:job-controller`; `kube-system:persistent-volume-binder`; `kube-system:replicaset-controller`; `kube-system:replication-controller`; `kube-system:statefulset-controller` |
+| `get` Secrets in `crossplane-system` | M; User `system:kube-controller-manager`; `kube-system:generic-garbage-collector`; `kube-system:namespace-controller`; `crossplane-system:crossplane`; `crossplane-system:developer-workspace-provider-kubernetes`; `kube-system:cilium-operator`; G |
+| `list` Secrets in `crossplane-system` | the `get` set plus `kube-system:resourcequota-controller` |
+
+The Secret-list row includes name-restricted grants: a matching `metadata.name` field selector can
+authorize those requests. ClusterRole `bind` grants through a RoleBinding also count because they
+authorize binding that ClusterRole inside the RoleBinding's namespace. See the
+[Kubernetes RBAC resource-name and binding rules](https://kubernetes.io/docs/reference/access-authn-authz/rbac/).
+
+The Cilium subject comes from its pinned
+[v1.19.6 operator ClusterRole](https://github.com/cilium/cilium/blob/v1.19.6/install/kubernetes/cilium/templates/cilium-operator/clusterrole.yaml).
+The pinned local-path manifest grants its provisioner Pod creation only through a RoleBinding in
+`local-path-storage`; its ClusterRole grants Pod reads but no Secret reads, so it contributes no
+subject to these Pod-create or Secret-read rows in `crossplane-system`. Talos uses
+the Kubernetes controller identities in the pinned v1.34.1 bootstrap policy linked above.
+
 The live proof enumerates all ClusterRoles, ClusterRoleBindings, Roles and RoleBindings and asserts
-the complete holder set on the disposable cluster for each kind and verb. It uses the server's
+the documented direct holder set on the disposable cluster for each kind and verb. It uses the server's
 materialized `rules`, including any `admin`/`edit` aggregation, matches API-group/resource/verb
 wildcards, and fails with the names of extra or missing subjects. Evidence records only subject
 kind/name/namespace per kind/verb, never credentials or group membership. All four installed CRDs
@@ -212,6 +257,17 @@ live profile.
 pre-flight `kind-ok175-preflight`, requires `TARGET_CONTEXT` to repeat it, and requires
 `OK175_TARGET_UID_SHA256` to equal the sha256 of the selected cluster's `kube-system` UID.
 
+The disposable `ok-175-proof` profile was bootstrapped from the OpenKubes
+[Talos KubeVirt profile](https://github.com/openkubes/ok-linux/blob/a1687263d46c48e47c14f5bf202c9a652d7c1a71/profiles/kubevirt/profile.yaml)
+(Talos v1.9.6), with the digest-pinned
+[Cilium 1.19.6 acquisition](https://github.com/openkubes/ok-cluster/blob/df5c778f53c1ad3c90fecf5303421d6cc9c408a6/scripts/prepare_cilium_chart.py)
+and the vendored upstream
+[local-path-provisioner v0.0.30 manifest](https://github.com/openkubes/openkubes/blob/86b12075bac46fd776562510b42ffbb18e005fd7/architecture/spikes/ADR-Platform-030/go1-local-path-prerequisite-v1/upstream-local-path-storage-v0.0.30.yaml).
+The proof reads its Kubernetes version from the API server and installs the pinned
+[Crossplane 2.3.3 chart](https://github.com/crossplane/crossplane/tree/v2.3.3/cluster/charts/crossplane).
+The evidence records Kubernetes and Crossplane versions. Talos and add-on versions here describe
+the bootstrap inputs and are not independently attested by that evidence document.
+
 ```bash
 export KUBECONFIG=<disposable cluster kubeconfig> TARGET_CONTEXT=ok-175-proof-admin@ok-175-proof
 export OK175_TARGET_UID_SHA256=$(kubectl get ns kube-system -o jsonpath='{.metadata.uid}' | sha256sum | cut -d' ' -f1)
@@ -234,19 +290,31 @@ a control that shows it can fail:
   binding removed, the same workspace adopted the Namespace on the kind pre-flight);
 - a persistent workspace: no pre-existing Namespace; reconciled objects equal `render()`; XR
   `Ready` with `lifecyclePhase: running`;
-- duplicate workspaceID CREATE under a distinct XR name is rejected by the canonical-name CEL
-  rule before persistence, with no composed refs or Ready state; before/after owner identity,
-  desired content and Namespace resourceVersion stay unchanged, and read-back still equals
-  `render()` (Object resourceVersions are recorded; status reconciliation may advance them);
-- deleting the rejected name before its persistent owner leaves the owner intact; deleting the
-  ephemeral owner before the rejected name cleans up normally (both orders);
+- `canonical-name-rule`: a noncanonical XR name is rejected by CEL before persistence or
+  reconciliation;
+- `workspace-id-duplicate-create-refused`: a second `kubectl create` at the existing canonical
+  name returns `AlreadyExists`; owner UID, desired spec, Namespace identity and resourceVersion,
+  composed Object identities, resourceVersions and managed specs, and normalized read-back remain
+  unchanged. This immediate duplicate-create check requires identical resourceVersions;
+- `distinct-workspace-isolation`: `ws-c69924-xr` and `ws-cd9634-xr` are Ready concurrently with
+  the ephemeral profile at 100m CPU and 256Mi memory each, disjoint 128-bit-derived Object names and
+  UIDs, and distinct Namespaces. Failure to schedule and reach Ready is a proof failure. Deleting the
+  second removes only its resources and leaves the first workspace's UIDs, managed specs and
+  read-back unchanged, after which deleting the first cleans up its resources. Over this longer
+  interval, XR, Object and rendered-resource status writes may advance resourceVersions; their
+  before/after versions are recorded, while UIDs, desired specs, XR/Object generations and
+  normalized rendered content must match;
 - temporary operator and observer bindings satisfy the table above with `auth can-i --as` and
   real server-side dry-run create/update attempts for all four kinds; each observer denial has
-  an operator allowed control. Positive XR attempts pass admission, while the duplicate request
-  independently proves that the server executes its CEL;
-- `authority-who-can` enumerates the complete cluster RBAC holder set for create/update/patch/delete
-  on all four steering kinds, asserts the documented table, and records subject identities and
-  non-effective RoleBinding rules; extra bindings or wildcard grants fail the proof;
+  an operator allowed control. Positive XR attempts pass admission, while the canonical-name-rule
+  request independently proves that the server executes its CEL;
+- `authority-who-can` enumerates cluster RBAC holders for
+  `create/update/patch/delete/deletecollection` on all four steering kinds, asserts the documented
+  direct sets, and records subject identities and non-effective RoleBinding rules; extra bindings or
+  wildcard grants fail the proof. The shipped operator role has no `deletecollection` grant;
+- `authority-indirect-who-can` enumerates the documented indirect RBAC paths, using the scopes in
+  the table above; extra subjects fail the proof. External identity-group
+  membership and non-RBAC authorizers remain outside this enumeration;
 - a deleted `default-deny` is recreated (control: new UID) and a patched quota value is reverted;
 - the checkout is the declared revision (control: the source's default branch is a newer commit);
 - no token mounted; `can-i --list` equals an unbound identity's and passes OK-174's discovery-only

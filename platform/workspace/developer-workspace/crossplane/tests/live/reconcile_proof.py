@@ -31,7 +31,8 @@ DISPOSABLE_CONTEXTS = ('ok-175-proof-admin@ok-175-proof', 'kind-ok175-preflight'
 CROSSPLANE_CHART = ('https://charts.crossplane.io/stable', 'crossplane', '2.3.3')
 PROOF_NS = 'ok174-proof-services'  # the reviewed live profile's source destination
 PULL_SECRET = 'workspace-registry-pull'
-PERSISTENT, EPHEMERAL = ('ws-ok175-proof-xr', 'ws-ok175-proof'), ('ws-ok175-ephemeral-xr', 'ws-ok175-ephemeral')
+PERSISTENT = ('ws-ok175-proof-xr', 'ws-ok175-proof')
+DISTINCT = (('ws-c69924-xr', 'ws-c69924'), ('ws-cd9634-xr', 'ws-cd9634'))
 SQUAT = ('ws-ok175-squat-xr', 'ws-ok175-squat')
 NO_PROFILE = ('ws-ok175-no-profile-xr', 'ws-ok175-no-profile')
 OPERATOR_SA, OBSERVER_SA = 'developer-workspace-operator', 'developer-workspace-observer'
@@ -49,6 +50,7 @@ render_profile = load_module('ok175_profile', CAPABILITY / 'tests/profile_config
 class ProofError(RuntimeError): pass
 def expect(ok, message):
     if not ok: raise ProofError(message)
+def is_not_found(done): return done.returncode != 0 and bool(re.search(r'\(NotFound\):', done.stderr))
 def sha(data): return hashlib.sha256(data if isinstance(data, bytes) else data.encode()).hexdigest()
 def sha_json(value): return sha(json.dumps(value, sort_keys=True, separators=(',', ':')))
 def now(): return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace('+00:00', 'Z')
@@ -235,8 +237,8 @@ def composed_object_items(name):
 
 def composed_objects(name): return [o['metadata']['name'] for o in composed_object_items(name)]
 
-def owner_snapshot(name, namespace):
-    """Capture owner identity/content while tolerating provider Object status reconciliation."""
+def owner_snapshot(name, namespace, expected=None):
+    """Capture owner, composed Object desired state, and rendered-resource readback."""
     xr = get_json(['get', f'developerworkspace/{name}'])
     xr_uid = xr['metadata']['uid']
     owner = get_json(['get', 'namespace', namespace])
@@ -249,30 +251,64 @@ def owner_snapshot(name, namespace):
         objects[metadata['name']] = {
             'uid': metadata['uid'],
             'resourceVersion': metadata['resourceVersion'],
+            'generation': metadata['generation'],
             'metadata': {key: copy.deepcopy(value) for key, value in metadata.items() if key not in ('resourceVersion', 'managedFields')},
             'ownerReferences': owner_references,
             'spec': copy.deepcopy(item['spec']),
         }
     expect(objects, f'{name} has no composed Object references to snapshot')
+    resources = {}
+    for wanted in expected or ():
+        kind, resource_name = wanted['kind'], wanted['metadata']['name']
+        item = owner if kind == 'Namespace' else get_json(['get', f'{kind.lower()}/{resource_name}', '-n', namespace])
+        resources[f'{kind}/{resource_name}'] = {
+            'uid': item['metadata']['uid'],
+            'resourceVersion': item['metadata']['resourceVersion'],
+            'content': normalized(item),
+        }
     return {
         'xrUID': xr_uid,
+        'xrResourceVersion': xr['metadata']['resourceVersion'],
+        'xrGeneration': xr['metadata']['generation'],
+        'xrSpec': copy.deepcopy(xr['spec']),
         'namespace': {'uid': owner['metadata']['uid'], 'resourceVersion': owner['metadata']['resourceVersion'], 'content': normalized(owner)},
         'objects': objects,
+        'resources': resources,
     }
 
-def assert_owner_unchanged(before, after):
-    expect(after['xrUID'] == before['xrUID'], 'owner DeveloperWorkspace UID changed during collision attempt')
-    expect(after['namespace'] == before['namespace'], 'owner Namespace identity, resourceVersion or content changed during collision attempt')
-    expect(set(after['objects']) == set(before['objects']), 'owner composed Object reference set changed during collision attempt')
+def assert_owner_unchanged(before, after, *, strict_object_rv=True, strict_resource_rv=True):
+    expect(after['xrUID'] == before['xrUID'], 'owner DeveloperWorkspace UID changed during protected interval')
+    expect(after['xrGeneration'] == before['xrGeneration'], 'owner DeveloperWorkspace generation changed during protected interval')
+    expect(after['xrSpec'] == before['xrSpec'], 'owner DeveloperWorkspace spec changed during protected interval')
+    expect(bool(after['xrResourceVersion']) and bool(before['xrResourceVersion']), 'owner DeveloperWorkspace resourceVersion missing')
+    if strict_object_rv:
+        expect(after['xrResourceVersion'] == before['xrResourceVersion'], 'owner DeveloperWorkspace resourceVersion changed during protected interval')
+    expect(after['namespace'] == before['namespace'], 'owner Namespace identity, resourceVersion or content changed during protected interval')
+    expect(set(after['objects']) == set(before['objects']), 'owner composed Object reference set changed during protected interval')
     for name, old in before['objects'].items():
         new = after['objects'][name]
-        expect(new['uid'] == old['uid'], f'owner Object/{name} UID changed during collision attempt')
-        expect(new['metadata'] == old['metadata'], f'owner Object/{name} metadata changed during collision attempt')
-        expect(new['ownerReferences'] == old['ownerReferences'], f'owner Object/{name} ownership changed during collision attempt')
-        expect(new['spec'] == old['spec'], f'owner Object/{name} spec changed during collision attempt')
+        expect(new['uid'] == old['uid'], f'owner Object/{name} UID changed during protected interval')
+        expect(new['metadata'] == old['metadata'], f'owner Object/{name} metadata changed during protected interval')
+        expect(new['ownerReferences'] == old['ownerReferences'], f'owner Object/{name} ownership changed during protected interval')
+        expect(new['spec'] == old['spec'], f'owner Object/{name} spec changed during protected interval')
+        expect(new['generation'] == old['generation'], f'owner Object/{name} generation changed during protected interval')
         expect(bool(new['resourceVersion']) and bool(old['resourceVersion']), f'owner Object/{name} resourceVersion missing')
+        if strict_object_rv:
+            expect(new['resourceVersion'] == old['resourceVersion'], f'owner Object/{name} resourceVersion changed during protected interval')
+    expect(set(after.get('resources', {})) == set(before.get('resources', {})), 'owner rendered resource set changed during protected interval')
+    for name, old in before.get('resources', {}).items():
+        new = after['resources'][name]
+        expect(new['uid'] == old['uid'], f'owner readback {name} UID changed during protected interval')
+        expect(new['content'] == old['content'], f'owner readback {name} content changed during protected interval')
+        expect(bool(new['resourceVersion']) and bool(old['resourceVersion']), f'owner readback {name} resourceVersion missing')
+        if strict_resource_rv:
+            expect(new['resourceVersion'] == old['resourceVersion'], f'owner readback {name} resourceVersion changed during protected interval')
     return {
-        'workspaceUID': before['xrUID'],
+        'workspaceUID': before['xrUID'], 'workspaceGeneration': before['xrGeneration'],
+        'workspaceResourceVersionBefore': before['xrResourceVersion'],
+        'workspaceResourceVersionAfter': after['xrResourceVersion'],
+        'workspaceSpecSha256Before': sha_json(before['xrSpec']),
+        'workspaceSpecSha256After': sha_json(after['xrSpec']),
         'namespace': {'uid': before['namespace']['uid'], 'resourceVersionBefore': before['namespace']['resourceVersion'],
                       'resourceVersionAfter': after['namespace']['resourceVersion'],
                       'contentSha256Before': sha_json(before['namespace']['content']),
@@ -283,29 +319,44 @@ def assert_owner_unchanged(before, after):
                      'metadataSha256After': sha_json(after['objects'][name]['metadata']),
                      'specSha256Before': sha_json(old['spec']),
                      'specSha256After': sha_json(after['objects'][name]['spec'])} for name, old in sorted(before['objects'].items())],
+        'readback': [{'name': name, 'uid': old['uid'], 'resourceVersionBefore': old['resourceVersion'],
+                      'resourceVersionAfter': after['resources'][name]['resourceVersion'],
+                      'contentSha256Before': sha_json(old['content']),
+                      'contentSha256After': sha_json(after['resources'][name]['content'])}
+                     for name, old in sorted(before.get('resources', {}).items())],
     }
 
-def assert_collision_refused(done, candidate_name):
+
+def assert_distinct_workspace_snapshots(first, second):
+    expect(first['namespace']['uid'] != second['namespace']['uid'] and
+           first['namespace']['content']['metadata']['name'] != second['namespace']['content']['metadata']['name'],
+           'distinct workspaces share a Namespace name or UID')
+    expect(set(first['objects']).isdisjoint(second['objects']), 'distinct workspaces share composed Object names')
+    first_object_uids = {value['uid'] for value in first['objects'].values()}
+    second_object_uids = {value['uid'] for value in second['objects'].values()}
+    expect(first_object_uids.isdisjoint(second_object_uids), 'distinct workspaces share composed Object UIDs')
+    first_resource_uids = {value['uid'] for value in first.get('resources', {}).values()}
+    second_resource_uids = {value['uid'] for value in second.get('resources', {}).values()}
+    expect(first_resource_uids.isdisjoint(second_resource_uids), 'distinct workspaces share rendered-resource UIDs')
+    return {'namespaceUIDs': [first['namespace']['uid'], second['namespace']['uid']],
+            'objectNames': [sorted(first['objects']), sorted(second['objects'])],
+            'objectUIDs': [sorted(first_object_uids), sorted(second_object_uids)]}
+
+def assert_noncanonical_name_refused(done, candidate_name):
     error = done.stderr
     expect(done.returncode != 0 and 'metadata.name' in error and 'workspaceID' in error and '-xr' in error,
            f'noncanonical duplicate workspaceID was not rejected by the naming rule: {error.strip()[:300]}')
     missing = kubectl(['get', f'developerworkspace/{candidate_name}'], check=False)
-    expect(missing.returncode != 0 and 'NotFound' in missing.stderr, f'rejected DeveloperWorkspace {candidate_name} exists')
+    expect(is_not_found(missing), f'rejected DeveloperWorkspace {candidate_name} absence was not confirmed by NotFound: {missing.stderr.strip()[:300]}')
     refs = composed_objects(candidate_name)
     expect(not refs, f'rejected DeveloperWorkspace {candidate_name} has composed Object references: {refs}')
     return {'name': candidate_name, 'exists': False, 'ready': False, 'objectRefs': refs}
 
-def collision_candidate(owner_doc):
-    candidate = copy.deepcopy(owner_doc)
-    candidate['metadata']['name'] = owner_doc['metadata']['name'].removesuffix('-xr') + '-collision'
-    expect(candidate['metadata']['name'] != canonical_xr_name(candidate['spec']['workspaceID']), 'collision candidate unexpectedly has the canonical name')
-    return candidate
-
-def delete_rejected_collision(name):
-    kubectl(['delete', f'developerworkspace/{name}', '--ignore-not-found', '--wait=true', '--timeout=300s'], timeout=330)
-    missing = kubectl(['get', f'developerworkspace/{name}'], check=False)
-    expect(missing.returncode != 0 and re.search(r'\(NotFound\):', missing.stderr),
-           f'rejected DeveloperWorkspace {name} was not confirmed absent: rc={missing.returncode} {missing.stderr.strip()[:300]}')
+def assert_canonical_create_already_exists(done, owner_name):
+    error = done.stderr
+    expect(done.returncode != 0 and '(AlreadyExists)' in error and 'already exists' in error and f'"{owner_name}"' in error,
+           f'second canonical CREATE did not report AlreadyExists for {owner_name}: rc={done.returncode} {error.strip()[:300]}')
+    return {'name': owner_name, 'reason': 'AlreadyExists', 'created': False}
 
 def authority_identities():
     def binding(name, service_account, role):
@@ -327,13 +378,33 @@ AUTHORITY_RESOURCES = {
     'ProviderConfig': ('kubernetes.crossplane.io', 'providerconfigs'),
     'EnvironmentConfig': ('apiextensions.crossplane.io', 'environmentconfigs'),
 }
-AUTHORITY_VERBS = ('create', 'update', 'patch', 'delete')
+AUTHORITY_VERBS = ('create', 'update', 'patch', 'delete', 'deletecollection')
+INDIRECT_AUTHORITY = {
+    'impersonate-users': ('', 'users', 'impersonate', None),
+    'impersonate-groups': ('', 'groups', 'impersonate', None),
+    'impersonate-serviceaccounts': ('', 'serviceaccounts', 'impersonate', '*'),
+    'bind-roles': ('rbac.authorization.k8s.io', 'roles', 'bind', '*'),
+    'bind-clusterroles': ('rbac.authorization.k8s.io', 'clusterroles', 'bind', '*'),
+    'escalate-roles': ('rbac.authorization.k8s.io', 'roles', 'escalate', '*'),
+    'escalate-clusterroles': ('rbac.authorization.k8s.io', 'clusterroles', 'escalate', None),
+    'create-clusterrolebindings': ('rbac.authorization.k8s.io', 'clusterrolebindings', 'create', None),
+    'update-clusterrolebindings': ('rbac.authorization.k8s.io', 'clusterrolebindings', 'update', None),
+    'patch-clusterrolebindings': ('rbac.authorization.k8s.io', 'clusterrolebindings', 'patch', None),
+    'create-rolebindings': ('rbac.authorization.k8s.io', 'rolebindings', 'create', '*'),
+    'update-rolebindings': ('rbac.authorization.k8s.io', 'rolebindings', 'update', '*'),
+    'patch-rolebindings': ('rbac.authorization.k8s.io', 'rolebindings', 'patch', '*'),
+    'create-serviceaccounts-crossplane-system': ('', 'serviceaccounts', 'create', 'crossplane-system'),
+    'create-serviceaccount-tokens-crossplane-system': ('', 'serviceaccounts/token', 'create', 'crossplane-system'),
+    'create-pods-crossplane-system': ('', 'pods', 'create', 'crossplane-system'),
+    'get-secrets-crossplane-system': ('', 'secrets', 'get', 'crossplane-system'),
+    'list-secrets-crossplane-system': ('', 'secrets', 'list', 'crossplane-system'),
+}
 
 
 def authority_subject(subject, namespace=None):
     kind = subject['kind']
     expect(kind in ('User', 'Group', 'ServiceAccount'), f'unknown RBAC subject kind {kind}')
-    ns = subject.get('namespace', namespace) if kind == 'ServiceAccount' else None
+    ns = subject.get('namespace') if kind == 'ServiceAccount' else None
     expect(kind != 'ServiceAccount' or bool(ns), f'ServiceAccount subject {subject["name"]} has no namespace')
     return (kind, subject['name'], ns or '')
 
@@ -361,22 +432,62 @@ def expected_authority_holders(default_group_present):
             holders = {superuser, controller, operator} | group
             if verb in ('update', 'patch', 'delete'):
                 holders.add(garbage_collector)
-            if verb == 'delete':
+            if verb in ('delete', 'deletecollection'):
                 holders.add(namespace_controller)
-            if kind in ('Object', 'ProviderConfig') and verb != 'delete':
+            if kind in ('Object', 'ProviderConfig') and verb in ('create', 'update', 'patch'):
                 holders.add(provider)  # provider system role deliberately omits delete
+            if verb == 'deletecollection':
+                holders.discard(operator)  # the shipped operator role intentionally omits it
             result[kind][verb] = holders
+    return result
+
+
+def expected_indirect_holders(default_group_present):
+    master = ('Group', 'system:masters', '')
+    group = {('Group', 'crossplane:masters', '')} if default_group_present else set()
+    sa = lambda name, namespace='kube-system': ('ServiceAccount', name, namespace)
+    controller = sa('crossplane', 'crossplane-system')
+    rbac_manager = sa('rbac-manager', 'crossplane-system')
+    provider = sa('developer-workspace-provider-kubernetes', 'crossplane-system')
+    gc = sa('generic-garbage-collector')
+    namespace_controller = sa('namespace-controller')
+    kcm = ('User', 'system:kube-controller-manager', '')
+    result = {name: {master} for name in INDIRECT_AUTHORITY}
+    result['impersonate-serviceaccounts'].add(controller)
+    result['bind-clusterroles'].add(rbac_manager)
+    result['escalate-roles'].add(rbac_manager)
+    result['escalate-clusterroles'].update({rbac_manager, sa('clusterrole-aggregation-controller')})
+    result['create-clusterrolebindings'].update({rbac_manager, *group})
+    for name in ('update-clusterrolebindings', 'patch-clusterrolebindings'):
+        result[name].update({rbac_manager, gc, *group})
+    result['create-rolebindings'].update(group)
+    for name in ('update-rolebindings', 'patch-rolebindings'):
+        result[name].update({gc, *group})
+    result['create-serviceaccounts-crossplane-system'].update({kcm, sa('service-account-controller'), controller, provider})
+    result['create-serviceaccount-tokens-crossplane-system'].add(kcm)
+    result['create-pods-crossplane-system'].update(sa(name) for name in (
+        'daemon-set-controller', 'job-controller', 'persistent-volume-binder',
+        'replicaset-controller', 'replication-controller', 'statefulset-controller'))
+    secret_readers = {kcm, gc, namespace_controller, controller, provider, sa('cilium-operator'), *group}
+    result['get-secrets-crossplane-system'].update(secret_readers)
+    result['list-secrets-crossplane-system'].update({*secret_readers, sa('resourcequota-controller')})
     return result
 
 
 def authority_rule_matches(rule, group, resource, verb):
     matches = lambda value, entries: value in entries or '*' in entries
+    resources = rule.get('resources', [])
+    resource_match = matches(resource, resources)
+    if '/' in resource:
+        _, subresource = resource.split('/', 1)
+        resource_match = resource_match or f'*/{subresource}' in resources
     return (matches(group, rule.get('apiGroups', [])) and
-            matches(resource, rule.get('resources', [])) and
+            resource_match and
             matches(verb, rule.get('verbs', [])) and
-            # Top-level CREATE has no resource name at authorization time. Named rules
-            # still count for update/patch/delete of ANY name, not just our profile names.
-            not (verb == 'create' and rule.get('resourceNames')))
+            # Top-level CREATE has no resource name at authorization time. Named rules still
+            # count for updates, named subresource creates, and list with metadata.name selectors.
+            not (verb == 'deletecollection' and rule.get('resourceNames')) and
+            not (verb == 'create' and '/' not in resource and rule.get('resourceNames')))
 
 
 def assert_authority_holder_sets(holders, expected):
@@ -391,6 +502,17 @@ def assert_authority_holder_sets(holders, expected):
     expect(not differences, 'authority-who-can holder mismatch: ' + '; '.join(differences))
 
 
+def assert_indirect_authority_holder_sets(holders, expected):
+    differences = []
+    for name in INDIRECT_AUTHORITY:
+        extra = sorted(holders[name] - expected[name])
+        missing = sorted(expected[name] - holders[name])
+        if extra or missing:
+            differences.append(f'{name}: extra={list(map(authority_subject_record, extra))}, '
+                               f'missing={list(map(authority_subject_record, missing))}')
+    expect(not differences, 'indirect authority holder mismatch: ' + '; '.join(differences))
+
+
 def prove_authority_who_can():
     # Scope is checked against the installed CRDs, rather than inferred from a kind name.
     for kind, (group, resource) in AUTHORITY_RESOURCES.items():
@@ -403,6 +525,7 @@ def prove_authority_who_can():
     cluster_index = {r['metadata']['name']: r for r in cluster_roles}
     role_index = {(r['metadata']['namespace'], r['metadata']['name']): r for r in roles}
     holders = {kind: {verb: set() for verb in AUTHORITY_VERBS} for kind in AUTHORITY_RESOURCES}
+    indirect = {name: set() for name in INDIRECT_AUTHORITY}
     non_effective = []
     for binding in [*cluster_bindings, *bindings]:
         cluster_binding = binding['kind'] == 'ClusterRoleBinding'
@@ -432,10 +555,18 @@ def prove_authority_who_can():
                                           'kind': kind, 'verb': verb,
                                           'subjects': list(map(authority_subject_record, sorted(subjects))),
                                           'reason': 'RoleBinding cannot grant access to a cluster-scoped resource'})
+        for name, (group, resource, verb, scope) in INDIRECT_AUTHORITY.items():
+            if not any(authority_rule_matches(rule, group, resource, verb) for rule in role.get('rules', [])):
+                continue
+            if cluster_binding or scope == '*' or namespace == scope:
+                indirect[name].update(subjects)
     default_group_present = any(b['metadata']['name'] == 'crossplane-admin' for b in cluster_bindings)
     assert_authority_holder_sets(holders, expected_authority_holders(default_group_present))
+    assert_indirect_authority_holder_sets(indirect, expected_indirect_holders(default_group_present))
     return {'holders': {kind: {verb: list(map(authority_subject_record, sorted(subjects)))
                               for verb, subjects in verbs.items()} for kind, verbs in holders.items()},
+            'indirectHolders': {name: list(map(authority_subject_record, sorted(subjects)))
+                                for name, subjects in indirect.items()},
             'nonEffectiveRoleBindings': non_effective,
             'scope': 'Cluster', 'defaultCrossplaneGroupBindingPresent': default_group_present}
 
@@ -473,6 +604,8 @@ def prove_authority_boundary(owner_name, owner_doc, profile_doc):
         for verb in full:
             assert_can_i(operator, verb, resource, True)
             assert_can_i(observer, verb, resource, resource.startswith('developerworkspaces.') and verb in ('get', 'list', 'watch'))
+        assert_can_i(operator, 'deletecollection', resource, False)
+        assert_can_i(observer, 'deletecollection', resource, False)
     named = (('providerconfigs.kubernetes.crossplane.io', 'in-cluster'),
              ('environmentconfigs.apiextensions.crossplane.io', 'developer-workspace-profile'))
     for resource, name in named:
@@ -481,6 +614,8 @@ def prove_authority_boundary(owner_name, owner_doc, profile_doc):
         for verb in ('list', 'watch'):
             assert_can_i(operator, verb, resource, False)
             assert_can_i(observer, verb, resource, False)
+        assert_can_i(operator, 'deletecollection', resource, False)
+        assert_can_i(observer, 'deletecollection', resource, False)
         for verb in ('get', 'update', 'patch', 'delete'):
             assert_can_i(operator, verb, resource, True, name)
             assert_can_i(operator, verb, resource, False, 'ok175-other-name')
@@ -520,10 +655,11 @@ def delete_and_confirm_gone(name, namespace, expected_count):
     volumes = [c['spec'].get('volumeName') for c in get_json(['get', 'pvc', '-n', namespace])['items']]
     expect(all(volumes), f'unbound PVC in {namespace}')
     kubectl(['delete', f'developerworkspace/{name}', '--wait=true', '--timeout=600s'], timeout=630)
-    wait_until(f'namespace {namespace} removal', lambda: kubectl(['get', 'namespace', namespace], check=False).returncode != 0, timeout=600)
+    wait_until(f'namespace {namespace} removal', lambda: is_not_found(kubectl(['get', 'namespace', namespace], check=False)), timeout=600)
     # The XR is gone before its composed Objects finish deleting; wait for them, bounded.
     wait_until(f'composed Objects of {name} to be deleted', lambda: not composed_objects(name), timeout=300)
-    for volume in volumes: wait_until(f'PersistentVolume {volume} removal', lambda: kubectl(['get', 'pv', volume], check=False).returncode != 0, timeout=300)
+    for volume in volumes:
+        wait_until(f'PersistentVolume {volume} removal', lambda volume=volume: is_not_found(kubectl(['get', 'pv', volume], check=False)), timeout=300)
     return len(volumes)
 
 # ---- run ------------------------------------------------------------------------------------
@@ -561,10 +697,16 @@ def run(args):
     canonical = workspace_inputs(cel_name, 'ws-ok175-cel', known, 'persistent')
     kubectl(['create', '--dry-run=server', '-f', '-'], input_text=yaml.safe_dump(canonical))
     wrong_name = copy.deepcopy(canonical); wrong_name['metadata']['name'] = 'ok175-cel-probe'
-    rejected_name = kubectl(['create', '--dry-run=server', '-f', '-'], input_text=yaml.safe_dump(wrong_name), check=False)
-    expect(rejected_name.returncode != 0 and 'metadata.name' in rejected_name.stderr and 'workspaceID' in rejected_name.stderr and '-xr' in rejected_name.stderr,
-           'XRD admitted a DeveloperWorkspace whose metadata.name is not derived from workspaceID')
-    record('admission-rules', 'the API server rejects inconsistent lifecycle and noncanonical workspace identity documents, then admits the consistent canonical document')
+    rejected_name = kubectl(['create', '-f', '-'], input_text=yaml.safe_dump(wrong_name), check=False)
+    try:
+        noncanonical = assert_noncanonical_name_refused(rejected_name, wrong_name['metadata']['name'])
+    finally:
+        # Cleanup only if the guard regressed and the supposedly rejected document persisted.
+        if rejected_name.returncode == 0:
+            kubectl(['delete', f'developerworkspace/{wrong_name["metadata"]["name"]}', '--ignore-not-found', '--wait=true', '--timeout=300s'], timeout=330, check=False)
+    record('admission-rules', 'the API server rejects inconsistent lifecycle and admits the consistent document')
+    record('canonical-name-rule', 'the API server rejects a distinct noncanonical metadata.name and admits metadata.name = spec.workspaceID + "-xr"',
+           rejected=noncanonical, admitted=canonical['metadata']['name'])
     # Without the profile EnvironmentConfig a workspace must compose nothing and must not be Ready.
     probe = workspace_inputs(*NO_PROFILE, known, 'persistent'); apply([probe])
     def no_profile_settled():
@@ -572,7 +714,9 @@ def run(args):
         return conditions.get('Synced', {}).get('status') == 'False' and 'developer-workspace-profile not found' in conditions['Synced'].get('message', '')
     wait_until('the no-profile workspace to report the missing profile', no_profile_settled, timeout=180, interval=3)
     conditions = {c['type']: c['status'] for c in get_json(['get', f'developerworkspace/{NO_PROFILE[0]}'])['status']['conditions']}
-    expect(conditions.get('Ready') != 'True' and not composed_objects(NO_PROFILE[0]) and kubectl(['get', 'namespace', 'dw-ok175-no-profile'], check=False).returncode != 0, f'no-profile workspace composed or became Ready: {conditions}')
+    no_profile_namespace = kubectl(['get', 'namespace', 'dw-ok175-no-profile'], check=False)
+    expect(conditions.get('Ready') != 'True' and not composed_objects(NO_PROFILE[0]) and is_not_found(no_profile_namespace),
+           f'no-profile workspace composed, became Ready, or Namespace absence was not confirmed by NotFound: {conditions}; {no_profile_namespace.stderr.strip()[:200]}')
     kubectl(['delete', f'developerworkspace/{NO_PROFILE[0]}', '--wait=true', '--timeout=300s'], timeout=330)
     record('no-profile-fails-closed', 'without the profile EnvironmentConfig the workspace reports it missing, composes nothing and is not Ready', ready=conditions.get('Ready'))
 
@@ -581,11 +725,14 @@ def run(args):
     profile_config = render_profile.profile_config(profile, 'in-cluster', PULL_SECRET if pulls else '')
     apply([profile_config])
 
-    def bring_up(name, workspace_id, mode):
+    def bring_up(name, workspace_id, mode, resources=None):
         expect(name == canonical_xr_name(workspace_id), f'{name} is not the canonical XR name for {workspace_id}')
         doc = workspace_inputs(name, workspace_id, known, mode); namespace = profile['spec']['namespacePrefix'] + workspace_id.removeprefix('ws-')
+        if resources:
+            doc['spec']['resources'].update(resources)
         # Dedicated: the reconciler would adopt an existing Namespace, so require that none exists.
-        expect(kubectl(['get', 'namespace', namespace], check=False).returncode != 0, f'namespace {namespace} already exists')
+        missing_namespace = kubectl(['get', 'namespace', namespace], check=False)
+        expect(is_not_found(missing_namespace), f'namespace {namespace} absence was not confirmed by NotFound: {missing_namespace.stderr.strip()[:300]}')
         apply([doc])
         wait_until(f'namespace {namespace}', lambda: kubectl(['get', 'namespace', namespace], check=False).returncode == 0, timeout=300)
         # Per-run values the contract only references: the source credential, CA and pull Secret.
@@ -599,8 +746,6 @@ def run(args):
         expect(created['metadata']['creationTimestamp'] >= xr['metadata']['creationTimestamp'], f'namespace {namespace} predates its DeveloperWorkspace')
         return doc, namespace, revision
 
-    collision_orders = []
-    collision_deletion_evidence = []
     try:
         # Dedicated Namespace: a workspace whose Namespace already exists must not adopt it.
         squat = 'dw-ok175-squat'
@@ -642,21 +787,20 @@ def run(args):
         authority = prove_authority_boundary(PERSISTENT[0], doc, profile_config)
         record('authority-boundary-rbac', 'observer is read-only for DeveloperWorkspace and denied every mutation; operator passes documented can-i checks and real server dry-run create/update checks for all four resource types', **authority)
 
-        record('authority-who-can', 'all cluster RBAC holders equal the documented expected subject sets for every steering kind and mutation verb', **prove_authority_who_can())
+        who_can = prove_authority_who_can()
+        record('authority-who-can', 'all cluster RBAC holders equal the documented expected subject sets for every steering kind and mutation verb',
+               holders=who_can['holders'], nonEffectiveRoleBindings=who_can['nonEffectiveRoleBindings'], scope=who_can['scope'],
+               defaultCrossplaneGroupBindingPresent=who_can['defaultCrossplaneGroupBindingPresent'])
+        record('authority-indirect-who-can', 'all RBAC holders of impersonation, bind, escalate, binding mutation, service-account token, Pod creation and Secret read paths equal the source-derived expected sets',
+               holders=who_can['indirectHolders'], defaultCrossplaneGroupBindingPresent=who_can['defaultCrossplaneGroupBindingPresent'])
 
-        collision = collision_candidate(doc); before = owner_snapshot(PERSISTENT[0], ns)
-        denied_collision = kubectl(['create', '-f', '-'], input_text=yaml.safe_dump(collision), check=False)
-        refused = assert_collision_refused(denied_collision, collision['metadata']['name'])
-        readback(ns, expected_objects(doc, profile, pulls)); after_create = owner_snapshot(PERSISTENT[0], ns)
+        rendered = expected_objects(doc, profile, pulls)
+        before = owner_snapshot(PERSISTENT[0], ns, rendered)
+        denied_collision = kubectl(['create', '-f', '-'], input_text=yaml.safe_dump(doc), check=False)
+        refused = assert_canonical_create_already_exists(denied_collision, PERSISTENT[0])
+        readback(ns, rendered); after_create = owner_snapshot(PERSISTENT[0], ns, rendered)
         identities = assert_owner_unchanged(before, after_create)
-        delete_rejected_collision(collision['metadata']['name'])
-        readback(ns, expected_objects(doc, profile, pulls)); after_rejected_delete = owner_snapshot(PERSISTENT[0], ns)
-        deletion_unchanged = assert_owner_unchanged(after_create, after_rejected_delete)
-        collision_orders.append('persistent:rejected-first')
-        collision_deletion_evidence.append({'order': 'persistent:rejected-first', 'ownerBeforeAndAfterAttempt': identities,
-                                            'ownerBeforeAndAfterRejectedDelete': deletion_unchanged})
-        record('workspace-id-collision-refused', 'a distinct CREATE with the owner workspaceID is rejected before it exists or composes; owner Namespace and composed Object identity, metadata, ownership and desired content remain intact', candidate=refused, owner=identities,
-               ownerAfterRejectedDelete=deletion_unchanged)
+        record('workspace-id-duplicate-create-refused', 'a second CREATE of the canonical owner name returns AlreadyExists; owner UID/spec, Namespace, composed Object resourceVersions/specs, and rendered-resource readback remain byte-equivalent', candidate=refused, owner=identities)
         # A reconciler, not a one-shot apply: remove the default-deny policy and require it back as rendered.
         # A new UID is the control that the policy was really deleted, however fast it returns.
         uid = lambda: (lambda d: json.loads(d.stdout)['metadata']['uid'] if d.returncode == 0 else None)(kubectl(['get', 'networkpolicy/default-deny', '-n', ns, '-o', 'json'], check=False))
@@ -731,50 +875,56 @@ def run(args):
 
         volumes = delete_and_confirm_gone(PERSISTENT[0], ns, count)
         expect(volumes == 1, f'persistent workspace had {volumes} PVCs')
-        collision_orders.append('persistent:owner-second')
         record('persistent-cleanup', f'deleting the XR removed its Namespace, all {count} composed Objects and the PersistentVolume')
 
-        # One workspace at a time: a single small worker cannot schedule two.
-        edoc, ens, _ = bring_up(*EPHEMERAL, 'ephemeral')
-        ecount = readback(ens, expected_objects(edoc, profile, pulls))
-        volumes = {v['name']: v for v in get_json(['get', 'deployment/workspace', '-n', ens])['spec']['template']['spec']['volumes']}
-        expect('emptyDir' in volumes['workspace'] and not get_json(['get', 'pvc', '-n', ens])['items'], 'ephemeral workspace is not emptyDir-backed')
-        record('ephemeral-reconcile', f'{ecount} reconciled objects equal render(); workspace volume is emptyDir, no PVC', namespace=ens)
-        ecollision = collision_candidate(edoc); ebefore = owner_snapshot(EPHEMERAL[0], ens)
-        edenied = kubectl(['create', '-f', '-'], input_text=yaml.safe_dump(ecollision), check=False)
-        assert_collision_refused(edenied, ecollision['metadata']['name'])
-        readback(ens, expected_objects(edoc, profile, pulls)); eafter = owner_snapshot(EPHEMERAL[0], ens)
-        ephemeral_owner_unchanged = assert_owner_unchanged(ebefore, eafter)
-        ephemeral_volumes = delete_and_confirm_gone(EPHEMERAL[0], ens, ecount)
-        collision_orders.append('ephemeral:owner-first')
-        delete_rejected_collision(ecollision['metadata']['name'])
-        expect(not composed_objects(ecollision['metadata']['name']), 'rejected ephemeral collision gained Object references after owner deletion')
-        collision_orders.append('ephemeral:rejected-second')
-        collision_deletion_evidence.append({'order': 'ephemeral:owner-first', 'ownerBeforeAndAfterAttempt': ephemeral_owner_unchanged,
-                                            'ownerCleanup': {'namespace': ens, 'composedObjects': ecount, 'persistentVolumes': ephemeral_volumes},
-                                            'rejectedCandidateAbsentAfterOwnerCleanup': True})
-        record('ephemeral-cleanup', f'deleting the XR removed its Namespace and all {ecount} composed Objects')
-        record('workspace-id-collision-delete-isolated', 'deleting the rejected name before its persistent owner leaves that owner intact; deleting the ephemeral owner before the rejected name removes only the owner', orders=collision_orders,
-               deletionEvidence=collision_deletion_evidence)
+        # These IDs collided under the former 40-bit Object-name hash. Reduced requests keep
+        # this a concurrent Ready proof on the disposable single-worker profile.
+        workspaces = []
+        for identity in DISTINCT:
+            edoc, ens, _ = bring_up(*identity, 'ephemeral', resources={'cpu': '100m', 'memory': '256Mi'})
+            expected = expected_objects(edoc, profile, pulls)
+            ecount = readback(ens, expected)
+            volumes = {v['name']: v for v in get_json(['get', 'deployment/workspace', '-n', ens])['spec']['template']['spec']['volumes']}
+            expect('emptyDir' in volumes['workspace'] and not get_json(['get', 'pvc', '-n', ens])['items'], f'{identity[0]} is not emptyDir-backed')
+            workspaces.append({'name': identity[0], 'namespace': ens, 'doc': edoc, 'expected': expected,
+                               'count': ecount, 'snapshot': owner_snapshot(identity[0], ens, expected)})
+        for item in workspaces:
+            ready = {c['type']: c['status'] for c in get_json(['get', f'developerworkspace/{item["name"]}'])['status']['conditions']}
+            expect(ready.get('Ready') == 'True', f'{item["name"]} was not Ready while both distinct workspaces existed: {ready}')
+        disjoint = assert_distinct_workspace_snapshots(workspaces[0]['snapshot'], workspaces[1]['snapshot'])
+        record('ephemeral-reconcile', 'both former-hash-collision workspaces are concurrently Ready; each rendered readback is emptyDir-backed with no PVC',
+               workspaces=[{'name': item['name'], 'namespace': item['namespace'], 'objects': item['count']} for item in workspaces], resources={'cpu': '100m', 'memory': '256Mi'})
+
+        second = workspaces[1]
+        second_volumes = delete_and_confirm_gone(second['name'], second['namespace'], second['count'])
+        expect(second_volumes == 0, f'{second["name"]} unexpectedly had PersistentVolumes')
+        first = workspaces[0]
+        readback(first['namespace'], first['expected'])
+        first_after = owner_snapshot(first['name'], first['namespace'], first['expected'])
+        first_unchanged = assert_owner_unchanged(first['snapshot'], first_after, strict_object_rv=False, strict_resource_rv=False)
+        record('distinct-workspace-isolation', 'ws-c69924 and ws-cd9634 are concurrently Ready with disjoint Namespaces/Object identities; deleting ws-cd9634 leaves ws-c69924 UIDs, desired Object specs and rendered-resource readback unchanged',
+               deleted=second['name'], survivor=first['name'], disjoint=disjoint, survivorBeforeAndAfter=first_unchanged)
+        first_volumes = delete_and_confirm_gone(first['name'], first['namespace'], first['count'])
+        expect(first_volumes == 0, f'{first["name"]} unexpectedly had PersistentVolumes')
+        record('ephemeral-cleanup', f'deleting the remaining XR removed its Namespace and all {first["count"]} composed Objects')
     finally:
         kubectl(['delete', 'namespace', 'dw-ok175-squat', '--ignore-not-found', '--wait=true'], timeout=600, check=False)
         for binding in (OPERATOR_BINDING, OBSERVER_BINDING):
             kubectl(['delete', 'clusterrolebinding', binding, '--ignore-not-found', '--wait=true'], check=False)
-        collision_names = tuple((name.removesuffix('-xr') + '-collision', '') for name, _ in (EPHEMERAL, PERSISTENT))
-        for name, _ in (EPHEMERAL, PERSISTENT, SQUAT, NO_PROFILE, *collision_names):
+        for name, _ in (*DISTINCT, PERSISTENT, SQUAT, NO_PROFILE):
             kubectl(['delete', f'developerworkspace/{name}', '--ignore-not-found', '--wait=true', '--timeout=600s'], timeout=630, check=False)
         kubectl(['delete', 'namespace', PROOF_NS, '--ignore-not-found', '--wait=true'], timeout=600, check=False)
         kubectl(['delete', 'environmentconfig/developer-workspace-profile', '--ignore-not-found'], check=False)
         def require_not_found(args, description):
             missing = kubectl(['get', *args], check=False)
-            expect(missing.returncode != 0 and re.search(r'\(NotFound\):', missing.stderr),
+            expect(is_not_found(missing),
                    f'cleanup did not confirm {description} absent: rc={missing.returncode} {missing.stderr.strip()[:300]}')
         require_not_found(['namespace', 'dw-ok175-squat'], 'squat Namespace')
         require_not_found(['namespace', PROOF_NS], 'proof services Namespace and its generated credentials')
         require_not_found(['environmentconfig', 'developer-workspace-profile'], 'profile EnvironmentConfig')
         for binding in (OPERATOR_BINDING, OBSERVER_BINDING):
             require_not_found(['clusterrolebinding', binding], f'ClusterRoleBinding/{binding}')
-        cleanup_xrs = (EPHEMERAL[0], PERSISTENT[0], SQUAT[0], NO_PROFILE[0], *(name for name, _ in collision_names))
+        cleanup_xrs = (*(name for name, _ in DISTINCT), PERSISTENT[0], SQUAT[0], NO_PROFILE[0])
         for name in cleanup_xrs:
             require_not_found(['developerworkspace', name], f'DeveloperWorkspace/{name}')
             expect(not composed_objects(name), f'cleanup left composed Objects for {name}')
@@ -788,9 +938,9 @@ def run(args):
     EVIDENCE.mkdir(exist_ok=True); out = EVIDENCE / f'live-{tgt["context"].split("@")[-1]}-{run_id}.json'
     out.write_text(json.dumps(evidence, indent=2, sort_keys=True) + '\n'); print(f'{len(results)}/{len(RESULTS)} checks passed; evidence {out.relative_to(REPO)}')
 
-RESULTS = ('admission-rules', 'no-profile-fails-closed', 'dedicated-namespace-enforced', 'reconcile-readback', 'workspace-id-immutable', 'authority-boundary-rbac', 'authority-who-can',
-           'workspace-id-collision-refused', 'drift-restored', 'source-checkout', 'kubernetes-authority-denied', 'kubernetes-api-unreachable', 'runtime-push-denied',
-           'workspace-credential-push-denied', 'write-credential-absent', 'persistent-cleanup', 'ephemeral-reconcile', 'ephemeral-cleanup', 'workspace-id-collision-delete-isolated', 'harness-cleanup')
+RESULTS = ('admission-rules', 'canonical-name-rule', 'no-profile-fails-closed', 'dedicated-namespace-enforced', 'reconcile-readback', 'workspace-id-immutable', 'authority-boundary-rbac', 'authority-who-can', 'authority-indirect-who-can',
+           'workspace-id-duplicate-create-refused', 'drift-restored', 'source-checkout', 'kubernetes-authority-denied', 'kubernetes-api-unreachable', 'runtime-push-denied',
+           'workspace-credential-push-denied', 'write-credential-absent', 'persistent-cleanup', 'ephemeral-reconcile', 'distinct-workspace-isolation', 'ephemeral-cleanup', 'harness-cleanup')
 
 def main():
     parser = argparse.ArgumentParser(); sub = parser.add_subparsers(dest='action', required=True)

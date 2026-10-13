@@ -178,14 +178,15 @@ spec:
             {{- end }}
             {{- $resources = append $resources (dict "key" "deployment" "manifest" (dict "apiVersion" "apps/v1" "kind" "Deployment" "metadata" (dict "name" "workspace" "namespace" $ns "labels" $lab) "spec" (dict "replicas" 1 "strategy" (dict "type" "Recreate") "selector" (dict "matchLabels" $lab) "template" (dict "metadata" (dict "labels" $lab) "spec" $pod)))) }}
 
+            {{- $workspaceDigest := sha256sum $w | trunc 32 }}
             {{- $objectNames := dict }}
-            {{- range $r := $resources }}{{ $n := printf "dw-%s-%s" (sha256sum $w | trunc 10) $r.key | trunc 63 | trimSuffix "-" }}{{ if hasKey $objectNames $n }}{{ fail (printf "composed Object name %s is not unique" $n) }}{{ end }}{{ $_ := set $objectNames $n true }}{{ end }}
+            {{- range $r := $resources }}{{ $n := printf "dw-%s-%s" $workspaceDigest $r.key | trunc 63 | trimSuffix "-" }}{{ if hasKey $objectNames $n }}{{ fail (printf "composed Object name %s is not unique" $n) }}{{ end }}{{ $_ := set $objectNames $n true }}{{ end }}
             {{- range $r := $resources }}
             ---
             apiVersion: kubernetes.crossplane.io/v1alpha2
             kind: Object
             metadata:
-              name: {{ printf "dw-%s-%s" (sha256sum $w | trunc 10) $r.key | trunc 63 | trimSuffix "-" }}
+              name: {{ printf "dw-%s-%s" $workspaceDigest $r.key | trunc 63 | trimSuffix "-" }}
               annotations:
                 gotemplating.fn.crossplane.io/composition-resource-name: {{ $r.key }}
             spec:

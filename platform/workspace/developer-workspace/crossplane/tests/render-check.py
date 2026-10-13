@@ -11,7 +11,7 @@ reference.
 Functions run as Development-runtime containers (see Makefile `functions-up`): this workstation's
 Crossplane CLI cannot reach a Docker socket directly.
 """
-import copy, importlib.util, json, os, subprocess, sys, tempfile
+import copy, hashlib, importlib.util, json, os, subprocess, sys, tempfile
 from pathlib import Path
 import yaml
 
@@ -62,7 +62,21 @@ def expected(doc, profile, pull_secret):
         pod['imagePullSecrets'] = [{'name': pull_secret}]
     return {(r['kind'], r['metadata']['name']): r for r in resources}
 
-def composed(outputs):
+def expected_object_name(workspace_id, resource_key):
+    digest = hashlib.sha256(workspace_id.encode()).hexdigest()[:32]
+    return f'dw-{digest}-{resource_key}'[:63].removesuffix('-')
+
+def composition_resource_keys(doc, profile):
+    keys = ['namespace', 'serviceaccount', 'resourcequota', 'limitrange', 'networkpolicy-default-deny']
+    if doc['spec']['storage']['mode'] == 'persistent': keys.append('persistentvolumeclaim')
+    refs = [doc['spec']['capabilities'][kind]['reference'] for kind in ('git', 'inference', 'mcp')]
+    keys.extend('networkpolicy-allow-' + ref.split(':', 1)[1] for ref in refs)
+    if any('service' in profile['spec']['capabilities'][ref]['destination'] for ref in refs):
+        keys.append('networkpolicy-allow-kube-dns')
+    keys.append('deployment')
+    return keys
+
+def composed(outputs, workspace_id=None, profile=None, doc=None):
     objects = [o for o in outputs if o.get('kind') == 'Object']
     for o in objects:
         assert o['spec']['providerConfigRef'] == {'name': PROVIDER_CONFIG}, o['metadata']['name']
@@ -70,6 +84,10 @@ def composed(outputs):
         assert o['spec']['watch'] is True, o['metadata']['name']
     names = [o['metadata']['name'] for o in objects]
     assert len(set(names)) == len(names) and all(len(n) <= 63 for n in names), f'composed Object names collide or exceed 63: {names}'
+    if workspace_id is not None:
+        assert profile is not None and doc is not None
+        expected_names = {expected_object_name(workspace_id, key) for key in composition_resource_keys(doc, profile)}
+        assert set(names) == expected_names, f'composed Object names differ: expected={sorted(expected_names)} got={sorted(names)}'
     manifests = [o['spec']['forProvider']['manifest'] for o in objects]
     return {(m['kind'], m['metadata']['name']): m for m in manifests}, objects
 
@@ -84,6 +102,21 @@ def canonicalize_name(doc):
     """Use the XRD admission envelope's canonical XR name for positive render inputs."""
     doc['metadata']['name'] = doc['spec']['workspaceID'] + '-xr'
     return doc
+
+def replace_capability_refs(doc, profile, refs):
+    """Return an oracle-valid input/profile pair with the three capability refs replaced."""
+    doc, profile = copy.deepcopy(doc), copy.deepcopy(profile)
+    old = {kind: doc['spec']['capabilities'][kind]['reference'] for kind in ('git', 'inference', 'mcp')}
+    for kind in old:
+        doc['spec']['capabilities'][kind]['reference'] = refs[kind]
+        profile['spec']['capabilities'][refs[kind]] = profile['spec']['capabilities'].pop(old[kind])
+    for runtime in profile['spec']['runtimeProfiles'].values():
+        runtime['envTemplate']['capabilityRef'] = refs['inference']
+    for model in profile['spec']['modelProfiles'].values():
+        model['inferenceCapabilityRef'] = refs['inference']
+    for credential in profile['spec']['credentials'].values():
+        credential['capabilityRef'] = refs['git']
+    return doc, profile
 
 def mutations(doc):
     """Inputs render() rejects in validate_profile(); the Composition must reject each one too."""
@@ -136,13 +169,27 @@ def main():
     base = canonicalize_name(load(SPIKE / 'developer-workspace-v0alpha1.example.yaml')); profile = load(SPIKE / 'namespace-profile-v1.yaml')
     failures = []; checked = 0
     with tempfile.TemporaryDirectory(prefix='ok175-render-') as directory:
+        collision_names = []
+        try:
+            for workspace_id in ('ws-c69924', 'ws-cd9634'):
+                doc = copy.deepcopy(base); doc['spec']['workspaceID'] = workspace_id; canonicalize_name(doc)
+                done, outputs = render(doc, [profile_config(profile, '')], directory)
+                if done.returncode: raise AssertionError(f'{workspace_id}: {done.stderr.strip()[:300]}')
+                got, objects = composed(outputs)
+                assert got == expected(doc, profile, ''), f'{workspace_id}: manifests differ from render()'
+                collision_names.append({o['metadata']['name'] for o in objects})
+            assert collision_names[0].isdisjoint(collision_names[1]), 'formerly colliding workspaceIDs produced overlapping composed Object names'
+            checked += 1; print('PASS workspace digest collision: formerly colliding workspaceIDs produce disjoint Object names')
+        except AssertionError as error:
+            print(f'FAIL workspace digest collision: {error}', file=sys.stderr)
+            return 1
         for runtime in ('opencode', 'codex'):
             for mode in ('persistent', 'ephemeral'):
                 for pull_secret in ('', 'registry-pull'):
                     doc = variant(base, runtime, mode); name = f'{runtime}/{mode}/{"pull-secret" if pull_secret else "no-pull-secret"}'
                     done, outputs = render(doc, [profile_config(profile, pull_secret)], directory)
                     if done.returncode: failures.append(f'{name}: render failed: {done.stderr.strip()[:300]}'); continue
-                    want = expected(doc, profile, pull_secret); got, objects = composed(outputs)
+                    want = expected(doc, profile, pull_secret); got, objects = composed(outputs, doc['spec']['workspaceID'], profile, doc)
                     if got != want:
                         missing = sorted(set(want) - set(got)); extra = sorted(set(got) - set(want))
                         differ = sorted(k for k in set(want) & set(got) if want[k] != got[k])
@@ -152,11 +199,25 @@ def main():
                         checked += 1; print(f'PASS {name}: {len(objects)} Objects equal render()')
         doc = copy.deepcopy(base); doc['spec']['workspaceID'] = 'ws-' + 'a' * 48  # the schema's longest ID
         canonicalize_name(doc)
-        done, outputs = render(doc, [profile_config(profile, '')], directory)
+        max_refs = {
+            'git': 'capabilityref:git-' + 'g' * 63,
+            'inference': 'capabilityref:inference-' + 'i' * 63,
+            'mcp': 'capabilityref:mcp-' + 'm' * 63,
+        }
+        doc, longest_profile = replace_capability_refs(doc, profile, max_refs)
+        done, outputs = render(doc, [profile_config(longest_profile, '')], directory)
         try:
             if done.returncode: raise AssertionError(done.stderr.strip()[:300])
-            got, objects = composed(outputs); assert got == expected(doc, profile, ''), 'manifests differ from render()'
-            checked += 1; print(f'PASS longest workspaceID: {len(objects)} uniquely named Objects equal render()')
+            got, objects = composed(outputs, doc['spec']['workspaceID'], longest_profile, doc); assert got == expected(doc, longest_profile, ''), 'manifests differ from render()'
+            longest_key = max(composition_resource_keys(doc, longest_profile), key=len)
+            assert longest_key == 'networkpolicy-allow-inference-' + 'i' * 63, f'unexpected longest resource key: {longest_key}'
+            assert len(longest_key) == 93, f'longest resource key is {len(longest_key)} characters, expected 93'
+            longest_name = expected_object_name(doc['spec']['workspaceID'], longest_key)
+            assert longest_name in {o['metadata']['name'] for o in objects}, f'longest composed Object name is absent: {longest_name}'
+            assert len(longest_name) == 63, f'longest composed Object name is {len(longest_name)} characters, expected 63'
+            checked += 1; print(f'PASS longest workspaceID and resource keys: {len(objects)} uniquely named Objects equal render() within 63 characters')
+            longest = next(o for o in objects if o['metadata']['name'] == longest_name)
+            print(f'RENDERED longest Object name: {longest["metadata"]["name"]} (length={len(longest["metadata"]["name"])}, key length={len(longest_key)})')
         except AssertionError as error: failures.append(f'longest workspaceID: {error}')
         status = lambda outputs: {k: v for k, v in next((o for o in outputs if o.get('kind') == 'DeveloperWorkspace'), {}).get('status', {}).items() if k != 'conditions'}
         done, outputs = render(base, [profile_config(profile, '')], directory)
@@ -164,7 +225,7 @@ def main():
             for failure in failures: print('FAIL ' + failure, file=sys.stderr)
             print(f'FAIL status render: {done.stderr.strip()[:600]}', file=sys.stderr)
             return 1
-        _, objects = composed(outputs)
+        _, objects = composed(outputs, base['spec']['workspaceID'], profile, base)
         if status(outputs) == {'namespace': 'dw-sample-174', 'lifecyclePhase': 'pending'}: print('PASS status: pending until the Deployment is observed available')
         else: failures.append(f'status before availability: {status(outputs)}')
         deployment = next((o for o in objects if o['spec']['forProvider']['manifest']['kind'] == 'Deployment'), None)
@@ -189,7 +250,7 @@ def main():
             else: failures.append(f'{label}: render() rejects it but the Composition composed {len([o for o in outputs if o.get("kind") == "Object"])} Objects')
         if rejected == len(cases): print(f'PASS fail closed: the Composition rejects all {rejected} inputs render() rejects')
     for f in failures: print('FAIL ' + f, file=sys.stderr)
-    return 1 if failures or checked != 9 else 0
+    return 1 if failures or checked != 10 else 0
 
 if __name__ == '__main__':
     raise SystemExit(main())
