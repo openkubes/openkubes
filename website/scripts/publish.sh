@@ -1,28 +1,19 @@
 #!/usr/bin/env bash
-# Publish the reviewed main commit to Cloudflare preview or GitHub Pages production.
+# OK-196: preview-first, single-command website release.
+# Work exclusively with remote reviewed commits; never mutate contributors' local files.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 
 fail() { echo "ERROR: $*" >&2; exit 1; }
 require() { command -v "$1" >/dev/null 2>&1 || fail "Missing required command: $1"; }
-require git
-require gh
-require curl
+for cmd in git gh curl; do require "$cmd"; done
 
 repo="openkubes/openkubes"
 preview_url="https://preview.openkubes.org/.well-known/ok196-preview-main-sha.txt"
 workflow="ok196-pages-release.yml"
 
-clean_tree() {
-  test -z "$(git status --porcelain)" || fail "Working tree must be clean."
-}
-current_main() {
-  git fetch origin main website-preview
-  local sha
-  sha="$(git rev-parse origin/main)"
-  test "$(git rev-parse main)" = "$sha" || fail "Local main is not at origin/main."
-  printf '%s' "$sha"
-}
+fetch_refs() { git fetch origin main website-preview; }
+main_sha() { git rev-parse refs/remotes/origin/main; }
 check_preview() {
   local wanted="$1" got attempt
   echo "Waiting for Cloudflare preview to serve main commit $wanted ..."
@@ -34,64 +25,122 @@ check_preview() {
     fi
     sleep 15
   done
-  fail "Cloudflare preview did not serve the expected main commit; production blocked."
+  fail "Cloudflare preview did not serve the expected main commit."
+}
+verify_remote_revision() {
+  local expected="$1"
+  fetch_refs
+  test "$(main_sha)" = "$expected" || fail "main advanced during release; restart and review the new commit."
+}
+preview() {
+  local target="$1" worktree
+  worktree="$(mktemp -d)"
+  # A subshell owns the temporary worktree and cleans it on every exit path.
+  (
+    cleanup() {
+      git worktree remove --force "$worktree" >/dev/null 2>&1 || true
+      rmdir "$worktree" 2>/dev/null || true
+    }
+    trap cleanup EXIT
+    git worktree add --detach "$worktree" refs/remotes/origin/website-preview
+    git -C "$worktree" merge --no-edit "$target"
+    printf '%s\n' "$target" > "$worktree/website/preview-main-sha.txt"
+    git -C "$worktree" add website/preview-main-sha.txt
+    if ! git -C "$worktree" diff --cached --quiet; then
+      git -C "$worktree" commit -m "chore(website): record previewed main revision"
+    fi
+    git -C "$worktree" push origin HEAD:refs/heads/website-preview
+  )
+  check_preview "$target"
+  echo "Preview is live: https://preview.openkubes.org/"
+}
+verify_preview_ancestry() {
+  local target="$1"
+  git merge-base --is-ancestor "$target" refs/remotes/origin/website-preview ||
+    fail "Preview branch does not contain reviewed main commit."
+  check_preview "$target"
+}
+# Watch only the run dispatched by this process; never select unrelated runs.
+dispatch_and_watch() {
+  local target="$1" mode="$2" started run_id attempt
+  started="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  if test "$mode" = dry-run; then
+    gh workflow run "$workflow" --repo "$repo" --ref main -f dry_run=true -f expected_sha="$target"
+  else
+    gh workflow run "$workflow" --repo "$repo" --ref main -f dry_run=false -f expected_sha="$target" -f release_confirmation=PUBLISH_OPENKUBES_ORG
+  fi
+  run_id=""
+  for attempt in $(seq 1 30); do
+    run_id="$(gh run list --repo "$repo" --workflow "$workflow" --event workflow_dispatch --json databaseId,headSha,createdAt --limit 30 --jq "[.[] | select(.headSha == \"$target\" and .createdAt >= \"$started\")] | sort_by(.createdAt) | reverse | .[0].databaseId // empty")"
+    test -n "$run_id" && break
+    sleep 2
+  done
+  test -n "$run_id" || fail "Cannot identify workflow run. Inspect GitHub Actions before retrying."
+  echo "Watching https://github.com/$repo/actions/runs/$run_id"
+  gh run watch "$run_id" --repo "$repo" --exit-status
+  test "$(gh run view "$run_id" --repo "$repo" --json conclusion --jq .conclusion)" = success ||
+    fail "Workflow did not succeed."
+  if test "$mode" = production; then
+    test "$(gh run view "$run_id" --repo "$repo" --json jobs --jq '[.jobs[] | select(.name == "publish" and .conclusion == "success")] | length')" = 1 ||
+      fail "Production publish job did not succeed."
+  else
+    test "$(gh run view "$run_id" --repo "$repo" --json jobs --jq '[.jobs[] | select(.name == "build" and .conclusion == "success")] | length')" = 1 ||
+      fail "Dry-run build did not succeed."
+  fi
+}
+publish() {
+  local target="$1" dry_run="${2:-false}" enabled confirmation
+  verify_remote_revision "$target"
+  verify_preview_ancestry "$target"
+  if test "$dry_run" = true; then
+    echo "Validating the reviewed commit with a GitHub Pages dry run ..."
+    dispatch_and_watch "$target" dry-run
+    verify_remote_revision "$target"
+    verify_preview_ancestry "$target"
+  fi
+  echo "Ready to publish main commit $target to https://openkubes.org/"
+  printf 'Type PUBLISH_OPENKUBES_ORG to continue: '
+  IFS= read -r confirmation </dev/tty || fail "Interactive confirmation required."
+  test "$confirmation" = PUBLISH_OPENKUBES_ORG || fail "Publication cancelled."
+  verify_remote_revision "$target"
+  enabled="$(gh variable get OK196_PAGES_RELEASE_ENABLED --repo "$repo" 2>/dev/null || true)"
+  test "$enabled" = false || fail "Repository release switch must be false before starting (got '$enabled')."
+  # Reset the gate even when dispatching or watching the workflow fails.
+  (
+    trap 'gh variable set OK196_PAGES_RELEASE_ENABLED --repo "$repo" --body false || echo "WARNING: Reset the release variable manually!" >&2' EXIT
+    gh variable set OK196_PAGES_RELEASE_ENABLED --repo "$repo" --body true
+    dispatch_and_watch "$target" production
+  )
+  echo "Production deploy completed. Verify https://openkubes.org/"
 }
 case "${1:-}" in
   preview)
-    clean_tree
-    original="$(git branch --show-current)"
-    test -n "$original" || fail "Detached HEAD not supported."
-    target="$(current_main)"
-    test "$original" = "main" || test "$original" = "website-preview" || fail "Run from main or website-preview."
-    git switch website-preview
-    git pull --ff-only origin website-preview
-    git merge --no-edit origin/main
-    # Preview metadata is committed so Cloudflare serves a trustworthy, build-specific marker.
-    mkdir -p website
-    printf '%s\n' "$target" > website/preview-main-sha.txt
-    git add website/preview-main-sha.txt
-    if ! git diff --cached --quiet; then
-      git commit -m "chore(website): record previewed main revision"
-    fi
-    git push origin website-preview
-    check_preview "$target"
-    git switch "$original"
-    echo "Preview is live: https://preview.openkubes.org/"
+    fetch_refs
+    target="$(main_sha)"
+    preview "$target"
+    ;;
+  release)
+    fetch_refs
+    target="$(main_sha)"
+    preview "$target"
+    publish "$target" true
     ;;
   publish)
-    clean_tree
-    test "$(git branch --show-current)" = "main" || fail "Switch to main before publishing."
-    target="$(current_main)"
-    test "$(git rev-parse origin/website-preview)" != "" || fail "Preview branch missing."
-    git merge-base --is-ancestor "$target" origin/website-preview || fail "Preview branch does not contain the current main commit."
-    check_preview "$target"
-    echo "Ready to publish main commit $target to https://openkubes.org/"
-    printf 'Type PUBLISH_OPENKUBES_ORG to continue: '
-    IFS= read -r confirmation </dev/tty || fail "Interactive confirmation required."
-    test "$confirmation" = "PUBLISH_OPENKUBES_ORG" || fail "Publication cancelled."
-    # A pre-existing enabled switch is not taken as authorization.
-    enabled="$(gh variable get OK196_PAGES_RELEASE_ENABLED --repo "$repo" 2>/dev/null || true)"
-    test "$enabled" = "false" || fail "Repository release switch must be false before starting (got '$enabled')."
-    reset_switch() { gh variable set OK196_PAGES_RELEASE_ENABLED --repo "$repo" --body false || echo "WARNING: Disable release variable manually!" >&2; }
-    trap reset_switch EXIT
-    gh variable set OK196_PAGES_RELEASE_ENABLED --repo "$repo" --body true
-    started="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-    gh workflow run "$workflow" --repo "$repo" --ref main -f dry_run=false -f expected_sha="$target" -f release_confirmation=PUBLISH_OPENKUBES_ORG
-    run_id=""
-    for attempt in $(seq 1 30); do
-      run_id="$(gh run list --repo "$repo" --workflow "$workflow" --event workflow_dispatch --json databaseId,headSha,createdAt --limit 20 --jq "[.[] | select(.headSha == \"$target\" and .createdAt >= \"$started\")] | sort_by(.createdAt) | reverse | .[0].databaseId // empty")"
-      test -n "$run_id" && break
-      sleep 2
-    done
-    test -n "$run_id" || fail "Could not identify dispatched workflow; inspect GitHub Actions."
-    echo "Watching https://github.com/$repo/actions/runs/$run_id"
-    gh run watch "$run_id" --repo "$repo" --exit-status
-    test "$(gh run view "$run_id" --repo "$repo" --json conclusion --jq .conclusion)" = "success" || fail "Release not successful."
-    test "$(gh run view "$run_id" --repo "$repo" --json jobs --jq '[.jobs[] | select(.name == "publish" and .conclusion == "success")] | length')" = "1" || fail "Publish job did not succeed."
-    echo "Production deploy completed. Validate https://openkubes.org/"
+    fetch_refs
+    target="$(main_sha)"
+    publish "$target" false
+    ;;
+  status)
+    fetch_refs
+    target="$(main_sha)"
+    printf 'Remote main: %s\nPreview branch: %s\n' "$target" "$(git rev-parse refs/remotes/origin/website-preview)"
+    got="$(curl --fail --silent --show-error --location --max-time 15 -H 'Cache-Control: no-cache' "$preview_url" || true)"
+    printf 'Cloudflare deployed main: %s\n' "${got:-unavailable}"
+    if test "$got" = "$target"; then echo "Preview matches main."; else echo "Preview does not match main."; fi
+    gh run list --repo "$repo" --workflow "$workflow" --limit 5
     ;;
   *)
-    echo "Usage: $0 preview|publish" >&2
+    echo "Usage: $0 preview|release|publish|status" >&2
     exit 2
     ;;
 esac
