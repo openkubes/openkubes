@@ -23,6 +23,12 @@ python website/scripts/render-legacy-html.py
 python website/scripts/check-preview.py
 python website/scripts/audit-url-compatibility.py
 
+# Static proof of the main revision included in this exact Cloudflare build.
+if test -f website/preview-main-sha.txt; then
+  mkdir -p .mkdocs-site/.well-known
+  cp website/preview-main-sha.txt .mkdocs-site/.well-known/ok196-preview-main-sha.txt
+fi
+
 # Preview pages must not be indexed; Cloudflare Pages serves _headers at its root.
 printf '/*\n  X-Robots-Tag: noindex, nofollow\n' > .mkdocs-site/_headers
 printf 'User-agent: *\nDisallow: /\n' > .mkdocs-site/robots.txt

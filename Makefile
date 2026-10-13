@@ -7,7 +7,7 @@ JSON      := $(DOCS)/knowledge-graph.json
 TEMPLATE  := $(DOCS)/knowledge-graph-template.html
 STANDALONE:= $(DOCS)/openkubes_knowledge_graph_force_layout.html
 
-.PHONY: help graph graph-json graph-html graph-serve graph-stats
+.PHONY: help graph graph-json graph-html graph-serve graph-stats website-preview website-publish
 
 help: ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
@@ -43,3 +43,10 @@ graph-serve: ## Preview the standalone viewer locally (http://localhost:8000)
 
 graph-stats: ## Print graph summary (requires prior graph-json)
 	@cd $(DOCS) && python3 okgraph.py stats
+
+# OK-196: controlled, preview-first website release.
+website-preview: ## Sync main to Cloudflare preview and verify the served commit
+	@bash website/scripts/publish.sh preview
+
+website-publish: ## Publish the verified preview commit to GitHub Pages (manual approval)
+	@bash website/scripts/publish.sh publish
