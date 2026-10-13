@@ -37,6 +37,7 @@ jobs:
           persist-credentials: false
           fetch-depth: 0
       - name: Verify reviewed revision
+        if: ${{ inputs.dry_run == false }}
         env:
           EXPECTED_SHA: ${{ inputs.expected_sha }}
         run: |
