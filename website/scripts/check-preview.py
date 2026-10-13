@@ -77,6 +77,18 @@ def main():
     observability_html = (SITE / "observability" / "index.html").read_text(encoding="utf-8")
     if "Observability Capability" not in observability_html or "Capability Contract" not in observability_html:
         raise SystemExit("OK Observability overview incomplete")
+    # Ensure Developer Workspace pages are generated and linked in the new nav.
+    for workspace_path in (
+        "developer-workspace/index.html",
+        "developer-workspace/architecture/index.html",
+        "developer-workspace/coding-agents/index.html",
+        "developer-workspace/status/index.html",
+    ):
+        if not (SITE / workspace_path).is_file():
+            raise SystemExit(f"Missing Developer Workspace page: {workspace_path}")
+    workspace_html = (SITE / "developer-workspace" / "index.html").read_text(encoding="utf-8")
+    if "Developer Workspace" not in workspace_html or "OpenCode" not in workspace_html:
+        raise SystemExit("Developer Workspace overview incomplete")
     parser = Refs()
     parser.feed(html)
     missing = []
