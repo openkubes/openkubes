@@ -55,6 +55,7 @@ case "${1:-}" in
     fi
     git push origin website-preview
     check_preview "$target"
+    git switch "$original"
     echo "Preview is live: https://preview.openkubes.org/"
     ;;
   publish)
