@@ -8,6 +8,11 @@ on:
         required: true
         type: boolean
         default: true
+      expected_sha:
+        description: 'Full SHA of reviewed main commit'
+        required: false
+        type: string
+        default: ''
       release_confirmation:
         description: 'For live publication type PUBLISH_OPENKUBES_ORG; leave blank for dry run'
         required: false
@@ -31,6 +36,12 @@ jobs:
         with:
           persist-credentials: false
           fetch-depth: 0
+      - name: Verify reviewed revision
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+        run: |
+          test -n "$EXPECTED_SHA"
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
       - name: Check legacy Pages rollback baseline
         run: bash website/scripts/check-legacy-rollback.sh
       - name: Checkout pinned ok-local docs
