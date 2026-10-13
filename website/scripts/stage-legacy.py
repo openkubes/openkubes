@@ -28,6 +28,15 @@ def main():
         destination = TARGET / section
         destination.mkdir(parents=True, exist_ok=True)
         shutil.copy2(source_page, destination / "index.md")
+    # Stage the dedicated OK AI capability pages from source-owned Markdown.
+    ai_source = pages / "ai"
+    ai_target = TARGET / "ai"
+    ai_target.mkdir(parents=True, exist_ok=True)
+    for filename in ("index.md", "open-webui.md", "openclaw.md", "agentic-operations.md"):
+        source_page = ai_source / filename
+        if not source_page.is_file():
+            raise SystemExit(f"Missing OK AI page: {source_page}")
+        shutil.copy2(source_page, ai_target / filename)
     # Preserve the historical getting-started entry point as a rendered page.
     # Relative repository links in its source README point outside docs/.
     getting_started = SOURCE / "getting-started" / "README.md"

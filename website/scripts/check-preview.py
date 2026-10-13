@@ -52,6 +52,14 @@ def main():
                 raise SystemExit(f"Shared navigation missing on {section}")
     if not (SITE / "assets" / "openkubes-theme.css").is_file():
         raise SystemExit("Shared Material theme asset missing")
+    # Guard the OK AI navigation and generated capability entry points.
+    for ai_path in ("ai/index.html", "ai/open-webui/index.html",
+                    "ai/openclaw/index.html", "ai/agentic-operations/index.html"):
+        if not (SITE / ai_path).is_file():
+            raise SystemExit(f"Missing OK AI page: {ai_path}")
+    ai_html = (SITE / "ai" / "index.html").read_text(encoding="utf-8")
+    if "Open WebUI" not in ai_html or "OpenClaw" not in ai_html:
+        raise SystemExit("OK AI overview incomplete")
     parser = Refs()
     parser.feed(html)
     missing = []
