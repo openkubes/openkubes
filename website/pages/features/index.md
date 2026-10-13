@@ -22,6 +22,10 @@ Treat requested changes as proposals that must pass trusted authorization and ve
 
 Use [OpenKubes Local tutorials](/docs/ok-local/tutorial-prerequisites/) for hands-on development and [cluster documentation](/docs/ok-cluster/registry-trust/) for operating building blocks.
 
+### Observability
+
+[OK Observability](/observability/) defines per-cluster metrics, dashboards, searchable logs, alerting and autonomy as testable platform guarantees. The [Observability Capability Contract](/observability/contract/) and gated installation make those claims verifiable rather than relying on deployment status alone.
+
 ## Explore
 
 - [Platform architecture](/architecture/)

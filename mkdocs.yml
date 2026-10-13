@@ -33,6 +33,11 @@ nav:
       - Open WebUI: ai/open-webui.md
       - OpenClaw: ai/openclaw.md
       - Agentic Operations: ai/agentic-operations.md
+  - OK Observability:
+      - Overview: observability/index.md
+      - Observability Stack: observability/stack.md
+      - Capability Contract: observability/contract.md
+      - Installation & Verification: observability/installation.md
   - Blog:
       - Overview: blog/index.md
       - Agentic Operations: agentic-operations-reference-architecture.md
