@@ -1,25 +1,36 @@
 # Preview-first website publishing (OK-196)
 
-Merge website changes into `main` through a reviewed PR. From a clean, current local `main` branch, with GitHub CLI (`gh`), `git`, and `curl` installed and GitHub access configured:
+Merge a reviewed website PR to `main`, then run:
 
 ```bash
-git switch main
-git pull --ff-only origin main
-make website-preview
-# Visually review https://preview.openkubes.org/
-make website-publish
+make website-release
 ```
 
-`make website-preview` merges the current remote main into `website-preview`, commits the main SHA as `website/preview-main-sha.txt`, pushes the branch, and polls the Cloudflare-hosted marker `/.well-known/ok196-preview-main-sha.txt` until the expected revision is served. Returns to the original branch on success. Cloudflare must be connected to `website-preview` and publish the `.mkdocs-site` output of `website/scripts/cloudflare-build.sh`.
+This single command uses the reviewed remote `origin/main` commit. It prepares and pushes Cloudflare preview from a **temporary Git worktree**, verifies the served SHA, executes a GitHub Pages **dry run**, and then prompts:
 
-`make website-publish` checks that preview serves the same `main` SHA and that this commit is an ancestor of `website-preview`. It requires an interactive confirmation before temporarily enabling `OK196_PAGES_RELEASE_ENABLED`, dispatches `ok196-pages-release.yml` with `expected_sha`, watches the run and disables the variable on exit. The workflow rejects production builds if `main` advanced since review.
+```text
+Type OK to continue:
+```
 
-**Important:** Production remains on GitHub Pages; preview remains on Cloudflare Pages. No DNS changes. Do not merge or force-push during the publish window. The GitHub environment restrictions and the existing backup/rollback procedure remain in effect.
+Type `OK` to approve the production stage. This is the **local UX confirmation only**: internally the GitHub Actions dispatch still uses `PUBLISH_OPENKUBES_ORG`, an exact expected commit SHA, the existing `OK196_PAGES_RELEASE_ENABLED` release switch and the `github-pages` environment controls. No production deployment runs before the confirmation.
 
-If deployment fails, investigate the GitHub Actions run or Cloudflare Pages deployment. If the release switch could not be disabled (e.g., an interrupted process), reset it manually:
+Other commands:
 
 ```bash
-gh variable set OK196_PAGES_RELEASE_ENABLED --repo openkubes/openkubes --body false
+make website-preview    # Synchronize and verify Cloudflare preview
+make website-status     # Show the preview revision and recent release runs
+make website-publish    # Publish a previously verified preview with explicit approval
 ```
 
-For a dry run (no deployment) use the GitHub Actions UI with `dry_run=true`. The old manual production form also now requires the full reviewed main SHA in `expected_sha`.
+The script does not stash local files, change your current branch, or publish uncommitted changes. Preview is served from Cloudflare Pages at https://preview.openkubes.org/; production uses GitHub Pages at https://openkubes.org/. No DNS changes are required.
+
+**Authorization:** Preview publication requires rights to push to `website-preview`. The current production script additionally requires permissions to set the GitHub release variable, plus any configured GitHub Pages environment approval. Community contributors with only source-branch push access must ask a maintainer to release. Never grant production permissions solely to make the CLI work.
+
+If a release fails or is interrupted, inspect GitHub Actions and verify no workflow remains active before an authorized administrator resets the release switch:
+
+```bash
+gh run list --repo openkubes/openkubes --workflow ok196-pages-release.yml --limit 10
+gh variable get OK196_PAGES_RELEASE_ENABLED --repo openkubes/openkubes
+```
+
+For source ownership, navigation changes and the contributor editing workflow, see [How to update the docs](pages/community/how-to-update-docs.md).
