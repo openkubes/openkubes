@@ -87,6 +87,7 @@ case "${1:-}" in
     echo "Watching https://github.com/$repo/actions/runs/$run_id"
     gh run watch "$run_id" --repo "$repo" --exit-status
     test "$(gh run view "$run_id" --repo "$repo" --json conclusion --jq .conclusion)" = "success" || fail "Release not successful."
+    test "$(gh run view "$run_id" --repo "$repo" --json jobs --jq '[.jobs[] | select(.name == "publish" and .conclusion == "success")] | length')" = "1" || fail "Publish job did not succeed."
     echo "Production deploy completed. Validate https://openkubes.org/"
     ;;
   *)
