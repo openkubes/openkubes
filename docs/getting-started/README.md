@@ -1,145 +1,71 @@
 # Getting Started with OpenKubes
 
-Step-by-step setup from bare metal to running workload clusters.
+**Your Kubernetes Framework. Built for the Age of AI.**
 
----
+OpenKubes helps you build your own Kubernetes platform with open, modular components and explicit platform contracts. Choose the path that matches what you want to explore. You do **not** need a bare-metal cluster to start learning.
 
-## Prerequisites
+## Choose your path
 
-- Bare metal servers (3+ nodes recommended), RKE2 installed and running
-- MetalLB configured with an IP pool
-- `kubectl`, `helm`, `clusterctl`, `jq`, `docker` installed locally
+| Path | Best for | Start here |
+| --- | --- | --- |
+| **OpenKubes Local** | Developers evaluating OpenKubes on a Mac | [Run OpenKubes Local](#1-openkubes-local) |
+| **OpenKubes Cluster** | Platform engineers exploring cluster lifecycle and infrastructure choices | [Explore OK-Cluster](#2-openkubes-cluster) |
+| **AI & Agentic Operations** | Teams running AI workloads and evaluating future agent-assisted operations | [Explore AI capabilities](#3-ai-and-agentic-operations) |
 
----
+## 1. OpenKubes Local
 
-## Step 1 — Install KubeVirt on the Infra Cluster
+**Recommended first step if you are new to OpenKubes.**
 
-KubeVirt enables running Virtual Machines as Kubernetes workloads.
+[OpenKubes Local](https://github.com/openkubes/ok-local) provides a development environment with separate management and infrastructure/workload Kubernetes clusters on **macOS using Multipass and K3s**. The accompanying tutorials introduce KubeVirt, Cluster API and Crossplane.
 
-```sh
-kubectl apply -f https://github.com/kubevirt/kubevirt/releases/download/v1.8.1/kubevirt-operator.yaml
-kubectl apply -f https://github.com/kubevirt/kubevirt/releases/download/v1.8.1/kubevirt-cr.yaml
-kubectl apply -f https://github.com/kubevirt/containerized-data-importer/releases/latest/download/cdi-operator.yaml
-kubectl apply -f https://github.com/kubevirt/containerized-data-importer/releases/latest/download/cdi-cr.yaml
+Before starting, review the [local prerequisites](../docs/ok-local/tutorial-prerequisites.md).
 
-kubectl -n kubevirt wait kubevirt kubevirt --for=condition=Available --timeout=300s
-kubectl get pods -n kubevirt
-kubectl get pods -n cdi
-```
-
-→ [`../../platform/virtualization/kubevirt/README.md`](../../platform/virtualization/kubevirt/README.md)
-
----
-
-## Step 2 — Deploy Management VMs
-
-Deploy the three VMs (`ok1-vm`, `ok2-vm`, `ok3-vm`) that will form the Management Cluster.
-
-```sh
-kubectl apply -f ok-vms/
-kubectl get dv -n kubevirt -w    # watch disk import
-kubectl get vms -n kubevirt -w   # watch VMs come up
-```
-
-Expected output:
-
-```
-NAME     STATUS    READY
-ok1-vm   Running   True
-ok2-vm   Running   True
-ok3-vm   Running   True
-```
-
-→ [`../../platform/hardware/README.md`](../../platform/hardware/README.md)
-
----
-
-## Step 3 — Install Cluster API + CAPK
-
-Bootstrap CAPI with the KubeVirt Infrastructure Provider on the Management Cluster.
-
-```sh
-# Install cert-manager first
-kubectl apply -f https://github.com/cert-manager/cert-manager/releases/latest/download/cert-manager.yaml
-kubectl -n cert-manager wait deployment cert-manager --for=condition=Available --timeout=120s
-
-# Init CAPI + CAPK
-clusterctl init --infrastructure kubevirt:v0.11.2 -v5
-
-# Connect to Infra Cluster
-kubectl -n capk-system create secret generic external-infra-kubeconfig \
-  --from-file=kubeconfig=$HOME/.kube/knautic-bare-metal.yaml \
-  --from-literal=namespace=capi-workload
-```
-
-→ [`../../platform/cluster-management/cluster-api/README.md`](../../platform/cluster-management/cluster-api/README.md)
-
----
-
-## Step 4 — Deploy Crossplane & Provision Workload Clusters
-
-Apply the Crossplane stack (XRDs, Compositions, RBAC):
-
-```sh
-cd platform/cluster-management
+```bash
+git clone https://github.com/openkubes/ok-local.git
+cd ok-local
 make setup
 ```
 
-Provision a workload cluster:
+The setup requires the tools and host resources described in the repository. Once it finishes, use `make help` and the [OK Local tutorials](https://github.com/openkubes/ok-local/tree/main/docs) to continue with cluster access, KubeVirt, CAPI and Crossplane.
 
-```sh
-make deploy cluster=ok1
-make status cluster=ok1
-make logs   cluster=ok1
+[OpenKubes Local README →](https://github.com/openkubes/ok-local#readme)
+
+## 2. OpenKubes Cluster
+
+**For infrastructure and platform engineers.**
+
+[OK-Cluster](https://github.com/openkubes/ok-cluster) is the OpenKubes cluster-lifecycle engine. Its scope includes declarative cluster creation, observation and upgrades across supported infrastructure and OS paths. It is not a one-command replacement for the local tutorial: cluster creation requires explicit environment inputs, operator review and authorization.
+
+Start with the [OK-Cluster README](https://github.com/openkubes/ok-cluster#readme), then consult the [operator runbook](https://github.com/openkubes/ok-cluster/blob/main/docs/ok147-operator-runbook.md) before attempting any live cluster operation.
+
+For an initial, **offline, non-mutating** exploration, the repository documents:
+
+```bash
+git clone https://github.com/openkubes/ok-cluster.git
+cd ok-cluster
+make ok-cli-build
+.tools/bin/ok cluster create --help
 ```
 
-Get the kubeconfig:
+This builds and inspects the CLI; it does not provision a cluster. For runtime requirements and supported workflows, follow the repository documentation rather than copying old bare-metal installation commands.
 
-```sh
-make kubeconfig cluster=ok1
-KUBECONFIG=~/.kube/ok1.kubeconfig kubectl get nodes
-```
+[Explore OK-Cluster →](https://github.com/openkubes/ok-cluster)
 
-→ [`../../platform/cluster-management/crossplane/README.md`](../../platform/cluster-management/crossplane/README.md)
+## 3. AI and Agentic Operations
 
----
+**For AI workloads, AI-enabled platform operations and future agent integrations.**
 
-## Cluster Lifecycle (make Targets)
+OpenKubes distinguishes **running AI workloads on Kubernetes** from **using AI agents to propose or coordinate infrastructure operations**. Agentic Operations is an evolving, optional capability: policy checks, explicit authorization, reconciliation and evidence remain essential. Do not assume autonomous production operations are available as an out-of-the-box installation.
 
-All cluster operations go through `platform/cluster-management/`:
+Start with the [Agentic Operations Reference Architecture](../agentic-operations-reference-architecture.md) and the [OpenKubes architecture overview](../architecture/).
 
-```sh
-cd platform/cluster-management
-make help                                          # show all targets
-make setup                                         # one-time: apply XRDs + Compositions
-make deploy      cluster=ok1                       # deploy a cluster
-make status      cluster=ok1                       # show cluster status
-make logs        cluster=ok1                       # follow deploy job logs
-make kubeconfig  cluster=ok1                       # get workload kubeconfig
-make upgrade     cluster=ok1 kubernetes-version=v1.34.1
-make delete      cluster=ok1                       # clean delete
-make check       cluster=ok1                       # check for leftover resources
-make force-clean cluster=ok1                       # emergency cleanup
-```
+We will link a dedicated AI installation guide here once its source repository and supported entry points are confirmed.
 
----
+## Where to go next
 
-## What You Get
+- [Developer documentation](../docs/) — documentation collected from OpenKubes repositories.
+- [Features](../features/) — capabilities of the framework.
+- [Architecture](../architecture/) — design principles, platform contracts and boundaries.
+- [GitHub organization](https://github.com/openkubes) — repositories, issues and contributions.
 
-After completing all steps:
-
-```sh
-kubectl get cluster -A
-
-NAMESPACE    NAME         AVAILABLE   PHASE         VERSION
-ok1-xxxxx    ok1-xxxxx    True        Provisioned   v1.34.1
-ok2-xxxxx    ok2-xxxxx    True        Provisioned   v1.34.1
-```
-
-Each cluster has 1 control plane node, 2 worker nodes, Calico CNI, and a dedicated MetalLB LoadBalancer IP.
-
----
-
-## Architecture
-
-→ [`../../architecture/README.md`](../../architecture/README.md)
+> **Source of truth:** This page lives in [`openkubes/openkubes/docs/getting-started/README.md`](https://github.com/openkubes/openkubes/blob/main/docs/getting-started/README.md). Component-specific setup details remain in their own repositories.
