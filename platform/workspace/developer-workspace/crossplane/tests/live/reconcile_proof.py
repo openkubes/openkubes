@@ -104,6 +104,10 @@ def normalized_match_resources(value):
     normalized.setdefault('objectSelector', {})
     normalized.setdefault('resourceRules', [])
     normalized.setdefault('excludeResourceRules', [])
+    # The API server defaults each rule's scope to "*" (seen live on an installed policy).
+    for rules in (normalized['resourceRules'], normalized['excludeResourceRules']):
+        for rule in rules:
+            rule.setdefault('scope', '*')
     return normalized
 
 def installed_matches_local():
