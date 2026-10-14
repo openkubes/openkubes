@@ -219,3 +219,27 @@ continue to use normal per-section relevance ranking. The first curated entry
 point for `ok-local` is `docs/tutorial-basic.md`; expanding onboarding across
 more repositories requires explicit human review of the allowlist and guides.
 The index format and source citations are unchanged.
+
+## Rebuild using frozen PoC dependencies
+
+The `Dockerfile` now pins the exact `python:3.12-slim` digest observed in the
+successful local linux/amd64 build and installs the 29 exact package versions
+captured from `pip freeze` into `requirements-mcp.lock`. The separate
+`requirements-mcp.txt` stays as the human-editable broad compatibility range
+for local experiments, **not** the release build input.
+
+From `platform/ai/assistant`:
+
+```sh
+git pull --ff-only origin feat/ok-202-docs-agent-poc
+docker build --pull -t openkubes/docs-search:ok202-locked .
+docker run --rm --entrypoint python openkubes/docs-search:ok202-locked -m pip freeze
+docker image inspect openkubes/docs-search:ok202-locked --format '{{.Id}} {{.Config.User}}'
+```
+
+The lockfile currently pins versions but **not package hashes**, so a
+successful rebuild is not proof of bit-for-bit reproducibility. Before GHCR
+publication: review/scan all dependencies, hash-lock resolved wheel artifacts,
+validate base-image architecture, scan image, record provenance and push a
+versioned immutable registry digest. The previous tested image is distinct
+from the newly locked image until its own runtime MCP smoke test passes.
