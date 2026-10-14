@@ -1,6 +1,7 @@
 # OK-202 experimental distroless comparison only. Not the release Dockerfile.
 # Python 3.13 runtime matches distroless python3-debian13 (Debian trixie).
-# Both base tags MUST be digest-pinned after evaluation; revalidate lock for 3.13.\n# Packages installed with --target avoid copying a builder-linked Python interpreter.
+# Both base tags MUST be digest-pinned after evaluation; revalidate lock for 3.13.
+# Packages installed with --target avoid copying a builder-linked Python interpreter.
 FROM python:3.13-slim-trixie AS build
 ENV PYTHONDONTWRITEBYTECODE=1 PIP_DISABLE_PIP_VERSION_CHECK=1
 COPY requirements-mcp.lock /tmp/requirements-mcp.lock
