@@ -83,19 +83,23 @@ async def main() -> None:
         stderr=subprocess.DEVNULL,
     )
     try:
-        # Wait for the server process to be ready; a failed startup is reported.
-        # Avoid infinite retries: localhost test deadline is about 15 seconds.
-        last_error = None
-        for _ in range(20):
+        # Wait until TCP is available before attempting an MCP handshake.
+        # httpx raises its own exception types on a refused connection.
+        ready = False
+        for _ in range(30):
             if server.poll() is not None:
                 raise RuntimeError(f"MCP server exited with code {server.returncode}")
             try:
-                await check_server()
-                return
-            except (OSError, ConnectionError, TimeoutError) as exc:
-                last_error = exc
+                reader, writer = await asyncio.open_connection(HOST, PORT)
+                writer.close()
+                await writer.wait_closed()
+                ready = True
+                break
+            except OSError:
                 await asyncio.sleep(0.5)
-        raise RuntimeError(f"HTTP MCP connection did not become ready: {last_error}")
+        if not ready:
+            raise RuntimeError("Local HTTP MCP listener was not ready within 15 seconds")
+        await check_server()
     finally:
         if server.poll() is None:
             server.terminate()
