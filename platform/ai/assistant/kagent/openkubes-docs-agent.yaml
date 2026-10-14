@@ -1,6 +1,6 @@
 # OK-202: illustrative manifest. NOT deployment-ready.
-# The dedicated retrieval-only MCP server registration, tool name and the
-# exact kagent version MUST be validated against the target cluster first.
+# Uses the dedicated docs-only RemoteMCPServer profile. Exact kagent version,
+# transport compatibility and server deployment MUST be validated before applying.
 # NEVER attach the default kagent-tool-server or platform-diagnostics tools.
 apiVersion: kagent.dev/v1alpha2
 kind: Agent
@@ -25,7 +25,14 @@ spec:
       explicitly state that the documentation does not establish the answer.
       Never claim to inspect or mutate a live Kubernetes cluster.
       Do not request credentials or sensitive logs from users.
-    tools: []  # Intentionally empty: bind ONLY docs_search MCP after validation.
+    tools:
+      - type: McpServer
+        mcpServer:
+          apiGroup: kagent.dev
+          kind: RemoteMCPServer
+          name: openkubes-docs-search
+          toolNames:
+            - docs_search
 ---
 # Ollama provider address must be substituted through provider values.
 apiVersion: kagent.dev/v1alpha2
