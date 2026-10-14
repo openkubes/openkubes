@@ -64,6 +64,31 @@ class IndexerTest(unittest.TestCase):
     def test_stopwords_only_produce_no_results(self):
         self.assertEqual(indexer.search(self.index, "how do I"), [])
 
+    def test_fenced_shell_block_stays_intact(self):
+        command = "echo a long command\\n" * 100
+        markdown = "# Install\\nBefore\\n\\n```bash\\n" + command + "```\\n\\nAfter"
+        sections = indexer.split_markdown(markdown)
+        containing = [text for _, text in sections if "echo a long command" in text]
+        self.assertEqual(len(containing), 1)
+        self.assertIn("```bash", containing[0])
+        self.assertTrue(containing[0].rstrip().endswith("```"))
+        self.assertEqual(containing[0].count("echo a long command"), 100)
+
+    def test_heading_inside_code_is_not_a_section(self):
+        sections = indexer.split_markdown(
+            "# Install\\n```sh\\n# shell comment\\necho hello\\n```\\n\\nDone"
+        )
+        self.assertEqual({name for name, _ in sections}, {"Install"})
+        self.assertIn("# shell comment", sections[0][1])
+
+    def test_oversize_code_block_fails_closed(self):
+        with self.assertRaises(ValueError):
+            indexer.split_markdown("# Install\\n```sh\\n" + "x" * 2700 + "\\n```")
+
+    def test_unclosed_fence_fails_closed(self):
+        with self.assertRaises(ValueError):
+            indexer.split_markdown("# Install\\n```sh\\necho unfinished")
+
     def test_no_answer_on_unknown_term(self):
         self.assertEqual(indexer.search(self.index, "zyzzzxq"), [])
 
