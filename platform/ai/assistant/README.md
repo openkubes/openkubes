@@ -37,3 +37,45 @@ This is deliberately a lexical scoring baseline, **not RAG production quality** 
 
 Spec: https://kubernauts.atlassian.net/wiki/spaces/OpenKubes/pages/3168894977
 Tracking: https://kubernauts.atlassian.net/browse/OK-202
+
+## MCP retrieval adapter (experimental)
+
+`docs_mcp.py` exposes exactly one tool, `docs_search(query, limit)`, using the
+official Python MCP SDK. The adapter validates public source allowlists, SHA-256
+passage integrity and pinned GitHub source URLs when loading the index.
+
+```sh
+cd platform/ai/assistant
+python3 -m venv .venv
+. .venv/bin/activate
+python3 -m pip install -r requirements-mcp.txt
+python3 -m unittest discover -s tests -v
+
+export OPENKUBES_DOCS_INDEX=/tmp/openkubes-docs-index.json
+python3 docs_mcp.py
+```
+
+The default transport is **stdio**, suitable for a local MCP client. To test
+Streamable HTTP locally (not public):
+
+```sh
+OPENKUBES_MCP_TRANSPORT=streamable-http python3 docs_mcp.py
+```
+
+The default listener address is `127.0.0.1:8000`, with the MCP route `/mcp`.
+The intended kagent remote profile points to an internal Kubernetes Service;
+a container image, index volume mount, namespace, locked-down NetworkPolicy,
+service binding and a real installed-kagent compatibility test are still needed.
+The service must **never** be deployed merely by applying the illustrative
+`kagent/docs-search-mcp.yaml` or exposed on a public ingress.
+
+The manifest `kagent/openkubes-docs-agent.yaml` now references only the
+`openkubes-docs-search` RemoteMCPServer and explicitly allowlists the
+`docs_search` tool. It has no link to the cluster-diagnostics tools.
+A tool declaration is **not** a successful tool invocation; this requires
+runtime verification with the target kagent version and Ollama model.
+
+**Caveat:** This first retrieval tool only returns passages. It does not yet
+perform server-side answer citation verification or generate final responses.
+The current MCP dependency range is a PoC compatibility range, not a
+production lockfile.
