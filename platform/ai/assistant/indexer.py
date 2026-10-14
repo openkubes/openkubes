@@ -48,35 +48,94 @@ def tokenize(value: str) -> Counter[str]:
     return Counter(TOKEN.findall(value.lower()))
 
 
+
+CHUNK_TARGET = 2400
+CHUNK_MAX = 2600
+FENCE = re.compile(r"^ {0,3}(`{3,}|~{3,})(.*)$")
+
+
 def split_markdown(markdown: str) -> list[tuple[str, str]]:
-    """Section-aware chunks: small sections grouped, large sections split by lines."""
-    sections: list[tuple[str, str]] = []
+    """Section-aware chunks preserving whole fenced code blocks.
+
+    Reject oversized atomic paragraphs or code blocks instead of returning
+    truncated or syntactically invalid shell commands.
+    """
+    output: list[tuple[str, str]] = []
     title = "Overview"
-    buffer: list[str] = []
+    lines: list[str] = []
+    fence_char = ""
+    fence_width = 0
+
     def flush() -> None:
-        if buffer:
-            text = "\n".join(buffer).strip()
-            if text:
-                lines = text.splitlines()
-                part: list[str] = []
-                size = 0
-                for line in lines:
-                    if part and size + len(line) > 2400:
-                        sections.append((title, "\n".join(part)))
-                        part, size = [], 0
-                    part.append(line)
-                    size += len(line) + 1
-                if part:
-                    sections.append((title, "\n".join(part)))
+        if not lines:
+            return
+        units: list[str] = []
+        pending: list[str] = []
+        current_fence = ""
+        current_width = 0
+        for line in lines:
+            match = FENCE.match(line)
+            if current_fence:
+                pending.append(line)
+                if (match and match.group(1)[0] == current_fence
+                        and len(match.group(1)) >= current_width
+                        and not match.group(2).strip()):
+                    units.append("\n".join(pending))
+                    pending = []
+                    current_fence = ""
+            elif match:
+                if pending:
+                    units.append("\n".join(pending).strip())
+                    pending = []
+                current_fence = match.group(1)[0]
+                current_width = len(match.group(1))
+                pending.append(line)
+            elif not line.strip():
+                if pending:
+                    units.append("\n".join(pending).strip())
+                    pending = []
+            else:
+                pending.append(line)
+        if current_fence:
+            raise ValueError("Unclosed fenced block in " + title)
+        if pending:
+            units.append("\n".join(pending).strip())
+
+        chunk = ""
+        for unit in units:
+            if len(unit) > CHUNK_MAX:
+                raise ValueError("Oversized atomic Markdown block in " + title)
+            joined = chunk + "\n\n" + unit if chunk else unit
+            if chunk and len(joined) > CHUNK_TARGET:
+                output.append((title, chunk))
+                chunk = unit
+            else:
+                chunk = joined
+        if chunk:
+            output.append((title, chunk))
+
     for line in markdown.splitlines():
-        if re.match(r"^#{1,4}\s+", line):
+        match = FENCE.match(line)
+        was_inside = bool(fence_char)
+        if match:
+            if not fence_char:
+                fence_char = match.group(1)[0]
+                fence_width = len(match.group(1))
+            elif (match.group(1)[0] == fence_char
+                  and len(match.group(1)) >= fence_width
+                  and not match.group(2).strip()):
+                fence_char = ""
+                fence_width = 0
+        if not was_inside and not match and re.match(r"^#{1,4}\s+", line):
             flush()
-            buffer = []
+            lines = []
             title = line.lstrip("# ").strip()[:160]
         else:
-            buffer.append(line)
+            lines.append(line)
+    if fence_char:
+        raise ValueError("Unclosed fenced block in " + title)
     flush()
-    return sections
+    return output
 
 
 def build_index(fetch=fetch_text) -> dict[str, Any]:
