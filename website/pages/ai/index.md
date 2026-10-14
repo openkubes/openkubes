@@ -10,6 +10,7 @@ OK AI is the AI capability area of OpenKubes: run self-hosted AI services on Kub
 | --- | --- | --- |
 | **Open WebUI** | Self-hosted chat frontend for AI backends | [Open WebUI](open-webui.md) |
 | **OpenClaw** | Optional agent backend through the Agent Interface Contract | [OpenClaw](openclaw.md) |
+| **kagent & Platform Diagnostics** | Read-only diagnostics provider behind the HTTP/OpenAPI contract | [kagent & Platform Diagnostics](kagent-platform-diagnostics.md) |
 | **Agentic Operations** | Proposal, policy, authorization, execution and evidence boundaries | [Agentic Operations](agentic-operations.md) |
 
 ## Architecture at a glance
@@ -27,6 +28,6 @@ The repository's [AI platform overview](https://github.com/openkubes/openkubes/b
 
 1. New to OpenKubes? Use [Getting Started](../getting-started/) to choose Local or Cluster first.
 2. Have a Kubernetes workload cluster? Read [Open WebUI](open-webui.md) and its upstream component README.
-3. Evaluating agents? Read [OpenClaw](openclaw.md), [Agentic Operations](agentic-operations.md), and the relevant ADRs before live tests.
+3. Evaluating agents? Read [OpenClaw](openclaw.md), [kagent & Platform Diagnostics](kagent-platform-diagnostics.md), [Agentic Operations](agentic-operations.md), and the relevant ADRs before live tests.
 
 **Source ownership:** AI components are maintained in [`openkubes/openkubes/platform/ai/`](https://github.com/openkubes/openkubes/tree/main/platform/ai); cluster-specific deployment inputs belong to the respective operator environment and repository. This website is a guided entry point, not a replacement for the source-owned runbooks.
