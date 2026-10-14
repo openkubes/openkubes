@@ -32,6 +32,7 @@ nav:
       - Overview: ai/index.md
       - Open WebUI: ai/open-webui.md
       - OpenClaw: ai/openclaw.md
+      - kagent & Platform Diagnostics: ai/kagent-platform-diagnostics.md
       - Agentic Operations: ai/agentic-operations.md
   - OK Observability:
       - Overview: observability/index.md

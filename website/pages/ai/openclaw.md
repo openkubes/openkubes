@@ -5,7 +5,7 @@ OpenClaw is an optional agent implementation behind the OpenKubes **Agent Interf
 ## Architecture and boundaries
 
 - Open WebUI provides the chat-facing interface; agent runtimes remain replaceable behind a defined contract.
-- Platform diagnostics are accessed through the bounded, read-only diagnostics/MCP interface, not through inherited administrator credentials.
+- Platform diagnostics are accessed through the bounded, read-only diagnostics/MCP interface, not through inherited administrator credentials. [kagent & Platform Diagnostics](kagent-platform-diagnostics.md) explains the first diagnostics provider profile.
 - Agent integrations must respect explicit authorization, tool boundaries and evidence collection.
 - Experimental PoC work and roadmap entries must not be interpreted as a generally available autonomous production operations service.
 
