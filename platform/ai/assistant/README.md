@@ -204,3 +204,18 @@ After pulling the branch, run the unit tests, rebuild the index and inspect the
 top install hit. Do not reuse a pre-change `index.json` for container validation.
 If the public corpus contains an oversized atomic block, capture its section
 and fix source-aware chunking rather than bypassing the integrity gate.
+
+## Ordered onboarding retrieval
+
+For broad installation queries naming an explicitly allowlisted repo such as
+`How do I install ok-local?`, `docs_search` now returns chunks from the
+curated beginner guide in original Markdown order, **starting with the first
+chunk**, instead of showing late steps that happen to match more query terms.
+The `limit` still applies: three results are the first three chunks, **not a
+claim that the complete installation fits in three chunks**.
+
+Queries that also name a specific component (e.g. `install virtctl on ok-local`)
+continue to use normal per-section relevance ranking. The first curated entry
+point for `ok-local` is `docs/tutorial-basic.md`; expanding onboarding across
+more repositories requires explicit human review of the allowlist and guides.
+The index format and source citations are unchanged.
