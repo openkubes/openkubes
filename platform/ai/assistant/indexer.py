@@ -1,0 +1,155 @@
+#!/usr/bin/env python3
+"""OK-202 public-document lexical retrieval PoC, not a live service.
+
+No external dependencies. Network only during 'build'; 'search' is offline.
+"""
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import re
+import urllib.error
+import urllib.request
+from collections import Counter
+from pathlib import Path
+from typing import Any
+
+# Explicit reviewed public allowlist: no wildcard URLs and no private repositories.
+SOURCES = {
+    "openkubes/openkubes": [
+        "platform/ai/README.md",
+        "platform/ai/platform-diagnostics/README.md",
+        "docs/agentic-operations-reference-architecture.md",
+    ],
+    "openkubes/ok-local": [
+        "docs/tutorial-basic.md",
+        "docs/tutorial-capi.md",
+    ],
+}
+TOKEN = re.compile(r"[a-z0-9][a-z0-9_-]{1,}", re.I)
+MAX_BYTES = 300_000
+MAX_RESULTS = 8
+
+
+def fetch_text(url: str) -> str:
+    # The caller constructs URLs exclusively from the fixed repository allowlist.
+    request = urllib.request.Request(url, headers={"User-Agent": "openkubes-docs-poc/0.1"})
+    with urllib.request.urlopen(request, timeout=15) as response:
+        if response.geturl().split("/")[2] not in ("api.github.com", "raw.githubusercontent.com"):
+            raise ValueError("Unexpected redirect destination")
+        content = response.read(MAX_BYTES + 1)
+    if len(content) > MAX_BYTES:
+        raise ValueError("Document exceeds size limit")
+    return content.decode("utf-8")
+
+
+def tokenize(value: str) -> Counter[str]:
+    return Counter(TOKEN.findall(value.lower()))
+
+
+def split_markdown(markdown: str) -> list[tuple[str, str]]:
+    """Section-aware chunks: small sections grouped, large sections split by lines."""
+    sections: list[tuple[str, str]] = []
+    title = "Overview"
+    buffer: list[str] = []
+    def flush() -> None:
+        if buffer:
+            text = "\n".join(buffer).strip()
+            if text:
+                lines = text.splitlines()
+                part: list[str] = []
+                size = 0
+                for line in lines:
+                    if part and size + len(line) > 2400:
+                        sections.append((title, "\n".join(part)))
+                        part, size = [], 0
+                    part.append(line)
+                    size += len(line) + 1
+                if part:
+                    sections.append((title, "\n".join(part)))
+    for line in markdown.splitlines():
+        if re.match(r"^#{1,4}\s+", line):
+            flush()
+            buffer = []
+            title = line.lstrip("# ").strip()[:160]
+        else:
+            buffer.append(line)
+    flush()
+    return sections
+
+
+def build_index(fetch=fetch_text) -> dict[str, Any]:
+    docs: list[dict[str, str]] = []
+    for repo, paths in SOURCES.items():
+        owner, name = repo.split("/")
+        response = json.loads(fetch(f"https://api.github.com/repos/{owner}/{name}/commits/main"))
+        revision = response["sha"]
+        if not re.fullmatch(r"[0-9a-f]{40}", revision):
+            raise ValueError("Invalid commit hash")
+        for path in paths:
+            if not re.fullmatch(r"[a-zA-Z0-9_./-]+", path) or ".." in path.split("/"):
+                raise ValueError("Unsafe allowlist path")
+            text = fetch(f"https://raw.githubusercontent.com/{repo}/{revision}/{path}")
+            for n, (section, passage) in enumerate(split_markdown(text)):
+                source_id = hashlib.sha256(f"{repo}:{revision}:{path}:{n}".encode()).hexdigest()[:16]
+                docs.append({
+                    "source_id": source_id,
+                    "repo": repo,
+                    "path": path,
+                    "revision": revision,
+                    "section": section,
+                    "url": f"https://github.com/{repo}/blob/{revision}/{path}",
+                    "sha256": hashlib.sha256(passage.encode()).hexdigest(),
+                    "text": passage,
+                })
+    return {"schema_version": 1, "corpus": docs}
+
+
+def search(index: dict[str, Any], query: str, limit: int = 5) -> list[dict[str, Any]]:
+    """Deterministic lexical baseline, no generated URLs or remote calls."""
+    if not isinstance(query, str) or not query.strip() or len(query) > 4000:
+        raise ValueError("Query must be 1-4000 characters")
+    if not 1 <= limit <= MAX_RESULTS:
+        raise ValueError("limit must be between 1 and 8")
+    q = tokenize(query)
+    if not q:
+        return []
+    scored = []
+    for doc in index["corpus"]:
+        words = tokenize(doc["text"])
+        heading = tokenize(doc["section"])
+        overlap = sum(min(freq, words.get(term, 0)) for term, freq in q.items())
+        boost = sum(3 * min(freq, heading.get(term, 0)) for term, freq in q.items())
+        score = overlap + boost
+        if score > 0:
+            scored.append((score, doc["source_id"], doc))
+    scored.sort(key=lambda row: (-row[0], row[1]))
+    # Source IDs and URLs come from the trusted index, never from user/model input.
+    return [
+        {k: doc[k] for k in ("source_id", "repo", "path", "revision", "section", "url", "text")}
+        for _, _, doc in scored[:limit]
+    ]
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    sub = parser.add_subparsers(dest="cmd", required=True)
+    build = sub.add_parser("build")
+    build.add_argument("--output", required=True)
+    find = sub.add_parser("search")
+    find.add_argument("--index", required=True)
+    find.add_argument("--query", required=True)
+    find.add_argument("--limit", type=int, default=5)
+    args = parser.parse_args()
+    if args.cmd == "build":
+        artifact = build_index()
+        Path(args.output).write_text(json.dumps(artifact, indent=2) + "\n", encoding="utf-8")
+        print(f"Indexed {len(artifact['corpus'])} chunks -> {args.output}")
+    else:
+        index = json.loads(Path(args.index).read_text(encoding="utf-8"))
+        print(json.dumps(search(index, args.query, args.limit), indent=2))
+
+
+if __name__ == "__main__":
+    main()
