@@ -106,26 +106,50 @@ def build_index(fetch=fetch_text) -> dict[str, Any]:
     return {"schema_version": 1, "corpus": docs}
 
 
+# Small, explainable relevance rules for the PoC (not an embedding replacement).
+# Avoid generic English question words dominating long architecture sections.
+STOPWORDS = frozenset({"how", "do", "i", "the", "a", "an", "to", "for",
+                       "of", "is", "are", "we", "can", "my", "with", "and",
+                       "in", "on", "what", "does"})
+INSTALL_TERMS = frozenset({"install", "installation", "setup", "set-up", "start",
+                           "quickstart", "deploy", "deployment", "getting-started"})
+
+
 def search(index: dict[str, Any], query: str, limit: int = 5) -> list[dict[str, Any]]:
-    """Deterministic lexical baseline, no generated URLs or remote calls."""
+    """Offline lexical search with explicit metadata/installation-intent boosts."""
     if not isinstance(query, str) or not query.strip() or len(query) > 4000:
         raise ValueError("Query must be 1-4000 characters")
     if not 1 <= limit <= MAX_RESULTS:
         raise ValueError("limit must be between 1 and 8")
-    q = tokenize(query)
-    if not q:
+    terms = set(tokenize(query)) - STOPWORDS
+    if not terms:
         return []
+    install_intent = bool(terms & INSTALL_TERMS)
     scored = []
     for doc in index["corpus"]:
-        words = tokenize(doc["text"])
-        heading = tokenize(doc["section"])
-        overlap = sum(min(freq, words.get(term, 0)) for term, freq in q.items())
-        boost = sum(3 * min(freq, heading.get(term, 0)) for term, freq in q.items())
-        score = overlap + boost
-        if score > 0:
-            scored.append((score, doc["source_id"], doc))
+        # Repository names and filenames matter as much as passage words.
+        repo_terms = set(tokenize(doc["repo"]))
+        path_terms = set(tokenize(doc["path"].replace("/", " ")))
+        section_terms = set(tokenize(doc["section"]))
+        content_terms = set(tokenize(doc["text"]))
+        document_terms = repo_terms | path_terms | section_terms | content_terms
+        if not terms & document_terms:
+            continue
+        # Presence, not raw frequency: long documents shouldn't win by length.
+        score = (sum(2 for term in terms if term in content_terms)
+                 + sum(4 for term in terms if term in section_terms)
+                 + sum(5 for term in terms if term in path_terms)
+                 + sum(8 for term in terms if term in repo_terms))
+        # Install intent prefers an actual setup tutorial within a matched topic.
+        topical_terms = terms - INSTALL_TERMS
+        topic_match = bool(topical_terms & (repo_terms | path_terms | section_terms))
+        if install_intent and topic_match:
+            if "tutorial" in doc["path"] or "getting-started" in doc["path"]:
+                score += 9
+            if section_terms & INSTALL_TERMS:
+                score += 5
+        scored.append((score, doc["source_id"], doc))
     scored.sort(key=lambda row: (-row[0], row[1]))
-    # Source IDs and URLs come from the trusted index, never from user/model input.
     return [
         {k: doc[k] for k in ("source_id", "repo", "path", "revision", "section", "url", "text")}
         for _, _, doc in scored[:limit]
