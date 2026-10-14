@@ -98,3 +98,22 @@ traceback; do not proceed to cluster deployment.
 
 This smoke check is distinct from the pure-Python unit tests, and is not yet
 a kagent/RemoteMCPServer, streamable HTTP, or LLM end-to-end verification.
+
+## Local Streamable HTTP smoke test (no cluster)
+
+After the passing stdio smoke test, validate the transport expected by the
+kagent RemoteMCPServer without deploying any Kubernetes resources:
+
+```sh
+export OPENKUBES_DOCS_INDEX=/tmp/openkubes-docs-index.json
+python3 smoke_mcp_http.py
+```
+
+The script launches a short-lived MCP HTTP server bound to **127.0.0.1:18080**
+and validates `initialize`, exactly one `docs_search` from `tools/list`,
+and an actual `tools/call`. It terminates its subprocess even on failure.
+The index is read locally; no live GitHub access is required for querying.
+
+**Do not expose this port publicly.** The HTTP smoke test proves local MCP
+transport behavior only. It does not validate kagent interoperability, Kubernetes
+NetworkPolicy or authentication, LLM tool invocation, or source-grounded answers.
