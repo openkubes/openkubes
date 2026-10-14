@@ -18,4 +18,4 @@ WORKDIR /app
 COPY indexer.py docs_mcp.py /app/
 USER 10001:10001
 EXPOSE 8000
-ENTRYPOINT ["/usr/bin/python3", "/app/docs_mcp.py"]
+ENTRYPOINT ["/usr/bin/python", "/app/docs_mcp.py"]
