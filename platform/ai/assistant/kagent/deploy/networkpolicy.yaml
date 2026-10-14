@@ -1,0 +1,22 @@
+# Restrict the MCP server to traffic from the same namespace.
+# The actual kagent Agent workload must be verified to run in this namespace.
+# This intentionally blocks the MCP server's outbound connections.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: docs-search-restrict
+  namespace: openkubes-assistant
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: openkubes-docs-search
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - podSelector: {}
+      ports:
+        - protocol: TCP
+          port: 8000
+  egress: []
