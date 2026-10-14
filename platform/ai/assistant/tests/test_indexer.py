@@ -40,6 +40,30 @@ class IndexerTest(unittest.TestCase):
         hits = indexer.search(self.index, "ok-local quickstart")
         self.assertEqual(hits[0]["path"], "docs/tutorial-basic.md")
 
+    def test_install_intent_prefers_tutorial_over_long_architecture(self):
+        # The original scorer ranked generic architecture prose first.
+        index = {"corpus": [
+            {"source_id": "arch", "repo": "openkubes/openkubes",
+             "path": "docs/agentic-operations-reference-architecture.md",
+             "revision": SHA1, "section": "How should we measure success?",
+             "url": "https://github.com/openkubes/openkubes/blob/" + SHA1 + "/docs/agentic-operations-reference-architecture.md",
+             "text": "How do I install platform operations? How do I measure success?"},
+            {"source_id": "guide", "repo": "openkubes/ok-local",
+             "path": "docs/tutorial-basic.md", "revision": SHA2,
+             "section": "Step 2 — Install K3s",
+             "url": "https://github.com/openkubes/ok-local/blob/" + SHA2 + "/docs/tutorial-basic.md",
+             "text": "Install K3s inside the VM before installing KubeVirt."},
+        ]}
+        hits = indexer.search(index, "How do I install ok-local?")
+        self.assertEqual(hits[0]["source_id"], "guide")
+
+    def test_document_path_boosts_specific_topic(self):
+        hits = indexer.search(self.index, "ok-local install")
+        self.assertEqual(hits[0]["repo"], "openkubes/ok-local")
+
+    def test_stopwords_only_produce_no_results(self):
+        self.assertEqual(indexer.search(self.index, "how do I"), [])
+
     def test_no_answer_on_unknown_term(self):
         self.assertEqual(indexer.search(self.index, "zyzzzxq"), [])
 
