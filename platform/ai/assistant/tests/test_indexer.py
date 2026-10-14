@@ -61,6 +61,49 @@ class IndexerTest(unittest.TestCase):
         hits = indexer.search(self.index, "ok-local install")
         self.assertEqual(hits[0]["repo"], "openkubes/ok-local")
 
+    def test_broad_install_starts_at_beginning_of_tutorial(self):
+        docs = []
+        for ident, section in [
+            ("entry", "Overview"), ("step1", "Step 1 — Prepare VM"),
+            ("step2", "Step 2 — Install K3s"),
+            ("step6", "Step 6 — Install virtctl"),
+        ]:
+            docs.append({
+                "source_id": ident,
+                "repo": "openkubes/ok-local",
+                "path": "docs/tutorial-basic.md",
+                "revision": SHA2,
+                "section": section,
+                "url": "https://github.com/openkubes/ok-local/blob/" + SHA2
+                       + "/docs/tutorial-basic.md",
+                "text": "Install ok-local " + section
+                        + (" install install install" if ident == "step6" else ""),
+            })
+        hits = indexer.search(
+            {"corpus": docs}, "How do I install ok-local?", limit=3
+        )
+        self.assertEqual([hit["source_id"] for hit in hits],
+                         ["entry", "step1", "step2"])
+
+    def test_specific_install_question_preserves_relevance(self):
+        docs = []
+        for ident, section, body in [
+            ("first", "Overview", "Install ok-local"),
+            ("virtctl", "Install virtctl", "Install virtctl for ok-local"),
+        ]:
+            docs.append({
+                "source_id": ident, "repo": "openkubes/ok-local",
+                "path": "docs/tutorial-basic.md", "revision": SHA2,
+                "section": section,
+                "url": "https://github.com/openkubes/ok-local/blob/" + SHA2
+                       + "/docs/tutorial-basic.md",
+                "text": body,
+            })
+        hits = indexer.search(
+            {"corpus": docs}, "How do I install virtctl on ok-local?"
+        )
+        self.assertEqual(hits[0]["source_id"], "virtctl")
+
     def test_stopwords_only_produce_no_results(self):
         self.assertEqual(indexer.search(self.index, "how do I"), [])
 
