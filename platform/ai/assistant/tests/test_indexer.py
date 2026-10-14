@@ -71,7 +71,7 @@ class IndexerTest(unittest.TestCase):
         containing = [text for _, text in sections if "echo a long command" in text]
         self.assertEqual(len(containing), 1)
         self.assertIn("```bash", containing[0])
-        self.assertTrue(containing[0].rstrip().endswith("```"))
+        self.assertIn("echo a long command\\n```", containing[0])
         self.assertEqual(containing[0].count("echo a long command"), 100)
 
     def test_heading_inside_code_is_not_a_section(self):
