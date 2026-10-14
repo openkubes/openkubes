@@ -79,3 +79,22 @@ runtime verification with the target kagent version and Ollama model.
 perform server-side answer citation verification or generate final responses.
 The current MCP dependency range is a PoC compatibility range, not a
 production lockfile.
+
+## MCP protocol smoke test (real stdio client)
+
+After installing the Python MCP SDK and building the public document index, run:
+
+```sh
+export OPENKUBES_DOCS_INDEX=/tmp/openkubes-docs-index.json
+python3 smoke_mcp.py
+```
+
+This process launches `docs_mcp.py` as a child, negotiates a real MCP
+`initialize` request, confirms `tools/list` exposes **exactly** `docs_search`,
+and calls the tool via `tools/call`. It expects the top result for the
+installation query to link to `ok-local/docs/tutorial-basic.md` at a pinned
+commit. The test requires no Kubernetes or Ollama. If it fails, copy the full
+traceback; do not proceed to cluster deployment.
+
+This smoke check is distinct from the pure-Python unit tests, and is not yet
+a kagent/RemoteMCPServer, streamable HTTP, or LLM end-to-end verification.
