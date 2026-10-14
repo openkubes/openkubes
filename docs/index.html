@@ -69,6 +69,17 @@
     margin-left:auto;
     margin-right:auto;
   }
+  .brand-hero{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:0.15rem;
+    max-width:900px;
+    margin:0 auto 1.5rem;
+    line-height:1.25;
+  }
+  .brand-hero-name{font-size:clamp(2rem,5vw,3rem);}
+  .brand-hero-line{font-size:clamp(1.35rem,3.5vw,2.25rem);}
   .tagline{
     font-size:1.15rem;
     color:var(--muted);
@@ -99,6 +110,7 @@
     background:#ffffff;
   }
   .btn.secondary:hover{text-decoration:none;background:var(--card);}
+  .btn:focus-visible{outline:3px solid var(--accent);outline-offset:3px;}
   main{
     max-width:920px;
     margin:0 auto;
@@ -263,6 +275,22 @@
     font-size:0.88rem;
     font-weight:700;
   }
+  /* Click-to-watch thumbnail: no embedded YouTube iframe on page load. */
+  .demo-feature{
+    display:grid;
+    grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);
+    gap:1.6rem;
+    align-items:center;
+    margin-top:1.4rem;
+  }
+  .demo-preview{display:block;position:relative;border-radius:12px;overflow:hidden;border:1px solid var(--border);background:#151c29;aspect-ratio:16 / 9;}
+  .demo-preview img{display:block;width:100%;height:100%;object-fit:cover;}
+  .demo-play{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);display:grid;place-items:center;width:68px;height:48px;background:#d9232e;color:#fff;border-radius:13px;font-size:1.6rem;line-height:1;box-shadow:0 4px 18px rgba(0,0,0,.28);}
+  .demo-preview:hover .demo-play{background:#ba1620;}
+  .demo-preview:focus-visible{outline:3px solid var(--accent);outline-offset:3px;}
+  .demo-copy p{color:var(--muted);font-size:0.96rem;}
+  .demo-copy .btn{display:inline-block;}
+  @media(max-width:680px){.demo-feature{grid-template-columns:1fr;}}
   .repo-list{
     list-style:none;
     padding:0;
@@ -321,6 +349,49 @@
     padding:0.1rem 0.35rem;
     font-size:0.9em;
   }
+  /* Homepage hero: lightweight, responsive video with reduced-motion fallback. */
+  .platform-hero{
+    width:min(100%,880px);
+    margin:2rem auto 2.2rem;
+    aspect-ratio:16 / 9;
+    border-radius:12px;
+    overflow:hidden;
+    background:#ffffff url("openkubes-logo.png") center / contain no-repeat;
+  }
+  .platform-hero video,.platform-hero .motion-poster{
+    display:block;
+    width:100%;
+    height:100%;
+    object-fit:contain;
+  }
+  .platform-hero{position:relative;}
+  .platform-hero .motion-poster{
+    display:none;
+    position:absolute;
+    inset:0;
+    background:#ffffff;
+    pointer-events:none;
+  }
+  .platform-hero.is-static .motion-poster{display:block;}
+  .hero-play{
+    position:absolute;
+    left:50%;
+    bottom:1rem;
+    transform:translateX(-50%);
+    z-index:2;
+    padding:0.65rem 1.1rem;
+    border:1px solid var(--border);
+    border-radius:8px;
+    background:#ffffff;
+    color:var(--text);
+    box-shadow:0 2px 12px rgba(31,35,40,.15);
+    font-family:inherit;
+    font-size:0.9rem;
+    font-weight:600;
+    cursor:pointer;
+  }
+  .hero-play[hidden]{display:none;}
+  .hero-play:focus-visible{outline:3px solid var(--accent);outline-offset:3px;}
   @media(max-width:680px){
     .universe-grid{grid-template-columns:1fr;}
     .universe-card{min-height:190px;}
@@ -335,16 +406,49 @@
     <a href="https://aia.openkubes.org/en">Aia <span aria-hidden="true">↗</span></a>
   </nav>
   <img class="logo-img" src="openkubes-logo.png" alt="OpenKubes logo">
-  <h1>OpenKubes Kubernetes Platform Distribution Framework</h1>
+  <h1 class="brand-hero">
+    <span class="brand-hero-name">OpenKubes.</span>
+    <span class="brand-hero-line">Your Kubernetes Framework.</span>
+    <span class="brand-hero-line">Built for the Age of AI.</span>
+  </h1>
   <p class="tagline">OpenKubes is a framework for building sovereign Kubernetes platform distributions — built ADR-first, reviewed three ways, run on infrastructure you control.</p>
   <p class="tagline"><strong>OpenKubes defines the framework. OKP proves it can run.</strong> OpenKubes Platform (OKP) is its official reference distribution — deploy it as provided, adapt it, or use OpenKubes to build your own OpenKubes-conformant distribution.</p>
-  <div class="cta">
-    <a class="btn primary" href="https://github.com/openkubes/openkubes">View on GitHub</a>
+  <div class="platform-hero" aria-label="Animated overview of the OpenKubes Kubernetes clusters">
+    <video autoplay muted loop playsinline preload="metadata"
+           poster="media/openkubes-hero-light-poster.webp"
+           aria-label="OpenKubes platform clusters: ok-infra, ok-mgmt, ok-shared and ok-ai">
+      <source src="media/openkubes-hero-light.webm" type="video/webm">
+      <source src="media/openkubes-hero-light.mp4" type="video/mp4">
+      <img src="openkubes-logo.png" alt="OpenKubes">
+    </video>
+    <img class="motion-poster" src="media/openkubes-hero-light-poster.webp"
+         alt="OpenKubes platform clusters: ok-infra, ok-mgmt, ok-shared and ok-ai">
+    <button class="hero-play" type="button" hidden>Play animation</button>
+  </div>
+  <div class="cta" aria-label="Get started with OpenKubes">
+    <a class="btn primary" href="https://github.com/openkubes/ok-local">Try OpenKubes Locally →</a>
+    <a class="btn secondary" href="https://github.com/openkubes/openkubes">Explore Architecture</a>
     <a class="btn secondary" href="#contribute">Contribute</a>
   </div>
 </header>
 
 <main>
+
+  <section id="demos">
+    <div class="eyebrow">Get started</div>
+    <h2>See OpenKubes in Action</h2>
+    <div class="demo-feature">
+      <a class="demo-preview" href="https://youtu.be/_LJ8tCLHrO0" target="_blank" rel="noopener noreferrer" aria-label="Watch an OpenKubes Local demo on YouTube (opens in a new tab)">
+        <img src="https://i.ytimg.com/vi/_LJ8tCLHrO0/hqdefault.jpg" alt="Video preview for OpenKubes Local" loading="lazy" width="480" height="360">
+        <span class="demo-play" aria-hidden="true">▶</span>
+      </a>
+      <div class="demo-copy">
+        <h3>Try OpenKubes on your workstation</h3>
+        <p>Discover the local development environment, then follow the Quick Start to explore OpenKubes yourself. Watch the video on YouTube or find all three video tutorials in the ok-local README.</p>
+        <a class="btn primary" href="https://github.com/openkubes/ok-local#video-tutorials--getting-started-with-openkubes-local">Quickstart &amp; Video Tutorials →</a>
+      </div>
+    </div>
+  </section>
 
   <section id="universe">
     <div class="eyebrow">Explore</div>
@@ -422,6 +526,10 @@
     <p>Essays and stories on how OpenKubes is built — the method, the contracts, and what happened when we let AI agents work inside them.</p>
     <div class="grid">
       <div class="card">
+        <h3><a href="/agentic-operations-reference-architecture">AI Thinks. OpenKubes Executes. Evidence Proves.</a></h3>
+        <p>Introducing a proposed reference architecture for trustworthy agent-assisted Kubernetes operations: agents propose, humans approve, platform contracts govern execution, and independent evidence verifies outcomes. Architecture-only, with no implementation commitment.</p>
+      </div>
+      <div class="card">
         <h3><a href="/vault-secret-contract-blog-post">The Secret Contract, Made Real</a></h3>
         <p>Where do secrets live, and how does a workload three clusters away get exactly the one it needs — and nothing more? How OpenKubes turns the Secret Contract into a datacenter profile: a central Vault consumed through the Vault Secrets Operator, onboarded declaratively with Crossplane.</p>
       </div>
@@ -474,6 +582,13 @@
       </li>
       <li>
         <div>
+          <div class="name"><a href="https://github.com/openkubes/ok-local">openkubes/ok-local</a></div>
+          <div class="desc">Local OpenKubes development and evaluation environment — start here to try OpenKubes on your workstation.</div>
+        </div>
+        <span class="badge public">public</span>
+      </li>
+      <li>
+        <div>
           <div class="name">openkubes/ok-linux</div>
           <div class="desc">Base OS layer for constrained and edge deployment profiles.</div>
         </div>
@@ -515,12 +630,39 @@
     </div>
   </section>
 
+  <section id="supporters">
+    <div class="eyebrow">Project supporters</div>
+    <h2>Built together. Open to more.</h2>
+    <p>OpenKubes is jointly developed and supported by <a href="https://cloudssky.com/" target="_blank" rel="noopener noreferrer">Clouds Sky GmbH</a> and <a href="https://kubernauts.de/" target="_blank" rel="noopener noreferrer">Kubernauts GmbH</a>. Their commitment helps move the open-source framework forward while keeping the architecture and contributions open to the wider community.</p>
+    <div class="grid">
+      <div class="card">
+        <h3><a href="https://cloudssky.com/" target="_blank" rel="noopener noreferrer">Clouds Sky GmbH ↗</a></h3>
+        <p>Cloud and platform engineering, Kubernetes infrastructure, and enterprise experience.</p>
+      </div>
+      <div class="card">
+        <h3><a href="https://kubernauts.de/" target="_blank" rel="noopener noreferrer">Kubernauts GmbH ↗</a></h3>
+        <p>Kubernetes expertise, knowledge sharing, training, and cloud-native community engagement.</p>
+      </div>
+    </div>
+    <h3 style="margin-top:2rem;font-size:1.05rem;">Become a sponsor or strategic partner</h3>
+    <p>We welcome additional sponsors and strategic partners who believe in open, sovereign, Kubernetes-native platform engineering. Support may include engineering contributions, infrastructure, community programs, or project funding.</p>
+    <div class="cta" style="margin:1.2rem 0 1.8rem;">
+      <a class="btn primary" href="https://kubernauts.de/en/contact.html" target="_blank" rel="noopener noreferrer">Discuss sponsorship &amp; partnership ↗</a>
+    </div>
+    <h3 style="margin-top:2rem;font-size:1.05rem;">For Investors</h3>
+    <p>Help shape the future of sovereign cloud infrastructure. OpenKubes welcomes conversations with investors interested in open-source infrastructure, Kubernetes-native platforms, enterprise AI and digital sovereignty. We are exploring strategic investment opportunities to accelerate platform development, ecosystem growth and commercial adoption.</p>
+    <p style="font-size:0.9rem;color:var(--muted);">Investment discussions are exploratory. Any potential investment structure, terms, and participating legal entity would be agreed separately.</p>
+    <div class="cta" style="margin:1.2rem 0 0;">
+      <a class="btn secondary" href="https://kubernauts.de/en/contact.html" target="_blank" rel="noopener noreferrer">Explore investment opportunities ↗</a>
+    </div>
+  </section>
+
   <section id="community">
     <div class="eyebrow">Community</div>
-    <h2>Launch meetup &amp; contact</h2>
-    <p>🚀 <strong>OpenKubes Launch Meetup</strong> — Thu, Aug 6, 2026, 7:00 PM, online via Zoom. Hosted by Kubernauts Worldwide Meetup. Agenda: why OpenKubes, project vision, a live demo of declarative cluster provisioning with private AI, roadmap, and how to become a contributor.</p>
+    <h2>Community &amp; Open Hours</h2>
+    <p>Join the OpenKubes community for hands-on demos, technical discussions, live Q&amp;A and collaborative platform engineering. Whether you're exploring OpenKubes or already contributing, you're welcome to join. Check Kubernauts Worldwide Meetup for upcoming sessions.</p>
     <div class="cta" style="margin:1.2rem 0 1.8rem;">
-      <a class="btn primary" href="https://www.meetup.com/kubernauts/events/315551105/">Register for the Launch Meetup</a>
+      <a class="btn primary" href="https://www.meetup.com/kubernauts/">Join our Open Hours on Kubernauts Meetup</a>
     </div>
     <div class="links-row">
       <a href="https://github.com/openkubes/openkubes">GitHub</a>
@@ -537,5 +679,75 @@
   <a href="https://github.com/openkubes/openkubes">github.com/openkubes/openkubes</a>
 </footer>
 
+<script>
+  (() => {
+    const hero = document.querySelector('.platform-hero');
+    const video = hero?.querySelector('video');
+    const playButton = hero?.querySelector('.hero-play');
+    if (!hero || !video || !playButton) return;
+
+    const showPoster = () => {
+      hero.classList.add('is-static');
+      playButton.hidden = false;
+    };
+    const showVideo = () => {
+      hero.classList.remove('is-static');
+      playButton.hidden = true;
+    };
+
+    // Only hide the poster once playback is confirmed.
+    video.addEventListener('playing', showVideo);
+    video.addEventListener('error', showPoster);
+    video.addEventListener('stalled', () => {
+      if (video.paused) showPoster();
+    });
+
+    // The homepage hero is explicitly intended to autoplay without interaction.
+    // Muting before play is required for reliable browser autoplay.
+    video.defaultMuted = true;
+    video.muted = true;
+    video.autoplay = true;
+    video.loop = true;
+    video.playsInline = true;
+
+    const startAutomatically = () => {
+      if (!video.paused) {
+        showVideo();
+        return;
+      }
+      const attempt = video.play();
+      if (attempt && typeof attempt.catch === 'function') {
+        attempt.catch((error) => {
+          // Only require a click when the browser actually denies playback.
+          if (error?.name === 'NotAllowedError' || error?.name === 'NotSupportedError') {
+            showPoster();
+          }
+        });
+      }
+    };
+    startAutomatically();
+    video.addEventListener('canplay', startAutomatically, { once: true });
+    window.addEventListener('pageshow', startAutomatically);
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) startAutomatically();
+    });
+
+    playButton.addEventListener('click', () => {
+      video.muted = true;
+      video.controls = false;
+      playButton.disabled = true;
+      video.play().then(() => {
+        showVideo();
+        playButton.disabled = false;
+      }).catch(() => {
+        showPoster();
+        // Native controls provide a fallback when scripted playback is denied.
+        video.controls = true;
+        playButton.disabled = false;
+        playButton.textContent = 'Retry animation';
+      });
+    });
+  })();
+</script>
 </body>
 </html>

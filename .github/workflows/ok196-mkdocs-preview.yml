@@ -1,0 +1,93 @@
+name: OK-196 MkDocs preview (no deployment)
+on:
+  pull_request:
+    paths:
+      - 'mkdocs.yml'
+      - 'website/**'
+      - '.github/workflows/ok196-mkdocs-preview.yml'
+  workflow_dispatch:
+    inputs:
+      candidate_url:
+        description: 'Deployed Cloudflare candidate origin (e.g. https://abcdef.openkubes-preview.pages.dev); leave blank for build-only'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout website repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Assert pre-cutover GitHub Pages rollback baseline
+        run: bash website/scripts/check-legacy-rollback.sh
+      - name: Checkout pinned ok-local documentation
+        uses: actions/checkout@v4
+        with:
+          repository: openkubes/ok-local
+          ref: 60397cdb2630b0cd9cfbcb5d9a29fe2e38ce323e
+          path: .ok196-sources/ok-local
+          persist-credentials: false
+      - name: Checkout pinned ok-cluster documentation
+        uses: actions/checkout@v4
+        with:
+          repository: openkubes/ok-cluster
+          ref: a341f4ad4eff73e3cf7a69a38d1de8e2455e73a6
+          path: .ok196-sources/ok-cluster
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: bash -n website/scripts/cloudflare-build.sh
+      - run: pip install -r website/requirements-mkdocs.txt
+      - run: python website/scripts/build-docs.py
+      - run: python website/scripts/stage-legacy.py
+      - run: mkdocs build --strict
+      - run: python website/scripts/preserve-homepage.py
+      - run: python website/scripts/render-navigation.py
+      - run: python website/scripts/restore-legacy-urls.py
+      - run: python website/scripts/render-legacy-html.py
+      - run: python website/scripts/check-preview.py
+      - run: python website/scripts/audit-url-compatibility.py
+      - name: Compare live HTTP URLs to deployed candidate (manual only)
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.candidate_url != '' }}
+        env:
+          CANDIDATE_URL: ${{ inputs.candidate_url }}
+        run: |
+          python website/scripts/compare-live-urls.py \
+            --candidate "$CANDIDATE_URL" \
+            --manifest .mkdocs-site/url-compatibility-report.json \
+            --output url-http-comparison.json
+      - name: Upload HTTP comparison evidence
+        if: ${{ always() && github.event_name == 'workflow_dispatch' && inputs.candidate_url != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ok196-live-http-comparison
+          path: url-http-comparison.json
+          if-no-files-found: warn
+      - name: Upload preview HTML (not deploy)
+        uses: actions/upload-artifact@v4
+        with:
+          name: ok196-unified-navigation-preview
+          path: .mkdocs-site/
+          if-no-files-found: error
+          include-hidden-files: true
+      - name: Build GitHub Pages candidate (no publication)
+        run: bash website/scripts/build-github-pages.sh
+      - name: Upload GitHub Pages production candidate (not deploy)
+        uses: actions/upload-artifact@v4
+        with:
+          name: ok196-github-pages-candidate
+          path: .mkdocs-site/
+          if-no-files-found: error
+          include-hidden-files: true
+
+      # PRs validate the exact built candidate with check-preview.py and
+      # audit-url-compatibility.py above. HTTP parity against a *deployed*
+      # candidate is available via workflow_dispatch(candidate_url) and must
+      # never use a permanently pinned old Cloudflare deployment as a PR gate.

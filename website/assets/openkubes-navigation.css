@@ -1,0 +1,9 @@
+.ok-global-nav{background:#101c30;color:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;position:relative;z-index:100;padding:.75rem 1.5rem;box-sizing:border-box;border-bottom:1px solid #34465f}
+.ok-global-nav *{box-sizing:border-box}
+.ok-global-nav__inner{max-width:1160px;margin:auto;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap}
+.ok-global-nav__brand{display:flex;align-items:center;gap:.6rem;color:#fff!important;font-weight:750;font-size:1.05rem;text-decoration:none!important}
+.ok-global-nav__links{display:flex;align-items:center;gap:.25rem;flex-wrap:wrap}
+.ok-global-nav__links a{color:#e2e8f0!important;text-decoration:none!important;border-radius:.4rem;padding:.43rem .65rem;font-size:.88rem;font-weight:600;white-space:nowrap}
+.ok-global-nav__links a:hover,.ok-global-nav__links a:focus-visible{background:#273955;color:#fff!important}
+.ok-global-nav__links a[aria-current=page]{background:#284d80;color:#fff!important}
+@media(max-width:720px){.ok-global-nav{padding:.65rem 1rem}.ok-global-nav__inner{justify-content:center}.ok-global-nav__links{justify-content:center}.ok-global-nav__links a{font-size:.83rem;padding:.4rem .48rem}}

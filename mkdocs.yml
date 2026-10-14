@@ -1,0 +1,64 @@
+site_name: OpenKubes
+site_url: https://openkubes.org/
+site_description: Preview-only unified OpenKubes website and developer documentation
+docs_dir: .mkdocs-staging
+site_dir: .mkdocs-site
+theme:
+  name: material
+  custom_dir: website/overrides
+  palette:
+    scheme: default
+    primary: blue
+    accent: blue
+  features:
+    - navigation.sections
+    - navigation.indexes
+    - search.suggest
+extra_css:
+  - assets/openkubes-navigation.css
+  - assets/openkubes-theme.css
+plugins:
+  - search
+markdown_extensions:
+  - admonition
+  - pymdownx.superfences
+  - tables
+nav:
+  - Home: index.md
+  - Getting Started: getting-started/index.md
+  - Features: features/index.md
+  - Architecture: architecture/index.md
+  - OK AI:
+      - Overview: ai/index.md
+      - Open WebUI: ai/open-webui.md
+      - OpenClaw: ai/openclaw.md
+      - kagent & Platform Diagnostics: ai/kagent-platform-diagnostics.md
+      - Agentic Operations: ai/agentic-operations.md
+  - OK Observability:
+      - Overview: observability/index.md
+      - Observability Stack: observability/stack.md
+      - Capability Contract: observability/contract.md
+      - Installation & Verification: observability/installation.md
+  - Developer Workspace:
+      - Overview: developer-workspace/index.md
+      - Architecture & Contract: developer-workspace/architecture.md
+      - OpenCode & Coding Agents: developer-workspace/coding-agents.md
+      - Validation & Roadmap: developer-workspace/status.md
+  - Blog:
+      - Overview: blog/index.md
+      - Agentic Operations: agentic-operations-reference-architecture.md
+      - Vault Secret Contract: vault-secret-contract-blog-post.md
+      - The Contract is the Guardrail: the-contract-is-the-guardrail-blog-post.md
+      - The Immortal Platform: openkubes-self-healing-blog-post.md
+      - Kubernetes Anywhere: openkubes-blog-post.md
+  - Docs:
+      - Overview: docs/index.md
+      - Local:
+          - Prerequisites: docs/ok-local/tutorial-prerequisites.md
+      - Cluster:
+          - Registry Trust: docs/ok-cluster/registry-trust.md
+  - Community:
+      - Overview: community/index.md
+      - How to update the docs: community/how-to-update-docs.md
+extra:
+  generator: false

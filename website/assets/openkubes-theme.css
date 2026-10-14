@@ -1,0 +1,36 @@
+:root {
+  --md-primary-fg-color: #101c30;
+  --md-primary-fg-color--light: #273955;
+  --md-primary-fg-color--dark: #101c30;
+  --md-accent-fg-color: #0969da;
+}
+.md-header { background: #101c30; }
+
+.md-main__inner { margin-top: 1.2rem; }
+.md-content h1 { font-weight: 650; color: #1f2328; }
+.md-content h2 { font-weight: 550; }
+.md-sidebar { font-size: .86rem; }
+.md-typeset a { color: #0969da; }
+.md-typeset a:hover { color: #074c9e; }
+.ok-global-nav { width: 100%; }
+.ok-global-nav--material .ok-global-nav__inner { justify-content: flex-end; }
+@media (max-width: 720px) {
+  .md-main__inner { margin-top: .6rem; }
+}
+
+/* Material keeps its search and accessible controls in the upper row.
+   The primary navigation uses a simple text wordmark with no image. */
+.md-header__button.md-logo, .md-header__title { display: none; }
+.md-header__inner { justify-content: flex-end; }
+.ok-global-nav--material .ok-global-nav__inner { justify-content: space-between; }
+.ok-global-nav__brand--text {
+  color: #ffffff !important;
+  font-size: 1.25rem;
+  font-weight: 750;
+  line-height: 1.4;
+  letter-spacing: -.025em;
+  white-space: nowrap;
+}
+@media (max-width: 720px) {
+  .ok-global-nav__brand--text { font-size: 1.1rem; }
+}

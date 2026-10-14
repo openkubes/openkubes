@@ -1,0 +1,108 @@
+name: OK-196 GitHub Pages MkDocs release (manual only)
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Build and validate only; do not publish (recommended)'
+        required: true
+        type: boolean
+        default: true
+      expected_sha:
+        description: 'Full SHA of reviewed main commit'
+        required: false
+        type: string
+        default: ''
+      release_confirmation:
+        description: 'For live publication type PUBLISH_OPENKUBES_ORG; leave blank for dry run'
+        required: false
+        type: string
+        default: ''
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ok196-github-pages-release
+  cancel-in-progress: false
+
+jobs:
+  build:
+    if: ${{ github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout reviewed main
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Verify reviewed revision
+        if: ${{ inputs.dry_run == false }}
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+        run: |
+          test -n "$EXPECTED_SHA"
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+      - name: Check legacy Pages rollback baseline
+        run: bash website/scripts/check-legacy-rollback.sh
+      - name: Checkout pinned ok-local docs
+        uses: actions/checkout@v4
+        with:
+          repository: openkubes/ok-local
+          ref: 60397cdb2630b0cd9cfbcb5d9a29fe2e38ce323e
+          path: .ok196-sources/ok-local
+          persist-credentials: false
+      - name: Checkout pinned ok-cluster docs
+        uses: actions/checkout@v4
+        with:
+          repository: openkubes/ok-cluster
+          ref: a341f4ad4eff73e3cf7a69a38d1de8e2455e73a6
+          path: .ok196-sources/ok-cluster
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned MkDocs dependencies
+        run: pip install -r website/requirements-mkdocs.txt
+      - name: Build and validate GitHub Pages candidate
+        run: bash website/scripts/build-github-pages.sh
+      - name: Preserve reviewed production candidate
+        uses: actions/upload-artifact@v4
+        with:
+          name: ok196-pages-candidate-${{ github.sha }}
+          path: .mkdocs-site/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30
+
+  publish:
+    # Manual approval has three independent controls:
+    # 1. workflow_dispatch with dry_run explicitly switched off
+    # 2. exact confirmation phrase and a release-enable repository variable
+    # 3. github-pages environment branch restriction to main (reviewers optional)
+    # Never enabled by a regular commit or pull request.
+    if: ${{ github.ref == 'refs/heads/main' && inputs.dry_run == false && inputs.release_confirmation == 'PUBLISH_OPENKUBES_ORG' && vars.OK196_PAGES_RELEASE_ENABLED == 'true' }}
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+      contents: read
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Download exact validated candidate from this run
+        uses: actions/download-artifact@v4
+        with:
+          name: ok196-pages-candidate-${{ github.sha }}
+          path: .mkdocs-site
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+      - name: Package GitHub Pages site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: .mkdocs-site
+      - name: Publish to existing GitHub Pages hosting
+        id: deployment
+        uses: actions/deploy-pages@v4
