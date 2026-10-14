@@ -192,3 +192,15 @@ validate the rendered configuration and ConfigMap size (~1 MiB object limit);
 and confirm actual kagent tool access, pod placement, model endpoint injection
 from private configuration, and network policies. The Agent and ModelConfig
 are intentionally NOT part of this scaffold. Never expose Ollama/MCP publicly.
+
+## Chunk integrity gate (OK-202)
+
+The indexer now preserves complete Markdown fenced code blocks and treats
+headings inside fences as code. Atomic code blocks or paragraphs larger than
+2600 characters, and unclosed code fences, fail the build rather than silently
+truncating executable commands. This changes chunk boundaries and source IDs.
+
+After pulling the branch, run the unit tests, rebuild the index and inspect the
+top install hit. Do not reuse a pre-change `index.json` for container validation.
+If the public corpus contains an oversized atomic block, capture its section
+and fix source-aware chunking rather than bypassing the integrity gate.
