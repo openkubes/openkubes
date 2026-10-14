@@ -167,3 +167,28 @@ names/ports only** (to locate Ollama). It never reads secrets, prints kubeconfig
 or applies changes. Some checks may warn if optional CRDs or namespaces are
 absent. Review the context and output before deployment. Avoid pasting unrelated
 internal service details into public PR comments.
+
+## Deployment scaffold — do not apply yet
+
+The Dockerfile builds a non-root docs_search MCP container. The kagent/deploy
+Kustomize bundle defines the restricted openkubes-assistant namespace, a
+no-token ServiceAccount, docs-only Deployment/Service, dedicated RemoteMCPServer,
+read-only indexed ConfigMap volume and a NetworkPolicy denying MCP egress.
+The image is intentionally a nonfunctional placeholder.
+
+For offline manifest inspection (NO Kubernetes changes):
+
+```sh
+cd platform/ai/assistant
+python3 indexer.py build --output kagent/deploy/index.json
+wc -c kagent/deploy/index.json
+kubectl kustomize kagent/deploy > /tmp/ok202-docs-rendered.yaml
+grep -n REPLACE_WITH_IMMUTABLE_IMAGE_DIGEST /tmp/ok202-docs-rendered.yaml
+```
+
+The generated index.json is ignored by git. Before deploying: publish a
+scanned, immutable image digest; pin base image and Python dependencies;
+validate the rendered configuration and ConfigMap size (~1 MiB object limit);
+and confirm actual kagent tool access, pod placement, model endpoint injection
+from private configuration, and network policies. The Agent and ModelConfig
+are intentionally NOT part of this scaffold. Never expose Ollama/MCP publicly.
