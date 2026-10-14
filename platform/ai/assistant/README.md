@@ -80,6 +80,40 @@ perform server-side answer citation verification or generate final responses.
 The current MCP dependency range is a PoC compatibility range, not a
 production lockfile.
 
+## Read-only kagent cluster preflight
+
+`kagent/preflight.py` validates the checked-in Agent, ModelConfig and
+RemoteMCPServer against the OpenAPI schemas installed in the isolated
+`ok-kagent` lab cluster. It fails closed unless the selected kubeconfig resolves
+to cluster name `ok-kagent`; `ok-ai`, production and every other cluster are
+rejected. Pass the kubeconfig and context explicitly:
+
+```sh
+cd platform/ai/assistant
+. .venv/bin/activate
+python3 kagent/preflight.py \
+  --kubeconfig "$HOME/.kube/ok-kagent.yaml" \
+  --context ok-kagent-admin@ok-kagent
+```
+
+The preflight performs only local kubeconfig inspection, Kubernetes version
+discovery and `get crd` requests. It does **not** use `apply`, `create`, `patch`,
+`delete`, `diff`, server-side dry-run, namespace reads or workload reads.
+Manifest validation runs locally against the retrieved CRD schemas. An
+additional policy check requires exactly one tool (`docs_search`) from the
+dedicated `openkubes-docs-search` RemoteMCPServer, rejects Kubernetes/RBAC
+objects, and requires a cluster-internal Service.
+
+Run the unit tests before the cluster preflight:
+
+```sh
+python3 -m unittest discover -s tests -v
+```
+
+This check confirms schema compatibility and the static docs-only boundary. It
+does not deploy anything or prove MCP reachability, Ollama tool calling,
+NetworkPolicy enforcement, or runtime citation quality.
+
 ## MCP protocol smoke test (real stdio client)
 
 After installing the Python MCP SDK and building the public document index, run:
