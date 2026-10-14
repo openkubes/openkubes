@@ -1,0 +1,12 @@
+apiVersion: kagent.dev/v1alpha2
+kind: RemoteMCPServer
+metadata:
+  name: openkubes-docs-search
+  namespace: openkubes-assistant
+spec:
+  description: Read-only public OpenKubes documentation search
+  protocol: STREAMABLE_HTTP
+  url: http://openkubes-docs-search.openkubes-assistant.svc.cluster.local:8000/mcp
+  timeout: 30s
+  sseReadTimeout: 5m0s
+  terminateOnClose: true
