@@ -174,6 +174,35 @@ INSTALL_TERMS = frozenset({"install", "installation", "setup", "set-up", "start"
                            "quickstart", "deploy", "deployment", "getting-started"})
 
 
+def _ordered_tutorial(index: dict[str, Any], terms: set[str], limit: int) -> list[dict[str, Any]]:
+    """For broad, explicit repo installation requests, return the guide's START.
+
+    Corpus order is source Markdown order. Detailed component questions keep
+    ordinary relevance ranking (for example 'install virtctl on ok-local').
+    """
+    if not terms & INSTALL_TERMS:
+        return []
+    for repo in SOURCES:
+        repo_name = repo.rsplit("/", 1)[-1]
+        if repo_name not in terms or terms - INSTALL_TERMS - {repo_name}:
+            continue
+        # An explicitly curated beginner guide beats late high-scoring steps.
+        paths = SOURCES[repo]
+        starter = next((
+            path for path in paths
+            if re.search(r"(tutorial-basic|getting-started|quickstart)", path, re.I)
+        ), None)
+        if starter is None:
+            continue
+        ordered = [
+            doc for doc in index["corpus"]
+            if doc["repo"] == repo and doc["path"] == starter
+        ]
+        if ordered:
+            return ordered[:limit]
+    return []
+
+
 def search(index: dict[str, Any], query: str, limit: int = 5) -> list[dict[str, Any]]:
     """Offline lexical search with explicit metadata/installation-intent boosts."""
     if not isinstance(query, str) or not query.strip() or len(query) > 4000:
@@ -183,6 +212,14 @@ def search(index: dict[str, Any], query: str, limit: int = 5) -> list[dict[str, 
     terms = set(tokenize(query)) - STOPWORDS
     if not terms:
         return []
+    # Broad setup questions need a sequential entrypoint, not whichever late
+    # installation step contains the most matching words.
+    tutorial = _ordered_tutorial(index, terms, limit)
+    if tutorial:
+        return [
+            {k: doc[k] for k in ("source_id", "repo", "path", "revision", "section", "url", "text")}
+            for doc in tutorial
+        ]
     install_intent = bool(terms & INSTALL_TERMS)
     scored = []
     for doc in index["corpus"]:
