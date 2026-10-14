@@ -151,3 +151,19 @@ The index is read locally; no live GitHub access is required for querying.
 **Do not expose this port publicly.** The HTTP smoke test proves local MCP
 transport behavior only. It does not validate kagent interoperability, Kubernetes
 NetworkPolicy or authentication, LLM tool invocation, or source-grounded answers.
+
+## Read-only cluster preflight (before any deployment)
+
+After validating both local MCP transports, inspect the selected test cluster:
+
+```sh
+cd platform/ai/assistant
+bash preflight-kagent.sh
+```
+
+The script displays current context; kagent API/CRD names, pod names, model and
+RemoteMCPServer names, relevant CRD schema, namespace presence, and **service
+names/ports only** (to locate Ollama). It never reads secrets, prints kubeconfig,
+or applies changes. Some checks may warn if optional CRDs or namespaces are
+absent. Review the context and output before deployment. Avoid pasting unrelated
+internal service details into public PR comments.
