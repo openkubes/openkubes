@@ -1,5 +1,5 @@
 *
 !Dockerfile
-!requirements-mcp.txt
+!requirements-mcp.lock
 !docs_mcp.py
 !indexer.py
