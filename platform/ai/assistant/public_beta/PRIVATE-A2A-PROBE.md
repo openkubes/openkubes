@@ -44,3 +44,17 @@ Expected at this stage: a **rejection may be the correct outcome** if the model 
 - Do not paste full agent text if it includes unrelated internal details. Review any log carefully before sharing.
 
 **Public Beta release gate remains HOLD**, including gateway isolation, quotas, same-request source binding, operational policy and outstanding CVE review.
+
+## Command evidence classification (private report)
+
+The probe also reports `command_evidence.blocks`, ordered by recognized `bash`/`sh` shell fence. Each item contains only its ordinal number, line counts and one of these fixed diagnostic statuses:
+
+- `exact_retrieved`: the shell content occurs verbatim in one of the eight validated local retrieved chunks
+- `exact_other_index`: found verbatim elsewhere in the trusted local index, **not** among this question's retrieved chunks
+- `whitespace_only_retrieved`: collapses to a match in retrieved chunks only after whitespace normalization
+- `whitespace_only_other_index`: whitespace-normalized match only elsewhere in the index
+- `not_found_in_index`: none of these matches were found
+
+A classification of `exact_other_index` still **fails** the answer gate: the answer was not grounded in this query's retrieved evidence. A whitespace-only match is diagnostic, not permission to execute or display commands. No command text, URL, snippet, hash or full agent response is printed.
+
+The report is based on *independent local retrieval*, not an authenticated transcript of the remote agent's actual MCP call. A successful diagnostic is not a production safety or semantic-correctness guarantee.
