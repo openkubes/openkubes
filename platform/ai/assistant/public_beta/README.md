@@ -22,8 +22,8 @@ python3 platform/ai/assistant/public_beta/a2a_preflight.py
 ```
 
 This **GET-only** discovery checks the documented kagent A2A agent card route:
-`/api/a2a/openkubes-assistant/openkubes-docs-agent/.well-known/agent.json`.
-The code connects only to `127.0.0.1`, refuses HTTP redirects, bounds the response to 64 KiB, and prints minimal, nonsecret metadata. A valid card **does not prove** agent invocation, model access, secure networking or citation integrity.
+`/api/a2a/openkubes-assistant/openkubes-docs-agent/.well-known/agent-card.json`.
+**Observed on the 2026-10-15 lab installation (kagent controller 0.9.12):** `/.well-known/agent.json` returned HTTP 200 with JSON-RPC error `-32600 invalid request`; `/.well-known/agent-card.json` returned HTTP 200 and Agent Card `name=openkubes_docs_agent`, `capabilities.streaming=true`. Kubernetes Agent status was `Ready=True`, `Accepted=True`. These were operator-observed results, not a test executed by this PR.\n\nThe code connects only to `127.0.0.1`, refuses HTTP redirects, bounds the response to 64 KiB, and prints minimal, nonsecret metadata. A valid card **does not prove** agent invocation, model access, secure networking or citation integrity.
 
 ## Next release gate (NOT accomplished by this PR)
 
