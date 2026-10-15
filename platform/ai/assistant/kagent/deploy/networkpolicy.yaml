@@ -1,6 +1,3 @@
-# Restrict the MCP server to traffic from the same namespace.
-# The actual kagent Agent workload must be verified to run in this namespace.
-# This intentionally blocks the MCP server's outbound connections.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -15,7 +12,16 @@ spec:
     - Egress
   ingress:
     - from:
-        - podSelector: {}
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: openkubes-docs-agent
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kagent
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: kagent
+              app.kubernetes.io/component: controller
       ports:
         - protocol: TCP
           port: 8000
