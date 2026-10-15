@@ -22,6 +22,40 @@ def _match(block: str, passages: list[str], *, relaxed: bool = False) -> bool:
     return bool(block.strip()) and any(block in p for p in passages)
 
 
+def _line_evidence(block: str, selected: list[str], remaining: list[str]) -> dict:
+    """Classify nonblank lines only, without claiming they are safe commands."""
+    selected_lines = {line.strip() for passage in selected
+                      for line in passage.splitlines() if line.strip()}
+    remaining_lines = {line.strip() for passage in remaining
+                       for line in passage.splitlines() if line.strip()}
+    selected_relaxed = {_normalized(line) for line in selected_lines}
+    remaining_relaxed = {_normalized(line) for line in remaining_lines}
+    counts = {
+        "exact_retrieved": 0,
+        "exact_other_index": 0,
+        "whitespace_only_retrieved": 0,
+        "whitespace_only_other_index": 0,
+        "not_found_in_index": 0,
+    }
+    for line in block.splitlines():
+        stripped = line.strip()
+        if not stripped:
+            continue
+        # Whole line equality only: no substring/token matching.
+        if stripped in selected_lines:
+            category = "exact_retrieved"
+        elif stripped in remaining_lines:
+            category = "exact_other_index"
+        elif _normalized(stripped) in selected_relaxed:
+            category = "whitespace_only_retrieved"
+        elif _normalized(stripped) in remaining_relaxed:
+            category = "whitespace_only_other_index"
+        else:
+            category = "not_found_in_index"
+        counts[category] += 1
+    return counts
+
+
 def command_evidence_report(answer: str, retrieval: dict, index: dict) -> dict:
     if not isinstance(answer, str) or not isinstance(retrieval, dict):
         raise ValueError("Invalid diagnostic inputs")
@@ -66,9 +100,10 @@ def command_evidence_report(answer: str, retrieval: dict, index: dict) -> dict:
             "evidence": status,
             "line_count": len(block.splitlines()),
             "nonempty_line_count": sum(bool(line.strip()) for line in block.splitlines()),
+            "line_evidence_counts": _line_evidence(block, selected, remaining),
         })
     return {
         "recognized_shell_blocks": len(entries),
         "blocks": entries,
-        "note": "Diagnostic only; relaxed matches never count as verified.",
+        "note": "Diagnostic only; matching individual lines does not validate a whole command block.",
     }
