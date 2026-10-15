@@ -29,9 +29,25 @@ def diagnostic_counts(answer: str, retrieval: dict) -> dict:
         not m.group(1).strip() or m.group(1).replace("\r\n", "\n") not in passages
         for m in fences
     )
+    # Structural diagnostics only: never expose the offending line or words.
+    lines = answer.splitlines()
+    fence_lines = [line for line in lines if "```" in line]
+    standalone = sum(bool(re.fullmatch(r" {0,3}```[^\x60]*", line))
+                     for line in fence_lines)
+    table_embedded = sum("|" in line for line in fence_lines)
+    list_embedded = sum(bool(re.match(r"\\s*(?:[-*+] |\\d+[.)] )", line))
+                        for line in fence_lines)
+    # Inline code and other Markdown patterns are counts, not permission
+    # to bypass the strict response validator.
+    tables = sum(bool(re.match(r"\\s*\\|.*\\|\\s*$", line)) for line in lines)
     # source IDs are counted but never emitted.
     return {
         "fence_marker_count": answer.count("```"),
+        "lines_containing_fences": len(fence_lines),
+        "standalone_fence_lines": standalone,
+        "table_embedded_fence_lines": table_embedded,
+        "list_embedded_fence_lines": list_embedded,
+        "markdown_table_like_lines": tables,
         "recognized_shell_fences": len(fences),
         "recognized_all_fences": len(all_fences),
         "unverified_shell_fences": unmatched,
