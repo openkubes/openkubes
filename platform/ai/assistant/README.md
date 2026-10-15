@@ -1,5 +1,13 @@
 # OK-202 — OpenKubes Documentation Agent PoC
 
+## Architecture Diagram
+
+The following diagram shows the current OpenKubes documentation-only AI agent PoC architecture with kagent, Ollama, and the docs-search MCP server.
+
+<p align="center">
+  <img src="./assets/openkubes-docs-agent-architecture.png" alt="OpenKubes Docs Agent Architecture" width="1100">
+</p>
+
 **Status:** experimental, retrieval-only. No deployment, kagent runtime integration or public API is claimed.
 
 This is a small, dependency-free lexical retrieval baseline to validate source attribution and a dedicated kagent Agent manifest. It intentionally **does not** connect to Kubernetes, Ollama, or the internet at query time.
