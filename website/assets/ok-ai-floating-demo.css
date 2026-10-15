@@ -1,0 +1,29 @@
+/* OK AI floating preview demo; only loaded on preview.openkubes.org. */
+#okai-floating-demo{position:fixed;right:22px;bottom:20px;z-index:80;font-family:inherit;font-size:14px}
+#okai-floating-demo *{box-sizing:border-box}
+#okai-floating-demo .okai-launch{display:flex;align-items:center;gap:9px;background:#115aaa;color:#fff;border:0;border-radius:36px;box-shadow:0 7px 24px #061d4155;padding:13px 18px;font-weight:700;cursor:pointer;min-height:48px}
+#okai-floating-demo .okai-launch-tag{font-size:10px;border:1px solid #b9d8f9;padding:2px 6px;border-radius:12px}
+#okai-floating-demo .okai-panel{position:absolute;right:0;bottom:64px;width:min(370px,calc(100vw - 28px));height:min(520px,calc(100dvh - 115px));background:var(--md-default-bg-color,#fff);color:var(--md-default-fg-color,#182334);box-shadow:0 16px 60px #051c3d45;border:1px solid #8da6c76b;border-radius:16px;overflow:hidden;flex-direction:column}
+#okai-floating-demo .okai-panel:not([hidden]){display:flex}
+#okai-floating-demo .okai-panel[hidden]{display:none}
+#okai-floating-demo .okai-panel-head{display:flex;align-items:center;gap:10px;background:#123e76;color:white;padding:13px 15px;flex:0 0 auto}
+#okai-floating-demo .okai-symbol{font-size:24px}
+#okai-floating-demo .okai-heading{display:flex;flex-direction:column;flex:1}
+#okai-floating-demo .okai-heading strong{font-size:16px}
+#okai-floating-demo .okai-heading small{font-size:11px;color:#d5e7fa}
+#okai-floating-demo .okai-close{background:transparent;color:white;border:0;cursor:pointer;font-size:24px;width:32px;height:32px}
+#okai-floating-demo .okai-messages{flex:1;min-height:0;display:flex;flex-direction:column;overflow-y:auto;gap:12px;padding:15px;overscroll-behavior:contain}
+#okai-floating-demo .okai-bubble{align-self:flex-start;max-width:90%;padding:11px 12px;line-height:1.5;border-radius:13px;background:var(--md-code-bg-color,#eef3f8);white-space:pre-wrap;overflow-wrap:anywhere}
+#okai-floating-demo .okai-bubble small{display:block;margin-top:6px;font-size:11px;opacity:.75}
+#okai-floating-demo .okai-bubble a{color:#2673db;text-decoration:underline}
+#okai-floating-demo .okai-user{align-self:flex-end;background:#115aaa;color:white}
+#okai-floating-demo .okai-suggestions{padding:0 12px 10px;display:flex;gap:6px;flex-wrap:wrap}
+#okai-floating-demo .okai-suggestions button{background:transparent;color:var(--md-primary-fg-color,#115aaa);border:1px solid #87abd2;border-radius:20px;padding:6px 9px;font-size:11px;cursor:pointer}
+#okai-floating-demo .okai-input-form{display:flex;gap:7px;padding:11px;border-top:1px solid #92a7c04d}
+#okai-floating-demo .okai-input-form input{background:var(--md-default-bg-color,#fff);color:var(--md-default-fg-color,#182334);border:1px solid #9baec4;border-radius:8px;min-width:0;flex:1;padding:9px}
+#okai-floating-demo .okai-input-form button{background:#115aaa;color:white;border:0;border-radius:8px;padding:0 13px;cursor:pointer}
+#okai-floating-demo .okai-disclaimer{text-align:center;font-size:10px;opacity:.7;margin:0;padding:0 9px 10px}
+#okai-floating-demo button:focus-visible,#okai-floating-demo input:focus-visible{outline:3px solid #f5aa30;outline-offset:2px}
+#okai-floating-demo .okai-visually-hidden{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+@media(max-width:600px){#okai-floating-demo{right:14px;bottom:14px}#okai-floating-demo .okai-panel{bottom:60px;height:min(510px,calc(100dvh - 92px))}}
+@media(prefers-reduced-motion:reduce){#okai-floating-demo *{scroll-behavior:auto!important}}
