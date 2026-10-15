@@ -8,9 +8,9 @@ The following diagram shows the current OpenKubes documentation-only AI agent Po
   <img src="./assets/openkubes-docs-agent-architecture.png" alt="OpenKubes Docs Agent Architecture" width="1100">
 </p>
 
-**Status:** experimental, retrieval-only. No deployment, kagent runtime integration or public API is claimed.
+**Status (2026-10-15): Functional PoC validated on `ok-kagent`; NOT production-ready or publicly exposed.** The kagent Go agent uses a dedicated read-only `docs_search` MCP server and private Ollama `gpt-oss:20b` on `ok-infra`. Only the search/index component avoids network access at query time; the complete chatbot uses cluster networking for MCP and Ollama.
 
-This is a small, dependency-free lexical retrieval baseline to validate source attribution and a dedicated kagent Agent manifest. It intentionally **does not** connect to Kubernetes, Ollama, or the internet at query time.
+**[Full PoC architecture, validation evidence and remaining release gates](./POC-VALIDATION.md)**. This record covers live Agent/ModelConfig/RemoteMCPServer deployment, real tool calls, answers with clickable GitHub citations, negative tests and the time-limited nonproduction CVE risk acceptance.
 
 ## Usage
 
