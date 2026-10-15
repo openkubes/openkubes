@@ -10,7 +10,7 @@ import sys
 from urllib.error import HTTPError, URLError
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 
-PATH = "/api/a2a/openkubes-assistant/openkubes-docs-agent/.well-known/agent.json"
+PATH = "/api/a2a/openkubes-assistant/openkubes-docs-agent/.well-known/agent-card.json"
 
 
 class NoRedirect(HTTPRedirectHandler):
