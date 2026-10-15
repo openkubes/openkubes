@@ -35,11 +35,11 @@ def diagnostic_counts(answer: str, retrieval: dict) -> dict:
     standalone = sum(bool(re.fullmatch(r" {0,3}```[^\x60]*", line))
                      for line in fence_lines)
     table_embedded = sum("|" in line for line in fence_lines)
-    list_embedded = sum(bool(re.match(r"\\s*(?:[-*+] |\\d+[.)] )", line))
+    list_embedded = sum(bool(re.match(r"\s*(?:[-*+] |\d+[.)] )", line))
                         for line in fence_lines)
     # Inline code and other Markdown patterns are counts, not permission
     # to bypass the strict response validator.
-    tables = sum(bool(re.match(r"\\s*\\|.*\\|\\s*$", line)) for line in lines)
+    tables = sum(bool(re.match(r"\s*\|.*\|\s*$", line)) for line in lines)
     # source IDs are counted but never emitted.
     return {
         "fence_marker_count": answer.count("```"),
