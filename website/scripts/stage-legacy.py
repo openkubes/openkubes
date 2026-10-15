@@ -84,6 +84,13 @@ def main():
     if not theme_css.is_file():
         raise SystemExit("Shared theme CSS missing")
     shutil.copy2(theme_css, TARGET / "assets" / theme_css.name)
+    # Preview-only floating OK AI UI demo assets. The hostname guard in
+    # website/overrides/main.html prevents loading them on production.
+    for name in ("ok-ai-floating-demo.js", "ok-ai-floating-demo.css"):
+        source = ROOT / "website" / "assets" / name
+        if not source.is_file():
+            raise SystemExit(f"Missing floating UI asset: {source}")
+        shutil.copy2(source, TARGET / "assets" / name)
     media = SOURCE / "media"
     if not media.is_dir():
         raise SystemExit("Legacy media directory not found.")
