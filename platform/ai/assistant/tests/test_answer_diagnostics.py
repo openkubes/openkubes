@@ -36,6 +36,21 @@ class AnswerDiagnosticsTests(unittest.TestCase):
         self.assertTrue(report["has_inline_backticks_outside_fences"])
         self.assertNotIn("secret", str(report))
 
+    def test_classifies_fences_in_tables_without_exposing_content(self):
+        answer = "| Step | Command |\n| --- | --- |\n| Install | " + F + "bash |\n| command |"
+        report = diagnostic_counts(answer, HITS)
+        self.assertEqual(report["fence_marker_count"], 1)
+        self.assertEqual(report["table_embedded_fence_lines"], 1)
+        self.assertEqual(report["recognized_shell_fences"], 0)
+        self.assertNotIn("command", str(report))
+
+    def test_classifies_standalone_and_list_embedded_fences(self):
+        answer = F + "bash\n" + "echo permitted\n" + F + "\n- " + F + "bash\n"
+        report = diagnostic_counts(answer, HITS)
+        self.assertEqual(report["standalone_fence_lines"], 2)
+        self.assertEqual(report["list_embedded_fence_lines"], 1)
+        self.assertEqual(report["lines_containing_fences"], 3)
+
     def test_retrieval_limit_flag_is_only_structural(self):
         report = diagnostic_counts("Answer", {"results": HITS["results"] * 8})
         self.assertTrue(report["retrieval_at_limit"])
