@@ -65,6 +65,28 @@ class CommandEvidenceTests(unittest.TestCase):
         self.assertNotIn(value, str(result))
         self.assertNotIn(INDEX["corpus"][0]["url"], str(result))
 
+    def test_line_evidence_counts_combined_blocks(self):
+        result = command_evidence_report(
+            answer("echo start\\necho later\\necho novel"), hits(), INDEX
+        )
+        counts = result["blocks"][0]["line_evidence_counts"]
+        self.assertEqual(counts["exact_retrieved"], 1)
+        self.assertEqual(counts["exact_other_index"], 1)
+        self.assertEqual(counts["not_found_in_index"], 1)
+        self.assertEqual(result["blocks"][0]["evidence"], "not_found_in_index")
+        self.assertNotIn("echo novel", str(result))
+
+    def test_line_evidence_does_not_match_substrings(self):
+        result = command_evidence_report(answer("echo star"), hits(), INDEX)
+        counts = result["blocks"][0]["line_evidence_counts"]
+        self.assertEqual(counts["not_found_in_index"], 1)
+        self.assertEqual(counts["exact_retrieved"], 0)
+
+    def test_line_evidence_whitespace_only(self):
+        result = command_evidence_report(answer("echo    start"), hits(), INDEX)
+        counts = result["blocks"][0]["line_evidence_counts"]
+        self.assertEqual(counts["whitespace_only_retrieved"], 1)
+
     def test_rejects_forged_retrieval(self):
         forged = hits()
         forged["results"][0]["snippet"] = "tampered"
