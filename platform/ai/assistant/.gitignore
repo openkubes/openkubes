@@ -1,0 +1,4 @@
+# Local scan and build evidence (not reviewed for publication)
+ok202-*.tar
+ok202-*-sbom.json
+ok202-*-vulnerabilities.json

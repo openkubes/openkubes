@@ -1,0 +1,14 @@
+# PoC infrastructure ONLY: no kagent Agent/ModelConfig in this kustomization.
+# Deploy AFTER image digest and index ConfigMap are supplied and validated.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - namespace.yaml
+  - mcp.yaml
+  - networkpolicy.yaml
+  - remote-mcp.yaml
+configMapGenerator:
+  - name: openkubes-docs-index
+    namespace: openkubes-assistant
+    files:
+      - index.json
