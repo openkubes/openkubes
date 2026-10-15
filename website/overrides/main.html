@@ -15,3 +15,21 @@
     </div>
   </nav>
 {% endblock %}
+
+{% block scripts %}
+  {{ super() }}
+  <script>
+    /* Preview-only widget: production does not fetch CSS/JS or render a button. */
+    (function () {
+      if (window.location.hostname !== "preview.openkubes.org") return;
+      var stylesheet = document.createElement("link");
+      stylesheet.rel = "stylesheet";
+      stylesheet.href = "{{ 'assets/ok-ai-floating-demo.css' | url }}";
+      document.head.appendChild(stylesheet);
+      var script = document.createElement("script");
+      script.src = "{{ 'assets/ok-ai-floating-demo.js' | url }}";
+      script.defer = true;
+      document.body.appendChild(script);
+    })();
+  </script>
+{% endblock %}
