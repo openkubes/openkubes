@@ -8,9 +8,9 @@ The following diagram shows the current OpenKubes documentation-only AI agent Po
   <img src="./assets/openkubes-docs-agent-architecture.png" alt="OpenKubes Docs Agent Architecture" width="1100">
 </p>
 
-**Status:** experimental, retrieval-only. No deployment, kagent runtime integration or public API is claimed.
+**Status (2026-10-15): Functional PoC validated on `ok-kagent`; NOT production-ready or publicly exposed.** The kagent Go agent uses a dedicated read-only `docs_search` MCP server and private Ollama `gpt-oss:20b` on `ok-infra`. Only the search/index component avoids network access at query time; the complete chatbot uses cluster networking for MCP and Ollama.
 
-This is a small, dependency-free lexical retrieval baseline to validate source attribution and a dedicated kagent Agent manifest. It intentionally **does not** connect to Kubernetes, Ollama, or the internet at query time.
+**[Full PoC architecture, validation evidence and remaining release gates](./POC-VALIDATION.md)**. This record covers live Agent/ModelConfig/RemoteMCPServer deployment, real tool calls, answers with clickable GitHub citations, negative tests and the time-limited nonproduction CVE risk acceptance.
 
 ## Usage
 
@@ -25,7 +25,7 @@ python3 indexer.py search --index /tmp/openkubes-docs-index.json --query "How do
 
 Index creation contacts the public GitHub API/raw.githubusercontent.com. A reproducible index contains resolved commit SHAs, stable source IDs and SHA-256 digests. Only allowlisted repositories/files are requested; raw source is read-only and never executed. The index is a **local build artifact**, not committed. Do not expose the index builder on a network route.
 
-This is deliberately a lexical scoring baseline, **not RAG production quality** and not a deployed MCP tool. For kagent, see `kagent/openkubes-docs-agent.yaml`: tool registration and model endpoint remain placeholders pending verification of installed CRD and MCP transport.
+The retrieval approach remains a lexical scoring baseline, **not production-grade RAG**. kagent, RemoteMCPServer and Ollama tool use were functionally validated in the isolated lab. The checked-in Agent manifest deliberately retains a placeholder for the private model endpoint.
 
 ## Hard boundaries
 
@@ -39,7 +39,7 @@ This is deliberately a lexical scoring baseline, **not RAG production quality** 
 
 1. Establish 30+ question baseline and citation-support scoring.
 2. Evaluate a search adapter (lexical vs hybrid retrieval).
-3. Validate dedicated kagent version, MCP read-only retrieval transport and Ollama tool use in isolated test environment.
+3. **Completed:** validate kagent, read-only MCP retrieval and Ollama tool use in the isolated test environment (2026-10-15).
 4. Add protected API, SSE streaming and verified citations.
 5. Only then integrate MkDocs widget on preview.
 
@@ -71,17 +71,14 @@ OPENKUBES_MCP_TRANSPORT=streamable-http python3 docs_mcp.py
 ```
 
 The default listener address is `127.0.0.1:8000`, with the MCP route `/mcp`.
-The intended kagent remote profile points to an internal Kubernetes Service;
-a container image, index volume mount, namespace, locked-down NetworkPolicy,
-service binding and a real installed-kagent compatibility test are still needed.
+The kagent RemoteMCPServer, internal Kubernetes Service, ConfigMap-mounted index and compatible image were functionally validated in the isolated lab.
 The service must **never** be deployed merely by applying the illustrative
 `kagent/docs-search-mcp.yaml` or exposed on a public ingress.
 
 The manifest `kagent/openkubes-docs-agent.yaml` now references only the
 `openkubes-docs-search` RemoteMCPServer and explicitly allowlists the
 `docs_search` tool. It has no link to the cluster-diagnostics tools.
-A tool declaration is **not** a successful tool invocation; this requires
-runtime verification with the target kagent version and Ollama model.
+A real tool invocation and sourced answer were subsequently observed in the kagent UI; see [PoC validation](./POC-VALIDATION.md).
 
 **Caveat:** This first retrieval tool only returns passages. It does not yet
 perform server-side answer citation verification or generate final responses.
@@ -176,13 +173,13 @@ or applies changes. Some checks may warn if optional CRDs or namespaces are
 absent. Review the context and output before deployment. Avoid pasting unrelated
 internal service details into public PR comments.
 
-## Deployment scaffold — do not apply yet
+## Deployment scaffold — isolated PoC only
 
 The Dockerfile builds a non-root docs_search MCP container. The kagent/deploy
 Kustomize bundle defines the restricted openkubes-assistant namespace, a
 no-token ServiceAccount, docs-only Deployment/Service, dedicated RemoteMCPServer,
 read-only indexed ConfigMap volume and a NetworkPolicy denying MCP egress.
-The image is intentionally a nonfunctional placeholder.
+The checked-in scaffold initially used an image placeholder; for the isolated PoC the operator supplied a private GHCR digest and pull secret. A placeholder-only manifest is not deployable.
 
 For offline manifest inspection (NO Kubernetes changes):
 
@@ -198,8 +195,7 @@ The generated index.json is ignored by git. Before deploying: publish a
 scanned, immutable image digest; pin base image and Python dependencies;
 validate the rendered configuration and ConfigMap size (~1 MiB object limit);
 and confirm actual kagent tool access, pod placement, model endpoint injection
-from private configuration, and network policies. The Agent and ModelConfig
-are intentionally NOT part of this scaffold. Never expose Ollama/MCP publicly.
+from private configuration, and network policies. The Agent and ModelConfig are intentionally **not** part of this infrastructure Kustomize bundle. They were applied separately using a private, untracked local Ollama endpoint. Never expose Ollama/MCP publicly.
 
 ## Chunk integrity gate (OK-202)
 
