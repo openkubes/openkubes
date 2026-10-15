@@ -212,9 +212,16 @@ def search(index: dict[str, Any], query: str, limit: int = 5) -> list[dict[str, 
     terms = set(tokenize(query)) - STOPWORDS
     if not terms:
         return []
+    # Normalize the public product name only for broad onboarding requests.
+    # Preserve specific terms (e.g. "virtctl") so detailed questions still
+    # use relevance ranking rather than silently returning the guide's start.
+    onboarding_terms = terms
+    if re.search(r"\bopenkubes[\s-]+local\b", query, re.I):
+        onboarding_terms = (terms - {"openkubes", "local", "macos", "osx", "mac"}
+                            | {"ok-local"})
     # Broad setup questions need a sequential entrypoint, not whichever late
     # installation step contains the most matching words.
-    tutorial = _ordered_tutorial(index, terms, limit)
+    tutorial = _ordered_tutorial(index, onboarding_terms, limit)
     if tutorial:
         return [
             {k: doc[k] for k in ("source_id", "repo", "path", "revision", "section", "url", "text")}
