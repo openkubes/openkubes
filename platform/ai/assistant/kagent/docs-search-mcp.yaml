@@ -1,0 +1,30 @@
+# OK-202: illustrative deployment profile, NOT applied or production hardened.
+# An externally assembled immutable index must be mounted read-only into /data.
+# Do NOT reuse default kagent tools or grant the retrieval workload Kubernetes RBAC.
+apiVersion: kagent.dev/v1alpha2
+kind: RemoteMCPServer
+metadata:
+  name: openkubes-docs-search
+  namespace: openkubes-assistant
+spec:
+  description: Read-only public OpenKubes documentation search
+  protocol: STREAMABLE_HTTP
+  url: http://openkubes-docs-search.openkubes-assistant.svc.cluster.local:8000/mcp
+  timeout: 30s
+  sseReadTimeout: 5m0s
+  terminateOnClose: true
+---
+# Service/Deployment (image build, index volume mount, NetworkPolicy and
+# ingress protections intentionally remain implementation tasks).
+apiVersion: v1
+kind: Service
+metadata:
+  name: openkubes-docs-search
+  namespace: openkubes-assistant
+spec:
+  selector:
+    app.kubernetes.io/name: openkubes-docs-search
+  ports:
+    - port: 8000
+      targetPort: 8000
+      name: mcp

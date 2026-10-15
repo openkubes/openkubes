@@ -1,0 +1,13 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: openkubes-docs-search
+  namespace: openkubes-assistant
+spec:
+  template:
+    spec:
+      imagePullSecrets:
+        - name: ghcr-pull
+      containers:
+        - name: docs-search
+          image: ghcr.io/openkubes/docs-search@sha256:7af4fa364e462713df0e2fda525ba0cc573c22f2a0c4d9e1b3dd214025670b24

@@ -4,6 +4,10 @@
 
 OK AI is the AI capability area of OpenKubes: run self-hosted AI services on Kubernetes and explore explicitly constrained, evidence-driven agent integrations. It is a **platform capability**, not a separate Kubernetes distribution or a separate `ok-ai` source repository.
 
+## OK AI Chat — first UI preview
+
+[**Explore the OK AI Chat UI prototype →**](chat-preview.md) — an interactive visual preview with sample responses only. It does **not** send any questions to an AI service or public API. No login required.
+
 ## Explore OK AI
 
 | Capability | Purpose | Documentation |

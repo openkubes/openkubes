@@ -1,0 +1,14 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../deploy
+
+patches:
+  - path: mcp-patch.yaml
+    target:
+      group: apps
+      version: v1
+      kind: Deployment
+      name: openkubes-docs-search
+      namespace: openkubes-assistant
