@@ -31,7 +31,7 @@ python3 -m public_beta.private_a2a_probe \
   --index /tmp/openkubes-docs-index.json
 ```
 
-The probe prints **only** verdict, reason codes, response length and source IDs. It does not print private model responses or the full context. Exit code: `0` accepted, `1` rejected/no sources, `2` invocation/parsing error.
+The probe prints **only** verdict, reason codes, response length, source IDs and a privacy-safe `diagnostics` object of fixed numeric/boolean fields. Diagnostic counters distinguish recognized shell fences, unsupported markup, exact-match command blocks, clickable trusted links and bare source tokens. Neither command text nor the full answer is printed. The `retrieval_at_limit` boolean means only that eight chunks were returned, **not** that the documentation is complete. It does not print private model responses or the full context. Exit code: `0` accepted, `1` rejected/no sources, `2` invocation/parsing error.
 
 Expected at this stage: a **rejection may be the correct outcome** if the model outputs unlinked `source_id` tokens, inline commands, unsupported Markdown or commands not copied verbatim from retrieved content. Do **not** loosen the validator to force PASS. Diagnose the evidence gap first.
 
