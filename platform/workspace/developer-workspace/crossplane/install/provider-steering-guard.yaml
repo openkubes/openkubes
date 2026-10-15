@@ -1,0 +1,38 @@
+# Restricts every provider-kubernetes API that can steer the provider's privileged identity.
+# The operator definition is the existing authority to update the reviewed profile; role names,
+# provider identities and object fields do not provide an admission exemption.
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: developer-workspace-provider-steering
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    matchPolicy: Equivalent
+    resourceRules:
+      - apiGroups: [kubernetes.m.crossplane.io]
+        apiVersions: ["*"]
+        operations: [CREATE, UPDATE]
+        resources: [objects, providerconfigs, observedobjectcollections]
+        scope: Namespaced
+      - apiGroups: [kubernetes.m.crossplane.io]
+        apiVersions: ["*"]
+        operations: [CREATE, UPDATE]
+        resources: [clusterproviderconfigs]
+        scope: Cluster
+      - apiGroups: [kubernetes.crossplane.io]
+        apiVersions: ["*"]
+        operations: [CREATE, UPDATE]
+        resources: [observedobjectcollections]
+        scope: Cluster
+  validations:
+    - expression: "authorizer.group('apiextensions.crossplane.io').resource('environmentconfigs').name('developer-workspace-profile').check('update').allowed()"
+      message: only a DeveloperWorkspace operator may create or update provider steering resources
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: developer-workspace-provider-steering
+spec:
+  policyName: developer-workspace-provider-steering
+  validationActions: [Deny]

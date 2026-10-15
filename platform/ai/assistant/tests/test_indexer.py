@@ -85,6 +85,45 @@ class IndexerTest(unittest.TestCase):
         self.assertEqual([hit["source_id"] for hit in hits],
                          ["entry", "step1", "step2"])
 
+    def test_public_name_macos_install_starts_at_guide_beginning(self):
+        docs = []
+        for ident, section in [
+            ("entry", "Overview"), ("vm", "Step 1 - Prepare VM"),
+            ("k3s", "Step 2 - Install K3s"),
+            ("virtctl", "Step 6 - Install virtctl"),
+        ]:
+            docs.append({
+                "source_id": ident, "repo": "openkubes/ok-local",
+                "path": "docs/tutorial-basic.md", "revision": SHA2,
+                "section": section,
+                "url": "https://github.com/openkubes/ok-local/blob/" + SHA2
+                       + "/docs/tutorial-basic.md",
+                "text": section + " OpenKubes Local macOS install",
+            })
+        hits = indexer.search(
+            {"corpus": docs},
+            "How do I install OpenKubes Local on macOS?", limit=3
+        )
+        self.assertEqual([hit["source_id"] for hit in hits],
+                         ["entry", "vm", "k3s"])
+
+    def test_public_name_specific_virtctl_preserves_relevance(self):
+        docs = [
+            {"source_id": ident, "repo": "openkubes/ok-local",
+             "path": "docs/tutorial-basic.md", "revision": SHA2,
+             "section": section,
+             "url": "https://github.com/openkubes/ok-local/blob/" + SHA2
+                    + "/docs/tutorial-basic.md",
+             "text": section + " OpenKubes Local macOS"}
+            for ident, section in [
+                ("entry", "Overview"), ("virtctl", "Install virtctl")]
+        ]
+        hits = indexer.search(
+            {"corpus": docs},
+            "How do I install virtctl for OpenKubes Local on macOS?"
+        )
+        self.assertEqual(hits[0]["source_id"], "virtctl")
+
     def test_specific_install_question_preserves_relevance(self):
         docs = []
         for ident, section, body in [

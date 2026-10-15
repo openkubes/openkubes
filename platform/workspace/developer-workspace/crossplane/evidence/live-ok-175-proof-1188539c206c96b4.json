@@ -1,0 +1,165 @@
+{
+  "apiVersion": "workspace.openkubes.io/v1",
+  "crossplane": {
+    "chart": "2.3.3",
+    "functions": "tests/functions.yaml",
+    "provider": "install/provider-kubernetes.yaml"
+  },
+  "finishedAt": "2026-10-01T11:27:15Z",
+  "images": {
+    "fixture": "sha256:1ea1d963004d1ac010a6b0c970e253a6f8ed20fcd6d8f60679ff4e6846a9e782",
+    "runtime": "sha256:7dcc6cec7d8a918dd2d876a8faf72d765baeca61160c72611e82f8354f5ad5c2"
+  },
+  "implementation": {
+    "clean": true,
+    "files": {
+      "Makefile": "6514348eb75df225363ffea3b9ac226d8582bc80b51f1c893d4d4aee983a8175",
+      "README.md": "6d87e97750a1a207f7dde7821c61c64c582ed051fc4d3837ef010ec771335380",
+      "composition.yaml": "fd151440aaac5c5fea83fad11d3dff20bc7391ca07fce6686fcba0b78e775d61",
+      "install/namespace-guard.yaml": "150f7c399ffa77ea9a342220218743e252862ca3991f73031c34464e87a659b4",
+      "install/provider-kubernetes.yaml": "976411c41bdb3c5a8890ea2a8cd0fbef9cd528f33e875af920f6466f3a3260f4",
+      "install/providerconfig.yaml": "02548ac1c0ff2dfb509f7a8a7a777ccb336796af8eebfe5e4aabde2d649a9336",
+      "rbac/provider-kubernetes-clusterrole.yaml": "312fdcf5a7c0a24bbb5f8a5b9e2f2efcc37f18ad130dc94676b67d198775b7cc",
+      "tests/functions.yaml": "f3fa41e4f20583aa9b2473fd0877619e721575d3197c99c6017f01a25791a602",
+      "tests/live/reconcile_proof.py": "b919d34b28587470e56dffe1eb7cd92044ed43778930d274d98e4eb3aeae0995",
+      "tests/live/source-server.py": "c2ade523bdabd6c91f31cd3abf1063f57b51de318201f0bfd0f9b6fd283dd02b",
+      "tests/profile_config.py": "31fc38ad94c8d6bfa4c941c98edf5f441f82e71564911586caa314f11ba03bfe",
+      "tests/render-check.py": "e7a665dcf82cbecf556c94ee730d1fd8ed946a3128ca2fb9a4da5d2dc64f70ba",
+      "tests/xrd_schema.py": "1b7e591adc33e8349e06ac9e880802b3faab16bc608b7e15394a6a49bb121a44",
+      "xrd.yaml": "b49d249b875dea4903beae65fbf5904b2bd5fd3e2d2901b9a89e22754b84193f"
+    },
+    "head": "c5167e3a6eaf0c22af744b85667d95809d9d8f4d",
+    "spikeInputs": {
+      "live/fixtures/Dockerfile": "bf2624bc2b3314b143c2c325e123ebdb6c803d367d40efe9b65aca35323c1f00",
+      "live/fixtures/entrypoint.sh": "c0a2e841b064cd216838e93b7ae5a78715a8f6bcafd2335205c4ea393308a291",
+      "live/probes/live_proof.py": "a6d054ab5dd0d058da07517dd402fd6c89bfbc6795e19fe29f26f3afbe346277",
+      "live/profile/developer-workspace-live.yaml": "3cac65e53600628e7f1316dd55496804a5c2c915e2e3ff0c87c66877f24e79a6",
+      "live/profile/namespace-profile-live.yaml": "2d335173585e06a1e36adad6d0f410a1c4cf66290c58e7eddd1354dd47c9f8b4",
+      "verify_developer_workspace_v1.py": "9b751c53f9e75f9d8875c632df72b9f1c113d8d772231a8487ef52ef08c7ed14"
+    }
+  },
+  "kind": "ReconcilerLiveEvidence",
+  "knownCommit": "375ba7dfb4f4b49bdbd7a82c567873a59a59d37d",
+  "results": [
+    {
+      "detail": "the API server rejects a persistent lifecycle with ephemeral storage and admits the consistent document",
+      "name": "admission-rules",
+      "status": "pass"
+    },
+    {
+      "detail": "without the profile EnvironmentConfig the workspace reports it missing, composes nothing and is not Ready",
+      "name": "no-profile-fails-closed",
+      "observed": {
+        "ready": null
+      },
+      "status": "pass"
+    },
+    {
+      "detail": "a workspace whose Namespace already existed was refused it: no label, no workspace object written, owner data intact, XR not Ready; the persistent run below is the control",
+      "name": "dedicated-namespace-enforced",
+      "observed": {
+        "ready": "False"
+      },
+      "status": "pass"
+    },
+    {
+      "detail": "XR Ready; 11 reconciled objects equal render() for the persistent profile; the XR runs the local Composition",
+      "name": "reconcile-readback",
+      "observed": {
+        "compositionRevision": "developerworkspace-namespace.workspace.openkubes.io-1cba28f",
+        "lifecyclePhase": "running",
+        "namespace": "dw-ok175-proof"
+      },
+      "status": "pass"
+    },
+    {
+      "detail": "a deleted default-deny NetworkPolicy was recreated (new UID) and a patched quota value was reverted, both as rendered",
+      "name": "drift-restored",
+      "observed": {
+        "seconds": 10
+      },
+      "status": "pass"
+    },
+    {
+      "detail": "workspace HEAD equals the declared revision, not the newer default-branch tip",
+      "name": "source-checkout",
+      "observed": {
+        "commit": "375ba7dfb4f4b49bdbd7a82c567873a59a59d37d",
+        "sourceTip": "a07e3d71b2a4f9e8da3cc6cd0eb0fb58d1369fa0"
+      },
+      "status": "pass"
+    },
+    {
+      "detail": "no token mounted; can-i --list equals an unbound identity and is discovery-only; no RoleBindings; the provider identity fails both checks",
+      "name": "kubernetes-authority-denied",
+      "observed": {
+        "baselineRows": 19,
+        "providerRows": 55
+      },
+      "status": "pass"
+    },
+    {
+      "detail": "runtime API connection refused or timed out; control reaches API transport",
+      "name": "kubernetes-api-unreachable",
+      "observed": {
+        "controlHttp": "401",
+        "runtimeCurlExit": 28
+      },
+      "status": "pass"
+    },
+    {
+      "detail": "the runtime holds no source credential (git config, environment) and the source refuses its push to main and a new branch for lack of one",
+      "name": "runtime-push-denied",
+      "observed": {
+        "exit": 128
+      },
+      "status": "pass"
+    },
+    {
+      "detail": "source refuses push with the workspace credential (403); write-credential control push succeeds; no denied ref exists",
+      "name": "workspace-credential-push-denied",
+      "observed": {
+        "refs": [
+          "HEAD",
+          "refs/heads/control-probe",
+          "refs/heads/master"
+        ]
+      },
+      "status": "pass"
+    },
+    {
+      "detail": "no Secret in the workspace namespace carries the write credential",
+      "name": "write-credential-absent",
+      "observed": {
+        "secrets": 2
+      },
+      "status": "pass"
+    },
+    {
+      "detail": "deleting the XR removed its Namespace, all 11 composed Objects and the PersistentVolume",
+      "name": "persistent-cleanup",
+      "status": "pass"
+    },
+    {
+      "detail": "10 reconciled objects equal render(); workspace volume is emptyDir, no PVC",
+      "name": "ephemeral-reconcile",
+      "observed": {
+        "namespace": "dw-ok175-ephemeral"
+      },
+      "status": "pass"
+    },
+    {
+      "detail": "deleting the XR removed its Namespace and all 10 composed Objects",
+      "name": "ephemeral-cleanup",
+      "status": "pass"
+    }
+  ],
+  "runID": "1188539c206c96b4",
+  "sourceTip": "a07e3d71b2a4f9e8da3cc6cd0eb0fb58d1369fa0",
+  "startedAt": "2026-10-01T11:19:38Z",
+  "target": {
+    "context": "ok-175-proof-admin@ok-175-proof",
+    "kubeSystemUidSha256": "107138e297802e6dadaead52d3a6c990d02337f07c511286d4d1e110260dca60",
+    "kubernetesVersion": "v1.34.1"
+  }
+}
