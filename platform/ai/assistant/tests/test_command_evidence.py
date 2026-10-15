@@ -67,7 +67,7 @@ class CommandEvidenceTests(unittest.TestCase):
 
     def test_line_evidence_counts_combined_blocks(self):
         result = command_evidence_report(
-            answer("echo start\\necho later\\necho novel"), hits(), INDEX
+            answer("echo start\necho later\necho novel"), hits(), INDEX
         )
         counts = result["blocks"][0]["line_evidence_counts"]
         self.assertEqual(counts["exact_retrieved"], 1)
