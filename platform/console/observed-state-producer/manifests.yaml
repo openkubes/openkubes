@@ -34,6 +34,16 @@ roleRef:
   kind: Role
   name: observed-state-producer
 ---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: observed-state-producer-ownership
+  namespace: openkubes-console
+data:
+  # Operator: populate tenants only after the tenancy authority is decided; this example is deliberately empty.
+  ownership.json: |
+    {"tenants":{}}
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -79,9 +89,14 @@ spec:
               value: /var/run/secrets/openkubes/producer/client-ca.crt
             - name: OK_OBSERVER_TLS_CLIENT_IDENTITY
               value: spiffe://openkubes.io/ns/openkubes-console/sa/ok-console-bff
+            - name: OK_OBSERVER_OWNERSHIP_FILE
+              value: /var/run/config/openkubes/ownership/ownership.json
           volumeMounts:
             - name: producer-tls
               mountPath: /var/run/secrets/openkubes/producer
+              readOnly: true
+            - name: producer-ownership
+              mountPath: /var/run/config/openkubes/ownership
               readOnly: true
           readinessProbe:
             httpGet:
@@ -109,6 +124,13 @@ spec:
         - name: producer-tls
           secret:
             secretName: observed-state-producer-tls
+            defaultMode: 0440
+        - name: producer-ownership
+          configMap:
+            name: observed-state-producer-ownership
+            items:
+              - key: ownership.json
+                path: ownership.json
             defaultMode: 0440
 ---
 apiVersion: v1

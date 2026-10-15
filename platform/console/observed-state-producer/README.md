@@ -1,12 +1,14 @@
 # OpenKubes Console observed-state producer
 
-This small service is the read-only producer for the Console BFF query contract
-`observed.openkubes.io/v0alpha1`.
+This small service is the read-only producer for the Console BFF query
+contracts `observed.openkubes.io/v0alpha1` and
+`observed.openkubes.io/v0alpha2`.
 
-It exposes one GET resource:
+It exposes two GET resources:
 
 ```text
-GET /api/console-observed-state/v0alpha1
+GET /api/console-observed-state/v0alpha1  # API version observed.openkubes.io/v0alpha1
+GET /api/console-observed-state/v0alpha2  # API version observed.openkubes.io/v0alpha2
 ```
 
 ## Honest semantic boundary
@@ -41,6 +43,47 @@ or historical Evidence read model. Consequently the producer:
 This deliberate partial result prevents the prototype UI from inventing
 platform readiness. Later normative Contracts can extend or replace the source
 projection without changing the Console BFF Presentation Contract.
+
+## v2 ownership projection
+
+The ownership-aware v2 projection assigns a tenant only from the per-object
+ownership file. It does not accept a tenant environment override. The file is
+loaded at process startup, is limited to 64 KiB, and each tenant value must be a
+nonblank string of at most 256 characters. If the file is invalid at startup,
+the service and v1 response remain available while v2 fails closed with a
+generic `503`. The invalid map is retained for the lifetime of the process, so
+restart the pod after correcting the ConfigMap to reload it. The v1 response
+remains unchanged.
+
+The ConfigMap `observed-state-producer-ownership` contains `ownership.json` and
+is mounted read-only at `/var/run/config/openkubes/ownership`; the process reads
+`/var/run/config/openkubes/ownership/ownership.json` from
+`OK_OBSERVER_OWNERSHIP_FILE`. The committed manifest deliberately has no tenant
+assignments. After the tenancy authority is decided, an operator may populate
+the map in this shape:
+
+```json
+{
+  "tenants": {
+    "claim/openkubes-system/name": "tenant-a",
+    "management/ok-mgmt": "tenant-a",
+    "hosting/ok-shared": "tenant-b"
+  }
+}
+```
+
+These keys assign one tenant to one named object. This operator configuration
+is provisional: the tenancy authority is pending the OK-173 tenancy decision
+and is not settled platform policy.
+
+Ownership joins use stable identity fields: Evidence references join
+`clusterId` to the cluster `id`; a Capability belongs to an owner when it
+contains that cluster identity; and a Placement uses canonical
+`targetClusterId`. Placement display text does not establish ownership.
+Neither current source mode emits Capabilities or Placements, so v2 does not
+create coverage or infer available data for them. Per-owner metrics preserve
+the same zero-valued inner counts as the original aggregate and keep
+`metadata.partial: true`.
 
 ## Runtime
 

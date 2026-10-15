@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import copy
 import json
 import os
 import re
@@ -18,6 +19,9 @@ from urllib.request import Request, urlopen
 QUERY_VERSION = "observed.openkubes.io/v0alpha1"
 QUERY_KIND = "ConsoleObservedState"
 QUERY_PATH = "/api/console-observed-state/v0alpha1"
+QUERY_V2_VERSION = "observed.openkubes.io/v0alpha2"
+QUERY_V2_PATH = "/api/console-observed-state/v0alpha2"
+MAX_OWNERSHIP_FILE_BYTES = 64 * 1024
 CLAIM_API_VERSION = "platform.openkubes.ai/v1alpha1"
 CLAIM_KIND = "KubeVirtClusterClaim"
 DNS_LABEL = re.compile(r"^[a-z0-9]([-a-z0-9]*[a-z0-9])?$")
@@ -80,6 +84,7 @@ class ProducerConfig:
     hosting_namespace: str = "openkubes-console"
     hosting_deployment: str = "ok-console"
     hosting_region: str = "unknown"
+    ownership_file: str = ""
 
     @classmethod
     def from_environment(cls, environment: dict[str, str] | os._Environ[str] = os.environ) -> "ProducerConfig":
@@ -104,6 +109,7 @@ class ProducerConfig:
             raise ValueError("The hosting cluster must be distinct from the management plane.")
         return cls(
             source_mode=source_mode,
+            ownership_file=environment.get("OK_OBSERVER_OWNERSHIP_FILE", ""),
             namespace=namespace,
             environment_id=bounded_string(environment.get("OK_OBSERVER_ENVIRONMENT_ID"), "openkubes-management"),
             environment_name=bounded_string(environment.get("OK_OBSERVER_ENVIRONMENT_NAME"), "OpenKubes management plane"),
@@ -533,11 +539,102 @@ def build_hosting_cluster_state(
             ],
         },
     }
+
+
+class OwnershipError(ValueError):
+    def __init__(self, object_key: str) -> None:
+        # Only canonical source keys belong in diagnostics, never map values or file text.
+        self.object_key = re.sub(r"[^a-zA-Z0-9/_.-]", "?", object_key)[:256]
+        super().__init__("An observed object has no valid operator allocation.")
+
+
+def load_ownership_file(filename: str) -> dict[str, str] | None:
+    try:
+        path = Path(filename)
+        if not filename or not path.is_file():
+            return None
+        with path.open("rb") as source:
+            body = source.read(MAX_OWNERSHIP_FILE_BYTES + 1)
+        if len(body) > MAX_OWNERSHIP_FILE_BYTES:
+            return None
+        allocation = json.loads(body)
+        if not isinstance(allocation, dict) or set(allocation) != {"tenants"}:
+            return None
+        tenants = allocation["tenants"]
+        if not isinstance(tenants, dict):
+            return None
+        for tenant in tenants.values():
+            if bounded_string(tenant, "") == "" or not tenant.strip() or tenant != tenant.strip():
+                return None
+        return tenants
+    except (OSError, ValueError, RecursionError):
+        return None
+
+
+def ownership_projection(
+    payload: dict[str, Any], config: ProducerConfig, tenants: dict[str, str] | None,
+) -> dict[str, Any]:
+    result = copy.deepcopy(payload)
+    result["apiVersion"] = QUERY_V2_VERSION
+    data = result["data"]
+    owners: dict[str, dict[str, str]] = {}
+    buckets: dict[tuple[str, str], dict[str, Any]] = {}
+    # Global metrics have no per-object owner. Copying a non-zero count into every bucket would show
+    # each tenant the total of all tenants, so only all-zero or unavailable values may be bucketed.
+    for category, values in data["metrics"].items():
+        if any(value not in (0, None) for value in values.values()):
+            raise OwnershipError(f"metrics/{category}")
+    for cluster in data["clusters"]:
+        cluster_id = cluster["id"]
+        if cluster_id == f"cluster-{config.management_name}":
+            object_key = f"management/{config.management_name}"
+        elif config.source_mode == "hosting-cluster" and cluster_id == f"cluster-{config.hosting_name}":
+            object_key = f"hosting/{config.hosting_name}"
+        elif config.source_mode == "kubevirt-claims" and cluster_id.startswith("cluster-"):
+            name = cluster_id[len("cluster-"):]
+            if not DNS_LABEL.fullmatch(name):
+                raise OwnershipError(cluster_id)
+            object_key = f"claim/{config.namespace}/{name}"
+        else:
+            raise OwnershipError(cluster_id)
+        tenant = tenants.get(object_key) if tenants is not None else None
+        if bounded_string(tenant, "") == "" or not tenant.strip() or tenant != tenant.strip():
+            raise OwnershipError(object_key)
+        if cluster_id in owners:
+            raise OwnershipError(object_key)
+        owner = {"environmentId": data.get("environment", {}).get("id", config.environment_id), "tenantId": tenant}
+        owners[cluster_id] = owner
+        cluster["ownership"] = owner.copy()
+        for capability in cluster["capabilities"]:
+            capability["ownership"] = owner.copy()
+        ownership_tuple = (owner["environmentId"], owner["tenantId"])
+        if ownership_tuple not in buckets:
+            # Both sources expose only empty, partial metric projections. Preserve
+            # that coverage boundary, including any unavailable (None) values.
+            buckets[ownership_tuple] = {"ownership": owner.copy(), **copy.deepcopy(data["metrics"])}
+    for evidence in data["evidence"]:
+        cluster_id = evidence["clusterId"]
+        if cluster_id not in owners:
+            raise OwnershipError(cluster_id)
+        evidence["ownership"] = owners[cluster_id].copy()
+    for placement in data["placements"]:
+        cluster_id = placement.get("targetClusterId", "missing-targetClusterId")
+        if cluster_id not in owners:
+            raise OwnershipError(cluster_id)
+        placement["ownership"] = owners[cluster_id].copy()
+    data["metrics"] = list(buckets.values())
+    return result
+
+
 class ObservedStateProducer:
     def __init__(self, client: KubernetesApiClient, config: ProducerConfig, now: Callable[[], datetime] = utc_now) -> None:
         self.client = client
         self.config = config
         self.now = now
+        self.tenants = load_ownership_file(config.ownership_file)
+
+    def snapshot_v2(self) -> dict[str, Any]:
+        return ownership_projection(self.snapshot(), self.config, self.tenants)
 
     def snapshot(self) -> dict[str, Any]:
         if self.config.source_mode == "hosting-cluster":
@@ -561,7 +658,8 @@ def handler_for(
         def send_json(self, status: int, payload: dict[str, Any]) -> None:
             body = json.dumps(payload, separators=(",", ":")).encode("utf-8")
             self.send_response(status)
-            self.send_header("Content-Type", f'application/json; profile="{QUERY_VERSION}"')
+            version = QUERY_V2_VERSION if self.path == QUERY_V2_PATH else QUERY_VERSION
+            self.send_header("Content-Type", f'application/json; profile="{version}"')
             self.send_header("Cache-Control", "no-store")
             self.send_header("X-Content-Type-Options", "nosniff")
             self.send_header("Content-Length", str(len(body)))
@@ -572,7 +670,7 @@ def handler_for(
             if self.path == "/healthz":
                 self.send_json(200, {"status": "ok"})
                 return
-            if self.path != QUERY_PATH:
+            if self.path not in {QUERY_PATH, QUERY_V2_PATH}:
                 self.send_json(404, {"error": "not_found"})
                 return
             peer_certificate = getattr(self.connection, "getpeercert", lambda: None)() or {}
@@ -583,7 +681,11 @@ def handler_for(
                 self.send_json(403, {"error": "workload_identity_required"})
                 return
             try:
-                self.send_json(200, producer.snapshot())
+                payload = producer.snapshot_v2() if self.path == QUERY_V2_PATH else producer.snapshot()
+                self.send_json(200, payload)
+            except OwnershipError as error:
+                print(f"observed-state-producer ownership unavailable key={error.object_key}")
+                self.send_json(503, {"error": "source_unavailable", "retryable": True})
             except Exception:
                 self.send_json(503, {"error": "source_unavailable", "retryable": True})
 
