@@ -58,3 +58,5 @@ The probe also reports `command_evidence.blocks`, ordered by recognized `bash`/`
 A classification of `exact_other_index` still **fails** the answer gate: the answer was not grounded in this query's retrieved evidence. A whitespace-only match is diagnostic, not permission to execute or display commands. No command text, URL, snippet, hash or full agent response is printed.
 
 The report is based on *independent local retrieval*, not an authenticated transcript of the remote agent's actual MCP call. A successful diagnostic is not a production safety or semantic-correctness guarantee.
+
+The report also includes `line_evidence_counts` for each recognized shell fence. Each nonempty physical line is classified by exact full-line equality against the eight retrieved chunks or the remaining approved local index; whitespace-normalized full-line matches are reported separately. Counts describe *textual overlap only*. They do not parse shell syntax, establish that a line is executable or safe, or prove that combined commands are documented. A match must never upgrade a rejected answer to PASS.
