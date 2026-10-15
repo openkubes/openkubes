@@ -749,5 +749,18 @@
     });
   })();
 </script>
+<script>
+  /* Only load the offline OK AI UI demo on Cloudflare preview. */
+  (function () {
+    if (window.location.hostname !== "preview.openkubes.org") return;
+    var css = document.createElement("link");
+    css.rel = "stylesheet";
+    css.href = "/assets/ok-ai-floating-demo.css";
+    document.head.appendChild(css);
+    var script = document.createElement("script");
+    script.src = "/assets/ok-ai-floating-demo.js";
+    document.body.appendChild(script);
+  })();
+</script>
 </body>
 </html>
