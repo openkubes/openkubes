@@ -14,6 +14,7 @@ import urllib.request
 from pathlib import Path
 
 from answer_integrity import validate_answer
+from public_beta.answer_diagnostics import diagnostic_counts
 from docs_mcp import DocsRetriever, load_index
 
 A2A_URL = "http://127.0.0.1:8083/api/a2a/openkubes-assistant/openkubes-docs-agent/"
@@ -105,6 +106,7 @@ def run_probe(index: dict, question: str, ask=query_agent):
         "retrieved_chunks": len(hits["results"]),
         "answer_chars": len(answer),
         "source_ids": [hit["source_id"] for hit in hits["results"]],
+        "diagnostics": diagnostic_counts(answer, hits),
     }
 
 
