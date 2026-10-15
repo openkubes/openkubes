@@ -10,8 +10,8 @@ from dataclasses import dataclass
 
 from docs_mcp import validate_index
 
-FENCE = re.compile(r"(?m)^\`\`\`(?:bash|sh)\s*\n(.*?)^\`\`\`\s*$", re.S | re.M)
-ANY_FENCE = re.compile(r"(?m)^\`\`\`[^\n]*\n.*?^\`\`\`\s*$", re.S | re.M)
+FENCE = re.compile(r"(?m)^```(?:bash|sh)\s*\n(.*?)^```\s*$", re.S | re.M)
+ANY_FENCE = re.compile(r"(?m)^```[^\n]*\n.*?^```\s*$", re.S | re.M)
 LINK = re.compile(r"\[([^\]\n]+)\]\((https://[^)\s]+)\)")
 URL = re.compile(r"https?://[^\s<>)\]]+")
 SOURCE_TOKEN = re.compile(r"source_id\s*[:=]\s*[0-9a-f]{16}", re.I)
@@ -58,10 +58,10 @@ def validate_answer(answer: str, retrieval: dict, index: dict) -> Verdict:
     # be supported later through a proper structured response contract.
     fences = list(FENCE.finditer(answer))
     all_fences = list(ANY_FENCE.finditer(answer))
-    if len(fences) != len(all_fences) or answer.count("\`\`\`") != 2 * len(fences):
+    if len(fences) != len(all_fences) or answer.count("```") != 2 * len(fences):
         reasons.append("unsupported_or_unclosed_fence")
     prose = ANY_FENCE.sub("", answer)
-    if "\`" in prose or "<" in prose or ">" in prose or re.search(r"\]\[[^\]]+\]", prose):
+    if "`" in prose or "<" in prose or ">" in prose or re.search(r"\]\[[^\]]+\]", prose):
         reasons.append("unsupported_markup")
     links = list(LINK.finditer(prose))
     if not links:
