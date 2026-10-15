@@ -39,3 +39,15 @@ References:
 - [OK-202 validation](../POC-VALIDATION.md)
 - [Security assessment](../SECURITY-ASSESSMENT.md)
 - [kagent A2A documentation](https://kagent.dev/docs/kagent/0.x/examples/a2a-agents/)
+
+
+## Operator-observed A2A invocation (2026-10-15)
+
+Using the same localhost port-forward and installed kagent 0.9.12/A2A protocol 0.3, a private JSON-RPC `message/send` request with `configuration.blocking=true` and the question "How do I install OpenKubes Local on macOS?" returned `result.kind=task`, `result.status.state=completed`, and a generated installation answer. **This proves invocation/response only, not correct citations, tool-call tracing or safe public access.**
+
+Manual comparison against [ok-local/docs/tutorial-basic.md](https://github.com/openkubes/ok-local/blob/main/docs/tutorial-basic.md) revealed release-blocking answer integrity defects:
+- The source specifies Ubuntu **24.04** with **4 CPUs, 8G memory, 40G disk and cloud-init**; the answer instead presented Ubuntu **22.04**, **2G memory**, **20G disk**, without that cloud-init setup.
+- The source installs a Linux `virtctl` binary **inside the Ubuntu VM** via SSH; the answer instructed installation of a Linux binary on the macOS host.
+- The reply used unlinked `source_id` tokens instead of clickable revision-pinned GitHub URLs and generated malformed command-in-table Markdown, contrary to the checked-in system prompt.
+
+**Gate: HOLD** on public launch. Next action is private, repeatable command/citation integrity tests against trusted MCP retrieval output, not a production exposure. Do not treat `completed` as equivalent to grounded/correct.
