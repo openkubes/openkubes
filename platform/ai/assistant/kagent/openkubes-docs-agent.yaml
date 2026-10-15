@@ -1,6 +1,6 @@
 # OK-202: illustrative manifest. NOT deployment-ready.
-# Uses the dedicated docs-only RemoteMCPServer profile. Exact kagent version,
-# transport compatibility and server deployment MUST be validated before applying.
+# Uses the dedicated docs-only RemoteMCPServer profile. Runtime settings mirror the observed working Go agent on ok-kagent.
+# Transport compatibility and server deployment MUST be validated before applying.
 # NEVER attach the default kagent-tool-server or platform-diagnostics tools.
 apiVersion: kagent.dev/v1alpha2
 kind: Agent
@@ -15,7 +15,19 @@ spec:
   description: Documentation-only OpenKubes public Q&A; no cluster access.
   declarative:
     modelConfig: docs-ollama
+    runtime: go
     a2aConfig: {}
+    deployment:
+      podSecurityContext:
+        runAsGroup: 10001
+        runAsNonRoot: true
+        runAsUser: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop: ["ALL"]
     systemMessage: |
       You are OpenKubes Documentation Assistant.
       Use only passages returned by the designated documentation retrieval tool.
