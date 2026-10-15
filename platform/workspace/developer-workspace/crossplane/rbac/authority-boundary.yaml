@@ -1,0 +1,44 @@
+# Human authority for the DeveloperWorkspace capability (OK-175).
+#
+# These ClusterRoles deliberately have no bindings. A platform installation decides which
+# identities receive them; the disposable-cluster proof binds its temporary ServiceAccounts
+# only for the duration of the proof. There is no requester role in this increment.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: developer-workspace-operator
+rules:
+  - apiGroups: [workspace.openkubes.io]
+    resources: [developerworkspaces]
+    verbs: [get, list, watch, create, update, patch, delete]
+  - apiGroups: [kubernetes.crossplane.io]
+    resources: [objects]
+    verbs: [get, list, watch, create, update, patch, delete]
+  - apiGroups: [kubernetes.crossplane.io]
+    resources: [providerconfigs]
+    resourceNames: [in-cluster]
+    verbs: [get, update, patch, delete]
+  # Kubernetes cannot apply resourceNames to a top-level create request because authorization
+  # happens before the new object's name is known. This therefore permits creation of a
+  # ProviderConfig with any name; admission policy is needed to constrain that further.
+  - apiGroups: [kubernetes.crossplane.io]
+    resources: [providerconfigs]
+    verbs: [create]
+  - apiGroups: [apiextensions.crossplane.io]
+    resources: [environmentconfigs]
+    resourceNames: [developer-workspace-profile]
+    verbs: [get, update, patch, delete]
+  # This create permission is likewise all-names. The Composition reads only the named
+  # developer-workspace-profile EnvironmentConfig, but RBAC cannot name-limit creation.
+  - apiGroups: [apiextensions.crossplane.io]
+    resources: [environmentconfigs]
+    verbs: [create]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: developer-workspace-observer
+rules:
+  - apiGroups: [workspace.openkubes.io]
+    resources: [developerworkspaces]
+    verbs: [get, list, watch]
