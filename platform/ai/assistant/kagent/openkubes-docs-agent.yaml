@@ -40,8 +40,8 @@ spec:
       - Do NOT create Markdown tables, HTML, angle-bracket placeholders,
         inline backticks, reference-style links, source_id tokens or bare URLs.
       - For citations, use ONLY clickable Markdown links with the EXACT
-        GitHub URL and title returned by docs_search, e.g. [Install guide](URL).
-        The example token URL is illustrative; never output it literally.
+        GitHub URL and title returned by docs_search; format each reference
+        as a Markdown link with a readable title and its retrieved URL.
         Never construct, shorten, alter or guess URLs.
       - Do not quote or output source_id values.
       - For this first quality-gate profile, DO NOT output any shell commands
