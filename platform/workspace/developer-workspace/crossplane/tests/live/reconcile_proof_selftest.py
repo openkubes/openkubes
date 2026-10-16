@@ -817,6 +817,30 @@ class KubectlFlagTest(unittest.TestCase):
         self.assertNotIn("f'--preconditions", source)
 
 
+class InstallAdmissionAdoptionTest(unittest.TestCase):
+    def test_either_exact_namespace_guard_denial_satisfies_both_install_polls(self):
+        namespace_guard = completed(['replace'], 1, stderr=(
+            "ValidatingAdmissionPolicy 'developer-workspace-namespace-guard' denied request: "
+            'the DeveloperWorkspace provider may change or delete only Namespaces it created for a workspace'))
+        host_users_guard = completed(['replace'], 1, stderr=(
+            f"ValidatingAdmissionPolicy '{proof.NAMESPACE_HOST_USERS_POLICY}' denied request: "
+            'the DeveloperWorkspace provider must preserve the workspace identity and render host-users from developer-workspace-profile'))
+        policy_without_reason = completed(
+            ['replace'], 1,
+            stderr="ValidatingAdmissionPolicy 'developer-workspace-namespace-guard' denied request")
+        admitted = completed(['replace'], 0, stderr=namespace_guard.stderr)
+
+        self.assertTrue(proof.provider_adoption_denied(namespace_guard))
+        self.assertTrue(proof.provider_adoption_denied(host_users_guard))
+        self.assertFalse(proof.provider_adoption_denied(policy_without_reason))
+        self.assertFalse(proof.provider_adoption_denied(admitted))
+
+        source = Path(proof.__file__).read_text()
+        use = "provider_adoption_denied(outcomes['provider-adopt'])"
+        self.assertEqual(2, source.count(use), 'both install admission polls must use the shared adoption-denial helper')
+        print('CONTROL PASS: either exact Namespace guard denial satisfies both install admission polls')
+
+
 class ReconcileProofAssertionsTest(unittest.TestCase):
     def setUp(self):
         self.original_kubectl = proof.kubectl
