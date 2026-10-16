@@ -7,7 +7,7 @@ OpenKubes Developer Workspace is an emerging platform capability for running AI-
 The goal is a portable **DeveloperWorkspace** abstraction that defines source, execution, identity, connectivity, resources, lifecycle and evidence — without making a particular coding-agent product or Kubernetes Namespace part of the permanent platform API.
 
 !!! info "Implementation status"
-    **Reference proof available; platform work in progress.** [ADR-Platform-039](https://github.com/openkubes/openkubes/blob/main/architecture/decisions/ADR-Platform-039-developer-workspace-contract.md) is **Proposed**, not Accepted. The bounded live proof reports 18/18 required effects for the reviewed Namespace profile, but there is **no production reconciling workspace controller or general self-service offering yet**.
+    **Reference implementation available; not production.** [ADR-Platform-039](https://github.com/openkubes/openkubes/blob/main/architecture/decisions/ADR-Platform-039-developer-workspace-contract.md) is **Proposed**, not Accepted. The contract spike reports 18/18 required effects for the reviewed Namespace profile, and a Crossplane reconciler for that profile has been proven on disposable clusters. There is **no production offering and no self-service creation**: only platform operators create workspaces.
 
 ## Explore Developer Workspace
 
@@ -33,5 +33,6 @@ This is a reference workflow, **not yet an automated production deployment flow*
 - [Public workspace contract spike](https://github.com/openkubes/openkubes/tree/main/architecture/spikes/ADR-Platform-039)
 - [OK-175 — OpenCode reference profile](https://kubernauts.atlassian.net/browse/OK-175)
 - [OK-176 — live isolation and lifecycle proof](https://kubernauts.atlassian.net/browse/OK-176)
+- [Reference implementation (Crossplane capability)](https://github.com/openkubes/openkubes/tree/main/platform/workspace/developer-workspace/crossplane)
 
 **Security note:** The website intentionally does not link directly to raw runtime transcripts or cluster-specific operational evidence. They may contain environmental details and require independent review before redistribution.

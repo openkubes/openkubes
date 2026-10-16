@@ -47,7 +47,16 @@ The Namespace reference profile restricts workspace resources and connectivity. 
 
 The default Kubernetes capability is **no Kubernetes API authority**; broad kubeconfigs, cluster-admin access or ambient service-account credentials are outside the proposed default profile. Access to Git, inference and MCP endpoints is explicitly selected.
 
-The live proof also identifies unresolved boundaries, including tool-level enforcement of declared MCP tools, incomplete storage capacity enforcement with local-path, and missing controller-owned reconciliation.
+The live proof also identifies unresolved boundaries, including tool-level enforcement of declared MCP tools.
+
+## Reference implementation
+
+A Crossplane capability reconciles each `DeveloperWorkspace` into its dedicated Namespace profile and corrects drift of the rendered objects. Its boundaries are deliberate:
+
+- **One workspace per ID.** A workspace's resource name must be `<workspaceID>-xr`, and `workspaceID` is immutable, so a second document with the same ID is refused at admission.
+- **Operators only.** Creating workspaces and changing the profile, the provider configuration or the provider-kubernetes objects is reserved to platform operators. The provider runs with privileged platform authority that workspaces never receive; admission policy keeps other callers from steering it.
+- **User namespaces where capacity is enforced.** A profile that declares runtime-enforced persistent capacity requires `hostUsers: false`, and an admission policy rejects workspace Pods without it. The cluster must enable user namespaces (ok-cluster `workloadUserNamespaces`).
+- **Capacity is a declaration, then a proof.** Runtime capacity enforcement has been proven with an XFS project-quota storage profile (`ok-storage-local-quota`). `local-path` sizes volumes at admission only and is not a conforming persistent-capacity backend. The profile's declaration is an operator acceptance gate, not certification of the storage.
 
 ## Historical evidence and current health are different
 
