@@ -14,7 +14,7 @@ import urllib.request
 from pathlib import Path
 
 from answer_integrity import validate_answer
-from public_beta.answer_diagnostics import diagnostic_counts
+from public_beta.answer_diagnostics import diagnostic_counts, format_diagnostics_v2
 from public_beta.command_evidence import command_evidence_report
 from docs_mcp import DocsRetriever, load_index
 
@@ -108,6 +108,7 @@ def run_probe(index: dict, question: str, ask=query_agent):
         "answer_chars": len(answer),
         "source_ids": [hit["source_id"] for hit in hits["results"]],
         "diagnostics": diagnostic_counts(answer, hits),
+        "format_diagnostics_v2": format_diagnostics_v2(answer, hits),
         "command_evidence": command_evidence_report(answer, hits, index),
     }
 
