@@ -1,51 +1,69 @@
-# OK AI — MCP Provenance Gate v0.1 (offline proof-of-contract)
+# OK AI — MCP Provenance Receipt v0.2 (offline security prototype)
 
-**Status: experimental library and offline tests ONLY. Not connected to kagent,
-the existing MCP server, or the live A2A probe. Do not treat an offline PASS
-as proof of tool usage or semantic grounding. Public Beta remains HOLD.**
+**Status: experimental library and offline tests ONLY. Not connected to
+kagent, MCP runtime, live A2A probe, or public gateway. No live evidence
+attestation is claimed. Public Beta HOLD.**
 
-## Why
+## Threat model / trusted boundary
 
-The private JSON agent passed `structured_answer.py` using independent local
-retrieval, but this does not prove that the agent invoked `docs_search` on the
-same request or saw the same documents.
+Threats: model-generated fake source IDs; tampering with signed receipts;
+reuse across requests, tenants/agents, index versions or tool responses;
+out-of-date keys; unauthorized signature issuance; replay.
 
-`provenance_receipt.py` specifies a small, authenticated receipt boundary:
-- `request_id`: a random 128-bit request identifier assigned by a **trusted**
-  gateway, not by the model.
-- `question_sha256`: binds the receipt to that specific question.
-- `tool`: exactly `docs_search`.
-- `source_ids`: the retrieved source IDs recorded by the **trusted**
-  MCP tool handler.
-- `signature`: HMAC-SHA256 over canonically encoded fields, verified
-  with a distinct secret key known only to trusted components.
+The offline helper `provenance_receipt.py` now signs a canonical v0.2 receipt
+containing:
+- Gateway-generated, unpredictable `request_id` and trusted MCP event ID.
+- `question_sha256` for the exact original question.
+- Explicit `issuer`, `audience`, `agent_id`, `tool=docs_search`.
+- `arguments_sha256` of trusted MCP tool call arguments
+  (exact question and bounded limit).
+- `results_sha256` of the entire canonical validated tool response, plus
+  `index_sha256` over the validated index snapshot.
+- Bounded 1–8 actual `source_ids`, `issued_at`, `expires_at` (max 300 s).
+- `key_id` and an HMAC-SHA256 signature using a distinct 32-byte key.
 
-`verify_receipt` rejects missing, invalid, tampered, mismatched, or
-cross-request receipts and citations outside the signed source IDs.
-`issue_receipt` is a **fixture/protocol helper**, not authorization to
-mint receipts from data supplied by the model or the independent
-`DocsRetriever` running in the probe.
+The verifier checks the signature with `compare_digest`, exact recipient/
+agent/request/question identity, expiry/future skew, source membership,
+actual trusted results/index hashes, citation set and an externally supplied
+**atomic** one-time consumption callback. A missing or failed replay guard
+fails closed. Multiple active verifier keys support a rotation interval.
 
-## Important trust and security limitations
+## Critical conditions not implemented here
 
-1. **No runtime instrumentation yet**. No authenticated request-id propagation
-   from A2A gateway to MCP, no attested tool-call receipt in live responses,
-   no kagent tool-transcript extraction. The isolated JSON agent is unchanged.
-2. **No model-consumption proof**. Even an authentic receipt establishes only
-   that a trusted MCP handler observed retrieval, not that the LLM used it.
-3. **No semantic proof**. Signing source IDs does not establish that a sentence
-   is true, supported by a snippet, or safe to execute.
-4. **No production key management**. Test key is hardcoded in test fixtures
-   only. Production would need separate restricted credentials, key rotation,
-   replay prevention, expiry, and no raw question/document logging.
-5. **No stable document snapshot guarantee** beyond the existing index
-   validation. Future receipts should bind to index digest and actual returned
-   source contents, not merely IDs.
-6. **Not integrated as a release gate**. The live `private_structured_a2a_probe`
-   retains its explicit provenance warning. It must not report VERIFIED
-   until real same-request instrumentation and trust validation exist.
+**Issuance identity is not authenticated by this library.** It is a protocol
+helper, not the real signer: only a trusted MCP handler with authenticated
+request context and actual returned tool results should issue receipts.
+Never mint from a model answer, independent local retrieval, or arbitrary
+JSON supplied by clients. The current Go kagent version has no verified
+request propagation or event interception hook in this codebase.
 
-## Offline check
+**There is no production replay store.** The callback API must use durable,
+cross-instance, atomic compare-and-set semantics, with expiry and
+appropriate retention. Test-only in-memory callbacks are not sufficient.
+Use a CSPRNG for distinct gateway request IDs and tool event IDs.
+
+**No production secret distribution or issuer authentication.** Generate
+32 random bytes from an OS CSPRNG; provision via scoped secret management,
+not source control, prompt text, A2A messages or logs. Restrict key access
+to trusted signer/verifier components, never the LLM. Separate keys per
+environment, track `key_id`, securely rotate/revoke. HMAC verifiers hold
+the same secret and can therefore forge receipts: use asymmetric signing
+if consumers cannot belong to the same trust domain.
+
+**No freshness attestation independent of caller-supplied wall-clock.**
+Production must use trusted service clocks and bound clock skew/expiration,
+not untrusted timestamps; handle revocation and replay on persistent storage.
+
+**No model-use or semantic proof.** Even a legitimate receipt proves only
+that a trusted tool handler observed retrieval under the bound context.
+It cannot demonstrate the LLM read/passaged the tool results or prove that
+a generated claim is supported or safe. Semantic evaluation remains separate.
+
+**Offline source snapshots:** signing canonical results and index hashes
+protects their integrity within this test boundary. Live version-pin,
+content delivery, receipt transport and tool-call tracing are unimplemented.
+
+## Offline tests
 
 From `platform/ai/assistant`:
 
@@ -53,15 +71,17 @@ From `platform/ai/assistant`:
 python3 -m unittest discover -s tests -v
 ```
 
-Expected count is **99** (87 existing + 12 new tests), subject to future
-test additions. No Kubernetes changes or public network paths are introduced.
+Expected 103 tests (previous 87 plus 16 receipt tests). Includes negative
+cases for result mutation, snapshot substitution, replay, expiry, key rotation,
+cross-agent/audience context, forged input, and altered tool arguments.
 
-## Next implementation decision (separate PR)
+## Release gate
 
-Prefer a trusted gateway-owned docs retrieval step with an authenticated,
-per-request execution context or a narrow MCP middleware/event hook that
-records actual request-to-tool-result mappings. Verify supported kagent/Go ADK
-hooks before choosing an instrumentation method. Bind receipts to actual tool
-results, index snapshot digest and fresh gateway request IDs. Do not accept
-provenance fields supplied by an LLM as attestation. Audit for privacy and
-replay resistance before any production use.
+Keep this PR Draft until local test confirmation and review. Do **not**
+wire `issue_receipt` directly into the independent A2A probe: that would
+manufacture apparently convincing provenance from unrelated retrieval.
+
+Next separate work: assess kagent 0.9.12 / Go ADK verified hooks versus
+gateway-owned retrieval to capture a real authenticated same-request MCP
+tool event. Only then choose issuer lifecycle and implement the durable
+ledger/secret distribution. No public beta rollout.
