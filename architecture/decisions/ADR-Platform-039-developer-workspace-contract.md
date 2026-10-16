@@ -4,7 +4,7 @@
 
 **Status:** Proposed
 
-**Related:** OK-174, ADR-Platform-001, ADR-Platform-005, ADR-Platform-011, ADR-Platform-015, ADR-Platform-017, ADR-Platform-020, ADR-Platform-034
+**Related:** OK-174, OK-176, OK-183, ADR-Platform-001, ADR-Platform-005, ADR-Platform-011, ADR-Platform-015, ADR-Platform-017, ADR-Platform-020, ADR-Platform-034
 
 ---
 
@@ -89,6 +89,32 @@ A conforming Namespace profile MUST provide, at minimum:
 - deterministic cleanup behavior.
 
 Namespace naming is a provider value and MUST NOT be used as the external workspace identity.
+
+**Proposed amendment (OK-176; pending the OK-183 decision): persistent capacity.** A Namespace profile MAY
+offer the persistent lifecycle profile only if its storage implementation enforces the declared
+persistent capacity at runtime, so that a workspace cannot write past the declared size.
+Admission-time sizing (a claim size or a `requests.storage` quota) alone does not meet this.
+A profile whose storage does not enforce runtime capacity is a development or constrained profile:
+it MUST NOT claim a persistent-capacity isolation guarantee, and it MUST NOT offer the persistent
+profile as conforming until such an implementation is available. This rule is provider-neutral and
+names no storage implementation; `local-path` is one implementation that does not meet it.
+
+The Namespace implementation profile represents this proposed rule with the operator-owned
+`spec.persistentCapacity` declaration: a required boolean `runtimeEnforced` and a required list of
+StorageClass names in `capacityEnforcingStorageClasses`. A profile that declares runtime
+enforcement MUST set `hostUsers: false`, and its selected `storageClassName` MUST appear in that
+list; inconsistent declarations fail Composition rendering before emitting resources. The
+declaration is an operator acceptance gate, not runtime certification. Composition cannot detect
+an operator's incorrect claim about backend behavior. A deployment MUST prove every listed backend
+with the `persistent-capacity-enforced` live check under that user-namespace boundary before
+accepting the declaration. The Namespace-only label
+`workspace.openkubes.io/persistent-capacity` records `runtime-enforced` or
+`not-runtime-enforced` from the declaration for audit; it does not certify the backend. The
+contract remains provider-neutral. The checked-in development profile declares
+`runtimeEnforced: false` and an empty list and remains observed-negative. An internally consistent
+true declaration for a backend without runtime capacity enforcement is accepted as configuration,
+but is an operator error the Composition cannot detect. The live harness exercises an incorrect
+declaration only as a negative control and always refuses certification.
 
 ### 5. Capability model
 
@@ -254,6 +280,17 @@ The corrected proof fixes four profile and contract choices:
 - **Storage bounds.** A `requests.storage` quota bounds persistent claims at admission, and an
   ephemeral `emptyDir.sizeLimit` bounds ephemeral workspaces by eviction. The `local-path`
   provisioner does not enforce requested capacity on a persistent volume.
+
+The reconciler proof on a disposable cluster (OK-175, OK-176) adds runtime bound evidence:
+
+- CPU runtime bound: proven (demand above the limit is throttled to it).
+- Memory runtime bound: proven (an allocation above the limit is OOM-killed).
+- Ephemeral storage runtime bound: proven (overflowing the `emptyDir` limit evicts the pod).
+- Persistent allocation/request bound: proven at admission (the quota rejects a claim beyond the
+  declared size).
+- Persistent byte-capacity runtime bound with `local-path`: not supported, not proven. A workspace
+  declaring 1 GiB wrote 1280 MiB. This is negative evidence; the proposed persistent-capacity
+  amendment under section 4 decides what a conforming persistent profile requires.
 
 This profile isolates workspace resources through Kubernetes Namespace, ServiceAccount, Secret,
 quota, storage and NetworkPolicy boundaries. It does not provide a separate kernel, VM or hostile

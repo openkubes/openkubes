@@ -20,6 +20,7 @@ ADR-Platform-039 stays Proposed; this directory supplies implementation evidence
 | `rbac/provider-kubernetes-clusterrole.yaml` | The authority this capability adds to the provider: the kinds the Composition emits. No RBAC kinds, Pods or exec. |
 | `rbac/authority-boundary.yaml` | Unbound operator and observer ClusterRoles. There is no requester role in this increment. See *Provider and human authority*. |
 | `tests/functions.yaml` | Pinned function packages (go-templating v0.9.2, auto-ready v0.4.1). |
+| `tests/profile_config.py` | Shared capability profile loader, reference rendering extension, and EnvironmentConfig builder for render-check and the live proof. |
 
 `Ready` on a `DeveloperWorkspace` means the workspace Deployment has an available replica,
 which means the checkout init container succeeded. `status.lifecyclePhase` is `pending` until
@@ -68,6 +69,43 @@ noncanonical name before reconciliation.
 only Namespaces it created for a workspace (they carry `workspace.openkubes.io/id` from creation),
 and write only objects whose workspace label matches their Namespace's. A workspace whose
 Namespace already exists is refused it, and its `DeveloperWorkspace` never becomes Ready.
+
+**Pod user namespace and persistent-capacity policy.** The catalog requires `spec.hostUsers` and
+the following operator-owned declaration beside `spec.storageClassName`:
+
+```yaml
+spec:
+  storageClassName: quota-class
+  hostUsers: false
+  persistentCapacity:
+    runtimeEnforced: true
+    capacityEnforcingStorageClasses:
+      - quota-class
+```
+
+`runtimeEnforced` is a boolean, and `capacityEnforcingStorageClasses` is a list of StorageClass
+names. The profile fails closed: when `runtimeEnforced` is true, `hostUsers` must be false and the
+selected `storageClassName` must appear in the list. Missing fields, wrong types, unknown keys,
+invalid names and inconsistent combinations are rejected before rendering. These are cluster
+profile policies, independent of runtime image choice; none is a field in the portable
+DeveloperWorkspace contract.
+
+This declaration is an operator acceptance gate, not runtime certification of a storage backend.
+Composition validates that the declaration is internally consistent; it cannot determine whether
+a listed backend actually enforces capacity. An incorrect `runtimeEnforced: true` declaration is
+therefore an operator error. Before accepting it, a deployment must separately prove every listed
+StorageClass with the live `persistent-capacity-enforced` check under the selected
+`hostUsers: false` boundary.
+
+The rendered Namespace alone records the declaration as
+`workspace.openkubes.io/persistent-capacity: runtime-enforced` or
+`workspace.openkubes.io/persistent-capacity: not-runtime-enforced`. This label is an audit marker
+for the operator's declaration; it is not a certification result. The checked-in `local-path`
+catalogs derive from the frozen spike YAML via `tests/profile_config.py` and default to
+`hostUsers: true`, `runtimeEnforced: false`, and an empty
+`capacityEnforcingStorageClasses` list. The spike files stay unchanged.
+Workspace identities cannot create Pods; the Composition is the enforcement point for this
+profile. An admission rule requiring this setting is later work.
 
 **One workspace shape per cluster.** The profile is a single cluster-wide EnvironmentConfig whose
 catalogs must match each workspace's references exactly (as `render()` requires), so every
@@ -282,27 +320,36 @@ source .venv/bin/activate
 ```bash
 make admission-cel-check # provider-steering policy, matching, operator and negative controls
 make functions-up      # function containers for the Development runtime
-make render-check      # xrd-check; Composition output == render() for 8 variants and the
+make render-check      # xrd-check; Composition output == reference_render() for both hostUsers settings and the
                        # longest workspaceID; status phases; fails on a missing profile and on
-                       # every one of 35 inputs render() rejects (IPv6 host routes are
+                       # every invalid input reference_render() rejects (IPv6 host routes are
                        # rejected too, which render() accepts)
 make functions-down
 ```
 
+`render-check` and the live proof share `tests/profile_config.py::reference_render()`. It
+validates the required `spec.hostUsers` and `spec.persistentCapacity` declaration, removes only
+those capability-owned fields from a copy of the profile, calls the unchanged spike `render()`
+that OK-174's evidence was recorded against, then sets the Deployment pod's `hostUsers` to the
+validated value. Both checks add `imagePullSecrets` when configured. The Composition has matching
+fail guards for malformed or inconsistent declarations.
+The extension lives beside the existing EnvironmentConfig helper so the function checks and
+live proof use one reference without modifying OK-174's hash-bound historical artefact.
 For a local render engine, set `CROSSPLANE_RENDER_BINARY` to the Crossplane **controller** binary
 from the pinned v2.3.3 image (the CLI binary is a separate executable). This selects
 `--crossplane-binary` instead of `--crossplane-version`; functions must still be listening at the
 Development targets. Offline harness assertions run with
 `python3 tests/live/reconcile_proof_selftest.py`; they do not contact a cluster.
 
-`render-check` equality is with the reviewed `render()` that OK-174's live evidence was
+`render-check` equality is with `reference_render()`, extending the reviewed `render()` that OK-174's live evidence was
 recorded against, for the example profile; the live proof reads back the same equality for the
 live profile.
 
 ## Live proof (disposable clusters only)
 
-`tests/live/reconcile_proof.py` refuses any context other than `ok-175-proof-admin@ok-175-proof` or the local
-pre-flight `kind-ok175-preflight`, requires `TARGET_CONTEXT` to repeat it, and requires
+`tests/live/reconcile_proof.py` accepts only `ok-175-proof-admin@ok-175-proof` or the local
+pre-flight `kind-ok175-preflight`,
+requires `TARGET_CONTEXT` to repeat it, and requires
 `OK175_TARGET_UID_SHA256` to equal the sha256 of the selected cluster's `kube-system` UID.
 
 The disposable `ok-175-proof` profile was bootstrapped from the OpenKubes
@@ -320,6 +367,9 @@ the bootstrap inputs and are not independently attested by that evidence documen
 export KUBECONFIG=<disposable cluster kubeconfig> TARGET_CONTEXT=ok-175-proof-admin@ok-175-proof
 export OK175_TARGET_UID_SHA256=$(kubectl get ns kube-system -o jsonpath='{.metadata.uid}' | sha256sum | cut -d' ' -f1)
 make live-install
+# Required: a capability profile containing spec.storageClassName, spec.hostUsers and
+# spec.persistentCapacity. The proof derives its mode from that declaration.
+export OK176_PROFILE_FILE=<reviewed-capability-profile.yaml>
 # Images default to the OK-174 published digests in the spike's (untracked) published-images.env;
 # otherwise set OK175_RUNTIME_IMAGE and OK175_FIXTURE_IMAGE to digest references.
 OK175_REGISTRY_USERNAME=<pull-only user> OK175_REGISTRY_PASSWORD_FD=3 make live-run REQUIRE_CLEAN=1 3< <password file>
@@ -336,7 +386,7 @@ a control that shows it can fail:
 - a workspace whose Namespace already exists is refused it: no label added, nothing written,
   the owner's data intact, not Ready (control: the persistent workspace below; with the policy
   binding removed, the same workspace adopted the Namespace on the kind pre-flight);
-- a persistent workspace: no pre-existing Namespace; reconciled objects equal `render()`; XR
+- a persistent workspace: no pre-existing Namespace; reconciled objects equal the capability reference rendering; XR
   `Ready` with `lifecyclePhase: running`;
 - `canonical-name-rule`: a noncanonical XR name is rejected by CEL before persistence or
   reconciliation;
@@ -344,14 +394,16 @@ a control that shows it can fail:
   name returns `AlreadyExists`; owner UID, desired spec, Namespace identity and resourceVersion,
   composed Object identities, resourceVersions and managed specs, and normalized read-back remain
   unchanged. This immediate duplicate-create check requires identical resourceVersions;
-- `distinct-workspace-isolation`: `ws-c69924-xr` and `ws-cd9634-xr` are Ready concurrently with
+- `distinct-workspace-isolation`: the formerly hash-colliding `ws-c69924-xr` and `ws-cd9634-xr`
+  are Ready concurrently with
   the ephemeral profile at 100m CPU and 256Mi memory each, disjoint 128-bit-derived Object names and
   UIDs, and distinct Namespaces. Failure to schedule and reach Ready is a proof failure. Deleting the
   second removes only its resources and leaves the first workspace's UIDs, managed specs and
-  read-back unchanged, after which deleting the first cleans up its resources. Over this longer
-  interval, XR, Object and rendered-resource status writes may advance resourceVersions; their
+  read-back unchanged. Over this interval, XR, Object and rendered-resource status writes may advance resourceVersions; their
   before/after versions are recorded, while UIDs, desired specs, XR/Object generations and
-  normalized rendered content must match;
+  normalized rendered content must match. The surviving workspace then supplies the ephemeral
+  overflow control: eviction must replace its pod, after which deleting the survivor removes its
+  remaining resources;
 - temporary operator and observer bindings satisfy the table above with `auth can-i --as` and
   real server-side dry-run create/update attempts for all four kinds; each observer denial has
   an operator allowed control. Positive XR attempts pass admission, while the canonical-name-rule
@@ -377,13 +429,83 @@ a control that shows it can fail:
   answer is the source's); the source refuses a push with the workspace credential (403) while a
   write-credential control push succeeds; no Secret in the workspace Namespace holds the write
   credential;
-- deleting the XR removes its Namespace, every composed Object (counted first) and the PV;
-- then the same for an ephemeral workspace (`emptyDir`, no PVC), one workspace at a time.
+- resource bounds (OK-176): three busy loops are throttled to the CPU limit (`cpu.stat`;
+  control: usage reaches the limit); allocating 1.5x the memory limit gets the runtime
+  `OOMKilled` (control: 0.5x succeeds); the quota rejects a second PVC beyond the declared size
+  (control: the quota is fully used); writing 2x the ephemeral `emptyDir` limit evicts the pod and
+  the reconciler replaces it (control: half the limit is fine). Overfilling a persistent PVC is
+  recorded as negative evidence in `observed-negative` mode: local-path writes past the declared
+  size. A valid declaration with `runtimeEnforced: true`, `hostUsers: false`, and `local-path` in
+  the declared class list selects the `self-declared-negative` control solely from those profile
+  values. That mode always refuses certification: a workspace that does not become Ready records
+  the refusal at readiness; a Ready workspace exercises the capacity assertion and records its
+  failure, while unexpected enforcement still refuses negative-control certification. In ordinary
+  `enforced` mode, checks require `hostUsers: false`, a non-identity runtime UID map,
+  rejection of resetting an owned file's project ID to zero with the ID unchanged, and
+  ENOSPC/EDQUOT on overfill with allocated bytes bounded by the declared size and stated tolerance;
+- a marker written in the persistent runtime survives workspace pod replacement with a changed
+  pod UID and unchanged contents;
+- deleting the persistent XR removes its Namespace, every composed Object (counted first) and the
+  PV; deleting the surviving ephemeral XR after the eviction check removes its Namespace and every
+  composed Object, with no PV to remove.
 
 The source endpoint is `tests/live/source-server.py`, mounted over the OK-174 fixture image: it
-models a provider that issues workspaces read-only credentials. Results are written to
-`evidence/` with the hashes of this directory's files and of the spike inputs (`render()`, the
-reused helpers, the live profile), and the target's identity hash.
+models a provider that issues workspaces read-only credentials. Successful proof results are
+written to `evidence/` with the hashes of this directory's files and of the spike inputs
+(`render()`, the reused helpers, the live profile), and the target's identity hash. A self-declared
+negative control never writes an evidence report.
+
+To exercise the deliberately incorrect self-declaration, use the checked-in fixture on the
+allowlisted disposable proof cluster:
+
+```bash
+export KUBECONFIG=<disposable cluster kubeconfig> TARGET_CONTEXT=ok-175-proof-admin@ok-175-proof
+export OK175_TARGET_UID_SHA256=$(kubectl get ns kube-system -o jsonpath='{.metadata.uid}' | sha256sum | cut -d' ' -f1)
+export OK176_PROFILE_FILE=tests/fixtures/self-declared-local-path.yaml
+# Set OK175_RUNTIME_IMAGE and OK175_FIXTURE_IMAGE to the approved digest references,
+# or use make live-run's published-images.env inputs as above.
+make live-install
+make live-run REQUIRE_CLEAN=1
+```
+
+`make live-run` is expected to exit 1. It prints one JSON refusal named
+`persistent-capacity-certification-refused` to stdout and writes no evidence report. If the
+workspace is not Ready, the refusal identifies the readiness stage. Otherwise the harness runs the
+same capacity assertion used for certification and records the failed assertion; if `local-path`
+unexpectedly enforces the bound, the negative control still refuses certification.
+
+`OK175_REGISTRY_USERNAME` and `OK175_REGISTRY_PASSWORD_FD` are needed only when the images need
+registry authentication; pass the password through the inherited descriptor as above.
+`OK176_PROFILE_FILE` is required and is the only source for the selected StorageClass, user
+namespace policy and persistent-capacity mode; those values are no longer free-form proof flags.
+The harness checks the installed EnvironmentConfig data against that profile before bringing up
+each workspace. Successful runs check it again before cleanup and record its UID, resourceVersion
+and data hash in evidence; declaration drift or replacement fails the proof. The refusal-only path
+cleans up in `finally` without a final profile readback or evidence write.
+The proof derives its mode only from the validated operator declaration. A true declaration with
+`hostUsers: false` and the selected class in `capacityEnforcingStorageClasses` selects `enforced`,
+except that the same valid declaration for `local-path` selects the refusal-only
+`self-declared-negative` control. A false declaration with `local-path` and `hostUsers: true` runs
+the `observed-negative` path; invalid declarations fail before cluster operations. The contract
+names no storage implementation. Successful evidence records the loaded declaration, derived mode
+and proof boundaries; the refusal-only path prints its JSON result to stdout instead.
+
+The enforced overfill probe runs Node in the runtime container, writes in 1 MiB chunks with
+`fsync`, and counts allocated bytes (`st_blocks * 512`) recursively in `/workspace`, including
+the existing checkout. Total allocation must be within ±1 MiB of the declared capacity; this
+is one maximum write quantum, allowing a final partial allocation and filesystem accounting
+rounding. Substantial successful filling is required before ENOSPC/EDQUOT counts as a bound.
+`statfs` must report total capacity within the same tolerance of the declaration before and
+after pressure; a larger backing filesystem with coincidentally low free space fails this check.
+The project-ID probe runs in that same runtime: Python 3 `fcntl.ioctl` reads the file's
+`FS_IOC_FSGETXATTR`, attempts `FS_IOC_FSSETXATTR` with project ID zero, captures errno and reads
+the ID again. If Python is absent, it uses Perl's built-in `ioctl` and numeric `$!` for the
+same operation and exact errno. The assertion requires EINVAL (errno 22), as observed for the
+Linux user namespace project-ID guard; an unsupported ioctl returning ENOTTY cannot pass.
+The runtime Dockerfile installs Git but does not explicitly install Python or Perl; its pinned Node base is not an inventory of available tools. The proof
+detects both tools in the runtime and fails closed if neither is available. The smallest image
+addition is Python 3, followed by a newly published digest. An `xfs_io` exit status would not
+be an exact errno, so it is not a fallback. The probe always runs in the workspace runtime.
 
 ## Rollback and cleanup
 
@@ -401,13 +523,36 @@ reused helpers, the live profile), and the target's identity hash.
 ## Limits (not claimed)
 
 - A Namespace is not a VM or a hostile multi-tenant boundary.
-- CPU and memory limits are configured, not stress-tested (OK-176). The quota and limits are the
-  values the workspace declares; the profile sets no maximum, so they are not a platform cap.
-- `local-path` does not enforce PVC capacity (OK-176).
+- The quota and limits are the values the workspace declares; the profile sets no maximum, so they
+  are not a platform cap.
+- Resource bounds as proven on a disposable cluster (OK-176):
+  - CPU runtime bound: proven.
+  - Memory runtime bound: proven.
+  - Ephemeral storage runtime bound: proven.
+  - Persistent allocation/request bound: proven at admission.
+  - Persistent byte-capacity runtime bound with `local-path`: **not supported, not proven.** A
+    workspace declaring 1 GiB wrote 1280 MiB.
+- The checked-in `local-path` profile is a development or constrained profile and declares
+  `runtimeEnforced: false` with no capacity-enforcing StorageClasses. Profile configuration also
+  accepts an internally consistent true declaration for `local-path`, because Composition cannot
+  inspect backend behavior; the live proof treats that declaration as the refusal-only
+  `self-declared-negative` control. `local-path` makes no persistent-capacity isolation guarantee,
+  and its persistent workspaces are not conforming under the proposed ADR-Platform-039
+  persistent-capacity amendment. Conformance requires a backend proven by the
+  `persistent-capacity-enforced` live check; the contract names none.
+- `hostUsers: false` requires Kubernetes/runtime support for user namespaces, idmap-compatible
+  storage mounts, and `user.max_user_namespaces > 0` on the worker. Talos defaults that sysctl
+  to zero; cluster configuration belongs to the cluster/OS implementation. The Talos `/opt`
+  local-path directories cannot be idmap-mounted, so this local-path profile keeps host users.
+- The new enforcing workspace proof must be run on the selected disposable cluster before
+  claiming runtime persistent-capacity enforcement. It covers the owned-file project-ID reset
+  and bounded write paths from the workspace runtime, not every ioctl or adversarial operation,
+  provisioner restart, worker reboot, or production adoption.
 - Push denial is shown against a source that scopes credentials, standing in for a real
   provider's read-only token; it is not a test of any particular Git host's permissions.
-- The live proof does not rerun OpenCode inference; OK-174 proved that for the same rendered
-  objects, which `render-check` and the read-back tie to this reconciler.
+- The live proof does not rerun OpenCode inference. OK-174 proved it for the frozen base render;
+  `render-check` and read-back tie that base plus the capability's `hostUsers` extension to this
+  reconciler. Inference under user namespaces remains unproven.
 - Drift correction covers deleted objects and changed values of rendered fields. A field added
   outside the rendered set (for example an extra egress rule on `default-deny`) is not removed:
   provider-kubernetes applies client-side and manages only the fields it wrote. Making that change
