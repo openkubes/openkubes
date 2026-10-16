@@ -6,6 +6,7 @@ resources:
   - namespace.yaml
   - mcp.yaml
   - networkpolicy.yaml
+  - networkpolicy-json-agent.lab.yaml
   - remote-mcp.yaml
 configMapGenerator:
   - name: openkubes-docs-index
