@@ -13,12 +13,13 @@ Crossplane, function-go-templating and provider-kubernetes reconcile it. The pro
   - deleting the XR removes the Namespace and every composed object.
 Every denial has a control that shows the same check passes when the authority exists.
 
-Actions: install | run | uninstall. Mutation requires an explicit KUBECONFIG whose current
+Actions: install | run | up | down | uninstall. Mutation requires an explicit KUBECONFIG whose current
 context is TARGET_CONTEXT and one of the disposable targets below.
 """
 from __future__ import annotations
 import argparse, base64, copy, errno, hashlib, importlib.util, json, os, re, secrets, subprocess, sys, time
 from datetime import datetime, timezone
+import shlex
 from pathlib import Path
 import yaml
 
@@ -49,6 +50,9 @@ OPERATOR_BINDING, OBSERVER_BINDING = 'ok175-proof-developer-workspace-operator',
 LABEL_PROBE_ROLE, LABEL_PROBE_BINDING = 'ok185-namespace-label-probe', 'ok185-namespace-label-probe'
 EPHEMERAL_PROBE_NS = 'ok185-ephemeralcontainers-proof'
 PROVIDER_IDENTITY = 'system:serviceaccount:crossplane-system:developer-workspace-provider-kubernetes'
+HANDS_ON = ('ws-hands-on-xr', 'ws-hands-on')
+HANDS_ON_LABEL = 'workspace.openkubes.io/hands-on'
+HANDS_ON_RUN = 'workspace.openkubes.io/hands-on-run'
 STEERING_NS = 'ok175-provider-steering-proof'
 STEERING_SA = 'provider-steering-nonoperator'
 STEERING_POLICY = 'developer-workspace-provider-steering'
@@ -1674,125 +1678,198 @@ def delete_and_confirm_gone(name, namespace, expected_count):
         wait_until(f'PersistentVolume {volume} removal', lambda volume=volume: is_not_found(kubectl(['get', 'pv', volume], check=False)), timeout=300)
     return len(volumes)
 
-# ---- run ------------------------------------------------------------------------------------
-
-def run(args):
-    started = now(); run_id = secrets.token_hex(8); storage = storage_inputs(); tgt = target(); impl = implementation(args.require_clean)
-    runtime_image, fixture_image = image('OK175_RUNTIME_IMAGE'), image('OK175_FIXTURE_IMAGE')
+def registry_inputs(runtime_image):
     username = os.environ.get('OK175_REGISTRY_USERNAME', ''); pulls = bool(username)
     password = os.read(int(os.environ['OK175_REGISTRY_PASSWORD_FD']), 4096).decode().strip() if pulls else ''
     expect(not pulls or password, 'registry password descriptor is empty')
     registry = runtime_image.split('/', 1)[0]
-    tls = spike.tls_material(); read_token, write_token = secrets.token_urlsafe(32), secrets.token_urlsafe(32)
-    results = []
-    def record(name, detail, **observed): results.append({'name': name, 'status': 'pass', 'detail': detail, **({'observed': observed} if observed else {})}); print(f'PASS {name}: {detail}', flush=True)
+    return pulls, registry, username, password
 
-    expect(not get_json(['get', 'developerworkspaces'])['items'], 'DeveloperWorkspaces already exist on the target')
-    kubectl(['create', 'namespace', PROOF_NS])
+
+def live_profile(runtime_image, storage):
+    profile = copy.deepcopy(storage['profile'])
+    profile['spec']['runtimeProfiles']['opencode']['image'] = runtime_image
+    profile['spec']['storageClassName'] = storage['storageClassName']; profile['spec']['hostUsers'] = storage['hostUsers']
+    return profile
+
+
+def fixture_setup(fixture_image, tls, read_token, write_token, pulls, registry, username, password, hands_on=False,
+                  hands_on_nonce=None, on_namespace_created=None):
+    namespace = {'apiVersion': 'v1', 'kind': 'Namespace', 'metadata': {'name': PROOF_NS}}
+    if hands_on:
+        namespace['metadata']['labels'] = {HANDS_ON_LABEL: 'true'}
+        if hands_on_nonce: namespace['metadata']['annotations'] = {HANDS_ON_RUN: hands_on_nonce}
+        created = kubectl(['create', '-f', '-', '-o', 'json'], input_text=yaml.safe_dump(namespace))
+        if on_namespace_created:
+            try: on_namespace_created(json.loads(created.stdout))
+            except json.JSONDecodeError as error: raise ProofError(f'Namespace/{PROOF_NS} create returned no UID JSON: {error}') from error
+    else: kubectl(['create', 'namespace', PROOF_NS])
     wait_for_default_serviceaccount(PROOF_NS)
     if pulls: apply([pull_secret(PROOF_NS, registry, username, password)])
-    apply(proof_services(fixture_image, tls, read_token, write_token, pulls))
+    objects = proof_services(fixture_image, tls, read_token, write_token, pulls)
+    if hands_on:
+        objects = [o for o in objects if o['kind'] not in ('Namespace', 'Pod')]
+        next(o for o in objects if o['metadata']['name'] == 'git-source-tokens')['stringData'].pop('write')
+        git = next(o for o in objects if o['kind'] == 'Deployment')['spec']['template']['spec']['containers'][0]
+        next(e for e in git['env'] if e['name'] == 'GIT_WRITE_TOKEN').update({'value': ''})
+        next(e for e in git['env'] if e['name'] == 'GIT_WRITE_TOKEN').pop('valueFrom')
+    apply(objects)
     kubectl(['rollout', 'status', 'deployment/git-fixture', '-n', PROOF_NS, '--timeout=300s'], timeout=330)
-    kubectl(['wait', '--for=condition=Ready', 'pod/control', '-n', PROOF_NS, '--timeout=300s'], timeout=330)
+    if not hands_on: kubectl(['wait', '--for=condition=Ready', 'pod/control', '-n', PROOF_NS, '--timeout=300s'], timeout=330)
     source_pod = get_json(['get', 'pods', '-n', PROOF_NS, '-l', 'app=git-fixture'])['items'][0]['metadata']['name']
     known = exec_in(PROOF_NS, source_pod, ['cat', '/srv/git/KNOWN_COMMIT']).stdout.strip(); expect(bool(re.fullmatch(r'[0-9a-f]{40}', known)), 'source did not report a known commit')
     # Control for the checkout check: the source's default branch has moved past the declared revision.
     tip = exec_in(PROOF_NS, source_pod, ['git', '--git-dir=/srv/git/workspace-fixture.git', 'rev-parse', 'HEAD']).stdout.strip()
     expect(bool(re.fullmatch(r'[0-9a-f]{40}', tip)) and tip != known, 'source tip equals the declared revision; the checkout check could not fail')
-    # The run entry point fails closed before its first XR request. Remove one binding to prove
-    # that a missing guard cannot fall through to CREATE, then restore and re-observe the gate.
-    gate_path = 'install/pod-user-namespace-guard.yaml'
-    _, gate_bindings = admission_guard_documents(gate_path)
-    gate_binding = gate_bindings[0]
-    gate_probe = workspace_inputs(canonical_xr_name('ws-ok185-policy-gate'), 'ws-ok185-policy-gate', known, 'persistent')
-    kubectl(['delete', 'validatingadmissionpolicybinding', gate_binding['metadata']['name'], '--wait=true'])
-    gate_error = None
-    try:
-        try:
-            gated_xr_request(['create', '-f', '-'], gate_probe)
-        except ProofError as error:
-            gate_error = str(error)
-        expect(gate_error is not None and gate_binding['metadata']['name'] in gate_error,
-               f'missing admission binding did not stop the XR entry point: {gate_error!r}')
-        missing = kubectl(['get', f'developerworkspace/{gate_probe["metadata"]["name"]}'], check=False)
-        expect(missing.returncode != 0 and 'NotFound' in missing.stderr and
-               not composed_objects(gate_probe['metadata']['name']),
-               'missing-policy gate dispatched an XR or composed Object')
-    finally:
-        apply_file(CAPABILITY / gate_path)
-        wait_for_admission_policies()
-    record('admission-policy-gate', 'removing one binding made the current/local policy gate fail before XR CREATE; the XR stayed NotFound with no composed Objects, then the restored gate became current')
+    return known, tip
 
-    # Admission: the XRD's CEL rules reject an inconsistent lifecycle and noncanonical identity;
-    # the same documents made consistent and canonical pass.
-    cel_name = canonical_xr_name('ws-ok175-cel')
-    bad = workspace_inputs(cel_name, 'ws-ok175-cel', known, 'persistent'); bad['spec']['storage']['mode'] = 'ephemeral'
-    composition, rejected = gated_xr_request(['apply', '--dry-run=server', '-f', '-'], bad, check=False)
-    expect(rejected.returncode != 0 and 'persistent lifecycle requires persistent storage' in rejected.stderr, 'XRD admitted a persistent lifecycle with ephemeral storage')
-    canonical = workspace_inputs(cel_name, 'ws-ok175-cel', known, 'persistent')
-    composition, _ = gated_xr_request(['create', '--dry-run=server', '-f', '-'], canonical)
-    wrong_name = copy.deepcopy(canonical); wrong_name['metadata']['name'] = 'ok175-cel-probe'
-    _, rejected_name = gated_xr_request(['create', '--dry-run=server', '-f', '-'], wrong_name, check=False)
-    expect(rejected_name.returncode != 0 and 'metadata.name' in rejected_name.stderr and 'workspaceID' in rejected_name.stderr and '-xr' in rejected_name.stderr,
-           'XRD admitted a DeveloperWorkspace whose metadata.name is not derived from workspaceID')
-    try:
-        noncanonical = assert_noncanonical_name_refused(rejected_name, wrong_name['metadata']['name'])
-    finally:
-        # Cleanup only if the guard regressed and the supposedly rejected document persisted.
-        if rejected_name.returncode == 0:
-            kubectl(['delete', f'developerworkspace/{wrong_name["metadata"]["name"]}', '--ignore-not-found', '--wait=true', '--timeout=300s'], timeout=330, check=False)
-    record('admission-rules', 'the API server rejects inconsistent lifecycle and noncanonical workspace identity documents, then admits the consistent canonical document')
-    record('canonical-name-rule', 'the API server rejects a distinct noncanonical metadata.name and admits metadata.name = spec.workspaceID + "-xr"',
-           rejected=noncanonical, admitted=canonical['metadata']['name'])
-    # Without the profile EnvironmentConfig a workspace must compose nothing and must not be Ready.
-    probe = workspace_inputs(*NO_PROFILE, known, 'persistent'); gated_xr_request(['apply', '-f', '-'], probe)
-    def no_profile_settled():
-        conditions = {c['type']: c for c in get_json(['get', f'developerworkspace/{NO_PROFILE[0]}']).get('status', {}).get('conditions', [])}
-        return conditions.get('Synced', {}).get('status') == 'False' and 'developer-workspace-profile not found' in conditions['Synced'].get('message', '')
-    wait_until('the no-profile workspace to report the missing profile', no_profile_settled, timeout=180, interval=3)
-    conditions = {c['type']: c['status'] for c in get_json(['get', f'developerworkspace/{NO_PROFILE[0]}'])['status']['conditions']}
-    no_profile_namespace = kubectl(['get', 'namespace', 'dw-ok175-no-profile'], check=False)
-    expect(conditions.get('Ready') != 'True' and not composed_objects(NO_PROFILE[0]) and is_not_found(no_profile_namespace),
-           f'no-profile workspace composed, became Ready, or Namespace absence was not confirmed by NotFound: {conditions}; {no_profile_namespace.stderr.strip()[:200]}')
-    kubectl(['delete', f'developerworkspace/{NO_PROFILE[0]}', '--wait=true', '--timeout=300s'], timeout=330)
-    record('no-profile-fails-closed', 'without the profile EnvironmentConfig the workspace reports it missing, composes nothing and is not Ready', ready=conditions.get('Ready'))
 
-    profile = copy.deepcopy(storage['profile'])
-    profile['spec']['runtimeProfiles']['opencode']['image'] = runtime_image
-    profile['spec']['storageClassName'] = storage['storageClassName']; profile['spec']['hostUsers'] = storage['hostUsers']
-    profile_config = render_profile.profile_config(profile, 'in-cluster', PULL_SECRET if pulls else '')
-    apply([profile_config])
-    profile_initial = profile_readback(profile_config)
-    receipt_gate = prove_admission_receipt_gate(known, profile['spec']['namespacePrefix'])
-    record('admission-receipt-gate', 'direct XR requests with a missing or wrong installation receipt stay unready with zero composed Objects and no Namespace; the exact receipt is restored before the normal workspace positive path',
-           **receipt_gate)
-
-    def bring_up(name, workspace_id, mode, resources=None):
-        profile_readback(profile_config, profile_initial)
-        expect(name == canonical_xr_name(workspace_id), f'{name} is not the canonical XR name for {workspace_id}')
-        doc = workspace_inputs(name, workspace_id, known, mode); namespace = profile['spec']['namespacePrefix'] + workspace_id.removeprefix('ws-')
-        if resources:
-            doc['spec']['resources'].update(resources)
-        # Dedicated: the reconciler would adopt an existing Namespace, so require that none exists.
-        missing_namespace = kubectl(['get', 'namespace', namespace], check=False)
-        expect(is_not_found(missing_namespace), f'namespace {namespace} absence was not confirmed by NotFound: {missing_namespace.stderr.strip()[:300]}')
-        gated_xr_request(['apply', '-f', '-'], doc)
-        wait_until(f'namespace {namespace}', lambda: kubectl(['get', 'namespace', namespace], check=False).returncode == 0, timeout=300)
-        # Per-run values the contract only references: the source credential, CA and pull Secret.
-        support = [{'apiVersion': 'v1', 'kind': 'Secret', 'metadata': {'name': 'workspace-git-auth', 'namespace': namespace}, 'type': 'Opaque', 'stringData': {'token': read_token}},
-                   {'apiVersion': 'v1', 'kind': 'ConfigMap', 'metadata': {'name': 'git-fixture-ca', 'namespace': namespace}, 'data': {'ca.crt': tls['ca']}}]
-        if pulls: support.append(pull_secret(namespace, registry, username, password))
-        apply(support)
+def bring_up(name, workspace_id, mode, *, known, profile, read_token, tls, pulls, registry, username, password,
+             composition, hands_on=False, ownership=None, resources=None, storage=None):
+    expect(name == canonical_xr_name(workspace_id), f'{name} is not the canonical XR name for {workspace_id}')
+    doc = workspace_inputs(name, workspace_id, known, mode); namespace = profile['spec']['namespacePrefix'] + workspace_id.removeprefix('ws-')
+    if resources:
+        doc['spec']['resources'].update(resources)
+    # Hands-on pre-creates and journals its Namespace with an atomic CREATE. The proof path
+    # still asks the reconciler to create its Namespace and refuses a pre-existing one.
+    if ownership:
+        ns_entry = require_ledger_entry(ownership['state']['resources'], 'workspaceNamespace', 'namespace', namespace)
+        expect(owned_live(ns_entry, ownership['state']['nonce']) is not None,
+               f'Namespace/{namespace} disappeared before XR creation')
+    else:
+        expect(optional_object('namespace', namespace) is None, f'namespace {namespace} already exists')
+    if hands_on:
+        doc['metadata'].setdefault('labels', {})[HANDS_ON_LABEL] = 'true'
+        if ownership:
+            doc['metadata'].setdefault('annotations', {})[HANDS_ON_RUN] = ownership['state']['nonce']
+            journal_intent(ownership['path'], ownership['state'], 'xr', 'developerworkspace', name)
+        created = gated_xr_request(['create', '-f', '-', '-o', 'json'], doc)[1]
+        if ownership:
+            try: created_xr = json.loads(created.stdout)
+            except json.JSONDecodeError as error: raise ProofError(f'DeveloperWorkspace/{name} create returned no UID JSON: {error}') from error
+            mark_owned(ownership['path'], ownership['state'], 'xr', created_xr)
+    else: gated_xr_request(['apply', '-f', '-'], doc)
+    wait_until(f'namespace {namespace}', lambda: kubectl(['get', 'namespace', namespace], check=False).returncode == 0, timeout=300)
+    if ownership:
+        owned_live(ns_entry, ownership['state']['nonce'])
+    # Per-run values the contract only references: the source credential, CA and pull Secret.
+    support = [{'apiVersion': 'v1', 'kind': 'Secret', 'metadata': {'name': 'workspace-git-auth', 'namespace': namespace}, 'type': 'Opaque', 'stringData': {'token': read_token}},
+               {'apiVersion': 'v1', 'kind': 'ConfigMap', 'metadata': {'name': 'git-fixture-ca', 'namespace': namespace}, 'data': {'ca.crt': tls['ca']}}]
+    if pulls: support.append(pull_secret(namespace, registry, username, password))
+    apply(support)
+    if storage is not None:
         assert_capacity_marker(namespace, storage)
-        wait_ready(name)
-        revision = revision_matches(name, composition)
-        xr, created = get_json(['get', f'developerworkspace/{name}']), get_json(['get', 'namespace', namespace])
+    wait_ready(name)
+    revision = revision_matches(name, composition)
+    xr, created = get_json(['get', f'developerworkspace/{name}']), get_json(['get', 'namespace', namespace])
+    if ownership:
+        expect(created['metadata']['uid'] == ns_entry['uid'], f'Namespace/{namespace} UID changed during setup')
+        expect(xr['metadata']['uid'] == ownership['state']['resources']['xr']['uid'], f'DeveloperWorkspace/{name} UID changed during setup')
+        composed_child_matches(name, 'Namespace', None, created, xr['metadata']['uid'])
+    else:
         expect(created['metadata']['creationTimestamp'] >= xr['metadata']['creationTimestamp'], f'namespace {namespace} predates its DeveloperWorkspace')
-        return doc, namespace, revision
+    if ownership:
+        record_workspace_pv(ownership['path'], ownership['state'], namespace,
+                            ownership['state']['resources']['xr']['uid'])
+    return doc, namespace, revision
 
+
+# ---- run ------------------------------------------------------------------------------------
+
+def run(args):
+    started = now(); run_id = secrets.token_hex(8); storage = storage_inputs(); tgt = target(); impl = implementation(args.require_clean)
+    runtime_image, fixture_image = image('OK175_RUNTIME_IMAGE'), image('OK175_FIXTURE_IMAGE')
+    pulls, registry, username, password = registry_inputs(runtime_image)
+    tls = spike.tls_material(); read_token, write_token = secrets.token_urlsafe(32), secrets.token_urlsafe(32)
+    results = []
+    def record(name, detail, **observed): results.append({'name': name, 'status': 'pass', 'detail': detail, **({'observed': observed} if observed else {})}); print(f'PASS {name}: {detail}', flush=True)
+
+    expect(not get_json(['get', 'developerworkspaces'])['items'], 'DeveloperWorkspaces already exist on the target')
+    # Cleanup below deletes these by name, so a run may only start when none of them exists.
+    for kind, name in (('namespace', PROOF_NS), ('namespace', 'dw-ok175-squat'), ('namespace', STEERING_NS),
+                       ('environmentconfig', 'developer-workspace-profile'),
+                       ('clusterrolebinding', OPERATOR_BINDING), ('clusterrolebinding', OBSERVER_BINDING)):
+        existing = kubectl(['get', kind, name], check=False)
+        expect(is_not_found(existing), f'{kind}/{name} already exists or could not be confirmed absent; refusing to run')
     try:
+        known, tip = fixture_setup(fixture_image, tls, read_token, write_token, pulls, registry, username, password)
+        composition = installed_matches_local()
+        # The run entry point fails closed before its first XR request. Remove one binding to prove
+        # that a missing guard cannot fall through to CREATE, then restore and re-observe the gate.
+        gate_path = 'install/pod-user-namespace-guard.yaml'
+        _, gate_bindings = admission_guard_documents(gate_path)
+        gate_binding = gate_bindings[0]
+        gate_probe = workspace_inputs(canonical_xr_name('ws-ok185-policy-gate'), 'ws-ok185-policy-gate', known, 'persistent')
+        kubectl(['delete', 'validatingadmissionpolicybinding', gate_binding['metadata']['name'], '--wait=true'])
+        gate_error = None
+        try:
+            try:
+                gated_xr_request(['create', '-f', '-'], gate_probe)
+            except ProofError as error:
+                gate_error = str(error)
+            expect(gate_error is not None and gate_binding['metadata']['name'] in gate_error,
+                   f'missing admission binding did not stop the XR entry point: {gate_error!r}')
+            missing = kubectl(['get', f'developerworkspace/{gate_probe["metadata"]["name"]}'], check=False)
+            expect(missing.returncode != 0 and 'NotFound' in missing.stderr and
+                   not composed_objects(gate_probe['metadata']['name']),
+                   'missing-policy gate dispatched an XR or composed Object')
+        finally:
+            apply_file(CAPABILITY / gate_path)
+            wait_for_admission_policies()
+        record('admission-policy-gate', 'removing one binding made the current/local policy gate fail before XR CREATE; the XR stayed NotFound with no composed Objects, then the restored gate became current')
+
+        # Admission: the XRD's CEL rules reject an inconsistent lifecycle and noncanonical identity;
+        # the same documents made consistent and canonical pass.
+        cel_name = canonical_xr_name('ws-ok175-cel')
+        bad = workspace_inputs(cel_name, 'ws-ok175-cel', known, 'persistent'); bad['spec']['storage']['mode'] = 'ephemeral'
+        composition, rejected = gated_xr_request(['apply', '--dry-run=server', '-f', '-'], bad, check=False)
+        expect(rejected.returncode != 0 and 'persistent lifecycle requires persistent storage' in rejected.stderr, 'XRD admitted a persistent lifecycle with ephemeral storage')
+        canonical = workspace_inputs(cel_name, 'ws-ok175-cel', known, 'persistent')
+        composition, _ = gated_xr_request(['create', '--dry-run=server', '-f', '-'], canonical)
+        wrong_name = copy.deepcopy(canonical); wrong_name['metadata']['name'] = 'ok175-cel-probe'
+        _, rejected_name = gated_xr_request(['create', '--dry-run=server', '-f', '-'], wrong_name, check=False)
+        expect(rejected_name.returncode != 0 and 'metadata.name' in rejected_name.stderr and 'workspaceID' in rejected_name.stderr and '-xr' in rejected_name.stderr,
+               'XRD admitted a DeveloperWorkspace whose metadata.name is not derived from workspaceID')
+        try:
+            noncanonical = assert_noncanonical_name_refused(rejected_name, wrong_name['metadata']['name'])
+        finally:
+            # Cleanup only if the guard regressed and the supposedly rejected document persisted.
+            if rejected_name.returncode == 0:
+                kubectl(['delete', f'developerworkspace/{wrong_name["metadata"]["name"]}', '--ignore-not-found', '--wait=true', '--timeout=300s'], timeout=330, check=False)
+        record('admission-rules', 'the API server rejects inconsistent lifecycle and noncanonical workspace identity documents, then admits the consistent canonical document')
+        record('canonical-name-rule', 'the API server rejects a distinct noncanonical metadata.name and admits metadata.name = spec.workspaceID + "-xr"',
+               rejected=noncanonical, admitted=canonical['metadata']['name'])
+        # Without the profile EnvironmentConfig a workspace must compose nothing and must not be Ready.
+        probe = workspace_inputs(*NO_PROFILE, known, 'persistent'); gated_xr_request(['apply', '-f', '-'], probe)
+        def no_profile_settled():
+            conditions = {c['type']: c for c in get_json(['get', f'developerworkspace/{NO_PROFILE[0]}']).get('status', {}).get('conditions', [])}
+            return conditions.get('Synced', {}).get('status') == 'False' and 'developer-workspace-profile not found' in conditions['Synced'].get('message', '')
+        wait_until('the no-profile workspace to report the missing profile', no_profile_settled, timeout=180, interval=3)
+        conditions = {c['type']: c['status'] for c in get_json(['get', f'developerworkspace/{NO_PROFILE[0]}'])['status']['conditions']}
+        no_profile_namespace = kubectl(['get', 'namespace', 'dw-ok175-no-profile'], check=False)
+        expect(conditions.get('Ready') != 'True' and not composed_objects(NO_PROFILE[0]) and is_not_found(no_profile_namespace),
+               f'no-profile workspace composed, became Ready, or Namespace absence was not confirmed by NotFound: {conditions}; {no_profile_namespace.stderr.strip()[:200]}')
+        kubectl(['delete', f'developerworkspace/{NO_PROFILE[0]}', '--wait=true', '--timeout=300s'], timeout=330)
+        record('no-profile-fails-closed', 'without the profile EnvironmentConfig the workspace reports it missing, composes nothing and is not Ready', ready=conditions.get('Ready'))
+
+        profile = copy.deepcopy(storage['profile'])
+        profile['spec']['runtimeProfiles']['opencode']['image'] = runtime_image
+        profile['spec']['storageClassName'] = storage['storageClassName']; profile['spec']['hostUsers'] = storage['hostUsers']
+        profile_config = render_profile.profile_config(profile, 'in-cluster', PULL_SECRET if pulls else '')
+        kubectl(['create', '-f', '-'], input_text=yaml.safe_dump(profile_config))
+        profile_initial = profile_readback(profile_config)
+        receipt_gate = prove_admission_receipt_gate(known, profile['spec']['namespacePrefix'])
+        record('admission-receipt-gate', 'direct XR requests with a missing or wrong installation receipt stay unready with zero composed Objects and no Namespace; the exact receipt is restored before the normal workspace positive path',
+               **receipt_gate)
+
+        def bring_up_workspace(name, workspace_id, mode, resources=None):
+            profile_readback(profile_config, profile_initial)
+            return bring_up(name, workspace_id, mode, known=known, profile=profile, read_token=read_token, tls=tls,
+                            pulls=pulls, registry=registry, username=username, password=password, composition=composition,
+                            resources=resources, storage=storage)
+
         if storage['mode'] == 'self-declared-negative':
-            refuse_self_declared_capacity(storage, bring_up)
+            refuse_self_declared_capacity(storage, bring_up_workspace)
             raise ProofError('negative control returned without refusing certification')
         # Dedicated Namespace: a workspace whose Namespace already exists must not adopt it.
         squat = 'dw-ok175-squat'
@@ -1820,7 +1897,7 @@ def run(args):
         wait_until(f'composed Objects of {SQUAT[0]} to be deleted', lambda: not composed_objects(SQUAT[0]), timeout=300)
         record('dedicated-namespace-enforced', 'a workspace whose Namespace already existed was refused it: no label, no workspace object written, owner data intact, XR not Ready; the persistent run below is the control', ready=ready)
 
-        doc, ns, revision = bring_up(*PERSISTENT, 'persistent')
+        doc, ns, revision = bring_up_workspace(*PERSISTENT, 'persistent')
         xr = get_json(['get', f'developerworkspace/{PERSISTENT[0]}'])
         expect(xr.get('status', {}).get('namespace') == ns and xr['status'].get('lifecyclePhase') == 'running', f"XR status {xr.get('status', {}).get('namespace')}/{xr.get('status', {}).get('lifecyclePhase')}")
         count = readback(ns, expected_objects(doc, profile, pulls))
@@ -2058,7 +2135,7 @@ def run(args):
         # this a concurrent Ready proof on the disposable single-worker profile.
         workspaces = []
         for identity in DISTINCT:
-            edoc, ens, _ = bring_up(*identity, 'ephemeral', resources={'cpu': '100m', 'memory': '256Mi'})
+            edoc, ens, _ = bring_up_workspace(*identity, 'ephemeral', resources={'cpu': '100m', 'memory': '256Mi'})
             expected = expected_objects(edoc, profile, pulls)
             ecount = readback(ens, expected)
             volumes = {v['name']: v for v in get_json(['get', 'deployment/workspace', '-n', ens])['spec']['template']['spec']['volumes']}
@@ -2173,6 +2250,426 @@ def run(args):
     out.write_text(json.dumps(evidence, indent=2, sort_keys=True) + '\n'); passed = sum(r['status'] == 'pass' for r in results); observed = len(results) - passed
     print(f'{passed} checks passed, {observed} observation(s) recorded; evidence {out.relative_to(REPO)}')
 
+def optional_object(kind, name, namespace=None):
+    # Only a successful empty response means absent; transport/RBAC errors fail closed.
+    args = ['get', kind, name]
+    if namespace: args.extend(['-n', namespace])
+    text = kubectl([*args, '--ignore-not-found', '-o', 'json']).stdout.strip()
+    return json.loads(text) if text else None
+
+
+def hands_on_namespace():
+    profile = storage_inputs()['profile']
+    return profile['spec']['namespacePrefix'] + HANDS_ON[1].removeprefix('ws-')
+
+
+def hands_on_state_path():
+    value = os.environ.get('OK180_STATE_FILE', '')
+    expect(value and Path(value).is_absolute(), 'OK180_STATE_FILE must name an explicit absolute path')
+    path = Path(value)
+    expect(path.parent.is_dir() and os.access(path.parent, os.W_OK),
+           f'OK180_STATE_FILE parent is not a writable directory: {path.parent}')
+    return path
+
+
+def require_fresh_hands_on_ledger(path):
+    expect(not path.exists(), f'ownership ledger already exists: {path}; run live-down before another live-up')
+
+
+def write_hands_on_state(path, state, *, initial=False):
+    """Atomically persist a private ownership ledger; initial creation never overwrites."""
+    temp = path.with_name(f'.{path.name}.{secrets.token_hex(8)}.tmp')
+    fd = None
+    try:
+        fd = os.open(temp, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        with os.fdopen(fd, 'w') as stream:
+            fd = None
+            json.dump(state, stream, sort_keys=True)
+            stream.write('\n'); stream.flush(); os.fsync(stream.fileno())
+        if initial:
+            try: os.link(temp, path)
+            except FileExistsError: raise ProofError(f'ownership ledger already exists: {path}')
+            temp.unlink()
+        else:
+            os.replace(temp, path)
+        directory_fd = os.open(path.parent, os.O_RDONLY)
+        try: os.fsync(directory_fd)
+        finally: os.close(directory_fd)
+    except ProofError:
+        raise
+    except OSError as error:
+        raise ProofError(f'cannot persist ownership ledger {path}: {error}') from error
+    finally:
+        if fd is not None: os.close(fd)
+        try: temp.unlink()
+        except FileNotFoundError: pass
+
+
+def load_hands_on_state(path, tgt):
+    expect(path.is_file(), f'ownership ledger is missing: {path}')
+    try: state = json.loads(path.read_text())
+    except (OSError, json.JSONDecodeError) as error: raise ProofError(f'cannot read ownership ledger {path}: {error}') from error
+    expect(state.get('version') == 1 and re.fullmatch(r'[0-9a-f]{32}', state.get('nonce', '')),
+           f'ownership ledger is invalid: {path}')
+    expect(state.get('target') == {'context': tgt['context'], 'kubeSystemUidSha256': tgt['kubeSystemUidSha256']},
+           'ownership ledger target context or cluster UID differs from the selected disposable cluster')
+    expect(isinstance(state.get('resources'), dict), 'ownership ledger resources are invalid')
+    return state
+
+
+def journal_intent(path, state, key, kind, name, namespace=None):
+    state['resources'][key] = {'kind': kind, 'name': name, 'namespace': namespace,
+                               'intent': True, 'uid': None, 'resourceVersion': None}
+    write_hands_on_state(path, state)
+
+
+def mark_owned(path, state, key, obj):
+    entry = state['resources'][key]
+    metadata = obj.get('metadata', {})
+    marker = metadata.get('annotations', {}).get(HANDS_ON_RUN)
+    expect(marker == state['nonce'], f"{entry['kind']}/{entry['name']} is missing the current ownership marker")
+    uid, rv = metadata.get('uid'), metadata.get('resourceVersion')
+    expect(uid and rv, f"{entry['kind']}/{entry['name']} lacks UID/resourceVersion ownership evidence")
+    expect(not entry.get('uid') or entry['uid'] == uid,
+           f"{entry['kind']}/{entry['name']} UID changed while recording ownership")
+    entry.update(uid=uid, resourceVersion=rv, intent=False, markerPending=False)
+    write_hands_on_state(path, state)
+    return entry
+
+
+def require_profile_data_unchanged(obj, entry):
+    expect(sha_json(obj.get('data')) == entry.get('dataSha256'),
+           'environmentconfig/developer-workspace-profile profile data changed; leaving it untouched')
+
+
+def refuse_foreign_workspaces(name):
+    others = [o for o in get_json(['get', 'developerworkspaces'])['items'] if o['metadata']['name'] != name]
+    expect(not others, 'other DeveloperWorkspaces exist; refusing to remove the shared profile/fixture')
+
+
+def refuse_preexisting_hands_on_objects(namespace):
+    expect(not get_json(['get', 'developerworkspaces'])['items'], 'DeveloperWorkspaces already exist on the target')
+    for kind, name in (('namespace', PROOF_NS), ('namespace', namespace),
+                       ('environmentconfig', 'developer-workspace-profile')):
+        expect(optional_object(kind, name) is None, f'{kind}/{name} already exists; refusing adoption')
+
+
+def delete_preconditioned(kind, name, uid, resource_version, namespace=None, refresh=None):
+    expect(uid and resource_version, f'{kind}/{name} lacks UID/resourceVersion delete preconditions')
+    api_paths = {
+        'developerworkspace': f'/apis/workspace.openkubes.io/v0alpha1/developerworkspaces/{name}',
+        'environmentconfig': f'/apis/apiextensions.crossplane.io/v1beta1/environmentconfigs/{name}',
+        'namespace': f'/api/v1/namespaces/{name}', 'pv': f'/api/v1/persistentvolumes/{name}',
+    }
+    expect(kind in api_paths, f'no UID-preconditioned DELETE API path for {kind}/{name}')
+    # Controllers (Crossplane status, the namespace controller) write between our read and DELETE.
+    # Retry only a resourceVersion precondition conflict, from a fresh ownership-checked read; the
+    # UID precondition never changes, so a replaced object is never deleted.
+    for attempt in range(5):
+        options = {'apiVersion': 'v1', 'kind': 'DeleteOptions',
+                   'preconditions': {'uid': uid, 'resourceVersion': resource_version}}
+        done = kubectl(['delete', f'--raw={api_paths[kind]}', '-f', '-'], input_text=json.dumps(options), check=False)
+        if done.returncode == 0:
+            return
+        stale = 'ResourceVersion in precondition' in done.stderr and 'UID in precondition' not in done.stderr
+        expect(stale and refresh is not None and attempt < 4,
+               f'{kind}/{name} preconditioned DELETE failed: {done.stderr.strip()[:300]}')
+        current = refresh()
+        expect(current is not None and current['metadata'].get('uid') == uid,
+               f'{kind}/{name} changed identity during a preconditioned DELETE retry; leaving it untouched')
+        resource_version = current['metadata']['resourceVersion']
+
+
+def stamp_owned(kind, name, obj, nonce):
+    metadata = obj['metadata']; uid, rv = metadata.get('uid'), metadata.get('resourceVersion')
+    expect(uid and rv, f'{kind}/{name} lacks UID/resourceVersion before ownership stamp')
+    patch = [{'op': 'test', 'path': '/metadata/uid', 'value': uid},
+             {'op': 'test', 'path': '/metadata/resourceVersion', 'value': rv}]
+    if metadata.get('annotations') is None:
+        patch.append({'op': 'add', 'path': '/metadata/annotations', 'value': {HANDS_ON_RUN: nonce}})
+    else:
+        patch.append({'op': 'add', 'path': '/metadata/annotations/workspace.openkubes.io~1hands-on-run', 'value': nonce})
+    done = kubectl(['patch', f'{kind}/{name}', '--type=json', '-p', json.dumps(patch), '-o', 'json'])
+    try: stamped = json.loads(done.stdout)
+    except json.JSONDecodeError as error: raise ProofError(f'{kind}/{name} ownership patch returned no JSON identity: {error}') from error
+    expect(stamped.get('metadata', {}).get('uid') == uid and
+           stamped.get('metadata', {}).get('annotations', {}).get(HANDS_ON_RUN) == nonce,
+           f'{kind}/{name} changed while ownership marker was being applied')
+    return stamped
+
+
+def owned_live(entry, nonce):
+    kind, name = entry['kind'], entry['name']
+    obj = optional_object(kind, name, entry.get('namespace'))
+    if obj is None: return None
+    marker = obj.get('metadata', {}).get('annotations', {}).get(HANDS_ON_RUN)
+    expect(marker == nonce, f'{kind}/{name} has a missing or foreign ownership marker; leaving it untouched')
+    live_uid = obj['metadata'].get('uid')
+    require_recorded_uid(entry, kind, name, live_uid)
+    return obj
+
+
+def require_recorded_uid(entry, kind, name, live_uid):
+    expect(entry.get('uid') and live_uid, f'{kind}/{name} has no recorded UID; leaving it untouched')
+    expect(live_uid == entry['uid'], f'{kind}/{name} UID changed; leaving the replacement untouched')
+
+
+def require_ledger_entry(entries, key, kind, name):
+    expect(key in entries, f'{kind}/{name} exists without a ledger entry; leaving it untouched')
+    entry = entries[key]
+    expect(entry.get('kind') == kind and entry.get('name') == name,
+           f'ownership ledger entry for {kind}/{name} names a different resource')
+    return entry
+
+
+def record_workspace_pv(path, state, namespace, xr_uid):
+    """Persist the XR-composed PVC identity, then record only its UID-bound PV."""
+    pvc = optional_object('pvc', 'workspace', namespace)
+    if not pvc: return
+    pvc_uid = pvc.get('metadata', {}).get('uid')
+    volume = pvc.get('spec', {}).get('volumeName')
+    expect(pvc_uid, f'PVC/{namespace}/workspace lacks UID evidence')
+    objects = composed_object_items(HANDS_ON[0])
+    matches = []
+    for item in objects:
+        manifest = item.get('spec', {}).get('forProvider', {}).get('manifest', {})
+        refs = item.get('metadata', {}).get('ownerReferences', [])
+        if (manifest.get('kind') == 'PersistentVolumeClaim' and
+                manifest.get('metadata', {}).get('name') == 'workspace' and
+                manifest.get('metadata', {}).get('namespace') == namespace and
+                item.get('metadata', {}).get('labels', {}).get('crossplane.io/composite') == HANDS_ON[0] and
+                any(ref.get('uid') == xr_uid and ref.get('controller') for ref in refs)):
+            matches.append(item)
+    expect(len(matches) == 1,
+           f'PVC/{namespace}/workspace lacks one XR-owned composed provider Object')
+    observed_manifest = (matches[0].get('status', {}).get('atProvider', {}).get('manifest') or
+                         matches[0].get('status', {}).get('atProvider', {}).get('resource') or {})
+    observed_metadata = observed_manifest.get('metadata', {})
+    expect(observed_manifest.get('kind') == 'PersistentVolumeClaim' and
+           observed_metadata.get('name') == 'workspace' and observed_metadata.get('namespace') == namespace and
+           observed_metadata.get('uid') == pvc_uid,
+           f"composed Object/{matches[0]['metadata']['name']} observed manifest UID does not match PVC/{namespace}/workspace")
+    pvc_evidence = {'uid': pvc_uid, 'namespace': namespace, 'name': 'workspace',
+                    'xrUid': xr_uid, 'objectName': matches[0]['metadata']['name'],
+                    'objectUid': matches[0]['metadata']['uid']}
+    expect(state.get('pvcOwnership') in (None, pvc_evidence),
+           f'PVC/{namespace}/workspace or its composed Object UID changed during this run')
+    state['pvcOwnership'] = pvc_evidence
+    write_hands_on_state(path, state)
+    if not volume: return
+    pv = optional_object('pv', volume)
+    expect(pv is not None, f'PV/{volume} for PVC/{namespace}/workspace is missing')
+    claim = pv.get('spec', {}).get('claimRef', {})
+    expect(claim.get('uid') == pvc_uid and claim.get('namespace') == namespace and claim.get('name') == 'workspace',
+           f'PV/{volume} claimRef does not match the XR-composed PVC UID')
+    key = f'pv:{volume}'
+    if key not in state['resources']:
+        journal_intent(path, state, key, 'pv', volume)
+    entry = state['resources'][key]
+    require_pv_marker_for_adoption(entry, pv, state['nonce'])
+    if entry.get('uid'):
+        expect(entry['uid'] == pv.get('metadata', {}).get('uid'), f'PV/{volume} UID changed; leaving the replacement untouched')
+        marker = pv.get('metadata', {}).get('annotations', {}).get(HANDS_ON_RUN)
+        expect(marker == state['nonce'] or (marker is None and entry.get('markerPending')),
+               f'PV/{volume} has a missing or foreign ownership marker; leaving it untouched')
+        if marker == state['nonce']:
+            return
+    else:
+        entry.update(uid=pv['metadata'].get('uid'), resourceVersion=pv['metadata'].get('resourceVersion'),
+                     intent=False, markerPending=True)
+        expect(entry['uid'] and entry['resourceVersion'], f'PV/{volume} lacks UID/resourceVersion evidence')
+        write_hands_on_state(path, state)
+    # The provisioner PV is annotated only after both sides of the binding and XR ownership are proven.
+    mark_owned(path, state, key, stamp_owned('pv', volume, pv, state['nonce']))
+
+
+def composed_child_matches(name, kind, namespace, child, owner_uid):
+    """Prove provider Object ownership and observed child UID before stamping a child."""
+    metadata = child.get('metadata', {})
+    found = []
+    for item in composed_object_items(name):
+        manifest = item.get('spec', {}).get('forProvider', {}).get('manifest', {})
+        refs = item.get('metadata', {}).get('ownerReferences', [])
+        if (manifest.get('kind') == kind and manifest.get('metadata', {}).get('name') == metadata.get('name') and
+                (not namespace or manifest.get('metadata', {}).get('namespace') == namespace) and
+                item.get('metadata', {}).get('labels', {}).get('crossplane.io/composite') == name and
+                any(ref.get('uid') == owner_uid and ref.get('controller') for ref in refs)):
+            observed = (item.get('status', {}).get('atProvider', {}).get('manifest') or
+                        item.get('status', {}).get('atProvider', {}).get('resource') or {})
+            if observed.get('kind') == kind and observed.get('metadata', {}).get('uid') == metadata.get('uid'):
+                found.append(item)
+    expect(len(found) == 1,
+           f'{kind}/{metadata.get("name")} does not have one XR-owned provider Object with matching observed UID')
+    return found[0]
+
+
+def up(_args):
+    path = hands_on_state_path()
+    require_fresh_hands_on_ledger(path)
+    storage = storage_inputs(); tgt = target(); composition = installed_matches_local()
+    runtime_image, fixture_image = image('OK175_RUNTIME_IMAGE'), image('OK175_FIXTURE_IMAGE')
+    namespace = hands_on_namespace()
+    refuse_preexisting_hands_on_objects(namespace)
+    pulls, registry, username, password = registry_inputs(runtime_image)
+    tls = spike.tls_material(); read_token = secrets.token_urlsafe(32)
+    state = {'version': 1, 'nonce': secrets.token_hex(16), 'workspaceNamespaceName': namespace,
+             'target': {'context': tgt['context'], 'kubeSystemUidSha256': tgt['kubeSystemUidSha256']},
+             'resources': {}}
+    write_hands_on_state(path, state, initial=True)
+    # Empty write token disables writer authentication; no control Pod or write Secret is created.
+    journal_intent(path, state, 'fixtureNamespace', 'namespace', PROOF_NS)
+    known, _ = fixture_setup(fixture_image, tls, read_token, '', pulls, registry, username, password,
+                             hands_on=True, hands_on_nonce=state['nonce'],
+                             on_namespace_created=lambda obj: mark_owned(path, state, 'fixtureNamespace', obj))
+    profile = live_profile(runtime_image, storage)
+    config = render_profile.profile_config(profile, 'in-cluster', PULL_SECRET if pulls else '')
+    config['metadata']['labels'] = {HANDS_ON_LABEL: 'true'}
+    config['metadata'].setdefault('annotations', {})[HANDS_ON_RUN] = state['nonce']
+    journal_intent(path, state, 'profile', 'environmentconfig', 'developer-workspace-profile')
+    state['resources']['profile']['dataSha256'] = sha_json(config.get('data'))
+    write_hands_on_state(path, state)
+    created = kubectl(['create', '-f', '-', '-o', 'json'], input_text=yaml.safe_dump(config))
+    try: created_config = json.loads(created.stdout)
+    except json.JSONDecodeError as error: raise ProofError('EnvironmentConfig/developer-workspace-profile create returned no UID JSON') from error
+    mark_owned(path, state, 'profile', created_config)
+    # Reserve the Namespace ourselves: a GET-before-reconcile is not proof the provider created it.
+    doc = workspace_inputs(*HANDS_ON, known, 'persistent')
+    namespace_doc = next(obj for obj in render_profile.reference_render(doc, profile)['spec']['resources']
+                         if obj['kind'] == 'Namespace')
+    create_owned_namespace(path, state, namespace_doc)
+    try:
+        _, namespace, _ = bring_up(*HANDS_ON, 'persistent', known=known, profile=profile, read_token=read_token,
+                                  tls=tls, pulls=pulls, registry=registry, username=username, password=password,
+                                  composition=composition, hands_on=True,
+                                  ownership={'path': path, 'state': state})
+        pod = workspace_pod(namespace)
+    except (ProofError, subprocess.TimeoutExpired):
+        print('Hands-on setup incomplete; use live-down to clean up before retrying.', file=sys.stderr)
+        raise
+    print(f'Workspace: {HANDS_ON[0]}\nNamespace: {namespace}\nRuntime Pod: {pod}')
+    command = ['kubectl', '--context', tgt['context'], 'exec', '-n', namespace, f'pod/{pod}', '-c', 'runtime', '--',
+               'sh', '-c', "cd /workspace && opencode run --format json '<task>' && sh verify.sh"]
+    print(shlex.join(command))
+
+
+def create_owned_namespace(path, state, doc):
+    name = doc['metadata']['name']
+    doc = copy.deepcopy(doc)
+    doc['metadata'].setdefault('annotations', {})[HANDS_ON_RUN] = state['nonce']
+    journal_intent(path, state, 'workspaceNamespace', 'namespace', name)
+    created = kubectl(['create', '-f', '-', '-o', 'json'], input_text=yaml.safe_dump(doc))
+    try: obj = json.loads(created.stdout)
+    except json.JSONDecodeError as error:
+        raise ProofError(f'Namespace/{name} create returned no UID JSON; leaving it untouched') from error
+    mark_owned(path, state, 'workspaceNamespace', obj)
+
+
+def require_pv_marker_for_adoption(entry, pv, nonce):
+    marker = pv.get('metadata', {}).get('annotations', {}).get(HANDS_ON_RUN)
+    if not entry.get('uid'):
+        expect(marker is None,
+               f"PV/{pv['metadata']['name']} already has an ownership marker; refusing adoption")
+
+
+def assert_no_unrecorded_pvs(state, namespace):
+    # Namespace/nonce selects objects to REFUSE, never objects to adopt or delete.
+    for pv in get_json(['get', 'pv'])['items']:
+        metadata = pv['metadata']; name = metadata['name']
+        claim = pv.get('spec', {}).get('claimRef', {})
+        if (claim.get('namespace') != namespace and
+                metadata.get('annotations', {}).get(HANDS_ON_RUN) != state['nonce']):
+            continue
+        entry = require_ledger_entry(state['resources'], f'pv:{name}', 'pv', name)
+        require_recorded_uid(entry, 'pv', name, metadata.get('uid'))
+        owned_live(entry, state['nonce'])
+        pvc = state.get('pvcOwnership')
+        if pvc:
+            expect(claim.get('uid') == pvc['uid'] and claim.get('namespace') == pvc['namespace'] and
+                   claim.get('name') == pvc['name'], f'PV/{name} claimRef differs from the recorded PVC UID')
+
+
+def down(_args):
+    path = hands_on_state_path()
+    tgt = target(); installed_matches_local()
+    state = load_hands_on_state(path, tgt); nonce = state['nonce']; entries = state['resources']
+    name, workspace_id = HANDS_ON; namespace = state.get('workspaceNamespaceName')
+    expect(isinstance(namespace, str) and namespace,
+           'ownership ledger lacks the workspace Namespace name; leaving resources untouched')
+    expected = {'xr': ('developerworkspace', name, None),
+                'workspaceNamespace': ('namespace', namespace, None),
+                'fixtureNamespace': ('namespace', PROOF_NS, None),
+                'profile': ('environmentconfig', 'developer-workspace-profile', None)}
+    for key, (kind, resource_name, resource_namespace) in expected.items():
+        obj = optional_object(kind, resource_name, resource_namespace)
+        if obj is not None:
+            entry = require_ledger_entry(entries, key, kind, resource_name)
+            if key == 'profile':
+                require_profile_data_unchanged(obj, entry)
+            owned_live(entry, nonce)
+    xr = optional_object('developerworkspace', name)
+    fixture = optional_object('namespace', PROOF_NS)
+    config = optional_object('environmentconfig', 'developer-workspace-profile')
+    ns = optional_object('namespace', namespace)
+    if xr: expect(xr['spec'].get('workspaceID') == workspace_id, 'DeveloperWorkspace/ws-hands-on-xr workspaceID changed; leaving it untouched')
+    refuse_foreign_workspaces(name)
+    # Recover an interrupted PV journal only through the bound PVC and XR-composed provider Object chain.
+    if xr:
+        def pv_binding_recorded():
+            record_workspace_pv(path, state, namespace, entries['xr']['uid'])
+            return bool(state.get('pvcOwnership', {}).get('uid') and any(e['kind'] == 'pv' and e.get('uid') for e in entries.values()))
+        if not any(e.get('kind') == 'pv' and e.get('uid') for e in entries.values()):
+            wait_until(f'PVC/{namespace}/workspace to bind to its UID-proven PV', pv_binding_recorded, timeout=300, interval=3)
+        else:
+            record_workspace_pv(path, state, namespace, entries['xr']['uid'])
+    for key, entry in list(entries.items()):
+        if entry['kind'] == 'pv':
+            live = owned_live(entry, nonce)
+    assert_no_unrecorded_pvs(state, namespace)
+    # All known ownership has been checked before the first destructive request.
+    if xr:
+        current = owned_live(entries['xr'], nonce)
+        delete_preconditioned('developerworkspace', name, entries['xr'].get('uid'), current['metadata']['resourceVersion'],
+                              refresh=lambda: owned_live(entries['xr'], nonce))
+    wait_until(f'DeveloperWorkspace/{name} removal', lambda: optional_object('developerworkspace', name) is None, timeout=600)
+    if not xr and ns:
+        current = owned_live(entries['workspaceNamespace'], nonce)
+        if current:
+            delete_preconditioned('namespace', namespace, entries['workspaceNamespace']['uid'], current['metadata']['resourceVersion'],
+                                  refresh=lambda: owned_live(entries['workspaceNamespace'], nonce))
+    wait_until(f'namespace {namespace} removal', lambda: optional_object('namespace', namespace) is None, timeout=600)
+    wait_until(f'composed Objects of {name} removal', lambda: not composed_objects(name), timeout=300)
+    if ns and optional_object('namespace', namespace):
+        expect(False, f'Namespace/{namespace} was replaced while workspace deletion was in progress')
+    for key, entry in list(entries.items()):
+        if entry['kind'] != 'pv': continue
+        live = owned_live(entry, nonce)
+        if live:
+            expect(optional_object('pvc', 'workspace', namespace) is None,
+                   f'PVC/{namespace}/workspace remains; leaving PV/{entry["name"]} untouched')
+            delete_preconditioned('pv', entry['name'], entry.get('uid'), live['metadata']['resourceVersion'],
+                                  refresh=lambda e=entry: owned_live(e, nonce))
+        wait_until(f'PersistentVolume {entry["name"]} removal', lambda e=entry: optional_object('pv', e['name']) is None, timeout=300)
+    assert_no_unrecorded_pvs(state, namespace)
+    if config:
+        current = owned_live(entries['profile'], nonce)
+        delete_preconditioned('environmentconfig', 'developer-workspace-profile', entries['profile'].get('uid'), current['metadata']['resourceVersion'],
+                              refresh=lambda: owned_live(entries['profile'], nonce))
+    wait_until('EnvironmentConfig/developer-workspace-profile removal',
+               lambda: optional_object('environmentconfig', 'developer-workspace-profile') is None, timeout=300)
+    if fixture:
+        current = owned_live(entries['fixtureNamespace'], nonce)
+        delete_preconditioned('namespace', PROOF_NS, entries['fixtureNamespace'].get('uid'), current['metadata']['resourceVersion'],
+                              refresh=lambda: owned_live(entries['fixtureNamespace'], nonce))
+    wait_until(f'fixture Namespace {PROOF_NS} removal', lambda: optional_object('namespace', PROOF_NS) is None, timeout=600)
+    assert_no_unrecorded_pvs(state, namespace)
+    try: path.unlink()
+    except FileNotFoundError: raise ProofError(f'ownership ledger disappeared before cleanup completed: {path}')
+    directory_fd = os.open(path.parent, os.O_RDONLY)
+    try: os.fsync(directory_fd)
+    finally: os.close(directory_fd)
+    print('Hands-on workspace, Namespace, PV, profile and fixture removed (or already absent).')
+
+
 RESULTS = ('admission-policy-gate', 'admission-rules', 'canonical-name-rule', 'no-profile-fails-closed',
            'admission-receipt-gate', 'dedicated-namespace-enforced', 'reconcile-readback', 'workspace-id-immutable',
            'authority-boundary-rbac', 'namespaced-provider-steering-denied',
@@ -2191,6 +2688,8 @@ def main():
     parser = argparse.ArgumentParser(); sub = parser.add_subparsers(dest='action', required=True)
     sub.add_parser('install').set_defaults(fn=install); sub.add_parser('uninstall').set_defaults(fn=uninstall)
     r = sub.add_parser('run'); r.add_argument('--require-clean', action='store_true'); r.set_defaults(fn=run)
+    sub.add_parser('up', help='Keep one persistent OpenCode workspace (no evidence)').set_defaults(fn=up)
+    sub.add_parser('down', help='Remove only hands-on resources (no evidence)').set_defaults(fn=down)
     args = parser.parse_args()
     try: args.fn(args)
     except ProofError as error: print(f'FAIL {error}', file=sys.stderr); return 1

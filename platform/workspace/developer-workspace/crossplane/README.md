@@ -94,11 +94,11 @@ DeveloperWorkspace contract.
 This declaration is a Composition gate owned by the operator. It is not runtime certification of a
 storage backend. Before setting `runtimeEnforced: true`, a deployment must separately prove that
 each listed StorageClass enforces the declared byte capacity at runtime under the selected
-`hostUsers: false` boundary. The checked-in `local-path` catalogs derive from the frozen spike YAML
-via `tests/profile_config.py` and explicitly default to `hostUsers: true`,
-`runtimeEnforced: false`, and an empty `capacityEnforcingStorageClasses` list. They remain the
-observed-negative profile and can never be certified by this declaration. The spike files stay
-unchanged.
+`hostUsers: false` boundary. The checked-in profiles derive from the frozen live spike YAML;
+`tests/live/profile_examples_selftest.py` checks each one against that catalog plus its reviewed
+capability fields. The `namespace-profile-local-path.yaml` example sets `hostUsers: true`,
+`runtimeEnforced: false`, and an empty `capacityEnforcingStorageClasses` list. It remains the
+observed-negative profile and cannot claim capacity enforcement. The spike files stay unchanged.
 The Composition sets `workspace.openkubes.io/host-users: "false"` on the Namespace only when
 `hostUsers: false` is required. `install/pod-user-namespace-guard.yaml` binds the
 `workspace-pod-user-namespace-required` ValidatingAdmissionPolicy with `validationActions: [Deny]`
@@ -397,7 +397,10 @@ For a local render engine, set `CROSSPLANE_RENDER_BINARY` to the Crossplane **co
 from the pinned v2.3.3 image (the CLI binary is a separate executable). This selects
 `--crossplane-binary` instead of `--crossplane-version`; functions must still be listening at the
 Development targets. Offline harness assertions run with
-`python3 tests/live/reconcile_proof_selftest.py`; they do not contact a cluster.
+`make live-selftest`; it runs the ownership mutation controls, ownership and existing live
+harness selftests, and both committed profile examples without contacting a cluster. To see the
+named ownership checks fail with their guard disabled, run
+`python3 tests/live/hands_on_ownership_selftest.py --prove-mutations`.
 
 `render-check` equality is with `reference_render()`, extending the reviewed `render()` that OK-174's live evidence was
 recorded against, for the example profile; the live proof reads back the same equality for the
@@ -618,6 +621,90 @@ The runtime Dockerfile installs Git but does not explicitly install Python or Pe
 detects both tools in the runtime and fails closed if neither is available. The smallest image
 addition is Python 3, followed by a newly published digest. An `xfs_io` exit status would not
 be an exact errno, so it is not a fallback. The probe always runs in the workspace runtime.
+
+## Hands-on OpenCode quickstart
+
+Before using the enforcing profile, install and verify the `ok-storage-local-quota` StorageClass on
+the disposable cluster (ok-storage: `LOCAL_QUOTA_APPLY=yes make local-quota-apply`, then
+`LOCAL_QUOTA_VERIFY=operator-proof LOCAL_QUOTA_EXPECTED_CONTEXT=<context> make local-quota-verify`,
+both with `LOCAL_QUOTA_GUEST_KUBECONFIG`). Create the cluster with ok-cluster's
+`workloadUserNamespaces` opt-in and run its `make verify-workload-user-namespaces`; it must print
+`PASS` (the worker `provisionerBasePath` matches the StorageClass `BasePath`). Its provisioner must
+enforce XFS project quotas at runtime. Workers must
+support Kubernetes user namespaces, idmapped mounts for that provisioner, and a nonzero
+`user.max_user_namespaces`; Talos defaults that sysctl to zero. The profile routes inference to the
+reviewed ok-ai host endpoint, where Ollama must serve the configured model alias
+`ok174-gpt-oss:20b`. These are prerequisites to the enforcing example; choose the local-path profile
+for observed-negative work on a cluster without that storage and user-namespace setup.
+
+After `make live-install`, use the disposable-context and cluster UID guards, digest image inputs,
+and optional registry password descriptor as `live-run` above. `live-up` defaults to the enforcing
+`profiles/namespace-profile-local-quota.yaml`; set `OK176_PROFILE_FILE` to an absolute path to select
+another reviewed profile:
+
+```bash
+export OK180_STATE_FILE="$HOME/.local/state/ok180-hands-on.json"   # persistent; not a tmpfs path
+make live-up
+# With private images instead:
+# OK175_REGISTRY_USERNAME=<pull-only user> OK175_REGISTRY_PASSWORD_FD=3 make live-up 3< <password file>
+# Copy the printed kubectl exec command and replace <task> with your OpenCode task.
+# It runs opencode run --format json followed by sh verify.sh in /workspace.
+make live-down
+make live-uninstall
+```
+
+Use the same `OK180_STATE_FILE` path for `live-up` and `live-down`, on storage that survives a
+reboot: the ledger is the only ownership evidence, and without it cleanup must be done by hand.
+The ledger records a per-run
+nonce, cluster UID and context, and UIDs of resources this run directly created (XR,
+EnvironmentConfig, fixture Namespace and workspace Namespace). The versioned JSON file uses
+mode 0600, atomic replacement and fsync so a failed write preserves the last complete journal. It records
+provisioner PV ownership only through the bound PVC UID chain. Cleanup requires the recorded UID
+and ownership marker before each delete; in `live-up`/`live-down` names and timestamps never
+establish ownership (`live-run` instead refuses to start while any object its cleanup deletes by
+name already exists). A DELETE that hits a resourceVersion conflict from a controller write is
+retried from a fresh ownership-checked read with the same UID precondition. If a run
+is interrupted, preserve the ledger and use it for `live-down`. A second `live-up` with an existing
+ledger is refused; do not remove the ledger to retry, because that would discard ownership evidence.
+`live-up` creates and journals the rendered workspace Namespace before submitting the XR. An
+atomic Namespace CREATE rejects a racing existing object; provider observation never substitutes
+for that create receipt. The reconciler then manages this explicitly owned Namespace.
+The UID boundary means a same-name replacement or an object whose ownership marker is missing or
+changed is left untouched, and cleanup reports failure for operator review.
+Creates record the UID from the API response before setup continues. If the API create succeeds
+but its response or ledger write is lost, the ledger retains an ambiguous intent without a UID.
+`live-down` leaves that object untouched and exits nonzero for operator inspection, even if its
+nonce matches: a copied nonce cannot prove that a same-name replacement is the original object.
+
+**Manual recovery when `live-down` refuses.** The error names the object and the reason. Inspect
+it (`kubectl get <kind> <name> -o yaml`) and compare its UID and the
+`workspace.openkubes.io/hands-on-run` annotation with the ledger. If it is the object this run
+created (for example an intent-only ledger entry whose create did succeed), an operator deletes it
+with a UID precondition (`kubectl delete --raw <api path> -f -` with
+`{"preconditions": {"uid": "<uid>"}}`), then reruns `live-down`. If it is not, leave it, remove the
+remaining owned objects the same way, and delete the ledger file only after every owned object is
+gone. Never delete objects by name alone.
+
+`live-up` leaves one persistent `ws-hands-on-xr` DeveloperWorkspace (`spec.workspaceID: ws-hands-on`) Ready and prints its Namespace,
+runtime Pod and exact exec command. Inference endpoint, model and MCP settings come from the
+selected profile catalog; the storage class, `hostUsers` and capacity policy are declared there.
+The runtime entrypoint renders OpenCode configuration and sleeps until you exec a task.
+The source fixture keeps only a read credential: writer authentication is disabled, and no
+write-credential control Pod or write Secret is created. The workspace needs fetch authority only.
+
+Both commands require the capability installed and matching the local files. `live-up` refuses
+existing workspaces, either destination Namespace, or the shared profile EnvironmentConfig.
+`live-down` validates the local ledger and recorded ownership markers, deletes only matching
+resources using API DELETE with both UID and current resourceVersion preconditions, and waits for
+the workspace Namespace, composed Objects and PV to disappear. For provisioner-created PVs, the
+ledger binds the XR UID to the provider Object controller owner reference, its observed PVC UID,
+the live PVC UID, and the PV claimRef UID. The initial stamp also tests UID and resourceVersion.
+A foreign marker is never overwritten. Namespace and nonce PV scans only detect unrecorded
+objects to refuse; they cannot authorize adoption or deletion. Export any
+wanted workspace data before deletion. Neither command writes evidence. `live-run` retains its proof
+controls and automatic cleanup; it requires an explicit `OK176_PROFILE_FILE` choice and derives
+enforcement mode from that profile.
+OpenCode inference under the selected user namespace setting must still be exercised live by the operator.
 
 ## Rollback and cleanup
 
