@@ -1,0 +1,131 @@
+# Protects the Namespace labels that select the workspace Pod user-namespace policy (OK-185).
+#
+# The provider may emit only the workspace identity and hostUsers value rendered from the
+# operator-owned profile. An operator is identified by the same named EnvironmentConfig update
+# permission shipped in rbac/authority-boundary.yaml; the provider is explicitly not an operator.
+# Other callers may update workspace Namespaces only while preserving both protected labels.
+# Trusted platform identities also satisfy the operator authorization: crossplane-system:crossplane,
+# kube-system:generic-garbage-collector, and group crossplane:masters (when bound), as well as
+# system:masters. Their named EnvironmentConfig update authority is intentional platform trust,
+# not a workspace entitlement. RBAC must reserve Namespace mutations to trusted platform actors.
+# This guard protects labels only; ownerReferences/finalizers are outside its scope. A caller
+# with Namespace update/patch authority can change those while retaining labels and induce deletion
+# through the trusted garbage collector. Production workspace/observer roles grant no such authority.
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: developer-workspace-namespace-host-users-guard
+spec:
+  failurePolicy: Fail
+  paramKind:
+    apiVersion: apiextensions.crossplane.io/v1beta1
+    kind: EnvironmentConfig
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: ["v1"]
+        operations: [CREATE, UPDATE, DELETE]
+        resources: [namespaces, namespaces/status, namespaces/finalize]
+        scope: Cluster
+  matchConditions:
+    - name: protected-label-present-before-or-after
+      expression: >-
+        (oldObject != null && has(oldObject.metadata.labels) &&
+         ('workspace.openkubes.io/id' in oldObject.metadata.labels ||
+          'workspace.openkubes.io/host-users' in oldObject.metadata.labels)) ||
+        (object != null && has(object.metadata.labels) &&
+         ('workspace.openkubes.io/id' in object.metadata.labels ||
+          'workspace.openkubes.io/host-users' in object.metadata.labels))
+  variables:
+    - name: idLabel
+      expression: "'workspace.openkubes.io/id'"
+    - name: hostUsersLabel
+      expression: "'workspace.openkubes.io/host-users'"
+    - name: provider
+      expression: >-
+        request.userInfo.username ==
+        'system:serviceaccount:crossplane-system:developer-workspace-provider-kubernetes'
+    - name: operator
+      expression: >-
+        !variables.provider &&
+        authorizer.group('apiextensions.crossplane.io').resource('environmentconfigs').
+        name('developer-workspace-profile').check('update').allowed()
+    - name: oldHasID
+      expression: >-
+        oldObject != null && has(oldObject.metadata.labels) &&
+        variables.idLabel in oldObject.metadata.labels
+    - name: newHasID
+      expression: >-
+        object != null && has(object.metadata.labels) &&
+        variables.idLabel in object.metadata.labels
+    - name: oldHasHostUsers
+      expression: >-
+        oldObject != null && has(oldObject.metadata.labels) &&
+        variables.hostUsersLabel in oldObject.metadata.labels
+    - name: newHasHostUsers
+      expression: >-
+        object != null && has(object.metadata.labels) &&
+        variables.hostUsersLabel in object.metadata.labels
+  validations:
+    - expression: >-
+        params != null && has(dyn(params).data) && has(dyn(params).data.profile) &&
+        has(dyn(params).data.profile.spec) && has(dyn(params).data.profile.spec.hostUsers) &&
+        type(dyn(params).data.profile.spec.hostUsers) == bool
+      message: developer-workspace-profile data.profile.spec.hostUsers must be a boolean
+    - expression: >-
+        !variables.provider || request.operation == 'DELETE' ||
+        (variables.newHasID &&
+         (request.operation != 'UPDATE' ||
+          (variables.oldHasID &&
+           oldObject.metadata.labels[variables.idLabel] == object.metadata.labels[variables.idLabel])) &&
+         (dyn(params).data.profile.spec.hostUsers == false
+          ? variables.newHasHostUsers && object.metadata.labels[variables.hostUsersLabel] == 'false'
+          : !variables.newHasHostUsers))
+      message: the DeveloperWorkspace provider must preserve the workspace identity and render host-users from developer-workspace-profile
+    - expression: >-
+        request.operation != 'CREATE' || variables.operator || variables.provider
+      message: only the DeveloperWorkspace provider or an operator may create a protected workspace Namespace
+    - expression: >-
+        request.operation != 'UPDATE' || variables.operator || variables.provider ||
+        (variables.oldHasID == variables.newHasID &&
+         (!variables.oldHasID ||
+          oldObject.metadata.labels[variables.idLabel] == object.metadata.labels[variables.idLabel]) &&
+         variables.oldHasHostUsers == variables.newHasHostUsers &&
+         (!variables.oldHasHostUsers ||
+          oldObject.metadata.labels[variables.hostUsersLabel] == object.metadata.labels[variables.hostUsersLabel]))
+      message: only an operator may change workspace identity or host-users Namespace labels
+    - expression: >-
+        request.operation != 'DELETE' || variables.operator || variables.provider
+      message: only the DeveloperWorkspace provider or an operator may delete a protected workspace Namespace
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: developer-workspace-namespace-host-users-guard
+spec:
+  policyName: developer-workspace-namespace-host-users-guard
+  matchResources:
+    objectSelector:
+      matchExpressions:
+        - key: workspace.openkubes.io/id
+          operator: Exists
+  paramRef:
+    name: developer-workspace-profile
+    parameterNotFoundAction: Deny
+  validationActions: [Deny]
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: developer-workspace-namespace-host-users-guard-selection
+spec:
+  policyName: developer-workspace-namespace-host-users-guard
+  matchResources:
+    objectSelector:
+      matchExpressions:
+        - key: workspace.openkubes.io/host-users
+          operator: Exists
+  paramRef:
+    name: developer-workspace-profile
+    parameterNotFoundAction: Deny
+  validationActions: [Deny]

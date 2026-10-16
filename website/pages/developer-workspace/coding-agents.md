@@ -29,7 +29,7 @@ A coding workspace may consume an approved inference endpoint as a capability. I
 
 ## Current scope
 
-There is no published turnkey `kubectl apply` or `make workspace-create` workflow that we can responsibly recommend today. Integration, reconciliation, broader access control and production lifecycle operations remain implementation work.
+There is no turnkey workflow for production use. For evaluation on a **disposable** cluster, the reference implementation provides `make live-up` and `make live-down`, which bring one OpenCode workspace up and remove exactly what they created. Broader access control (a requester role) and production lifecycle operations remain implementation work.
 
 See the [validation status](status.md) before evaluating the proof for your own environment.
 
