@@ -1,0 +1,31 @@
+# Requires the Pod user namespace promised by a workspace profile with hostUsers=false (OK-178).
+#
+# The Composition marks only those workspace Namespaces with the selector label. Both Pod
+# creation and updates to the Pod ephemeralcontainers subresource must preserve the setting.
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: workspace-pod-user-namespace-required
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    namespaceSelector:
+      matchLabels:
+        workspace.openkubes.io/host-users: "false"
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: ["v1"]
+        operations: [CREATE, UPDATE]
+        resources: [pods, pods/ephemeralcontainers]
+        scope: Namespaced
+  validations:
+    - expression: has(object.spec.hostUsers) && object.spec.hostUsers == false
+      message: Pods in this workspace Namespace must set spec.hostUsers to false
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: workspace-pod-user-namespace-required
+spec:
+  policyName: workspace-pod-user-namespace-required
+  validationActions: [Deny]

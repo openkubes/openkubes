@@ -16,7 +16,8 @@ ADR-Platform-039 stays Proposed; this directory supplies implementation evidence
 | `xrd.yaml` | Cluster-scoped XRD, generated from the contract schema by `tests/xrd_schema.py`; the contract fields remain profile-independent, while this profile also requires the Kubernetes resource envelope name described below. |
 | `composition.yaml` | Template port of the spike's `render()`; function-go-templating then function-auto-ready. |
 | EnvironmentConfig `developer-workspace-profile` | Cluster-scoped input: `profile` (the reviewed NamespaceProfileCatalog), `providerConfigName`, optional `imagePullSecret`. Without it the render fails and nothing is composed. Every check `render()` makes in `validate_profile()` is a `fail` guard here, so any input `render()` rejects composes nothing. |
-| `install/` | provider-kubernetes with a named ServiceAccount and watches enabled, the `in-cluster` ProviderConfig (InjectedIdentity), and the Namespace and provider-steering ValidatingAdmissionPolicies described below. |
+| EnvironmentConfig `developer-workspace-admission-ready` | Operator-owned installation receipt: exactly `data.guardRevision: ok185-v1`. `live-install` creates it after the admission gate passes. The Composition requires it before emitting workspace resources, including for direct XR submissions. |
+| `install/` | provider-kubernetes with a named ServiceAccount and watches enabled, the `in-cluster` ProviderConfig (InjectedIdentity), and Namespace, provider-steering, Namespace label and Pod user-namespace admission policies described below. |
 | `rbac/provider-kubernetes-clusterrole.yaml` | The authority this capability adds to the provider: the kinds the Composition emits. No RBAC kinds, Pods or exec. |
 | `rbac/authority-boundary.yaml` | Unbound operator and observer ClusterRoles. There is no requester role in this increment. See *Provider and human authority*. |
 | `tests/functions.yaml` | Pinned function packages (go-templating v0.9.2, auto-ready v0.4.1). |
@@ -90,22 +91,58 @@ invalid names and inconsistent combinations are rejected before rendering. These
 profile policies, independent of runtime image choice; none is a field in the portable
 DeveloperWorkspace contract.
 
-This declaration is an operator acceptance gate, not runtime certification of a storage backend.
-Composition validates that the declaration is internally consistent; it cannot determine whether
-a listed backend actually enforces capacity. An incorrect `runtimeEnforced: true` declaration is
-therefore an operator error. Before accepting it, a deployment must separately prove every listed
-StorageClass with the live `persistent-capacity-enforced` check under the selected
-`hostUsers: false` boundary.
+This declaration is a Composition gate owned by the operator. It is not runtime certification of a
+storage backend. Before setting `runtimeEnforced: true`, a deployment must separately prove that
+each listed StorageClass enforces the declared byte capacity at runtime under the selected
+`hostUsers: false` boundary. The checked-in `local-path` catalogs derive from the frozen spike YAML
+via `tests/profile_config.py` and explicitly default to `hostUsers: true`,
+`runtimeEnforced: false`, and an empty `capacityEnforcingStorageClasses` list. They remain the
+observed-negative profile and can never be certified by this declaration. The spike files stay
+unchanged.
+The Composition sets `workspace.openkubes.io/host-users: "false"` on the Namespace only when
+`hostUsers: false` is required. `install/pod-user-namespace-guard.yaml` binds the
+`workspace-pod-user-namespace-required` ValidatingAdmissionPolicy with `validationActions: [Deny]`
+and `failurePolicy: Fail`. In those Namespaces it requires an explicit `spec.hostUsers: false`
+on every Pod CREATE and UPDATE, including `pods/ephemeralcontainers`; it excludes `pods/status`.
+This applies to manual Pods and ReplicaSet-created Pods regardless of caller identity. Rolling
+updates create compliant replacement Pods; ordinary updates and ephemeral-container additions
+retain the existing Pod's user namespace setting. A legacy noncompliant Pod's update is denied:
+the rule does not repair or evict existing Pods. Profiles with `hostUsers: true` omit the label
+and are unaffected.
+
+Namespace-only placement keeps the selection signal off unrelated objects and Pod templates;
+the capability reference rendering adds exactly the same Namespace label as the Composition.
+Read-back equality includes it, and provider reconciliation manages that rendered field.
+
+**Label trust boundary.** `install/namespace-host-users-guard.yaml` protects both the old and new
+Namespace identity and selection labels, including Namespace subresource updates. Two bindings
+select the workspace-ID label or the host-users label before parameter loading; each selector
+matches the old or new object, so removing both labels still reaches admission. Unrelated
+Namespaces remain writable when the profile is missing. A workspace
+identity or observer cannot add, remove or change either protected label, including removing
+both labels in one update, even with Namespace update/patch RBAC. This guarantee covers the
+labels only. The guard does not protect `ownerReferences` or `finalizers`: a caller with Namespace
+update/patch authority can change those while preserving labels. Pointing an ownerReference at a
+deletable owner can cause garbage collection through the trusted garbage collector's deletion
+authority. Production installations must reserve Namespace mutation permissions to trusted platform
+identities; the workspace and observer roles grant none. Temporary name-scoped grants in the live
+proof exist only to distinguish admission denials from RBAC denials.
+
+The provider may reconcile only the value rendered from the named,
+operator-owned `developer-workspace-profile`: `"false"` when `spec.hostUsers` is false, otherwise
+no label. An arbitrary provider-kubernetes Object cannot supply an alternative value.
+The operator exemption uses authorization to update that named EnvironmentConfig, including
+the trusted platform identities in the authority-holder table below. That is platform authority because changing the profile changes the runtime boundary for all workspaces;
+the existing operator role also permits arbitrary provider Objects. The provider is explicitly
+excluded from this operator exemption. Direct Namespace changes still require Namespace RBAC;
+the operator ClusterRole alone does not grant it. Changing the profile or CompositionRevision
+does not retroactively validate or evict existing Pods. User namespaces close the observed
+project-ID reset bypass; admission alone does not prove storage capacity enforcement.
 
 The rendered Namespace alone records the declaration as
 `workspace.openkubes.io/persistent-capacity: runtime-enforced` or
 `workspace.openkubes.io/persistent-capacity: not-runtime-enforced`. This label is an audit marker
-for the operator's declaration; it is not a certification result. The checked-in `local-path`
-catalogs derive from the frozen spike YAML via `tests/profile_config.py` and default to
-`hostUsers: true`, `runtimeEnforced: false`, and an empty
-`capacityEnforcingStorageClasses` list. The spike files stay unchanged.
-Workspace identities cannot create Pods; the Composition is the enforcement point for this
-profile. An admission rule requiring this setting is later work.
+for the operator's declaration; it is not a certification result. 
 
 **One workspace shape per cluster.** The profile is a single cluster-wide EnvironmentConfig whose
 catalogs must match each workspace's references exactly (as `render()` requires), so every
@@ -188,6 +225,25 @@ and the [cluster-admin role and system:masters binding](https://github.com/kuber
 The controller ServiceAccount bindings are RBAC holders even if controller loops use a shared
 credential; they are not workspace identities. Feature-gated or site-specific additional holders
 are not silently accepted.
+
+**Trusted Namespace label operators.** The Namespace guard's `operator` CEL variable uses
+authorization to update the named `developer-workspace-profile`, rather than membership in the
+human operator role. The following platform subjects therefore intentionally satisfy the exemption.
+This is documented platform trust, not an assertion that they lack Namespace mutation routes.
+
+| Trusted subject | Namespace guard trust |
+|---|---|
+| Group `system:masters` | Cluster administration, including named profile updates. |
+| ServiceAccount `crossplane-system:crossplane` | Crossplane controller authority includes named profile updates. |
+| ServiceAccount `kube-system:generic-garbage-collector` | Garbage collection authority includes named profile updates and deletion through ownerReferences. |
+| Group `crossplane:masters`, when its default binding exists | Crossplane administration includes named profile updates. |
+| Subjects granted update on `EnvironmentConfig/developer-workspace-profile` | Trusted platform operators; direct Namespace writes still require separate Namespace RBAC. |
+
+These identities must remain outside workspace and observer control, including impersonation,
+token and RBAC escalation routes audited by `authority-indirect-who-can`. Trusting the controllers
+matches their existing platform lifecycle authority; treating them as untrusted would require a
+different controller/RBAC design. The named provider identity remains explicitly excluded from
+`operator`, even when authorization says it can update the profile.
 
 `authority-indirect-who-can` checks the following ways to mint or use authority. Cluster-scoped
 mutations and User/Group impersonation count ClusterRoleBindings; ServiceAccount impersonation,
@@ -320,7 +376,8 @@ source .venv/bin/activate
 ```bash
 make admission-cel-check # provider-steering policy, matching, operator and negative controls
 make functions-up      # function containers for the Development runtime
-make render-check      # xrd-check; Composition output == reference_render() for both hostUsers settings and the
+make admission-cel-check # offline Namespace label / Pod policy cases and mutation controls
+make render-check      # xrd-check + admission-cel-check; Composition output == reference_render() for both hostUsers settings and the
                        # longest workspaceID; status phases; fails on a missing profile and on
                        # every invalid input reference_render() rejects (IPv6 host routes are
                        # rejected too, which render() accepts)
@@ -331,7 +388,8 @@ make functions-down
 validates the required `spec.hostUsers` and `spec.persistentCapacity` declaration, removes only
 those capability-owned fields from a copy of the profile, calls the unchanged spike `render()`
 that OK-174's evidence was recorded against, then sets the Deployment pod's `hostUsers` to the
-validated value. Both checks add `imagePullSecrets` when configured. The Composition has matching
+validated value and adds the Namespace selection label when it is false. Both checks add
+`imagePullSecrets` when configured. The Composition has matching
 fail guards for malformed or inconsistent declarations.
 The extension lives beside the existing EnvironmentConfig helper so the function checks and
 live proof use one reference without modifying OK-174's hash-bound historical artefact.
@@ -347,8 +405,8 @@ live profile.
 
 ## Live proof (disposable clusters only)
 
-`tests/live/reconcile_proof.py` accepts only `ok-175-proof-admin@ok-175-proof` or the local
-pre-flight `kind-ok175-preflight`,
+`tests/live/reconcile_proof.py` accepts only `ok-175-proof-admin@ok-175-proof`,
+`ok-176-c3-admin@ok-176-c3`, `ok-178-ws-admin@ok-178-ws`, or the local pre-flight `kind-ok175-preflight`,
 requires `TARGET_CONTEXT` to repeat it, and requires
 `OK175_TARGET_UID_SHA256` to equal the sha256 of the selected cluster's `kube-system` UID.
 
@@ -376,7 +434,45 @@ OK175_REGISTRY_USERNAME=<pull-only user> OK175_REGISTRY_PASSWORD_FD=3 make live-
 make live-uninstall
 ```
 
-`live-run` first checks the installed Composition, XRD and ClusterRole equal the local files and
+`live-install` installs all four admission policies and their Deny bindings before installing
+this capability's XRD and Composition. It waits for each policy's current generation to be
+observed and for type checking to finish without warnings. Bindings have no readiness status,
+so the installer also observes actual denied and allowed server-side dry-runs, using temporary
+profile and Namespace fixtures that it removes afterwards. A failed observation stops installation.
+See the [Kubernetes VAP type-checking reference](https://kubernetes.io/docs/reference/access-authn-authz/validating-admission-policy/#type-checking).
+
+**Creation gate.** Before changing admission guards, `live-install` invalidates the installation
+receipt, then installs all four policies and their bindings, waits for current type-checked policy
+status, compares installed
+specifications to the local files, and exercises admission allow/deny controls. Only after those
+checks pass does it create `EnvironmentConfig/developer-workspace-admission-ready` with exactly
+`data.guardRevision: ok185-v1`, then install the XRD and Composition. An admission gate failure
+leaves the receipt absent. The Composition independently requires this exact receipt before emitting
+workspace resources; absent, malformed or obsolete receipts block new provisioning through direct
+XR submissions as well as the harness. XR creation itself can still be admitted while provisioning
+fails and the XR remains unready. Offline renders exercise absent, wrong and valid receipts; the
+live proof also submits direct XRs with absent and wrong receipts and requires zero composed
+Objects and no Namespace before restoring the valid receipt and provisioning normally.
+
+Every XR submission through the live harness also repeats the admission gate:
+missing, changed or unobserved policies or bindings abort before sending a workspace creation
+request. The live proof removes a binding before any workspace exists, verifies that the gated
+create refuses it and that neither the XR nor composed Objects appear, then restores admission
+and exercises the allowed path.
+
+The receipt attests that guard revision `ok185-v1` passed the installation gate before provisioning
+was enabled. It does not continuously certify policy health or detect later mutation. Trusted
+platform operators can forge or retain a receipt, change a CompositionRevision, or remove admission
+after installation. They must invalidate the receipt before policy installation/update, bump the
+guard revision when the guard contract changes, and preserve admission throughout workspace use.
+The gate does not retroactively certify existing workspaces, evict existing Pods, or remove
+already-created resources when the receipt disappears. Requiring the receipt keeps the enforcement
+small while using the installation gate's equality, status and behavioral checks; duplicating those
+checks inside the Composition would require a separate policy-inspection implementation. The
+Composition also independently fails closed on a missing or invalid profile.
+
+`live-run` first checks the installed Composition, XRD, ClusterRoles and all admission policies/bindings
+equal the local files and
 that each XR runs a CompositionRevision with the local pipeline. It then requires, each check with
 a control that shows it can fail:
 
@@ -429,6 +525,22 @@ a control that shows it can fail:
   answer is the source's); the source refuses a push with the workspace credential (403) while a
   write-credential control push succeeds; no Secret in the workspace Namespace holds the write
   credential;
+- Pod user namespace admission (OK-178): in enforced mode, server-side dry-run Pods with
+  `hostUsers` absent or true are denied specifically by `workspace-pod-user-namespace-required`,
+  and an otherwise identical Pod with false is admitted. In observed-negative mode the Namespace
+  lacks the selection label and the policy does not select it;
+- label integrity: temporary, named Namespace grants give workspace and observer exactly the
+  permissions needed to reach admission. Server dry-runs cover `kubectl label` removal/alteration,
+  one UPDATE dropping both protected labels, an UPDATE changing the workspace ID,
+  `namespaces/status` and `namespaces/finalize` UPDATEs dropping both labels, and DELETE of the
+  protected Namespace. Every denial must name `developer-workspace-namespace-host-users-guard`;
+  each attempt has an operator allowed control. The Namespace labels and UID remain unchanged.
+  The provider has a rendered-value allowed control and an out-of-value
+  Object negative. After denied changes, both `hostUsers: true` and omitted-hostUsers Pods remain
+  denied. All temporary grants are removed before the workspace discovery-only authority check;
+- `pods/ephemeralcontainers`: a real subresource request on a compliant Pod is allowed, while a
+  legacy noncompliant Pod is denied by the Pod policy. Workspace and observer identities are also
+  checked for lack of subresource update authority;
 - resource bounds (OK-176): three busy loops are throttled to the CPU limit (`cpu.stat`;
   control: usage reaches the limit); allocating 1.5x the memory limit gets the runtime
   `OOMKilled` (control: 0.5x succeeds); the quota rejects a second PVC beyond the declared size
@@ -516,8 +628,11 @@ be an exact errno, so it is not a fallback. The probe always runs in the workspa
   existing workspaces stay on their CompositionRevision until moved; set
   `spec.crossplane.compositionRevisionRef` to the previous revision to roll one back. This is
   Crossplane's revision mechanism; the live proof does not exercise a rollback.
+- **Missing or malformed profile during cleanup:** restore the reviewed
+  `developer-workspace-profile` before deleting workspaces. The label guard intentionally denies
+  matched Namespace operations, including deletion, without valid parameters.
 - **Uninstall:** delete every `DeveloperWorkspace`, then `make live-uninstall` (Composition, XRD,
-  ProviderConfig, RBAC, provider, functions, Crossplane).
+  ProviderConfig, all admission policies/bindings, RBAC, provider, functions, Crossplane).
 - **Disposable cluster:** tear it down with its lifecycle tooling and delete its kubeconfig.
 
 ## Limits (not claimed)
@@ -555,7 +670,7 @@ be an exact errno, so it is not a fallback. The probe always runs in the workspa
   reconciler. Inference under user namespaces remains unproven.
 - Drift correction covers deleted objects and changed values of rendered fields. A field added
   outside the rendered set (for example an extra egress rule on `default-deny`) is not removed:
-  provider-kubernetes applies client-side and manages only the fields it wrote. Making that change
+  provider-kubernetes v1.3.1 uses server-side apply and manages the fields owned by each Object. Making that change
   needs authority no workspace holds.
 - The namespace guard keys on the `workspace.openkubes.io/id` label. Anyone who can label a
   Namespace can mark it as a workspace's; that authority already covers the Namespace itself.

@@ -12,7 +12,7 @@ reference.
 Functions run as Development-runtime containers (see Makefile `functions-up`): this workstation's
 Crossplane CLI cannot reach a Docker socket directly.
 """
-import copy, hashlib, importlib.util, json, os, subprocess, sys, tempfile
+import argparse, copy, hashlib, importlib.util, json, os, subprocess, sys, tempfile
 from pathlib import Path
 import yaml
 
@@ -25,6 +25,10 @@ RENDER_BINARY = os.environ.get('CROSSPLANE_RENDER_BINARY', '')
 TARGETS = {'function-go-templating': os.environ.get('GOTEMPLATING_TARGET', 'localhost:9443'),
            'function-auto-ready': os.environ.get('AUTOREADY_TARGET', 'localhost:9444')}
 PROVIDER_CONFIG = 'in-cluster'
+HOST_USERS_LABEL = 'workspace.openkubes.io/host-users'
+DEFAULT_COMPOSITION = CAPABILITY / 'composition.yaml'
+ADMISSION_ERROR = ('admission installation receipt developer-workspace-admission-ready '
+                   'must declare guardRevision=ok185-v1')
 
 spec = importlib.util.spec_from_file_location('profile_config', HERE / 'profile_config.py')
 profile_configs = importlib.util.module_from_spec(spec); spec.loader.exec_module(profile_configs)
@@ -42,9 +46,16 @@ def functions_file(directory):
 
 def profile_config(profile, pull_secret): return profile_configs.profile_config(profile, PROVIDER_CONFIG, pull_secret)
 
-def render(doc, extra, directory, observed=None):
+def required_resources(profile, pull_secret='', receipt=None):
+    """Supply both operator-owned inputs required by every valid render."""
+    if receipt is None:
+        receipt = profile_configs.admission_ready_config()
+    return [profile_config(profile, pull_secret), receipt]
+
+
+def render(doc, extra, directory, observed=None, composition=DEFAULT_COMPOSITION):
     xr = Path(directory) / 'xr.yaml'; xr.write_text(yaml.safe_dump(doc, sort_keys=False))
-    args = [CROSSPLANE, 'composition', 'render', str(xr), str(CAPABILITY / 'composition.yaml'),
+    args = [CROSSPLANE, 'composition', 'render', str(xr), str(composition),
             str(functions_file(directory))]
     args.append(f'--crossplane-binary={RENDER_BINARY}' if RENDER_BINARY else '--crossplane-version=v2.3.3')
     if observed is not None:
@@ -89,6 +100,25 @@ def composed(outputs, workspace_id=None, profile=None, doc=None):
         assert set(names) == expected_names, f'composed Object names differ: expected={sorted(expected_names)} got={sorted(names)}'
     manifests = [o['spec']['forProvider']['manifest'] for o in objects]
     return {(m['kind'], m['metadata']['name']): m for m in manifests}, objects
+
+def check_user_namespace_policy():
+    docs = list(yaml.safe_load_all((CAPABILITY / 'install/pod-user-namespace-guard.yaml').read_text()))
+    policy = next(d for d in docs if d['kind'] == 'ValidatingAdmissionPolicy')
+    binding = next(d for d in docs if d['kind'] == 'ValidatingAdmissionPolicyBinding')
+    assert policy['metadata']['name'] == 'workspace-pod-user-namespace-required'
+    assert policy['spec']['failurePolicy'] == 'Fail'
+    constraints = policy['spec']['matchConstraints']
+    assert constraints['namespaceSelector'] == {'matchLabels': {HOST_USERS_LABEL: 'false'}}
+    assert constraints['resourceRules'] == [{
+        'apiGroups': [''], 'apiVersions': ['v1'], 'operations': ['CREATE', 'UPDATE'],
+        'resources': ['pods', 'pods/ephemeralcontainers'], 'scope': 'Namespaced'}]
+    assert policy['spec']['validations'] == [{
+        'expression': 'has(object.spec.hostUsers) && object.spec.hostUsers == false',
+        'message': 'Pods in this workspace Namespace must set spec.hostUsers to false'}]
+    assert binding['spec'] == {
+        'policyName': 'workspace-pod-user-namespace-required', 'validationActions': ['Deny']}
+    print('PASS pod user namespace policy: manifest defines Fail/Deny and Namespaced Pod CREATE/UPDATE scope')
+
 
 def assert_capacity_label(manifests, value):
     """Require the runtime-capacity declaration on the Namespace and nowhere else."""
@@ -188,15 +218,53 @@ def mutations(doc):
     }
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        '--composition', type=Path, default=DEFAULT_COMPOSITION,
+        help='Composition under test; pass the pre-gate Composition as a mutation control')
+    args = parser.parse_args()
+    composition = args.composition.resolve()
+    if not composition.is_file():
+        print(f'FAIL Composition not found: {composition}', file=sys.stderr)
+        return 2
     # crossplane render does not execute XRD admission CEL; keep oracle inputs admissible.
     base = canonicalize_name(load(SPIKE / 'developer-workspace-v0alpha1.example.yaml')); profile = profile_configs.load_profile(SPIKE / 'namespace-profile-v1.yaml')
     failures = []; checked = 0; capacity_labels = set()
+    try: check_user_namespace_policy()
+    except (AssertionError, KeyError, StopIteration) as error: failures.append(f'pod user namespace policy: {error!r}')
     with tempfile.TemporaryDirectory(prefix='ok175-render-') as directory:
+        correct = profile_configs.admission_ready_config()
+        done, outputs = render(base, required_resources(profile, receipt=correct), directory,
+                               composition=composition)
+        if done.returncode == 0 and [o for o in outputs if o.get('kind') == 'Object']:
+            print('PASS admission readiness receipt: exact guardRevision renders composed Objects')
+        else:
+            failures.append(f'correct admission readiness receipt: rc={done.returncode} '
+                            f'objects={len([o for o in outputs if o.get("kind") == "Object"])} '
+                            f'error={done.stderr[:300]}')
+        receipt_controls = {
+            'missing': [profile_config(profile, '')],
+            'wrong revision': required_resources(
+                profile, receipt={**correct, 'data': {'guardRevision': 'ok185-v0'}}),
+            'bad shape': required_resources(
+                profile, receipt={**correct, 'data': {
+                    'guardRevision': profile_configs.ADMISSION_GUARD_REVISION, 'extra': True}}),
+        }
+        for label, resources in receipt_controls.items():
+            done, outputs = render(base, resources, directory, composition=composition)
+            objects = [o for o in outputs if o.get('kind') == 'Object']
+            if done.returncode != 0 and ADMISSION_ERROR in done.stderr and not objects:
+                print(f'PASS admission readiness receipt {label}: fatal rejection, nothing composed')
+            else:
+                failures.append(f'admission readiness receipt {label}: expected fatal rejection '
+                                f'with no Objects, got rc={done.returncode} objects={len(objects)} '
+                                f'error={done.stderr[:300]}')
         collision_names = []
         try:
             for workspace_id in ('ws-c69924', 'ws-cd9634'):
                 doc = copy.deepcopy(base); doc['spec']['workspaceID'] = workspace_id; canonicalize_name(doc)
-                done, outputs = render(doc, [profile_config(profile, '')], directory)
+                done, outputs = render(doc, required_resources(profile), directory,
+                                       composition=composition)
                 if done.returncode: raise AssertionError(f'{workspace_id}: {done.stderr.strip()[:300]}')
                 got, objects = composed(outputs, doc['spec']['workspaceID'], profile, doc)
                 assert_capacity_label(got, 'not-runtime-enforced')
@@ -214,9 +282,20 @@ def main():
                 for mode in ('persistent', 'ephemeral'):
                     for pull_secret in ('', 'registry-pull'):
                         doc = variant(base, runtime, mode); name = f'hostUsers={str(host_users).lower()}/{runtime}/{mode}/{"pull-secret" if pull_secret else "no-pull-secret"}'
-                        done, outputs = render(doc, [profile_config(selected_profile, pull_secret)], directory)
+                        done, outputs = render(
+                            doc, required_resources(selected_profile, pull_secret), directory,
+                            composition=composition)
                         if done.returncode: failures.append(f'{name}: render failed: {done.stderr.strip()[:300]}'); continue
-                        want = expected(doc, selected_profile, pull_secret); got, objects = composed(outputs, doc['spec']['workspaceID'], selected_profile, doc)
+                        want = expected(doc, selected_profile, pull_secret)
+                        got, objects = composed(outputs, doc['spec']['workspaceID'], selected_profile, doc)
+                        namespace = got.get(('Namespace', 'dw-sample-174'))
+                        labels = namespace.get('metadata', {}).get('labels', {}) if namespace else {}
+                        labeled = sorted(key for key, manifest in got.items()
+                                         if HOST_USERS_LABEL in manifest.get('metadata', {}).get('labels', {}))
+                        if host_users is False and (labels.get(HOST_USERS_LABEL) != 'false' or labeled != [('Namespace', 'dw-sample-174')]):
+                            failures.append(f'{name}: expected {HOST_USERS_LABEL}=false only on the Namespace; labeled={labeled}')
+                        elif host_users is True and labeled:
+                            failures.append(f'{name}: {HOST_USERS_LABEL} unexpectedly labels {labeled}')
                         try:
                             assert_capacity_label(got, 'not-runtime-enforced')
                             capacity_labels.add('not-runtime-enforced')
@@ -228,7 +307,7 @@ def main():
                             failures.append(f'{name}: missing={missing} extra={extra} differ={differ}')
                             for k in differ[:2]: failures.append(f'  {k} want={json.dumps(want[k], sort_keys=True)[:400]}\n  {k} got ={json.dumps(got[k], sort_keys=True)[:400]}')
                         else:
-                            checked += 1; print(f'PASS {name}: {len(objects)} Objects equal capability reference rendering')
+                            checked += 1; print(f'PASS {name}: {len(objects)} Objects equal capability reference rendering; Namespace {HOST_USERS_LABEL}={labels.get(HOST_USERS_LABEL, "absent")}')
         enforcing = copy.deepcopy(profile)
         enforcing['spec'].update(hostUsers=False, storageClassName='quota-class',
                                  persistentCapacity={'runtimeEnforced': True, 'capacityEnforcingStorageClasses': ['quota-class']})
@@ -236,7 +315,9 @@ def main():
             for mode in ('persistent', 'ephemeral'):
                 for pull_secret in ('', 'registry-pull'):
                     doc = variant(base, runtime, mode)
-                    done, outputs = render(doc, [profile_config(enforcing, pull_secret)], directory)
+                    done, outputs = render(
+                        doc, required_resources(enforcing, pull_secret), directory,
+                        composition=composition)
                     name = f'runtime-enforced/{runtime}/{mode}/{"pull-secret" if pull_secret else "no-pull-secret"}'
                     if done.returncode:
                         failures.append(f'{name}: render failed: {done.stderr.strip()[:300]}'); continue
@@ -253,7 +334,8 @@ def main():
         local_path_enforcing['spec'].update(
             hostUsers=False,
             persistentCapacity={'runtimeEnforced': True, 'capacityEnforcingStorageClasses': ['local-path']})
-        done, outputs = render(base, [profile_config(local_path_enforcing, '')], directory)
+        done, outputs = render(base, required_resources(local_path_enforcing), directory,
+                               composition=composition)
         name = 'self-declared-local-path/runtime-enforced'
         if done.returncode:
             failures.append(f'{name}: render failed: {done.stderr.strip()[:300]}')
@@ -283,7 +365,8 @@ def main():
             'mcp': 'capabilityref:mcp-' + 'm' * 63,
         }
         doc, longest_profile = replace_capability_refs(doc, profile, max_refs)
-        done, outputs = render(doc, [profile_config(longest_profile, '')], directory)
+        done, outputs = render(doc, required_resources(longest_profile), directory,
+                               composition=composition)
         try:
             if done.returncode: raise AssertionError(done.stderr.strip()[:300])
             got, objects = composed(outputs, doc['spec']['workspaceID'], longest_profile, doc); assert got == expected(doc, longest_profile, ''), 'manifests differ from render()'
@@ -298,7 +381,8 @@ def main():
             print(f'RENDERED longest Object name: {longest["metadata"]["name"]} (length={len(longest["metadata"]["name"])}, key length={len(longest_key)})')
         except AssertionError as error: failures.append(f'longest workspaceID: {error}')
         status = lambda outputs: {k: v for k, v in next((o for o in outputs if o.get('kind') == 'DeveloperWorkspace'), {}).get('status', {}).items() if k != 'conditions'}
-        done, outputs = render(base, [profile_config(profile, '')], directory)
+        done, outputs = render(base, required_resources(profile), directory,
+                               composition=composition)
         if done.returncode:
             for failure in failures: print('FAIL ' + failure, file=sys.stderr)
             print(f'FAIL status render: {done.stderr.strip()[:600]}', file=sys.stderr)
@@ -312,10 +396,12 @@ def main():
             return 1
         deployment = copy.deepcopy(deployment)
         deployment['status'] = {'atProvider': {'manifest': {'status': {'availableReplicas': 1}}}}
-        done, outputs = render(base, [profile_config(profile, '')], directory, [deployment])
+        done, outputs = render(base, required_resources(profile), directory, [deployment],
+                               composition=composition)
         if done.returncode == 0 and status(outputs).get('lifecyclePhase') == 'running': print('PASS status: running once the Deployment is available')
         else: failures.append(f'status after availability: rc={done.returncode} {status(outputs) if done.returncode == 0 else done.stderr[:300]}')
-        done, outputs = render(base, None, directory)
+        done, outputs = render(base, [profile_configs.admission_ready_config()], directory,
+                               composition=composition)
         if done.returncode != 0 and 'developer-workspace-profile not found' in done.stderr: print('PASS no profile EnvironmentConfig: render fails, nothing composed')
         else: failures.append(f'no profile EnvironmentConfig: expected a failure naming it, got rc={done.returncode} objects={len([o for o in outputs if o.get("kind") == "Object"])}')
         rejected = 0; cases = mutations(base)
@@ -323,7 +409,8 @@ def main():
             doc, broken = copy.deepcopy(base), copy.deepcopy(profile); mutate(doc, broken)
             try: profile_configs.reference_render(doc, broken); failures.append(f'{label}: reference_render() accepts it; the case is not a rejection'); continue
             except Exception: pass
-            done, outputs = render(doc, [profile_config(broken, '')], directory)
+            done, outputs = render(doc, required_resources(broken), directory,
+                                   composition=composition)
             if done.returncode != 0 and 'fatal result' in done.stderr and not outputs:
                 required_reason = {
                     'enforced class with hostUsers:true': 'runtime-enforced capacity requires hostUsers=false',

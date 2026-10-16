@@ -8,6 +8,8 @@ from pathlib import Path
 import yaml
 
 SPIKE = Path(__file__).resolve().parents[5] / 'architecture/spikes/ADR-Platform-039'
+ADMISSION_READY_NAME = 'developer-workspace-admission-ready'
+ADMISSION_GUARD_REVISION = 'ok185-v1'
 spec = importlib.util.spec_from_file_location('capability_spike_render', SPIKE / 'verify_developer_workspace_v1.py')
 spike = importlib.util.module_from_spec(spec); spec.loader.exec_module(spike)
 
@@ -49,6 +51,9 @@ def reference_render(doc, profile):
         'runtime-enforced' if capacity['runtimeEnforced'] else 'not-runtime-enforced')
     pod = next(r for r in rendered['spec']['resources'] if r['kind'] == 'Deployment')['spec']['template']['spec']
     pod['hostUsers'] = host_users
+    namespace = next(r for r in rendered['spec']['resources'] if r['kind'] == 'Namespace')
+    if not host_users:
+        namespace['metadata']['labels']['workspace.openkubes.io/host-users'] = 'false'
     return rendered
 
 def profile_config(profile, provider_config, pull_secret=''):
@@ -56,3 +61,9 @@ def profile_config(profile, provider_config, pull_secret=''):
     if pull_secret: data['imagePullSecret'] = pull_secret
     return {'apiVersion': 'apiextensions.crossplane.io/v1beta1', 'kind': 'EnvironmentConfig',
             'metadata': {'name': 'developer-workspace-profile'}, 'data': data}
+
+def admission_ready_config():
+    """Installation receipt; live-install creates it only after observing the admission gate."""
+    return {'apiVersion': 'apiextensions.crossplane.io/v1beta1', 'kind': 'EnvironmentConfig',
+            'metadata': {'name': ADMISSION_READY_NAME},
+            'data': {'guardRevision': ADMISSION_GUARD_REVISION}}

@@ -21,6 +21,8 @@ proof = importlib.util.module_from_spec(SPEC)
 sys.modules[SPEC.name] = proof
 SPEC.loader.exec_module(proof)
 DISABLE_PROVIDER_STEERING_POLICY = '--disable-provider-steering-policy' in sys.argv
+DISABLE_NAMESPACE_MUTATION_PROBES = '--disable-namespace-mutation-probes' in sys.argv
+DISABLE_ADMISSION_RECEIPT_ORDERING = '--disable-admission-receipt-ordering' in sys.argv
 
 
 def completed(args, returncode=0, stdout='', stderr=''):
@@ -28,6 +30,15 @@ def completed(args, returncode=0, stdout='', stderr=''):
 
 
 class CapacityDeclarationTest(unittest.TestCase):
+    def test_admission_gate_cannot_omit_a_required_guard(self):
+        proof.validate_required_admission_guards(proof.ADMISSION_GUARDS)
+        for omitted in proof.ADMISSION_GUARDS:
+            with self.subTest(omitted=omitted):
+                with self.assertRaisesRegex(proof.ProofError, 'admission gate must include'):
+                    proof.validate_required_admission_guards(
+                        tuple(path for path in proof.ADMISSION_GUARDS if path != omitted))
+        print('CONTROL FAILS AS EXPECTED: omitting any required admission guard closes the install/XR gate')
+
     def test_installed_profile_data_and_identity_must_match(self):
         profile = proof.render_profile.load_profile(proof.LIVE / 'profile/namespace-profile-live.yaml')
         config = proof.render_profile.profile_config(profile, 'in-cluster')
@@ -150,6 +161,11 @@ class CapacityRefusalTest(unittest.TestCase):
                 def fake_kubectl(args, **kwargs):
                     if args[:2] == ['apply', '--dry-run=server']:
                         return completed(args, 1, stderr='persistent lifecycle requires persistent storage')
+                    if args[:2] == ['create', '--dry-run=server'] and 'ok175-cel-probe' in kwargs.get('input_text', ''):
+                        return completed(args, 1, stderr='metadata.name must equal workspaceID + -xr')
+                    if (args[:2] == ['create', '-f'] and
+                            proof.canonical_xr_name('ws-ok185-policy-gate') in kwargs.get('input_text', '')):
+                        raise proof.ProofError('workspace-pod-user-namespace-required binding is missing')
                     if args[0] == 'get': return completed(args, 1, stderr='(NotFound): absent')
                     return completed(args)
                 def fake_exec(ns, pod, command, *args, **kwargs):
@@ -159,6 +175,8 @@ class CapacityRefusalTest(unittest.TestCase):
                            'apply': lambda docs: None, 'proof_services': lambda *args: [],
                            'get_json': fake_json, 'kubectl': fake_kubectl, 'exec_in': fake_exec,
                            'installed_matches_local': lambda: {}, 'assert_noncanonical_name_refused': lambda *args: {},
+                           'wait_for_admission_policies': lambda: [],
+                           'prove_admission_receipt_gate': lambda *args: {},
                            'wait_until': lambda *args, **kwargs: None, 'profile_readback': lambda *args: {},
                            'composed_objects': lambda name: [], 'revision_matches': lambda *args: {},
                            'workspace_pod': lambda ns: 'runtime-pod',
@@ -174,7 +192,7 @@ class CapacityRefusalTest(unittest.TestCase):
                 stack.enter_context(contextlib.redirect_stdout(output)); stack.enter_context(contextlib.redirect_stderr(errors))
                 self.assertEqual(proof.main(), 1)
                 refusals = [json.loads(line) for line in output.getvalue().splitlines() if line.startswith('{')]
-                self.assertEqual(len(refusals), 1)
+                self.assertEqual(len(refusals), 1, errors.getvalue())
                 self.assertEqual(refusals[0]['name'], 'persistent-capacity-certification-refused')
                 self.assertEqual(refusals[0]['status'], 'fail')
                 self.assertEqual(refusals[0]['stage'], 'persistent-capacity-enforced' if ready else 'workspace-readiness')
@@ -243,6 +261,8 @@ class FakeKubectl:
             verb, target = args[2], args[3]
             target, _, name = target.partition('/')
             resource, _, api_group = target.partition('.')
+            subresource = next((value.removeprefix('--subresource=') for value in args if value.startswith('--subresource=')), '')
+            if subresource: resource = f'{resource}/{subresource}'
             namespace = None
             if '--namespace' in args:
                 namespace = args[args.index('--namespace') + 1]
@@ -299,6 +319,89 @@ class FakeKubectl:
         if args[:2] == ['get', 'objects.kubernetes.crossplane.io']:
             return completed(args, stdout=json.dumps({'items': self.object_refs}))
         raise AssertionError(f'unexpected fake kubectl call: {args}')
+
+
+class NamespaceProbeKubectl:
+    def __init__(self, denial='policy', operator_allowed=True):
+        self.denial = denial
+        self.operator_allowed = operator_allowed
+        self.granted = False
+        self.role_deleted = False
+        self.binding_deleted = False
+        self.calls = []
+        self.applied = []
+        self.namespace = {
+            'apiVersion': 'v1', 'kind': 'Namespace',
+            'metadata': {'name': 'dw-a', 'uid': 'namespace-uid', 'resourceVersion': '17',
+                         'labels': {proof.WORKSPACE_ID_LABEL: 'ws-a', proof.HOST_USERS_LABEL: 'false',
+                                    'kubernetes.io/metadata.name': 'dw-a'}},
+            'spec': {'finalizers': ['kubernetes']}, 'status': {'phase': 'Active'},
+        }
+
+    @staticmethod
+    def identity(args):
+        return next((value.removeprefix('--as=') for value in args if value.startswith('--as=')), None)
+
+    def mutation_result(self, args, identity, changed):
+        operator = identity and identity.endswith(f':{proof.OPERATOR_SA}')
+        if not changed:
+            return completed(args)
+        if operator and self.operator_allowed:
+            return completed(args)
+        verb = 'delete' if args[0] == 'delete' else 'update'
+        if self.denial == 'forbidden':
+            return completed(args, 1, stderr=(
+                f'Error from server (Forbidden): namespaces "dw-a" is forbidden: User "{identity}" '
+                f'cannot {verb} resource "namespaces" at the cluster scope\n'))
+        policy = proof.NAMESPACE_HOST_USERS_POLICY if self.denial == 'policy' else 'wrong-policy'
+        reason = ('only the DeveloperWorkspace provider or an operator may delete a protected workspace Namespace'
+                  if verb == 'delete' else
+                  'only an operator may change workspace identity or host-users Namespace labels')
+        return completed(args, 1, stderr=(
+            f'Error from server (Invalid): namespaces "dw-a" is forbidden: ValidatingAdmissionPolicy '
+            f"'{policy}' denied request: {reason}\n"))
+
+    def __call__(self, args, *, input_text=None, timeout=120, check=True):
+        self.calls.append((copy.deepcopy(args), input_text))
+        if args[:2] == ['get', 'namespace'] and args[2] == 'dw-a':
+            return completed(args, stdout=json.dumps(self.namespace))
+        if args[0] == 'get' and len(args) > 1 and args[1] in (
+                f'clusterrole/{proof.LABEL_PROBE_ROLE}',
+                f'clusterrolebinding/{proof.LABEL_PROBE_BINDING}'):
+            deleted = self.role_deleted if args[1].startswith('clusterrole/') else self.binding_deleted
+            if not self.granted or deleted:
+                return completed(args, 1, stderr='Error from server (NotFound): resource not found\n')
+            return completed(args, stdout=args[1] + '\n')
+        if args[:2] == ['apply', '-f']:
+            self.applied = [doc for doc in proof.yaml.safe_load_all(input_text) if doc]
+            self.granted = True
+            return completed(args)
+        if args[:2] == ['auth', 'can-i']:
+            verb, target = args[2], args[3]
+            # Real kubectl: subresource only via --subresource; a path-embedded one is never granted.
+            resource, _, name = target.partition('/')
+            subresource = next((value.removeprefix('--subresource=') for value in args if value.startswith('--subresource=')), '')
+            if subresource: resource = f'{resource}/{subresource}'
+            allowed = self.granted and name == 'dw-a' and (
+                (resource == 'namespaces' and verb in ('get', 'update', 'patch', 'delete')) or
+                (resource in ('namespaces/status', 'namespaces/finalize') and verb == 'update'))
+            return completed(args, 0 if allowed else 1, 'yes\n' if allowed else 'no\n')
+        if args[0] == 'label':
+            return self.mutation_result(args, self.identity(args), True)
+        if args[0] == 'replace':
+            document = json.loads(input_text) if '--raw' in args else proof.yaml.safe_load(input_text)
+            before = self.namespace['metadata']['labels']
+            changed = document.get('metadata', {}).get('labels', {}) != before
+            return self.mutation_result(args, self.identity(args), changed)
+        if args[:3] == ['delete', 'namespace', 'dw-a'] and '--dry-run=server' in args:
+            return self.mutation_result(args, self.identity(args), True)
+        if args[:2] == ['delete', 'clusterrolebinding']:
+            self.binding_deleted = True
+            return completed(args)
+        if args[:2] == ['delete', 'clusterrole']:
+            self.role_deleted = True
+            return completed(args)
+        raise AssertionError(f'unexpected namespace probe kubectl call: {args}')
 
 
 def yaml_docs(path):
@@ -671,6 +774,20 @@ class AuthorityWhoCanTest(unittest.TestCase):
         print('CONTROL FAILS AS EXPECTED: missing expected controller or altered default group fails equality')
 
 
+class KubectlFlagTest(unittest.TestCase):
+    def test_can_i_never_embeds_a_subresource_in_the_resource_path(self):
+        # kubectl auth can-i reads 'pods/ephemeralcontainers' as a Pod named ephemeralcontainers.
+        source = Path(proof.__file__).read_text()
+        for embedded in ("'pods/ephemeralcontainers', False", "'namespaces/status'", "'namespaces/finalize'"):
+            self.assertNotIn("assert_can_i(identity, 'update', " + embedded, source)
+
+    def test_no_kubectl_call_uses_a_nonexistent_preconditions_flag(self):
+        # The fake kubectl accepts any flag; the real one rejects --preconditions (seen live).
+        source = (Path(proof.__file__)).read_text()
+        self.assertNotIn("'--preconditions", source)
+        self.assertNotIn("f'--preconditions", source)
+
+
 class ReconcileProofAssertionsTest(unittest.TestCase):
     def setUp(self):
         self.original_kubectl = proof.kubectl
@@ -721,6 +838,134 @@ class ReconcileProofAssertionsTest(unittest.TestCase):
         proof.assert_can_i(observer, 'create', 'objects.kubernetes.crossplane.io', False)
         with self.assertRaisesRegex(proof.ProofError, 'expected False'):
             proof.assert_can_i(operator, 'create', 'objects.kubernetes.crossplane.io', False)
+
+    def test_namespace_label_guard_validator_rejects_permissive_false_green(self):
+        message = (f'Error from server (Invalid): namespaces "dw-a" is forbidden: ValidatingAdmissionPolicy '
+                   f"'{proof.NAMESPACE_HOST_USERS_POLICY}' with binding '{proof.NAMESPACE_HOST_USERS_POLICY}' denied request: "
+                   'only an operator may change workspace identity or host-users Namespace labels')
+        delete_message = (f'Error from server (Invalid): namespaces "dw-a" is forbidden: ValidatingAdmissionPolicy '
+                          f"'{proof.NAMESPACE_HOST_USERS_POLICY}' denied request: only the DeveloperWorkspace provider "
+                          'or an operator may delete a protected workspace Namespace')
+        operations = ('remove', 'alter', *proof.NAMESPACE_MUTATION_OPERATIONS)
+        denied = {f'{identity}-{operation}': completed(['label'], 1,
+                                                       stderr=delete_message if operation == 'delete' else message)
+                  for identity in ('workspace', 'observer') for operation in operations}
+        allowed = {f'operator-{operation}': completed(['label']) for operation in operations}
+        allowed.update({f'{identity}-preserve': completed(['replace'])
+                        for identity in ('workspace', 'observer', 'operator')})
+        before = {'metadata': {'uid': 'namespace-uid', 'resourceVersion': '17',
+                               'labels': {proof.HOST_USERS_LABEL: 'false', proof.WORKSPACE_ID_LABEL: 'ws-a'}}}
+        result = proof.validate_namespace_label_admission('enforced', before, copy.deepcopy(before), denied, allowed)
+        self.assertEqual(sorted(denied), result['denied'])
+        without_control = {key: value for key, value in allowed.items() if key != 'workspace-preserve'}
+        with self.assertRaisesRegex(proof.ProofError, 'incomplete Namespace label controls'):
+            proof.validate_namespace_label_admission('enforced', before, copy.deepcopy(before), denied, without_control)
+        denied['workspace-remove'] = completed(['label'])
+        with self.assertRaisesRegex(proof.ProofError, 'workspace-remove was not denied'):
+            proof.validate_namespace_label_admission('enforced', before, copy.deepcopy(before), denied, allowed)
+        print('CONTROL FAILS AS EXPECTED: a permissive label guard makes the denial validator fail')
+
+        outcomes = {
+            'drop': {'synced': False, 'message': message.replace('only an operator may change workspace identity or host-users Namespace labels',
+                                                                 'the DeveloperWorkspace provider must preserve the workspace identity and render host-users from developer-workspace-profile')},
+            'alter': {'synced': False, 'message': message.replace('only an operator may change workspace identity or host-users Namespace labels',
+                                                                  'the DeveloperWorkspace provider must preserve the workspace identity and render host-users from developer-workspace-profile')},
+            'preserve': {'synced': True, 'message': ''},
+        }
+        labels = {proof.HOST_USERS_LABEL: 'false', proof.WORKSPACE_ID_LABEL: 'ws-a'}
+        proof.validate_provider_label_reconcile(outcomes, labels, copy.deepcopy(labels), 'false')
+        outcomes['alter'] = {'synced': True, 'message': ''}
+        with self.assertRaisesRegex(proof.ProofError, 'provider alter Object did not fail'):
+            proof.validate_provider_label_reconcile(outcomes, labels, copy.deepcopy(labels), 'false')
+        print('CONTROL FAILS AS EXPECTED: a permissive provider label path makes the reconcile validator fail')
+
+    def test_namespace_label_probes_drive_every_update_subresource_and_delete_cell(self):
+        original_helper = proof.namespace_mutation_documents
+        try:
+            fake = NamespaceProbeKubectl()
+            proof.kubectl = fake
+            result = proof.namespace_label_probes('dw-a', 'enforced')
+            self.assertTrue(result['dryRunUnchanged'])
+            self.assertEqual('namespace-uid', result['namespaceUID'])
+            role = next(doc for doc in fake.applied if doc['kind'] == 'ClusterRole')
+            self.assertEqual([
+                {'apiGroups': [''], 'resources': ['namespaces'], 'resourceNames': ['dw-a'],
+                 'verbs': ['get', 'update', 'patch', 'delete']},
+                {'apiGroups': [''], 'resources': ['namespaces/status', 'namespaces/finalize'],
+                 'resourceNames': ['dw-a'], 'verbs': ['update']},
+            ], role['rules'])
+            raw_paths = {args[2] for args, _input in fake.calls if args[:2] == ['replace', '--raw']}
+            self.assertEqual({'/api/v1/namespaces/dw-a/status?dryRun=All',
+                              '/api/v1/namespaces/dw-a/finalize?dryRun=All'}, raw_paths)
+            self.assertEqual(3, sum(args[:3] == ['delete', 'namespace', 'dw-a'] and '--dry-run=server' in args
+                                    for args, _input in fake.calls))
+            self.assertEqual(6, sum(args[:2] == ['label', 'namespace'] for args, _input in fake.calls))
+            self.assertTrue(fake.role_deleted and fake.binding_deleted)
+
+            def missing_status(document):
+                mutations = original_helper(document)
+                mutations.pop('status-drop-both')
+                return mutations
+            proof.kubectl = NamespaceProbeKubectl()
+            with patch.object(proof, 'namespace_mutation_documents', missing_status):
+                with self.assertRaisesRegex(proof.ProofError, 'incomplete Namespace label denials'):
+                    proof.namespace_label_probes('dw-a', 'enforced')
+            print('CONTROL FAILS AS EXPECTED: omitting a namespace/status mutation cell fails the probe matrix')
+
+            for denial, message in (('wrong-policy', 'was not denied specifically'),
+                                    ('forbidden', 'denied by RBAC instead')):
+                proof.kubectl = NamespaceProbeKubectl(denial=denial)
+                with self.subTest(denial=denial):
+                    with self.assertRaisesRegex(proof.ProofError, message):
+                        proof.namespace_label_probes('dw-a', 'enforced')
+            proof.kubectl = NamespaceProbeKubectl(operator_allowed=False)
+            with self.assertRaisesRegex(proof.ProofError, 'operator-.* allowed control failed'):
+                proof.namespace_label_probes('dw-a', 'enforced')
+            print('CONTROL FAILS AS EXPECTED: wrong-policy, RBAC Forbidden, and denied operator controls cannot satisfy the Namespace mutation proof')
+        finally:
+            proof.kubectl = self.fake
+
+    def test_ephemeralcontainers_validator_rejects_permissive_false_green(self):
+        denial = completed(['replace'], 1, stderr=(
+            f'Error from server (Invalid): pods "legacy" is forbidden: ValidatingAdmissionPolicy '
+            f"'{proof.POD_USER_NAMESPACE_POLICY}' denied request: Pods in this workspace Namespace must set spec.hostUsers to false"))
+        authority = {name: completed(['replace'], 1, stderr=(
+            f'Error from server (Forbidden): pods "control" is forbidden: User "{name}" cannot update resource '
+            '"pods/ephemeralcontainers" in API group "" in the namespace "probe"'))
+                     for name in ('workspace', 'observer')}
+        proof.validate_ephemeralcontainers_admission(completed(['replace']), denial, authority,
+                                                     {'compliant': True, 'legacy': True})
+        with self.assertRaisesRegex(proof.ProofError, 'legacy hostUsers=true Pod'):
+            proof.validate_ephemeralcontainers_admission(completed(['replace']), completed(['replace']), authority,
+                                                         {'compliant': True, 'legacy': True})
+        print('CONTROL FAILS AS EXPECTED: a permissive ephemeralcontainers policy makes the validator fail')
+
+    def test_install_admission_validator_requires_each_guard_and_unrelated_control(self):
+        vap = lambda policy, reason: completed(
+            ['create'], 1, stderr=f"Error from server (Invalid): forbidden: ValidatingAdmissionPolicy '{policy}' denied request: {reason}")
+        outcomes = {
+            'provider-preserve': completed(['create']),
+            'provider-alter': vap(proof.NAMESPACE_HOST_USERS_POLICY,
+                                  'the DeveloperWorkspace provider must preserve the workspace identity and render host-users from developer-workspace-profile'),
+            'provider-adopt': vap('developer-workspace-namespace-guard',
+                                  'the DeveloperWorkspace provider may change or delete only Namespaces it created for a workspace'),
+            'pod-false': completed(['create']),
+            'pod-true': vap(proof.POD_USER_NAMESPACE_POLICY,
+                            'Pods in this workspace Namespace must set spec.hostUsers to false'),
+            'pod-absent': vap(proof.POD_USER_NAMESPACE_POLICY,
+                              'Pods in this workspace Namespace must set spec.hostUsers to false'),
+            'missing-param': vap(proof.NAMESPACE_HOST_USERS_POLICY, 'no params found'),
+            'missing-param-unrelated': completed(['create']),
+        }
+        proof.validate_install_admission_observation(outcomes)
+        for name in ('provider-alter', 'provider-adopt', 'pod-true'):
+            mutant = copy.deepcopy(outcomes); mutant[name] = completed(['create'])
+            with self.subTest(permissive=name):
+                with self.assertRaises(proof.ProofError): proof.validate_install_admission_observation(mutant)
+        mutant = copy.deepcopy(outcomes); mutant['missing-param-unrelated'] = vap(proof.NAMESPACE_HOST_USERS_POLICY, 'no params found')
+        with self.assertRaisesRegex(proof.ProofError, 'missing-param-unrelated'):
+            proof.validate_install_admission_observation(mutant)
+        print('CONTROL FAILS AS EXPECTED: each guard denial and the unrelated Namespace allow control are required')
 
     def test_namespaced_provider_steering_policy_denial_and_operator_control(self):
         result = proof.prove_namespaced_provider_steering_denied()
@@ -804,8 +1049,6 @@ class ReconcileProofAssertionsTest(unittest.TestCase):
             xrd = read('xrd.yaml')
             provider_role = next(d for d in read_all('rbac/provider-kubernetes-clusterrole.yaml') if d['kind'] == 'ClusterRole')
             authority_roles = [d for d in read_all('rbac/authority-boundary.yaml') if d]
-            policies = [read_all(path) for path in
-                        ('install/namespace-guard.yaml', 'install/provider-steering-guard.yaml')]
             version = xrd['spec']['versions'][0]
             crd_name = f"{xrd['spec']['names']['plural']}.{xrd['spec']['group']}"
             generated_crd = {
@@ -819,17 +1062,23 @@ class ReconcileProofAssertionsTest(unittest.TestCase):
                 ('crd', crd_name): generated_crd,
                 ('clusterrole', provider_role['metadata']['name']): provider_role,
                 **{('clusterrole', role['metadata']['name']): role for role in authority_roles},
-                **{('validatingadmissionpolicy', policy['metadata']['name']): policy
-                   for policy, _binding in policies},
-                **{('validatingadmissionpolicybinding', binding['metadata']['name']): binding
-                   for _policy, binding in policies},
             }
+            for path in proof.ADMISSION_GUARDS:
+                policy, bindings = proof.admission_guard_documents(path)
+                policy = copy.deepcopy(policy); bindings = copy.deepcopy(bindings)
+                policy['metadata']['generation'] = 1
+                policy['status'] = {'observedGeneration': 1, 'typeChecking': {}}
+                mapping[('validatingadmissionpolicy', policy['metadata']['name'])] = policy
+                for binding in bindings:
+                    mapping[('validatingadmissionpolicybinding', binding['metadata']['name'])] = binding
             return mapping
 
         original_get_json = proof.get_json
         current = fixtures()
         def fake_get_json(args):
-            return copy.deepcopy(current[(args[1], args[2])])
+            key = (args[1], args[2])
+            if key not in current: raise proof.ProofError(f'kubectl get {args[1]} failed: NotFound {args[2]}')
+            return copy.deepcopy(current[key])
         proof.get_json = fake_get_json
         try:
             generated = current[('crd', 'developerworkspaces.workspace.openkubes.io')]
@@ -872,17 +1121,62 @@ class ReconcileProofAssertionsTest(unittest.TestCase):
                 'resourceRules': [], 'excludeResourceRules': [],
             }
             proof.installed_matches_local()
+            print('CONTROL PASS: generated CRD root/spec CEL and workspaceID maxLength match current XRD')
+
+            for path in proof.ADMISSION_GUARDS:
+                policy, bindings = proof.admission_guard_documents(path)
+                resources = [('validatingadmissionpolicy', policy['metadata']['name'])]
+                resources.extend(('validatingadmissionpolicybinding', binding['metadata']['name']) for binding in bindings)
+                for kind, name in resources:
+                    saved = current.pop((kind, name))
+                    with self.subTest(path=path, missing=kind):
+                        with self.assertRaisesRegex(proof.ProofError, 'NotFound'):
+                            proof.installed_matches_local()
+                    current[(kind, name)] = saved
+                print(f'CONTROL FAILS AS EXPECTED: either missing policy resource for {path} closes the XR gate')
+
+            policy_key = ('validatingadmissionpolicy', proof.POD_USER_NAMESPACE_POLICY)
+            current[policy_key]['status']['observedGeneration'] = 0
+            with self.assertRaisesRegex(proof.ProofError, 'observedGeneration'):
+                proof.installed_matches_local()
+            current[policy_key]['status']['observedGeneration'] = 1
+            current[policy_key]['status']['typeChecking'] = {'expressionWarnings': [{'fieldRef': 'spec.validations[0].expression', 'warning': 'mutant'}]}
+            with self.assertRaisesRegex(proof.ProofError, 'type-check warnings'):
+                proof.installed_matches_local()
+            current[policy_key]['status']['typeChecking'] = {}
+            # An in-place update with a clean type check leaves only observedGeneration.
+            del current[policy_key]['status']['typeChecking']
+            proof.installed_matches_local()
+            current[policy_key]['status']['typeChecking'] = {}
+            print('CONTROL FAILS AS EXPECTED: stale generation and CEL type warning close the XR gate')
+
+            binding_key = ('validatingadmissionpolicybinding', proof.POD_USER_NAMESPACE_POLICY)
+            saved_binding = current.pop(binding_key)
+            dispatched = []
+            original_kubectl = proof.kubectl
+            proof.kubectl = lambda *args, **kwargs: dispatched.append((args, kwargs))
+            try:
+                doc = {'apiVersion': 'workspace.openkubes.io/v0alpha1', 'kind': 'DeveloperWorkspace',
+                       'metadata': {'name': 'ws-gate-xr'}}
+                with self.assertRaisesRegex(proof.ProofError, 'NotFound'):
+                    proof.gated_xr_request(['create', '-f', '-'], doc)
+                self.assertEqual([], dispatched)
+            finally:
+                proof.kubectl = original_kubectl
+                current[binding_key] = saved_binding
+            print('CONTROL PASS: missing binding fails before gated_xr_request dispatches kubectl CREATE')
+
             steering_policy['spec']['matchConstraints']['namespaceSelector'] = {
                 'matchLabels': {'policy-bypass': 'true'},
             }
-            with self.assertRaisesRegex(proof.ProofError, 'provider steering guard policy differs'):
+            with self.assertRaisesRegex(proof.ProofError, 'installed admission policy differs from install/provider-steering-guard.yaml'):
                 proof.installed_matches_local()
             print('CONTROL FAILS AS EXPECTED: an installed provider guard Namespace selector cannot narrow enforcement')
             steering_policy['spec']['matchConstraints']['namespaceSelector'] = {}
             steering_policy['spec']['paramKind'] = {'apiVersion': 'v1', 'kind': 'ConfigMap'}
             steering_binding['spec']['paramRef'] = {'name': 'missing'}
             steering_binding['spec']['parameterNotFoundAction'] = 'Allow'
-            with self.assertRaisesRegex(proof.ProofError, 'provider steering guard policy differs'):
+            with self.assertRaisesRegex(proof.ProofError, 'installed admission policy differs from install/provider-steering-guard.yaml'):
                 proof.installed_matches_local()
             print('CONTROL FAILS AS EXPECTED: installed policy parameterization cannot bypass the provider steering guard')
             steering_policy['spec'].pop('paramKind')
@@ -890,37 +1184,174 @@ class ReconcileProofAssertionsTest(unittest.TestCase):
             steering_binding['spec'].pop('parameterNotFoundAction')
 
             proof.installed_matches_local()
-            print('CONTROL PASS: generated CRD guards and both admission policies/bindings match local files including harmless API defaults')
+            print('CONTROL PASS: generated CRD guards and every admission policy/binding match local files including harmless API defaults')
         finally:
             proof.get_json = original_get_json
 
-    def test_install_applies_provider_steering_guard(self):
+    def test_install_orders_admission_receipt_after_every_guard_check_and_never_mints_on_failure(self):
         original_target = proof.target
         original_run = proof.subprocess.run
         original_apply_file = proof.apply_file
         original_kubectl = proof.kubectl
-        applied = []
+        original_wait_for_admission_policies = proof.wait_for_admission_policies
+        original_observe_installed_admission = proof.observe_installed_admission
+        original_invalidate_admission_ready = proof.invalidate_admission_ready
+        original_publish_admission_ready = proof.publish_admission_ready
         proof.target = lambda: {'context': 'offline'}
         proof.subprocess.run = lambda *args, **kwargs: completed(list(args[0]))
-        proof.apply_file = lambda path: applied.append(str(path.relative_to(proof.CAPABILITY)))
         proof.kubectl = lambda args, **kwargs: completed(args)
         try:
-            proof.install(None)
-            self.assertIn('install/provider-steering-guard.yaml', applied)
-            self.assertLess(applied.index('install/provider-steering-guard.yaml'),
-                            applied.index('install/providerconfig.yaml'))
-            print('CONTROL PASS: install recipe applies the provider steering policy before the ProviderConfig')
+            def exercise(failure=None):
+                actions = []
+                def apply_file(path):
+                    relative = str(path.relative_to(proof.CAPABILITY))
+                    actions.append(relative)
+                    if failure == relative:
+                        raise proof.ProofError(f'forced failure at {relative}')
+                def wait_policies():
+                    actions.append('wait-for-admission-policies')
+                    if failure == 'wait-for-admission-policies': raise proof.ProofError('forced wait failure')
+                    return []
+                def observe():
+                    actions.append('observe-installed-admission')
+                    if failure == 'observe-installed-admission': raise proof.ProofError('forced observation failure')
+                    return {}
+                def invalidate():
+                    if not DISABLE_ADMISSION_RECEIPT_ORDERING:
+                        actions.append('receipt-invalidated')
+                def publish():
+                    actions.append('receipt-published')
+                    return {'name': proof.render_profile.ADMISSION_READY_NAME,
+                            'data': {'guardRevision': proof.render_profile.ADMISSION_GUARD_REVISION}}
+                proof.apply_file = apply_file
+                proof.wait_for_admission_policies = wait_policies
+                proof.observe_installed_admission = observe
+                proof.invalidate_admission_ready = invalidate
+                proof.publish_admission_ready = publish
+                if failure:
+                    with self.assertRaises(proof.ProofError):
+                        proof.install(None)
+                else:
+                    proof.install(None)
+                return actions
+
+            actions = exercise()
+            first_guard = actions.index(proof.ADMISSION_GUARDS[0])
+            self.assertLess(actions.index('receipt-invalidated'), first_guard)
+            self.assertEqual(list(proof.ADMISSION_GUARDS),
+                             [action for action in actions if action in proof.ADMISSION_GUARDS])
+            self.assertLess(actions.index('install/provider-steering-guard.yaml'),
+                            actions.index('install/providerconfig.yaml'))
+            self.assertLess(actions.index('wait-for-admission-policies'),
+                            actions.index('observe-installed-admission'))
+            self.assertLess(actions.index('observe-installed-admission'), actions.index('receipt-published'))
+            self.assertLess(actions.index('receipt-published'), actions.index('xrd.yaml'))
+            self.assertLess(actions.index('xrd.yaml'), actions.index('composition.yaml'))
+
+            for failure in (*proof.ADMISSION_GUARDS, 'wait-for-admission-policies', 'observe-installed-admission'):
+                with self.subTest(failure=failure):
+                    failed_actions = exercise(failure)
+                    self.assertIn('receipt-invalidated', failed_actions)
+                    self.assertNotIn('receipt-published', failed_actions)
+            print('CONTROL FAILS AS EXPECTED: every guard apply/equality/behavior failure leaves the admission receipt absent')
         finally:
             proof.target = original_target
             proof.subprocess.run = original_run
             proof.apply_file = original_apply_file
             proof.kubectl = original_kubectl
+            proof.wait_for_admission_policies = original_wait_for_admission_policies
+            proof.observe_installed_admission = original_observe_installed_admission
+            proof.invalidate_admission_ready = original_invalidate_admission_ready
+            proof.publish_admission_ready = original_publish_admission_ready
+
+    def test_admission_receipt_helpers_require_exact_absence_and_readback(self):
+        original_kubectl = proof.kubectl
+        state = {'present': True, 'document': proof.render_profile.admission_ready_config()}
+        calls = []
+        def fake_kubectl(args, *, input_text=None, **_kwargs):
+            calls.append(args)
+            if args[:2] == ['delete', f'environmentconfig/{proof.render_profile.ADMISSION_READY_NAME}']:
+                state['present'] = False
+                return completed(args)
+            if args[:2] == ['get', f'environmentconfig/{proof.render_profile.ADMISSION_READY_NAME}']:
+                if not state['present']:
+                    return completed(args, 1, stderr='Error from server (NotFound): receipt not found\n')
+                return completed(args, stdout=json.dumps(state['document']))
+            if args[:2] == ['apply', '-f']:
+                state['document'] = proof.yaml.safe_load(input_text)
+                state['present'] = True
+                return completed(args)
+            raise AssertionError(args)
+        proof.kubectl = fake_kubectl
+        try:
+            proof.invalidate_admission_ready()
+            observed = proof.publish_admission_ready()
+            self.assertEqual({'guardRevision': proof.render_profile.ADMISSION_GUARD_REVISION}, observed['data'])
+            self.assertEqual('delete', calls[0][0])
+
+            state['present'] = False
+            def forbidden_get(args, **_kwargs):
+                if args[0] == 'delete': return completed(args)
+                return completed(args, 1, stderr='Error from server (Forbidden): forbidden\n')
+            proof.kubectl = forbidden_get
+            with self.assertRaisesRegex(proof.ProofError, 'absence was not confirmed by NotFound'):
+                proof.invalidate_admission_ready()
+
+            state.update(present=True, document={'metadata': {'name': proof.render_profile.ADMISSION_READY_NAME},
+                                                 'data': {'guardRevision': 'wrong'}})
+            proof.kubectl = fake_kubectl
+            original_apply = proof.apply
+            proof.apply = lambda _documents: None
+            try:
+                with self.assertRaisesRegex(proof.ProofError, 'receipt differs'):
+                    proof.publish_admission_ready()
+            finally:
+                proof.apply = original_apply
+            print('CONTROL FAILS AS EXPECTED: Forbidden absence and wrong receipt readback cannot satisfy receipt lifecycle checks')
+        finally:
+            proof.kubectl = original_kubectl
+
+    def test_receipt_refusal_accepts_only_named_missing_or_revision_errors(self):
+        original_kubectl = proof.kubectl
+        original_get_json = proof.get_json
+        original_composed_objects = proof.composed_objects
+        original_wait_until = proof.wait_until
+        try:
+            for message in (
+                    f'{proof.render_profile.ADMISSION_READY_NAME} not found',
+                    f'admission installation receipt {proof.render_profile.ADMISSION_READY_NAME} must declare guardRevision=ok185-v1'):
+                proof.kubectl = lambda args, **_kwargs: (
+                    completed(args, stdout=json.dumps({'metadata': {'uid': 'probe-uid'}})) if args[0] == 'create' else
+                    completed(args, 1, stderr='Error from server (NotFound): resource not found\n'))
+                proof.get_json = lambda _args, message=message: {
+                    'metadata': {'uid': 'probe-uid'},
+                    'status': {'conditions': [{'type': 'Synced', 'status': 'False', 'message': message},
+                                              {'type': 'Ready', 'status': 'False'}]}}
+                proof.composed_objects = lambda _name: []
+                proof.wait_until = lambda what, predicate, **_kwargs: proof.expect(predicate(), f'{what} did not refuse')
+                result = proof.admission_receipt_refusal('ws-receipt-xr', 'ws-receipt', 'a' * 40, 'dw-')
+                self.assertTrue(result['namespaceAbsent'])
+
+            proof.get_json = lambda _args: {
+                'metadata': {'uid': 'probe-uid'},
+                'status': {'conditions': [{'type': 'Synced', 'status': 'False',
+                                           'message': 'some unrelated rendering error'}]}}
+            with self.assertRaisesRegex(proof.ProofError, 'did not refuse'):
+                proof.admission_receipt_refusal('ws-receipt-xr', 'ws-receipt', 'a' * 40, 'dw-')
+            print('CONTROL FAILS AS EXPECTED: an unrelated Composition error cannot satisfy the admission receipt proof')
+        finally:
+            proof.kubectl = original_kubectl
+            proof.get_json = original_get_json
+            proof.composed_objects = original_composed_objects
+            proof.wait_until = original_wait_until
 
     def test_uninstall_deletes_provider_steering_guard(self):
         original_target = proof.target
         original_run = proof.subprocess.run
         original_kubectl = proof.kubectl
+        original_invalidate_admission_ready = proof.invalidate_admission_ready
         deleted = []
+        actions = []
         proof.target = lambda: {'context': 'offline'}
         def fake_run(args, **_kwargs):
             return completed(list(args), returncode=1 if args[:2] == ['helm', 'status'] else 0)
@@ -930,18 +1361,24 @@ class ReconcileProofAssertionsTest(unittest.TestCase):
             if args[:2] == ['get', 'crd']:
                 return completed(args, stdout=json.dumps({'items': []}))
             if args[0] == 'delete' and '-f' in args:
-                deleted.append(str(Path(args[args.index('-f') + 1]).relative_to(proof.CAPABILITY)))
+                relative = str(Path(args[args.index('-f') + 1]).relative_to(proof.CAPABILITY))
+                deleted.append(relative)
+                actions.append(relative)
             return completed(args)
         proof.subprocess.run = fake_run
         proof.kubectl = fake_kubectl
+        proof.invalidate_admission_ready = lambda: actions.append('receipt-invalidated')
         try:
             proof.uninstall(None)
             self.assertIn('install/provider-steering-guard.yaml', deleted)
+            self.assertLess(actions.index('receipt-invalidated'),
+                            actions.index('install/provider-steering-guard.yaml'))
             print('CONTROL PASS: uninstall recipe deletes the provider steering policy and binding')
         finally:
             proof.target = original_target
             proof.subprocess.run = original_run
             proof.kubectl = original_kubectl
+            proof.invalidate_admission_ready = original_invalidate_admission_ready
 
     def test_noncanonical_name_refusal_requires_admission_denial_and_no_object_refs(self):
         rejected = completed(['create'], 1, stderr="metadata.name must equal spec.workspaceID + '-xr'")

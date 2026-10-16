@@ -12,6 +12,9 @@
 #     developer-workspace-profile, key `profile`;
 #   - operational settings from the same EnvironmentConfig: `providerConfigName` (required) and
 #     `imagePullSecret` (optional). These are not part of the portable contract.
+#   - developer-workspace-admission-ready: an operator-owned installation receipt, created only
+#     after the guard revision passes the live install gate. This blocks new provisioning until
+#     that installation has passed; operators must preserve admission after installation.
 # Every reference the XR makes must resolve in the profile; otherwise the template fails and
 # nothing is composed.
 apiVersion: apiextensions.crossplane.io/v1
@@ -44,8 +47,15 @@ spec:
                 apiVersion: apiextensions.crossplane.io/v1beta1
                 kind: EnvironmentConfig
                 matchName: developer-workspace-profile
+              admissionReady:
+                apiVersion: apiextensions.crossplane.io/v1beta1
+                kind: EnvironmentConfig
+                matchName: developer-workspace-admission-ready
             {{- $config := dig "resource" (dict) (first (default (list (dict)) (dig "profile" "items" (list) (default (dict) $.extraResources)))) }}
             {{- if $config }}
+            {{- $admissionReady := dig "resource" (dict) (first (default (list (dict)) (dig "admissionReady" "items" (list) (default (dict) $.extraResources)))) }}
+            {{- $receipt := default (dict) $admissionReady.data }}
+            {{- if or (not (kindIs "map" $receipt)) (ne (keys $receipt | sortAlpha | toJson) (list "guardRevision" | toJson)) (ne (index $receipt "guardRevision") "ok185-v1") }}{{ fail "admission installation receipt developer-workspace-admission-ready must declare guardRevision=ok185-v1" }}{{ end }}
             {{- $xr := $.observed.composite.resource }}
             {{- $s := $xr.spec }}
             {{- $data := default (dict) $config.data }}
@@ -119,6 +129,7 @@ spec:
             {{- $ns := printf "%s%s" $p.namespacePrefix (trimPrefix "ws-" $w) }}
             {{- $lab := dict "workspace.openkubes.io/id" $w "app" "developer-workspace" }}
             {{- $namespaceLabels := deepCopy $lab }}
+            {{- if not $p.hostUsers }}{{ $_ := set $namespaceLabels "workspace.openkubes.io/host-users" "false" }}{{ end }}
             {{- $_ := set $namespaceLabels "workspace.openkubes.io/persistent-capacity" (ternary "runtime-enforced" "not-runtime-enforced" $capacity.runtimeEnforced) }}
             {{- $cpu := $s.resources.cpu }}{{- $mem := $s.resources.memory }}
             {{- $size := $s.storage.size }}{{- $mode := $s.storage.mode }}

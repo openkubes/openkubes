@@ -27,19 +27,33 @@ CAPABILITY = HERE.parents[1]
 REPO = CAPABILITY.parents[3]
 LIVE = REPO / 'architecture/spikes/ADR-Platform-039/live'
 EVIDENCE = CAPABILITY / 'evidence'
-DISPOSABLE_CONTEXTS = ('ok-175-proof-admin@ok-175-proof', 'ok-176-c3-admin@ok-176-c3', 'kind-ok175-preflight')
+DISPOSABLE_CONTEXTS = ('ok-175-proof-admin@ok-175-proof', 'ok-176-c3-admin@ok-176-c3',
+                       'ok-178-ws-admin@ok-178-ws', 'kind-ok175-preflight')
 CROSSPLANE_CHART = ('https://charts.crossplane.io/stable', 'crossplane', '2.3.3')
+POD_USER_NAMESPACE_POLICY = 'workspace-pod-user-namespace-required'
+NAMESPACE_HOST_USERS_POLICY = 'developer-workspace-namespace-host-users-guard'
+HOST_USERS_LABEL = 'workspace.openkubes.io/host-users'
+WORKSPACE_ID_LABEL = 'workspace.openkubes.io/id'
+ADMISSION_GUARDS = ('install/namespace-guard.yaml', 'install/provider-steering-guard.yaml',
+                    'install/namespace-host-users-guard.yaml', 'install/pod-user-namespace-guard.yaml')
 PROOF_NS = 'ok174-proof-services'  # the reviewed live profile's source destination
 PULL_SECRET = 'workspace-registry-pull'
 PERSISTENT = ('ws-ok175-proof-xr', 'ws-ok175-proof')
 DISTINCT = (('ws-c69924-xr', 'ws-c69924'), ('ws-cd9634-xr', 'ws-cd9634'))
 SQUAT = ('ws-ok175-squat-xr', 'ws-ok175-squat')
 NO_PROFILE = ('ws-ok175-no-profile-xr', 'ws-ok175-no-profile')
+RECEIPT_PROBES = (('ws-ok185-receipt-missing-xr', 'ws-ok185-receipt-missing'),
+                  ('ws-ok185-receipt-wrong-xr', 'ws-ok185-receipt-wrong'))
 OPERATOR_SA, OBSERVER_SA = 'developer-workspace-operator', 'developer-workspace-observer'
 OPERATOR_BINDING, OBSERVER_BINDING = 'ok175-proof-developer-workspace-operator', 'ok175-proof-developer-workspace-observer'
+LABEL_PROBE_ROLE, LABEL_PROBE_BINDING = 'ok185-namespace-label-probe', 'ok185-namespace-label-probe'
+EPHEMERAL_PROBE_NS = 'ok185-ephemeralcontainers-proof'
+PROVIDER_IDENTITY = 'system:serviceaccount:crossplane-system:developer-workspace-provider-kubernetes'
 STEERING_NS = 'ok175-provider-steering-proof'
 STEERING_SA = 'provider-steering-nonoperator'
 STEERING_POLICY = 'developer-workspace-provider-steering'
+NAMESPACE_MUTATION_OPERATIONS = ('drop-both', 'change-id', 'status-drop-both',
+                                 'finalize-drop-both', 'delete')
 GIT_URL = 'https://git-fixture.ok174-proof-services.svc.cluster.local:8443/workspace-fixture.git'
 KUBE_API = 'https://kubernetes.default.svc'
 WRITE_CHUNK = 1024 * 1024
@@ -269,9 +283,207 @@ def validate_enforced_capacity(probe, limit):
     expect(all(abs(probe[key] - limit) <= WRITE_CHUNK for key in ('reportedCapacityBeforeBytes', 'reportedCapacityAfterBytes')), f'statfs reported capacity is outside the one-write tolerance of the declaration: {probe}')
     expect(probe['availableAfterBytes'] <= WRITE_CHUNK, f'enforced volume still reports more than one write of available capacity: {probe}')
 
+def validate_pod_user_namespace_admission(mode, namespace_labels, outcomes):
+    """Interpret server dry-run results; kept pure so both assertion branches can be falsified offline."""
+    expect(set(outcomes) == {'absent', 'true', 'false'}, f'incomplete Pod user-namespace probes: {sorted(outcomes)}')
+    selected = namespace_labels.get(HOST_USERS_LABEL) == 'false'
+    if mode == 'enforced':
+        expect(selected, f'enforced workspace Namespace lacks {HOST_USERS_LABEL}=false')
+        for value in ('absent', 'true'):
+            result = outcomes[value]
+            expect(result.returncode != 0 and POD_USER_NAMESPACE_POLICY in result.stderr,
+                   f'hostUsers {value} Pod was not denied specifically by {POD_USER_NAMESPACE_POLICY}: rc={result.returncode} stderr={result.stderr.strip()[:200]}')
+        allowed = outcomes['false']
+        expect(allowed.returncode == 0, f'hostUsers false control Pod was not admitted: {allowed.stderr.strip()[:200]}')
+    else:
+        expect(HOST_USERS_LABEL not in namespace_labels, f'observed-negative workspace Namespace unexpectedly carries {HOST_USERS_LABEL}')
+        for value, result in outcomes.items():
+            expect(result.returncode == 0, f'unselected hostUsers {value} control Pod was not admitted: {result.stderr.strip()[:200]}')
+    return {'policyName': POD_USER_NAMESPACE_POLICY, 'namespaceSelected': selected,
+            'namespaceLabel': namespace_labels.get(HOST_USERS_LABEL),
+            'returnCodes': {key: value.returncode for key, value in outcomes.items()}}
+
+def validate_namespace_label_admission(mode, namespace_before, namespace_after, denied, allowed):
+    """Require admission, rather than RBAC, to preserve the host-users selection label."""
+    before_metadata = namespace_before.get('metadata', {})
+    after_metadata = namespace_after.get('metadata', {})
+    namespace_labels = before_metadata.get('labels', {})
+    expected_value = 'false' if mode == 'enforced' else None
+    expect(namespace_labels.get(HOST_USERS_LABEL) == expected_value and
+           (mode == 'enforced' or HOST_USERS_LABEL not in namespace_labels),
+           f'workspace Namespace has unexpected {HOST_USERS_LABEL} before label probes: {namespace_labels.get(HOST_USERS_LABEL)!r}')
+    operations = ('remove', 'alter') if mode == 'enforced' else ('add-false', 'add-true')
+    mutation_operations = (*operations, *NAMESPACE_MUTATION_OPERATIONS)
+    expected_denied = {f'{identity}-{operation}' for identity in ('workspace', 'observer')
+                       for operation in mutation_operations}
+    expected_allowed = {f'operator-{operation}' for operation in mutation_operations}
+    expected_allowed.update(f'{identity}-preserve' for identity in ('workspace', 'observer', 'operator'))
+    expect(set(denied) == expected_denied,
+           f'incomplete Namespace label denials: {sorted(denied)}')
+    for name, result in denied.items():
+        reason = ('only the DeveloperWorkspace provider or an operator may delete a protected workspace Namespace'
+                  if name.endswith('-delete') else
+                  'only an operator may change workspace identity or host-users Namespace labels')
+        # RBAC first: an RBAC Forbidden never reaches admission, so it must not count as the policy.
+        expect(not re.search(r'User .* cannot (update|patch|delete) resource "namespaces', result.stderr, re.I),
+               f'{name} was denied by RBAC instead of {NAMESPACE_HOST_USERS_POLICY}: {result.stderr.strip()[:200]}')
+        expect(result.returncode != 0 and NAMESPACE_HOST_USERS_POLICY in result.stderr and
+               reason in result.stderr,
+               f'{name} was not denied specifically by {NAMESPACE_HOST_USERS_POLICY}: '
+               f'rc={result.returncode} stderr={result.stderr.strip()[:200]}')
+    expect(set(allowed) == expected_allowed,
+           f'incomplete Namespace label controls: {sorted(allowed)}')
+    for name, result in allowed.items():
+        expect(result.returncode == 0, f'{name} allowed control failed: {result.stderr.strip()[:200]}')
+    expect(before_metadata.get('uid') and before_metadata.get('resourceVersion') and
+           after_metadata.get('uid') == before_metadata.get('uid') and
+           after_metadata.get('resourceVersion') == before_metadata.get('resourceVersion') and
+           after_metadata.get('labels', {}) == namespace_labels,
+           f'Namespace changed during server dry-run probes: before={before_metadata} after={after_metadata}')
+    return {'policyName': NAMESPACE_HOST_USERS_POLICY, 'namespaceLabel': expected_value,
+            'denied': sorted(denied), 'allowedControls': sorted(allowed),
+            'namespaceUID': before_metadata['uid'],
+            'namespaceResourceVersion': before_metadata['resourceVersion'],
+            'dryRunUnchanged': True}
+
+def validate_provider_label_reconcile(outcomes, labels_before, labels_after, expected_value):
+    expect(set(outcomes) == {'drop', 'alter', 'preserve'}, f'incomplete provider label reconciles: {sorted(outcomes)}')
+    reason = 'must preserve the workspace identity and render host-users from developer-workspace-profile'
+    for variant in ('drop', 'alter'):
+        outcome = outcomes[variant]
+        expect(outcome.get('synced') is False and NAMESPACE_HOST_USERS_POLICY in outcome.get('message', '') and
+               reason in outcome.get('message', ''),
+               f'provider {variant} Object did not fail at the label guard: {outcome}')
+    expect(outcomes['preserve'].get('synced') is True,
+           f'provider rendered-value Object did not reconcile as an allowed control: {outcomes["preserve"]}')
+    expect(labels_before == labels_after and labels_after.get(HOST_USERS_LABEL) == expected_value and
+           (expected_value is not None or HOST_USERS_LABEL not in labels_after),
+           f'provider label probes changed the Namespace: before={labels_before} after={labels_after}')
+    return {'policyName': NAMESPACE_HOST_USERS_POLICY, 'deniedObjects': ['drop', 'alter'],
+            'allowedControl': 'preserve', 'namespaceLabelsUnchanged': True,
+            'probe': 'one standalone provider-kubernetes Object owns the rendered labels on an isolated Namespace; update omission tests SSA deletion; Object and Namespace are cleaned'}
+
+def validate_ephemeralcontainers_admission(allowed, denied, authority, unchanged):
+    """Interpret the Pod subresource proof independently of kubectl plumbing."""
+    expect(allowed.returncode == 0, f'hostUsers=false ephemeralcontainers control was denied: {allowed.stderr.strip()[:200]}')
+    expect(denied.returncode != 0 and POD_USER_NAMESPACE_POLICY in denied.stderr,
+           f'legacy hostUsers=true Pod ephemeralcontainers update was not denied by {POD_USER_NAMESPACE_POLICY}: '
+           f'rc={denied.returncode} stderr={denied.stderr.strip()[:200]}')
+    expect(set(authority) == {'workspace', 'observer'}, f'incomplete ephemeralcontainers RBAC controls: {sorted(authority)}')
+    for name, result in authority.items():
+        expect(result.returncode != 0 and 'forbidden' in result.stderr.lower() and
+               ('pods/ephemeralcontainers' in result.stderr or 'ephemeralcontainers' in result.stderr),
+               f'{name} reached the ephemeralcontainers subresource: rc={result.returncode} stderr={result.stderr.strip()[:200]}')
+    expect(unchanged == {'compliant': True, 'legacy': True},
+           f'ephemeralcontainers dry-run changed a fixture Pod: {unchanged}')
+    return {'policyName': POD_USER_NAMESPACE_POLICY, 'allowedControl': 'hostUsers=false',
+            'deniedLegacy': 'hostUsers=true', 'rbacDenied': sorted(authority), 'dryRunUnchanged': unchanged}
+
+def validate_install_admission_observation(outcomes):
+    expect(set(outcomes) == {'provider-preserve', 'provider-alter', 'provider-adopt',
+                             'pod-false', 'pod-true', 'pod-absent', 'missing-param', 'missing-param-unrelated'},
+           f'incomplete install admission probes: {sorted(outcomes)}')
+    for name in ('provider-preserve', 'pod-false', 'missing-param-unrelated'):
+        expect(outcomes[name].returncode == 0, f'install allowed control {name} failed: {outcomes[name].stderr.strip()[:200]}')
+    host_users = (NAMESPACE_HOST_USERS_POLICY, 'must preserve the workspace identity and render host-users')
+    namespace_guard = ('developer-workspace-namespace-guard', 'may change or delete only Namespaces it created')
+    pod_policy = (POD_USER_NAMESPACE_POLICY, 'must set spec.hostUsers to false')
+    # Adoption is denied by both Namespace guards; the server reports whichever it evaluated first.
+    expected = {'provider-alter': [host_users], 'provider-adopt': [namespace_guard, host_users],
+                'pod-true': [pod_policy], 'pod-absent': [pod_policy]}
+    for name, alternatives in expected.items():
+        result = outcomes[name]
+        expect(result.returncode != 0 and any(policy in result.stderr and reason in result.stderr for policy, reason in alternatives),
+               f'install probe {name} was not denied by {" or ".join(p for p, _ in alternatives)}: rc={result.returncode} stderr={result.stderr.strip()[:200]}')
+    missing = outcomes['missing-param']
+    expect(missing.returncode != 0 and
+           (NAMESPACE_HOST_USERS_POLICY in missing.stderr or 'no params' in missing.stderr.lower()),
+           f'missing admission parameter did not fail closed: rc={missing.returncode} stderr={missing.stderr.strip()[:200]}')
+    return {'allowed': ['provider-preserve', 'pod-false', 'missing-param-unrelated'],
+            'denied': ['provider-alter', 'provider-adopt', 'pod-true', 'pod-absent', 'missing-param']}
+
+def canonical_admission_spec(spec, binding=False):
+    """Add only documented API defaults, then permit no other installed-spec difference."""
+    value = copy.deepcopy(spec)
+    match_key = 'matchResources' if binding else 'matchConstraints'
+    match = value.setdefault(match_key, {})
+    match.setdefault('matchPolicy', 'Equivalent')
+    match.setdefault('namespaceSelector', {})
+    match.setdefault('objectSelector', {})
+    match.setdefault('resourceRules', [])
+    match.setdefault('excludeResourceRules', [])
+    for rule in [*match['resourceRules'], *match['excludeResourceRules']]: rule.setdefault('scope', '*')
+    if not binding:
+        value.setdefault('matchConditions', [])
+        value.setdefault('variables', [])
+        value.setdefault('auditAnnotations', [])
+    return value
+
+def admission_guard_documents(path):
+    docs = [doc for doc in yaml.safe_load_all((CAPABILITY / path).read_text()) if doc]
+    expect(len(docs) >= 2 and docs[0].get('kind') == 'ValidatingAdmissionPolicy' and
+           all(doc.get('kind') == 'ValidatingAdmissionPolicyBinding' for doc in docs[1:]),
+           f'{path} must contain one ValidatingAdmissionPolicy followed by one or more bindings')
+    policy, bindings = docs[0], docs[1:]
+    expect(len({binding.get('metadata', {}).get('name') for binding in bindings}) == len(bindings) and
+           all(binding.get('spec', {}).get('policyName') == policy.get('metadata', {}).get('name') for binding in bindings),
+           f'{path} bindings must be uniquely named and reference their policy')
+    return policy, bindings
+
+def validate_required_admission_guards(paths):
+    expect(tuple(paths) == ('install/namespace-guard.yaml',
+                            'install/provider-steering-guard.yaml',
+                            'install/namespace-host-users-guard.yaml',
+                            'install/pod-user-namespace-guard.yaml'),
+           'admission gate must include collision, provider steering, Namespace label, and Pod guards in install order')
+
+def validate_admission_policy_ready(policy, path):
+    generation = policy.get('metadata', {}).get('generation')
+    status = policy.get('status', {})
+    expect(type(generation) is int and generation > 0, f'{path} installed policy lacks metadata.generation')
+    expect(status.get('observedGeneration') == generation,
+           f'{path} policy status observedGeneration {status.get("observedGeneration")!r} is not current generation {generation}')
+    # The status controller writes observedGeneration and typeChecking together; on an in-place
+    # update with no warnings it omits typeChecking, so a current observedGeneration is the signal.
+    warnings = status.get('typeChecking') or {}
+    expect(not warnings.get('expressionWarnings', []),
+           f'{path} policy has type-check warnings: {warnings.get("expressionWarnings")}')
+    return {'name': policy['metadata']['name'], 'generation': generation, 'typeCheckingWarnings': 0}
+
+def admission_policies_match_local():
+    """Fail closed unless every policy/binding is current and byte-equivalent at spec level."""
+    validate_required_admission_guards(ADMISSION_GUARDS)
+    observed = []
+    for path in ADMISSION_GUARDS:
+        policy, bindings = admission_guard_documents(path)
+        name = policy['metadata']['name']
+        live_policy = get_json(['get', 'validatingadmissionpolicy', name])
+        expect(canonical_admission_spec(live_policy.get('spec', {})) == canonical_admission_spec(policy['spec']),
+               f'installed admission policy differs from {path}')
+        for binding in bindings:
+            live_binding = get_json(['get', 'validatingadmissionpolicybinding', binding['metadata']['name']])
+            expect(canonical_admission_spec(live_binding.get('spec', {}), binding=True) ==
+                   canonical_admission_spec(binding['spec'], binding=True),
+                   f'installed admission policy binding {binding["metadata"]["name"]} differs from {path}')
+        observed.append(validate_admission_policy_ready(live_policy, path))
+    return observed
+
+def wait_for_admission_policies():
+    def ready():
+        try:
+            admission_policies_match_local()
+            return True
+        except ProofError:
+            return False
+    wait_until('admission policies and bindings to be current and type-checked', ready, timeout=180, interval=2)
+    return admission_policies_match_local()
+
 def kubectl(args, *, input_text=None, timeout=120, check=True):
     done = subprocess.run(['kubectl', *args], input=input_text, text=True, capture_output=True, timeout=timeout)
-    if check and done.returncode: raise ProofError(f"kubectl {' '.join(args[:3])} failed ({done.returncode}): {done.stderr.strip()[:300]}")
+    if check and done.returncode:
+        # kubectl prints advisory 'Warning:' lines first; keep them out of the truncated reason.
+        errors = '\n'.join(l for l in done.stderr.splitlines() if not l.startswith('Warning:')).strip() or done.stderr.strip()
+        raise ProofError(f"kubectl {' '.join(args[:3])} failed ({done.returncode}): {errors[:600]}")
     return done
 def apply(objects): kubectl(['apply', '-f', '-'], input_text='---\n'.join(yaml.safe_dump(o, sort_keys=False) for o in objects))
 def apply_file(path): kubectl(['apply', '-f', str(path)])
@@ -362,26 +574,13 @@ def installed_matches_local():
     for authority_role in authority_roles:
         live_role = get_json(['get', 'clusterrole', authority_role['metadata']['name']])
         expect(live_role['rules'] == authority_role['rules'], f"installed ClusterRole {authority_role['metadata']['name']} differs from authority-boundary.yaml")
-    for path, description in (('install/namespace-guard.yaml', 'namespace guard'),
-                              ('install/provider-steering-guard.yaml', 'provider steering guard')):
-        policy, binding = [d for d in yaml.safe_load_all((CAPABILITY / path).read_text()) if d]
-        live_policy = get_json(['get', 'validatingadmissionpolicy', policy['metadata']['name']])['spec']
-        expect(normalized_match_resources(live_policy.get('matchConstraints')) ==
-               normalized_match_resources(policy['spec'].get('matchConstraints')) and
-               live_policy.get('failurePolicy', 'Fail') == policy['spec'].get('failurePolicy', 'Fail') and
-               live_policy.get('paramKind') == policy['spec'].get('paramKind') and
-               all((live_policy.get(k) or []) == (policy['spec'].get(k) or [])
-                   for k in ('matchConditions', 'variables', 'validations')),
-               f'installed {description} policy differs from {path}')
-        live_binding = get_json(['get', 'validatingadmissionpolicybinding', binding['metadata']['name']])['spec']
-        expect(live_binding.get('policyName') == binding['spec'].get('policyName') and
-               normalized_match_resources(live_binding.get('matchResources')) ==
-               normalized_match_resources(binding['spec'].get('matchResources')) and
-               live_binding.get('paramRef') == binding['spec'].get('paramRef') and
-               live_binding.get('parameterNotFoundAction') == binding['spec'].get('parameterNotFoundAction') and
-               live_binding.get('validationActions') == binding['spec'].get('validationActions'),
-               f'installed {description} binding differs from {path}')
+    admission_policies_match_local()
     return composition
+
+def gated_xr_request(args, document, check=True):
+    """Re-check the complete local/current admission gate before dispatching an XR request."""
+    composition = installed_matches_local()
+    return composition, kubectl(args, input_text=yaml.safe_dump(document), check=check)
 
 def revision_matches(xr_name, composition):
     ref = get_json(['get', f'developerworkspace/{xr_name}'])['spec']['crossplane']['compositionRevisionRef']['name']
@@ -392,27 +591,142 @@ def revision_matches(xr_name, composition):
 def image(name):
     value = os.environ.get(name, ''); expect(bool(re.fullmatch(r'[^\s@]+@sha256:[0-9a-f]{64}', value)), f'{name} must be a digest reference'); return value
 
+def observe_installed_admission():
+    """Exercise every installed guard before the capability CRDs can dispatch an XR."""
+    namespace = 'ok185-admission-install-probe'
+    profile = {'apiVersion': 'apiextensions.crossplane.io/v1beta1', 'kind': 'EnvironmentConfig',
+               'metadata': {'name': 'developer-workspace-profile'},
+               'data': {'profile': {'spec': {'hostUsers': False}}}}
+    protected = {'apiVersion': 'v1', 'kind': 'Namespace',
+                 'metadata': {'name': 'ok185-provider-install-probe',
+                              'labels': {WORKSPACE_ID_LABEL: 'ws-ok185-install', HOST_USERS_LABEL: 'false'}}}
+    outcomes = {}
+    for resource, name in (('environmentconfig', 'developer-workspace-profile'), ('namespace', namespace)):
+        existing = kubectl(['get', f'{resource}/{name}'], check=False)
+        expect(existing.returncode != 0 and ('NotFound' in existing.stderr or "doesn't have a resource type" in existing.stderr),
+               f'install admission fixture refuses to overwrite existing {resource}/{name}')
+    existing_xrs = kubectl(['get', 'developerworkspaces', '-o', 'json'], check=False)
+    expect((existing_xrs.returncode != 0 and "doesn't have a resource type" in existing_xrs.stderr) or
+           (existing_xrs.returncode == 0 and not json.loads(existing_xrs.stdout)['items']),
+           'install admission observation requires no existing DeveloperWorkspaces')
+    apply([profile])
+    try:
+        def parameter_observed():
+            outcomes['provider-preserve'] = kubectl(
+                ['create', '--dry-run=server', '-f', '-', f'--as={PROVIDER_IDENTITY}'],
+                input_text=yaml.safe_dump(protected), check=False)
+            return outcomes['provider-preserve'].returncode == 0
+        wait_until('admission parameter to be observed', parameter_observed, timeout=120, interval=2)
+        apply([{'apiVersion': 'v1', 'kind': 'Namespace', 'metadata': {'name': namespace}}])
+        def provider_adopt_refused():
+            adopted = get_json(['get', 'namespace', namespace]); adopted['metadata'].setdefault('labels', {})[WORKSPACE_ID_LABEL] = 'ws-ok185-adopt'
+            adopted['metadata']['labels'][HOST_USERS_LABEL] = 'false'
+            outcomes['provider-adopt'] = kubectl(
+                ['replace', '--dry-run=server', '-f', '-', f'--as={PROVIDER_IDENTITY}'],
+                input_text=yaml.safe_dump(replace_document(adopted)), check=False)
+            # Both Namespace policies deny this adoption; the API server reports whichever it
+            # evaluated first (seen live both ways), so either exact denial counts.
+            stderr = outcomes['provider-adopt'].stderr
+            return outcomes['provider-adopt'].returncode != 0 and any(
+                policy in stderr and reason in stderr for policy, reason in (
+                    ('developer-workspace-namespace-guard', 'may change or delete only Namespaces it created'),
+                    (NAMESPACE_HOST_USERS_POLICY, 'must preserve the workspace identity and render host-users')))
+        try:
+            wait_until('provider adoption of an unowned Namespace to be denied', provider_adopt_refused, timeout=120, interval=2)
+        except ProofError as error:
+            last = outcomes.get('provider-adopt')
+            detail = f' (last rc={last.returncode}, stderr={last.stderr.strip()[:400]!r})' if last else ''
+            raise ProofError(f'{error}{detail}') from error
+        kubectl(['label', 'namespace', namespace, f'{WORKSPACE_ID_LABEL}=ws-ok185-install', f'{HOST_USERS_LABEL}=false'])
+        def behavior_observed():
+            altered = copy.deepcopy(protected); altered['metadata']['labels'][HOST_USERS_LABEL] = 'true'
+            outcomes['provider-alter'] = kubectl(
+                ['create', '--dry-run=server', '-f', '-', f'--as={PROVIDER_IDENTITY}'],
+                input_text=yaml.safe_dump(altered), check=False)
+            for value in ('false', 'true', 'absent'):
+                pod = {'apiVersion': 'v1', 'kind': 'Pod', 'metadata': {'name': f'ok185-install-{value}', 'namespace': namespace},
+                       'spec': {'restartPolicy': 'Never', 'automountServiceAccountToken': False,
+                                'containers': [{'name': 'probe', 'image': 'registry.k8s.io/pause:3.10'}]}}
+                if value != 'absent': pod['spec']['hostUsers'] = value == 'true'
+                outcomes[f'pod-{value}'] = kubectl(['create', '--dry-run=server', '-f', '-'], input_text=yaml.safe_dump(pod), check=False)
+            # missing-param is deliberately observed only after cleanup. Poll the other
+            # outcomes here while API-server policy and parameter caches converge.
+            return (outcomes['provider-preserve'].returncode == 0 and
+                    outcomes['provider-alter'].returncode != 0 and NAMESPACE_HOST_USERS_POLICY in outcomes['provider-alter'].stderr and
+                    outcomes['provider-adopt'].returncode != 0 and 'developer-workspace-namespace-guard' in outcomes['provider-adopt'].stderr and
+                    outcomes['pod-false'].returncode == 0 and
+                    all(outcomes[f'pod-{value}'].returncode != 0 and POD_USER_NAMESPACE_POLICY in outcomes[f'pod-{value}'].stderr
+                        for value in ('true', 'absent')))
+        wait_until('admission deny and allow behavior to be observed', behavior_observed, timeout=120, interval=2)
+    finally:
+        deleted_ns = kubectl(['delete', 'namespace', namespace, '--ignore-not-found', '--wait=true'], timeout=180, check=False)
+        expect(deleted_ns.returncode == 0, f'install admission fixture Namespace cleanup failed: {deleted_ns.stderr.strip()[:200]}')
+        deleted_profile = kubectl(['delete', 'environmentconfig/developer-workspace-profile', '--ignore-not-found', '--wait=true'], check=False)
+        expect(deleted_profile.returncode == 0, f'install admission profile cleanup failed: {deleted_profile.stderr.strip()[:200]}')
+    for resource, name in (('namespace', namespace), ('environmentconfig', 'developer-workspace-profile')):
+        gone = kubectl(['get', f'{resource}/{name}'], check=False)
+        expect(gone.returncode != 0 and 'NotFound' in gone.stderr, f'install admission cleanup left {resource}/{name}')
+    def missing_parameter_observed():
+        outcomes['missing-param'] = kubectl(
+            ['create', '--dry-run=server', '-f', '-', f'--as={PROVIDER_IDENTITY}'],
+            input_text=yaml.safe_dump(protected), check=False)
+        return outcomes['missing-param'].returncode != 0 and (
+            NAMESPACE_HOST_USERS_POLICY in outcomes['missing-param'].stderr or 'no params' in outcomes['missing-param'].stderr.lower())
+    wait_until('missing admission parameter to fail closed', missing_parameter_observed, timeout=120, interval=2)
+    unrelated = {'apiVersion': 'v1', 'kind': 'Namespace', 'metadata': {'name': 'ok185-unrelated-install-dry-run'}}
+    outcomes['missing-param-unrelated'] = kubectl(
+        ['create', '--dry-run=server', '-f', '-'], input_text=yaml.safe_dump(unrelated), check=False)
+    return validate_install_admission_observation(outcomes)
+
+def invalidate_admission_ready():
+    """Remove the provisioning receipt and prove it is absent before guard installation/removal."""
+    name = render_profile.ADMISSION_READY_NAME
+    deleted = kubectl(['delete', f'environmentconfig/{name}', '--ignore-not-found', '--wait=true'], check=False)
+    expect(deleted.returncode == 0, f'deleting admission installation receipt failed: {deleted.stderr.strip()[:300]}')
+    missing = kubectl(['get', f'environmentconfig/{name}'], check=False)
+    expect(is_not_found(missing),
+           f'admission installation receipt absence was not confirmed by NotFound: {missing.stderr.strip()[:300]}')
+
+def admission_ready_readback():
+    receipt = render_profile.admission_ready_config()
+    live = get_json(['get', f'environmentconfig/{render_profile.ADMISSION_READY_NAME}'])
+    expect(live.get('metadata', {}).get('name') == receipt['metadata']['name'] and
+           live.get('data') == receipt['data'],
+           f'admission installation receipt differs from {receipt}')
+    return {'name': receipt['metadata']['name'], 'data': copy.deepcopy(receipt['data'])}
+
+def publish_admission_ready():
+    """Create the receipt only after the installed guards passed equality and behavior checks."""
+    receipt = render_profile.admission_ready_config()
+    apply([receipt])
+    return admission_ready_readback()
+
 def install(_args):
+    validate_required_admission_guards(ADMISSION_GUARDS)
     target()
     repo, chart, version = CROSSPLANE_CHART
     subprocess.run(['helm', 'upgrade', '--install', 'crossplane', chart, '--repo', repo, '--version', version, '-n', 'crossplane-system', '--create-namespace', '--wait', '--timeout', '10m'], check=True)
     apply_file(CAPABILITY / 'tests/functions.yaml'); apply_file(CAPABILITY / 'install/provider-kubernetes.yaml')
     kubectl(['wait', '--for=condition=Healthy', 'function.pkg.crossplane.io/function-go-templating', 'function.pkg.crossplane.io/function-auto-ready', 'provider.pkg.crossplane.io/provider-kubernetes', '--timeout=600s'], timeout=630)
     apply_file(CAPABILITY / 'rbac/provider-kubernetes-clusterrole.yaml'); apply_file(CAPABILITY / 'rbac/authority-boundary.yaml')
-    apply_file(CAPABILITY / 'install/namespace-guard.yaml'); apply_file(CAPABILITY / 'install/provider-steering-guard.yaml')
+    invalidate_admission_ready()
+    for path in ADMISSION_GUARDS: apply_file(CAPABILITY / path)
     apply_file(CAPABILITY / 'install/providerconfig.yaml')
+    policies = wait_for_admission_policies()
+    observed = observe_installed_admission()
+    receipt = publish_admission_ready()
     apply_file(CAPABILITY / 'xrd.yaml')
     kubectl(['wait', '--for=condition=Established', 'compositeresourcedefinition/developerworkspaces.workspace.openkubes.io', '--timeout=300s'], timeout=330)
     apply_file(CAPABILITY / 'composition.yaml')
-    print('installed Crossplane', version, 'with the DeveloperWorkspace capability')
+    print('installed Crossplane', version, 'with the DeveloperWorkspace capability; admission gate',
+          json.dumps({'policies': policies, 'behavior': observed, 'receipt': receipt}, sort_keys=True))
 
 def uninstall(_args):
     target()
     listed = kubectl(['get', 'developerworkspaces', '-o', 'json'], check=False)
     expect(listed.returncode != 0 and 'the server doesn' in listed.stderr or listed.returncode == 0 and not json.loads(listed.stdout)['items'], 'DeveloperWorkspaces still exist; delete them first')
-    for path in ('composition.yaml', 'xrd.yaml', 'install/providerconfig.yaml', 'install/provider-steering-guard.yaml',
-                 'install/namespace-guard.yaml', 'rbac/authority-boundary.yaml',
-                 'rbac/provider-kubernetes-clusterrole.yaml', 'install/provider-kubernetes.yaml', 'tests/functions.yaml'):
+    invalidate_admission_ready()
+    for path in ('composition.yaml', 'xrd.yaml', 'install/providerconfig.yaml', *reversed(ADMISSION_GUARDS), 'rbac/authority-boundary.yaml', 'rbac/provider-kubernetes-clusterrole.yaml', 'install/provider-kubernetes.yaml', 'tests/functions.yaml'):
         done = kubectl(['delete', '--ignore-not-found', '--wait=true', '-f', str(CAPABILITY / path)], timeout=600, check=False)
         expect(done.returncode == 0 or 'no matches for kind' in done.stderr, f'deleting {path} failed: {done.stderr.strip()[:300]}')  # kind already gone with its CRD
     if subprocess.run(['helm', 'status', 'crossplane', '-n', 'crossplane-system'], capture_output=True).returncode == 0:
@@ -430,6 +744,12 @@ def pull_secret(namespace, registry, username, password):
     auth = base64.b64encode(f'{username}:{password}'.encode()).decode()
     data = base64.b64encode(json.dumps({'auths': {registry: {'username': username, 'password': password, 'auth': auth}}}).encode()).decode()
     return {'apiVersion': 'v1', 'kind': 'Secret', 'metadata': {'name': PULL_SECRET, 'namespace': namespace}, 'type': 'kubernetes.io/dockerconfigjson', 'data': {'.dockerconfigjson': data}}
+
+def wait_for_default_serviceaccount(namespace):
+    """Pods in a fresh Namespace are Forbidden until the ServiceAccount controller creates `default`."""
+    wait_until(f'ServiceAccount {namespace}/default',
+               lambda: kubectl(['get', 'serviceaccount', 'default', '-n', namespace], check=False).returncode == 0,
+               timeout=120, interval=1)
 
 def proof_services(fixture_image, tls, read_token, write_token, pulls):
     meta = lambda name: {'name': name, 'namespace': PROOF_NS}
@@ -489,6 +809,232 @@ def readback(namespace, expected):
 def workspace_pod(namespace):
     pods = [p for p in get_json(['get', 'pods', '-n', namespace])['items'] if p.get('status', {}).get('phase') == 'Running' and not p['metadata'].get('deletionTimestamp')]
     expect(len(pods) == 1, f'expected one running workspace pod in {namespace}, found {len(pods)}'); return pods[0]['metadata']['name']
+
+def pod_user_namespace_probes(namespace, template, mode):
+    """Dry-run Pods shaped like the workspace while avoiding unrelated quota rejection."""
+    outcomes = {}
+    for value in ('absent', 'true', 'false'):
+        spec = copy.deepcopy(template['spec'])
+        if value == 'absent': spec.pop('hostUsers', None)
+        else: spec['hostUsers'] = value == 'true'
+        # The running workspace consumes its full CPU/memory quota. Explicit zero quantities keep
+        # these CREATE dry-runs within quota; the copied security contexts satisfy Pod Security.
+        for container in [*spec.get('initContainers', []), *spec['containers']]:
+            container['resources'] = {'requests': {'cpu': '0', 'memory': '0'}, 'limits': {'cpu': '0', 'memory': '0'}}
+        probe = {'apiVersion': 'v1', 'kind': 'Pod',
+                 'metadata': {'name': f'ok178-host-users-{value}', 'namespace': namespace,
+                              'labels': copy.deepcopy(template.get('metadata', {}).get('labels', {}))},
+                 'spec': spec}
+        outcomes[value] = kubectl(['create', '--dry-run=server', '-f', '-'], input_text=yaml.safe_dump(probe), check=False)
+    labels = get_json(['get', 'namespace', namespace])['metadata'].get('labels', {})
+    return validate_pod_user_namespace_admission(mode, labels, outcomes)
+
+def namespace_mutation_documents(namespace_object):
+    """Build every full-object and subresource mutation independently of its expected outcome."""
+    def without_protected_labels():
+        document = replace_document(namespace_object)
+        labels = document.setdefault('metadata', {}).setdefault('labels', {})
+        labels.pop(WORKSPACE_ID_LABEL, None)
+        labels.pop(HOST_USERS_LABEL, None)
+        return document
+
+    changed_identity = replace_document(namespace_object)
+    labels = changed_identity.setdefault('metadata', {}).setdefault('labels', {})
+    labels[WORKSPACE_ID_LABEL] = labels.get(WORKSPACE_ID_LABEL, '') + '-changed'
+    status_drop = without_protected_labels()
+    status_drop['status'] = copy.deepcopy(namespace_object.get('status', {}))
+    return {
+        'drop-both': without_protected_labels(),
+        'change-id': changed_identity,
+        'status-drop-both': status_drop,
+        'finalize-drop-both': without_protected_labels(),
+    }
+
+def namespace_label_probes(namespace, mode):
+    """Temporarily grant only Namespace mutation so admission, not RBAC, decides the probes."""
+    workspace = f'system:serviceaccount:{namespace}:workspace'
+    observer = f'system:serviceaccount:{PROOF_NS}:{OBSERVER_SA}'
+    operator = f'system:serviceaccount:{PROOF_NS}:{OPERATOR_SA}'
+    role = {'apiVersion': 'rbac.authorization.k8s.io/v1', 'kind': 'ClusterRole',
+            'metadata': {'name': LABEL_PROBE_ROLE},
+            'rules': [{'apiGroups': [''], 'resources': ['namespaces'], 'resourceNames': [namespace],
+                       'verbs': ['get', 'update', 'patch', 'delete']},
+                      {'apiGroups': [''], 'resources': ['namespaces/status', 'namespaces/finalize'],
+                       'resourceNames': [namespace], 'verbs': ['update']}]}
+    binding = {'apiVersion': 'rbac.authorization.k8s.io/v1', 'kind': 'ClusterRoleBinding',
+               'metadata': {'name': LABEL_PROBE_BINDING},
+               'roleRef': {'apiGroup': 'rbac.authorization.k8s.io', 'kind': 'ClusterRole', 'name': LABEL_PROBE_ROLE},
+               'subjects': [{'kind': 'ServiceAccount', 'name': 'workspace', 'namespace': namespace},
+                            {'kind': 'ServiceAccount', 'name': OBSERVER_SA, 'namespace': PROOF_NS},
+                            {'kind': 'ServiceAccount', 'name': OPERATOR_SA, 'namespace': PROOF_NS}]}
+    denied, allowed = {}, {}
+    operations = ((('remove', f'{HOST_USERS_LABEL}-'), ('alter', f'{HOST_USERS_LABEL}=true'))
+                  if mode == 'enforced' else
+                  (('add-false', f'{HOST_USERS_LABEL}=false'), ('add-true', f'{HOST_USERS_LABEL}=true')))
+    namespace_before = get_json(['get', 'namespace', namespace])
+    for resource, name in (('clusterrole', LABEL_PROBE_ROLE), ('clusterrolebinding', LABEL_PROBE_BINDING)):
+        existing = kubectl(['get', f'{resource}/{name}'], check=False)
+        expect(existing.returncode != 0 and 'NotFound' in existing.stderr,
+               f'label proof refuses to overwrite existing {resource}/{name}')
+    apply([role, binding])
+    try:
+        for identity_name, identity in (('workspace', workspace), ('observer', observer), ('operator', operator)):
+            for verb in ('get', 'update', 'patch', 'delete'):
+                assert_can_i(identity, verb, 'namespaces', True, namespace)
+            for subresource in ('status', 'finalize'):
+                assert_can_i(identity, 'update', 'namespaces', True, namespace, subresource=subresource)
+                assert_can_i(identity, 'patch', 'namespaces', False, namespace, subresource=subresource)
+                assert_can_i(identity, 'delete', 'namespaces', False, namespace, subresource=subresource)
+            assert_can_i(identity, 'create', 'namespaces', False)
+            for operation, label in operations:
+                result = kubectl(['label', 'namespace', namespace, label, '--overwrite', '--dry-run=server', '-o', 'name',
+                                  f'--as={identity}'], check=False)
+                (allowed if identity_name == 'operator' else denied)[f'{identity_name}-{operation}'] = result
+            preserved = replace_document(namespace_before)
+            allowed[f'{identity_name}-preserve'] = kubectl(
+                ['replace', '--dry-run=server', '-f', '-', f'--as={identity}'],
+                input_text=yaml.safe_dump(preserved), check=False)
+            for operation, document in namespace_mutation_documents(namespace_before).items():
+                if operation == 'status-drop-both':
+                    args = ['replace', '--raw', f'/api/v1/namespaces/{namespace}/status?dryRun=All', '-f', '-', f'--as={identity}']
+                    input_text = json.dumps(document)
+                elif operation == 'finalize-drop-both':
+                    args = ['replace', '--raw', f'/api/v1/namespaces/{namespace}/finalize?dryRun=All', '-f', '-', f'--as={identity}']
+                    input_text = json.dumps(document)
+                else:
+                    args = ['replace', '--dry-run=server', '-f', '-', f'--as={identity}']
+                    input_text = yaml.safe_dump(document)
+                result = kubectl(args, input_text=input_text, check=False)
+                (allowed if identity_name == 'operator' else denied)[f'{identity_name}-{operation}'] = result
+            deleted = kubectl(['delete', 'namespace', namespace, '--dry-run=server', f'--as={identity}'], check=False)
+            (allowed if identity_name == 'operator' else denied)[f'{identity_name}-delete'] = deleted
+        namespace_after = get_json(['get', 'namespace', namespace])
+        return validate_namespace_label_admission(mode, namespace_before, namespace_after, denied, allowed)
+    finally:
+        deleted_binding = kubectl(['delete', 'clusterrolebinding', LABEL_PROBE_BINDING, '--ignore-not-found', '--wait=true'], check=False)
+        deleted_role = kubectl(['delete', 'clusterrole', LABEL_PROBE_ROLE, '--ignore-not-found', '--wait=true'], check=False)
+        expect(deleted_binding.returncode == 0 and deleted_role.returncode == 0,
+               f'label proof RBAC cleanup failed: binding={deleted_binding.stderr.strip()[:120]} role={deleted_role.stderr.strip()[:120]}')
+        for resource, name in (('clusterrolebinding', LABEL_PROBE_BINDING), ('clusterrole', LABEL_PROBE_ROLE)):
+            gone = kubectl(['get', f'{resource}/{name}'], check=False)
+            expect(is_not_found(gone), f'label proof cleanup left {resource}/{name}: {gone.stderr.strip()[:200]}')
+
+def provider_label_reconcile_probes(owner_name, namespace):
+    """Use one SSA field manager on an isolated Namespace so omission really removes a label."""
+    namespace_object = next((item for item in composed_object_items(owner_name)
+                             if item.get('spec', {}).get('forProvider', {}).get('manifest', {}).get('kind') == 'Namespace'), None)
+    expect(namespace_object is not None, f'{owner_name} has no rendered Namespace Object')
+    probe_name, probe_namespace = 'ok185-provider-label-probe', 'ok185-provider-label-proof'
+    base = replace_document(namespace_object)
+    base['metadata'] = {'name': probe_name}
+    base['spec']['deletionPolicy'] = 'Orphan'
+    base['spec'].pop('readiness', None)
+    manifest = base['spec']['forProvider']['manifest']
+    expect(manifest['metadata']['name'] == namespace, 'rendered Namespace Object names another Namespace')
+    manifest['metadata']['name'] = probe_namespace
+    expected_value = manifest['metadata']['labels'].get(HOST_USERS_LABEL)
+    expect(expected_value in (None, 'false'), f'rendered Namespace Object has invalid {HOST_USERS_LABEL}={expected_value!r}')
+    labels_before = copy.deepcopy(get_json(['get', 'namespace', namespace])['metadata'].get('labels', {}))
+    for resource, name in (('object', probe_name), ('namespace', probe_namespace)):
+        existing = kubectl(['get', f'{resource}/{name}'], check=False)
+        expect(existing.returncode != 0 and 'NotFound' in existing.stderr,
+               f'provider label proof refuses to overwrite {resource}/{name}')
+
+    def reconcile(document, allowed):
+        apply([document])
+        state = {}
+        def settled():
+            item = get_json(['get', f'object/{probe_name}'])
+            synced = next((condition for condition in item.get('status', {}).get('conditions', [])
+                           if condition.get('type') == 'Synced'), None)
+            if synced is None or (synced.get('status') == 'True') != allowed: return False
+            state.update(synced=allowed, message=synced.get('message', ''))
+            return allowed or (NAMESPACE_HOST_USERS_POLICY in state['message'] and
+                               'must preserve the workspace identity and render host-users' in state['message'])
+        wait_until(f'provider label Object Synced={allowed}', settled, timeout=180, interval=2)
+        return state
+
+    outcomes = {}
+    try:
+        # This manager must own the original field before omission can request its removal.
+        outcomes['preserve'] = reconcile(base, True)
+        fixture_labels = copy.deepcopy(get_json(['get', 'namespace', probe_namespace])['metadata'].get('labels', {}))
+        # The API server adds kubernetes.io/metadata.name to every Namespace; nothing else may differ.
+        server_added = {'kubernetes.io/metadata.name': probe_namespace}
+        expect(fixture_labels == {**manifest['metadata']['labels'], **server_added},
+               f'provider control did not create the rendered labels: {fixture_labels}')
+        for variant in ('drop', 'alter'):
+            doc = copy.deepcopy(base)
+            labels = doc['spec']['forProvider']['manifest']['metadata']['labels']
+            if variant == 'drop':
+                if expected_value == 'false': labels.pop(HOST_USERS_LABEL)
+                else: labels[HOST_USERS_LABEL] = 'false'
+            else: labels[HOST_USERS_LABEL] = 'true'
+            outcomes[variant] = reconcile(doc, False)
+            expect(get_json(['get', 'namespace', probe_namespace])['metadata'].get('labels', {}) == fixture_labels,
+                   f'provider {variant} changed the fixture Namespace labels')
+            # An allowed control between mutations also clears the previous denial condition.
+            reconcile(base, True)
+    finally:
+        kubectl(['delete', f'object/{probe_name}', '--ignore-not-found', '--wait=true'], timeout=180, check=False)
+        kubectl(['delete', f'namespace/{probe_namespace}', '--ignore-not-found', '--wait=true'], timeout=180, check=False)
+        for resource, name in (('object', probe_name), ('namespace', probe_namespace)):
+            gone = kubectl(['get', f'{resource}/{name}'], check=False)
+            expect(gone.returncode != 0 and 'NotFound' in gone.stderr,
+                   f'provider label proof cleanup left {resource}/{name}')
+    labels_after = get_json(['get', 'namespace', namespace])['metadata'].get('labels', {})
+    return validate_provider_label_reconcile(outcomes, labels_before, labels_after, expected_value)
+
+def ephemeralcontainers_request(namespace, pod_name, image, identity=None):
+    args = ['replace', '--raw', f'/api/v1/namespaces/{namespace}/pods/{pod_name}/ephemeralcontainers?dryRun=All', '-f', '-']
+    if identity: args.append(f'--as={identity}')
+    # The kubelet updates Pod status concurrently, so a PUT built from an earlier GET can hit an
+    # optimistic-concurrency Conflict. Retry only that, from a fresh read; any admission or RBAC
+    # outcome is returned on the first attempt that reaches it.
+    for _ in range(5):
+        pod = get_json(['get', f'pod/{pod_name}', '-n', namespace])
+        before = copy.deepcopy(pod.get('spec', {}).get('ephemeralContainers', []))
+        pod['spec']['ephemeralContainers'] = [*before, {'name': 'debugger', 'image': image,
+                                                        'command': ['sleep', '60'], 'targetContainerName': 'runtime'}]
+        result = kubectl(args, input_text=json.dumps(pod), check=False)
+        if not (result.returncode != 0 and '(Conflict)' in result.stderr and 'the object has been modified' in result.stderr):
+            break
+        time.sleep(1)
+    unchanged = get_json(['get', f'pod/{pod_name}', '-n', namespace]).get('spec', {}).get('ephemeralContainers', []) == before
+    return result, unchanged
+
+def ephemeralcontainers_probes(image, workspace_namespace):
+    old_name, compliant_name = 'legacy-host-users', 'compliant-host-users'
+    old = {'apiVersion': 'v1', 'kind': 'Pod', 'metadata': {'name': old_name, 'namespace': EPHEMERAL_PROBE_NS},
+           'spec': {'hostUsers': True, 'restartPolicy': 'Never', 'automountServiceAccountToken': False,
+                    'containers': [{'name': 'runtime', 'image': image, 'command': ['sleep', '600']}]}}
+    compliant = copy.deepcopy(old); compliant['metadata']['name'] = compliant_name; compliant['spec']['hostUsers'] = False
+    workspace = f'system:serviceaccount:{workspace_namespace}:workspace'
+    observer = f'system:serviceaccount:{PROOF_NS}:{OBSERVER_SA}'
+    existing = kubectl(['get', f'namespace/{EPHEMERAL_PROBE_NS}'], check=False)
+    expect(existing.returncode != 0 and 'NotFound' in existing.stderr,
+           f'ephemeralcontainers proof refuses to overwrite Namespace/{EPHEMERAL_PROBE_NS}')
+    try:
+        apply([{'apiVersion': 'v1', 'kind': 'Namespace', 'metadata': {'name': EPHEMERAL_PROBE_NS}}])
+        wait_for_default_serviceaccount(EPHEMERAL_PROBE_NS)
+        apply([old])
+        kubectl(['label', 'namespace', EPHEMERAL_PROBE_NS, f'{HOST_USERS_LABEL}=false'])
+        apply([compliant])
+        allowed, allowed_unchanged = ephemeralcontainers_request(EPHEMERAL_PROBE_NS, compliant_name, image)
+        denied, denied_unchanged = ephemeralcontainers_request(EPHEMERAL_PROBE_NS, old_name, image)
+        authority = {}
+        for name, identity in (('workspace', workspace), ('observer', observer)):
+            # A path-embedded 'pods/ephemeralcontainers' would ask about a Pod named so; name the subresource.
+            assert_can_i(identity, 'update', 'pods', False, compliant_name, EPHEMERAL_PROBE_NS, subresource='ephemeralcontainers')
+            result, _ = ephemeralcontainers_request(EPHEMERAL_PROBE_NS, compliant_name, image, identity)
+            authority[name] = result
+        return validate_ephemeralcontainers_admission(
+            allowed, denied, authority, {'compliant': allowed_unchanged, 'legacy': denied_unchanged})
+    finally:
+        kubectl(['delete', 'namespace', EPHEMERAL_PROBE_NS, '--ignore-not-found', '--wait=true'], timeout=300, check=False)
+        gone = kubectl(['get', f'namespace/{EPHEMERAL_PROBE_NS}'], check=False)
+        expect(gone.returncode != 0 and 'NotFound' in gone.stderr,
+               f'ephemeralcontainers proof cleanup left Namespace/{EPHEMERAL_PROBE_NS}')
 
 def wait_ready(name):
     kubectl(['wait', '--for=condition=Ready', f'developerworkspace/{name}', '--timeout=600s'], timeout=630)
@@ -882,10 +1428,13 @@ def prove_authority_who_can():
             'localQuotaProvisionerBindingPresent': local_quota_present}
 
 
-def assert_can_i(identity, verb, resource, allowed, name=None, namespace=None):
+def assert_can_i(identity, verb, resource, allowed, name=None, namespace=None, subresource=None):
+    # kubectl names a subresource with --subresource, not inside the resource path.
     target = f'{resource}/{name}' if name else resource
     done = kubectl(['auth', 'can-i', verb, target, f'--as={identity}',
+                    *([f'--subresource={subresource}'] if subresource else []),
                     *(['--namespace', namespace] if namespace else [])], check=False)
+    if subresource: target = f'{target} --subresource={subresource}'
     answer = done.stdout.strip()
     expect(answer == ('yes' if allowed else 'no') and (done.returncode == 0) == allowed,
            f'auth can-i {verb} {target} for {identity} returned rc={done.returncode} {answer!r}, expected {allowed}')
@@ -1044,6 +1593,74 @@ def prove_namespaced_provider_steering_denied():
         expect(is_not_found(missing),
                f'cleanup did not confirm provider steering proof Namespace absent: {missing.stderr.strip()[:300]}')
 
+def admission_receipt_refusal(name, workspace_id, revision, namespace_prefix, owned=None):
+    """Submit directly so the Composition, rather than the harness's local gate, proves refusal."""
+    namespace = namespace_prefix + workspace_id.removeprefix('ws-')
+    for resource, description in ((f'developerworkspace/{name}', 'DeveloperWorkspace'),
+                                  (f'namespace/{namespace}', 'Namespace')):
+        existing = kubectl(['get', resource], check=False)
+        expect(is_not_found(existing), f'receipt probe refuses to overwrite {description}/{resource.split("/", 1)[1]}')
+    document = workspace_inputs(name, workspace_id, revision, 'persistent')
+    created_result = kubectl(['create', '-f', '-', '-o', 'json'], input_text=yaml.safe_dump(document))
+    created = json.loads(created_result.stdout)
+    uid = created.get('metadata', {}).get('uid')
+    expect(bool(uid), f'receipt probe DeveloperWorkspace/{name} lacks a UID after apply')
+    if owned is not None:
+        owned.append((name, uid))
+
+    observed = {}
+    def refused():
+        xr = get_json(['get', f'developerworkspace/{name}'])
+        conditions = {condition['type']: condition for condition in xr.get('status', {}).get('conditions', [])}
+        synced = conditions.get('Synced', {})
+        message = synced.get('message', '')
+        receipt_named = render_profile.ADMISSION_READY_NAME in message
+        receipt_reason = ('not found' in message.lower() or 'admission installation receipt' in message)
+        if synced.get('status') != 'False' or not (receipt_named and receipt_reason):
+            return False
+        observed.update(conditions=conditions)
+        return True
+    wait_until(f'{name} to refuse an invalid admission installation receipt', refused, timeout=180, interval=3)
+    ready = observed['conditions'].get('Ready', {}).get('status')
+    missing_namespace = kubectl(['get', f'namespace/{namespace}'], check=False)
+    refs = composed_objects(name)
+    expect(ready != 'True' and not refs and is_not_found(missing_namespace),
+           f'{name} composed resources or became Ready without a valid receipt: ready={ready} refs={refs} '
+           f'namespace={missing_namespace.stderr.strip()[:200]}')
+    return {'name': name, 'ready': ready, 'objectRefs': refs, 'namespace': namespace,
+            'namespaceAbsent': True,
+            'message': observed['conditions']['Synced'].get('message', '')}
+
+def prove_admission_receipt_gate(revision, namespace_prefix):
+    """Exercise missing and wrong receipts, then restore the exact installation receipt."""
+    observations, owned = {}, []
+    try:
+        observations['initial'] = admission_ready_readback()
+        invalidate_admission_ready()
+        observations['missing'] = admission_receipt_refusal(*RECEIPT_PROBES[0], revision, namespace_prefix, owned)
+        wrong = render_profile.admission_ready_config()
+        wrong['data']['guardRevision'] = 'wrong-revision'
+        apply([wrong])
+        observations['wrong'] = admission_receipt_refusal(*RECEIPT_PROBES[1], revision, namespace_prefix, owned)
+    finally:
+        for name, uid in owned:
+            current = kubectl(['get', f'developerworkspace/{name}', '-o', 'json'], check=False)
+            expect(current.returncode == 0 and json.loads(current.stdout).get('metadata', {}).get('uid') == uid,
+                   f'receipt proof cleanup refuses to delete replaced DeveloperWorkspace/{name}')
+            # kubectl has no --preconditions flag; a raw DELETE carries the UID precondition.
+            options = {'apiVersion': 'v1', 'kind': 'DeleteOptions', 'preconditions': {'uid': uid}}
+            deleted = kubectl(['delete', f'--raw=/apis/workspace.openkubes.io/v0alpha1/developerworkspaces/{name}', '-f', '-'],
+                              input_text=json.dumps(options), check=False)
+            expect(deleted.returncode == 0, f'receipt proof cleanup failed for DeveloperWorkspace/{name}: {deleted.stderr.strip()[:300]}')
+            wait_until(f'DeveloperWorkspace/{name} removal',
+                       lambda name=name: is_not_found(kubectl(['get', f'developerworkspace/{name}'], check=False)), timeout=300)
+        observations['restored'] = publish_admission_ready()
+    for name, _workspace_id in RECEIPT_PROBES:
+        missing = kubectl(['get', f'developerworkspace/{name}'], check=False)
+        expect(is_not_found(missing) and not composed_objects(name),
+               f'admission receipt proof cleanup left DeveloperWorkspace/{name} or composed Objects')
+    return observations
+
 def delete_and_confirm_gone(name, namespace, expected_count):
     # Counting first keeps the "none left" check from passing on a label that never matched.
     expect(len(composed_objects(name)) == expected_count, f'{name} has {len(composed_objects(name))} composed Objects, expected {expected_count}')
@@ -1072,6 +1689,7 @@ def run(args):
 
     expect(not get_json(['get', 'developerworkspaces'])['items'], 'DeveloperWorkspaces already exist on the target')
     kubectl(['create', 'namespace', PROOF_NS])
+    wait_for_default_serviceaccount(PROOF_NS)
     if pulls: apply([pull_secret(PROOF_NS, registry, username, password)])
     apply(proof_services(fixture_image, tls, read_token, write_token, pulls))
     kubectl(['rollout', 'status', 'deployment/git-fixture', '-n', PROOF_NS, '--timeout=300s'], timeout=330)
@@ -1081,29 +1699,53 @@ def run(args):
     # Control for the checkout check: the source's default branch has moved past the declared revision.
     tip = exec_in(PROOF_NS, source_pod, ['git', '--git-dir=/srv/git/workspace-fixture.git', 'rev-parse', 'HEAD']).stdout.strip()
     expect(bool(re.fullmatch(r'[0-9a-f]{40}', tip)) and tip != known, 'source tip equals the declared revision; the checkout check could not fail')
-    composition = installed_matches_local()
+    # The run entry point fails closed before its first XR request. Remove one binding to prove
+    # that a missing guard cannot fall through to CREATE, then restore and re-observe the gate.
+    gate_path = 'install/pod-user-namespace-guard.yaml'
+    _, gate_bindings = admission_guard_documents(gate_path)
+    gate_binding = gate_bindings[0]
+    gate_probe = workspace_inputs(canonical_xr_name('ws-ok185-policy-gate'), 'ws-ok185-policy-gate', known, 'persistent')
+    kubectl(['delete', 'validatingadmissionpolicybinding', gate_binding['metadata']['name'], '--wait=true'])
+    gate_error = None
+    try:
+        try:
+            gated_xr_request(['create', '-f', '-'], gate_probe)
+        except ProofError as error:
+            gate_error = str(error)
+        expect(gate_error is not None and gate_binding['metadata']['name'] in gate_error,
+               f'missing admission binding did not stop the XR entry point: {gate_error!r}')
+        missing = kubectl(['get', f'developerworkspace/{gate_probe["metadata"]["name"]}'], check=False)
+        expect(missing.returncode != 0 and 'NotFound' in missing.stderr and
+               not composed_objects(gate_probe['metadata']['name']),
+               'missing-policy gate dispatched an XR or composed Object')
+    finally:
+        apply_file(CAPABILITY / gate_path)
+        wait_for_admission_policies()
+    record('admission-policy-gate', 'removing one binding made the current/local policy gate fail before XR CREATE; the XR stayed NotFound with no composed Objects, then the restored gate became current')
 
     # Admission: the XRD's CEL rules reject an inconsistent lifecycle and noncanonical identity;
     # the same documents made consistent and canonical pass.
     cel_name = canonical_xr_name('ws-ok175-cel')
     bad = workspace_inputs(cel_name, 'ws-ok175-cel', known, 'persistent'); bad['spec']['storage']['mode'] = 'ephemeral'
-    rejected = kubectl(['apply', '--dry-run=server', '-f', '-'], input_text=yaml.safe_dump(bad), check=False)
+    composition, rejected = gated_xr_request(['apply', '--dry-run=server', '-f', '-'], bad, check=False)
     expect(rejected.returncode != 0 and 'persistent lifecycle requires persistent storage' in rejected.stderr, 'XRD admitted a persistent lifecycle with ephemeral storage')
     canonical = workspace_inputs(cel_name, 'ws-ok175-cel', known, 'persistent')
-    kubectl(['create', '--dry-run=server', '-f', '-'], input_text=yaml.safe_dump(canonical))
+    composition, _ = gated_xr_request(['create', '--dry-run=server', '-f', '-'], canonical)
     wrong_name = copy.deepcopy(canonical); wrong_name['metadata']['name'] = 'ok175-cel-probe'
-    rejected_name = kubectl(['create', '-f', '-'], input_text=yaml.safe_dump(wrong_name), check=False)
+    _, rejected_name = gated_xr_request(['create', '--dry-run=server', '-f', '-'], wrong_name, check=False)
+    expect(rejected_name.returncode != 0 and 'metadata.name' in rejected_name.stderr and 'workspaceID' in rejected_name.stderr and '-xr' in rejected_name.stderr,
+           'XRD admitted a DeveloperWorkspace whose metadata.name is not derived from workspaceID')
     try:
         noncanonical = assert_noncanonical_name_refused(rejected_name, wrong_name['metadata']['name'])
     finally:
         # Cleanup only if the guard regressed and the supposedly rejected document persisted.
         if rejected_name.returncode == 0:
             kubectl(['delete', f'developerworkspace/{wrong_name["metadata"]["name"]}', '--ignore-not-found', '--wait=true', '--timeout=300s'], timeout=330, check=False)
-    record('admission-rules', 'the API server rejects inconsistent lifecycle and admits the consistent document')
+    record('admission-rules', 'the API server rejects inconsistent lifecycle and noncanonical workspace identity documents, then admits the consistent canonical document')
     record('canonical-name-rule', 'the API server rejects a distinct noncanonical metadata.name and admits metadata.name = spec.workspaceID + "-xr"',
            rejected=noncanonical, admitted=canonical['metadata']['name'])
     # Without the profile EnvironmentConfig a workspace must compose nothing and must not be Ready.
-    probe = workspace_inputs(*NO_PROFILE, known, 'persistent'); apply([probe])
+    probe = workspace_inputs(*NO_PROFILE, known, 'persistent'); gated_xr_request(['apply', '-f', '-'], probe)
     def no_profile_settled():
         conditions = {c['type']: c for c in get_json(['get', f'developerworkspace/{NO_PROFILE[0]}']).get('status', {}).get('conditions', [])}
         return conditions.get('Synced', {}).get('status') == 'False' and 'developer-workspace-profile not found' in conditions['Synced'].get('message', '')
@@ -1121,6 +1763,9 @@ def run(args):
     profile_config = render_profile.profile_config(profile, 'in-cluster', PULL_SECRET if pulls else '')
     apply([profile_config])
     profile_initial = profile_readback(profile_config)
+    receipt_gate = prove_admission_receipt_gate(known, profile['spec']['namespacePrefix'])
+    record('admission-receipt-gate', 'direct XR requests with a missing or wrong installation receipt stay unready with zero composed Objects and no Namespace; the exact receipt is restored before the normal workspace positive path',
+           **receipt_gate)
 
     def bring_up(name, workspace_id, mode, resources=None):
         profile_readback(profile_config, profile_initial)
@@ -1131,7 +1776,7 @@ def run(args):
         # Dedicated: the reconciler would adopt an existing Namespace, so require that none exists.
         missing_namespace = kubectl(['get', 'namespace', namespace], check=False)
         expect(is_not_found(missing_namespace), f'namespace {namespace} absence was not confirmed by NotFound: {missing_namespace.stderr.strip()[:300]}')
-        apply([doc])
+        gated_xr_request(['apply', '-f', '-'], doc)
         wait_until(f'namespace {namespace}', lambda: kubectl(['get', 'namespace', namespace], check=False).returncode == 0, timeout=300)
         # Per-run values the contract only references: the source credential, CA and pull Secret.
         support = [{'apiVersion': 'v1', 'kind': 'Secret', 'metadata': {'name': 'workspace-git-auth', 'namespace': namespace}, 'type': 'Opaque', 'stringData': {'token': read_token}},
@@ -1153,11 +1798,15 @@ def run(args):
         squat = 'dw-ok175-squat'
         apply([{'apiVersion': 'v1', 'kind': 'Namespace', 'metadata': {'name': squat}},
                {'apiVersion': 'v1', 'kind': 'ConfigMap', 'metadata': {'name': 'owner-data', 'namespace': squat}, 'data': {'k': 'v'}}])
-        apply([workspace_inputs(SQUAT[0], SQUAT[1], known, 'persistent')])
+        gated_xr_request(['apply', '-f', '-'], workspace_inputs(SQUAT[0], SQUAT[1], known, 'persistent'))
         def refused():
             for o in get_json(['get', 'objects.kubernetes.crossplane.io'])['items']:
                 if o['metadata'].get('labels', {}).get('crossplane.io/composite') == SQUAT[0] and o['spec']['forProvider']['manifest']['kind'] == 'Namespace':
-                    return any('only Namespaces it created' in c.get('message', '') for c in o.get('status', {}).get('conditions', []))
+                    # Both Namespace guards deny the provider here; the API server reports whichever it
+                    # evaluated first, so either policy's exact denial counts (as for the install probe).
+                    return any(('developer-workspace-namespace-guard' in c.get('message', '') and 'only Namespaces it created' in c.get('message', '')) or
+                               (NAMESPACE_HOST_USERS_POLICY in c.get('message', '') and 'must preserve the workspace identity and render host-users' in c.get('message', ''))
+                               for c in o.get('status', {}).get('conditions', []))
             return False
         wait_until('the provider to be refused the existing Namespace', refused, timeout=300, interval=3)
         time.sleep(20)  # let every other composed Object attempt its write too
@@ -1194,6 +1843,11 @@ def run(args):
                'a non-operator with namespaced crossplane-edit RBAC is denied real ProviderConfig and Object creates by the named admission policy; the operator is admitted by server dry-run',
                **provider_steering)
 
+        label_admission = namespace_label_probes(ns, storage['mode'])
+        record('namespace-host-users-label-authority', 'temporary name-scoped Namespace RBAC lets the workspace and observer requests reach admission, which rejects both protected-label changes; the operator controls are admitted and the temporary grant is removed', **label_admission)
+        provider_labels = provider_label_reconcile_probes(PERSISTENT[0], ns)
+        record('provider-host-users-label-reconcile', 'one standalone provider-kubernetes Object owns a fixture Namespace label; drop and alter updates are Synced=False, rendered-value controls are Synced=True, and both fixtures are cleaned', **provider_labels)
+
         who_can = prove_authority_who_can()
         record('authority-who-can', 'all RBAC holders equal the documented expected subject sets for every cluster and namespaced steering kind and mutation verb',
                holders=who_can['holders'], effectiveRoleBindings=who_can['effectiveRoleBindings'],
@@ -1203,7 +1857,25 @@ def run(args):
                holders=who_can['indirectHolders'], defaultCrossplaneGroupBindingPresent=who_can['defaultCrossplaneGroupBindingPresent'])
 
         rendered = expected_objects(doc, profile, pulls)
+        collision = copy.deepcopy(doc)
+        collision['metadata']['name'] = 'ws-ok175-proof-collision-xr'
         before = owner_snapshot(PERSISTENT[0], ns, rendered)
+        _, denied_collision = gated_xr_request(['create', '-f', '-'], collision, check=False)
+        refused_collision = assert_noncanonical_name_refused(denied_collision, collision['metadata']['name'])
+        readback(ns, rendered)
+        after_collision = owner_snapshot(PERSISTENT[0], ns, rendered)
+        collision_owner = assert_owner_unchanged(before, after_collision)
+        record('workspace-id-collision-refused', 'a second document with the live workspaceID and a distinct noncanonical name is rejected; owner UID/spec, Namespace, composed Objects and rendered-resource readback remain unchanged',
+               candidate=refused_collision, owner=collision_owner)
+
+        kubectl(['delete', f'developerworkspace/{collision["metadata"]["name"]}', '--ignore-not-found', '--wait=true'])
+        deleted_candidate = kubectl(['get', f'developerworkspace/{collision["metadata"]["name"]}'], check=False)
+        expect(is_not_found(deleted_candidate) and not composed_objects(collision['metadata']['name']),
+               'deleting the rejected persistent collision did not leave it exactly absent')
+        after_rejected_delete = owner_snapshot(PERSISTENT[0], ns, rendered)
+        persistent_delete_isolation = assert_owner_unchanged(after_collision, after_rejected_delete)
+
+        before = after_rejected_delete
         denied_collision = kubectl(['create', '-f', '-'], input_text=yaml.safe_dump(doc), check=False)
         refused = assert_canonical_create_already_exists(denied_collision, PERSISTENT[0])
         readback(ns, rendered); after_create = owner_snapshot(PERSISTENT[0], ns, rendered)
@@ -1223,8 +1895,18 @@ def run(args):
         readback(ns, expected_objects(doc, profile, pulls))
         record('drift-restored', 'a deleted default-deny NetworkPolicy was recreated (new UID) and a patched quota value was reverted, both as rendered', seconds=round(time.monotonic() - removed))
         pod = workspace_pod(ns)
-        pod_spec = get_json(['get', 'deployment/workspace', '-n', ns])['spec']['template']['spec']
+        pod_template = get_json(['get', 'deployment/workspace', '-n', ns])['spec']['template']
+        pod_spec = pod_template['spec']
         expect(pod_spec.get('hostUsers') is storage['hostUsers'], f'rendered pod hostUsers {pod_spec.get("hostUsers")!r} differs from explicit input {storage["hostUsers"]}')
+        admission = pod_user_namespace_probes(ns, pod_template, storage['mode'])
+        if storage['mode'] == 'enforced':
+            detail = 'the selected workspace Namespace denied dry-run Pods with hostUsers absent or true specifically by the user-namespace policy; hostUsers=false was admitted'
+        else:
+            detail = 'the workspace Namespace lacks the policy selector label; dry-run Pods with hostUsers absent, true and false were admitted as unselected controls'
+        record('pod-user-namespace-admission', detail, **admission)
+
+        ephemeral_admission = ephemeralcontainers_probes(fixture_image, ns)
+        record('ephemeralcontainers-admission', 'the ephemeralcontainers subresource admits a hostUsers=false Pod, rejects a pre-existing hostUsers=true Pod by the Pod policy, and remains outside workspace and observer RBAC; both requests were server dry-runs', **ephemeral_admission)
 
         head = exec_in(ns, pod, ['git', '-C', '/workspace', 'rev-parse', 'HEAD'], 'runtime'); expect(head.returncode == 0 and head.stdout.strip() == known, 'checkout is not the declared revision')
         record('source-checkout', 'workspace HEAD equals the declared revision, not the newer default-branch tip', commit=known, sourceTip=tip)
@@ -1425,16 +2107,33 @@ def run(args):
         wait_ready(first['name']); replacement = workspace_pod(ens); expect(replacement != epod, 'no replacement pod')
         record('ephemeral-storage-enforced', f'writing 2x the {limit} emptyDir limit evicted the pod (kubelet names the workspace volume); half the limit was fine; the reconciler brought a replacement up', limit=limit)
 
+        ephemeral_collision = copy.deepcopy(edoc)
+        ephemeral_collision['metadata']['name'] = 'ws-c69924-collision-xr'
+        readback(ens, first['expected'])
+        ephemeral_before = owner_snapshot(first['name'], ens, first['expected'])
+        _, ephemeral_denied = gated_xr_request(['create', '-f', '-'], ephemeral_collision, check=False)
+        ephemeral_refused = assert_noncanonical_name_refused(ephemeral_denied, ephemeral_collision['metadata']['name'])
+        readback(ens, first['expected'])
+        ephemeral_after = owner_snapshot(first['name'], ens, first['expected'])
+        ephemeral_collision_owner = assert_owner_unchanged(ephemeral_before, ephemeral_after)
         first_volumes = delete_and_confirm_gone(first['name'], first['namespace'], first['count'])
         expect(first_volumes == 0, f'{first["name"]} unexpectedly had PersistentVolumes')
+        kubectl(['delete', f'developerworkspace/{ephemeral_collision["metadata"]["name"]}', '--ignore-not-found', '--wait=true'])
+        deleted_ephemeral_candidate = kubectl(['get', f'developerworkspace/{ephemeral_collision["metadata"]["name"]}'], check=False)
+        expect(is_not_found(deleted_ephemeral_candidate) and not composed_objects(ephemeral_collision['metadata']['name']),
+               'rejected ephemeral collision gained an owner or Object references after owner cleanup')
         record('ephemeral-cleanup', f'deleting the remaining XR removed its Namespace and all {first["count"]} composed Objects')
+        record('workspace-id-collision-delete-isolated', 'deleting a rejected name before its persistent owner leaves that owner unchanged; deleting the ephemeral owner before its rejected name removes only the owner',
+               persistent={'order': 'rejected-first', 'ownerBeforeAndAfter': persistent_delete_isolation},
+               ephemeral={'order': 'owner-first', 'candidate': ephemeral_refused,
+                          'ownerBeforeAndAfterAttempt': ephemeral_collision_owner})
         profile_final = profile_readback(profile_config, profile_initial)
     finally:
         kubectl(['delete', 'namespace', 'dw-ok175-squat', '--ignore-not-found', '--wait=true'], timeout=600, check=False)
         kubectl(['delete', 'namespace', STEERING_NS, '--ignore-not-found', '--wait=true'], timeout=600, check=False)
         for binding in (OPERATOR_BINDING, OBSERVER_BINDING):
             kubectl(['delete', 'clusterrolebinding', binding, '--ignore-not-found', '--wait=true'], check=False)
-        for name, _ in (*DISTINCT, PERSISTENT, SQUAT, NO_PROFILE):
+        for name, _ in (*DISTINCT, *RECEIPT_PROBES, PERSISTENT, SQUAT, NO_PROFILE):
             kubectl(['delete', f'developerworkspace/{name}', '--ignore-not-found', '--wait=true', '--timeout=600s'], timeout=630, check=False)
         kubectl(['delete', 'namespace', PROOF_NS, '--ignore-not-found', '--wait=true'], timeout=600, check=False)
         kubectl(['delete', 'environmentconfig/developer-workspace-profile', '--ignore-not-found'], check=False)
@@ -1448,7 +2147,7 @@ def run(args):
         require_not_found(['environmentconfig', 'developer-workspace-profile'], 'profile EnvironmentConfig')
         for binding in (OPERATOR_BINDING, OBSERVER_BINDING):
             require_not_found(['clusterrolebinding', binding], f'ClusterRoleBinding/{binding}')
-        cleanup_xrs = (*(name for name, _ in DISTINCT), PERSISTENT[0], SQUAT[0], NO_PROFILE[0])
+        cleanup_xrs = (*(name for name, _ in (*DISTINCT, *RECEIPT_PROBES)), PERSISTENT[0], SQUAT[0], NO_PROFILE[0])
         for name in cleanup_xrs:
             require_not_found(['developerworkspace', name], f'DeveloperWorkspace/{name}')
             expect(not composed_objects(name), f'cleanup left composed Objects for {name}')
@@ -1458,7 +2157,10 @@ def run(args):
     expect([r['name'] for r in results] == expected_results, f'results out of order: {[r["name"] for r in results]}')
     evidence = {'apiVersion': 'workspace.openkubes.io/v1', 'kind': 'ReconcilerLiveEvidence', 'runID': run_id, 'startedAt': started, 'finishedAt': now(),
                 'target': tgt, 'implementation': impl, 'images': {'runtime': runtime_image.split('@', 1)[1], 'fixture': fixture_image.split('@', 1)[1]},
-                'crossplane': {'chart': CROSSPLANE_CHART[2], 'functions': 'tests/functions.yaml', 'provider': 'install/provider-kubernetes.yaml'},
+                'crossplane': {'chart': CROSSPLANE_CHART[2], 'functions': 'tests/functions.yaml', 'provider': 'install/provider-kubernetes.yaml',
+                               'admissionPolicies': list(ADMISSION_GUARDS),
+                               'admissionLimits': ['policy equality and status are checked immediately before each harness XR request; an operator could change policy after a gate check',
+                                                   'the label proof covers the selected profile value and the named provider identity; it does not certify other admission plugins or authorizers']},
                 'persistentCapacity': {'declaration': storage['declaration'], 'profileReadback': {'initial': profile_initial, 'final': profile_final},
                                        'mode': storage['mode'], 'storageClassName': storage['storageClassName'], 'hostUsers': storage['hostUsers'],
                                        'boundaries': {'declared': doc['spec']['storage']['size'], 'writeChunkBytes': WRITE_CHUNK,
@@ -1471,7 +2173,19 @@ def run(args):
     out.write_text(json.dumps(evidence, indent=2, sort_keys=True) + '\n'); passed = sum(r['status'] == 'pass' for r in results); observed = len(results) - passed
     print(f'{passed} checks passed, {observed} observation(s) recorded; evidence {out.relative_to(REPO)}')
 
-RESULTS = ('admission-rules', 'canonical-name-rule', 'no-profile-fails-closed', 'dedicated-namespace-enforced', 'reconcile-readback', 'workspace-id-immutable', 'authority-boundary-rbac', 'namespaced-provider-steering-denied', 'authority-who-can', 'authority-indirect-who-can', 'workspace-id-duplicate-create-refused', 'drift-restored', 'source-checkout', 'persistent-marker-survives-replacement', 'runtime-user-boundary', 'kubernetes-authority-denied', 'kubernetes-api-unreachable', 'runtime-push-denied', 'workspace-credential-push-denied', 'write-credential-absent', 'cpu-bound-enforced', 'memory-bound-enforced', 'storage-quota-enforced', 'CAPACITY', 'persistent-cleanup', 'ephemeral-reconcile', 'distinct-workspace-isolation', 'ephemeral-storage-enforced', 'ephemeral-cleanup', 'harness-cleanup')
+RESULTS = ('admission-policy-gate', 'admission-rules', 'canonical-name-rule', 'no-profile-fails-closed',
+           'admission-receipt-gate', 'dedicated-namespace-enforced', 'reconcile-readback', 'workspace-id-immutable',
+           'authority-boundary-rbac', 'namespaced-provider-steering-denied',
+           'namespace-host-users-label-authority', 'provider-host-users-label-reconcile',
+           'authority-who-can', 'authority-indirect-who-can', 'workspace-id-collision-refused',
+           'workspace-id-duplicate-create-refused',
+           'drift-restored', 'pod-user-namespace-admission', 'ephemeralcontainers-admission', 'source-checkout',
+           'persistent-marker-survives-replacement', 'runtime-user-boundary', 'kubernetes-authority-denied',
+           'kubernetes-api-unreachable', 'runtime-push-denied', 'workspace-credential-push-denied',
+           'write-credential-absent', 'cpu-bound-enforced', 'memory-bound-enforced', 'storage-quota-enforced',
+           'CAPACITY', 'persistent-cleanup', 'ephemeral-reconcile', 'distinct-workspace-isolation',
+           'ephemeral-storage-enforced', 'ephemeral-cleanup', 'workspace-id-collision-delete-isolated',
+           'harness-cleanup')
 
 def main():
     parser = argparse.ArgumentParser(); sub = parser.add_subparsers(dest='action', required=True)
