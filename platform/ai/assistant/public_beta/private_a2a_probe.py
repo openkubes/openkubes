@@ -19,6 +19,7 @@ from public_beta.command_evidence import command_evidence_report
 from docs_mcp import DocsRetriever, load_index
 
 A2A_URL = "http://127.0.0.1:8083/api/a2a/openkubes-assistant/openkubes-docs-agent/"
+LAB_A2A_URL = "http://127.0.0.1:8083/api/a2a/openkubes-assistant/openkubes-docs-agent-json/"
 MAX_RESPONSE_BYTES = 256 * 1024
 DEFAULT_QUESTION = "How do I install OpenKubes Local on macOS?"
 
@@ -61,7 +62,10 @@ def extract_answer(payload: object) -> str:
     return "\n\n".join(blocks)
 
 
-def query_agent(question: str, timeout: int = 90) -> str:
+def query_agent(question: str, timeout: int = 90, *, agent_url: str = A2A_URL) -> str:
+    # Closed allowlist: never allow caller-controlled hosts or arbitrary A2A paths.
+    if agent_url not in (A2A_URL, LAB_A2A_URL):
+        raise ValueError("Unapproved A2A endpoint")
     if not isinstance(question, str) or not 1 <= len(question.strip()) <= 500:
         raise ValueError("Question must be 1-500 characters")
     request = {
@@ -79,7 +83,7 @@ def query_agent(question: str, timeout: int = 90) -> str:
         },
     }
     req = urllib.request.Request(
-        A2A_URL, data=json.dumps(request).encode("utf-8"),
+        agent_url, data=json.dumps(request).encode("utf-8"),
         headers={"Content-Type": "application/json", "Accept": "application/json"},
         method="POST",
     )
