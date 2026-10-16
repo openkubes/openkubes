@@ -5,7 +5,7 @@ GOTEMPLATING_IMAGE := xpkg.upbound.io/crossplane-contrib/function-go-templating:
 AUTOREADY_IMAGE := xpkg.upbound.io/crossplane-contrib/function-auto-ready:v0.4.1
 SPIKE_IMAGES := ../../../../architecture/spikes/ADR-Platform-039/live/evidence/published-images.env
 
-.PHONY: help xrd xrd-check cel-check admission-cel-check audit-doc-check functions-up functions-down render-check live-install live-run live-uninstall
+.PHONY: help live-selftest xrd xrd-check cel-check admission-cel-check functions-up functions-down render-check live-install live-run live-up live-down live-uninstall audit-doc-check
 
 help: ## Show targets
 	@grep -E '^[a-z-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-15s %s\n", $$1, $$2}'
@@ -37,6 +37,12 @@ functions-down: ## Stop the function containers
 render-check: xrd-check admission-cel-check audit-doc-check ## Composition output must equal render() (needs functions-up)
 	@python3 tests/render-check.py
 
+live-selftest: ## Offline live harness, ownership mutation controls, and committed profile examples
+	@python3 tests/live/hands_on_ownership_selftest.py --prove-mutations
+	@python3 tests/live/hands_on_ownership_selftest.py
+	@python3 tests/live/reconcile_proof_selftest.py
+	@python3 tests/live/profile_examples_selftest.py
+
 live-install: ## Install and observe admission guards before enabling this capability on TARGET_CONTEXT (disposable clusters only)
 	@test -n "$${KUBECONFIG:-}" && test -n "$${TARGET_CONTEXT:-}" || { echo 'set KUBECONFIG and TARGET_CONTEXT' >&2; exit 2; }
 	@python3 tests/live/reconcile_proof.py install
@@ -45,6 +51,15 @@ live-run: ## Admission-gated reconciler live proof; images default to the OK-174
 	@test -n "$${KUBECONFIG:-}" && test -n "$${TARGET_CONTEXT:-}" || { echo 'set KUBECONFIG and TARGET_CONTEXT' >&2; exit 2; }
 	@set -a; [[ -n "$${OK175_RUNTIME_IMAGE:-}" ]] || { source $(SPIKE_IMAGES); OK175_RUNTIME_IMAGE=$$OK174_OPENCODE_IMAGE; OK175_FIXTURE_IMAGE=$$OK174_FIXTURE_IMAGE; }; set +a; \
 	  python3 tests/live/reconcile_proof.py run $(if $(REQUIRE_CLEAN),--require-clean)
+
+live-up: ## Keep one usable persistent OpenCode workspace on the disposable target
+	@test -n "$${KUBECONFIG:-}" && test -n "$${TARGET_CONTEXT:-}" || { echo 'set KUBECONFIG and TARGET_CONTEXT' >&2; exit 2; }
+	@set -a; [[ -n "$${OK175_RUNTIME_IMAGE:-}" ]] || { source $(SPIKE_IMAGES); OK175_RUNTIME_IMAGE=$$OK174_OPENCODE_IMAGE; OK175_FIXTURE_IMAGE=$$OK174_FIXTURE_IMAGE; }; set +a; \
+	  OK176_PROFILE_FILE="$${OK176_PROFILE_FILE:-$(abspath profiles/namespace-profile-local-quota.yaml)}" python3 tests/live/reconcile_proof.py up
+
+live-down: ## Delete the hands-on workspace and fixture; wait for Namespace/PV removal
+	@test -n "$${KUBECONFIG:-}" && test -n "$${TARGET_CONTEXT:-}" || { echo 'set KUBECONFIG and TARGET_CONTEXT' >&2; exit 2; }
+	@python3 tests/live/reconcile_proof.py down
 
 live-uninstall: ## Remove this capability and Crossplane (after every DeveloperWorkspace is deleted)
 	@test -n "$${KUBECONFIG:-}" && test -n "$${TARGET_CONTEXT:-}" || { echo 'set KUBECONFIG and TARGET_CONTEXT' >&2; exit 2; }

@@ -774,6 +774,35 @@ class AuthorityWhoCanTest(unittest.TestCase):
         print('CONTROL FAILS AS EXPECTED: missing expected controller or altered default group fails equality')
 
 
+class RunPreexistingObjectsTest(unittest.TestCase):
+    """run() deletes its fixtures by name in cleanup, so it must refuse to start over any of them."""
+    def test_run_refuses_each_preexisting_cleanup_target_before_creating_anything(self):
+        targets = [('namespace', proof.PROOF_NS), ('namespace', 'dw-ok175-squat'), ('namespace', proof.STEERING_NS),
+                   ('environmentconfig', 'developer-workspace-profile'),
+                   ('clusterrolebinding', proof.OPERATOR_BINDING), ('clusterrolebinding', proof.OBSERVER_BINDING)]
+        for present in targets:
+            calls = []
+            def kubectl(args, **_kwargs):
+                calls.append(args)
+                if args[0] == 'get' and tuple(args[1:3]) == present:
+                    return subprocess.CompletedProcess(args, 0, stdout='{}', stderr='')
+                if args[0] == 'get':
+                    return subprocess.CompletedProcess(args, 1, stdout='', stderr=f'Error from server (NotFound): {args[1]} "{args[2]}" not found')
+                raise AssertionError(f'run() went past its refusals: {args}')
+            stubs = {'storage_inputs': lambda: {}, 'target': lambda: {}, 'implementation': lambda _clean: {},
+                     'image': lambda _name: 'registry.example/x@sha256:' + 'c' * 64,
+                     'registry_inputs': lambda _image: (False, '', '', ''),
+                     'get_json': lambda args: {'items': []}, 'kubectl': kubectl,
+                     'fixture_setup': lambda *a, **k: (_ for _ in ()).throw(AssertionError('fixture_setup reached'))}
+            with self.subTest(present=present), contextlib.ExitStack() as stack:
+                for attr, value in stubs.items(): stack.enter_context(patch.object(proof, attr, value))
+                stack.enter_context(patch.object(proof.spike, 'tls_material', lambda: {}))
+                with self.assertRaisesRegex(proof.ProofError, f'{present[0]}/{present[1]} already exists'):
+                    proof.run(type('Args', (), {'require_clean': False})())
+                self.assertTrue(all(call[0] == 'get' for call in calls), calls)
+        print('CONTROL FAILS AS EXPECTED: run() refuses every pre-existing object its cleanup would delete by name')
+
+
 class KubectlFlagTest(unittest.TestCase):
     def test_can_i_never_embeds_a_subresource_in_the_resource_path(self):
         # kubectl auth can-i reads 'pods/ephemeralcontainers' as a Pod named ephemeralcontainers.
