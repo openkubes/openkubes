@@ -53,7 +53,7 @@ spec:
             {{- $catalog := $data.profile }}
             {{- if or (ne (keys $catalog | sortAlpha | toJson) (list "apiVersion" "kind" "metadata" "spec" | toJson)) (ne $catalog.apiVersion "workspace.openkubes.io/v1") (ne $catalog.kind "NamespaceProfileCatalog") }}{{ fail "invalid profile identity" }}{{ end }}
             {{- if or (ne (keys (default (dict) $catalog.metadata) | sortAlpha | toJson) (list "name" | toJson)) (ne $catalog.metadata.name "reviewed-namespace-profile-v1") }}{{ fail "invalid profile metadata" }}{{ end }}
-            {{- if ne (keys $catalog.spec | sortAlpha | toJson) (list "capabilities" "credentials" "modelProfiles" "namespacePrefix" "runtimeProfiles" "serviceSelectors" "sources" "storageClassName" | toJson) }}{{ fail "invalid profile shape" }}{{ end }}
+            {{- if ne (keys $catalog.spec | sortAlpha | toJson) (list "capabilities" "credentials" "hostUsers" "modelProfiles" "namespacePrefix" "persistentCapacity" "runtimeProfiles" "serviceSelectors" "sources" "storageClassName" | toJson) }}{{ fail "invalid profile shape" }}{{ end }}
             {{- $p := $data.profile.spec }}
             {{- $providerConfig := index $data "providerConfigName" }}{{ if not $providerConfig }}{{ fail "profile EnvironmentConfig lacks providerConfigName" }}{{ end }}
             {{- $pullSecret := default "" (index $data "imagePullSecret") }}
@@ -61,6 +61,17 @@ spec:
             {{- $gitRef := $s.capabilities.git.reference }}{{ $infRef := $s.capabilities.inference.reference }}{{ $mcpRef := $s.capabilities.mcp.reference }}
             {{- if or (not (kindIs "string" $p.namespacePrefix)) (not $p.namespacePrefix) }}{{ fail "invalid profile shape: namespacePrefix" }}{{ end }}
             {{- if not (regexMatch "^[a-z0-9]([-a-z0-9.]*[a-z0-9])?$" (toString $p.storageClassName)) }}{{ fail "invalid profile shape: storageClassName" }}{{ end }}
+            {{- if not (kindIs "bool" $p.hostUsers) }}{{ fail "invalid profile shape: hostUsers" }}{{ end }}
+            {{- if not (kindIs "map" $p.persistentCapacity) }}{{ fail "invalid profile shape: persistentCapacity" }}{{ end }}
+            {{- $capacity := $p.persistentCapacity }}
+            {{- if ne (keys $capacity | sortAlpha | toJson) (list "capacityEnforcingStorageClasses" "runtimeEnforced" | toJson) }}{{ fail "invalid profile shape: persistentCapacity" }}{{ end }}
+            {{- if not (kindIs "bool" $capacity.runtimeEnforced) }}{{ fail "invalid persistentCapacity: runtimeEnforced" }}{{ end }}
+            {{- if not (kindIs "slice" $capacity.capacityEnforcingStorageClasses) }}{{ fail "invalid persistentCapacity: capacityEnforcingStorageClasses" }}{{ end }}
+            {{- range $class := $capacity.capacityEnforcingStorageClasses }}
+            {{- if or (not (kindIs "string" $class)) (not (regexMatch "^[a-z0-9]([-a-z0-9.]*[a-z0-9])?$" (toString $class))) }}{{ fail "invalid capacity-enforcing storage class" }}{{ end }}
+            {{- end }}
+            {{- if and $capacity.runtimeEnforced $p.hostUsers }}{{ fail "runtime-enforced capacity requires hostUsers=false" }}{{ end }}
+            {{- if and $capacity.runtimeEnforced (not (has $p.storageClassName $capacity.capacityEnforcingStorageClasses)) }}{{ fail "runtime-enforced capacity requires a declared capacity-enforcing storageClassName" }}{{ end }}
             {{- if ne (keys (default (dict) $p.sources) | sortAlpha | toJson) (list $s.source.repositoryRef | toJson) }}{{ fail "source catalog must exactly resolve declaration" }}{{ end }}
             {{- $src := index $p.sources $s.source.repositoryRef }}
             {{- if ne (keys $src | sortAlpha | toJson) (list "caBundle" "endpoint" "repositoryPath" | toJson) }}{{ fail "invalid source mapping" }}{{ end }}
@@ -107,6 +118,8 @@ spec:
             {{- $w := $s.workspaceID }}
             {{- $ns := printf "%s%s" $p.namespacePrefix (trimPrefix "ws-" $w) }}
             {{- $lab := dict "workspace.openkubes.io/id" $w "app" "developer-workspace" }}
+            {{- $namespaceLabels := deepCopy $lab }}
+            {{- $_ := set $namespaceLabels "workspace.openkubes.io/persistent-capacity" (ternary "runtime-enforced" "not-runtime-enforced" $capacity.runtimeEnforced) }}
             {{- $cpu := $s.resources.cpu }}{{- $mem := $s.resources.memory }}
             {{- $size := $s.storage.size }}{{- $mode := $s.storage.mode }}
             {{- $requests := dict "cpu" $cpu "memory" $mem }}
@@ -148,11 +161,11 @@ spec:
             {{- $checkout := dict "name" "checkout" "image" $runtime.image "command" (list "checkout") "args" (list $source.endpoint $source.repositoryPath $s.source.revision "/workspace") "workingDir" "/workspace" "env" $gitEnv "resources" $containerResources "securityContext" $hardening "volumeMounts" (concat $workspaceMount $checkoutWritable (list $caMount)) }}
             {{- $runtimeContainer := dict "name" "runtime" "image" $runtime.image "env" $runtimeEnv "resources" $containerResources "securityContext" $hardening "volumeMounts" (concat $workspaceMount $runtimeWritable) }}
             {{- $volumes := list $volume (dict "name" "checkout-tmp" "emptyDir" (dict)) (dict "name" "checkout-home" "emptyDir" (dict)) (dict "name" "runtime-tmp" "emptyDir" (dict)) (dict "name" "runtime-home" "emptyDir" (dict)) (dict "name" "source-ca" "configMap" (dict "name" $ca.configMapName "items" (list (dict "key" $ca.key "path" $ca.key)))) }}
-            {{- $pod := dict "serviceAccountName" "workspace" "automountServiceAccountToken" false "hostNetwork" false "hostPID" false "hostIPC" false "securityContext" (dict "runAsNonRoot" true "seccompProfile" (dict "type" "RuntimeDefault")) "initContainers" (list $checkout) "containers" (list $runtimeContainer) "volumes" $volumes }}
+            {{- $pod := dict "serviceAccountName" "workspace" "automountServiceAccountToken" false "hostUsers" $p.hostUsers "hostNetwork" false "hostPID" false "hostIPC" false "securityContext" (dict "runAsNonRoot" true "seccompProfile" (dict "type" "RuntimeDefault")) "initContainers" (list $checkout) "containers" (list $runtimeContainer) "volumes" $volumes }}
             {{- if $pullSecret }}{{ $_ := set $pod "imagePullSecrets" (list (dict "name" $pullSecret)) }}{{ end }}
 
             {{- $resources := list }}
-            {{- $resources = append $resources (dict "key" "namespace" "manifest" (dict "apiVersion" "v1" "kind" "Namespace" "metadata" (dict "name" $ns "labels" $lab))) }}
+            {{- $resources = append $resources (dict "key" "namespace" "manifest" (dict "apiVersion" "v1" "kind" "Namespace" "metadata" (dict "name" $ns "labels" $namespaceLabels))) }}
             {{- $resources = append $resources (dict "key" "serviceaccount" "manifest" (dict "apiVersion" "v1" "kind" "ServiceAccount" "metadata" (dict "name" "workspace" "namespace" $ns "labels" $lab) "automountServiceAccountToken" false)) }}
             {{- $resources = append $resources (dict "key" "resourcequota" "manifest" (dict "apiVersion" "v1" "kind" "ResourceQuota" "metadata" (dict "name" "workspace-bounds" "namespace" $ns "labels" $lab) "spec" (dict "hard" $quota))) }}
             {{- $resources = append $resources (dict "key" "limitrange" "manifest" (dict "apiVersion" "v1" "kind" "LimitRange" "metadata" (dict "name" "workspace-defaults" "namespace" $ns "labels" $lab) "spec" (dict "limits" (list (dict "type" "Container" "default" $limits "defaultRequest" $requests "max" $limits))))) }}

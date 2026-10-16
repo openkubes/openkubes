@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""The Composition must emit exactly what the reviewed render() produces.
+"""The Composition must emit exactly what the capability reference rendering produces.
 
 render() in architecture/spikes/ADR-Platform-039/verify_developer_workspace_v1.py is the oracle
 OK-174's live evidence was recorded against. For each case this runs `crossplane render` on the
 Composition with the reviewed profile, then requires the manifests inside the composed Objects to
-equal render(doc, profile) exactly, plus the one operational setting (imagePullSecrets). It also
+equal the unchanged render(doc, profile) plus profile_config's validated capacity/hostUsers extension and the
+operational setting (imagePullSecrets). It also
 requires the Composition to fail closed when the profile is missing or does not resolve a
 reference.
 
@@ -25,8 +26,6 @@ TARGETS = {'function-go-templating': os.environ.get('GOTEMPLATING_TARGET', 'loca
            'function-auto-ready': os.environ.get('AUTOREADY_TARGET', 'localhost:9444')}
 PROVIDER_CONFIG = 'in-cluster'
 
-spec = importlib.util.spec_from_file_location('spike_render', SPIKE / 'verify_developer_workspace_v1.py')
-spike = importlib.util.module_from_spec(spec); spec.loader.exec_module(spike)
 spec = importlib.util.spec_from_file_location('profile_config', HERE / 'profile_config.py')
 profile_configs = importlib.util.module_from_spec(spec); spec.loader.exec_module(profile_configs)
 
@@ -56,7 +55,7 @@ def render(doc, extra, directory, observed=None):
     return done, [d for d in yaml.safe_load_all(done.stdout) if d] if done.returncode == 0 else []
 
 def expected(doc, profile, pull_secret):
-    resources = copy.deepcopy(spike.render(doc, profile)['spec']['resources'])
+    resources = profile_configs.reference_render(doc, profile)['spec']['resources']
     if pull_secret:
         pod = next(r for r in resources if r['kind'] == 'Deployment')['spec']['template']['spec']
         pod['imagePullSecrets'] = [{'name': pull_secret}]
@@ -91,6 +90,17 @@ def composed(outputs, workspace_id=None, profile=None, doc=None):
     manifests = [o['spec']['forProvider']['manifest'] for o in objects]
     return {(m['kind'], m['metadata']['name']): m for m in manifests}, objects
 
+def assert_capacity_label(manifests, value):
+    """Require the runtime-capacity declaration on the Namespace and nowhere else."""
+    label = 'workspace.openkubes.io/persistent-capacity'
+    namespaces = [m for (kind, _), m in manifests.items() if kind == 'Namespace']
+    assert len(namespaces) == 1, f'expected one Namespace, got {len(namespaces)}'
+    assert namespaces[0]['metadata']['labels'].get(label) == value, (
+        f'Namespace {label}={namespaces[0]["metadata"]["labels"].get(label)!r}, expected {value!r}')
+    leaked = sorted((kind, name) for (kind, name), manifest in manifests.items()
+                    if kind != 'Namespace' and label in manifest.get('metadata', {}).get('labels', {}))
+    assert not leaked, f'{label} leaked onto non-Namespace resources: {leaked}'
+
 def variant(base, runtime='opencode', mode='persistent'):
     doc = copy.deepcopy(base); doc['spec']['runtime']['profile'] = runtime
     if mode == 'ephemeral':
@@ -119,7 +129,7 @@ def replace_capability_refs(doc, profile, refs):
     return doc, profile
 
 def mutations(doc):
-    """Inputs render() rejects in validate_profile(); the Composition must reject each one too."""
+    """Inputs the capability reference rejects; the Composition must reject each one too."""
     s = doc['spec']; git, inference, mcp = (s['capabilities'][k]['reference'] for k in ('git', 'inference', 'mcp'))
     def p(fn): return lambda d, pr: fn(pr['spec'])
     def d(fn): return lambda dd, pr: fn(dd['spec'])
@@ -135,6 +145,20 @@ def mutations(doc):
         'malformed IPv6 host route': p(lambda x: x['capabilities'][inference]['destination'].update(cidr=':::::/128')),
         'empty namespacePrefix': p(lambda x: x.update(namespacePrefix='')),
         'invalid storageClassName': p(lambda x: x.update(storageClassName='Bad_Class')),
+        'missing persistentCapacity': p(lambda x: x.pop('persistentCapacity')),
+        'missing runtimeEnforced': p(lambda x: x['persistentCapacity'].pop('runtimeEnforced')),
+        'non-boolean runtimeEnforced': p(lambda x: x['persistentCapacity'].update(runtimeEnforced='true')),
+        'extra persistentCapacity key': p(lambda x: x['persistentCapacity'].update(extra=True)),
+        'missing capacityEnforcingStorageClasses': p(lambda x: x['persistentCapacity'].pop('capacityEnforcingStorageClasses')),
+        'non-list capacityEnforcingStorageClasses': p(lambda x: x['persistentCapacity'].update(capacityEnforcingStorageClasses='quota-class')),
+        'invalid capacity-enforcing class': p(lambda x: x['persistentCapacity'].update(capacityEnforcingStorageClasses=['Bad_Class'])),
+        'non-string capacity-enforcing class': p(lambda x: x['persistentCapacity'].update(capacityEnforcingStorageClasses=[42])),
+        'enforced class with hostUsers:true': p(lambda x: x.update(hostUsers=True, persistentCapacity={'runtimeEnforced': True, 'capacityEnforcingStorageClasses': [x['storageClassName']]})),
+        'enforced class with hostUsers omitted': p(lambda x: (x.update(persistentCapacity={'runtimeEnforced': True, 'capacityEnforcingStorageClasses': [x['storageClassName']]}), x.pop('hostUsers'))),
+        'undeclared class with enforced claim': p(lambda x: x.update(hostUsers=False, storageClassName='other-class', persistentCapacity={'runtimeEnforced': True, 'capacityEnforcingStorageClasses': ['quota-class']})),
+        'empty enforcing classes with enforced claim': p(lambda x: x.update(hostUsers=False, persistentCapacity={'runtimeEnforced': True, 'capacityEnforcingStorageClasses': []})),
+        'missing hostUsers': p(lambda x: x.pop('hostUsers')),
+        'non-boolean hostUsers': p(lambda x: x.update(hostUsers='false')),
         'extra source': p(lambda x: x['sources'].update({'sourceref:other': next(iter(x['sources'].values()))})),
         'http source endpoint': p(lambda x: next(iter(x['sources'].values())).update(endpoint='http://git.example.invalid')),
         'source endpoint with path': p(lambda x: next(iter(x['sources'].values())).update(endpoint='https://git.example.invalid/sub')),
@@ -164,10 +188,9 @@ def mutations(doc):
     }
 
 def main():
-    # crossplane render does not execute XRD admission CEL, so keep every render oracle input
-    # independently admissible instead of treating a successful render as admission evidence.
-    base = canonicalize_name(load(SPIKE / 'developer-workspace-v0alpha1.example.yaml')); profile = load(SPIKE / 'namespace-profile-v1.yaml')
-    failures = []; checked = 0
+    # crossplane render does not execute XRD admission CEL; keep oracle inputs admissible.
+    base = canonicalize_name(load(SPIKE / 'developer-workspace-v0alpha1.example.yaml')); profile = profile_configs.load_profile(SPIKE / 'namespace-profile-v1.yaml')
+    failures = []; checked = 0; capacity_labels = set()
     with tempfile.TemporaryDirectory(prefix='ok175-render-') as directory:
         collision_names = []
         try:
@@ -175,7 +198,9 @@ def main():
                 doc = copy.deepcopy(base); doc['spec']['workspaceID'] = workspace_id; canonicalize_name(doc)
                 done, outputs = render(doc, [profile_config(profile, '')], directory)
                 if done.returncode: raise AssertionError(f'{workspace_id}: {done.stderr.strip()[:300]}')
-                got, objects = composed(outputs)
+                got, objects = composed(outputs, doc['spec']['workspaceID'], profile, doc)
+                assert_capacity_label(got, 'not-runtime-enforced')
+                capacity_labels.add('not-runtime-enforced')
                 assert got == expected(doc, profile, ''), f'{workspace_id}: manifests differ from render()'
                 collision_names.append({o['metadata']['name'] for o in objects})
             assert collision_names[0].isdisjoint(collision_names[1]), 'formerly colliding workspaceIDs produced overlapping composed Object names'
@@ -183,20 +208,73 @@ def main():
         except AssertionError as error:
             print(f'FAIL workspace digest collision: {error}', file=sys.stderr)
             return 1
+        for host_users in (True, False):
+            selected_profile = copy.deepcopy(profile); selected_profile['spec']['hostUsers'] = host_users
+            for runtime in ('opencode', 'codex'):
+                for mode in ('persistent', 'ephemeral'):
+                    for pull_secret in ('', 'registry-pull'):
+                        doc = variant(base, runtime, mode); name = f'hostUsers={str(host_users).lower()}/{runtime}/{mode}/{"pull-secret" if pull_secret else "no-pull-secret"}'
+                        done, outputs = render(doc, [profile_config(selected_profile, pull_secret)], directory)
+                        if done.returncode: failures.append(f'{name}: render failed: {done.stderr.strip()[:300]}'); continue
+                        want = expected(doc, selected_profile, pull_secret); got, objects = composed(outputs, doc['spec']['workspaceID'], selected_profile, doc)
+                        try:
+                            assert_capacity_label(got, 'not-runtime-enforced')
+                            capacity_labels.add('not-runtime-enforced')
+                        except AssertionError as error:
+                            failures.append(f'{name}: {error}')
+                        if got != want:
+                            missing = sorted(set(want) - set(got)); extra = sorted(set(got) - set(want))
+                            differ = sorted(k for k in set(want) & set(got) if want[k] != got[k])
+                            failures.append(f'{name}: missing={missing} extra={extra} differ={differ}')
+                            for k in differ[:2]: failures.append(f'  {k} want={json.dumps(want[k], sort_keys=True)[:400]}\n  {k} got ={json.dumps(got[k], sort_keys=True)[:400]}')
+                        else:
+                            checked += 1; print(f'PASS {name}: {len(objects)} Objects equal capability reference rendering')
+        enforcing = copy.deepcopy(profile)
+        enforcing['spec'].update(hostUsers=False, storageClassName='quota-class',
+                                 persistentCapacity={'runtimeEnforced': True, 'capacityEnforcingStorageClasses': ['quota-class']})
         for runtime in ('opencode', 'codex'):
             for mode in ('persistent', 'ephemeral'):
                 for pull_secret in ('', 'registry-pull'):
-                    doc = variant(base, runtime, mode); name = f'{runtime}/{mode}/{"pull-secret" if pull_secret else "no-pull-secret"}'
-                    done, outputs = render(doc, [profile_config(profile, pull_secret)], directory)
-                    if done.returncode: failures.append(f'{name}: render failed: {done.stderr.strip()[:300]}'); continue
-                    want = expected(doc, profile, pull_secret); got, objects = composed(outputs, doc['spec']['workspaceID'], profile, doc)
-                    if got != want:
-                        missing = sorted(set(want) - set(got)); extra = sorted(set(got) - set(want))
-                        differ = sorted(k for k in set(want) & set(got) if want[k] != got[k])
-                        failures.append(f'{name}: missing={missing} extra={extra} differ={differ}')
-                        for k in differ[:2]: failures.append(f'  {k} want={json.dumps(want[k], sort_keys=True)[:400]}\n  {k} got ={json.dumps(got[k], sort_keys=True)[:400]}')
+                    doc = variant(base, runtime, mode)
+                    done, outputs = render(doc, [profile_config(enforcing, pull_secret)], directory)
+                    name = f'runtime-enforced/{runtime}/{mode}/{"pull-secret" if pull_secret else "no-pull-secret"}'
+                    if done.returncode:
+                        failures.append(f'{name}: render failed: {done.stderr.strip()[:300]}'); continue
+                    got, objects = composed(outputs, doc['spec']['workspaceID'], enforcing, doc)
+                    try:
+                        assert_capacity_label(got, 'runtime-enforced')
+                        capacity_labels.add('runtime-enforced')
+                    except AssertionError as error:
+                        failures.append(f'{name}: {error}')
+                    if got != expected(doc, enforcing, pull_secret): failures.append(f'{name}: manifests differ')
                     else:
-                        checked += 1; print(f'PASS {name}: {len(objects)} Objects equal render()')
+                        checked += 1; print(f'PASS {name}: {len(objects)} Objects equal capability reference rendering')
+        local_path_enforcing = copy.deepcopy(profile)
+        local_path_enforcing['spec'].update(
+            hostUsers=False,
+            persistentCapacity={'runtimeEnforced': True, 'capacityEnforcingStorageClasses': ['local-path']})
+        done, outputs = render(base, [profile_config(local_path_enforcing, '')], directory)
+        name = 'self-declared-local-path/runtime-enforced'
+        if done.returncode:
+            failures.append(f'{name}: render failed: {done.stderr.strip()[:300]}')
+        else:
+            got, objects = composed(outputs, base['spec']['workspaceID'], local_path_enforcing, base)
+            try:
+                assert_capacity_label(got, 'runtime-enforced')
+                capacity_labels.add('runtime-enforced')
+            except AssertionError as error:
+                failures.append(f'{name}: {error}')
+            if got != expected(base, local_path_enforcing, ''):
+                failures.append(f'{name}: manifests differ')
+            else:
+                namespace = next(m for (kind, _), m in got.items() if kind == 'Namespace')
+                checked += 1
+                print(f'PASS {name}: operator declaration accepted; {len(objects)} Objects equal capability reference rendering')
+                print('RENDERED self-declared local-path Namespace:\n' + yaml.safe_dump(namespace, sort_keys=False).rstrip())
+        if capacity_labels == {'runtime-enforced', 'not-runtime-enforced'}:
+            print('PASS Namespace persistent-capacity label: both explicit values rendered and confined to Namespace')
+        else:
+            failures.append(f'Namespace persistent-capacity label values: got {sorted(capacity_labels)}')
         doc = copy.deepcopy(base); doc['spec']['workspaceID'] = 'ws-' + 'a' * 48  # the schema's longest ID
         canonicalize_name(doc)
         max_refs = {
@@ -243,14 +321,26 @@ def main():
         rejected = 0; cases = mutations(base)
         for label, mutate in cases.items():
             doc, broken = copy.deepcopy(base), copy.deepcopy(profile); mutate(doc, broken)
-            try: spike.render(doc, broken); failures.append(f'{label}: render() accepts it; the case is not a rejection'); continue
+            try: profile_configs.reference_render(doc, broken); failures.append(f'{label}: reference_render() accepts it; the case is not a rejection'); continue
             except Exception: pass
             done, outputs = render(doc, [profile_config(broken, '')], directory)
-            if done.returncode != 0 and 'fatal result' in done.stderr: rejected += 1
-            else: failures.append(f'{label}: render() rejects it but the Composition composed {len([o for o in outputs if o.get("kind") == "Object"])} Objects')
-        if rejected == len(cases): print(f'PASS fail closed: the Composition rejects all {rejected} inputs render() rejects')
+            if done.returncode != 0 and 'fatal result' in done.stderr and not outputs:
+                required_reason = {
+                    'enforced class with hostUsers:true': 'runtime-enforced capacity requires hostUsers=false',
+                    'undeclared class with enforced claim': 'runtime-enforced capacity requires a declared capacity-enforcing storageClassName',
+                }.get(label)
+                if required_reason and required_reason not in done.stderr:
+                    failures.append(f'{label}: rejection did not name the capacity guard: {done.stderr[:300]}')
+                else:
+                    rejected += 1
+                    if 'enforced' in label or 'persistentCapacity' in label or 'Enforcing' in label or 'runtimeEnforced' in label or 'capacity-enforcing' in label:
+                        print(f'PASS negative {label}: fatal rejection, nothing composed')
+            else: failures.append(f'{label}: reference_render() rejects it but the Composition composed {len([o for o in outputs if o.get("kind") == "Object"])} Objects')
+        if rejected == len(cases): print(f'PASS fail closed: the Composition rejects all {rejected} inputs the capability reference rejects')
     for f in failures: print('FAIL ' + f, file=sys.stderr)
-    return 1 if failures or checked != 10 else 0
+    if not failures and checked == 27:
+        print(f'PASS render-check: {checked} valid renders, status controls, missing-profile control, {rejected} invalid inputs rejected')
+    return 1 if failures or checked != 27 else 0
 
 if __name__ == '__main__':
     raise SystemExit(main())

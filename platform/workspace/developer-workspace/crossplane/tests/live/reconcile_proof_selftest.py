@@ -3,10 +3,14 @@
 from __future__ import annotations
 
 import copy
+import contextlib
+import io
+from unittest.mock import patch
 import importlib.util
 import json
 import subprocess
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -21,6 +25,173 @@ DISABLE_PROVIDER_STEERING_POLICY = '--disable-provider-steering-policy' in sys.a
 
 def completed(args, returncode=0, stdout='', stderr=''):
     return subprocess.CompletedProcess(['kubectl', *args], returncode, stdout, stderr)
+
+
+class CapacityDeclarationTest(unittest.TestCase):
+    def test_installed_profile_data_and_identity_must_match(self):
+        profile = proof.render_profile.load_profile(proof.LIVE / 'profile/namespace-profile-live.yaml')
+        config = proof.render_profile.profile_config(profile, 'in-cluster')
+        live = copy.deepcopy(config)
+        live['metadata'].update(uid='profile-uid', resourceVersion='1')
+        original = proof.get_json
+        proof.get_json = lambda args: live
+        try:
+            initial = proof.profile_readback(config)
+            live['metadata']['resourceVersion'] = '2'
+            self.assertEqual(proof.profile_readback(config, initial)['uid'], initial['uid'])
+            live['data']['profile']['spec']['persistentCapacity']['runtimeEnforced'] = True
+            with self.assertRaisesRegex(proof.ProofError, 'differs from the selected operator declaration'):
+                proof.profile_readback(config, initial)
+            live['data'] = copy.deepcopy(config['data'])
+            live['metadata']['uid'] = 'replacement-uid'
+            with self.assertRaisesRegex(proof.ProofError, 'was replaced during proof'):
+                proof.profile_readback(config, initial)
+        finally:
+            proof.get_json = original
+
+    def test_mode_comes_from_profile_and_invalid_claims_fail_before_cluster_use(self):
+        profile = proof.render_profile.load_profile(proof.LIVE / 'profile/namespace-profile-live.yaml')
+        with tempfile.TemporaryDirectory(prefix='ok176-profile-') as directory:
+            path = Path(directory) / 'profile.yaml'
+            def read(selected):
+                path.write_text(proof.yaml.safe_dump(selected))
+                return proof.storage_inputs({'OK176_PROFILE_FILE': str(path)})
+            self.assertEqual(read(profile)['mode'], 'observed-negative')
+            profile['spec'].update(hostUsers=False, storageClassName='quota-class',
+                                  persistentCapacity={'runtimeEnforced': True,
+                                                      'capacityEnforcingStorageClasses': ['quota-class']})
+            storage = read(profile)
+            self.assertEqual(storage['mode'], 'enforced')
+            self.assertEqual(storage['declaration'], profile['spec']['persistentCapacity'])
+            self.assertEqual(storage['profile'], profile)
+            for field, value, reason in [('hostUsers', True, 'requires hostUsers=false'),
+                                         ('storageClassName', 'local-path', 'requires a declared capacity-enforcing')]:
+                broken = copy.deepcopy(profile); broken['spec'][field] = value
+                with self.assertRaisesRegex(proof.ProofError, reason): read(broken)
+            with self.assertRaisesRegex(proof.ProofError, 'must come from the profile declaration'):
+                proof.storage_inputs({'OK176_PROFILE_FILE': str(path), 'OK176_CAPACITY_MODE': 'enforced'})
+
+
+class CapacityRefusalTest(unittest.TestCase):
+    def setUp(self):
+        self.storage = proof.storage_inputs({'OK176_PROFILE_FILE': str(HERE.parent / 'fixtures/self-declared-local-path.yaml')})
+        self.assertEqual(self.storage['mode'], 'self-declared-negative')
+        self.limit = 16 * proof.WRITE_CHUNK
+        self.probe = {'requestedBytes': 20 * proof.WRITE_CHUNK, 'writtenBytes': self.limit,
+                      'probeAllocatedBytes': self.limit, 'baselineAllocatedBytes': 0,
+                      'totalAllocatedBytes': self.limit, 'availableBeforeBytes': self.limit,
+                      'availableAfterBytes': 0, 'reportedCapacityBeforeBytes': self.limit,
+                      'reportedCapacityAfterBytes': self.limit, 'error': 'ENOSPC'}
+
+    def exercise(self, bring_up, probe):
+        output = io.StringIO()
+        with patch.object(proof, 'get_json', return_value={'metadata': {'labels': {'workspace.openkubes.io/persistent-capacity': 'runtime-enforced'}}}), \
+             patch.object(proof, 'workspace_pod', return_value='workspace-pod'), \
+             patch.object(proof, 'capacity_probe', return_value=probe) as pressure, contextlib.redirect_stdout(output):
+            with self.assertRaisesRegex(proof.ProofError, 'persistent-capacity-enforced: certification refused'):
+                proof.refuse_self_declared_capacity(self.storage, bring_up)
+        result = json.loads(output.getvalue())
+        self.assertEqual(result['name'], 'persistent-capacity-certification-refused')
+        self.assertEqual(result['status'], 'fail')
+        self.assertEqual(result['failedCheck'], 'persistent-capacity-enforced')
+        return result, pressure.call_count
+
+    def ready(self, *args):
+        return {'spec': {'storage': {'size': '16Mi'}}}, 'dw-negative', None
+
+    def test_live_overfill_refuses_certification(self):
+        overfill = dict(self.probe, error=None, writtenBytes=20 * proof.WRITE_CHUNK,
+                        totalAllocatedBytes=20 * proof.WRITE_CHUNK)
+        result, calls = self.exercise(self.ready, overfill)
+        self.assertEqual(calls, 1)
+        self.assertEqual(result['stage'], 'persistent-capacity-enforced')
+        self.assertIn('overfill was not rejected', result['reason'])
+        self.assertEqual(result['observed'], overfill)
+        print('CONTROL PASS: self-declared backend overfill fails persistent-capacity-enforced and refuses certification')
+
+    def test_unready_workspace_refuses_certification(self):
+        def unready(*args): raise proof.ProofError('timed out waiting for workspace Ready (mount)')
+        result, calls = self.exercise(unready, self.probe)
+        self.assertEqual(calls, 0)
+        self.assertEqual(result['stage'], 'workspace-readiness')
+        self.assertIn('workspace Ready', result['reason'])
+        print('CONTROL PASS: unready negative-control workspace refuses certification')
+
+    def test_unexpected_enforcement_still_cannot_certify_negative_control(self):
+        proof.validate_enforced_capacity(self.probe, self.limit)
+        result, calls = self.exercise(self.ready, self.probe)
+        self.assertEqual(calls, 1)
+        self.assertIn('unexpectedly satisfied', result['reason'])
+
+    def test_capacity_boundaries_reject_false_positives(self):
+        mutations = [('writtenBytes', proof.WRITE_CHUNK, 'before filling'),
+                     ('requestedBytes', self.limit, 'did not request more'),
+                     ('availableBeforeBytes', 0, 'lacked the declared free capacity'),
+                     ('totalAllocatedBytes', self.limit + 2 * proof.WRITE_CHUNK, 'total allocated bytes'),
+                     ('reportedCapacityBeforeBytes', self.limit * 2, 'statfs reported capacity'),
+                     ('reportedCapacityAfterBytes', self.limit * 2, 'statfs reported capacity'),
+                     ('availableAfterBytes', 2 * proof.WRITE_CHUNK, 'still reports more')]
+        for key, value, reason in mutations:
+            with self.subTest(key=key):
+                with self.assertRaisesRegex(proof.ProofError, reason):
+                    proof.validate_enforced_capacity(dict(self.probe, **{key: value}), self.limit)
+
+    def test_cli_dispatch_refuses_overfill_and_unready_and_writes_no_report(self):
+        for ready in (True, False):
+            with self.subTest(ready=ready), tempfile.TemporaryDirectory(prefix='ok176-refusal-') as directory, contextlib.ExitStack() as stack:
+                output, errors = io.StringIO(), io.StringIO()
+                def fake_json(args):
+                    if args == ['get', 'developerworkspaces']: return {'items': []}
+                    if args[:2] == ['get', 'pods']: return {'items': [{'metadata': {'name': 'git-fixture'}}]}
+                    if args == ['get', f'developerworkspace/{proof.NO_PROFILE[0]}']:
+                        return {'status': {'conditions': [{'type': 'Ready', 'status': 'False'}]}}
+                    return {'metadata': {'creationTimestamp': '2026-01-01T00:00:00Z',
+                                         'labels': {'workspace.openkubes.io/persistent-capacity': 'runtime-enforced'}}}
+                def fake_kubectl(args, **kwargs):
+                    if args[:2] == ['apply', '--dry-run=server']:
+                        return completed(args, 1, stderr='persistent lifecycle requires persistent storage')
+                    if args[0] == 'get': return completed(args, 1, stderr='(NotFound): absent')
+                    return completed(args)
+                def fake_exec(ns, pod, command, *args, **kwargs):
+                    return completed(command, stdout=('a' if command[0] == 'cat' else 'b') * 40)
+                patches = {'storage_inputs': lambda: self.storage, 'target': lambda: {'context': 'offline'},
+                           'implementation': lambda clean: {}, 'image': lambda name: 'fixture@sha256:' + 'a' * 64,
+                           'apply': lambda docs: None, 'proof_services': lambda *args: [],
+                           'get_json': fake_json, 'kubectl': fake_kubectl, 'exec_in': fake_exec,
+                           'installed_matches_local': lambda: {}, 'assert_noncanonical_name_refused': lambda *args: {},
+                           'wait_until': lambda *args, **kwargs: None, 'profile_readback': lambda *args: {},
+                           'composed_objects': lambda name: [], 'revision_matches': lambda *args: {},
+                           'workspace_pod': lambda ns: 'runtime-pod',
+                           'capacity_probe': lambda *args: dict(self.probe, error=None),
+                           'EVIDENCE': Path(directory)}
+                for name, value in patches.items(): stack.enter_context(patch.object(proof, name, value))
+                wait = stack.enter_context(patch.object(proof, 'wait_ready'))
+                if not ready: wait.side_effect = proof.ProofError('workspace mount never became Ready')
+                marker = stack.enter_context(patch.object(proof, 'assert_capacity_marker', wraps=proof.assert_capacity_marker))
+                stack.enter_context(patch.object(proof.spike, 'tls_material', return_value={'ca': 'fixture'}))
+                stack.enter_context(patch.dict(proof.os.environ, {'OK175_REGISTRY_USERNAME': ''}))
+                stack.enter_context(patch.object(sys, 'argv', ['reconcile_proof.py', 'run']))
+                stack.enter_context(contextlib.redirect_stdout(output)); stack.enter_context(contextlib.redirect_stderr(errors))
+                self.assertEqual(proof.main(), 1)
+                refusals = [json.loads(line) for line in output.getvalue().splitlines() if line.startswith('{')]
+                self.assertEqual(len(refusals), 1)
+                self.assertEqual(refusals[0]['name'], 'persistent-capacity-certification-refused')
+                self.assertEqual(refusals[0]['status'], 'fail')
+                self.assertEqual(refusals[0]['stage'], 'persistent-capacity-enforced' if ready else 'workspace-readiness')
+                self.assertIn('certification refused', errors.getvalue())
+                marker.assert_called()
+                self.assertEqual(list(Path(directory).iterdir()), [])
+
+    def test_marker_checks_both_declarations_and_rejects_missing_or_wrong_label(self):
+        for enforced in (False, True):
+            storage = copy.deepcopy(self.storage); storage['declaration']['runtimeEnforced'] = enforced
+            marker = 'runtime-enforced' if enforced else 'not-runtime-enforced'
+            with patch.object(proof, 'get_json', return_value={'metadata': {'labels': {'workspace.openkubes.io/persistent-capacity': marker}}}):
+                proof.assert_capacity_marker('dw-negative', storage)
+            for labels in ({}, {'workspace.openkubes.io/persistent-capacity': 'wrong'}):
+                with patch.object(proof, 'get_json', return_value={'metadata': {'labels': labels}}):
+                    with self.assertRaisesRegex(proof.ProofError, 'marker differs'):
+                        proof.assert_capacity_marker('dw-negative', storage)
 
 
 class FakeKubectl:
