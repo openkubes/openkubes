@@ -1,0 +1,75 @@
+# OK AI Context-only Agent — private LAB manifest review
+
+**Status: Draft; manifest review ONLY. No installation, no rollout, no
+production readiness. Public Beta HOLD.**
+
+This slice follows the approved gateway-owned retrieval architecture
+(PR #390) and offline Gateway Context Envelope (PR #391).
+
+## Artifacts
+
+- `kagent/openkubes-docs-agent-context.lab.yaml`: independent
+  `openkubes-docs-agent-context-lab` kagent Agent using existing
+  `docs-ollama` ModelConfig and Go ADK runtime, with `tools: []`.
+- `kagent/deploy/networkpolicy-context-agent.lab.yaml`: separate
+  restrictive *deny-all* NetworkPolicy targeting the expected lab Agent
+  pod label. **Do not apply it** until selector has been verified.
+- Neither file is included in the existing Kustomization. Existing docs
+  Agents, MCP Server, ModelConfig and production website are unaffected.
+
+## Verification before even considering deployment
+
+1. Confirm with the installed CRD that `spec.declarative.tools: []` is
+   accepted as a valid no-configured-tools Agent. Admission may default or
+   mutate tool lists; inspect server-side dry-run output.
+2. **Runtime tool injection warning:** in kagent v0.9.12,
+   `go/adk/pkg/agent/agent.go` calls `buildAgentTools`, which adds
+   the built-in `ask_user` tool even when configured tools are empty.
+   Thus `tools: []` does **not** prove the agent has literally zero runtime
+   tools. Assess whether this affects the no-tools threat model.
+3. Confirm generated Pod selectors for this Agent. A NetworkPolicy with
+   a wrong podSelector does not isolate anything. Verify the actual Pod's
+   `app.kubernetes.io/name` label (and any controller defaults).
+4. Confirm kagent's required DNS, A2A and Ollama endpoints, namespaces,
+   ports, and appropriate scoped label selectors from live trusted cluster
+   metadata. A deny-all egress policy blocks these dependencies and cannot
+   be a functioning deployment. **Never invent or broaden egress rules.**
+5. Confirm NetworkPolicy implementation/CNI enforcement and other additive
+   policies. Kubernetes NetworkPolicies are additive; this deny-all does not
+   cancel an independent policy that already allows traffic to lab pods.
+   Check isolation by effective policies, not YAML inspection alone.
+6. Do not rely only on the system message for prompt-injection prevention.
+   The Gateway must strictly validate all answer sources and render only
+   canonical indexed links. No model-generated evidence receipts.
+
+## Server-side dry run (operator only, NO persisted objects)
+
+From `platform/ai/assistant`:
+
+```sh
+kubectl --kubeconfig "$HOME/.kube/ok-kagent.yaml" \
+  --context ok-kagent-admin@ok-kagent \
+  -n openkubes-assistant \
+  apply --dry-run=server -f kagent/openkubes-docs-agent-context.lab.yaml
+
+kubectl --kubeconfig "$HOME/.kube/ok-kagent.yaml" \
+  --context ok-kagent-admin@ok-kagent \
+  -n openkubes-assistant \
+  apply --dry-run=server -f kagent/deploy/networkpolicy-context-agent.lab.yaml
+```
+
+Server-side dry-run does **not** prove runtime network isolation,
+injected tools, deployed generated Pod labels, or absence of side effects
+from unusual admission webhooks. These require separate review.
+
+## Operator hold
+
+**Do not run real `kubectl apply` or update the existing kagent
+Kustomization.** Wait for an explicit separate deployment approval after
+the CRD check, actual pod selectors, runtime tool assessment, all network
+paths and CNI behavior have been verified. At this stage the deny-all
+policy is a security-oriented placeholder, not a deployable allowlist.
+
+A later separate PR should wire the private gateway's existing validated
+context envelope into a dedicated allowlisted loopback A2A path and report
+retrieval/delivery/format checks separately from semantic grounding.
