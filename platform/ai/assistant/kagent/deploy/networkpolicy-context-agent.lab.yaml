@@ -1,9 +1,10 @@
-# PRIVATE LAB ONLY — DO NOT APPLY: source identity verified in Hubble for
-# controller -> existing JSON Agent, NOT for this (undeployed) context Agent.
-# This NetworkPolicy is intentionally NON-FUNCTIONAL until approved Ollama
-# egress and all runtime dependencies are verified with Cilium.
+# PRIVATE LAB ONLY — DO NOT APPLY until explicit operator deployment approval.
+# Observed with Hubble on existing JSON agent:
+# controller -> agent TCP 8080; agent -> Ollama 192.168.100.202 TCP 11434.
+# This does NOT prove the future context Agent has the same network/runtime
+# dependencies or that Cilium will enforce this policy as expected.
 # Other Kubernetes NetworkPolicies are additive, never subtractive.
-# Verify future generated context Agent Pod labels before any deployment.
+# Verify generated context Agent Pod labels and effective policy before use.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -28,6 +29,10 @@ spec:
       ports:
         - protocol: TCP
           port: 8080
-  # Deny ALL outgoing traffic until an independently validated egress
-  # allowlist is approved. This also blocks Ollama 192.168.100.202:11434.
-  egress: []
+  egress:
+    - to:
+        - ipBlock:
+            cidr: 192.168.100.202/32
+      ports:
+        - protocol: TCP
+          port: 11434
