@@ -16,6 +16,7 @@ OK AI is the AI capability area of OpenKubes: run self-hosted AI services on Kub
 | **OpenClaw** | Optional agent backend through the Agent Interface Contract | [OpenClaw](openclaw.md) |
 | **kagent & Platform Diagnostics** | Read-only diagnostics provider behind the HTTP/OpenAPI contract | [kagent & Platform Diagnostics](kagent-platform-diagnostics.md) |
 | **Agentic Operations** | Proposal, policy, authorization, execution and evidence boundaries | [Agentic Operations](agentic-operations.md) |
+| **AI Glossary** | Beginner-friendly explanations of AI concepts, from LLMs to agents, RAG and evals | [AI Glossary](ai-glossary-newbies.md) |
 
 ## Architecture at a glance
 
