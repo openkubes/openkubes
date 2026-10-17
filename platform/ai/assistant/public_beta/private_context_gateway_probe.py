@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import socket
+import urllib.error
 import urllib.request
 import uuid
 
@@ -26,6 +28,33 @@ CONTEXT_A2A_URL = (
 MAX_A2A_RESPONSE_BYTES = 256 * 1024
 A2A_TIMEOUT_SECONDS = 90
 DEFAULT_QUESTION = "How do I install OpenKubes Local on macOS?"
+
+
+class A2ADiagnosticError(Exception):
+    """Static sanitized diagnosis; never store remote response details."""
+
+    def __init__(self, code: str):
+        self.code = code
+        super().__init__(code)
+
+
+def _transport_reason(exc: Exception) -> str:
+    """Map errors to an explicit fixed allowlist, no exception text."""
+    if isinstance(exc, A2ADiagnosticError):
+        return exc.code
+    if isinstance(exc, urllib.error.HTTPError):
+        if exc.code == 504:
+            return "a2a_http_504"
+        if exc.code == 502:
+            return "a2a_http_502"
+        return "a2a_http_error"
+    if isinstance(exc, (TimeoutError, socket.timeout)):
+        return "a2a_client_timeout"
+    if isinstance(exc, urllib.error.URLError):
+        if isinstance(exc.reason, (TimeoutError, socket.timeout)):
+            return "a2a_client_timeout"
+        return "a2a_connection_error"
+    return "a2a_transport_or_task_error"
 
 
 def send_private_context(encoded_context: str) -> str:
@@ -65,11 +94,21 @@ def send_private_context(encoded_context: str) -> str:
     )
     with opener.open(req, timeout=A2A_TIMEOUT_SECONDS) as response:
         if response.status != 200:
-            raise ValueError("unexpected_a2a_status")
+            raise A2ADiagnosticError("a2a_http_error")
         data = response.read(MAX_A2A_RESPONSE_BYTES + 1)
     if len(data) > MAX_A2A_RESPONSE_BYTES:
-        raise ValueError("oversized_a2a_response")
-    return extract_answer(json.loads(data))
+        raise A2ADiagnosticError("a2a_response_oversized")
+    try:
+        payload = json.loads(data)
+    except (UnicodeDecodeError, json.JSONDecodeError, ValueError):
+        raise A2ADiagnosticError("a2a_protocol_error") from None
+    try:
+        return extract_answer(payload)
+    except ValueError as exc:
+        # Only inspect our own static extraction errors, never return text.
+        if str(exc) == "A2A task did not complete":
+            raise A2ADiagnosticError("a2a_task_incomplete") from None
+        raise A2ADiagnosticError("a2a_protocol_error") from None
 
 
 def run_private_gateway_probe(index: dict, question: str, *, send=None) -> dict:
@@ -109,9 +148,9 @@ def run_private_gateway_probe(index: dict, question: str, *, send=None) -> dict:
     sender = send if send is not None else send_private_context
     try:
         raw = sender(encoded)
-    except Exception:
-        # Runtime exception text could expose source content, URL or secrets.
-        return outcome("ERROR", "a2a_transport_or_task_error",
+    except Exception as exc:
+        # Only fixed status codes; never log exception arguments or response.
+        return outcome("ERROR", _transport_reason(exc),
                        retrieved_chunks=count,
                        context_sha256=envelope["context_sha256"])
     try:
