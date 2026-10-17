@@ -36,3 +36,16 @@ spec:
       ports:
         - protocol: TCP
           port: 11434
+    # DNS only to CoreDNS; label must be verified on live Pods before apply.
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
