@@ -93,3 +93,28 @@ A2A endpoint, tool boundary, ingress/egress or identity differs from review.
   and investigate model/contract alignment; never auto-rewrite answers.
 - #392 and this PR both remain Draft pending review, evidence, and explicit
   operator sign-off.
+
+## Sanitized transport diagnostics (2026-10-17)
+
+The initial private A2A probe returned the generic
+`a2a_transport_or_task_error` consistently after **60.40 seconds** despite a
+90-second Python client socket timeout. Hubble observed accepted
+Controller-to-context-Agent TCP 8080 ingress. The Agent was
+`Accepted=True` and `Ready=True`; runtime logs said
+`execution context canceled` on repeated test attempts. A filtered Hubble
+view of Agent-to-Ollama TCP 11434 did not show matching flows. These are
+indicators, **not a proven root cause or proven absence of all model traffic**.
+
+The probe now maps exceptions to sanitized codes, including
+`a2a_http_504`, `a2a_http_502`, `a2a_http_error`,
+`a2a_client_timeout`, `a2a_connection_error`,
+`a2a_task_incomplete`, `a2a_protocol_error` and
+`a2a_response_oversized`. It never echoes response bodies, exception
+arguments or private payload content. No timeout or NetworkPolicy has been
+changed.
+
+**Next operator gate:** pull the changed branch and rerun offline tests
+before another single live private probe. Observe both elapsed time and the
+fixed reason code; if it remains exactly ~60 seconds, investigate controller
+proxy timeout settings and upstream processing without increasing limits
+blindly. Hubble network events alone do not establish the HTTP response code.
