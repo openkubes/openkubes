@@ -60,7 +60,7 @@ def main():
     # Guard the OK AI navigation and generated capability entry points.
     for ai_path in ("ai/index.html", "ai/open-webui/index.html",
                     "ai/openclaw/index.html", "ai/kagent-platform-diagnostics/index.html",
-                    "ai/agentic-operations/index.html"):
+                    "ai/agentic-operations/index.html", "ai/ai-glossary-newbies/index.html"):
         if not (SITE / ai_path).is_file():
             raise SystemExit(f"Missing OK AI page: {ai_path}")
     ai_html = (SITE / "ai" / "index.html").read_text(encoding="utf-8")
