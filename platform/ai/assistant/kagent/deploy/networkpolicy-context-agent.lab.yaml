@@ -49,3 +49,16 @@ spec:
           port: 53
         - protocol: TCP
           port: 53
+    # Session API callback required by kagent Go runtime.
+    # Limit access to the controller Pod only, not the whole namespace.
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kagent
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: kagent
+              app.kubernetes.io/component: controller
+      ports:
+        - protocol: TCP
+          port: 8083
