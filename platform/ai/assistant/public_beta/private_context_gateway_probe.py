@@ -19,7 +19,8 @@ from public_beta.gateway_context import (
     encode_context_envelope,
 )
 from public_beta.private_a2a_probe import _NoRedirect, extract_answer
-from public_beta.structured_answer import ContractRejected, validate_and_render
+from public_beta.structured_answer import (ContractRejected, validate_and_render,
+                                          classify_unsupported_text)
 
 CONTEXT_A2A_URL = (
     "http://127.0.0.1:8083/api/a2a/"
@@ -137,7 +138,7 @@ def run_private_gateway_probe(index: dict, question: str, *, send=None) -> dict:
     """
     def outcome(status: str, reason: str, *, retrieved_chunks=0,
                 context_sha256=None, rendered_chars=None,
-                jsonrpc_error_code=None) -> dict:
+                jsonrpc_error_code=None, text_reject_category=None) -> dict:
         result = {"status": status, "accepted": status == "PASS",
                   "reason": reason, "retrieved_chunks": retrieved_chunks,
                   "semantic_grounding": "UNVERIFIED"}
@@ -147,6 +148,8 @@ def run_private_gateway_probe(index: dict, question: str, *, send=None) -> dict:
             result["rendered_chars"] = rendered_chars
         if jsonrpc_error_code is not None:
             result["jsonrpc_error_code"] = jsonrpc_error_code
+        if text_reject_category is not None:
+            result["text_reject_category"] = text_reject_category
         return result
 
     try:
@@ -184,7 +187,9 @@ def run_private_gateway_probe(index: dict, question: str, *, send=None) -> dict:
         reason = str(exc) if isinstance(exc, ContractRejected) else "invalid_answer"
         return outcome("REJECT", reason,
                        retrieved_chunks=count,
-                       context_sha256=envelope["context_sha256"])
+                       context_sha256=envelope["context_sha256"],
+                       text_reject_category=(classify_unsupported_text(raw)
+                           if reason == "unsupported_text" else None))
     return outcome("PASS", "format_and_source_ids_only",
                    retrieved_chunks=count,
                    context_sha256=envelope["context_sha256"],
