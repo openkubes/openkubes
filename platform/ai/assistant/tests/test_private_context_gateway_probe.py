@@ -203,6 +203,34 @@ class ContextGatewayProbeTests(unittest.TestCase):
             with self.assertRaisesRegex(A2ADiagnosticError, "a2a_jsonrpc_error"):
                 send_private_context('{"x":1}')
 
+    def test_jsonrpc_integer_error_code_in_probe(self):
+        def sender(_):
+            raise A2ADiagnosticError(
+                "a2a_jsonrpc_error", jsonrpc_error_code=-32000)
+        result = run_private_gateway_probe(self.index, QUESTION, send=sender)
+        self.assertEqual(result["jsonrpc_error_code"], -32000)
+        self.assertEqual(result["reason"], "a2a_jsonrpc_error")
+        self.assertNotIn("jsonrpc_error_message", result)
+
+    def test_jsonrpc_error_code_from_http_response(self):
+        for code in (-32603, -32000, 0, True, "sensitive", 2**40):
+            with self.subTest(code=code):
+                response = MagicMock()
+                response.status = 200
+                response.read.return_value = json.dumps({
+                    "jsonrpc": "2.0",
+                    "error": {"code": code, "message": "private message"},
+                }).encode()
+                opener = MagicMock()
+                opener.open.return_value.__enter__.return_value = response
+                with patch("urllib.request.build_opener", return_value=opener):
+                    with self.assertRaises(A2ADiagnosticError) as caught:
+                        send_private_context('{"x":1}')
+                self.assertEqual(caught.exception.code, "a2a_jsonrpc_error")
+                expected = code if type(code) is int and -(2**31) <= code <= 2**31-1 else None
+                self.assertEqual(caught.exception.jsonrpc_error_code, expected)
+                self.assertNotIn("private message", str(caught.exception))
+
     def test_invalid_jsonrpc_envelope_is_sanitized(self):
         response = MagicMock()
         response.status = 200
