@@ -1,11 +1,13 @@
-# EXPERIMENTAL / NON-DEPLOYABLE until runtime network dependencies are reviewed.
-# Intentional deny-all ingress and egress for context-only lab Agent pods.
-# Do NOT deploy or relax this policy based on guessed Ollama/controller addresses.
-# Confirm that generated pods actually carry this selector label before applying.
+# PRIVATE LAB ONLY — DO NOT APPLY: source identity verified in Hubble for
+# controller -> existing JSON Agent, NOT for this (undeployed) context Agent.
+# This NetworkPolicy is intentionally NON-FUNCTIONAL until approved Ollama
+# egress and all runtime dependencies are verified with Cilium.
+# Other Kubernetes NetworkPolicies are additive, never subtractive.
+# Verify future generated context Agent Pod labels before any deployment.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: docs-context-lab-deny-all
+  name: docs-context-lab-restrict
   namespace: openkubes-assistant
 spec:
   podSelector:
@@ -14,5 +16,18 @@ spec:
   policyTypes:
     - Ingress
     - Egress
-  ingress: []
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kagent
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: kagent
+              app.kubernetes.io/component: controller
+      ports:
+        - protocol: TCP
+          port: 8080
+  # Deny ALL outgoing traffic until an independently validated egress
+  # allowlist is approved. This also blocks Ollama 192.168.100.202:11434.
   egress: []
