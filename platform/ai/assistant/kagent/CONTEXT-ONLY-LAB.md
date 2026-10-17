@@ -181,3 +181,52 @@ preparation and review, not a cluster deployment.
 
 No signed gateway retrieval receipt yet; no proven model consumption;
 no semantic-grounding guarantee; no production/public availability.
+
+## Temporary NetworkPolicy probe (private lab only)
+
+The operator explicitly approved preparing and deploying a temporary isolated
+security-test Pod, independent of the running context-only Agent.
+
+Manifest: `kagent/deploy/context-networkpolicy-probe.lab.yaml`.
+
+- A single `curlimages/curl:8.12.1` Pod, no Service or controller.
+- Exactly matches context Agent's `app.kubernetes.io/name` policy selector,
+  so it is subject to the **same** Kubernetes NetworkPolicy. It does not
+  mutate the agent Pod.
+- Runs without service account token, Linux capabilities, privilege escalation
+  or writable root filesystem; non-root UID; runtime-default seccomp.
+- Pinned to the same node as the observed lab agent for local Hubble traces;
+  node affinity will need updating if the lab Pod migrates.
+- This tests network enforcement for a separately labeled Pod. It is not proof
+  of every runtime behavior of the real Agent.
+- Exact curl image has a version tag, **not a digest**. Image provenance/digest
+  and private registry controls should be verified before broader use.
+
+From `platform/ai/assistant`, first validate only:
+```sh
+kubectl --kubeconfig "$HOME/.kube/ok-kagent.yaml" \
+  --context ok-kagent-admin@ok-kagent -n openkubes-assistant \
+  apply --dry-run=server -f kagent/deploy/context-networkpolicy-probe.lab.yaml
+```
+
+When the operator has checked and accepted the image/manifest, separately
+apply only this one file; confirm Running, label matches and Cilium endpoint
+enforces both directions before making network calls.
+
+Safe test pattern (only once Pod ready): `kubectl exec ... -- curl -sS -I
+--connect-timeout 3 --max-time 6 http://TARGET:PORT/`. The *HTTP* result
+may be 400/404/405 and still prove TCP connectivity. For negative tests,
+timeouts alone are inconclusive without corroborating Cilium DROP verdicts;
+do not equate HTTP status codes to denied network access.
+
+Observe flows with local Hubble by **probe Pod IP**, separately for
+`192.168.100.202:11434` and denied MCP/API targets. Do not run unbounded
+or repeated network scans.
+
+Scoped cleanup:
+```sh
+kubectl --kubeconfig "$HOME/.kube/ok-kagent.yaml" \
+  --context ok-kagent-admin@ok-kagent -n openkubes-assistant \
+  delete -f kagent/deploy/context-networkpolicy-probe.lab.yaml
+```
+Do not delete the context Agent or NetworkPolicy as part of probe cleanup.
