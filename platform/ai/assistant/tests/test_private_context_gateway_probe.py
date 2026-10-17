@@ -146,7 +146,7 @@ class ContextGatewayProbeTests(unittest.TestCase):
             ("Run kubectl get pods.", "command"),
             ("See https://private.example/secret", "url"),
             ("Use `documentation`.", "markup"),
-            ("Some\\nprivate data", "control_character"),
+            ("Some\nprivate data", "control_character"),
             (" leading text", "length_or_whitespace"),
         ]
         for content, expected in samples:
