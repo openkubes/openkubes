@@ -32,8 +32,7 @@ This slice follows the approved gateway-owned retrieval architecture
    `app.kubernetes.io/name` label (and any controller defaults).
 4. Confirm kagent's required DNS, A2A and Ollama endpoints, namespaces,
    ports, and appropriate scoped label selectors from live trusted cluster
-   metadata. The current deny-all egress policy blocks these dependencies and cannot
-   be a functioning deployment. **Never invent or broaden egress rules.**
+   metadata. The current single-destination Ollama egress policy may block other runtime dependencies and cannot be considered ready for deployment until checked. **Never invent or broaden egress rules.**
 5. Confirm NetworkPolicy implementation/CNI enforcement and other additive
    policies. Kubernetes NetworkPolicies are additive; this deny-all does not
    cancel an independent policy that already allows traffic to lab pods.
@@ -67,7 +66,7 @@ from unusual admission webhooks. These require separate review.
 **Do not run real `kubectl apply` or update the existing kagent
 Kustomization.** Wait for an explicit separate deployment approval after
 the CRD check, actual pod selectors, runtime tool assessment, all network
-paths and CNI behavior have been verified. At this stage the controller-only ingress plus deny-all egress policy is a security-oriented placeholder, not a deployable allowlist.
+paths and CNI behavior have been verified. At this stage the controller-only ingress plus Ollama-only egress policy is a security-oriented **unverified proposal**, not a deployable allowlist.
 
 A later separate PR should wire the private gateway's existing validated
 context envelope into a dedicated allowlisted loopback A2A path and report
@@ -87,10 +86,10 @@ and pod labels `app.kubernetes.io/name=kagent` plus
 ModelConfig `docs-ollama` uses `192.168.100.202:11434`. This address is not
 equal to any reported Kubernetes Node InternalIP. Cilium config reports
 `enable-policy=default`, `routing-mode=tunnel`, `kube-proxy-replacement=true`.
-**Do not infer effective egress filtering from this alone.** The new policy
-intentionally remains `egress: []` until trusted inspection of external
-routes, Cilium enforcement and other kagent dependencies. The policy does
-not yet permit the model call, so it is not a usable deployed configuration.
+**Do not infer effective egress filtering from this alone.** The new policy now proposes a single `ipBlock: 192.168.100.202/32` TCP 11434
+Ollama egress allowance. This has **not been applied or enforcement-tested**.
+Additional runtime dependencies and Cilium effective-policy verification
+remain deployment blockers.
 
 If a future private Gateway bypasses the controller and connects directly to
 the agent, the ingress design must be revisited using an authenticated and
@@ -101,4 +100,20 @@ observed Gateway source identity; do not broadly open ingress.
 After updating the local feature branch, re-run the two server-side dry-runs
 above; neither creates a persistent Agent or NetworkPolicy. Confirm that the
 admitted policy retains `namespaceSelector` **and** `podSelector` in a single
-`from` entry (logical AND), and that `egress` remains the empty list.
+`from` entry (logical AND), and that `egress` permits only `192.168.100.202/32:11434` TCP.
+
+## Observed Ollama flow (operator evidence, 2026-10-17)
+
+Live Hubble on `cilium-rc5zz` observed the existing JSON Agent connect to
+`192.168.100.202:11434` over TCP (SYN, ACK, PSH; `FORWARDED`). Cilium
+reported both the agent-to-destination flow and an egress flow using Node
+IP `10.44.1.237` as source. This demonstrates the **current Agent's traffic
+path and source NAT**, not enforcement of the proposed policy for a new Pod.
+A later authorized isolated trial must confirm permitted Ollama traffic and
+denial of docs MCP, Kubernetes API and unrelated destinations. Cilium's
+`enable-host-firewall=false` is not itself proof of Pod egress failure.
+
+The concurrently executed private structured probe returned
+`REJECT / unsupported_text` with one retrieved chunk. This is a separate
+model-output format failure; do not weaken the answer validator or classify
+it as an egress problem.
