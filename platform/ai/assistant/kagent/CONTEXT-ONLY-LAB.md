@@ -12,7 +12,7 @@ This slice follows the approved gateway-owned retrieval architecture
   `openkubes-docs-agent-context-lab` kagent Agent using existing
   `docs-ollama` ModelConfig and Go ADK runtime, with `tools: []`.
 - `kagent/deploy/networkpolicy-context-agent.lab.yaml`: separate
-  restrictive controller-only ingress and *deny-all egress* NetworkPolicy targeting the expected lab Agent
+  restrictive controller-only ingress and *Ollama-only egress* NetworkPolicy targeting the expected lab Agent
   pod label. **Do not apply it** until selector has been verified.
 - Neither file is included in the existing Kustomization. Existing docs
   Agents, MCP Server, ModelConfig and production website are unaffected.
@@ -34,7 +34,7 @@ This slice follows the approved gateway-owned retrieval architecture
    ports, and appropriate scoped label selectors from live trusted cluster
    metadata. The current single-destination Ollama egress policy may block other runtime dependencies and cannot be considered ready for deployment until checked. **Never invent or broaden egress rules.**
 5. Confirm NetworkPolicy implementation/CNI enforcement and other additive
-   policies. Kubernetes NetworkPolicies are additive; this deny-all does not
+   policies. Kubernetes NetworkPolicies are additive; this proposal does not
    cancel an independent policy that already allows traffic to lab pods.
    Check isolation by effective policies, not YAML inspection alone.
 6. Do not rely only on the system message for prompt-injection prevention.
