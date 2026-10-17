@@ -190,6 +190,49 @@ class ContextGatewayProbeTests(unittest.TestCase):
             with self.assertRaisesRegex(A2ADiagnosticError, "a2a_task_incomplete"):
                 send_private_context(encoded)
 
+    def test_jsonrpc_error_is_sanitized(self):
+        response = MagicMock()
+        response.status = 200
+        response.read.return_value = json.dumps({
+            "jsonrpc": "2.0",
+            "error": {"code": -32000, "message": "private server details"},
+        }).encode()
+        opener = MagicMock()
+        opener.open.return_value.__enter__.return_value = response
+        with patch("urllib.request.build_opener", return_value=opener):
+            with self.assertRaisesRegex(A2ADiagnosticError, "a2a_jsonrpc_error"):
+                send_private_context('{"x":1}')
+
+    def test_invalid_jsonrpc_envelope_is_sanitized(self):
+        response = MagicMock()
+        response.status = 200
+        response.read.return_value = b'{"unexpected":"response"}'
+        opener = MagicMock()
+        opener.open.return_value.__enter__.return_value = response
+        with patch("urllib.request.build_opener", return_value=opener):
+            with self.assertRaisesRegex(A2ADiagnosticError, "a2a_invalid_jsonrpc"):
+                send_private_context('{"x":1}')
+
+    def test_unexpected_result_is_sanitized(self):
+        response = MagicMock()
+        response.status = 200
+        response.read.return_value = b'{"jsonrpc":"2.0","result":{"kind":"message"}}'
+        opener = MagicMock()
+        opener.open.return_value.__enter__.return_value = response
+        with patch("urllib.request.build_opener", return_value=opener):
+            with self.assertRaisesRegex(A2ADiagnosticError, "a2a_unexpected_result"):
+                send_private_context('{"x":1}')
+
+    def test_completed_task_without_artifact_is_sanitized(self):
+        response = MagicMock()
+        response.status = 200
+        response.read.return_value = b'{"jsonrpc":"2.0","result":{"kind":"task","status":{"state":"completed"},"artifacts":[]}}'
+        opener = MagicMock()
+        opener.open.return_value.__enter__.return_value = response
+        with patch("urllib.request.build_opener", return_value=opener):
+            with self.assertRaisesRegex(A2ADiagnosticError, "a2a_invalid_artifact"):
+                send_private_context('{"x":1}')
+
     def test_oversized_response_is_rejected(self):
         response = MagicMock()
         response.status = 200
