@@ -63,6 +63,13 @@ def main():
                     "ai/agentic-operations/index.html", "ai/ai-glossary-newbies/index.html"):
         if not (SITE / ai_path).is_file():
             raise SystemExit(f"Missing OK AI page: {ai_path}")
+    glossary_html = (SITE / "ai" / "ai-glossary-newbies" / "index.html")
+    if not glossary_html.is_file():
+        raise SystemExit("Missing AI Glossary rendered page")
+    glossary_text = glossary_html.read_text(encoding="utf-8")
+    for heading in ("Stage 1", "Stage 2", "Stage 3", "Stage 4"):
+        if heading not in glossary_text:
+            raise SystemExit(f"AI Glossary incomplete: {heading}")
     ai_html = (SITE / "ai" / "index.html").read_text(encoding="utf-8")
     if "Open WebUI" not in ai_html or "OpenClaw" not in ai_html:
         raise SystemExit("OK AI overview incomplete")
