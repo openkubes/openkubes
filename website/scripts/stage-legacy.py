@@ -36,7 +36,7 @@ def main():
     ai_source = pages / "ai"
     ai_target = TARGET / "ai"
     ai_target.mkdir(parents=True, exist_ok=True)
-    for filename in ("index.md", "chat-preview.md", "open-webui.md", "openclaw.md", "kagent-platform-diagnostics.md", "agentic-operations.md"):
+    for filename in ("index.md", "chat-preview.md", "open-webui.md", "openclaw.md", "kagent-platform-diagnostics.md", "agentic-operations.md", "ai-glossary-newbies.md"):
         source_page = ai_source / filename
         if not source_page.is_file():
             raise SystemExit(f"Missing OK AI page: {source_page}")
