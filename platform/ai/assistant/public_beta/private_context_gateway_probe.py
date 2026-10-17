@@ -33,8 +33,10 @@ DEFAULT_QUESTION = "How do I install OpenKubes Local on macOS?"
 class A2ADiagnosticError(Exception):
     """Static sanitized diagnosis; never store remote response details."""
 
-    def __init__(self, code: str):
+    def __init__(self, code: str, *, jsonrpc_error_code: int | None = None):
         self.code = code
+        # Never retain untrusted error.message, data, URLs or response bodies.
+        self.jsonrpc_error_code = jsonrpc_error_code
         super().__init__(code)
 
 
@@ -106,7 +108,14 @@ def send_private_context(encoded_context: str) -> str:
     if not isinstance(payload, dict) or payload.get("jsonrpc") != "2.0":
         raise A2ADiagnosticError("a2a_invalid_jsonrpc")
     if "error" in payload and payload["error"] is not None:
-        raise A2ADiagnosticError("a2a_jsonrpc_error")
+        error = payload["error"]
+        raw_code = error.get("code") if isinstance(error, dict) else None
+        # bool subclasses int in Python. Limit output to a plain signed
+        # 32-bit integer; all other server-supplied values remain hidden.
+        safe_code = (raw_code if type(raw_code) is int and
+                     -(2 ** 31) <= raw_code <= 2 ** 31 - 1 else None)
+        raise A2ADiagnosticError(
+            "a2a_jsonrpc_error", jsonrpc_error_code=safe_code)
     task = payload.get("result")
     if not isinstance(task, dict) or task.get("kind") != "task":
         raise A2ADiagnosticError("a2a_unexpected_result")
@@ -127,7 +136,8 @@ def run_private_gateway_probe(index: dict, question: str, *, send=None) -> dict:
     after inference, no agent-selected sources and no model-authored URL.
     """
     def outcome(status: str, reason: str, *, retrieved_chunks=0,
-                context_sha256=None, rendered_chars=None) -> dict:
+                context_sha256=None, rendered_chars=None,
+                jsonrpc_error_code=None) -> dict:
         result = {"status": status, "accepted": status == "PASS",
                   "reason": reason, "retrieved_chunks": retrieved_chunks,
                   "semantic_grounding": "UNVERIFIED"}
@@ -135,6 +145,8 @@ def run_private_gateway_probe(index: dict, question: str, *, send=None) -> dict:
             result["context_sha256"] = context_sha256
         if rendered_chars is not None:
             result["rendered_chars"] = rendered_chars
+        if jsonrpc_error_code is not None:
+            result["jsonrpc_error_code"] = jsonrpc_error_code
         return result
 
     try:
@@ -159,9 +171,12 @@ def run_private_gateway_probe(index: dict, question: str, *, send=None) -> dict:
         raw = sender(encoded)
     except Exception as exc:
         # Only fixed status codes; never log exception arguments or response.
-        return outcome("ERROR", _transport_reason(exc),
-                       retrieved_chunks=count,
-                       context_sha256=envelope["context_sha256"])
+        return outcome(
+            "ERROR", _transport_reason(exc),
+            retrieved_chunks=count,
+            context_sha256=envelope["context_sha256"],
+            jsonrpc_error_code=(exc.jsonrpc_error_code
+                                if isinstance(exc, A2ADiagnosticError) else None))
     try:
         rendered = validate_and_render(raw, hits, index)
     except (ContractRejected, ValueError, TypeError, KeyError) as exc:
