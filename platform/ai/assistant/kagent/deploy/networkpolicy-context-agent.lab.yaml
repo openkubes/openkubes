@@ -1,0 +1,18 @@
+# EXPERIMENTAL / NON-DEPLOYABLE until runtime network dependencies are reviewed.
+# Intentional deny-all ingress and egress for context-only lab Agent pods.
+# Do NOT deploy or relax this policy based on guessed Ollama/controller addresses.
+# Confirm that generated pods actually carry this selector label before applying.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: docs-context-lab-deny-all
+  namespace: openkubes-assistant
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: openkubes-docs-agent-context-lab
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress: []
+  egress: []
