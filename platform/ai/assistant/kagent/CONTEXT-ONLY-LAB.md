@@ -230,3 +230,38 @@ kubectl --kubeconfig "$HOME/.kube/ok-kagent.yaml" \
   delete -f kagent/deploy/context-networkpolicy-probe.lab.yaml
 ```
 Do not delete the context Agent or NetworkPolicy as part of probe cleanup.
+
+## Isolated network probe results (operator evidence, 2026-10-17)
+
+Temporary probe Pod `openkubes-context-policy-probe` (IP `10.36.1.139`,
+Cilium endpoint 1365 / identity 5142) matched the lab NetworkPolicy,
+with ingress and egress enforcement `Enabled`.
+
+| Destination | Actual result | Evidence |
+| --- | --- | --- |
+| Ollama `192.168.100.202:11434` | ALLOW | curl `/api/tags` HTTP 200 |
+| Docs MCP Pod `10.36.2.186:8000` | DENY | curl timeout; Hubble `EGRESS DENIED`, `Policy denied DROPPED` TCP SYN |
+| Kubernetes API Service `10.96.64.1:443` | DENY | curl timeout; Hubble translated target to `10.44.1.5:6443`, `EGRESS DENIED` / `Policy denied DROPPED` TCP SYN |
+| Internet `1.1.1.1:443` | DENY | curl timeout; Hubble `EGRESS DENIED`, `Policy denied DROPPED` TCP SYN |
+
+**Scope:** these are direct Cilium allow/deny network observations for the
+**temporary probe Pod**, not the actual model invocation flow of the
+context-only Agent; no claim of complete runtime isolation or semantic
+answer integrity. Source-node Hubble confirms blocked SYN packets; the
+curl timeouts were not taken as standalone denial proof.
+
+### Next gate
+
+After recording test outputs, delete **only** the temporary probe Pod using
+the documented scoped cleanup command. Confirm its absence; retain the
+context-only Agent and its NetworkPolicy. Then verify controller-to-context
+Agent private A2A path and Ollama egress with new Hubble flows. The existing
+`private_a2a_probe.py` has a hardcoded URL allowlist for original/JSON
+Agents; do not alter it ad hoc or bypass the allowlist to test this new Agent.
+Create a separate, reviewed lab-only A2A probe for this context Agent that
+supports a deterministic context-envelope request, only localhost port
+forwarding, sanitized output and completed-task validation.
+
+Cilium also has an implicit `allow-localhost-ingress` rule for `reserved:host`
+on the real Agent endpoint, so controller-only ingress cannot yet be
+stated as an absolute security boundary. Public Beta HOLD.
