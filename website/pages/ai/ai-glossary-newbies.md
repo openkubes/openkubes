@@ -287,7 +287,7 @@ Pick the **one** term you've been nodding along to without really understanding 
 
 ## Part 2: OpenKubes-specific – *in its own document*
 
-> This part lives in its own document, the **OpenKubes Glossary** (clusters, tooling, ADR process, MCP/Rovo, etc.). Both glossaries are published together on openkubes.org.
+> This part is planned as a separate **OpenKubes Glossary** (clusters, tooling, ADR process, MCP/Rovo, etc.). It is not yet included in this page.
 
 Planned categories in the OpenKubes Glossary:
 
