@@ -86,7 +86,7 @@ def validate_and_render(raw: str, retrieval: dict, index: dict) -> str:
 
 # Offline/private diagnostic only. Never include model text in a result.
 # Mirror the predicates in validate_and_render without changing acceptance.
-COMMAND = re.compile(r"(?:^|\\s)(?:sudo|kubectl|curl|wget|bash|sh|rm|chmod|helm)\\s", re.I)
+COMMAND = re.compile(r"(?:^|\s)(?:sudo|kubectl|curl|wget|bash|sh|rm|chmod|helm)\s", re.I)
 
 
 def classify_unsupported_text(raw: str) -> str:
