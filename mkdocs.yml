@@ -35,6 +35,7 @@ nav:
       - OpenClaw: ai/openclaw.md
       - kagent & Platform Diagnostics: ai/kagent-platform-diagnostics.md
       - Agentic Operations: ai/agentic-operations.md
+      - AI Glossary: ai/ai-glossary-newbies.md
   - OK Observability:
       - Overview: observability/index.md
       - Observability Stack: observability/stack.md

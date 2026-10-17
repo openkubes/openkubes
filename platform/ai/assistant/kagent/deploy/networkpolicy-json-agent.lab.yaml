@@ -1,0 +1,22 @@
+# Private lab-only exception for the isolated OK AI JSON documentation agent.
+# Adds one allowed MCP client; does not relax docs-search-restrict.
+# Intended to be removed when the lab Agent is retired.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: docs-search-json-agent-access
+  namespace: openkubes-assistant
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: openkubes-docs-search
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: openkubes-docs-agent-json
+      ports:
+        - protocol: TCP
+          port: 8000
