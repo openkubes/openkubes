@@ -132,7 +132,7 @@ Before activation: existing `openkubes-docs-agent`, `openkubes-docs-agent-json` 
 - [ ] Separate semantic-grounding checks for every material factual/operational claim; demonstrate safe handling of unsupported instructions.
 - [ ] Explain limitations of lexical retrieval, assess hybrid search only if evaluation warrants it.
 - [ ] Implement explicit agent selection/default routing with rollback and deployment/monitoring guidance.
-- [ ] Reconcile this document with OK-202 Confluence parent Spec and ADR-Platform-015 interface versioning.
+- [x] Compare this document against OK-202 Confluence parent Spec v0.1 (review completed 2026-10-17; conflicts recorded in Section 10).\n- [ ] Resolve the documented external API and ADR-Platform-015 interface questions with architecture owners before acceptance.
 
 ### Gate C — public release (explicit later approval only)
 
@@ -162,3 +162,38 @@ Before activation: existing `openkubes-docs-agent`, `openkubes-docs-agent-json` 
 
 This document integrates the above designs without superseding their actual
 protocol definitions or retroactively claiming a production implementation.
+
+## 10. Architecture review against OK-202 Confluence v0.1 (2026-10-17)
+
+**Reviewed source:** [OK-202 Technical Specification v0.1](https://kubernauts.atlassian.net/wiki/spaces/OpenKubes/pages/3168894977) (last modified 2026-10-15; status **Proposed**, not normative). The Confluence page has **not** been edited. This section distinguishes its existing requirements from proposed changes and unresolved decisions.
+
+### Compatibility and deliberate changes
+
+| Confluence v0.1 | Current proposal / review disposition |
+| --- | --- |
+| Public English-first documentation assistant, public-only reviewed corpus and no cluster actions | **Retain.** The assistant stays an independent optional consumer, not a mandatory control-plane dependency. No private Jira/Confluence, runtime logs or private repositories. |
+| Agent directly invokes read-only `docs_search` MCP | **Superseded for intended default Q&A path** by Option B gateway-owned retrieval; original MCP-enabled agent may remain a lab reference. Requires architecture-owner ratification rather than a silent Confluence overwrite. |
+| `ok-assistant-api` with `POST /assistant/v1/chat`, SSE and same-origin website proxy | **Retain as proposed external application-facing interface**, not implemented. Private kagent A2A is a separate backend transport, not the public HTTP API. |
+| Maximum 4000 UTF-8 characters in external chat request and up to 8 turns of ephemeral session | **Unresolved contract mapping.** Current private probe enforces a 1–500 character single question. A gateway cannot simply forward 4000 characters or conversation history without changing, versioning and testing the private request contract. |
+| Streaming `start/delta/sources/done` SSE events | **Security decision pending.** Do **not** emit raw model `delta` output before full source, policy and structure validation. Initial public implementation SHOULD buffer and validate complete output, then optionally stream *trusted, rendered* chunks. Version and document exact events/OpenAPI before implementation. |
+| `done.grounded=true` when server-side source IDs match | **Must change.** Source-ID validation is syntactic/citation binding only. It MUST NOT assert semantic grounding. Add a genuinely evaluated semantic gate before any truthful `grounded=true` claim; otherwise use a clearly non-semantic status or `grounded=false`. |
+| Reviewed corpus: `openkubes/openkubes`, `ok-local/docs`, `ok-cluster/docs` | **Retain as target, audit actual `indexer.py` allowlist.** Do not claim coverage of all repositories without checking the indexed snapshot. |
+| Lexical-vs-hybrid evaluation, target 400–800 token chunks and top-k about 5–8 | **Retain as evaluation proposal, not current implementation claim.** Lexical baseline exists; no forced vector DB choice before benchmark. Current private envelope limits are separate resource bounds. |
+| 30+ reviewed questions, tentative ≥90% citation-support precision and ≥90% correct abstention | **Carry forward as proposed, not yet approved targets.** Require real baselines, explicit sample selection and semantic support checks; distinguish link presence from justified claims. |
+| Security: public edge/WAF, anti-abuse quotas, privacy, no direct agent/model ingress | **Retain as future public release gate.** None of these are implied by the currently Running private Lab Agent or Cilium probe results. |
+| ADR impact: no new platform ADR for profile-only changes | **Retain conditional rule.** However, reconcile private A2A with ADR-Platform-015's explicit Agent Interface Contract v1 before public contract changes. |
+
+### Review findings and required decisions
+
+1. **Approve Option B as replacement for the proposed tool-enabled default Q&A path** in the parent Confluence Spec; keep both versions traceable, and distinguish architectural proposal from an already deployed application.
+2. **Finalize public-to-private request mapping** (4000-character / 8-turn external API versus 500-character single-turn current lab) and define validated truncation/rejection/session semantics.
+3. **Decide verified streaming semantics** before implementing `delta`; never let unvalidated model tokens bypass the response contract.
+4. **Correct the meaning of `grounded`** in the external event schema. Source-ID match is insufficient to make semantic-truth claims.
+5. **Audit current index coverage**, document optional `ok-cluster` onboarding and compare lexical/hybrid retrieval on the planned reviewed question benchmark.
+6. **ADR review** must determine whether internal A2A stays purely an implementation hop behind the existing external contract. If it becomes a platform-facing interface, initiate the versioned contract amendment rather than assuming ADR-Platform-015 v1 already covers A2A.
+
+### Review verdict
+
+**Architecturally coherent as a draft** for the private Documentation Q&A profile, with six explicit outstanding decisions. This review does **not** accept the Spec, authorize a new default route, approve public streaming, or certify semantic correctness.
+
+The next engineering slice remains a **private**, bounded, non-streaming, fail-closed Gateway-owned Context Envelope to Context-only Agent A2A integration. It must not modify the public website or current Agents.
