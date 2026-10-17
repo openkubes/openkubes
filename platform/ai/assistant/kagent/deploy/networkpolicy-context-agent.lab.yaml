@@ -1,0 +1,38 @@
+# PRIVATE LAB ONLY — DO NOT APPLY until explicit operator deployment approval.
+# Observed with Hubble on existing JSON agent:
+# controller -> agent TCP 8080; agent -> Ollama 192.168.100.202 TCP 11434.
+# This does NOT prove the future context Agent has the same network/runtime
+# dependencies or that Cilium will enforce this policy as expected.
+# Other Kubernetes NetworkPolicies are additive, never subtractive.
+# Verify generated context Agent Pod labels and effective policy before use.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: docs-context-lab-restrict
+  namespace: openkubes-assistant
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: openkubes-docs-agent-context-lab
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kagent
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: kagent
+              app.kubernetes.io/component: controller
+      ports:
+        - protocol: TCP
+          port: 8080
+  egress:
+    - to:
+        - ipBlock:
+            cidr: 192.168.100.202/32
+      ports:
+        - protocol: TCP
+          port: 11434

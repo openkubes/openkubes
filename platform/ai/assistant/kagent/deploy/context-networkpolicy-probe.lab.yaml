@@ -1,0 +1,41 @@
+# PRIVATE SECURITY LAB ONLY. Temporary, manually created Pod.
+# Matches the context Agent NetworkPolicy selector intentionally.
+# Do not add to kustomization, apply to production, or expose as a Service.
+# Delete only this Pod after tests; do not delete existing Agents or policy.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: openkubes-context-policy-probe
+  namespace: openkubes-assistant
+  labels:
+    app.kubernetes.io/name: openkubes-docs-agent-context-lab
+    openkubes.io/role: context-policy-probe
+spec:
+  # Same worker as context lab Agent (10.36.1.240); permits node-local Hubble.
+  nodeName: ok-kagent-workers-7bwtb-77w6z
+  restartPolicy: Never
+  automountServiceAccountToken: false
+  enableServiceLinks: false
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 10001
+    runAsGroup: 10001
+    seccompProfile:
+      type: RuntimeDefault
+  containers:
+    - name: probe
+      image: curlimages/curl:8.12.1
+      imagePullPolicy: IfNotPresent
+      command: ["sleep", "3600"]
+      resources:
+        requests:
+          cpu: 10m
+          memory: 16Mi
+        limits:
+          cpu: 100m
+          memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop: ["ALL"]
