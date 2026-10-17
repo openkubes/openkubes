@@ -141,6 +141,28 @@ class ContextGatewayProbeTests(unittest.TestCase):
             send=lambda _: answer(text="Run kubectl get pods."))
         self.assertEqual(outcome["reason"], "unsupported_text")
 
+    def test_unsupported_text_diagnostics_are_fixed_and_redacted(self):
+        samples = [
+            ("Run kubectl get pods.", "command"),
+            ("See https://private.example/secret", "url"),
+            ("Use `documentation`.", "markup"),
+            ("Some\\nprivate data", "control_character"),
+            (" leading text", "length_or_whitespace"),
+        ]
+        for content, expected in samples:
+            with self.subTest(expected=expected):
+                result = run_private_gateway_probe(
+                    self.index, QUESTION, send=lambda _, s=content: answer(text=s))
+                self.assertEqual(result["reason"], "unsupported_text")
+                self.assertEqual(result["text_reject_category"], expected)
+                self.assertNotIn(content, json.dumps(result))
+
+    def test_accepted_response_does_not_expose_diagnostic(self):
+        result = run_private_gateway_probe(
+            self.index, QUESTION, send=lambda _: answer())
+        self.assertEqual(result["status"], "PASS")
+        self.assertNotIn("text_reject_category", result)
+
     def test_a2a_endpoint_is_fixed_and_loopback(self):
         self.assertEqual(CONTEXT_A2A_URL,
             "http://127.0.0.1:8083/api/a2a/"
