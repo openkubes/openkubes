@@ -1,6 +1,8 @@
 """Offline regression tests for private gateway -> context-only A2A probe."""
 import hashlib
 import json
+import socket
+import urllib.error
 import sys
 import unittest
 from pathlib import Path
@@ -10,7 +12,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from docs_mcp import DocsRetriever
 from public_beta.private_context_gateway_probe import (
-    CONTEXT_A2A_URL, MAX_A2A_RESPONSE_BYTES,
+    CONTEXT_A2A_URL, MAX_A2A_RESPONSE_BYTES, A2ADiagnosticError,
     run_private_gateway_probe, send_private_context,
 )
 
@@ -87,6 +89,53 @@ class ContextGatewayProbeTests(unittest.TestCase):
         self.assertNotIn(secret, json.dumps(outcome))
         self.assertEqual(outcome["reason"], "a2a_transport_or_task_error")
 
+    def test_http_gateway_timeout_is_classified_without_body(self):
+        secret = "private upstream error body"
+        def sender(_):
+            raise urllib.error.HTTPError(
+                CONTEXT_A2A_URL, 504, secret, {}, None)
+        outcome = run_private_gateway_probe(self.index, QUESTION, send=sender)
+        self.assertEqual(outcome["reason"], "a2a_http_504")
+        self.assertNotIn(secret, json.dumps(outcome))
+
+    def test_http_bad_gateway_classified(self):
+        def sender(_):
+            raise urllib.error.HTTPError(
+                CONTEXT_A2A_URL, 502, "sensitive", {}, None)
+        outcome = run_private_gateway_probe(self.index, QUESTION, send=sender)
+        self.assertEqual(outcome["reason"], "a2a_http_502")
+
+    def test_other_http_status_classified_without_status_reflection(self):
+        def sender(_):
+            raise urllib.error.HTTPError(
+                CONTEXT_A2A_URL, 503, "sensitive", {}, None)
+        outcome = run_private_gateway_probe(self.index, QUESTION, send=sender)
+        self.assertEqual(outcome["reason"], "a2a_http_error")
+
+    def test_client_timeout_is_classified(self):
+        def sender(_):
+            raise socket.timeout("sensitive timeout details")
+        outcome = run_private_gateway_probe(self.index, QUESTION, send=sender)
+        self.assertEqual(outcome["reason"], "a2a_client_timeout")
+
+    def test_url_error_timeout_is_classified(self):
+        def sender(_):
+            raise urllib.error.URLError(socket.timeout("sensitive"))
+        outcome = run_private_gateway_probe(self.index, QUESTION, send=sender)
+        self.assertEqual(outcome["reason"], "a2a_client_timeout")
+
+    def test_url_error_connection_is_classified(self):
+        def sender(_):
+            raise urllib.error.URLError("sensitive")
+        outcome = run_private_gateway_probe(self.index, QUESTION, send=sender)
+        self.assertEqual(outcome["reason"], "a2a_connection_error")
+
+    def test_incomplete_task_error_classified(self):
+        def sender(_):
+            raise A2ADiagnosticError("a2a_task_incomplete")
+        outcome = run_private_gateway_probe(self.index, QUESTION, send=sender)
+        self.assertEqual(outcome["reason"], "a2a_task_incomplete")
+
     def test_refuses_command_looking_answer(self):
         outcome = run_private_gateway_probe(self.index, QUESTION,
             send=lambda _: answer(text="Run kubectl get pods."))
@@ -138,7 +187,7 @@ class ContextGatewayProbeTests(unittest.TestCase):
         opener = MagicMock()
         opener.open.return_value.__enter__.return_value = response
         with patch("urllib.request.build_opener", return_value=opener):
-            with self.assertRaisesRegex(ValueError, "did not complete"):
+            with self.assertRaisesRegex(A2ADiagnosticError, "a2a_task_incomplete"):
                 send_private_context(encoded)
 
     def test_oversized_response_is_rejected(self):
@@ -148,7 +197,7 @@ class ContextGatewayProbeTests(unittest.TestCase):
         opener = MagicMock()
         opener.open.return_value.__enter__.return_value = response
         with patch("urllib.request.build_opener", return_value=opener):
-            with self.assertRaisesRegex(ValueError, "oversized_a2a_response"):
+            with self.assertRaisesRegex(A2ADiagnosticError, "a2a_response_oversized"):
                 send_private_context('{"x":1}')
 
 
