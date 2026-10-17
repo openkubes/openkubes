@@ -12,7 +12,7 @@ This slice follows the approved gateway-owned retrieval architecture
   `openkubes-docs-agent-context-lab` kagent Agent using existing
   `docs-ollama` ModelConfig and Go ADK runtime, with `tools: []`.
 - `kagent/deploy/networkpolicy-context-agent.lab.yaml`: separate
-  restrictive *deny-all* NetworkPolicy targeting the expected lab Agent
+  restrictive controller-only ingress and *deny-all egress* NetworkPolicy targeting the expected lab Agent
   pod label. **Do not apply it** until selector has been verified.
 - Neither file is included in the existing Kustomization. Existing docs
   Agents, MCP Server, ModelConfig and production website are unaffected.
@@ -32,7 +32,7 @@ This slice follows the approved gateway-owned retrieval architecture
    `app.kubernetes.io/name` label (and any controller defaults).
 4. Confirm kagent's required DNS, A2A and Ollama endpoints, namespaces,
    ports, and appropriate scoped label selectors from live trusted cluster
-   metadata. A deny-all egress policy blocks these dependencies and cannot
+   metadata. The current deny-all egress policy blocks these dependencies and cannot
    be a functioning deployment. **Never invent or broaden egress rules.**
 5. Confirm NetworkPolicy implementation/CNI enforcement and other additive
    policies. Kubernetes NetworkPolicies are additive; this deny-all does not
@@ -67,9 +67,38 @@ from unusual admission webhooks. These require separate review.
 **Do not run real `kubectl apply` or update the existing kagent
 Kustomization.** Wait for an explicit separate deployment approval after
 the CRD check, actual pod selectors, runtime tool assessment, all network
-paths and CNI behavior have been verified. At this stage the deny-all
-policy is a security-oriented placeholder, not a deployable allowlist.
+paths and CNI behavior have been verified. At this stage the controller-only ingress plus deny-all egress policy is a security-oriented placeholder, not a deployable allowlist.
 
 A later separate PR should wire the private gateway's existing validated
 context envelope into a dedicated allowlisted loopback A2A path and report
 retrieval/delivery/format checks separately from semantic grounding.
+
+## Observed A2A controller identity (operator evidence, 2026-10-17)
+
+Hubble on the worker hosting both existing JSON Agent and controller observed
+`kagent/kagent-controller-6b9444b6f7-h6dsh` (`10.36.1.53`) initiate TCP
+traffic to `openkubes-docs-agent-json` (`10.36.1.9:8080`) concurrently with
+a private A2A probe. Cilium reported `FORWARDED` for SYN/ACK/data packets.
+This grounds the draft ingress rule selecting **both** namespace `kagent`
+and pod labels `app.kubernetes.io/name=kagent` plus
+`app.kubernetes.io/component=controller`, TCP 8080. The A2A response was
+`REJECT / invalid_sources`, an independent answer-quality issue.
+
+ModelConfig `docs-ollama` uses `192.168.100.202:11434`. This address is not
+equal to any reported Kubernetes Node InternalIP. Cilium config reports
+`enable-policy=default`, `routing-mode=tunnel`, `kube-proxy-replacement=true`.
+**Do not infer effective egress filtering from this alone.** The new policy
+intentionally remains `egress: []` until trusted inspection of external
+routes, Cilium enforcement and other kagent dependencies. The policy does
+not yet permit the model call, so it is not a usable deployed configuration.
+
+If a future private Gateway bypasses the controller and connects directly to
+the agent, the ingress design must be revisited using an authenticated and
+observed Gateway source identity; do not broadly open ingress.
+
+## Updated policy-only dry run
+
+After updating the local feature branch, re-run the two server-side dry-runs
+above; neither creates a persistent Agent or NetworkPolicy. Confirm that the
+admitted policy retains `namespaceSelector` **and** `podSelector` in a single
+`from` entry (logical AND), and that `egress` remains the empty list.
