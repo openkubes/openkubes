@@ -82,3 +82,36 @@ def validate_and_render(raw: str, retrieval: dict, index: dict) -> str:
     if not verdict.accepted:
         raise ContractRejected("legacy_integrity_reject")
     return answer
+
+
+# Offline/private diagnostic only. Never include model text in a result.
+# Mirror the predicates in validate_and_render without changing acceptance.
+COMMAND = re.compile(r"(?:^|\\s)(?:sudo|kubectl|curl|wget|bash|sh|rm|chmod|helm)\\s", re.I)
+
+
+def classify_unsupported_text(raw: str) -> str:
+    """Return a fixed category for validator's unsupported_text outcome.
+
+    Called only after validate_and_render rejected a payload. This classifier
+    does not alter the strict contract and never echoes model-authored data.
+    """
+    try:
+        value = json.loads(raw)
+        steps = value["steps"]
+        for step in steps:
+            text = step["text"]
+            if not isinstance(text, str):
+                return "invalid_text_type"
+            if not 1 <= len(text) <= 600 or text != text.strip():
+                return "length_or_whitespace"
+            if CONTROL.search(text):
+                return "control_character"
+            if URL.search(text):
+                return "url"
+            if COMMAND.search(text):
+                return "command"
+            if MARKUP.search(text):
+                return "markup"
+    except (ValueError, KeyError, TypeError, AttributeError):
+        pass
+    return "other"
