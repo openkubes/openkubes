@@ -37,7 +37,7 @@ remain unchanged.
 From `platform/ai/assistant` on the **new integration branch**, run:
 
 ```sh
-python3 -m unittest tests.test_private_context_gateway_probe -v
+python3 -m unittest discover -s tests -p test_private_context_gateway_probe.py -v
 python3 -m unittest discover -s tests -v
 ```
 
