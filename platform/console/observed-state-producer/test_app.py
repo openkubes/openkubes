@@ -288,6 +288,59 @@ class TlsConfigurationTests(unittest.TestCase):
                 })
 
 
+class OwnershipGuardTests(unittest.TestCase):
+    def test_file_validation_guards(self):
+        from app import load_ownership_file
+        cases = (
+            b'{not-json',
+            b'{"tenants":{}}' + b' ' * (64 * 1024),
+            b'{"tenants":{},"environmentId":"forged"}',
+            b'{"tenants":[]}',
+            b'{"tenants":{"claim/openkubes-system/a":""}}',
+            b'{"tenants":{"claim/openkubes-system/a":false}}',
+            b'[' * 2000 + b'0' + b']' * 2000,
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "allocation.json"
+            for content in cases:
+                with self.subTest(content=content[:50]):
+                    path.write_bytes(content)
+                    self.assertIsNone(load_ownership_file(str(path)))
+
+    def test_nonregular_ownership_file_is_not_opened(self):
+        from unittest.mock import patch
+        from app import load_ownership_file
+        with patch("app.Path.is_file", return_value=False), patch("app.Path.open") as opener:
+            self.assertIsNone(load_ownership_file("not-a-regular-file"))
+            opener.assert_not_called()
+
+    def test_projection_rejects_unknown_and_duplicate_object_references(self):
+        import copy
+        from app import ownership_projection
+        config = ProducerConfig()
+        tenants = {"management/ok-mgmt": "a", "claim/openkubes-system/ok-ai": "b", "claim/openkubes-system/../x": "b"}
+        original = build_observed_state(claim_list(claim()), config, now=lambda: NOW)
+        variants = []
+        duplicate = copy.deepcopy(original)
+        duplicate["data"]["clusters"].append(copy.deepcopy(duplicate["data"]["clusters"][1]))
+        variants.append(duplicate)
+        invalid_name = copy.deepcopy(original)
+        invalid_name["data"]["clusters"][1]["id"] = "cluster-../x"
+        variants.append(invalid_name)
+        unknown_cluster = copy.deepcopy(original)
+        unknown_cluster["data"]["clusters"][1]["id"] = "unexpected-id"
+        variants.append(unknown_cluster)
+        evidence = copy.deepcopy(original)
+        evidence["data"]["evidence"][1]["clusterId"] = "cluster-unallocated"
+        variants.append(evidence)
+        for placement in ({"targetClusterId": "cluster-unallocated", "targetCluster": "ok-ai"}, {"targetCluster": "ok-ai"}):
+            variant = copy.deepcopy(original)
+            variant["data"]["placements"] = [placement]
+            variants.append(variant)
+        for index, variant in enumerate(variants):
+            with self.subTest(variant=index), self.assertRaises(ValueError):
+                ownership_projection(variant, config, tenants)
+
 class HttpBoundaryTests(unittest.TestCase):
     def setUp(self):
         class Client:
@@ -325,6 +378,21 @@ class HttpBoundaryTests(unittest.TestCase):
         unknown, unknown_body = self.request("GET", "/api/v1/secrets")
         self.assertEqual(unknown.status, 404)
         self.assertEqual(unknown_body, {"error": "not_found"})
+
+    def test_v2_requires_the_same_workload_identity(self):
+        class Connection:
+            def getpeercert(self):
+                return {}
+
+        handler = object.__new__(handler_for(
+            object(), expected_client_identity="spiffe://openkubes.io/ns/openkubes-console/sa/ok-console-bff",
+        ))
+        handler.path = "/api/console-observed-state/v0alpha2"
+        handler.connection = Connection()
+        responses = []
+        handler.send_json = lambda status, body: responses.append((status, body))
+        handler.do_GET()
+        self.assertEqual(responses, [(403, {"error": "workload_identity_required"})])
 
     def test_returns_a_bounded_error_without_exception_details(self):
         class FailingClient:

@@ -1,13 +1,22 @@
 require "yaml"
 
 resources = YAML.load_stream(File.read(File.join(__dir__, "manifests.yaml")))
-abort("expected seven resources") unless resources.length == 7
+abort("expected eight resources") unless resources.length == 8
 abort("invalid resource") unless resources.all? { |resource| resource.is_a?(Hash) && resource["apiVersion"] && resource["kind"] && resource.dig("metadata", "name") }
 abort("Secret values must not be committed") if resources.any? { |resource| resource["kind"] == "Secret" }
 
 deployment = resources.find { |resource| resource["kind"] == "Deployment" }
 container = deployment.dig("spec", "template", "spec", "containers", 0)
 environment = container.fetch("env").to_h { |item| [item.fetch("name"), item.fetch("value")] }
+
+ownership = resources.find { |resource| resource["kind"] == "ConfigMap" && resource.dig("metadata", "name") == "observed-state-producer-ownership" }
+abort("ownership ConfigMap must start with an empty tenants map") unless ownership&.dig("data", "ownership.json")&.strip == '{"tenants":{}}'
+abort("ownership file environment path is missing") unless environment["OK_OBSERVER_OWNERSHIP_FILE"] == "/var/run/config/openkubes/ownership/ownership.json"
+ownership_mount = container.fetch("volumeMounts").find { |item| item["name"] == "producer-ownership" }
+abort("ownership ConfigMap must be mounted read-only at its configured directory") unless ownership_mount == { "name" => "producer-ownership", "mountPath" => "/var/run/config/openkubes/ownership", "readOnly" => true }
+ownership_volume = deployment.dig("spec", "template", "spec", "volumes").find { |item| item["name"] == "producer-ownership" }
+abort("ownership ConfigMap volume must expose only ownership.json") unless ownership_volume&.dig("configMap", "name") == "observed-state-producer-ownership" && ownership_volume.dig("configMap", "items") == [{ "key" => "ownership.json", "path" => "ownership.json" }]
+abort("ownership ConfigMap volume must be readable only by the service group") unless ownership_volume.dig("configMap", "defaultMode") == 0o440
 
 abort("producer must expose only 8443/https") unless container.fetch("ports") == [{ "name" => "https", "containerPort" => 8443 }]
 abort("producer must listen on 8443") unless environment["OK_OBSERVER_PORT"] == "8443"
