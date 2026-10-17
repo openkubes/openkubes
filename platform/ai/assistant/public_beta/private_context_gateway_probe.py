@@ -102,13 +102,22 @@ def send_private_context(encoded_context: str) -> str:
         payload = json.loads(data)
     except (UnicodeDecodeError, json.JSONDecodeError, ValueError):
         raise A2ADiagnosticError("a2a_protocol_error") from None
+    # Classify only envelope shapes, never echo server-controlled text.
+    if not isinstance(payload, dict) or payload.get("jsonrpc") != "2.0":
+        raise A2ADiagnosticError("a2a_invalid_jsonrpc")
+    if "error" in payload and payload["error"] is not None:
+        raise A2ADiagnosticError("a2a_jsonrpc_error")
+    task = payload.get("result")
+    if not isinstance(task, dict) or task.get("kind") != "task":
+        raise A2ADiagnosticError("a2a_unexpected_result")
+    state = task.get("status")
+    if not isinstance(state, dict) or state.get("state") != "completed":
+        raise A2ADiagnosticError("a2a_task_incomplete")
     try:
         return extract_answer(payload)
-    except ValueError as exc:
-        # Only inspect our own static extraction errors, never return text.
-        if str(exc) == "A2A task did not complete":
-            raise A2ADiagnosticError("a2a_task_incomplete") from None
-        raise A2ADiagnosticError("a2a_protocol_error") from None
+    except ValueError:
+        # Task was marked complete but contained no valid text artifact.
+        raise A2ADiagnosticError("a2a_invalid_artifact") from None
 
 
 def run_private_gateway_probe(index: dict, question: str, *, send=None) -> dict:
