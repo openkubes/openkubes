@@ -1,7 +1,7 @@
 # Private context-only Gateway → A2A integration probe
 
-**Status:** implementation + offline regression tests; **not yet executed against
-the live context-only Agent**. No changes to Kubernetes manifests, existing
+**Status:** private live Option-B A2A format/source validation PASS for a
+non-command question (2026-10-18); installation answer remains REJECT. No changes to Kubernetes manifests, existing
 Agents, MCP services, model settings, website, public ingress or default routing.
 **Public Beta HOLD.**
 
@@ -118,3 +118,59 @@ before another single live private probe. Observe both elapsed time and the
 fixed reason code; if it remains exactly ~60 seconds, investigate controller
 proxy timeout settings and upstream processing without increasing limits
 blindly. Hubble network events alone do not establish the HTTP response code.
+
+## Private live integration evidence (2026-10-18)
+
+After the operator applied the specifically reviewed lab-only NetworkPolicy
+changes, Hubble confirmed allowed CoreDNS egress and allowed Controller
+session API egress TCP 8083 from the real Context Agent. Previously the
+Controller session callback was dropped and produced JSON-RPC internal error
+after approximately 60 seconds. The existing Ollama ModelConfig uses
+`http://192.168.100.202:11434`.
+
+The operator's real private A2A run for
+`What is OpenKubes Local?` returned `PASS`, `accepted=true`,
+`reason=format_and_source_ids_only`, `retrieved_chunks=8`,
+`rendered_chars=189`, `semantic_grounding=UNVERIFIED`,
+elapsed **11.305 seconds**, context digest
+`5b781a6a0d3f16192cdc9dee720028c4b5933dfcc03840c96bb80b134f5baafb`.
+This is an important **structural** integration milestone, not attested
+same-request context consumption or semantic proof.
+
+For `How do I install OpenKubes Local on macOS?`, the private live probe
+returned `REJECT`, `reason=unsupported_text`,
+`text_reject_category=command`, eight retrieved chunks, elapsed
+**34.050 seconds** after the prompt-only refinement. No rejected text
+was disclosed. The v0.1 answer validator intentionally disallows
+command-looking model prose; this is a contract/product gap, not evidence
+that the model's command was false.
+
+## Proposed follow-on design: exact-source command rendering (NOT implemented)
+
+Keep the existing model-generated prose contract unchanged. For requested
+installation instructions, a separate trusted gateway path may extract
+**whole fenced shell command blocks from the already verified and pinned
+document index**, and render them alongside source-bound explanatory steps.
+The model must never provide, edit, select via arbitrary paths/URLs, execute,
+or transform executable commands. The gateway must enforce:
+
+1. Authorized public-repository allowlist, immutable commit SHA, original
+   chunk checksum, and exact source-ID matching within the same retrieval
+   response. Never fetch latest or independently re-retrieve after inference.
+2. Exact byte-preserving command blocks only when their complete start/end
+   fences were captured in a trusted chunk; no concatenation across unrelated
+   chunks, no snippets synthesized from natural-language instructions.
+3. Tight size/count caps and fail-closed behavior for missing/ambiguous
+   blocks, secret-like material, unsafe or destructive commands, or other
+   unsupported syntax. These checks are additional to source provenance:
+   being in the docs does not automatically make a command safe.
+4. Distinguish **displayed reference commands** from execution; never execute,
+   offer automatic execution, or accept commands from agent output.
+5. Keep citations rendered exclusively from the pinned index. Every displayed
+   command must clearly identify its precise source and revision. Establish
+   appropriate offline security and provenance regression tests before a
+   separate, explicitly reviewed implementation.
+
+Do not relax `structured_answer.validate_and_render` to permit
+model-authored commands. Design and security review are prerequisites.
+Public Beta remains **HOLD**.
