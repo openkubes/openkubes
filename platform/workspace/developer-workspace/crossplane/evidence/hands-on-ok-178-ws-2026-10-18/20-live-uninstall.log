@@ -1,0 +1,2 @@
+release "crossplane" uninstalled
+uninstalled; removed 21 Crossplane CRDs

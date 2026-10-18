@@ -704,7 +704,11 @@ objects to refuse; they cannot authorize adoption or deletion. Export any
 wanted workspace data before deletion. Neither command writes evidence. `live-run` retains its proof
 controls and automatic cleanup; it requires an explicit `OK176_PROFILE_FILE` choice and derives
 enforcement mode from that profile.
-OpenCode inference under the selected user namespace setting must still be exercised live by the operator.
+OpenCode inference under user namespaces (`hostUsers: false`) was exercised once at openkubes
+`8a5123b`; the operator-retained transcripts are in the
+[2026-10-18 hands-on evidence](evidence/hands-on-ok-178-ws-2026-10-18/README.md).
+That recorded task used a manual model alias and two scripted tool calls; it does not establish
+general agent capability, performance, or production readiness.
 
 ## Rollback and cleanup
 
@@ -752,9 +756,12 @@ OpenCode inference under the selected user namespace setting must still be exerc
   provisioner restart, worker reboot, or production adoption.
 - Push denial is shown against a source that scopes credentials, standing in for a real
   provider's read-only token; it is not a test of any particular Git host's permissions.
-- The live proof does not rerun OpenCode inference. OK-174 proved it for the frozen base render;
+- `live-run` itself does not rerun OpenCode inference. OK-174 proved it for the frozen base render;
   `render-check` and read-back tie that base plus the capability's `hostUsers` extension to this
-  reconciler. Inference under user namespaces remains unproven.
+  reconciler. Inference under user namespaces (`hostUsers: false`) was exercised once at openkubes
+  `8a5123b` via the [2026-10-18 hands-on flow](evidence/hands-on-ok-178-ws-2026-10-18/README.md): one task,
+  one disposable cluster, a manual model alias and two scripted tool calls. This does not prove
+  general agent capability, performance, or production readiness.
 - Drift correction covers deleted objects and changed values of rendered fields. A field added
   outside the rendered set (for example an extra egress rule on `default-deny`) is not removed:
   provider-kubernetes v1.3.1 uses server-side apply and manages the fields owned by each Object. Making that change

@@ -1,0 +1,4 @@
+Workspace: ws-hands-on-xr
+Namespace: dw-hands-on
+Runtime Pod: workspace-6f88c7d4f6-7sn4d
+kubectl --context ok-178-ws-admin@ok-178-ws exec -n dw-hands-on pod/workspace-6f88c7d4f6-7sn4d -c runtime -- sh -c 'cd /workspace && opencode run --format json '"'"'<task>'"'"' && sh verify.sh'

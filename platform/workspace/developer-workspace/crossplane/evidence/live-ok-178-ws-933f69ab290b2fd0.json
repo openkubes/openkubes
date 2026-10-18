@@ -1,0 +1,3248 @@
+{
+  "apiVersion": "workspace.openkubes.io/v1",
+  "crossplane": {
+    "admissionLimits": [
+      "policy equality and status are checked immediately before each harness XR request; an operator could change policy after a gate check",
+      "the label proof covers the selected profile value and the named provider identity; it does not certify other admission plugins or authorizers"
+    ],
+    "admissionPolicies": [
+      "install/namespace-guard.yaml",
+      "install/provider-steering-guard.yaml",
+      "install/namespace-host-users-guard.yaml",
+      "install/pod-user-namespace-guard.yaml"
+    ],
+    "chart": "2.3.3",
+    "functions": "tests/functions.yaml",
+    "provider": "install/provider-kubernetes.yaml"
+  },
+  "finishedAt": "2026-10-18T04:22:10Z",
+  "images": {
+    "fixture": "sha256:1ea1d963004d1ac010a6b0c970e253a6f8ed20fcd6d8f60679ff4e6846a9e782",
+    "runtime": "sha256:7dcc6cec7d8a918dd2d876a8faf72d765baeca61160c72611e82f8354f5ad5c2"
+  },
+  "implementation": {
+    "clean": true,
+    "files": {
+      "Makefile": "74270e5c9b57fbc03f0f3483bf70de824282c936038bc8d74ed4e3241c410a87",
+      "README.md": "68a2b446e29d506bc2b7f9ddb2579c85fc42f2d98d19c02c0c4e3a81410cf1e2",
+      "composition.yaml": "15716f66bb4b153c065ec784597d71adc7600ea2eeca827bef1daf205da183d5",
+      "install/namespace-guard.yaml": "150f7c399ffa77ea9a342220218743e252862ca3991f73031c34464e87a659b4",
+      "install/namespace-host-users-guard.yaml": "85f13401ad318a16aa194c0686ff2c4ef7889d974fa277ec056cd3d04c28c970",
+      "install/pod-user-namespace-guard.yaml": "12b46b15f2d9108bc899799f79c2732d9fb0f044e369340cc8f17b3ec5df6ec0",
+      "install/provider-kubernetes.yaml": "976411c41bdb3c5a8890ea2a8cd0fbef9cd528f33e875af920f6466f3a3260f4",
+      "install/provider-steering-guard.yaml": "d6889e81f5655ac263ec25c60846c05276b47133c9d54efe08c178d71f6c7d7b",
+      "install/providerconfig.yaml": "02548ac1c0ff2dfb509f7a8a7a777ccb336796af8eebfe5e4aabde2d649a9336",
+      "profiles/namespace-profile-local-path.yaml": "153be976cf6da14e51db5af9f6e09899cd936844fa9b087521bfe290ca21dfbb",
+      "profiles/namespace-profile-local-quota.yaml": "8be6e5b4c4cb5a2d2ebd72ff96f0989937bcdad5d1426a11afbc0d0b40ab6f42",
+      "rbac/authority-boundary.yaml": "a179570eb2595a2c61f2c9c6ba732c7932e76192372c13be8f0e0982156e87dd",
+      "rbac/provider-kubernetes-clusterrole.yaml": "312fdcf5a7c0a24bbb5f8a5b9e2f2efcc37f18ad130dc94676b67d198775b7cc",
+      "tests/admission-cel-check.py": "d40a6d1e7629070cf66b06d4a6a8d1a1218c92254c98be17bb0d5af50eaa81f3",
+      "tests/audit-doc-check.py": "7374a323473017b3646076a8e61c50fe5b3592b604dc126b5cbac03e8c9f1eb4",
+      "tests/cel-requirements.txt": "63e6a86a6deee5f8f0fe14517220d240422bb3ee2304aa6963ad2031db778b58",
+      "tests/fixtures/self-declared-local-path.yaml": "2f65accb3129a1e95f542e3be4b2b28949893e469a829a25d5187befabe9fceb",
+      "tests/functions.yaml": "f3fa41e4f20583aa9b2473fd0877619e721575d3197c99c6017f01a25791a602",
+      "tests/live/hands_on_ownership_selftest.py": "29bf026bc057861f03d6c9ed7af3112bcb3fa41235b843cc962e41b1e5b4f2c1",
+      "tests/live/profile_examples_selftest.py": "1a89463cd44355add040c1bf5539ea8abd0cc819449abe53682b6849e8eaf345",
+      "tests/live/reconcile_proof.py": "23038037f14552033ceaaaea602c2373bb117c40aab614d092c8ed47d106173b",
+      "tests/live/reconcile_proof_selftest.py": "064902417ab5001d8914a5666e87940653db2b2bb4dfbc67ea1782db5bc2fec0",
+      "tests/live/source-server.py": "c2ade523bdabd6c91f31cd3abf1063f57b51de318201f0bfd0f9b6fd283dd02b",
+      "tests/profile_config.py": "0f612c132186870b9c777bc41fe022b783d88d252252791385aa3e9bfa6da6ab",
+      "tests/render-check.py": "ceffbe350f37310ef517c28dc35854a33c6d09ea3669269cd4678d64e3c6539f",
+      "tests/xrd-cel-check.py": "160ccde2499610868aaeeae8d6d79d9c8fa73f89aaae169caeb82e6f4ae9473a",
+      "tests/xrd_schema.py": "120d0875b2d50c109f1ab55a3482dbdbc905a8f70c6de16de4dae8ac47fa7913",
+      "xrd.yaml": "ce921ee4268e22736c11201e107831454d84e6a34239bf34846d7db7bb6fadf7"
+    },
+    "head": "8a5123bd6c1933c4147e41b286d19198efab80b3",
+    "spikeInputs": {
+      "live/fixtures/Dockerfile": "bf2624bc2b3314b143c2c325e123ebdb6c803d367d40efe9b65aca35323c1f00",
+      "live/fixtures/entrypoint.sh": "c0a2e841b064cd216838e93b7ae5a78715a8f6bcafd2335205c4ea393308a291",
+      "live/probes/live_proof.py": "a6d054ab5dd0d058da07517dd402fd6c89bfbc6795e19fe29f26f3afbe346277",
+      "live/profile/developer-workspace-live.yaml": "3cac65e53600628e7f1316dd55496804a5c2c915e2e3ff0c87c66877f24e79a6",
+      "live/profile/namespace-profile-live.yaml": "2d335173585e06a1e36adad6d0f410a1c4cf66290c58e7eddd1354dd47c9f8b4",
+      "verify_developer_workspace_v1.py": "9b751c53f9e75f9d8875c632df72b9f1c113d8d772231a8487ef52ef08c7ed14"
+    }
+  },
+  "kind": "ReconcilerLiveEvidence",
+  "knownCommit": "375ba7dfb4f4b49bdbd7a82c567873a59a59d37d",
+  "persistentCapacity": {
+    "boundaries": {
+      "declared": "1Gi",
+      "toleranceBytes": 1048576,
+      "writeChunkBytes": 1048576
+    },
+    "declaration": {
+      "capacityEnforcingStorageClasses": [
+        "ok-storage-local-quota"
+      ],
+      "runtimeEnforced": true
+    },
+    "hostUsers": false,
+    "mode": "enforced",
+    "profileReadback": {
+      "final": {
+        "dataSha256": "6aa1605a1bc5c0594afe0e5601fce41935104bea80f41b30f5942e33b4350923",
+        "resourceVersion": "2381",
+        "uid": "7a2a4cc2-5f06-4758-b558-9b749234ea7b"
+      },
+      "initial": {
+        "dataSha256": "6aa1605a1bc5c0594afe0e5601fce41935104bea80f41b30f5942e33b4350923",
+        "resourceVersion": "2381",
+        "uid": "7a2a4cc2-5f06-4758-b558-9b749234ea7b"
+      }
+    },
+    "scope": [
+      "capacity enforcement for another storage class, declared size, runtime image or without hostUsers=false",
+      "every quota bypass or filesystem operation",
+      "provisioner restart or node reboot durability",
+      "production readiness"
+    ],
+    "storageClassName": "ok-storage-local-quota"
+  },
+  "results": [
+    {
+      "detail": "removing one binding made the current/local policy gate fail before XR CREATE; the XR stayed NotFound with no composed Objects, then the restored gate became current",
+      "name": "admission-policy-gate",
+      "status": "pass"
+    },
+    {
+      "detail": "the API server rejects inconsistent lifecycle and noncanonical workspace identity documents, then admits the consistent canonical document",
+      "name": "admission-rules",
+      "status": "pass"
+    },
+    {
+      "detail": "the API server rejects a distinct noncanonical metadata.name and admits metadata.name = spec.workspaceID + \"-xr\"",
+      "name": "canonical-name-rule",
+      "observed": {
+        "admitted": "ws-ok175-cel-xr",
+        "rejected": {
+          "exists": false,
+          "name": "ok175-cel-probe",
+          "objectRefs": [],
+          "ready": false
+        }
+      },
+      "status": "pass"
+    },
+    {
+      "detail": "without the profile EnvironmentConfig the workspace reports it missing, composes nothing and is not Ready",
+      "name": "no-profile-fails-closed",
+      "observed": {
+        "ready": null
+      },
+      "status": "pass"
+    },
+    {
+      "detail": "direct XR requests with a missing or wrong installation receipt stay unready with zero composed Objects and no Namespace; the exact receipt is restored before the normal workspace positive path",
+      "name": "admission-receipt-gate",
+      "observed": {
+        "initial": {
+          "data": {
+            "guardRevision": "ok185-v1"
+          },
+          "name": "developer-workspace-admission-ready"
+        },
+        "missing": {
+          "message": "cannot compose resources: pipeline step \"render-namespace-profile\" returned a fatal result: cannot execute template: template: manifests:17:168: executing \"manifests\" at <fail \"admission installation receipt developer-workspace-admission-ready must declare guardRevision=ok185-v1\">: error calling fail: admission installation receipt developer-workspace-admission-ready must declare guardRevision=ok185-v1",
+          "name": "ws-ok185-receipt-missing-xr",
+          "namespace": "dw-ok185-receipt-missing",
+          "namespaceAbsent": true,
+          "objectRefs": [],
+          "ready": null
+        },
+        "restored": {
+          "data": {
+            "guardRevision": "ok185-v1"
+          },
+          "name": "developer-workspace-admission-ready"
+        },
+        "wrong": {
+          "message": "cannot compose resources: pipeline step \"render-namespace-profile\" returned a fatal result: cannot execute template: template: manifests:17:168: executing \"manifests\" at <fail \"admission installation receipt developer-workspace-admission-ready must declare guardRevision=ok185-v1\">: error calling fail: admission installation receipt developer-workspace-admission-ready must declare guardRevision=ok185-v1",
+          "name": "ws-ok185-receipt-wrong-xr",
+          "namespace": "dw-ok185-receipt-wrong",
+          "namespaceAbsent": true,
+          "objectRefs": [],
+          "ready": null
+        }
+      },
+      "status": "pass"
+    },
+    {
+      "detail": "a workspace whose Namespace already existed was refused it: no label, no workspace object written, owner data intact, XR not Ready; the persistent run below is the control",
+      "name": "dedicated-namespace-enforced",
+      "observed": {
+        "ready": "False"
+      },
+      "status": "pass"
+    },
+    {
+      "detail": "XR Ready; 11 reconciled objects equal capability reference rendering for the persistent profile; the XR runs the local Composition",
+      "name": "reconcile-readback",
+      "observed": {
+        "compositionRevision": "developerworkspace-namespace.workspace.openkubes.io-491fd07",
+        "lifecyclePhase": "running",
+        "namespace": "dw-ok175-proof"
+      },
+      "status": "pass"
+    },
+    {
+      "detail": "the API server rejects a workspaceID update and admits an otherwise identical replacement",
+      "name": "workspace-id-immutable",
+      "status": "pass"
+    },
+    {
+      "detail": "observer is read-only for DeveloperWorkspace and denied every mutation; operator passes documented can-i checks and real server dry-run create/update checks for all four resource types",
+      "name": "authority-boundary-rbac",
+      "observed": {
+        "observer": "system:serviceaccount:ok174-proof-services:developer-workspace-observer",
+        "operator": "system:serviceaccount:ok174-proof-services:developer-workspace-operator",
+        "resources": [
+          "developerworkspaces",
+          "objects",
+          "providerconfigs",
+          "environmentconfigs"
+        ]
+      },
+      "status": "pass"
+    },
+    {
+      "detail": "a non-operator with namespaced crossplane-edit RBAC is denied real ProviderConfig and Object creates by the named admission policy; the operator is admitted by server dry-run",
+      "name": "namespaced-provider-steering-denied",
+      "observed": {
+        "namespace": "ok175-provider-steering-proof",
+        "nonoperator": "system:serviceaccount:ok175-provider-steering-proof:provider-steering-nonoperator",
+        "operator": "system:serviceaccount:ok174-proof-services:developer-workspace-operator",
+        "policy": "developer-workspace-provider-steering",
+        "resources": [
+          "providerconfigs",
+          "objects"
+        ]
+      },
+      "status": "pass"
+    },
+    {
+      "detail": "temporary name-scoped Namespace RBAC lets the workspace and observer requests reach admission, which rejects both protected-label changes; the operator controls are admitted and the temporary grant is removed",
+      "name": "namespace-host-users-label-authority",
+      "observed": {
+        "allowedControls": [
+          "observer-preserve",
+          "operator-alter",
+          "operator-change-id",
+          "operator-delete",
+          "operator-drop-both",
+          "operator-finalize-drop-both",
+          "operator-preserve",
+          "operator-remove",
+          "operator-status-drop-both",
+          "workspace-preserve"
+        ],
+        "denied": [
+          "observer-alter",
+          "observer-change-id",
+          "observer-delete",
+          "observer-drop-both",
+          "observer-finalize-drop-both",
+          "observer-remove",
+          "observer-status-drop-both",
+          "workspace-alter",
+          "workspace-change-id",
+          "workspace-delete",
+          "workspace-drop-both",
+          "workspace-finalize-drop-both",
+          "workspace-remove",
+          "workspace-status-drop-both"
+        ],
+        "dryRunUnchanged": true,
+        "namespaceLabel": "false",
+        "namespaceResourceVersion": "3098",
+        "namespaceUID": "4c3f593a-b936-4686-8237-cbbd52d99ebd",
+        "policyName": "developer-workspace-namespace-host-users-guard"
+      },
+      "status": "pass"
+    },
+    {
+      "detail": "one standalone provider-kubernetes Object owns a fixture Namespace label; drop and alter updates are Synced=False, rendered-value controls are Synced=True, and both fixtures are cleaned",
+      "name": "provider-host-users-label-reconcile",
+      "observed": {
+        "allowedControl": "preserve",
+        "deniedObjects": [
+          "drop",
+          "alter"
+        ],
+        "namespaceLabelsUnchanged": true,
+        "policyName": "developer-workspace-namespace-host-users-guard",
+        "probe": "one standalone provider-kubernetes Object owns the rendered labels on an isolated Namespace; update omission tests SSA deletion; Object and Namespace are cleaned"
+      },
+      "status": "pass"
+    },
+    {
+      "detail": "all RBAC holders equal the documented expected subject sets for every cluster and namespaced steering kind and mutation verb",
+      "name": "authority-who-can",
+      "observed": {
+        "defaultCrossplaneGroupBindingPresent": true,
+        "effectiveRoleBindings": [],
+        "holders": {
+          "ClusterProviderConfig": {
+            "create": [
+              {
+                "kind": "Group",
+                "name": "crossplane:masters"
+              },
+              {
+                "kind": "Group",
+                "name": "system:masters"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "crossplane",
+                "namespace": "crossplane-system"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "developer-workspace-provider-kubernetes",
+                "namespace": "crossplane-system"
+              }
+            ],
+            "delete": [
+              {
+                "kind": "Group",
+                "name": "crossplane:masters"
+              },
+              {
+                "kind": "Group",
+                "name": "system:masters"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "crossplane",
+                "namespace": "crossplane-system"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "generic-garbage-collector",
+                "namespace": "kube-system"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "namespace-controller",
+                "namespace": "kube-system"
+              }
+            ],
+            "deletecollection": [
+              {
+                "kind": "Group",
+                "name": "crossplane:masters"
+              },
+              {
+                "kind": "Group",
+                "name": "system:masters"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "crossplane",
+                "namespace": "crossplane-system"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "namespace-controller",
+                "namespace": "kube-system"
+              }
+            ],
+            "patch": [
+              {
+                "kind": "Group",
+                "name": "crossplane:masters"
+              },
+              {
+                "kind": "Group",
+                "name": "system:masters"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "crossplane",
+                "namespace": "crossplane-system"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "developer-workspace-provider-kubernetes",
+                "namespace": "crossplane-system"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "generic-garbage-collector",
+                "namespace": "kube-system"
+              }
+            ],
+            "update": [
+              {
+                "kind": "Group",
+                "name": "crossplane:masters"
+              },
+              {
+                "kind": "Group",
+                "name": "system:masters"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "crossplane",
+                "namespace": "crossplane-system"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "developer-workspace-provider-kubernetes",
+                "namespace": "crossplane-system"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "generic-garbage-collector",
+                "namespace": "kube-system"
+              }
+            ]
+          },
+          "DeveloperWorkspace": {
+            "create": [
+              {
+                "kind": "Group",
+                "name": "crossplane:masters"
+              },
+              {
+                "kind": "Group",
+                "name": "system:masters"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "crossplane",
+                "namespace": "crossplane-system"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "developer-workspace-operator",
+                "namespace": "ok174-proof-services"
+              }
+            ],
+            "delete": [
+              {
+                "kind": "Group",
+                "name": "crossplane:masters"
+              },
+              {
+                "kind": "Group",
+                "name": "system:masters"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "crossplane",
+                "namespace": "crossplane-system"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "developer-workspace-operator",
+                "namespace": "ok174-proof-services"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "generic-garbage-collector",
+                "namespace": "kube-system"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "namespace-controller",
+                "namespace": "kube-system"
+              }
+            ],
+            "deletecollection": [
+              {
+                "kind": "Group",
+                "name": "crossplane:masters"
+              },
+              {
+                "kind": "Group",
+                "name": "system:masters"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "crossplane",
+                "namespace": "crossplane-system"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "namespace-controller",
+                "namespace": "kube-system"
+              }
+            ],
+            "patch": [
+              {
+                "kind": "Group",
+                "name": "crossplane:masters"
+              },
+              {
+                "kind": "Group",
+                "name": "system:masters"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "crossplane",
+                "namespace": "crossplane-system"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "developer-workspace-operator",
+                "namespace": "ok174-proof-services"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "generic-garbage-collector",
+                "namespace": "kube-system"
+              }
+            ],
+            "update": [
+              {
+                "kind": "Group",
+                "name": "crossplane:masters"
+              },
+              {
+                "kind": "Group",
+                "name": "system:masters"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "crossplane",
+                "namespace": "crossplane-system"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "developer-workspace-operator",
+                "namespace": "ok174-proof-services"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "generic-garbage-collector",
+                "namespace": "kube-system"
+              }
+            ]
+          },
+          "EnvironmentConfig": {
+            "create": [
+              {
+                "kind": "Group",
+                "name": "crossplane:masters"
+              },
+              {
+                "kind": "Group",
+                "name": "system:masters"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "crossplane",
+                "namespace": "crossplane-system"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "developer-workspace-operator",
+                "namespace": "ok174-proof-services"
+              }
+            ],
+            "delete": [
+              {
+                "kind": "Group",
+                "name": "crossplane:masters"
+              },
+              {
+                "kind": "Group",
+                "name": "system:masters"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "crossplane",
+                "namespace": "crossplane-system"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "developer-workspace-operator",
+                "namespace": "ok174-proof-services"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "generic-garbage-collector",
+                "namespace": "kube-system"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "namespace-controller",
+                "namespace": "kube-system"
+              }
+            ],
+            "deletecollection": [
+              {
+                "kind": "Group",
+                "name": "crossplane:masters"
+              },
+              {
+                "kind": "Group",
+                "name": "system:masters"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "crossplane",
+                "namespace": "crossplane-system"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "namespace-controller",
+                "namespace": "kube-system"
+              }
+            ],
+            "patch": [
+              {
+                "kind": "Group",
+                "name": "crossplane:masters"
+              },
+              {
+                "kind": "Group",
+                "name": "system:masters"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "crossplane",
+                "namespace": "crossplane-system"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "developer-workspace-operator",
+                "namespace": "ok174-proof-services"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "generic-garbage-collector",
+                "namespace": "kube-system"
+              }
+            ],
+            "update": [
+              {
+                "kind": "Group",
+                "name": "crossplane:masters"
+              },
+              {
+                "kind": "Group",
+                "name": "system:masters"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "crossplane",
+                "namespace": "crossplane-system"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "developer-workspace-operator",
+                "namespace": "ok174-proof-services"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "generic-garbage-collector",
+                "namespace": "kube-system"
+              }
+            ]
+          },
+          "NamespacedObject": {
+            "create": [
+              {
+                "kind": "Group",
+                "name": "crossplane:masters"
+              },
+              {
+                "kind": "Group",
+                "name": "system:masters"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "crossplane",
+                "namespace": "crossplane-system"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "developer-workspace-provider-kubernetes",
+                "namespace": "crossplane-system"
+              }
+            ],
+            "delete": [
+              {
+                "kind": "Group",
+                "name": "crossplane:masters"
+              },
+              {
+                "kind": "Group",
+                "name": "system:masters"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "crossplane",
+                "namespace": "crossplane-system"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "generic-garbage-collector",
+                "namespace": "kube-system"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "namespace-controller",
+                "namespace": "kube-system"
+              }
+            ],
+            "deletecollection": [
+              {
+                "kind": "Group",
+                "name": "crossplane:masters"
+              },
+              {
+                "kind": "Group",
+                "name": "system:masters"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "crossplane",
+                "namespace": "crossplane-system"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "namespace-controller",
+                "namespace": "kube-system"
+              }
+            ],
+            "patch": [
+              {
+                "kind": "Group",
+                "name": "crossplane:masters"
+              },
+              {
+                "kind": "Group",
+                "name": "system:masters"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "crossplane",
+                "namespace": "crossplane-system"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "developer-workspace-provider-kubernetes",
+                "namespace": "crossplane-system"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "generic-garbage-collector",
+                "namespace": "kube-system"
+              }
+            ],
+            "update": [
+              {
+                "kind": "Group",
+                "name": "crossplane:masters"
+              },
+              {
+                "kind": "Group",
+                "name": "system:masters"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "crossplane",
+                "namespace": "crossplane-system"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "developer-workspace-provider-kubernetes",
+                "namespace": "crossplane-system"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "generic-garbage-collector",
+                "namespace": "kube-system"
+              }
+            ]
+          },
+          "NamespacedObservedObjectCollection": {
+            "create": [
+              {
+                "kind": "Group",
+                "name": "crossplane:masters"
+              },
+              {
+                "kind": "Group",
+                "name": "system:masters"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "crossplane",
+                "namespace": "crossplane-system"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "developer-workspace-provider-kubernetes",
+                "namespace": "crossplane-system"
+              }
+            ],
+            "delete": [
+              {
+                "kind": "Group",
+                "name": "crossplane:masters"
+              },
+              {
+                "kind": "Group",
+                "name": "system:masters"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "crossplane",
+                "namespace": "crossplane-system"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "generic-garbage-collector",
+                "namespace": "kube-system"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "namespace-controller",
+                "namespace": "kube-system"
+              }
+            ],
+            "deletecollection": [
+              {
+                "kind": "Group",
+                "name": "crossplane:masters"
+              },
+              {
+                "kind": "Group",
+                "name": "system:masters"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "crossplane",
+                "namespace": "crossplane-system"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "namespace-controller",
+                "namespace": "kube-system"
+              }
+            ],
+            "patch": [
+              {
+                "kind": "Group",
+                "name": "crossplane:masters"
+              },
+              {
+                "kind": "Group",
+                "name": "system:masters"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "crossplane",
+                "namespace": "crossplane-system"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "developer-workspace-provider-kubernetes",
+                "namespace": "crossplane-system"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "generic-garbage-collector",
+                "namespace": "kube-system"
+              }
+            ],
+            "update": [
+              {
+                "kind": "Group",
+                "name": "crossplane:masters"
+              },
+              {
+                "kind": "Group",
+                "name": "system:masters"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "crossplane",
+                "namespace": "crossplane-system"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "developer-workspace-provider-kubernetes",
+                "namespace": "crossplane-system"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "generic-garbage-collector",
+                "namespace": "kube-system"
+              }
+            ]
+          },
+          "NamespacedProviderConfig": {
+            "create": [
+              {
+                "kind": "Group",
+                "name": "crossplane:masters"
+              },
+              {
+                "kind": "Group",
+                "name": "system:masters"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "crossplane",
+                "namespace": "crossplane-system"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "developer-workspace-provider-kubernetes",
+                "namespace": "crossplane-system"
+              }
+            ],
+            "delete": [
+              {
+                "kind": "Group",
+                "name": "crossplane:masters"
+              },
+              {
+                "kind": "Group",
+                "name": "system:masters"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "crossplane",
+                "namespace": "crossplane-system"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "generic-garbage-collector",
+                "namespace": "kube-system"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "namespace-controller",
+                "namespace": "kube-system"
+              }
+            ],
+            "deletecollection": [
+              {
+                "kind": "Group",
+                "name": "crossplane:masters"
+              },
+              {
+                "kind": "Group",
+                "name": "system:masters"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "crossplane",
+                "namespace": "crossplane-system"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "namespace-controller",
+                "namespace": "kube-system"
+              }
+            ],
+            "patch": [
+              {
+                "kind": "Group",
+                "name": "crossplane:masters"
+              },
+              {
+                "kind": "Group",
+                "name": "system:masters"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "crossplane",
+                "namespace": "crossplane-system"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "developer-workspace-provider-kubernetes",
+                "namespace": "crossplane-system"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "generic-garbage-collector",
+                "namespace": "kube-system"
+              }
+            ],
+            "update": [
+              {
+                "kind": "Group",
+                "name": "crossplane:masters"
+              },
+              {
+                "kind": "Group",
+                "name": "system:masters"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "crossplane",
+                "namespace": "crossplane-system"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "developer-workspace-provider-kubernetes",
+                "namespace": "crossplane-system"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "generic-garbage-collector",
+                "namespace": "kube-system"
+              }
+            ]
+          },
+          "NamespacedProviderConfigUsage": {
+            "create": [
+              {
+                "kind": "Group",
+                "name": "crossplane:masters"
+              },
+              {
+                "kind": "Group",
+                "name": "system:masters"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "crossplane",
+                "namespace": "crossplane-system"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "developer-workspace-provider-kubernetes",
+                "namespace": "crossplane-system"
+              }
+            ],
+            "delete": [
+              {
+                "kind": "Group",
+                "name": "crossplane:masters"
+              },
+              {
+                "kind": "Group",
+                "name": "system:masters"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "crossplane",
+                "namespace": "crossplane-system"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "generic-garbage-collector",
+                "namespace": "kube-system"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "namespace-controller",
+                "namespace": "kube-system"
+              }
+            ],
+            "deletecollection": [
+              {
+                "kind": "Group",
+                "name": "crossplane:masters"
+              },
+              {
+                "kind": "Group",
+                "name": "system:masters"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "crossplane",
+                "namespace": "crossplane-system"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "namespace-controller",
+                "namespace": "kube-system"
+              }
+            ],
+            "patch": [
+              {
+                "kind": "Group",
+                "name": "crossplane:masters"
+              },
+              {
+                "kind": "Group",
+                "name": "system:masters"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "crossplane",
+                "namespace": "crossplane-system"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "developer-workspace-provider-kubernetes",
+                "namespace": "crossplane-system"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "generic-garbage-collector",
+                "namespace": "kube-system"
+              }
+            ],
+            "update": [
+              {
+                "kind": "Group",
+                "name": "crossplane:masters"
+              },
+              {
+                "kind": "Group",
+                "name": "system:masters"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "crossplane",
+                "namespace": "crossplane-system"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "developer-workspace-provider-kubernetes",
+                "namespace": "crossplane-system"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "generic-garbage-collector",
+                "namespace": "kube-system"
+              }
+            ]
+          },
+          "Object": {
+            "create": [
+              {
+                "kind": "Group",
+                "name": "crossplane:masters"
+              },
+              {
+                "kind": "Group",
+                "name": "system:masters"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "crossplane",
+                "namespace": "crossplane-system"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "developer-workspace-operator",
+                "namespace": "ok174-proof-services"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "developer-workspace-provider-kubernetes",
+                "namespace": "crossplane-system"
+              }
+            ],
+            "delete": [
+              {
+                "kind": "Group",
+                "name": "crossplane:masters"
+              },
+              {
+                "kind": "Group",
+                "name": "system:masters"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "crossplane",
+                "namespace": "crossplane-system"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "developer-workspace-operator",
+                "namespace": "ok174-proof-services"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "generic-garbage-collector",
+                "namespace": "kube-system"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "namespace-controller",
+                "namespace": "kube-system"
+              }
+            ],
+            "deletecollection": [
+              {
+                "kind": "Group",
+                "name": "crossplane:masters"
+              },
+              {
+                "kind": "Group",
+                "name": "system:masters"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "crossplane",
+                "namespace": "crossplane-system"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "namespace-controller",
+                "namespace": "kube-system"
+              }
+            ],
+            "patch": [
+              {
+                "kind": "Group",
+                "name": "crossplane:masters"
+              },
+              {
+                "kind": "Group",
+                "name": "system:masters"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "crossplane",
+                "namespace": "crossplane-system"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "developer-workspace-operator",
+                "namespace": "ok174-proof-services"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "developer-workspace-provider-kubernetes",
+                "namespace": "crossplane-system"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "generic-garbage-collector",
+                "namespace": "kube-system"
+              }
+            ],
+            "update": [
+              {
+                "kind": "Group",
+                "name": "crossplane:masters"
+              },
+              {
+                "kind": "Group",
+                "name": "system:masters"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "crossplane",
+                "namespace": "crossplane-system"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "developer-workspace-operator",
+                "namespace": "ok174-proof-services"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "developer-workspace-provider-kubernetes",
+                "namespace": "crossplane-system"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "generic-garbage-collector",
+                "namespace": "kube-system"
+              }
+            ]
+          },
+          "ObservedObjectCollection": {
+            "create": [
+              {
+                "kind": "Group",
+                "name": "crossplane:masters"
+              },
+              {
+                "kind": "Group",
+                "name": "system:masters"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "crossplane",
+                "namespace": "crossplane-system"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "developer-workspace-provider-kubernetes",
+                "namespace": "crossplane-system"
+              }
+            ],
+            "delete": [
+              {
+                "kind": "Group",
+                "name": "crossplane:masters"
+              },
+              {
+                "kind": "Group",
+                "name": "system:masters"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "crossplane",
+                "namespace": "crossplane-system"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "generic-garbage-collector",
+                "namespace": "kube-system"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "namespace-controller",
+                "namespace": "kube-system"
+              }
+            ],
+            "deletecollection": [
+              {
+                "kind": "Group",
+                "name": "crossplane:masters"
+              },
+              {
+                "kind": "Group",
+                "name": "system:masters"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "crossplane",
+                "namespace": "crossplane-system"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "namespace-controller",
+                "namespace": "kube-system"
+              }
+            ],
+            "patch": [
+              {
+                "kind": "Group",
+                "name": "crossplane:masters"
+              },
+              {
+                "kind": "Group",
+                "name": "system:masters"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "crossplane",
+                "namespace": "crossplane-system"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "developer-workspace-provider-kubernetes",
+                "namespace": "crossplane-system"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "generic-garbage-collector",
+                "namespace": "kube-system"
+              }
+            ],
+            "update": [
+              {
+                "kind": "Group",
+                "name": "crossplane:masters"
+              },
+              {
+                "kind": "Group",
+                "name": "system:masters"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "crossplane",
+                "namespace": "crossplane-system"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "developer-workspace-provider-kubernetes",
+                "namespace": "crossplane-system"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "generic-garbage-collector",
+                "namespace": "kube-system"
+              }
+            ]
+          },
+          "ProviderConfig": {
+            "create": [
+              {
+                "kind": "Group",
+                "name": "crossplane:masters"
+              },
+              {
+                "kind": "Group",
+                "name": "system:masters"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "crossplane",
+                "namespace": "crossplane-system"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "developer-workspace-operator",
+                "namespace": "ok174-proof-services"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "developer-workspace-provider-kubernetes",
+                "namespace": "crossplane-system"
+              }
+            ],
+            "delete": [
+              {
+                "kind": "Group",
+                "name": "crossplane:masters"
+              },
+              {
+                "kind": "Group",
+                "name": "system:masters"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "crossplane",
+                "namespace": "crossplane-system"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "developer-workspace-operator",
+                "namespace": "ok174-proof-services"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "generic-garbage-collector",
+                "namespace": "kube-system"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "namespace-controller",
+                "namespace": "kube-system"
+              }
+            ],
+            "deletecollection": [
+              {
+                "kind": "Group",
+                "name": "crossplane:masters"
+              },
+              {
+                "kind": "Group",
+                "name": "system:masters"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "crossplane",
+                "namespace": "crossplane-system"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "namespace-controller",
+                "namespace": "kube-system"
+              }
+            ],
+            "patch": [
+              {
+                "kind": "Group",
+                "name": "crossplane:masters"
+              },
+              {
+                "kind": "Group",
+                "name": "system:masters"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "crossplane",
+                "namespace": "crossplane-system"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "developer-workspace-operator",
+                "namespace": "ok174-proof-services"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "developer-workspace-provider-kubernetes",
+                "namespace": "crossplane-system"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "generic-garbage-collector",
+                "namespace": "kube-system"
+              }
+            ],
+            "update": [
+              {
+                "kind": "Group",
+                "name": "crossplane:masters"
+              },
+              {
+                "kind": "Group",
+                "name": "system:masters"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "crossplane",
+                "namespace": "crossplane-system"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "developer-workspace-operator",
+                "namespace": "ok174-proof-services"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "developer-workspace-provider-kubernetes",
+                "namespace": "crossplane-system"
+              },
+              {
+                "kind": "ServiceAccount",
+                "name": "generic-garbage-collector",
+                "namespace": "kube-system"
+              }
+            ]
+          }
+        },
+        "nonEffectiveRoleBindings": [],
+        "scopes": {
+          "ClusterProviderConfig": "Cluster",
+          "DeveloperWorkspace": "Cluster",
+          "EnvironmentConfig": "Cluster",
+          "NamespacedObject": "Namespaced",
+          "NamespacedObservedObjectCollection": "Namespaced",
+          "NamespacedProviderConfig": "Namespaced",
+          "NamespacedProviderConfigUsage": "Namespaced",
+          "Object": "Cluster",
+          "ObservedObjectCollection": "Cluster",
+          "ProviderConfig": "Cluster"
+        }
+      },
+      "status": "pass"
+    },
+    {
+      "detail": "all RBAC holders of impersonation, bind, escalate, binding mutation, service-account token, Pod creation and Secret read paths equal the source-derived expected sets",
+      "name": "authority-indirect-who-can",
+      "observed": {
+        "defaultCrossplaneGroupBindingPresent": true,
+        "holders": {
+          "bind-clusterroles": [
+            {
+              "kind": "Group",
+              "name": "system:masters"
+            },
+            {
+              "kind": "ServiceAccount",
+              "name": "rbac-manager",
+              "namespace": "crossplane-system"
+            }
+          ],
+          "bind-roles": [
+            {
+              "kind": "Group",
+              "name": "system:masters"
+            }
+          ],
+          "create-clusterrolebindings": [
+            {
+              "kind": "Group",
+              "name": "crossplane:masters"
+            },
+            {
+              "kind": "Group",
+              "name": "system:masters"
+            },
+            {
+              "kind": "ServiceAccount",
+              "name": "rbac-manager",
+              "namespace": "crossplane-system"
+            }
+          ],
+          "create-pods-crossplane-system": [
+            {
+              "kind": "Group",
+              "name": "system:masters"
+            },
+            {
+              "kind": "ServiceAccount",
+              "name": "daemon-set-controller",
+              "namespace": "kube-system"
+            },
+            {
+              "kind": "ServiceAccount",
+              "name": "job-controller",
+              "namespace": "kube-system"
+            },
+            {
+              "kind": "ServiceAccount",
+              "name": "ok-storage-local-quota-provisioner",
+              "namespace": "ok-storage-local-quota"
+            },
+            {
+              "kind": "ServiceAccount",
+              "name": "persistent-volume-binder",
+              "namespace": "kube-system"
+            },
+            {
+              "kind": "ServiceAccount",
+              "name": "replicaset-controller",
+              "namespace": "kube-system"
+            },
+            {
+              "kind": "ServiceAccount",
+              "name": "replication-controller",
+              "namespace": "kube-system"
+            },
+            {
+              "kind": "ServiceAccount",
+              "name": "statefulset-controller",
+              "namespace": "kube-system"
+            }
+          ],
+          "create-rolebindings": [
+            {
+              "kind": "Group",
+              "name": "crossplane:masters"
+            },
+            {
+              "kind": "Group",
+              "name": "system:masters"
+            }
+          ],
+          "create-serviceaccount-tokens-crossplane-system": [
+            {
+              "kind": "Group",
+              "name": "system:masters"
+            },
+            {
+              "kind": "User",
+              "name": "system:kube-controller-manager"
+            }
+          ],
+          "create-serviceaccounts-crossplane-system": [
+            {
+              "kind": "Group",
+              "name": "system:masters"
+            },
+            {
+              "kind": "ServiceAccount",
+              "name": "crossplane",
+              "namespace": "crossplane-system"
+            },
+            {
+              "kind": "ServiceAccount",
+              "name": "developer-workspace-provider-kubernetes",
+              "namespace": "crossplane-system"
+            },
+            {
+              "kind": "ServiceAccount",
+              "name": "service-account-controller",
+              "namespace": "kube-system"
+            },
+            {
+              "kind": "User",
+              "name": "system:kube-controller-manager"
+            }
+          ],
+          "escalate-clusterroles": [
+            {
+              "kind": "Group",
+              "name": "system:masters"
+            },
+            {
+              "kind": "ServiceAccount",
+              "name": "clusterrole-aggregation-controller",
+              "namespace": "kube-system"
+            },
+            {
+              "kind": "ServiceAccount",
+              "name": "rbac-manager",
+              "namespace": "crossplane-system"
+            }
+          ],
+          "escalate-roles": [
+            {
+              "kind": "Group",
+              "name": "system:masters"
+            },
+            {
+              "kind": "ServiceAccount",
+              "name": "rbac-manager",
+              "namespace": "crossplane-system"
+            }
+          ],
+          "get-secrets-crossplane-system": [
+            {
+              "kind": "Group",
+              "name": "crossplane:masters"
+            },
+            {
+              "kind": "Group",
+              "name": "system:masters"
+            },
+            {
+              "kind": "ServiceAccount",
+              "name": "cilium-operator",
+              "namespace": "kube-system"
+            },
+            {
+              "kind": "ServiceAccount",
+              "name": "crossplane",
+              "namespace": "crossplane-system"
+            },
+            {
+              "kind": "ServiceAccount",
+              "name": "developer-workspace-provider-kubernetes",
+              "namespace": "crossplane-system"
+            },
+            {
+              "kind": "ServiceAccount",
+              "name": "generic-garbage-collector",
+              "namespace": "kube-system"
+            },
+            {
+              "kind": "ServiceAccount",
+              "name": "namespace-controller",
+              "namespace": "kube-system"
+            },
+            {
+              "kind": "User",
+              "name": "system:kube-controller-manager"
+            }
+          ],
+          "impersonate-groups": [
+            {
+              "kind": "Group",
+              "name": "system:masters"
+            }
+          ],
+          "impersonate-serviceaccounts": [
+            {
+              "kind": "Group",
+              "name": "system:masters"
+            },
+            {
+              "kind": "ServiceAccount",
+              "name": "crossplane",
+              "namespace": "crossplane-system"
+            }
+          ],
+          "impersonate-users": [
+            {
+              "kind": "Group",
+              "name": "system:masters"
+            }
+          ],
+          "list-secrets-crossplane-system": [
+            {
+              "kind": "Group",
+              "name": "crossplane:masters"
+            },
+            {
+              "kind": "Group",
+              "name": "system:masters"
+            },
+            {
+              "kind": "ServiceAccount",
+              "name": "cilium-operator",
+              "namespace": "kube-system"
+            },
+            {
+              "kind": "ServiceAccount",
+              "name": "crossplane",
+              "namespace": "crossplane-system"
+            },
+            {
+              "kind": "ServiceAccount",
+              "name": "developer-workspace-provider-kubernetes",
+              "namespace": "crossplane-system"
+            },
+            {
+              "kind": "ServiceAccount",
+              "name": "generic-garbage-collector",
+              "namespace": "kube-system"
+            },
+            {
+              "kind": "ServiceAccount",
+              "name": "namespace-controller",
+              "namespace": "kube-system"
+            },
+            {
+              "kind": "ServiceAccount",
+              "name": "resourcequota-controller",
+              "namespace": "kube-system"
+            },
+            {
+              "kind": "User",
+              "name": "system:kube-controller-manager"
+            }
+          ],
+          "patch-clusterrolebindings": [
+            {
+              "kind": "Group",
+              "name": "crossplane:masters"
+            },
+            {
+              "kind": "Group",
+              "name": "system:masters"
+            },
+            {
+              "kind": "ServiceAccount",
+              "name": "generic-garbage-collector",
+              "namespace": "kube-system"
+            },
+            {
+              "kind": "ServiceAccount",
+              "name": "rbac-manager",
+              "namespace": "crossplane-system"
+            }
+          ],
+          "patch-rolebindings": [
+            {
+              "kind": "Group",
+              "name": "crossplane:masters"
+            },
+            {
+              "kind": "Group",
+              "name": "system:masters"
+            },
+            {
+              "kind": "ServiceAccount",
+              "name": "generic-garbage-collector",
+              "namespace": "kube-system"
+            }
+          ],
+          "update-clusterrolebindings": [
+            {
+              "kind": "Group",
+              "name": "crossplane:masters"
+            },
+            {
+              "kind": "Group",
+              "name": "system:masters"
+            },
+            {
+              "kind": "ServiceAccount",
+              "name": "generic-garbage-collector",
+              "namespace": "kube-system"
+            },
+            {
+              "kind": "ServiceAccount",
+              "name": "rbac-manager",
+              "namespace": "crossplane-system"
+            }
+          ],
+          "update-rolebindings": [
+            {
+              "kind": "Group",
+              "name": "crossplane:masters"
+            },
+            {
+              "kind": "Group",
+              "name": "system:masters"
+            },
+            {
+              "kind": "ServiceAccount",
+              "name": "generic-garbage-collector",
+              "namespace": "kube-system"
+            }
+          ]
+        }
+      },
+      "status": "pass"
+    },
+    {
+      "detail": "a second document with the live workspaceID and a distinct noncanonical name is rejected; owner UID/spec, Namespace, composed Objects and rendered-resource readback remain unchanged",
+      "name": "workspace-id-collision-refused",
+      "observed": {
+        "candidate": {
+          "exists": false,
+          "name": "ws-ok175-proof-collision-xr",
+          "objectRefs": [],
+          "ready": false
+        },
+        "owner": {
+          "namespace": {
+            "contentSha256After": "74bdbd189d402e09aefdb597db539ce685eed56f3cbe11084c3d74ef9f7a4311",
+            "contentSha256Before": "74bdbd189d402e09aefdb597db539ce685eed56f3cbe11084c3d74ef9f7a4311",
+            "resourceVersionAfter": "3098",
+            "resourceVersionBefore": "3098",
+            "uid": "4c3f593a-b936-4686-8237-cbbd52d99ebd"
+          },
+          "objects": [
+            {
+              "metadataSha256After": "9f0a2989e77aef04b76969bbba9e94ed7de5dae9d206168843bd22bcc8a18712",
+              "metadataSha256Before": "9f0a2989e77aef04b76969bbba9e94ed7de5dae9d206168843bd22bcc8a18712",
+              "name": "dw-f8cccc903182f5d2adcdfb2ee322d766-deployment",
+              "resourceVersionAfter": "3354",
+              "resourceVersionBefore": "3354",
+              "specSha256After": "90cd097b9c65fb313caa8b5e957e9781a98e5054d4ebf0f4969397a217771e9b",
+              "specSha256Before": "90cd097b9c65fb313caa8b5e957e9781a98e5054d4ebf0f4969397a217771e9b",
+              "uid": "b4d21a15-05ca-49cd-9ff8-a10b302fff54"
+            },
+            {
+              "metadataSha256After": "c2473b86e654ab2ceb1abeb28a80678b6d7eac163f9bfe59c76a707149a68328",
+              "metadataSha256Before": "c2473b86e654ab2ceb1abeb28a80678b6d7eac163f9bfe59c76a707149a68328",
+              "name": "dw-f8cccc903182f5d2adcdfb2ee322d766-limitrange",
+              "resourceVersionAfter": "3247",
+              "resourceVersionBefore": "3247",
+              "specSha256After": "b7c42d845d5433893b812df91e25f6b3e69fedebab41b3ca2748ad6a15c5a8e6",
+              "specSha256Before": "b7c42d845d5433893b812df91e25f6b3e69fedebab41b3ca2748ad6a15c5a8e6",
+              "uid": "fa3c7c60-bab4-4a9f-ab63-9786360e30cf"
+            },
+            {
+              "metadataSha256After": "1bbf0f451db11d5d541f5bce3be9ce6c866c7ddd1a37411cbd551d074dab3de5",
+              "metadataSha256Before": "1bbf0f451db11d5d541f5bce3be9ce6c866c7ddd1a37411cbd551d074dab3de5",
+              "name": "dw-f8cccc903182f5d2adcdfb2ee322d766-namespace",
+              "resourceVersionAfter": "3246",
+              "resourceVersionBefore": "3246",
+              "specSha256After": "aba65cf51c5b91461fb84022876d578c25f72bc8c17909eeb46b5ef8f8874255",
+              "specSha256Before": "aba65cf51c5b91461fb84022876d578c25f72bc8c17909eeb46b5ef8f8874255",
+              "uid": "1b7bf646-35d2-42e1-9923-aae96e58a7d5"
+            },
+            {
+              "metadataSha256After": "65b0c97ea22d34d5130afc42298d5a49c5a2adc0d83d01daebbe402af83de2f0",
+              "metadataSha256Before": "65b0c97ea22d34d5130afc42298d5a49c5a2adc0d83d01daebbe402af83de2f0",
+              "name": "dw-f8cccc903182f5d2adcdfb2ee322d766-networkpolicy-allow-git-sou",
+              "resourceVersionAfter": "3187",
+              "resourceVersionBefore": "3187",
+              "specSha256After": "fa4765f14f552040f55e9c129b9ad455cd6f78ab1b3b29bda66468838482cfa5",
+              "specSha256Before": "fa4765f14f552040f55e9c129b9ad455cd6f78ab1b3b29bda66468838482cfa5",
+              "uid": "5697f730-b3d4-4000-adb3-fe8d29f355e4"
+            },
+            {
+              "metadataSha256After": "7e8d27743f41e8fb66bd0fc80ea5327a535d1348f8760791d3d588dd076849de",
+              "metadataSha256Before": "7e8d27743f41e8fb66bd0fc80ea5327a535d1348f8760791d3d588dd076849de",
+              "name": "dw-f8cccc903182f5d2adcdfb2ee322d766-networkpolicy-allow-inferen",
+              "resourceVersionAfter": "3193",
+              "resourceVersionBefore": "3193",
+              "specSha256After": "cbc6ba5dcc026b70322615ae6f95466cbada704a4e47debf993fd3f30cddcc51",
+              "specSha256Before": "cbc6ba5dcc026b70322615ae6f95466cbada704a4e47debf993fd3f30cddcc51",
+              "uid": "2eb96a31-0674-42e7-8102-c637e6c5b258"
+            },
+            {
+              "metadataSha256After": "0b16fe4492c9f39b5ee2bd016971289f132ec7310e94e3d4522c9ed6bc6962f2",
+              "metadataSha256Before": "0b16fe4492c9f39b5ee2bd016971289f132ec7310e94e3d4522c9ed6bc6962f2",
+              "name": "dw-f8cccc903182f5d2adcdfb2ee322d766-networkpolicy-allow-kube-dn",
+              "resourceVersionAfter": "3188",
+              "resourceVersionBefore": "3188",
+              "specSha256After": "4fd0befcaa5a1b6c00d37c2c20827454bb494b6df622759f08053dc04a9ccdc2",
+              "specSha256Before": "4fd0befcaa5a1b6c00d37c2c20827454bb494b6df622759f08053dc04a9ccdc2",
+              "uid": "8728b03f-16c0-4592-8165-dfbb0eb67382"
+            },
+            {
+              "metadataSha256After": "3097356851748708533df988a1bd82d5df5d612463e8956d9103795057994317",
+              "metadataSha256Before": "3097356851748708533df988a1bd82d5df5d612463e8956d9103795057994317",
+              "name": "dw-f8cccc903182f5d2adcdfb2ee322d766-networkpolicy-allow-mcp-dia",
+              "resourceVersionAfter": "3249",
+              "resourceVersionBefore": "3249",
+              "specSha256After": "68c66338bf94643f9aae2d51b27525ad9d5fe9aa55f830a091a677e8b71d5600",
+              "specSha256Before": "68c66338bf94643f9aae2d51b27525ad9d5fe9aa55f830a091a677e8b71d5600",
+              "uid": "fbdcbf8b-57c8-4958-9212-23eea563ff25"
+            },
+            {
+              "metadataSha256After": "7b9df7c142e9d55596580fc9c750a62e2a4c1e14f5fa8e7f48d3e5f6656b578f",
+              "metadataSha256Before": "7b9df7c142e9d55596580fc9c750a62e2a4c1e14f5fa8e7f48d3e5f6656b578f",
+              "name": "dw-f8cccc903182f5d2adcdfb2ee322d766-networkpolicy-default-deny",
+              "resourceVersionAfter": "3250",
+              "resourceVersionBefore": "3250",
+              "specSha256After": "fbe386a450301c2733183b880bf49630a97181b5fa0beb049c3c80a020972e7d",
+              "specSha256Before": "fbe386a450301c2733183b880bf49630a97181b5fa0beb049c3c80a020972e7d",
+              "uid": "f72fb18c-7917-4b83-a334-5e60c7d351e8"
+            },
+            {
+              "metadataSha256After": "a43bc159a4db2d123e0bd771a404b4d9d8a8851acff600ab0373e28a4b476518",
+              "metadataSha256Before": "a43bc159a4db2d123e0bd771a404b4d9d8a8851acff600ab0373e28a4b476518",
+              "name": "dw-f8cccc903182f5d2adcdfb2ee322d766-persistentvolumeclaim",
+              "resourceVersionAfter": "3290",
+              "resourceVersionBefore": "3290",
+              "specSha256After": "4ea498d4504074eccecf3a17c540cc1ee03fb9df210fd14845137c90565c4d20",
+              "specSha256Before": "4ea498d4504074eccecf3a17c540cc1ee03fb9df210fd14845137c90565c4d20",
+              "uid": "5d7950a3-1f62-4bfb-bd2c-ed30f6cfa109"
+            },
+            {
+              "metadataSha256After": "967147b20843c996a551fc7d5bf84833cb1bb136da29f8b69feaca6b4a0494a2",
+              "metadataSha256Before": "967147b20843c996a551fc7d5bf84833cb1bb136da29f8b69feaca6b4a0494a2",
+              "name": "dw-f8cccc903182f5d2adcdfb2ee322d766-resourcequota",
+              "resourceVersionAfter": "3211",
+              "resourceVersionBefore": "3211",
+              "specSha256After": "252296dee5572a0f9be683b80032dd21ad0cb5afeb4fb3c9199670447d19275f",
+              "specSha256Before": "252296dee5572a0f9be683b80032dd21ad0cb5afeb4fb3c9199670447d19275f",
+              "uid": "c0f7e458-c8e8-451a-a064-d6eb3a4984ec"
+            },
+            {
+              "metadataSha256After": "4c1c4d8eb3933e7a45ccbcf6d9fb42f7c1d1a219d6f93af900e1d905bd971686",
+              "metadataSha256Before": "4c1c4d8eb3933e7a45ccbcf6d9fb42f7c1d1a219d6f93af900e1d905bd971686",
+              "name": "dw-f8cccc903182f5d2adcdfb2ee322d766-serviceaccount",
+              "resourceVersionAfter": "3251",
+              "resourceVersionBefore": "3251",
+              "specSha256After": "e16c4ef1dfcadebc1cf43e50c29d96d7aad082072bf50658b1670f9224c01186",
+              "specSha256Before": "e16c4ef1dfcadebc1cf43e50c29d96d7aad082072bf50658b1670f9224c01186",
+              "uid": "aa908705-a32e-417a-9e97-243344223b7d"
+            }
+          ],
+          "readback": [
+            {
+              "contentSha256After": "e98898bba890d1de6cf034fae7312b56a089d7314efab38a372392291be078ab",
+              "contentSha256Before": "e98898bba890d1de6cf034fae7312b56a089d7314efab38a372392291be078ab",
+              "name": "Deployment/workspace",
+              "resourceVersionAfter": "3353",
+              "resourceVersionBefore": "3353",
+              "uid": "893087b1-d552-4e49-9779-5f93eb33c69d"
+            },
+            {
+              "contentSha256After": "8554b0dcdbc17ef7adc1dd71168cad2343967267509b4dd2cda3d286f774f19b",
+              "contentSha256Before": "8554b0dcdbc17ef7adc1dd71168cad2343967267509b4dd2cda3d286f774f19b",
+              "name": "LimitRange/workspace-defaults",
+              "resourceVersionAfter": "3107",
+              "resourceVersionBefore": "3107",
+              "uid": "5a333683-a195-4bc5-aab9-7691b3e82f09"
+            },
+            {
+              "contentSha256After": "74bdbd189d402e09aefdb597db539ce685eed56f3cbe11084c3d74ef9f7a4311",
+              "contentSha256Before": "74bdbd189d402e09aefdb597db539ce685eed56f3cbe11084c3d74ef9f7a4311",
+              "name": "Namespace/dw-ok175-proof",
+              "resourceVersionAfter": "3098",
+              "resourceVersionBefore": "3098",
+              "uid": "4c3f593a-b936-4686-8237-cbbd52d99ebd"
+            },
+            {
+              "contentSha256After": "3d2a5a84cd84019a9088885bc7a2058fd0520fc74f84cc6da67be662ae819909",
+              "contentSha256Before": "3d2a5a84cd84019a9088885bc7a2058fd0520fc74f84cc6da67be662ae819909",
+              "name": "NetworkPolicy/allow-git-source",
+              "resourceVersionAfter": "3128",
+              "resourceVersionBefore": "3128",
+              "uid": "35001e35-78b1-42c6-87df-75c1ab597edc"
+            },
+            {
+              "contentSha256After": "fddcc97625f3e6a97c512caf31ebf80f90ef8772914c6abfef309720e4af1825",
+              "contentSha256Before": "fddcc97625f3e6a97c512caf31ebf80f90ef8772914c6abfef309720e4af1825",
+              "name": "NetworkPolicy/allow-inference-shared",
+              "resourceVersionAfter": "3171",
+              "resourceVersionBefore": "3171",
+              "uid": "18dc20cb-3461-4acc-b219-b3ed275f0a5b"
+            },
+            {
+              "contentSha256After": "6dec937784506d0d65146ec89439b64b0408a245ae4f33c4c67c715dbcdafcce",
+              "contentSha256Before": "6dec937784506d0d65146ec89439b64b0408a245ae4f33c4c67c715dbcdafcce",
+              "name": "NetworkPolicy/allow-kube-dns",
+              "resourceVersionAfter": "3138",
+              "resourceVersionBefore": "3138",
+              "uid": "4a4dac81-e14f-49ae-a947-7548bf84ae5b"
+            },
+            {
+              "contentSha256After": "6704657ddfb842d2b901b06d44be209055cd0bb10a35f3bdcf0d9a3fa0b743e8",
+              "contentSha256Before": "6704657ddfb842d2b901b06d44be209055cd0bb10a35f3bdcf0d9a3fa0b743e8",
+              "name": "NetworkPolicy/allow-mcp-diagnostics",
+              "resourceVersionAfter": "3137",
+              "resourceVersionBefore": "3137",
+              "uid": "e0b49c9c-0708-4305-9fba-2181531e59d1"
+            },
+            {
+              "contentSha256After": "b3594aaa64c7a8762a413d620cadf260acffd713f446cd06ecc2a48729419109",
+              "contentSha256Before": "b3594aaa64c7a8762a413d620cadf260acffd713f446cd06ecc2a48729419109",
+              "name": "NetworkPolicy/default-deny",
+              "resourceVersionAfter": "3167",
+              "resourceVersionBefore": "3167",
+              "uid": "793def05-a945-45a7-801f-9b40e74e4937"
+            },
+            {
+              "contentSha256After": "ddcb7bc784c079995508b689a9ab6c94572e1c79b909d4cb00f47d87732f8fa7",
+              "contentSha256Before": "ddcb7bc784c079995508b689a9ab6c94572e1c79b909d4cb00f47d87732f8fa7",
+              "name": "PersistentVolumeClaim/workspace",
+              "resourceVersionAfter": "3289",
+              "resourceVersionBefore": "3289",
+              "uid": "03c0eac3-3eed-41fd-91d7-425a4afc2ae7"
+            },
+            {
+              "contentSha256After": "fe00cb061c5eb3a4188652f1cfe50ebae26f493f172efbdfec021de77d0fc4b0",
+              "contentSha256Before": "fe00cb061c5eb3a4188652f1cfe50ebae26f493f172efbdfec021de77d0fc4b0",
+              "name": "ResourceQuota/workspace-bounds",
+              "resourceVersionAfter": "3201",
+              "resourceVersionBefore": "3201",
+              "uid": "6c2fd587-90ba-47e8-bf1b-a44cda4dad9d"
+            },
+            {
+              "contentSha256After": "f4b2e7ec4554945a661e0a233395c78260657e1d0bef2859da1bde06c1ff61be",
+              "contentSha256Before": "f4b2e7ec4554945a661e0a233395c78260657e1d0bef2859da1bde06c1ff61be",
+              "name": "ServiceAccount/workspace",
+              "resourceVersionAfter": "3174",
+              "resourceVersionBefore": "3174",
+              "uid": "98cd90f4-b7ad-41ed-a364-c2c6f7f785df"
+            }
+          ],
+          "workspaceGeneration": 3,
+          "workspaceResourceVersionAfter": "3500",
+          "workspaceResourceVersionBefore": "3500",
+          "workspaceSpecSha256After": "ca9bdd20e46115603cc414c3402c1352bc25953f6e9474bf1767dfaa28f1f8f3",
+          "workspaceSpecSha256Before": "ca9bdd20e46115603cc414c3402c1352bc25953f6e9474bf1767dfaa28f1f8f3",
+          "workspaceUID": "1ae0e152-aca1-4022-b54b-209aaf112d34"
+        }
+      },
+      "status": "pass"
+    },
+    {
+      "detail": "a second CREATE of the canonical owner name returns AlreadyExists; owner UID/spec, Namespace, composed Object resourceVersions/specs, and rendered-resource readback remain byte-equivalent",
+      "name": "workspace-id-duplicate-create-refused",
+      "observed": {
+        "candidate": {
+          "created": false,
+          "name": "ws-ok175-proof-xr",
+          "reason": "AlreadyExists"
+        },
+        "owner": {
+          "namespace": {
+            "contentSha256After": "74bdbd189d402e09aefdb597db539ce685eed56f3cbe11084c3d74ef9f7a4311",
+            "contentSha256Before": "74bdbd189d402e09aefdb597db539ce685eed56f3cbe11084c3d74ef9f7a4311",
+            "resourceVersionAfter": "3098",
+            "resourceVersionBefore": "3098",
+            "uid": "4c3f593a-b936-4686-8237-cbbd52d99ebd"
+          },
+          "objects": [
+            {
+              "metadataSha256After": "9f0a2989e77aef04b76969bbba9e94ed7de5dae9d206168843bd22bcc8a18712",
+              "metadataSha256Before": "9f0a2989e77aef04b76969bbba9e94ed7de5dae9d206168843bd22bcc8a18712",
+              "name": "dw-f8cccc903182f5d2adcdfb2ee322d766-deployment",
+              "resourceVersionAfter": "3354",
+              "resourceVersionBefore": "3354",
+              "specSha256After": "90cd097b9c65fb313caa8b5e957e9781a98e5054d4ebf0f4969397a217771e9b",
+              "specSha256Before": "90cd097b9c65fb313caa8b5e957e9781a98e5054d4ebf0f4969397a217771e9b",
+              "uid": "b4d21a15-05ca-49cd-9ff8-a10b302fff54"
+            },
+            {
+              "metadataSha256After": "c2473b86e654ab2ceb1abeb28a80678b6d7eac163f9bfe59c76a707149a68328",
+              "metadataSha256Before": "c2473b86e654ab2ceb1abeb28a80678b6d7eac163f9bfe59c76a707149a68328",
+              "name": "dw-f8cccc903182f5d2adcdfb2ee322d766-limitrange",
+              "resourceVersionAfter": "3247",
+              "resourceVersionBefore": "3247",
+              "specSha256After": "b7c42d845d5433893b812df91e25f6b3e69fedebab41b3ca2748ad6a15c5a8e6",
+              "specSha256Before": "b7c42d845d5433893b812df91e25f6b3e69fedebab41b3ca2748ad6a15c5a8e6",
+              "uid": "fa3c7c60-bab4-4a9f-ab63-9786360e30cf"
+            },
+            {
+              "metadataSha256After": "1bbf0f451db11d5d541f5bce3be9ce6c866c7ddd1a37411cbd551d074dab3de5",
+              "metadataSha256Before": "1bbf0f451db11d5d541f5bce3be9ce6c866c7ddd1a37411cbd551d074dab3de5",
+              "name": "dw-f8cccc903182f5d2adcdfb2ee322d766-namespace",
+              "resourceVersionAfter": "3246",
+              "resourceVersionBefore": "3246",
+              "specSha256After": "aba65cf51c5b91461fb84022876d578c25f72bc8c17909eeb46b5ef8f8874255",
+              "specSha256Before": "aba65cf51c5b91461fb84022876d578c25f72bc8c17909eeb46b5ef8f8874255",
+              "uid": "1b7bf646-35d2-42e1-9923-aae96e58a7d5"
+            },
+            {
+              "metadataSha256After": "65b0c97ea22d34d5130afc42298d5a49c5a2adc0d83d01daebbe402af83de2f0",
+              "metadataSha256Before": "65b0c97ea22d34d5130afc42298d5a49c5a2adc0d83d01daebbe402af83de2f0",
+              "name": "dw-f8cccc903182f5d2adcdfb2ee322d766-networkpolicy-allow-git-sou",
+              "resourceVersionAfter": "3187",
+              "resourceVersionBefore": "3187",
+              "specSha256After": "fa4765f14f552040f55e9c129b9ad455cd6f78ab1b3b29bda66468838482cfa5",
+              "specSha256Before": "fa4765f14f552040f55e9c129b9ad455cd6f78ab1b3b29bda66468838482cfa5",
+              "uid": "5697f730-b3d4-4000-adb3-fe8d29f355e4"
+            },
+            {
+              "metadataSha256After": "7e8d27743f41e8fb66bd0fc80ea5327a535d1348f8760791d3d588dd076849de",
+              "metadataSha256Before": "7e8d27743f41e8fb66bd0fc80ea5327a535d1348f8760791d3d588dd076849de",
+              "name": "dw-f8cccc903182f5d2adcdfb2ee322d766-networkpolicy-allow-inferen",
+              "resourceVersionAfter": "3193",
+              "resourceVersionBefore": "3193",
+              "specSha256After": "cbc6ba5dcc026b70322615ae6f95466cbada704a4e47debf993fd3f30cddcc51",
+              "specSha256Before": "cbc6ba5dcc026b70322615ae6f95466cbada704a4e47debf993fd3f30cddcc51",
+              "uid": "2eb96a31-0674-42e7-8102-c637e6c5b258"
+            },
+            {
+              "metadataSha256After": "0b16fe4492c9f39b5ee2bd016971289f132ec7310e94e3d4522c9ed6bc6962f2",
+              "metadataSha256Before": "0b16fe4492c9f39b5ee2bd016971289f132ec7310e94e3d4522c9ed6bc6962f2",
+              "name": "dw-f8cccc903182f5d2adcdfb2ee322d766-networkpolicy-allow-kube-dn",
+              "resourceVersionAfter": "3188",
+              "resourceVersionBefore": "3188",
+              "specSha256After": "4fd0befcaa5a1b6c00d37c2c20827454bb494b6df622759f08053dc04a9ccdc2",
+              "specSha256Before": "4fd0befcaa5a1b6c00d37c2c20827454bb494b6df622759f08053dc04a9ccdc2",
+              "uid": "8728b03f-16c0-4592-8165-dfbb0eb67382"
+            },
+            {
+              "metadataSha256After": "3097356851748708533df988a1bd82d5df5d612463e8956d9103795057994317",
+              "metadataSha256Before": "3097356851748708533df988a1bd82d5df5d612463e8956d9103795057994317",
+              "name": "dw-f8cccc903182f5d2adcdfb2ee322d766-networkpolicy-allow-mcp-dia",
+              "resourceVersionAfter": "3249",
+              "resourceVersionBefore": "3249",
+              "specSha256After": "68c66338bf94643f9aae2d51b27525ad9d5fe9aa55f830a091a677e8b71d5600",
+              "specSha256Before": "68c66338bf94643f9aae2d51b27525ad9d5fe9aa55f830a091a677e8b71d5600",
+              "uid": "fbdcbf8b-57c8-4958-9212-23eea563ff25"
+            },
+            {
+              "metadataSha256After": "7b9df7c142e9d55596580fc9c750a62e2a4c1e14f5fa8e7f48d3e5f6656b578f",
+              "metadataSha256Before": "7b9df7c142e9d55596580fc9c750a62e2a4c1e14f5fa8e7f48d3e5f6656b578f",
+              "name": "dw-f8cccc903182f5d2adcdfb2ee322d766-networkpolicy-default-deny",
+              "resourceVersionAfter": "3250",
+              "resourceVersionBefore": "3250",
+              "specSha256After": "fbe386a450301c2733183b880bf49630a97181b5fa0beb049c3c80a020972e7d",
+              "specSha256Before": "fbe386a450301c2733183b880bf49630a97181b5fa0beb049c3c80a020972e7d",
+              "uid": "f72fb18c-7917-4b83-a334-5e60c7d351e8"
+            },
+            {
+              "metadataSha256After": "a43bc159a4db2d123e0bd771a404b4d9d8a8851acff600ab0373e28a4b476518",
+              "metadataSha256Before": "a43bc159a4db2d123e0bd771a404b4d9d8a8851acff600ab0373e28a4b476518",
+              "name": "dw-f8cccc903182f5d2adcdfb2ee322d766-persistentvolumeclaim",
+              "resourceVersionAfter": "3290",
+              "resourceVersionBefore": "3290",
+              "specSha256After": "4ea498d4504074eccecf3a17c540cc1ee03fb9df210fd14845137c90565c4d20",
+              "specSha256Before": "4ea498d4504074eccecf3a17c540cc1ee03fb9df210fd14845137c90565c4d20",
+              "uid": "5d7950a3-1f62-4bfb-bd2c-ed30f6cfa109"
+            },
+            {
+              "metadataSha256After": "967147b20843c996a551fc7d5bf84833cb1bb136da29f8b69feaca6b4a0494a2",
+              "metadataSha256Before": "967147b20843c996a551fc7d5bf84833cb1bb136da29f8b69feaca6b4a0494a2",
+              "name": "dw-f8cccc903182f5d2adcdfb2ee322d766-resourcequota",
+              "resourceVersionAfter": "3211",
+              "resourceVersionBefore": "3211",
+              "specSha256After": "252296dee5572a0f9be683b80032dd21ad0cb5afeb4fb3c9199670447d19275f",
+              "specSha256Before": "252296dee5572a0f9be683b80032dd21ad0cb5afeb4fb3c9199670447d19275f",
+              "uid": "c0f7e458-c8e8-451a-a064-d6eb3a4984ec"
+            },
+            {
+              "metadataSha256After": "4c1c4d8eb3933e7a45ccbcf6d9fb42f7c1d1a219d6f93af900e1d905bd971686",
+              "metadataSha256Before": "4c1c4d8eb3933e7a45ccbcf6d9fb42f7c1d1a219d6f93af900e1d905bd971686",
+              "name": "dw-f8cccc903182f5d2adcdfb2ee322d766-serviceaccount",
+              "resourceVersionAfter": "3251",
+              "resourceVersionBefore": "3251",
+              "specSha256After": "e16c4ef1dfcadebc1cf43e50c29d96d7aad082072bf50658b1670f9224c01186",
+              "specSha256Before": "e16c4ef1dfcadebc1cf43e50c29d96d7aad082072bf50658b1670f9224c01186",
+              "uid": "aa908705-a32e-417a-9e97-243344223b7d"
+            }
+          ],
+          "readback": [
+            {
+              "contentSha256After": "e98898bba890d1de6cf034fae7312b56a089d7314efab38a372392291be078ab",
+              "contentSha256Before": "e98898bba890d1de6cf034fae7312b56a089d7314efab38a372392291be078ab",
+              "name": "Deployment/workspace",
+              "resourceVersionAfter": "3353",
+              "resourceVersionBefore": "3353",
+              "uid": "893087b1-d552-4e49-9779-5f93eb33c69d"
+            },
+            {
+              "contentSha256After": "8554b0dcdbc17ef7adc1dd71168cad2343967267509b4dd2cda3d286f774f19b",
+              "contentSha256Before": "8554b0dcdbc17ef7adc1dd71168cad2343967267509b4dd2cda3d286f774f19b",
+              "name": "LimitRange/workspace-defaults",
+              "resourceVersionAfter": "3107",
+              "resourceVersionBefore": "3107",
+              "uid": "5a333683-a195-4bc5-aab9-7691b3e82f09"
+            },
+            {
+              "contentSha256After": "74bdbd189d402e09aefdb597db539ce685eed56f3cbe11084c3d74ef9f7a4311",
+              "contentSha256Before": "74bdbd189d402e09aefdb597db539ce685eed56f3cbe11084c3d74ef9f7a4311",
+              "name": "Namespace/dw-ok175-proof",
+              "resourceVersionAfter": "3098",
+              "resourceVersionBefore": "3098",
+              "uid": "4c3f593a-b936-4686-8237-cbbd52d99ebd"
+            },
+            {
+              "contentSha256After": "3d2a5a84cd84019a9088885bc7a2058fd0520fc74f84cc6da67be662ae819909",
+              "contentSha256Before": "3d2a5a84cd84019a9088885bc7a2058fd0520fc74f84cc6da67be662ae819909",
+              "name": "NetworkPolicy/allow-git-source",
+              "resourceVersionAfter": "3128",
+              "resourceVersionBefore": "3128",
+              "uid": "35001e35-78b1-42c6-87df-75c1ab597edc"
+            },
+            {
+              "contentSha256After": "fddcc97625f3e6a97c512caf31ebf80f90ef8772914c6abfef309720e4af1825",
+              "contentSha256Before": "fddcc97625f3e6a97c512caf31ebf80f90ef8772914c6abfef309720e4af1825",
+              "name": "NetworkPolicy/allow-inference-shared",
+              "resourceVersionAfter": "3171",
+              "resourceVersionBefore": "3171",
+              "uid": "18dc20cb-3461-4acc-b219-b3ed275f0a5b"
+            },
+            {
+              "contentSha256After": "6dec937784506d0d65146ec89439b64b0408a245ae4f33c4c67c715dbcdafcce",
+              "contentSha256Before": "6dec937784506d0d65146ec89439b64b0408a245ae4f33c4c67c715dbcdafcce",
+              "name": "NetworkPolicy/allow-kube-dns",
+              "resourceVersionAfter": "3138",
+              "resourceVersionBefore": "3138",
+              "uid": "4a4dac81-e14f-49ae-a947-7548bf84ae5b"
+            },
+            {
+              "contentSha256After": "6704657ddfb842d2b901b06d44be209055cd0bb10a35f3bdcf0d9a3fa0b743e8",
+              "contentSha256Before": "6704657ddfb842d2b901b06d44be209055cd0bb10a35f3bdcf0d9a3fa0b743e8",
+              "name": "NetworkPolicy/allow-mcp-diagnostics",
+              "resourceVersionAfter": "3137",
+              "resourceVersionBefore": "3137",
+              "uid": "e0b49c9c-0708-4305-9fba-2181531e59d1"
+            },
+            {
+              "contentSha256After": "b3594aaa64c7a8762a413d620cadf260acffd713f446cd06ecc2a48729419109",
+              "contentSha256Before": "b3594aaa64c7a8762a413d620cadf260acffd713f446cd06ecc2a48729419109",
+              "name": "NetworkPolicy/default-deny",
+              "resourceVersionAfter": "3167",
+              "resourceVersionBefore": "3167",
+              "uid": "793def05-a945-45a7-801f-9b40e74e4937"
+            },
+            {
+              "contentSha256After": "ddcb7bc784c079995508b689a9ab6c94572e1c79b909d4cb00f47d87732f8fa7",
+              "contentSha256Before": "ddcb7bc784c079995508b689a9ab6c94572e1c79b909d4cb00f47d87732f8fa7",
+              "name": "PersistentVolumeClaim/workspace",
+              "resourceVersionAfter": "3289",
+              "resourceVersionBefore": "3289",
+              "uid": "03c0eac3-3eed-41fd-91d7-425a4afc2ae7"
+            },
+            {
+              "contentSha256After": "fe00cb061c5eb3a4188652f1cfe50ebae26f493f172efbdfec021de77d0fc4b0",
+              "contentSha256Before": "fe00cb061c5eb3a4188652f1cfe50ebae26f493f172efbdfec021de77d0fc4b0",
+              "name": "ResourceQuota/workspace-bounds",
+              "resourceVersionAfter": "3201",
+              "resourceVersionBefore": "3201",
+              "uid": "6c2fd587-90ba-47e8-bf1b-a44cda4dad9d"
+            },
+            {
+              "contentSha256After": "f4b2e7ec4554945a661e0a233395c78260657e1d0bef2859da1bde06c1ff61be",
+              "contentSha256Before": "f4b2e7ec4554945a661e0a233395c78260657e1d0bef2859da1bde06c1ff61be",
+              "name": "ServiceAccount/workspace",
+              "resourceVersionAfter": "3174",
+              "resourceVersionBefore": "3174",
+              "uid": "98cd90f4-b7ad-41ed-a364-c2c6f7f785df"
+            }
+          ],
+          "workspaceGeneration": 3,
+          "workspaceResourceVersionAfter": "3500",
+          "workspaceResourceVersionBefore": "3500",
+          "workspaceSpecSha256After": "ca9bdd20e46115603cc414c3402c1352bc25953f6e9474bf1767dfaa28f1f8f3",
+          "workspaceSpecSha256Before": "ca9bdd20e46115603cc414c3402c1352bc25953f6e9474bf1767dfaa28f1f8f3",
+          "workspaceUID": "1ae0e152-aca1-4022-b54b-209aaf112d34"
+        }
+      },
+      "status": "pass"
+    },
+    {
+      "detail": "a deleted default-deny NetworkPolicy was recreated (new UID) and a patched quota value was reverted, both as rendered",
+      "name": "drift-restored",
+      "observed": {
+        "seconds": 8
+      },
+      "status": "pass"
+    },
+    {
+      "detail": "the selected workspace Namespace denied dry-run Pods with hostUsers absent or true specifically by the user-namespace policy; hostUsers=false was admitted",
+      "name": "pod-user-namespace-admission",
+      "observed": {
+        "namespaceLabel": "false",
+        "namespaceSelected": true,
+        "policyName": "workspace-pod-user-namespace-required",
+        "returnCodes": {
+          "absent": 1,
+          "false": 0,
+          "true": 1
+        }
+      },
+      "status": "pass"
+    },
+    {
+      "detail": "the ephemeralcontainers subresource admits a hostUsers=false Pod, rejects a pre-existing hostUsers=true Pod by the Pod policy, and remains outside workspace and observer RBAC; both requests were server dry-runs",
+      "name": "ephemeralcontainers-admission",
+      "observed": {
+        "allowedControl": "hostUsers=false",
+        "deniedLegacy": "hostUsers=true",
+        "dryRunUnchanged": {
+          "compliant": true,
+          "legacy": true
+        },
+        "policyName": "workspace-pod-user-namespace-required",
+        "rbacDenied": [
+          "observer",
+          "workspace"
+        ]
+      },
+      "status": "pass"
+    },
+    {
+      "detail": "workspace HEAD equals the declared revision, not the newer default-branch tip",
+      "name": "source-checkout",
+      "observed": {
+        "commit": "375ba7dfb4f4b49bdbd7a82c567873a59a59d37d",
+        "sourceTip": "a07e3d71b2a4f9e8da3cc6cd0eb0fb58d1369fa0"
+      },
+      "status": "pass"
+    },
+    {
+      "detail": "a marker retained the same sha256 after the workspace Pod was replaced",
+      "name": "persistent-marker-survives-replacement",
+      "observed": {
+        "markerSha256": "4d4d9a8c3d97d6102121624ff5fe0ae7b48b7564d5299b1754197460ee52d0b3",
+        "newPodUID": "9b77ef09-217b-46ef-aaca-df30c74781bd",
+        "oldPodUID": "5ea86d70-a5f5-49c0-9e3e-c374f2f4ed87"
+      },
+      "status": "pass"
+    },
+    {
+      "detail": "the live workspace Pod has hostUsers=false; its runtime UID mapping was recorded and is nonidentity when user namespaces are required",
+      "name": "runtime-user-boundary",
+      "observed": {
+        "hostUsers": false,
+        "mappedHostUID": 288433937,
+        "runtimeUID": 10001,
+        "uidMap": [
+          [
+            0,
+            288423936,
+            65536
+          ]
+        ]
+      },
+      "status": "pass"
+    },
+    {
+      "detail": "no token mounted; can-i --list equals an unbound identity and is discovery-only; no RoleBindings; the provider identity fails both checks",
+      "name": "kubernetes-authority-denied",
+      "observed": {
+        "baselineRows": 19,
+        "providerRows": 55
+      },
+      "status": "pass"
+    },
+    {
+      "detail": "runtime API connection refused or timed out; control reaches API transport",
+      "name": "kubernetes-api-unreachable",
+      "observed": {
+        "controlHttp": "401",
+        "runtimeCurlExit": 28
+      },
+      "status": "pass"
+    },
+    {
+      "detail": "the runtime holds no source credential (git config, environment) and the source refuses its push to main and a new branch for lack of one",
+      "name": "runtime-push-denied",
+      "observed": {
+        "exit": 128
+      },
+      "status": "pass"
+    },
+    {
+      "detail": "source refuses push with the workspace credential (403); write-credential control push succeeds; no denied ref exists",
+      "name": "workspace-credential-push-denied",
+      "observed": {
+        "refs": [
+          "HEAD",
+          "refs/heads/control-probe",
+          "refs/heads/master"
+        ]
+      },
+      "status": "pass"
+    },
+    {
+      "detail": "no Secret in the workspace namespace carries the write credential",
+      "name": "write-credential-absent",
+      "observed": {
+        "secrets": 2
+      },
+      "status": "pass"
+    },
+    {
+      "detail": "three busy loops for 20s used 0.48 cores against a 500m limit; the kernel throttled the container",
+      "name": "cpu-bound-enforced",
+      "observed": {
+        "limitCores": 0.5,
+        "throttledPeriods": 200,
+        "usedCores": 0.48
+      },
+      "status": "pass"
+    },
+    {
+      "detail": "allocating 1.5x the 1Gi limit got the runtime OOMKilled (exit 137) and restarted; 0.5x succeeded",
+      "name": "memory-bound-enforced",
+      "observed": {
+        "exitCode": 137,
+        "reason": "OOMKilled"
+      },
+      "status": "pass"
+    },
+    {
+      "detail": "a second 1Gi PVC was rejected: the quota requests.storage equals the declared size and is fully used",
+      "name": "storage-quota-enforced",
+      "observed": {
+        "hard": "1Gi"
+      },
+      "status": "pass"
+    },
+    {
+      "detail": "the runtime file had a nonzero project ID; resetting it to zero was rejected with EINVAL (errno 22) and the ID stayed unchanged",
+      "name": "file-project-reset-rejected",
+      "observed": {
+        "errno": 22,
+        "projectIDAfter": 1,
+        "projectIDBefore": 1,
+        "tool": "perl-ioctl"
+      },
+      "status": "pass"
+    },
+    {
+      "detail": "a 1 MiB-write runtime probe filled the declared 1Gi allocation and was rejected with ENOSPC",
+      "name": "persistent-capacity-enforced",
+      "observed": {
+        "availableAfterBytes": 905216,
+        "availableBeforeBytes": 1073598464,
+        "baselineAllocatedBytes": 143360,
+        "declaredBytes": 1073741824,
+        "error": "ENOSPC",
+        "probeAllocatedBytes": 1072693248,
+        "reportedCapacityAfterBytes": 1073741824,
+        "reportedCapacityBeforeBytes": 1073741824,
+        "requestedBytes": 1342177280,
+        "toleranceBytes": 1048576,
+        "totalAllocatedBytes": 1072836608,
+        "writeChunkBytes": 1048576,
+        "writtenBytes": 1072693248
+      },
+      "status": "pass"
+    },
+    {
+      "detail": "deleting the XR removed its Namespace, all 11 composed Objects and the PersistentVolume",
+      "name": "persistent-cleanup",
+      "status": "pass"
+    },
+    {
+      "detail": "both former-hash-collision workspaces are concurrently Ready; each rendered readback is emptyDir-backed with no PVC",
+      "name": "ephemeral-reconcile",
+      "observed": {
+        "resources": {
+          "cpu": "100m",
+          "memory": "256Mi"
+        },
+        "workspaces": [
+          {
+            "name": "ws-c69924-xr",
+            "namespace": "dw-c69924",
+            "objects": 10
+          },
+          {
+            "name": "ws-cd9634-xr",
+            "namespace": "dw-cd9634",
+            "objects": 10
+          }
+        ]
+      },
+      "status": "pass"
+    },
+    {
+      "detail": "ws-c69924 and ws-cd9634 are concurrently Ready with disjoint Namespaces/Object identities; deleting ws-cd9634 leaves ws-c69924 UIDs, desired Object specs and rendered-resource readback unchanged",
+      "name": "distinct-workspace-isolation",
+      "observed": {
+        "deleted": "ws-cd9634-xr",
+        "disjoint": {
+          "namespaceUIDs": [
+            "bb5dabc0-5957-4b4b-b241-23a08c94911e",
+            "2bc555db-594f-43b1-beb4-34fc527dc0a6"
+          ],
+          "objectNames": [
+            [
+              "dw-704c904b7fe6b2decce41d0b2798c99a-deployment",
+              "dw-704c904b7fe6b2decce41d0b2798c99a-limitrange",
+              "dw-704c904b7fe6b2decce41d0b2798c99a-namespace",
+              "dw-704c904b7fe6b2decce41d0b2798c99a-networkpolicy-allow-git-sou",
+              "dw-704c904b7fe6b2decce41d0b2798c99a-networkpolicy-allow-inferen",
+              "dw-704c904b7fe6b2decce41d0b2798c99a-networkpolicy-allow-kube-dn",
+              "dw-704c904b7fe6b2decce41d0b2798c99a-networkpolicy-allow-mcp-dia",
+              "dw-704c904b7fe6b2decce41d0b2798c99a-networkpolicy-default-deny",
+              "dw-704c904b7fe6b2decce41d0b2798c99a-resourcequota",
+              "dw-704c904b7fe6b2decce41d0b2798c99a-serviceaccount"
+            ],
+            [
+              "dw-704c904b7f9647b641e7a266e2ad6def-deployment",
+              "dw-704c904b7f9647b641e7a266e2ad6def-limitrange",
+              "dw-704c904b7f9647b641e7a266e2ad6def-namespace",
+              "dw-704c904b7f9647b641e7a266e2ad6def-networkpolicy-allow-git-sou",
+              "dw-704c904b7f9647b641e7a266e2ad6def-networkpolicy-allow-inferen",
+              "dw-704c904b7f9647b641e7a266e2ad6def-networkpolicy-allow-kube-dn",
+              "dw-704c904b7f9647b641e7a266e2ad6def-networkpolicy-allow-mcp-dia",
+              "dw-704c904b7f9647b641e7a266e2ad6def-networkpolicy-default-deny",
+              "dw-704c904b7f9647b641e7a266e2ad6def-resourcequota",
+              "dw-704c904b7f9647b641e7a266e2ad6def-serviceaccount"
+            ]
+          ],
+          "objectUIDs": [
+            [
+              "101967cd-bf4d-4d87-9f71-0a8eb5878877",
+              "134e44b4-2596-4248-a157-af8178d2ffb3",
+              "2a66e238-1bff-4eab-a0c8-6486118a6df7",
+              "39a76ca4-ae44-4692-8b0a-87e7fb26e4b8",
+              "3aa65efc-c1a1-4e4d-944b-89444b3ee9e2",
+              "43842a62-2850-4d4d-ab42-21daef3fbb41",
+              "4396d825-e90b-4953-a1b8-04fb971c2d13",
+              "74937e9d-fb51-49f5-9616-97211758fdbb",
+              "8b498707-60bf-4722-9dfc-d14d53cd7e66",
+              "e2f14604-318b-43a3-b0d0-7f812cc9760f"
+            ],
+            [
+              "03726275-c28f-4958-8d7f-0d8c468ad90e",
+              "086caaf4-8528-451d-adac-394b6c935276",
+              "56339f4c-df0a-4b3e-8c8d-f7e5ec8cd849",
+              "7ff516b9-fc4c-45fc-b40e-bcce69a88277",
+              "833269b6-c805-4809-a087-a733e665e0c0",
+              "add03d8a-00de-4596-a602-51fee3d05d18",
+              "bafd85b1-94ef-49d4-a131-7ace96ca2c68",
+              "c923c1dc-f14f-4237-8066-c26aa37cef32",
+              "cb4e4178-49fd-48c0-a4ad-5ee6f0b41d47",
+              "d1a41755-19cc-4269-ac3f-0bfa7dd8406b"
+            ]
+          ]
+        },
+        "survivor": "ws-c69924-xr",
+        "survivorBeforeAndAfter": {
+          "namespace": {
+            "contentSha256After": "bc41944940c97b511011c0abe7dd8574e31832c31aaefda04ff70f175b2e1297",
+            "contentSha256Before": "bc41944940c97b511011c0abe7dd8574e31832c31aaefda04ff70f175b2e1297",
+            "resourceVersionAfter": "5855",
+            "resourceVersionBefore": "5855",
+            "uid": "bb5dabc0-5957-4b4b-b241-23a08c94911e"
+          },
+          "objects": [
+            {
+              "metadataSha256After": "88d0941d8fbfabff9d6129781df838b57eec1417d7cb0c5b145abdb5220d23de",
+              "metadataSha256Before": "88d0941d8fbfabff9d6129781df838b57eec1417d7cb0c5b145abdb5220d23de",
+              "name": "dw-704c904b7fe6b2decce41d0b2798c99a-deployment",
+              "resourceVersionAfter": "6039",
+              "resourceVersionBefore": "6039",
+              "specSha256After": "bc020b405545fbadf5e8a58db45be0c60b3ca2c02f85141ea15ae627a67846cb",
+              "specSha256Before": "bc020b405545fbadf5e8a58db45be0c60b3ca2c02f85141ea15ae627a67846cb",
+              "uid": "2a66e238-1bff-4eab-a0c8-6486118a6df7"
+            },
+            {
+              "metadataSha256After": "2dfa82987814689325b1febc97a150bfdf50b684f4dc4224ec157f3508898207",
+              "metadataSha256Before": "2dfa82987814689325b1febc97a150bfdf50b684f4dc4224ec157f3508898207",
+              "name": "dw-704c904b7fe6b2decce41d0b2798c99a-limitrange",
+              "resourceVersionAfter": "5997",
+              "resourceVersionBefore": "5997",
+              "specSha256After": "c8c7bcb60a0538fbc94ce027f13adc583e31947b258f022d440b1b1acc9378e9",
+              "specSha256Before": "c8c7bcb60a0538fbc94ce027f13adc583e31947b258f022d440b1b1acc9378e9",
+              "uid": "e2f14604-318b-43a3-b0d0-7f812cc9760f"
+            },
+            {
+              "metadataSha256After": "564896e228bd4a97bc1553bd22bf1531cae27df2f55aa787c313bd085c2a0cdc",
+              "metadataSha256Before": "564896e228bd4a97bc1553bd22bf1531cae27df2f55aa787c313bd085c2a0cdc",
+              "name": "dw-704c904b7fe6b2decce41d0b2798c99a-namespace",
+              "resourceVersionAfter": "5908",
+              "resourceVersionBefore": "5908",
+              "specSha256After": "8367bd7651aad2efed723ea55ee0c68f70c9c1021cb30e0f88af7b7499767827",
+              "specSha256Before": "8367bd7651aad2efed723ea55ee0c68f70c9c1021cb30e0f88af7b7499767827",
+              "uid": "3aa65efc-c1a1-4e4d-944b-89444b3ee9e2"
+            },
+            {
+              "metadataSha256After": "17a67795f2c40c8deed1454d5f5b1274b3afee6a97314af8c9efb92428908995",
+              "metadataSha256Before": "17a67795f2c40c8deed1454d5f5b1274b3afee6a97314af8c9efb92428908995",
+              "name": "dw-704c904b7fe6b2decce41d0b2798c99a-networkpolicy-allow-git-sou",
+              "resourceVersionAfter": "5996",
+              "resourceVersionBefore": "5996",
+              "specSha256After": "e06f03cd5d4dd614770640cfe5ee38e8f8481356d2601b47685c86d8d246f423",
+              "specSha256Before": "e06f03cd5d4dd614770640cfe5ee38e8f8481356d2601b47685c86d8d246f423",
+              "uid": "134e44b4-2596-4248-a157-af8178d2ffb3"
+            },
+            {
+              "metadataSha256After": "a98971209a936b231c51fb10084569ebc80ca2b0530718cb36009493305baa38",
+              "metadataSha256Before": "a98971209a936b231c51fb10084569ebc80ca2b0530718cb36009493305baa38",
+              "name": "dw-704c904b7fe6b2decce41d0b2798c99a-networkpolicy-allow-inferen",
+              "resourceVersionAfter": "5972",
+              "resourceVersionBefore": "5972",
+              "specSha256After": "cb7bd3db30748e9232fe6fafbc5ef22f0a35aae2fbe9c8121da07755dd22d5ec",
+              "specSha256Before": "cb7bd3db30748e9232fe6fafbc5ef22f0a35aae2fbe9c8121da07755dd22d5ec",
+              "uid": "4396d825-e90b-4953-a1b8-04fb971c2d13"
+            },
+            {
+              "metadataSha256After": "8cff34b8a2688999aedc54ffdad3fe571c4b6c72061bb5ef507fd0250a8da772",
+              "metadataSha256Before": "8cff34b8a2688999aedc54ffdad3fe571c4b6c72061bb5ef507fd0250a8da772",
+              "name": "dw-704c904b7fe6b2decce41d0b2798c99a-networkpolicy-allow-kube-dn",
+              "resourceVersionAfter": "5970",
+              "resourceVersionBefore": "5970",
+              "specSha256After": "c7e022d4a72490e7b076544a983005a212e60a5ed9b032167b8146767e5a23d2",
+              "specSha256Before": "c7e022d4a72490e7b076544a983005a212e60a5ed9b032167b8146767e5a23d2",
+              "uid": "43842a62-2850-4d4d-ab42-21daef3fbb41"
+            },
+            {
+              "metadataSha256After": "bb4cd7d18a7a529b29db5a037fbfdc434b08f7b6d750e8c4f288ae04ab6d465b",
+              "metadataSha256Before": "bb4cd7d18a7a529b29db5a037fbfdc434b08f7b6d750e8c4f288ae04ab6d465b",
+              "name": "dw-704c904b7fe6b2decce41d0b2798c99a-networkpolicy-allow-mcp-dia",
+              "resourceVersionAfter": "6000",
+              "resourceVersionBefore": "6000",
+              "specSha256After": "d2c47146b99054aa669e3acd0a359ec81c1c283af6fe807ba86d89930f697858",
+              "specSha256Before": "d2c47146b99054aa669e3acd0a359ec81c1c283af6fe807ba86d89930f697858",
+              "uid": "39a76ca4-ae44-4692-8b0a-87e7fb26e4b8"
+            },
+            {
+              "metadataSha256After": "f1da3e0f244a6de8f2df85e07daee13640bc7ff06973c356ae89974cf54cfda5",
+              "metadataSha256Before": "f1da3e0f244a6de8f2df85e07daee13640bc7ff06973c356ae89974cf54cfda5",
+              "name": "dw-704c904b7fe6b2decce41d0b2798c99a-networkpolicy-default-deny",
+              "resourceVersionAfter": "5998",
+              "resourceVersionBefore": "5998",
+              "specSha256After": "1b328a1172d6ba4a957966ecee122720305ac7a96eb7f11e60d065a13d77fa04",
+              "specSha256Before": "1b328a1172d6ba4a957966ecee122720305ac7a96eb7f11e60d065a13d77fa04",
+              "uid": "74937e9d-fb51-49f5-9616-97211758fdbb"
+            },
+            {
+              "metadataSha256After": "42a1a1bd553b261a51102cb6d35904bdd6e502323dad815da674640b3c3e3d60",
+              "metadataSha256Before": "42a1a1bd553b261a51102cb6d35904bdd6e502323dad815da674640b3c3e3d60",
+              "name": "dw-704c904b7fe6b2decce41d0b2798c99a-resourcequota",
+              "resourceVersionAfter": "5969",
+              "resourceVersionBefore": "5969",
+              "specSha256After": "6b33439e874eae814d2349ab37331f087159dc72738874fe728db93638d6005b",
+              "specSha256Before": "6b33439e874eae814d2349ab37331f087159dc72738874fe728db93638d6005b",
+              "uid": "8b498707-60bf-4722-9dfc-d14d53cd7e66"
+            },
+            {
+              "metadataSha256After": "3b0ff2510c566ef1052d75aa821ceaa6b505d1db4f84e6079d83fff762802260",
+              "metadataSha256Before": "3b0ff2510c566ef1052d75aa821ceaa6b505d1db4f84e6079d83fff762802260",
+              "name": "dw-704c904b7fe6b2decce41d0b2798c99a-serviceaccount",
+              "resourceVersionAfter": "5999",
+              "resourceVersionBefore": "5999",
+              "specSha256After": "d6e0f011c3db2b241e3d0561aff6b1ca6278fbf5852780da2325c2ed7841d0c7",
+              "specSha256Before": "d6e0f011c3db2b241e3d0561aff6b1ca6278fbf5852780da2325c2ed7841d0c7",
+              "uid": "101967cd-bf4d-4d87-9f71-0a8eb5878877"
+            }
+          ],
+          "readback": [
+            {
+              "contentSha256After": "7ce54f7608517623d02b5b83c65d1f9cd184a03a795e3672dea05e255820a5b1",
+              "contentSha256Before": "7ce54f7608517623d02b5b83c65d1f9cd184a03a795e3672dea05e255820a5b1",
+              "name": "Deployment/workspace",
+              "resourceVersionAfter": "6038",
+              "resourceVersionBefore": "6038",
+              "uid": "fc22f39b-e3ea-46d8-88e3-906a2409a9fd"
+            },
+            {
+              "contentSha256After": "b63d576792ad5d61c888f725363e13f4ef56dbe06e820ff65365a4fe6018c743",
+              "contentSha256Before": "b63d576792ad5d61c888f725363e13f4ef56dbe06e820ff65365a4fe6018c743",
+              "name": "LimitRange/workspace-defaults",
+              "resourceVersionAfter": "5880",
+              "resourceVersionBefore": "5880",
+              "uid": "af80ea51-ae22-451e-999a-6fa17e165866"
+            },
+            {
+              "contentSha256After": "bc41944940c97b511011c0abe7dd8574e31832c31aaefda04ff70f175b2e1297",
+              "contentSha256Before": "bc41944940c97b511011c0abe7dd8574e31832c31aaefda04ff70f175b2e1297",
+              "name": "Namespace/dw-c69924",
+              "resourceVersionAfter": "5855",
+              "resourceVersionBefore": "5855",
+              "uid": "bb5dabc0-5957-4b4b-b241-23a08c94911e"
+            },
+            {
+              "contentSha256After": "0904f38826b324e86f8cb4f400fb6fd4299043670567b8e9d2b438358bd5fc1b",
+              "contentSha256Before": "0904f38826b324e86f8cb4f400fb6fd4299043670567b8e9d2b438358bd5fc1b",
+              "name": "NetworkPolicy/allow-git-source",
+              "resourceVersionAfter": "5879",
+              "resourceVersionBefore": "5879",
+              "uid": "c61d2a12-a018-4068-8bf1-d788ad952144"
+            },
+            {
+              "contentSha256After": "8980b798e3259b8958220e08864fcb83b279c31a13b5fb9505fc71bc61984742",
+              "contentSha256Before": "8980b798e3259b8958220e08864fcb83b279c31a13b5fb9505fc71bc61984742",
+              "name": "NetworkPolicy/allow-inference-shared",
+              "resourceVersionAfter": "5946",
+              "resourceVersionBefore": "5946",
+              "uid": "e3157f82-3990-4d52-97aa-87affd3a5b3f"
+            },
+            {
+              "contentSha256After": "cfa8f282fc703f4e21b0837a2f7dab49168c47a4793a81ffb82761f2863d24ed",
+              "contentSha256Before": "cfa8f282fc703f4e21b0837a2f7dab49168c47a4793a81ffb82761f2863d24ed",
+              "name": "NetworkPolicy/allow-kube-dns",
+              "resourceVersionAfter": "5913",
+              "resourceVersionBefore": "5913",
+              "uid": "1d7d5145-6975-435f-a032-46c164bd16bb"
+            },
+            {
+              "contentSha256After": "b82391746c101c5f4ed48b90fb4aebd82fb6770dd8614f70675ecb12648a4499",
+              "contentSha256Before": "b82391746c101c5f4ed48b90fb4aebd82fb6770dd8614f70675ecb12648a4499",
+              "name": "NetworkPolicy/allow-mcp-diagnostics",
+              "resourceVersionAfter": "5954",
+              "resourceVersionBefore": "5954",
+              "uid": "c39be5c4-23bc-49b6-9e6b-79bd314d608c"
+            },
+            {
+              "contentSha256After": "7d84f0870e6f2a456ab68c368782dd717d8ceb13ce554d635bbcd7a825817931",
+              "contentSha256Before": "7d84f0870e6f2a456ab68c368782dd717d8ceb13ce554d635bbcd7a825817931",
+              "name": "NetworkPolicy/default-deny",
+              "resourceVersionAfter": "5912",
+              "resourceVersionBefore": "5912",
+              "uid": "bd877fdc-62ea-46b0-a549-f05e7beb1cde"
+            },
+            {
+              "contentSha256After": "dd7721ec8695247f4ad7bc7796d89186eaeff4ee8f315e19816ed434010067cd",
+              "contentSha256Before": "dd7721ec8695247f4ad7bc7796d89186eaeff4ee8f315e19816ed434010067cd",
+              "name": "ResourceQuota/workspace-bounds",
+              "resourceVersionAfter": "5949",
+              "resourceVersionBefore": "5949",
+              "uid": "4daf8c7b-c4b1-4d05-94d7-2cce018c5d99"
+            },
+            {
+              "contentSha256After": "4153afdbac1ab666d775304790c506c79972213f6de1b61a7fb9b0e4045fe945",
+              "contentSha256Before": "4153afdbac1ab666d775304790c506c79972213f6de1b61a7fb9b0e4045fe945",
+              "name": "ServiceAccount/workspace",
+              "resourceVersionAfter": "5928",
+              "resourceVersionBefore": "5928",
+              "uid": "f6dd9d57-52c7-482b-9e14-ff3fcb727da5"
+            }
+          ],
+          "workspaceGeneration": 3,
+          "workspaceResourceVersionAfter": "6612",
+          "workspaceResourceVersionBefore": "6208",
+          "workspaceSpecSha256After": "906172ea2f7036ac98108e334a6da43b4f03c875a6f95d5841c8d1bbb3226368",
+          "workspaceSpecSha256Before": "906172ea2f7036ac98108e334a6da43b4f03c875a6f95d5841c8d1bbb3226368",
+          "workspaceUID": "013b6677-a8b8-4b63-a60c-1e1838d26d3c"
+        }
+      },
+      "status": "pass"
+    },
+    {
+      "detail": "writing 2x the 8Mi emptyDir limit evicted the pod (kubelet names the workspace volume); half the limit was fine; the reconciler brought a replacement up",
+      "name": "ephemeral-storage-enforced",
+      "observed": {
+        "limit": "8Mi"
+      },
+      "status": "pass"
+    },
+    {
+      "detail": "deleting the remaining XR removed its Namespace and all 10 composed Objects",
+      "name": "ephemeral-cleanup",
+      "status": "pass"
+    },
+    {
+      "detail": "deleting a rejected name before its persistent owner leaves that owner unchanged; deleting the ephemeral owner before its rejected name removes only the owner",
+      "name": "workspace-id-collision-delete-isolated",
+      "observed": {
+        "ephemeral": {
+          "candidate": {
+            "exists": false,
+            "name": "ws-c69924-collision-xr",
+            "objectRefs": [],
+            "ready": false
+          },
+          "order": "owner-first",
+          "ownerBeforeAndAfterAttempt": {
+            "namespace": {
+              "contentSha256After": "bc41944940c97b511011c0abe7dd8574e31832c31aaefda04ff70f175b2e1297",
+              "contentSha256Before": "bc41944940c97b511011c0abe7dd8574e31832c31aaefda04ff70f175b2e1297",
+              "resourceVersionAfter": "5855",
+              "resourceVersionBefore": "5855",
+              "uid": "bb5dabc0-5957-4b4b-b241-23a08c94911e"
+            },
+            "objects": [
+              {
+                "metadataSha256After": "88d0941d8fbfabff9d6129781df838b57eec1417d7cb0c5b145abdb5220d23de",
+                "metadataSha256Before": "88d0941d8fbfabff9d6129781df838b57eec1417d7cb0c5b145abdb5220d23de",
+                "name": "dw-704c904b7fe6b2decce41d0b2798c99a-deployment",
+                "resourceVersionAfter": "7360",
+                "resourceVersionBefore": "7360",
+                "specSha256After": "bc020b405545fbadf5e8a58db45be0c60b3ca2c02f85141ea15ae627a67846cb",
+                "specSha256Before": "bc020b405545fbadf5e8a58db45be0c60b3ca2c02f85141ea15ae627a67846cb",
+                "uid": "2a66e238-1bff-4eab-a0c8-6486118a6df7"
+              },
+              {
+                "metadataSha256After": "2dfa82987814689325b1febc97a150bfdf50b684f4dc4224ec157f3508898207",
+                "metadataSha256Before": "2dfa82987814689325b1febc97a150bfdf50b684f4dc4224ec157f3508898207",
+                "name": "dw-704c904b7fe6b2decce41d0b2798c99a-limitrange",
+                "resourceVersionAfter": "5997",
+                "resourceVersionBefore": "5997",
+                "specSha256After": "c8c7bcb60a0538fbc94ce027f13adc583e31947b258f022d440b1b1acc9378e9",
+                "specSha256Before": "c8c7bcb60a0538fbc94ce027f13adc583e31947b258f022d440b1b1acc9378e9",
+                "uid": "e2f14604-318b-43a3-b0d0-7f812cc9760f"
+              },
+              {
+                "metadataSha256After": "564896e228bd4a97bc1553bd22bf1531cae27df2f55aa787c313bd085c2a0cdc",
+                "metadataSha256Before": "564896e228bd4a97bc1553bd22bf1531cae27df2f55aa787c313bd085c2a0cdc",
+                "name": "dw-704c904b7fe6b2decce41d0b2798c99a-namespace",
+                "resourceVersionAfter": "5908",
+                "resourceVersionBefore": "5908",
+                "specSha256After": "8367bd7651aad2efed723ea55ee0c68f70c9c1021cb30e0f88af7b7499767827",
+                "specSha256Before": "8367bd7651aad2efed723ea55ee0c68f70c9c1021cb30e0f88af7b7499767827",
+                "uid": "3aa65efc-c1a1-4e4d-944b-89444b3ee9e2"
+              },
+              {
+                "metadataSha256After": "17a67795f2c40c8deed1454d5f5b1274b3afee6a97314af8c9efb92428908995",
+                "metadataSha256Before": "17a67795f2c40c8deed1454d5f5b1274b3afee6a97314af8c9efb92428908995",
+                "name": "dw-704c904b7fe6b2decce41d0b2798c99a-networkpolicy-allow-git-sou",
+                "resourceVersionAfter": "5996",
+                "resourceVersionBefore": "5996",
+                "specSha256After": "e06f03cd5d4dd614770640cfe5ee38e8f8481356d2601b47685c86d8d246f423",
+                "specSha256Before": "e06f03cd5d4dd614770640cfe5ee38e8f8481356d2601b47685c86d8d246f423",
+                "uid": "134e44b4-2596-4248-a157-af8178d2ffb3"
+              },
+              {
+                "metadataSha256After": "a98971209a936b231c51fb10084569ebc80ca2b0530718cb36009493305baa38",
+                "metadataSha256Before": "a98971209a936b231c51fb10084569ebc80ca2b0530718cb36009493305baa38",
+                "name": "dw-704c904b7fe6b2decce41d0b2798c99a-networkpolicy-allow-inferen",
+                "resourceVersionAfter": "5972",
+                "resourceVersionBefore": "5972",
+                "specSha256After": "cb7bd3db30748e9232fe6fafbc5ef22f0a35aae2fbe9c8121da07755dd22d5ec",
+                "specSha256Before": "cb7bd3db30748e9232fe6fafbc5ef22f0a35aae2fbe9c8121da07755dd22d5ec",
+                "uid": "4396d825-e90b-4953-a1b8-04fb971c2d13"
+              },
+              {
+                "metadataSha256After": "8cff34b8a2688999aedc54ffdad3fe571c4b6c72061bb5ef507fd0250a8da772",
+                "metadataSha256Before": "8cff34b8a2688999aedc54ffdad3fe571c4b6c72061bb5ef507fd0250a8da772",
+                "name": "dw-704c904b7fe6b2decce41d0b2798c99a-networkpolicy-allow-kube-dn",
+                "resourceVersionAfter": "5970",
+                "resourceVersionBefore": "5970",
+                "specSha256After": "c7e022d4a72490e7b076544a983005a212e60a5ed9b032167b8146767e5a23d2",
+                "specSha256Before": "c7e022d4a72490e7b076544a983005a212e60a5ed9b032167b8146767e5a23d2",
+                "uid": "43842a62-2850-4d4d-ab42-21daef3fbb41"
+              },
+              {
+                "metadataSha256After": "bb4cd7d18a7a529b29db5a037fbfdc434b08f7b6d750e8c4f288ae04ab6d465b",
+                "metadataSha256Before": "bb4cd7d18a7a529b29db5a037fbfdc434b08f7b6d750e8c4f288ae04ab6d465b",
+                "name": "dw-704c904b7fe6b2decce41d0b2798c99a-networkpolicy-allow-mcp-dia",
+                "resourceVersionAfter": "6000",
+                "resourceVersionBefore": "6000",
+                "specSha256After": "d2c47146b99054aa669e3acd0a359ec81c1c283af6fe807ba86d89930f697858",
+                "specSha256Before": "d2c47146b99054aa669e3acd0a359ec81c1c283af6fe807ba86d89930f697858",
+                "uid": "39a76ca4-ae44-4692-8b0a-87e7fb26e4b8"
+              },
+              {
+                "metadataSha256After": "f1da3e0f244a6de8f2df85e07daee13640bc7ff06973c356ae89974cf54cfda5",
+                "metadataSha256Before": "f1da3e0f244a6de8f2df85e07daee13640bc7ff06973c356ae89974cf54cfda5",
+                "name": "dw-704c904b7fe6b2decce41d0b2798c99a-networkpolicy-default-deny",
+                "resourceVersionAfter": "5998",
+                "resourceVersionBefore": "5998",
+                "specSha256After": "1b328a1172d6ba4a957966ecee122720305ac7a96eb7f11e60d065a13d77fa04",
+                "specSha256Before": "1b328a1172d6ba4a957966ecee122720305ac7a96eb7f11e60d065a13d77fa04",
+                "uid": "74937e9d-fb51-49f5-9616-97211758fdbb"
+              },
+              {
+                "metadataSha256After": "42a1a1bd553b261a51102cb6d35904bdd6e502323dad815da674640b3c3e3d60",
+                "metadataSha256Before": "42a1a1bd553b261a51102cb6d35904bdd6e502323dad815da674640b3c3e3d60",
+                "name": "dw-704c904b7fe6b2decce41d0b2798c99a-resourcequota",
+                "resourceVersionAfter": "7340",
+                "resourceVersionBefore": "7340",
+                "specSha256After": "6b33439e874eae814d2349ab37331f087159dc72738874fe728db93638d6005b",
+                "specSha256Before": "6b33439e874eae814d2349ab37331f087159dc72738874fe728db93638d6005b",
+                "uid": "8b498707-60bf-4722-9dfc-d14d53cd7e66"
+              },
+              {
+                "metadataSha256After": "3b0ff2510c566ef1052d75aa821ceaa6b505d1db4f84e6079d83fff762802260",
+                "metadataSha256Before": "3b0ff2510c566ef1052d75aa821ceaa6b505d1db4f84e6079d83fff762802260",
+                "name": "dw-704c904b7fe6b2decce41d0b2798c99a-serviceaccount",
+                "resourceVersionAfter": "5999",
+                "resourceVersionBefore": "5999",
+                "specSha256After": "d6e0f011c3db2b241e3d0561aff6b1ca6278fbf5852780da2325c2ed7841d0c7",
+                "specSha256Before": "d6e0f011c3db2b241e3d0561aff6b1ca6278fbf5852780da2325c2ed7841d0c7",
+                "uid": "101967cd-bf4d-4d87-9f71-0a8eb5878877"
+              }
+            ],
+            "readback": [
+              {
+                "contentSha256After": "7ce54f7608517623d02b5b83c65d1f9cd184a03a795e3672dea05e255820a5b1",
+                "contentSha256Before": "7ce54f7608517623d02b5b83c65d1f9cd184a03a795e3672dea05e255820a5b1",
+                "name": "Deployment/workspace",
+                "resourceVersionAfter": "7359",
+                "resourceVersionBefore": "7359",
+                "uid": "fc22f39b-e3ea-46d8-88e3-906a2409a9fd"
+              },
+              {
+                "contentSha256After": "b63d576792ad5d61c888f725363e13f4ef56dbe06e820ff65365a4fe6018c743",
+                "contentSha256Before": "b63d576792ad5d61c888f725363e13f4ef56dbe06e820ff65365a4fe6018c743",
+                "name": "LimitRange/workspace-defaults",
+                "resourceVersionAfter": "5880",
+                "resourceVersionBefore": "5880",
+                "uid": "af80ea51-ae22-451e-999a-6fa17e165866"
+              },
+              {
+                "contentSha256After": "bc41944940c97b511011c0abe7dd8574e31832c31aaefda04ff70f175b2e1297",
+                "contentSha256Before": "bc41944940c97b511011c0abe7dd8574e31832c31aaefda04ff70f175b2e1297",
+                "name": "Namespace/dw-c69924",
+                "resourceVersionAfter": "5855",
+                "resourceVersionBefore": "5855",
+                "uid": "bb5dabc0-5957-4b4b-b241-23a08c94911e"
+              },
+              {
+                "contentSha256After": "0904f38826b324e86f8cb4f400fb6fd4299043670567b8e9d2b438358bd5fc1b",
+                "contentSha256Before": "0904f38826b324e86f8cb4f400fb6fd4299043670567b8e9d2b438358bd5fc1b",
+                "name": "NetworkPolicy/allow-git-source",
+                "resourceVersionAfter": "5879",
+                "resourceVersionBefore": "5879",
+                "uid": "c61d2a12-a018-4068-8bf1-d788ad952144"
+              },
+              {
+                "contentSha256After": "8980b798e3259b8958220e08864fcb83b279c31a13b5fb9505fc71bc61984742",
+                "contentSha256Before": "8980b798e3259b8958220e08864fcb83b279c31a13b5fb9505fc71bc61984742",
+                "name": "NetworkPolicy/allow-inference-shared",
+                "resourceVersionAfter": "5946",
+                "resourceVersionBefore": "5946",
+                "uid": "e3157f82-3990-4d52-97aa-87affd3a5b3f"
+              },
+              {
+                "contentSha256After": "cfa8f282fc703f4e21b0837a2f7dab49168c47a4793a81ffb82761f2863d24ed",
+                "contentSha256Before": "cfa8f282fc703f4e21b0837a2f7dab49168c47a4793a81ffb82761f2863d24ed",
+                "name": "NetworkPolicy/allow-kube-dns",
+                "resourceVersionAfter": "5913",
+                "resourceVersionBefore": "5913",
+                "uid": "1d7d5145-6975-435f-a032-46c164bd16bb"
+              },
+              {
+                "contentSha256After": "b82391746c101c5f4ed48b90fb4aebd82fb6770dd8614f70675ecb12648a4499",
+                "contentSha256Before": "b82391746c101c5f4ed48b90fb4aebd82fb6770dd8614f70675ecb12648a4499",
+                "name": "NetworkPolicy/allow-mcp-diagnostics",
+                "resourceVersionAfter": "5954",
+                "resourceVersionBefore": "5954",
+                "uid": "c39be5c4-23bc-49b6-9e6b-79bd314d608c"
+              },
+              {
+                "contentSha256After": "7d84f0870e6f2a456ab68c368782dd717d8ceb13ce554d635bbcd7a825817931",
+                "contentSha256Before": "7d84f0870e6f2a456ab68c368782dd717d8ceb13ce554d635bbcd7a825817931",
+                "name": "NetworkPolicy/default-deny",
+                "resourceVersionAfter": "5912",
+                "resourceVersionBefore": "5912",
+                "uid": "bd877fdc-62ea-46b0-a549-f05e7beb1cde"
+              },
+              {
+                "contentSha256After": "dd7721ec8695247f4ad7bc7796d89186eaeff4ee8f315e19816ed434010067cd",
+                "contentSha256Before": "dd7721ec8695247f4ad7bc7796d89186eaeff4ee8f315e19816ed434010067cd",
+                "name": "ResourceQuota/workspace-bounds",
+                "resourceVersionAfter": "7322",
+                "resourceVersionBefore": "7322",
+                "uid": "4daf8c7b-c4b1-4d05-94d7-2cce018c5d99"
+              },
+              {
+                "contentSha256After": "4153afdbac1ab666d775304790c506c79972213f6de1b61a7fb9b0e4045fe945",
+                "contentSha256Before": "4153afdbac1ab666d775304790c506c79972213f6de1b61a7fb9b0e4045fe945",
+                "name": "ServiceAccount/workspace",
+                "resourceVersionAfter": "5928",
+                "resourceVersionBefore": "5928",
+                "uid": "f6dd9d57-52c7-482b-9e14-ff3fcb727da5"
+              }
+            ],
+            "workspaceGeneration": 3,
+            "workspaceResourceVersionAfter": "6612",
+            "workspaceResourceVersionBefore": "6612",
+            "workspaceSpecSha256After": "906172ea2f7036ac98108e334a6da43b4f03c875a6f95d5841c8d1bbb3226368",
+            "workspaceSpecSha256Before": "906172ea2f7036ac98108e334a6da43b4f03c875a6f95d5841c8d1bbb3226368",
+            "workspaceUID": "013b6677-a8b8-4b63-a60c-1e1838d26d3c"
+          }
+        },
+        "persistent": {
+          "order": "rejected-first",
+          "ownerBeforeAndAfter": {
+            "namespace": {
+              "contentSha256After": "74bdbd189d402e09aefdb597db539ce685eed56f3cbe11084c3d74ef9f7a4311",
+              "contentSha256Before": "74bdbd189d402e09aefdb597db539ce685eed56f3cbe11084c3d74ef9f7a4311",
+              "resourceVersionAfter": "3098",
+              "resourceVersionBefore": "3098",
+              "uid": "4c3f593a-b936-4686-8237-cbbd52d99ebd"
+            },
+            "objects": [
+              {
+                "metadataSha256After": "9f0a2989e77aef04b76969bbba9e94ed7de5dae9d206168843bd22bcc8a18712",
+                "metadataSha256Before": "9f0a2989e77aef04b76969bbba9e94ed7de5dae9d206168843bd22bcc8a18712",
+                "name": "dw-f8cccc903182f5d2adcdfb2ee322d766-deployment",
+                "resourceVersionAfter": "3354",
+                "resourceVersionBefore": "3354",
+                "specSha256After": "90cd097b9c65fb313caa8b5e957e9781a98e5054d4ebf0f4969397a217771e9b",
+                "specSha256Before": "90cd097b9c65fb313caa8b5e957e9781a98e5054d4ebf0f4969397a217771e9b",
+                "uid": "b4d21a15-05ca-49cd-9ff8-a10b302fff54"
+              },
+              {
+                "metadataSha256After": "c2473b86e654ab2ceb1abeb28a80678b6d7eac163f9bfe59c76a707149a68328",
+                "metadataSha256Before": "c2473b86e654ab2ceb1abeb28a80678b6d7eac163f9bfe59c76a707149a68328",
+                "name": "dw-f8cccc903182f5d2adcdfb2ee322d766-limitrange",
+                "resourceVersionAfter": "3247",
+                "resourceVersionBefore": "3247",
+                "specSha256After": "b7c42d845d5433893b812df91e25f6b3e69fedebab41b3ca2748ad6a15c5a8e6",
+                "specSha256Before": "b7c42d845d5433893b812df91e25f6b3e69fedebab41b3ca2748ad6a15c5a8e6",
+                "uid": "fa3c7c60-bab4-4a9f-ab63-9786360e30cf"
+              },
+              {
+                "metadataSha256After": "1bbf0f451db11d5d541f5bce3be9ce6c866c7ddd1a37411cbd551d074dab3de5",
+                "metadataSha256Before": "1bbf0f451db11d5d541f5bce3be9ce6c866c7ddd1a37411cbd551d074dab3de5",
+                "name": "dw-f8cccc903182f5d2adcdfb2ee322d766-namespace",
+                "resourceVersionAfter": "3246",
+                "resourceVersionBefore": "3246",
+                "specSha256After": "aba65cf51c5b91461fb84022876d578c25f72bc8c17909eeb46b5ef8f8874255",
+                "specSha256Before": "aba65cf51c5b91461fb84022876d578c25f72bc8c17909eeb46b5ef8f8874255",
+                "uid": "1b7bf646-35d2-42e1-9923-aae96e58a7d5"
+              },
+              {
+                "metadataSha256After": "65b0c97ea22d34d5130afc42298d5a49c5a2adc0d83d01daebbe402af83de2f0",
+                "metadataSha256Before": "65b0c97ea22d34d5130afc42298d5a49c5a2adc0d83d01daebbe402af83de2f0",
+                "name": "dw-f8cccc903182f5d2adcdfb2ee322d766-networkpolicy-allow-git-sou",
+                "resourceVersionAfter": "3187",
+                "resourceVersionBefore": "3187",
+                "specSha256After": "fa4765f14f552040f55e9c129b9ad455cd6f78ab1b3b29bda66468838482cfa5",
+                "specSha256Before": "fa4765f14f552040f55e9c129b9ad455cd6f78ab1b3b29bda66468838482cfa5",
+                "uid": "5697f730-b3d4-4000-adb3-fe8d29f355e4"
+              },
+              {
+                "metadataSha256After": "7e8d27743f41e8fb66bd0fc80ea5327a535d1348f8760791d3d588dd076849de",
+                "metadataSha256Before": "7e8d27743f41e8fb66bd0fc80ea5327a535d1348f8760791d3d588dd076849de",
+                "name": "dw-f8cccc903182f5d2adcdfb2ee322d766-networkpolicy-allow-inferen",
+                "resourceVersionAfter": "3193",
+                "resourceVersionBefore": "3193",
+                "specSha256After": "cbc6ba5dcc026b70322615ae6f95466cbada704a4e47debf993fd3f30cddcc51",
+                "specSha256Before": "cbc6ba5dcc026b70322615ae6f95466cbada704a4e47debf993fd3f30cddcc51",
+                "uid": "2eb96a31-0674-42e7-8102-c637e6c5b258"
+              },
+              {
+                "metadataSha256After": "0b16fe4492c9f39b5ee2bd016971289f132ec7310e94e3d4522c9ed6bc6962f2",
+                "metadataSha256Before": "0b16fe4492c9f39b5ee2bd016971289f132ec7310e94e3d4522c9ed6bc6962f2",
+                "name": "dw-f8cccc903182f5d2adcdfb2ee322d766-networkpolicy-allow-kube-dn",
+                "resourceVersionAfter": "3188",
+                "resourceVersionBefore": "3188",
+                "specSha256After": "4fd0befcaa5a1b6c00d37c2c20827454bb494b6df622759f08053dc04a9ccdc2",
+                "specSha256Before": "4fd0befcaa5a1b6c00d37c2c20827454bb494b6df622759f08053dc04a9ccdc2",
+                "uid": "8728b03f-16c0-4592-8165-dfbb0eb67382"
+              },
+              {
+                "metadataSha256After": "3097356851748708533df988a1bd82d5df5d612463e8956d9103795057994317",
+                "metadataSha256Before": "3097356851748708533df988a1bd82d5df5d612463e8956d9103795057994317",
+                "name": "dw-f8cccc903182f5d2adcdfb2ee322d766-networkpolicy-allow-mcp-dia",
+                "resourceVersionAfter": "3249",
+                "resourceVersionBefore": "3249",
+                "specSha256After": "68c66338bf94643f9aae2d51b27525ad9d5fe9aa55f830a091a677e8b71d5600",
+                "specSha256Before": "68c66338bf94643f9aae2d51b27525ad9d5fe9aa55f830a091a677e8b71d5600",
+                "uid": "fbdcbf8b-57c8-4958-9212-23eea563ff25"
+              },
+              {
+                "metadataSha256After": "7b9df7c142e9d55596580fc9c750a62e2a4c1e14f5fa8e7f48d3e5f6656b578f",
+                "metadataSha256Before": "7b9df7c142e9d55596580fc9c750a62e2a4c1e14f5fa8e7f48d3e5f6656b578f",
+                "name": "dw-f8cccc903182f5d2adcdfb2ee322d766-networkpolicy-default-deny",
+                "resourceVersionAfter": "3250",
+                "resourceVersionBefore": "3250",
+                "specSha256After": "fbe386a450301c2733183b880bf49630a97181b5fa0beb049c3c80a020972e7d",
+                "specSha256Before": "fbe386a450301c2733183b880bf49630a97181b5fa0beb049c3c80a020972e7d",
+                "uid": "f72fb18c-7917-4b83-a334-5e60c7d351e8"
+              },
+              {
+                "metadataSha256After": "a43bc159a4db2d123e0bd771a404b4d9d8a8851acff600ab0373e28a4b476518",
+                "metadataSha256Before": "a43bc159a4db2d123e0bd771a404b4d9d8a8851acff600ab0373e28a4b476518",
+                "name": "dw-f8cccc903182f5d2adcdfb2ee322d766-persistentvolumeclaim",
+                "resourceVersionAfter": "3290",
+                "resourceVersionBefore": "3290",
+                "specSha256After": "4ea498d4504074eccecf3a17c540cc1ee03fb9df210fd14845137c90565c4d20",
+                "specSha256Before": "4ea498d4504074eccecf3a17c540cc1ee03fb9df210fd14845137c90565c4d20",
+                "uid": "5d7950a3-1f62-4bfb-bd2c-ed30f6cfa109"
+              },
+              {
+                "metadataSha256After": "967147b20843c996a551fc7d5bf84833cb1bb136da29f8b69feaca6b4a0494a2",
+                "metadataSha256Before": "967147b20843c996a551fc7d5bf84833cb1bb136da29f8b69feaca6b4a0494a2",
+                "name": "dw-f8cccc903182f5d2adcdfb2ee322d766-resourcequota",
+                "resourceVersionAfter": "3211",
+                "resourceVersionBefore": "3211",
+                "specSha256After": "252296dee5572a0f9be683b80032dd21ad0cb5afeb4fb3c9199670447d19275f",
+                "specSha256Before": "252296dee5572a0f9be683b80032dd21ad0cb5afeb4fb3c9199670447d19275f",
+                "uid": "c0f7e458-c8e8-451a-a064-d6eb3a4984ec"
+              },
+              {
+                "metadataSha256After": "4c1c4d8eb3933e7a45ccbcf6d9fb42f7c1d1a219d6f93af900e1d905bd971686",
+                "metadataSha256Before": "4c1c4d8eb3933e7a45ccbcf6d9fb42f7c1d1a219d6f93af900e1d905bd971686",
+                "name": "dw-f8cccc903182f5d2adcdfb2ee322d766-serviceaccount",
+                "resourceVersionAfter": "3251",
+                "resourceVersionBefore": "3251",
+                "specSha256After": "e16c4ef1dfcadebc1cf43e50c29d96d7aad082072bf50658b1670f9224c01186",
+                "specSha256Before": "e16c4ef1dfcadebc1cf43e50c29d96d7aad082072bf50658b1670f9224c01186",
+                "uid": "aa908705-a32e-417a-9e97-243344223b7d"
+              }
+            ],
+            "readback": [
+              {
+                "contentSha256After": "e98898bba890d1de6cf034fae7312b56a089d7314efab38a372392291be078ab",
+                "contentSha256Before": "e98898bba890d1de6cf034fae7312b56a089d7314efab38a372392291be078ab",
+                "name": "Deployment/workspace",
+                "resourceVersionAfter": "3353",
+                "resourceVersionBefore": "3353",
+                "uid": "893087b1-d552-4e49-9779-5f93eb33c69d"
+              },
+              {
+                "contentSha256After": "8554b0dcdbc17ef7adc1dd71168cad2343967267509b4dd2cda3d286f774f19b",
+                "contentSha256Before": "8554b0dcdbc17ef7adc1dd71168cad2343967267509b4dd2cda3d286f774f19b",
+                "name": "LimitRange/workspace-defaults",
+                "resourceVersionAfter": "3107",
+                "resourceVersionBefore": "3107",
+                "uid": "5a333683-a195-4bc5-aab9-7691b3e82f09"
+              },
+              {
+                "contentSha256After": "74bdbd189d402e09aefdb597db539ce685eed56f3cbe11084c3d74ef9f7a4311",
+                "contentSha256Before": "74bdbd189d402e09aefdb597db539ce685eed56f3cbe11084c3d74ef9f7a4311",
+                "name": "Namespace/dw-ok175-proof",
+                "resourceVersionAfter": "3098",
+                "resourceVersionBefore": "3098",
+                "uid": "4c3f593a-b936-4686-8237-cbbd52d99ebd"
+              },
+              {
+                "contentSha256After": "3d2a5a84cd84019a9088885bc7a2058fd0520fc74f84cc6da67be662ae819909",
+                "contentSha256Before": "3d2a5a84cd84019a9088885bc7a2058fd0520fc74f84cc6da67be662ae819909",
+                "name": "NetworkPolicy/allow-git-source",
+                "resourceVersionAfter": "3128",
+                "resourceVersionBefore": "3128",
+                "uid": "35001e35-78b1-42c6-87df-75c1ab597edc"
+              },
+              {
+                "contentSha256After": "fddcc97625f3e6a97c512caf31ebf80f90ef8772914c6abfef309720e4af1825",
+                "contentSha256Before": "fddcc97625f3e6a97c512caf31ebf80f90ef8772914c6abfef309720e4af1825",
+                "name": "NetworkPolicy/allow-inference-shared",
+                "resourceVersionAfter": "3171",
+                "resourceVersionBefore": "3171",
+                "uid": "18dc20cb-3461-4acc-b219-b3ed275f0a5b"
+              },
+              {
+                "contentSha256After": "6dec937784506d0d65146ec89439b64b0408a245ae4f33c4c67c715dbcdafcce",
+                "contentSha256Before": "6dec937784506d0d65146ec89439b64b0408a245ae4f33c4c67c715dbcdafcce",
+                "name": "NetworkPolicy/allow-kube-dns",
+                "resourceVersionAfter": "3138",
+                "resourceVersionBefore": "3138",
+                "uid": "4a4dac81-e14f-49ae-a947-7548bf84ae5b"
+              },
+              {
+                "contentSha256After": "6704657ddfb842d2b901b06d44be209055cd0bb10a35f3bdcf0d9a3fa0b743e8",
+                "contentSha256Before": "6704657ddfb842d2b901b06d44be209055cd0bb10a35f3bdcf0d9a3fa0b743e8",
+                "name": "NetworkPolicy/allow-mcp-diagnostics",
+                "resourceVersionAfter": "3137",
+                "resourceVersionBefore": "3137",
+                "uid": "e0b49c9c-0708-4305-9fba-2181531e59d1"
+              },
+              {
+                "contentSha256After": "b3594aaa64c7a8762a413d620cadf260acffd713f446cd06ecc2a48729419109",
+                "contentSha256Before": "b3594aaa64c7a8762a413d620cadf260acffd713f446cd06ecc2a48729419109",
+                "name": "NetworkPolicy/default-deny",
+                "resourceVersionAfter": "3167",
+                "resourceVersionBefore": "3167",
+                "uid": "793def05-a945-45a7-801f-9b40e74e4937"
+              },
+              {
+                "contentSha256After": "ddcb7bc784c079995508b689a9ab6c94572e1c79b909d4cb00f47d87732f8fa7",
+                "contentSha256Before": "ddcb7bc784c079995508b689a9ab6c94572e1c79b909d4cb00f47d87732f8fa7",
+                "name": "PersistentVolumeClaim/workspace",
+                "resourceVersionAfter": "3289",
+                "resourceVersionBefore": "3289",
+                "uid": "03c0eac3-3eed-41fd-91d7-425a4afc2ae7"
+              },
+              {
+                "contentSha256After": "fe00cb061c5eb3a4188652f1cfe50ebae26f493f172efbdfec021de77d0fc4b0",
+                "contentSha256Before": "fe00cb061c5eb3a4188652f1cfe50ebae26f493f172efbdfec021de77d0fc4b0",
+                "name": "ResourceQuota/workspace-bounds",
+                "resourceVersionAfter": "3201",
+                "resourceVersionBefore": "3201",
+                "uid": "6c2fd587-90ba-47e8-bf1b-a44cda4dad9d"
+              },
+              {
+                "contentSha256After": "f4b2e7ec4554945a661e0a233395c78260657e1d0bef2859da1bde06c1ff61be",
+                "contentSha256Before": "f4b2e7ec4554945a661e0a233395c78260657e1d0bef2859da1bde06c1ff61be",
+                "name": "ServiceAccount/workspace",
+                "resourceVersionAfter": "3174",
+                "resourceVersionBefore": "3174",
+                "uid": "98cd90f4-b7ad-41ed-a364-c2c6f7f785df"
+              }
+            ],
+            "workspaceGeneration": 3,
+            "workspaceResourceVersionAfter": "3500",
+            "workspaceResourceVersionBefore": "3500",
+            "workspaceSpecSha256After": "ca9bdd20e46115603cc414c3402c1352bc25953f6e9474bf1767dfaa28f1f8f3",
+            "workspaceSpecSha256Before": "ca9bdd20e46115603cc414c3402c1352bc25953f6e9474bf1767dfaa28f1f8f3",
+            "workspaceUID": "1ae0e152-aca1-4022-b54b-209aaf112d34"
+          }
+        }
+      },
+      "status": "pass"
+    },
+    {
+      "detail": "proof services, generated credentials, profile, temporary authority bindings, XRs and composed Objects are absent",
+      "name": "harness-cleanup",
+      "status": "pass"
+    }
+  ],
+  "runID": "933f69ab290b2fd0",
+  "sourceTip": "a07e3d71b2a4f9e8da3cc6cd0eb0fb58d1369fa0",
+  "startedAt": "2026-10-18T04:00:40Z",
+  "target": {
+    "context": "ok-178-ws-admin@ok-178-ws",
+    "kubeSystemUidSha256": "19441c3a433df529da25b96ac3da5fc7add4d24ec456add77bca752cc6cec5d4",
+    "kubernetesVersion": "v1.34.1"
+  }
+}
