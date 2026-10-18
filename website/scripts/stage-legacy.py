@@ -7,6 +7,7 @@ ROOT = Path(__file__).resolve().parents[2]
 SOURCE = ROOT / "docs"
 TARGET = ROOT / ".mkdocs-staging"
 ARTICLES = (
+    "developer-workspace-blog-post.md",
     "agentic-operations-reference-architecture.md",
     "vault-secret-contract-blog-post.md",
     "the-contract-is-the-guardrail-blog-post.md",
