@@ -41,6 +41,11 @@ spec:
     - source knownCommit, implementation revision, and image digests are bound separately; no build attestation binds those images to that revision
     - Codex runs with its own sandbox disabled because it cannot nest inside the unprivileged pod; the pod securityContext and NetworkPolicy are the isolation boundary
     - MCP capability is proven as network reachability to one reviewed endpoint; approvedTools is declared but not enforced at the tool level
+    # Historical OK-174 scope: controller absence is superseded for the Namespace
+    # reference profile by OK-175 reconciler evidence:
+    # platform/workspace/developer-workspace/crossplane/evidence/live-ok-175-proof-90065cfa0978eded.json
+    # reconcile-readback, drift-restored, persistent-cleanup, ephemeral-cleanup pass.
+    # Export-before-deletion ordering is not established by that evidence.
     - 'no reconciling controller exists: the harness applies the render and performs export-before-deletion ordering that a future controller must own'
     - 'evidence is integrity-bound after capture, not attested: beyond the cluster, node, image and model identifiers, its content could be recomputed offline'
     - no merge, release, deployment, or human approval authority is granted by runtime conformance

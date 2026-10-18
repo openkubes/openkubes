@@ -259,6 +259,13 @@ What the evidence does not show:
   enforced at the tool level.
 - No reconciling controller exists. The harness applies the render and orders export before
   deletion; a future controller must own that.
+
+  > Note (2026-10, superseded): The sentence above records the historical OK-174 scope.
+  > Controller absence is superseded for the Namespace reference profile by
+  > [OK-175 reconciler evidence](../../platform/workspace/developer-workspace/crossplane/evidence/live-ok-175-proof-90065cfa0978eded.json):
+  > `reconcile-readback`, `drift-restored`, `persistent-cleanup`, and `ephemeral-cleanup` pass.
+  > Export-before-deletion ordering is not established by that evidence.
+
 - Inference is ok-ai's shared Ollama outside the cluster, reached through a reviewed `/32` host
   route.
 - Codex runs with its own sandbox disabled, because it cannot nest inside the unprivileged pod.
