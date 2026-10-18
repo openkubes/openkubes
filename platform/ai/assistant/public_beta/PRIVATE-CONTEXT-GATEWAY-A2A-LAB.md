@@ -174,3 +174,41 @@ or transform executable commands. The gateway must enforce:
 Do not relax `structured_answer.validate_and_render` to permit
 model-authored commands. Design and security review are prerequisites.
 Public Beta remains **HOLD**.
+
+## Existing command-evidence reuse assessment (2026-10-18)
+
+Implementation review confirms:
+- `public_beta/command_evidence.py` is a **private-only structural
+  diagnostic**: it classifies whole AI-supplied shell blocks as exact
+  retrieved, elsewhere-in-index, whitespace-only or absent, and reports
+  fixed categories and counts. Its module and tests explicitly say
+  this is **not** an acceptance gate. Do not reuse its relaxed
+  whitespace matching to authorize command rendering.
+- `indexer.split_markdown` preserves complete fenced blocks and rejects
+  oversized or unclosed fences. `docs_mcp.validate_index` provides
+  immutable source metadata and content hashes. These are useful
+  foundation components for a separately reviewed trusted renderer.
+- The current live index explicitly allowlists
+  `openkubes/ok-local/docs/tutorial-basic.md` and
+  `docs/tutorial-capi.md`, plus selected public OpenKubes documents.
+  It does **not** claim to ingest every README in all repos.
+- `public_beta/structured_answer.py` still rejects command-like
+  **model-authored** text and MUST remain strict.
+
+Before implementation, the design review must define exact source-block
+extraction and provenance binding, shell/code-fence language gating,
+sensitive-command quarantine, multi-block ordering, bounded output,
+source/revision display, and explicit non-execution guarantees.
+Evidence from the existing `command_evidence_report` may guide tests
+but cannot be treated as authorization. No command-rendering behavior
+or production service has been implemented.
+
+## Three-phase product roadmap reference
+
+[OK-202 Jira architecture/MVP spike](https://kubernauts.atlassian.net/browse/OK-202)
+explicitly specifies **Phase 1** public read-only Documentation Assistant;
+optional **Phase 2** user-supplied redacted logs/manifests and read-only
+diagnostics; **Phase 3** authenticated Agentic Operations via policy,
+approval, runner, and evidence contracts without direct agent-initiated
+Kubernetes mutations. These are future phase boundaries, not deployment
+readiness claims.
