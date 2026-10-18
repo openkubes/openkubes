@@ -36,7 +36,7 @@
 }
 
 /* OK AI roadmap: isolated responsive cards, including dark Material palette. */
-.ok-ai-roadmap{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem;margin:1.8rem 0 2rem}
+.ok-ai-roadmap{display:grid;grid-template-columns:minmax(0,1fr);gap:1.2rem;margin:1.8rem 0 2rem}
 .ok-ai-roadmap__card{min-width:0;display:flex;flex-direction:column;gap:.7rem;position:relative;padding:1.45rem;border:1px solid var(--md-default-fg-color--lightest,#e2e8f0);border-radius:1rem;background:var(--md-default-bg-color,#fff);box-shadow:0 12px 35px rgba(18,40,73,.07);overflow:hidden}
 .ok-ai-roadmap__card--docs{border-color:#77d8af;box-shadow:0 13px 34px rgba(9,140,90,.1)}
 .ok-ai-roadmap__card--diagnostics{border-top:3px solid #3b82f6}
@@ -52,5 +52,5 @@
 .md-typeset .ok-ai-roadmap__card p:not(.ok-ai-roadmap__phase){margin:0;font-size:.79rem;line-height:1.7}
 .md-typeset .ok-ai-roadmap__boundary{padding:.7rem .8rem;border-radius:.55rem;background:var(--md-code-bg-color,#f3f6fa);font-weight:600}
 .md-typeset .ok-ai-roadmap__card a{margin-top:auto;font-size:.76rem;font-weight:700;padding-top:.5rem}
-@media(max-width:1100px){.ok-ai-roadmap{grid-template-columns:1fr}.ok-ai-roadmap__card{padding:1.2rem}}
+@media(max-width:720px){.ok-ai-roadmap__card{padding:1.2rem}}
 @media(min-width:1101px){.md-content:has(.ok-ai-roadmap) .md-content__inner{max-width:70rem}.md-content:has(.ok-ai-roadmap){min-width:0}}
