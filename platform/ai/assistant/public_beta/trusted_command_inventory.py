@@ -63,16 +63,19 @@ def inventory_trusted_fences(retrieval: dict, index: dict) -> dict:
             if (lang.lower() in ALLOWED and block.strip()
                     and len(block) <= MAX_BLOCK_CHARS
                     and "\x00" not in block):
-                count += 1
-                total += 1
-                if total > MAX_BLOCKS:
-                    raise ValueError("Too many command fences")
+                # Saturate diagnostic counters at cap+1. This is a
+                # non-authorizing inventory; overflow must be visible but
+                # must never cause commands to be approved or emitted.
+                count = min(count + 1, MAX_BLOCKS + 1)
+                total = min(total + 1, MAX_BLOCKS + 1)
             pos = end + 1
         entries.append({"source_id": sid, "eligible_shell_fences": count})
     return {
-        "status": "INVENTORY_ONLY",
+        "status": ("OVER_LIMIT" if total > MAX_BLOCKS else "INVENTORY_ONLY"),
         "retrieved_sources": len(hits),
         "eligible_shell_fences": total,
+        "count_is_capped": total > MAX_BLOCKS,
+        "max_blocks": MAX_BLOCKS,
         "sources": entries,
         "display_authorized": False,
         "execution_authorized": False,
