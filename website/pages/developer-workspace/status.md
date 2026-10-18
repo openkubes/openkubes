@@ -4,16 +4,18 @@ OpenKubes is actively validating a **contract-driven developer workspace** with 
 
 ## Delivery status
 
-| Work item | Scope | Recorded status |
+| Public source / work area | Scope | Evidence and remaining work |
 | --- | --- | --- |
-| [OK-174](https://kubernauts.atlassian.net/browse/OK-174) | Contract spike and OpenCode evaluation | Done |
-| [OK-175](https://kubernauts.atlassian.net/browse/OK-175) | Namespace reference profile with OpenCode | In Progress |
-| [OK-176](https://kubernauts.atlassian.net/browse/OK-176) | Live isolation / lifecycle validation | In Progress |
-| [OK-177](https://kubernauts.atlassian.net/browse/OK-177) | Second coding-agent runtime validation | Done |
-| [OK-185](https://kubernauts.atlassian.net/browse/OK-185) | Reproducible capacity-enforcing workspace storage | In Progress |
-| [OK-180](https://kubernauts.atlassian.net/browse/OK-180) | User / operator guide and OpenCode quickstart | In Progress |
+| [Contract spike](https://github.com/openkubes/openkubes/tree/main/architecture/spikes/ADR-Platform-039) | Contract spike and OpenCode evaluation | Bounded proof recorded; ADR remains Proposed |
+| [Namespace reference profile](https://github.com/openkubes/openkubes/tree/main/platform/workspace/developer-workspace/crossplane) | Namespace reference profile with OpenCode | Reconciler proven on disposable clusters; not production-ready |
+| [Live isolation and lifecycle proof](https://github.com/openkubes/openkubes/blob/main/platform/workspace/developer-workspace/crossplane/README.md#live-proof-disposable-clusters-only) | Live isolation / lifecycle validation | Bounded disposable-cluster proof of resource bounds, drift correction and UID-bound cleanup recorded; restart/reboot persistence evidence is separate; limits described below |
+| [Second coding-agent runtime proof](coding-agents.md#opencode-and-the-second-runtime-proof) | Second coding-agent runtime validation | OpenCode and Codex exercised under the same reviewed profile |
+| [Capacity-enforcing workspace storage](https://github.com/openkubes/openkubes/blob/main/platform/workspace/developer-workspace/crossplane/README.md#hands-on-opencode-quickstart) | Reproducible capacity-enforcing workspace storage | Runtime capacity enforcement proven on disposable clusters with the ok-storage-local-quota XFS project-quota profile; cluster, storage and admission setup reproducible from repository entry points; not production-ready |
+| [User / operator guide](https://github.com/openkubes/openkubes/blob/main/platform/workspace/developer-workspace/crossplane/README.md#hands-on-opencode-quickstart) | Operator guidance and OpenCode quickstart | Hands-on OpenCode quickstart (make live-up / live-down) available for disposable clusters; supported self-service installation remains future work |
 
-*Statuses reflect the project snapshot on 14 October 2026; follow the linked tickets for subsequent changes.*
+*Describes the public repository state as of 18 October 2026.*
+
+*Follow the public sources above for the proof scope and implementation guidance. This is a reference implementation, not production-ready; the table describes demonstrated behavior and remaining work rather than ticket status.*
 
 ## What has been proven
 

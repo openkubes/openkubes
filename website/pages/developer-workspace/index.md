@@ -31,8 +31,8 @@ This is a reference workflow, **not yet an automated production deployment flow*
 
 - [ADR-Platform-039 — Developer Workspace Contract (Proposed)](https://github.com/openkubes/openkubes/blob/main/architecture/decisions/ADR-Platform-039-developer-workspace-contract.md)
 - [Public workspace contract spike](https://github.com/openkubes/openkubes/tree/main/architecture/spikes/ADR-Platform-039)
-- [OK-175 — OpenCode reference profile](https://kubernauts.atlassian.net/browse/OK-175)
-- [OK-176 — live isolation and lifecycle proof](https://kubernauts.atlassian.net/browse/OK-176)
+- [OpenCode Namespace reference profile](https://github.com/openkubes/openkubes/blob/main/platform/workspace/developer-workspace/crossplane/README.md#hands-on-opencode-quickstart)
+- [Live isolation and lifecycle proof](https://github.com/openkubes/openkubes/blob/main/platform/workspace/developer-workspace/crossplane/README.md#live-proof-disposable-clusters-only)
 - [Reference implementation (Crossplane capability)](https://github.com/openkubes/openkubes/tree/main/platform/workspace/developer-workspace/crossplane)
 
 **Security note:** The website intentionally does not link directly to raw runtime transcripts or cluster-specific operational evidence. They may contain environmental details and require independent review before redistribution.

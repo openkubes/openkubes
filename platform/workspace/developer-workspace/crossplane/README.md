@@ -750,6 +750,9 @@ OpenCode inference under the selected user namespace setting must still be exerc
   claiming runtime persistent-capacity enforcement. It covers the owned-file project-ID reset
   and bounded write paths from the workspace runtime, not every ioctl or adversarial operation,
   provisioner restart, worker reboot, or production adoption.
+  Provisioner-restart and worker-reboot quota persistence evidence is published separately in
+  ok-storage ([C3 restart/reboot persistence evidence](https://github.com/openkubes/ok-storage/blob/main/tests/c3-quota-preflight/evidence/2026-10-02-persistence/README.md));
+  it is a standalone fixture proof and does not extend this workspace proof's coverage.
 - Push denial is shown against a source that scopes credentials, standing in for a real
   provider's read-only token; it is not a test of any particular Git host's permissions.
 - The live proof does not rerun OpenCode inference. OK-174 proved it for the frozen base render;
