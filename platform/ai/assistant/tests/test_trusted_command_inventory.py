@@ -66,7 +66,7 @@ class TrustedCommandInventoryTests(unittest.TestCase):
         self.assertEqual(result["eligible_shell_fences"], 0)
 
     def test_many_fences_report_capped_overflow_without_authorizing(self):
-        text = "setup\\n" + (F + "bash\\necho example\\n" + F + "\\n") * 17
+        text = "setup\n" + (F + "bash\necho example\n" + F + "\n") * 17
         doc = make_doc(0, text)
         index = {"schema_version": 1, "corpus": [doc]}
         retrieval = DocsRetriever(index).docs_search("install", limit=1)
