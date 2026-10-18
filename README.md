@@ -5,6 +5,18 @@
 ![License](https://img.shields.io/github/license/openkubes/openkubes)
 ![Status](https://img.shields.io/badge/status-community--preview-blue)
 
+## Start Here — Website & Documentation
+
+**New to OpenKubes?** Start with the official website and choose the documentation that fits your goal.
+
+| Start here | What you'll find |
+|---|---|
+| 🌐 **[OpenKubes Website & Documentation](https://openkubes.org/)** | Platform overview, architecture, capabilities and documentation |
+| 🚀 **[Getting Started Guide](https://openkubes.org/getting-started/)** | Entry points for OpenKubes Local, Cluster and AI |
+| ☸️ **[OK-Cluster — Cluster Lifecycle Engine](https://github.com/openkubes/ok-cluster)** | Cluster provisioning, lifecycle tooling, implementation details and repository documentation |
+
+> **Looking for cluster installation commands?** Use the maintained [ok-cluster README](https://github.com/openkubes/ok-cluster#readme) and its documentation as the source of truth. Start with the [Getting Started Guide](https://openkubes.org/getting-started/) for orientation.
+
 <div align="center">
 
 ### Kubernetes is a platform for building platforms.
@@ -242,7 +254,7 @@ kubectl apply -f ../openkubes/platform/ai/open-webui/crossplane/examples/ok-ai.y
 
 | | |
 |---|---|
-| 🌐 Website | [kubernauts.de](https://kubernauts.de) |
+| 🌐 Official Website & Docs | [openkubes.org](https://openkubes.org/) |
 | 🤖 OpenKubes AI | [kubernauts.de/openkubes-ai](https://kubernauts.de/de/openkubes/openkubes-ai/) |
 | 🌍 Meetup | [meetup.com/kubernauts](https://www.meetup.com/kubernauts/) |
 | 📺 YouTube | [youtube.com/c/kubernautsio](https://www.youtube.com/c/kubernautsio) |
