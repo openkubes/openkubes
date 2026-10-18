@@ -64,7 +64,12 @@ class GuideFallbackTests(unittest.TestCase):
         doc = self.index["corpus"][0]
         doc["path"] = "docs/tutorial-capi.md"
         doc["url"] = doc["url"].replace(PATH, "docs/tutorial-capi.md")
+        # Pinned chunk identities depend on repository, revision, path and chunk number.
+        doc["source_id"] = hashlib.sha256(
+            f"{REPO}:{REV}:{doc['path']}:{doc['chunk_number']}".encode()
+        ).hexdigest()[:16]
         hit = self.hits["results"][0]
+        hit["source_id"] = doc["source_id"]
         hit["path"] = doc["path"]
         hit["url"] = doc["url"]
         result = reviewed_guide_fallback(self.question, self.hits, self.index)
