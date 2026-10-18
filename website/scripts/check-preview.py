@@ -8,6 +8,7 @@ ROOT = Path(__file__).resolve().parents[2]
 SITE = ROOT / ".mkdocs-site"
 LEGACY = ROOT / "docs" / "index.html"
 ARTICLES = [
+    "developer-workspace-blog-post",
     "agentic-operations-reference-architecture",
     "vault-secret-contract-blog-post",
     "the-contract-is-the-guardrail-blog-post",
@@ -140,7 +141,7 @@ def main():
                 missing.append("/" + relative.as_posix())
     if missing:
         raise SystemExit("Preview missing files/links: " + ", ".join(sorted(set(missing))))
-    print("Homepage, media, five permalink articles, docs and search checks passed.")
+    print(f"Homepage, media, {len(ARTICLES)} permalink articles, docs and search checks passed.")
 
 if __name__ == "__main__":
     main()

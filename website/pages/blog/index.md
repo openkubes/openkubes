@@ -4,6 +4,10 @@ Architecture decisions, platform engineering lessons and implementation stories.
 
 ## Latest articles
 
+### [Developer Workspaces: Bounded Authority for Coding Agents](/developer-workspace-blog-post/)
+
+A Proposed contract and a merged reference implementation with explicit authority, network and storage boundaries, exercised on disposable test clusters. Not production-ready.
+
 ### [AI Thinks. OpenKubes Executes. Evidence Proves.](/agentic-operations-reference-architecture/)
 
 An architectural proposal for trustworthy agentic Kubernetes operations, with separate intelligence, authority and evidence.
