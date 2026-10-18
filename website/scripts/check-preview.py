@@ -60,9 +60,17 @@ def main():
     # Guard the OK AI navigation and generated capability entry points.
     for ai_path in ("ai/index.html", "ai/open-webui/index.html",
                     "ai/openclaw/index.html", "ai/kagent-platform-diagnostics/index.html",
-                    "ai/agentic-operations/index.html", "ai/ai-glossary-newbies/index.html"):
+                    "ai/agentic-operations/index.html", "ai/ai-glossary-newbies/index.html",
+                    "ai/ai-roadmap/index.html"):
         if not (SITE / ai_path).is_file():
             raise SystemExit(f"Missing OK AI page: {ai_path}")
+    roadmap_html = (SITE / "ai" / "ai-roadmap" / "index.html").read_text(encoding="utf-8")
+    for required in ("Documentation Assistant", "Read-only Diagnostics",
+                     "Agentic Operations", "ok-ai-roadmap__card"):
+        if required not in roadmap_html:
+            raise SystemExit(f"OK AI roadmap missing required content: {required}")
+    if roadmap_html.count('class="ok-ai-roadmap__card ') != 3:
+        raise SystemExit("OK AI roadmap must render exactly three cards")
     glossary_html = (SITE / "ai" / "ai-glossary-newbies" / "index.html")
     if not glossary_html.is_file():
         raise SystemExit("Missing AI Glossary rendered page")
