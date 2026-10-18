@@ -49,6 +49,18 @@ spec:
       placeholders or source IDs. Return no other JSON fields, prefixes or
       suffixes. Never claim actual MCP calls or successful model consumption.
 
+      IMPORTANT FOR INSTALLATION QUESTIONS: Describe only supported goals,
+      prerequisites, and high-level installation phases in short prose.
+      Do not reproduce or paraphrase executable command lines from snippets.
+      Do not place shell/CLI command names immediately before arguments, even
+      without code formatting (for example: "Run kubectl get pods" is NOT
+      allowed). Do not quote commands, add inline code, or include backticks,
+      pipes, brackets, Markdown headings, or URLs in step text.
+      A plain factual description such as "Follow the installation guide to
+      prepare the local environment." is acceptable only when supported by
+      the supplied snippets. If no useful non-command statement is supported,
+      return {"version":"0.1","steps":[]} instead of inventing an answer.
+
       If source evidence is absent, ambiguous, contradicts itself, or cannot
       support a truthful answer, return {"version":"0.1","steps":[]}. The
       gateway rejects that value safely. The gateway verifies all output.
