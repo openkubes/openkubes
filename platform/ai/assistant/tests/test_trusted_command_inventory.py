@@ -65,6 +65,20 @@ class TrustedCommandInventoryTests(unittest.TestCase):
         result = inventory_trusted_fences(DocsRetriever(index).docs_search("install"), index)
         self.assertEqual(result["eligible_shell_fences"], 0)
 
+    def test_many_fences_report_capped_overflow_without_authorizing(self):
+        text = "setup\\n" + (F + "bash\\necho example\\n" + F + "\\n") * 17
+        doc = make_doc(0, text)
+        index = {"schema_version": 1, "corpus": [doc]}
+        retrieval = DocsRetriever(index).docs_search("install", limit=1)
+        result = inventory_trusted_fences(retrieval, index)
+        self.assertEqual(result["status"], "OVER_LIMIT")
+        self.assertTrue(result["count_is_capped"])
+        self.assertEqual(result["max_blocks"], 16)
+        self.assertEqual(result["eligible_shell_fences"], 17)
+        self.assertFalse(result["display_authorized"])
+        self.assertFalse(result["execution_authorized"])
+        self.assertNotIn("echo example", str(result))
+
     def test_no_hits_fail_closed(self):
         with self.assertRaises(ValueError):
             inventory_trusted_fences({"results": []}, self.index)
