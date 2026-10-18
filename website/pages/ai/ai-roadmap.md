@@ -45,6 +45,6 @@
 
 **AI thinks. OpenKubes executes. Evidence proves.** Each phase adds capabilities without giving an AI agent unrestricted access to Kubernetes. In Phase 3, platform state changes must pass through independent policy, approval, and execution contracts; the agent never receives direct Kubernetes mutation authority.
 
-This phased scope is recorded in [OK-202 — OpenKubes AI Assistant architecture & MVP](https://kubernauts.atlassian.net/browse/OK-202). For public background, see the [Agentic Operations Reference Architecture](../agentic-operations-reference-architecture.md).
+For the publicly documented execution boundaries, see the [Agentic Operations Reference Architecture](../agentic-operations-reference-architecture.md).
 
 [← Back to OK AI overview](index.md)
