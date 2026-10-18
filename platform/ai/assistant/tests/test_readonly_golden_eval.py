@@ -12,7 +12,7 @@ sys.path.insert(0, str(ROOT))
 
 from public_beta.gateway_context import MAX_QUESTION_CHARS
 from public_beta.structured_answer import ContractRejected, validate_and_render
-from tests.test_private_context_gateway_probe import fixture, SID, QUESTION
+from test_private_context_gateway_probe import fixture, SID, QUESTION
 
 FILE = ROOT / "public_beta" / "golden_eval_cases.json"
 
