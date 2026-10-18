@@ -383,6 +383,13 @@ def validate_ephemeralcontainers_admission(allowed, denied, authority, unchanged
     return {'policyName': POD_USER_NAMESPACE_POLICY, 'allowedControl': 'hostUsers=false',
             'deniedLegacy': 'hostUsers=true', 'rbacDenied': sorted(authority), 'dryRunUnchanged': unchanged}
 
+def provider_adoption_denied(result):
+    """Accept an adoption denial from either Namespace guard, including its exact reason."""
+    return result.returncode != 0 and any(
+        policy in result.stderr and reason in result.stderr for policy, reason in (
+            ('developer-workspace-namespace-guard', 'may change or delete only Namespaces it created'),
+            (NAMESPACE_HOST_USERS_POLICY, 'must preserve the workspace identity and render host-users')))
+
 def validate_install_admission_observation(outcomes):
     expect(set(outcomes) == {'provider-preserve', 'provider-alter', 'provider-adopt',
                              'pod-false', 'pod-true', 'pod-absent', 'missing-param', 'missing-param-unrelated'},
@@ -390,15 +397,16 @@ def validate_install_admission_observation(outcomes):
     for name in ('provider-preserve', 'pod-false', 'missing-param-unrelated'):
         expect(outcomes[name].returncode == 0, f'install allowed control {name} failed: {outcomes[name].stderr.strip()[:200]}')
     host_users = (NAMESPACE_HOST_USERS_POLICY, 'must preserve the workspace identity and render host-users')
-    namespace_guard = ('developer-workspace-namespace-guard', 'may change or delete only Namespaces it created')
     pod_policy = (POD_USER_NAMESPACE_POLICY, 'must set spec.hostUsers to false')
-    # Adoption is denied by both Namespace guards; the server reports whichever it evaluated first.
-    expected = {'provider-alter': [host_users], 'provider-adopt': [namespace_guard, host_users],
-                'pod-true': [pod_policy], 'pod-absent': [pod_policy]}
+    expected = {'provider-alter': [host_users], 'pod-true': [pod_policy], 'pod-absent': [pod_policy]}
     for name, alternatives in expected.items():
         result = outcomes[name]
         expect(result.returncode != 0 and any(policy in result.stderr and reason in result.stderr for policy, reason in alternatives),
                f'install probe {name} was not denied by {" or ".join(p for p, _ in alternatives)}: rc={result.returncode} stderr={result.stderr.strip()[:200]}')
+    adopted = outcomes['provider-adopt']
+    expect(provider_adoption_denied(adopted),
+           f'install probe provider-adopt was not denied by either Namespace guard: '
+           f'rc={adopted.returncode} stderr={adopted.stderr.strip()[:200]}')
     missing = outcomes['missing-param']
     expect(missing.returncode != 0 and
            (NAMESPACE_HOST_USERS_POLICY in missing.stderr or 'no params' in missing.stderr.lower()),
@@ -630,11 +638,7 @@ def observe_installed_admission():
                 input_text=yaml.safe_dump(replace_document(adopted)), check=False)
             # Both Namespace policies deny this adoption; the API server reports whichever it
             # evaluated first (seen live both ways), so either exact denial counts.
-            stderr = outcomes['provider-adopt'].stderr
-            return outcomes['provider-adopt'].returncode != 0 and any(
-                policy in stderr and reason in stderr for policy, reason in (
-                    ('developer-workspace-namespace-guard', 'may change or delete only Namespaces it created'),
-                    (NAMESPACE_HOST_USERS_POLICY, 'must preserve the workspace identity and render host-users')))
+            return provider_adoption_denied(outcomes['provider-adopt'])
         try:
             wait_until('provider adoption of an unowned Namespace to be denied', provider_adopt_refused, timeout=120, interval=2)
         except ProofError as error:
@@ -657,7 +661,7 @@ def observe_installed_admission():
             # outcomes here while API-server policy and parameter caches converge.
             return (outcomes['provider-preserve'].returncode == 0 and
                     outcomes['provider-alter'].returncode != 0 and NAMESPACE_HOST_USERS_POLICY in outcomes['provider-alter'].stderr and
-                    outcomes['provider-adopt'].returncode != 0 and 'developer-workspace-namespace-guard' in outcomes['provider-adopt'].stderr and
+                    provider_adoption_denied(outcomes['provider-adopt']) and
                     outcomes['pod-false'].returncode == 0 and
                     all(outcomes[f'pod-{value}'].returncode != 0 and POD_USER_NAMESPACE_POLICY in outcomes[f'pod-{value}'].stderr
                         for value in ('true', 'absent')))

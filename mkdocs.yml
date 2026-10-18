@@ -30,6 +30,7 @@ nav:
   - Architecture: architecture/index.md
   - OK AI:
       - Overview: ai/index.md
+      - AI Roadmap: ai/ai-roadmap.md
       - Chat UI Preview: ai/chat-preview.md
       - Open WebUI: ai/open-webui.md
       - OpenClaw: ai/openclaw.md
