@@ -8,6 +8,10 @@ OK AI is the AI capability area of OpenKubes: run self-hosted AI services on Kub
 
 [**Explore the OK AI Chat UI prototype →**](chat-preview.md) — an interactive visual preview with sample responses only. It does **not** send any questions to an AI service or public API. No login required.
 
+## OK AI roadmap
+
+Explore our [three-phase OK AI roadmap](ai-roadmap.md): **Documentation Assistant → Read-only Diagnostics → Agentic Operations**. The Documentation Assistant has passed an isolated private lab format-and-source-ID integration check; the public service is not yet released.
+
 ## Explore OK AI
 
 | Capability | Purpose | Documentation |
