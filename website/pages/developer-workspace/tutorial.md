@@ -1,5 +1,7 @@
 # Your First AI Coding Workspace
 
+**Tested** = exercised in the recorded run described below. **Proposed** = not exercised, a template you adapt.
+
 !!! warning "Reference implementation — not production-ready"
     ADR-Platform-039 is **Proposed**. This tutorial demonstrates one bounded fixture task on a disposable cluster. It does not establish general agent capability, performance, hostile multi-tenant isolation, or production readiness.
 
@@ -9,7 +11,7 @@ Create a persistent OpenCode workspace, ask the agent to change a fixture README
 
 This is a beginner's hands-on path **after a platform operator prepares the disposable environment**. It is not a laptop cluster installer. If you are starting with a laptop, read [Running locally?](#running-locally) first.
 
-**Validation & reproducibility:** validated on a disposable Talos cluster, with **39/39 checks passing**. Read the [security and storage boundaries](#security-and-storage-boundaries) and [local-environment limitations](#running-locally) before continuing. The [canonical README][readme], [Makefile][makefile] and [harness][harness] remain authoritative for commands and refusal behavior. Optional [technical validation and evidence](#technical-validation-evidence) records the exact revisions and run details.
+**Validation & reproducibility:** on 2026-10-18, the lifecycle proof (39/39 checks) and one hands-on OpenCode agent task ran on a disposable Talos cluster at implementation commit `8a5123b`. The 39/39 live-run does not rerun inference; steps marked Proposed were not exercised. Repository links use newer commit `944b1dd`; see [evidence details](#technical-validation-evidence), [security and storage boundaries](#security-and-storage-boundaries), and [local limitations](#running-locally).
 
 ## Prerequisites and supported environment
 
@@ -35,7 +37,7 @@ Ask your operator to provide:
 
 The [local-path profile][path-profile] instead declares `hostUsers: true` and `runtimeEnforced: false`. It is an **observed-negative** development profile: request quotas still limit PVC admission, but persistent byte capacity and user-namespace isolation are not guaranteed. Historical negative evidence recorded a 1 GiB workspace writing 1280 MiB. **Proposed alternative for this tutorial:** selecting local-path was not part of the final-main hands-on run. Do not use it to claim the enforcing result.
 
-**Proposed setup template (not exercised in the recorded run; replace placeholders before use):** in Bash, from the operator-supplied repository checkout, replace each placeholder with reviewed values. The context shown is the one used in the tested run; a new cluster must satisfy the harness's explicit allowlist. Do not rename an unrelated context to bypass it.
+**Proposed setup template (not exercised in the recorded run; replace placeholders before use):** in Bash, from the [operator-supplied repository checkout](#technical-validation-evidence), replace each placeholder with reviewed values. The context shown is the one used in the tested run; a new cluster must satisfy the harness's explicit allowlist. Do not rename an unrelated context to bypass it.
 
 ```text
 cd platform/workspace/developer-workspace/crossplane
@@ -135,9 +137,9 @@ cd /workspace
 sh verify.sh
 ```
 
-**Proposed observation template:** `git status --short` may also be run before the task.
+**Proposed observation template:** `git status --short` may also be run before the task; the recorded Git status was taken after the task.
 
-The initial verification must exit **1**, because the fixture has not been modified. The added initial Git status observation is **proposed**; the recorded Git status was taken after the task. An already modified fixture is not the same before/after experiment.
+The initial verification must exit **1**, because the fixture has not been modified. An already modified fixture is not the same before/after experiment.
 
 Use this exact deterministic prompt from the [canonical task implementation][task]. An open-ended prompt previously stopped without editing.
 
@@ -200,7 +202,7 @@ make live-uninstall
 
 It refuses while DeveloperWorkspaces remain. Uninstallation removes this capability, provider, functions, Crossplane and remaining Crossplane-group CRDs; use it only on the disposable target. A successful `live-run` already deleted its test workspaces. **Proposed recovery:** if another workspace remains, identify its owner and export its data before an operator removes it; do not blindly delete all workspaces.
 
-**Proposed operator-specific cleanup templates:** after guest-side cleanup, the operator removes quota storage from the storage repository, then tears down the guest from the cluster repository. Keep the guest kubeconfig and UID guard until guest-side cleanup is complete.
+**Proposed operator-specific cleanup templates:** after guest-side cleanup, the operator removes quota storage from the [pinned storage repository](#technical-validation-evidence), then tears down the guest from the [pinned cluster repository](#technical-validation-evidence). Keep the guest kubeconfig and UID guard until guest-side cleanup is complete.
 
 ```text
 # From the pinned storage repository:
@@ -254,13 +256,13 @@ Starting from local-path would lose the persistent byte-capacity guarantee and u
 
 ## Technical validation & evidence
 
-**Source pin:** current merged `origin/main` when this tutorial was prepared is
-`944b1dd17a0418f61008e3bdc65b8849f7bf42af`. All OpenKubes repository links in this tutorial use that immutable commit. Use a checkout of that revision supplied by your operator. The [canonical README][readme], [Makefile][makefile] and [harness][harness] define the commands and refusal behavior.
+??? info "Technical validation & evidence"
 
-**Evidence labels used throughout:**
+    **Source pin:** current merged `origin/main` when this tutorial was prepared is
+    `944b1dd17a0418f61008e3bdc65b8849f7bf42af`. All OpenKubes repository links in this tutorial use that immutable commit. Use a checkout of that revision supplied by your operator. The [canonical README][readme], [Makefile][makefile] and [harness][harness] define the commands and refusal behavior.
 
-- **Tested** means the operation was exercised in the **2026-10-18 final-main run**, at implementation commit `8a5123bd6c1933c4147e41b286d19198efab80b3`. The results are in the [live-proof record][live-evidence] (`evidence/live-ok-178-ws-933f69ab290b2fd0.json`, 39/39 checks) and the [hands-on evidence][hands-on-evidence] (`evidence/hands-on-ok-178-ws-2026-10-18/`); the [live-proof section][proof] and [hands-on section][hands-on] of the README describe how they were produced. The source pin above is newer; these labels do not claim a new run at that pin.
-- **Proposed** means an instruction or recovery path was not exercised in that run. Placeholder values must be supplied by your operator; commands containing placeholders are templates, not copy-and-run commands.
+    **Recorded evidence:** the **2026-10-18 final-main run** used implementation commit `8a5123bd6c1933c4147e41b286d19198efab80b3`. The results are in the [live-proof record][live-evidence] (`evidence/live-ok-178-ws-933f69ab290b2fd0.json`, 39/39 checks) and the [hands-on evidence][hands-on-evidence] (`evidence/hands-on-ok-178-ws-2026-10-18/`); the [live-proof section][proof] and [hands-on section][hands-on] of the README describe how they were produced. The source pin above is newer; these labels do not claim a new run at that pin.
+    Placeholder values must be supplied by your operator; commands containing placeholders are templates, not copy-and-run commands.
 
 [Back to Developer Workspace](index.md)
 
