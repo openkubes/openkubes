@@ -38,3 +38,20 @@ Expected 3 focused tests, approximately 166 total if 163 prior tests remain unch
 5. Record PASS/FAIL/UNVERIFIED as sanitized metadata in the PR. Preserve the original FAIL as evidence rather than rewriting its verdict.
 
 No public endpoint, command-rendering, Kubernetes mutation or beta release is authorized by this PR.
+
+## Second private A2A run after lab prompt deployment (2026-10-19)
+
+Operator verified private Context Agent generation 3, both new prompt rules PRESENT, configured tools 0, Ready=True and Accepted=True with observedGeneration 3. This does **not** attest the complete effective runtime toolset or egress. The reviewed manifest diff affected only `spec.declarative.systemMessage` plus routine metadata. Only the private lab Agent was updated after explicit operator approval.
+
+Operator ran one private case `definition-ok-local` with the same pinned index and source revision. Sanitized capture: `CAPTURED_PRIVATE`, 245 rendered characters, one cited source, `semantic_grounding=UNVERIFIED`. Local human review of the model response found that the original single-node claim disappeared, but it still attributed a production-mirroring infrastructure property to `ok-local` without explicit support from the cited snippet.
+
+**V2 human semantic verdict: FAIL — claim-to-source subject attribution remains unsupported.** Exact same source ID `072f1d1e37b925fc`, revision `60397cdb2630b0cd9cfbcb5d9a29fe2e38ce323e`. Prompt hardening alone has therefore **not** resolved this release blocker. Do not repeat prompt-only tuning without a testable additional control.
+
+### Next smallest actionable slice
+
+1. Add a **source-role-aware retrieval selection / claim-review design spike** without changing production gateway or bypassing `structured_answer`; avoid relying on a model self-grade as a security gate.
+2. Test that it distinguishes tutorial-subject facts from separately described `ok-local` facts, preserving original exact revision and source ID integrity.
+3. Add negative cases for unsupported claims and explicitly record where automated structural validation is **insufficient**. Keep final human-reviewed semantic acceptance required before public exposure.
+4. Separately complete public auth, abuse limits, telemetry redaction, effective tool/network boundary verification, and preview/release approvals.
+
+**Public Beta HOLD.**
