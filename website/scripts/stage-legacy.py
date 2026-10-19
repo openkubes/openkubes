@@ -32,6 +32,13 @@ def main():
     if not guide.is_file():
         raise SystemExit(f"Missing community contribution guide: {guide}")
     shutil.copy2(guide, TARGET / "community" / "how-to-update-docs.md")
+    # Keep the existing OK Console navigation entry buildable.
+    console_source = pages / "console" / "index.md"
+    if not console_source.is_file():
+        raise SystemExit(f"Missing OK Console page: {console_source}")
+    console_target = TARGET / "console"
+    console_target.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(console_source, console_target / "index.md")
     # Stage the dedicated OK AI capability pages from source-owned Markdown.
     ai_source = pages / "ai"
     ai_target = TARGET / "ai"
