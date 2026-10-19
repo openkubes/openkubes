@@ -39,7 +39,7 @@ def _normalize(question: str) -> str:
             or any(ord(ch) < 32 or ord(ch) == 127 for ch in question)):
         return ""
     stripped = question.strip().lower()
-    return re.sub(r"[?.!]$", "", re.sub(r"\\s+", " ", stripped)).strip()
+    return re.sub(r"[?.!]$", "", re.sub(r"\s+", " ", stripped)).strip()
 
 
 def curated_answer(question: str, index: dict) -> dict:
