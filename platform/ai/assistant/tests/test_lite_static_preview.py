@@ -3,7 +3,7 @@ import sys
 import unittest
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[3]
+ROOT = Path(__file__).resolve().parents[4]
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from public_beta.curated_lite import QUESTIONS, REQUIRED_QUOTE
 
