@@ -52,6 +52,10 @@ def main():
                 raise SystemExit(f"Shared navigation missing on {section}")
     if not (SITE / "assets" / "openkubes-theme.css").is_file():
         raise SystemExit("Shared Material theme asset missing")
+    # Lite widget is referenced by the Material override only on preview.
+    # Fail the build if its staged asset is missing.
+    if not (SITE / "assets" / "ok-ai-lite-preview.js").is_file():
+        raise SystemExit("Missing curated Lite preview JavaScript asset")
     guide_path = SITE / "community" / "how-to-update-docs" / "index.html"
     if not guide_path.is_file():
         raise SystemExit("Missing community documentation contribution guide")
@@ -78,6 +82,8 @@ def main():
     observability_html = (SITE / "observability" / "index.html").read_text(encoding="utf-8")
     if "Observability Capability" not in observability_html or "Capability Contract" not in observability_html:
         raise SystemExit("OK Observability overview incomplete")
+    if not (SITE / "console" / "index.html").is_file():
+        raise SystemExit("Missing OK Console navigation page")
     # Ensure Developer Workspace pages are generated and linked in the new nav.
     for workspace_path in (
         "developer-workspace/index.html",

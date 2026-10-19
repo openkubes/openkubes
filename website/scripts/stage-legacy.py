@@ -32,6 +32,13 @@ def main():
     if not guide.is_file():
         raise SystemExit(f"Missing community contribution guide: {guide}")
     shutil.copy2(guide, TARGET / "community" / "how-to-update-docs.md")
+    # Keep the existing OK Console navigation entry buildable.
+    console_source = pages / "console" / "index.md"
+    if not console_source.is_file():
+        raise SystemExit(f"Missing OK Console page: {console_source}")
+    console_target = TARGET / "console"
+    console_target.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(console_source, console_target / "index.md")
     # Stage the dedicated OK AI capability pages from source-owned Markdown.
     ai_source = pages / "ai"
     ai_target = TARGET / "ai"
@@ -84,9 +91,9 @@ def main():
     if not theme_css.is_file():
         raise SystemExit("Shared theme CSS missing")
     shutil.copy2(theme_css, TARGET / "assets" / theme_css.name)
-    # Preview-only floating OK AI UI demo assets. The hostname guard in
+    # Preview-only floating OK AI UI assets (legacy demo and curated Lite).\n    # The hostname guard in
     # website/overrides/main.html prevents loading them on production.
-    for name in ("ok-ai-floating-demo.js", "ok-ai-floating-demo.css"):
+    for name in ("ok-ai-floating-demo.js", "ok-ai-floating-demo.css", "ok-ai-lite-preview.js"):
         source = ROOT / "website" / "assets" / name
         if not source.is_file():
             raise SystemExit(f"Missing floating UI asset: {source}")
