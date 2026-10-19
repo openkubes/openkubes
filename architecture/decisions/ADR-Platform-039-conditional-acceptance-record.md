@@ -45,7 +45,9 @@ authority. This record is neither a waiver nor a production approval.
 
 ## Final review conditions
 
-Suchit Thakkar owns implementation, documentation and evidence preparation;
+Suchit Thakkar owns documentation and evidence preparation, based on OK-178
+Ownership assigning him execution of the remaining delivery. Each readiness gate's
+implementation owner is **TBD — to be confirmed by Arash Kaffamanesh (decision holder)**.
 Arash Kaffamanesh retains the architecture decision and final approval. These are
 accountability roles, not assertions of ticket assignments.
 

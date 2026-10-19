@@ -4,7 +4,10 @@
 
 **Status:** Proposed
 
+**Amended:** 2026-10-19 (OK-183 persistent-capacity clarification and conditional-acceptance readiness gates)
+
 **Related:** OK-174, OK-176, OK-183, ADR-Platform-001, ADR-Platform-005, ADR-Platform-011, ADR-Platform-015, ADR-Platform-017, ADR-Platform-020, ADR-Platform-034
+**Related (continued):** OK-178, [Namespace Profile Readiness Gates](ADR-Platform-039-readiness-gates.md), [Conditional Acceptance Decision Record](ADR-Platform-039-conditional-acceptance-record.md)
 
 ---
 
@@ -398,6 +401,9 @@ workspace acceptance run's scope.
 named, mandatory Namespace-profile readiness gates, not completed or waived
 requirements. Their scope, accountable owner, acceptance criteria and unblock
 conditions are in the [readiness-gate register](ADR-Platform-039-readiness-gates.md).
+The register identifies Suchit Thakkar as documentation and evidence preparation
+owner under OK-178's remaining-delivery ownership. Each gate's implementation owner
+remains TBD until Arash Kaffamanesh, as decision holder, confirms it.
 Fail-closed boundaries remain required while implementation and proof are pending.
 
 The [conditional acceptance decision record](ADR-Platform-039-conditional-acceptance-record.md)
