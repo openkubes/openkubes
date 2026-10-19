@@ -1,6 +1,6 @@
 # Your First AI Coding Workspace
 
-**Tested** = exercised in the recorded run described below. **Proposed** = not exercised, a template you adapt.
+Steps in this tutorial are labelled **Tested** (exercised in the recorded run described below) or **Proposed** (not exercised; a template you adapt).
 
 !!! warning "Reference implementation — not production-ready"
     ADR-Platform-039 is **Proposed**. This tutorial demonstrates one bounded fixture task on a disposable cluster. It does not establish general agent capability, performance, hostile multi-tenant isolation, or production readiness.
@@ -11,7 +11,7 @@ Create a persistent OpenCode workspace, ask the agent to change a fixture README
 
 This is a beginner's hands-on path **after a platform operator prepares the disposable environment**. It is not a laptop cluster installer. If you are starting with a laptop, read [Running locally?](#running-locally) first.
 
-**Validation & reproducibility:** on 2026-10-18, the lifecycle proof (39/39 checks) and one hands-on OpenCode agent task ran on a disposable Talos cluster at implementation commit `8a5123b`. The 39/39 live-run does not rerun inference; steps marked Proposed were not exercised. Repository links use newer commit `944b1dd`; see [evidence details](#technical-validation-evidence), [security and storage boundaries](#security-and-storage-boundaries), and [local limitations](#running-locally).
+**Validation & reproducibility:** on 2026-10-18, the lifecycle proof (39/39 checks) and one hands-on OpenCode agent task ran on a disposable Talos cluster at implementation commit `8a5123b`. The 39/39 live-run does not rerun inference; steps marked Proposed were not exercised. OpenKubes repository links use newer commit `944b1dd`; see [evidence details](#technical-validation-evidence), [security and storage boundaries](#security-and-storage-boundaries), and [local limitations](#running-locally).
 
 ## Prerequisites and supported environment
 
@@ -261,7 +261,8 @@ Starting from local-path would lose the persistent byte-capacity guarantee and u
     **Source pin:** current merged `origin/main` when this tutorial was prepared is
     `944b1dd17a0418f61008e3bdc65b8849f7bf42af`. All OpenKubes repository links in this tutorial use that immutable commit. Use a checkout of that revision supplied by your operator. The [canonical README][readme], [Makefile][makefile] and [harness][harness] define the commands and refusal behavior.
 
-    **Recorded evidence:** the **2026-10-18 final-main run** used implementation commit `8a5123bd6c1933c4147e41b286d19198efab80b3`. The results are in the [live-proof record][live-evidence] (`evidence/live-ok-178-ws-933f69ab290b2fd0.json`, 39/39 checks) and the [hands-on evidence][hands-on-evidence] (`evidence/hands-on-ok-178-ws-2026-10-18/`); the [live-proof section][proof] and [hands-on section][hands-on] of the README describe how they were produced. The source pin above is newer; these labels do not claim a new run at that pin.
+    **Recorded evidence:** the **2026-10-18 final-main run** used implementation commit `8a5123bd6c1933c4147e41b286d19198efab80b3`. The results are in the [live-proof record][live-evidence] (`evidence/live-ok-178-ws-933f69ab290b2fd0.json`, 39/39 checks) and the [hands-on evidence][hands-on-evidence] (`evidence/hands-on-ok-178-ws-2026-10-18/`); the [live-proof section][proof] and [hands-on section][hands-on] of the README describe how they were produced. The source pin above is newer; this evidence does not claim a new run at that pin.
+
     Placeholder values must be supplied by your operator; commands containing placeholders are templates, not copy-and-run commands.
 
 [Back to Developer Workspace](index.md)
