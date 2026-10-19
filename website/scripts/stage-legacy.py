@@ -55,7 +55,7 @@ def main():
     workspace_source = pages / "developer-workspace"
     workspace_target = TARGET / "developer-workspace"
     workspace_target.mkdir(parents=True, exist_ok=True)
-    for filename in ("index.md", "architecture.md", "coding-agents.md", "status.md"):
+    for filename in ("index.md", "architecture.md", "coding-agents.md", "status.md", "tutorial.md"):
         source_page = workspace_source / filename
         if not source_page.is_file():
             raise SystemExit(f"Missing Developer Workspace page: {source_page}")
