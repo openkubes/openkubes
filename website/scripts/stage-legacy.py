@@ -51,6 +51,13 @@ def main():
         if not source_page.is_file():
             raise SystemExit(f"Missing OK Observability page: {source_page}")
         shutil.copy2(source_page, observability_target / filename)
+    # Stage OK Console: nav references console/index.md, not its source path.
+    console_source = pages / "console" / "index.md"
+    if not console_source.is_file():
+        raise SystemExit(f"Missing OK Console page: {console_source}")
+    console_target = TARGET / "console"
+    console_target.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(console_source, console_target / "index.md")
     # Stage the source-owned Developer Workspace capability pages.
     workspace_source = pages / "developer-workspace"
     workspace_target = TARGET / "developer-workspace"
