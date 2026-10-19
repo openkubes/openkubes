@@ -47,6 +47,12 @@ class LiteStaticPreviewTests(unittest.TestCase):
         self.assertIn("assets/ok-ai-lite-preview.js", self.override)
         self.assertNotIn("assets/ok-ai-floating-demo.js", self.override)
 
+    def test_mkdocs_staging_and_build_check_include_lite_asset(self):
+        staging = (ROOT / "website/scripts/stage-legacy.py").read_text(encoding="utf-8")
+        acceptance = (ROOT / "website/scripts/check-preview.py").read_text(encoding="utf-8")
+        self.assertIn('"ok-ai-lite-preview.js"', staging)
+        self.assertIn('"ok-ai-lite-preview.js"', acceptance)
+
     def test_fail_closed_allowlist_and_text_only_output(self):
         self.assertIn("hasOwnProperty.call(supported, key)", self.script)
         self.assertIn('el.textContent = value', self.script)
