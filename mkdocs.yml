@@ -40,6 +40,8 @@ nav:
       - Observability Stack: observability/stack.md
       - Capability Contract: observability/contract.md
       - Installation & Verification: observability/installation.md
+  - OK Console:
+      - Local Kind Installation: console/index.md
   - Developer Workspace:
       - Overview: developer-workspace/index.md
       - Architecture & Contract: developer-workspace/architecture.md
