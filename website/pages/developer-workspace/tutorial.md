@@ -9,13 +9,7 @@ Create a persistent OpenCode workspace, ask the agent to change a fixture README
 
 This is a beginner's hands-on path **after a platform operator prepares the disposable environment**. It is not a laptop cluster installer. If you are starting with a laptop, read [Running locally?](#running-locally) first.
 
-**Source pin:** current merged `origin/main` when this tutorial was prepared is
-`944b1dd17a0418f61008e3bdc65b8849f7bf42af`. All OpenKubes repository links below use that immutable commit. Use a checkout of that revision supplied by your operator. The [canonical README][readme], [Makefile][makefile] and [harness][harness] define the commands and refusal behavior.
-
-**Evidence labels used throughout:**
-
-- **Tested** means the operation was exercised in the **2026-10-18 final-main run**, at implementation commit `8a5123bd6c1933c4147e41b286d19198efab80b3`. The results are in the [live-proof record][live-evidence] (`evidence/live-ok-178-ws-933f69ab290b2fd0.json`, 39/39 checks) and the [hands-on evidence][hands-on-evidence] (`evidence/hands-on-ok-178-ws-2026-10-18/`); the [live-proof section][proof] and [hands-on section][hands-on] of the README describe how they were produced. The source pin above is newer; these labels do not claim a new run at that pin.
-- **Proposed** means an instruction or recovery path was not exercised in that run. Placeholder values must be supplied by your operator; commands containing placeholders are templates, not copy-and-run commands.
+**Validation & reproducibility:** validated on a disposable Talos cluster, with **39/39 checks passing**. Read the [security and storage boundaries](#security-and-storage-boundaries) and [local-environment limitations](#running-locally) before continuing. The [canonical README][readme], [Makefile][makefile] and [harness][harness] remain authoritative for commands and refusal behavior. Optional [technical validation and evidence](#technical-validation-evidence) records the exact revisions and run details.
 
 ## Prerequisites and supported environment
 
@@ -41,9 +35,9 @@ Ask your operator to provide:
 
 The [local-path profile][path-profile] instead declares `hostUsers: true` and `runtimeEnforced: false`. It is an **observed-negative** development profile: request quotas still limit PVC admission, but persistent byte capacity and user-namespace isolation are not guaranteed. Historical negative evidence recorded a 1 GiB workspace writing 1280 MiB. **Proposed alternative for this tutorial:** selecting local-path was not part of the final-main hands-on run. Do not use it to claim the enforcing result.
 
-**Proposed setup template:** in Bash, from the operator-supplied repository checkout, replace each placeholder with reviewed values. The context shown is the one used in the tested run; a new cluster must satisfy the harness's explicit allowlist. Do not rename an unrelated context to bypass it.
+**Proposed setup template (not exercised in the recorded run; replace placeholders before use):** in Bash, from the operator-supplied repository checkout, replace each placeholder with reviewed values. The context shown is the one used in the tested run; a new cluster must satisfy the harness's explicit allowlist. Do not rename an unrelated context to bypass it.
 
-```bash
+```text
 cd platform/workspace/developer-workspace/crossplane
 export KUBECONFIG='<disposable-guest-kubeconfig>'
 export TARGET_CONTEXT='ok-178-ws-admin@ok-178-ws'
@@ -57,7 +51,7 @@ export OK175_FIXTURE_IMAGE='<approved-registry/fixture@sha256:digest>'
 
 **Proposed private-registry input template** (the pull-only descriptor mechanism was tested):
 
-```bash
+```text
 export OK175_REGISTRY_USERNAME='<pull-only-user>'
 export OK175_REGISTRY_PASSWORD_FD=3
 ```
@@ -66,7 +60,7 @@ Keep the password out of command arguments and logs. In the next commands, repla
 
 ## 2. Install the capability
 
-**Tested:** from the same directory and terminal:
+**Tested (exercised in the recorded run):** from the same directory and terminal:
 
 ```bash
 make live-install
@@ -88,7 +82,7 @@ This performs destructive lifecycle tests on its own fixtures and cleans them up
 
 The tested catalog alias is `ok174-gpt-oss:20b`, derived from `gpt-oss:20b` with `num_ctx: 32768`. The operator created the alias before `live-up` and confirmed it in Ollama's model list. **Proposed endpoint template for that tested operation**, run by the inference operator:
 
-```bash
+```text
 curl --fail-with-body 'http://<reviewed-inference-host>:11434/api/create' \
   -d '{"model":"ok174-gpt-oss:20b","from":"gpt-oss:20b","parameters":{"num_ctx":32768},"stream":false}'
 curl --fail-with-body 'http://<reviewed-inference-host>:11434/api/tags'
@@ -98,10 +92,10 @@ The alias must appear in the list. The [runtime implementation][runtime] defines
 
 ## 4. Start your workspace
 
-**Proposed ledger-location template; tested lifecycle operation:** choose an absolute path on writable storage that survives a reboot, and create its parent directory. The recorded run used its own persistent ledger location.
+**Proposed ledger-location template; tested lifecycle operation:** choose an absolute path on writable storage that survives a reboot, and create its parent directory. For example, `$HOME/.local/state/developer-workspace/hands-on.json` is a possible location. The recorded run used its own persistent ledger location.
 
-```bash
-export OK180_STATE_FILE="$HOME/.local/state/developer-workspace/hands-on.json"
+```text
+export OK180_STATE_FILE='<absolute-persistent-ledger-path>/hands-on.json'
 mkdir -p "$(dirname "$OK180_STATE_FILE")"
 make live-up 3< '<protected-password-file>'
 ```
@@ -114,7 +108,7 @@ kubectl --context <context> exec -n <namespace> pod/<runtime-pod> -c runtime -- 
 
 Use the exact printed command if running a task directly; its quoting matters. For the step-by-step task below, **proposed interactive-shell convenience** (the recorded task used noninteractive execs):
 
-```bash
+```text
 kubectl --context "$TARGET_CONTEXT" -n <namespace> exec -it <runtime-pod> -c runtime -- sh
 cd /workspace
 ```
@@ -139,8 +133,9 @@ Expect `false` and a **nonidentity UID mapping**: container UID 0 maps to a nonz
 ```sh
 cd /workspace
 sh verify.sh
-git status --short
 ```
+
+**Proposed observation template:** `git status --short` may also be run before the task.
 
 The initial verification must exit **1**, because the fixture has not been modified. The added initial Git status observation is **proposed**; the recorded Git status was taken after the task. An already modified fixture is not the same before/after experiment.
 
@@ -185,7 +180,7 @@ The ledger records cluster identity, a run nonce and created object UIDs. Cleanu
 
 **Proposed manual recovery — not exercised in the final-main run:** inspect the named object's UID and `workspace.openkubes.io/hands-on-run` annotation against the ledger. An intent without a recorded UID is ambiguous even if its nonce matches. The operator must establish ownership independently, then delete with a UID precondition using the API path appropriate to that resource:
 
-```bash
+```text
 kubectl --context "$TARGET_CONTEXT" get <kind> <name> -o yaml
 kubectl --context "$TARGET_CONTEXT" delete --raw '<resource-api-path>' -f - <<'DELETE_EOF'
 {"preconditions":{"uid":"<confirmed-owned-uid>"}}
@@ -207,7 +202,7 @@ It refuses while DeveloperWorkspaces remain. Uninstallation removes this capabil
 
 **Proposed operator-specific cleanup templates:** after guest-side cleanup, the operator removes quota storage from the storage repository, then tears down the guest from the cluster repository. Keep the guest kubeconfig and UID guard until guest-side cleanup is complete.
 
-```bash
+```text
 # From the pinned storage repository:
 LOCAL_QUOTA_REMOVE=yes make local-quota-remove \
   LOCAL_QUOTA_GUEST_KUBECONFIG='<guest-kubeconfig>'
@@ -220,7 +215,7 @@ Storage removal refuses while a PVC or PV references the class and retains the p
 
 **Tested alias removal, proposed endpoint template:** remove only an alias created for this disposable exercise, after coordinating with its owner:
 
-```bash
+```text
 curl --fail-with-body -X DELETE 'http://<reviewed-inference-host>:11434/api/delete' \
   -d '{"model":"ok174-gpt-oss:20b"}'
 ```
@@ -256,6 +251,16 @@ Confirm it is absent from the model list. Preserve exported work and proof recor
 **Proposed local trial, not exercised:** an operator would need a separately reviewed observed-negative profile, an explicitly allowlisted disposable context, reachable digest-pinned images and registry trust, a reachable OpenAI-compatible endpoint with a tool-calling model, and a CNI whose egress enforcement, including `ipBlock` rules, is verified separately; the live proof samples only Kubernetes API unreachability. A bundled small chat model is insufficient. Check host kernel, runtime, storage mounts and available memory rather than assuming desktop Kubernetes provides the Talos setup.
 
 Starting from local-path would lose the persistent byte-capacity guarantee and user-namespace isolation. Network isolation remains unproven until exercised on that CNI. CPU, memory and ephemeral limits, admission guards, receipt gating, RBAC, PVC request quotas and API-server-mediated drift correction would all need a fresh local run before any local claim. This tutorial supplies no tested local installation recipe.
+
+## Technical validation & evidence
+
+**Source pin:** current merged `origin/main` when this tutorial was prepared is
+`944b1dd17a0418f61008e3bdc65b8849f7bf42af`. All OpenKubes repository links in this tutorial use that immutable commit. Use a checkout of that revision supplied by your operator. The [canonical README][readme], [Makefile][makefile] and [harness][harness] define the commands and refusal behavior.
+
+**Evidence labels used throughout:**
+
+- **Tested** means the operation was exercised in the **2026-10-18 final-main run**, at implementation commit `8a5123bd6c1933c4147e41b286d19198efab80b3`. The results are in the [live-proof record][live-evidence] (`evidence/live-ok-178-ws-933f69ab290b2fd0.json`, 39/39 checks) and the [hands-on evidence][hands-on-evidence] (`evidence/hands-on-ok-178-ws-2026-10-18/`); the [live-proof section][proof] and [hands-on section][hands-on] of the README describe how they were produced. The source pin above is newer; these labels do not claim a new run at that pin.
+- **Proposed** means an instruction or recovery path was not exercised in that run. Placeholder values must be supplied by your operator; commands containing placeholders are templates, not copy-and-run commands.
 
 [Back to Developer Workspace](index.md)
 
