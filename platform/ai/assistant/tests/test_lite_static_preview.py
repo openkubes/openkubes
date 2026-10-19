@@ -53,6 +53,12 @@ class LiteStaticPreviewTests(unittest.TestCase):
         self.assertIn('"ok-ai-lite-preview.js"', staging)
         self.assertIn('"ok-ai-lite-preview.js"', acceptance)
 
+    def test_console_navigation_page_is_staged_for_strict_mkdocs(self):
+        staging = (ROOT / "website/scripts/stage-legacy.py").read_text(encoding="utf-8")
+        self.assertIn('pages / "console" / "index.md"', staging)
+        self.assertIn('shutil.copy2(console_source, console_target / "index.md")', staging)
+        self.assertTrue((ROOT / "website/pages/console/index.md").is_file())
+
     def test_fail_closed_allowlist_and_text_only_output(self):
         self.assertIn("hasOwnProperty.call(supported, key)", self.script)
         self.assertIn('el.textContent = value', self.script)
