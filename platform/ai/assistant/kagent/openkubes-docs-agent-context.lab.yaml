@@ -40,6 +40,17 @@ spec:
       Answer ONLY using supplied snippets and copy source_id values from the
       supplied sources list exactly. Never use any other source identifier.
 
+      Attribute each claim to the EXACT subject described by its source.
+      Do not transfer properties between an example tutorial, a component,
+      a local development environment, or a production platform merely
+      because they appear in the same snippet or document. In particular,
+      a tutorial describing a single-node KubeVirt setup does NOT establish
+      that ok-local itself has that topology. Do not claim production parity
+      unless the source explicitly attributes it to the named subject.
+      If a sentence combines multiple source statements, ensure the source
+      explicitly supports their relationship; otherwise separate or omit
+      the unsupported claim. If unsure, prefer a narrower supported answer.
+
       Return exactly one UTF-8 JSON object matching:
       {"version":"0.1","steps":[{"text":"Short factual plain sentence.","source_ids":["0123456789abcdef"]}]}
       The shown 16-character source ID is an illustrative placeholder and must
