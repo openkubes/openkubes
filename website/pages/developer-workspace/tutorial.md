@@ -1,7 +1,7 @@
 # Your First AI Coding Workspace
 
 !!! warning "Reference implementation — not production-ready"
-    ADR-039 is **Proposed**. This tutorial demonstrates one bounded fixture task on a disposable cluster. It does not establish general agent capability, performance, hostile multi-tenant isolation, or production readiness.
+    ADR-Platform-039 is **Proposed**. This tutorial demonstrates one bounded fixture task on a disposable cluster. It does not establish general agent capability, performance, hostile multi-tenant isolation, or production readiness.
 
 ## What you will do
 
@@ -14,7 +14,7 @@ This is a beginner's hands-on path **after a platform operator prepares the disp
 
 **Evidence labels used throughout:**
 
-- **Tested** means the operation was exercised in the **2026-10-18 final-main run**, at implementation commit `8a5123bd6c1933c4147e41b286d19198efab80b3`. The [canonical live-proof section][proof] points to `evidence/live-ok-178-ws-933f69ab290b2fd0.json` (39/39 checks); the [hands-on section][hands-on] points to `evidence/hands-on-ok-178-ws-2026-10-18/`. These records contain the results. The source pin above is newer; these labels do not claim a new run at that pin.
+- **Tested** means the operation was exercised in the **2026-10-18 final-main run**, at implementation commit `8a5123bd6c1933c4147e41b286d19198efab80b3`. The results are in the [live-proof record][live-evidence] (`evidence/live-ok-178-ws-933f69ab290b2fd0.json`, 39/39 checks) and the [hands-on evidence][hands-on-evidence] (`evidence/hands-on-ok-178-ws-2026-10-18/`); the [live-proof section][proof] and [hands-on section][hands-on] of the README describe how they were produced. The source pin above is newer; these labels do not claim a new run at that pin.
 - **Proposed** means an instruction or recovery path was not exercised in that run. Placeholder values must be supplied by your operator; commands containing placeholders are templates, not copy-and-run commands.
 
 ## Prerequisites and supported environment
@@ -31,7 +31,7 @@ Ask your operator to provide:
 | A NetworkPolicy-enforcing CNI | It must enforce the profile's egress rules, including `ipBlock`. Policy objects existing in the API is insufficient. |
 | Reachable registry, trusted CA and digest-pinned images | Supply the approved runtime and fixture image references. Private images also need a pull-only identity and a protected password file. |
 | Reviewed inference host and tool-calling model | The selected catalog must route to a reachable OpenAI-compatible endpoint and model alias. A small chat-only model is insufficient for this task. |
-| Operator terminal tools | Bash, Python 3, kubectl, make, Helm and sha256sum; the installer obtains the pinned Crossplane chart. |
+| Operator terminal tools | Bash, Python 3 with PyYAML, kubectl, make, Helm, git, curl and sha256sum; the installer obtains the pinned Crossplane chart. |
 
 **Proposed preparation for your environment:** have the operator follow the [canonical prerequisites][readme] and verify storage and worker user namespaces before continuing. The [storage implementation][storage] and [cluster implementation][cluster] are pinned to the revisions used by the recorded run. Installing those dependencies is deliberately outside this beginner path.
 
@@ -53,7 +53,7 @@ export OK175_RUNTIME_IMAGE='<approved-registry/runtime@sha256:digest>'
 export OK175_FIXTURE_IMAGE='<approved-registry/fixture@sha256:digest>'
 ```
 
-The UID hash intentionally has no added newline. Confirm the guest's identity independently before computing it. Keep these settings for cleanup. Image digests in the [recorded evidence][proof] identify the tested artifacts; a digest alone does not supply registry access.
+`KUBECONFIG` must name exactly one readable file whose **current context** is `TARGET_CONTEXT`; the harness reads the current context, not `--context`. The UID hash intentionally has no added newline. Confirm the guest's identity independently before computing it. Keep these settings for cleanup. Image digests in the [live-proof record][live-evidence] (its `images` key) identify the tested artifacts; a digest alone does not supply registry access.
 
 **Proposed private-registry input template** (the pull-only descriptor mechanism was tested):
 
@@ -109,7 +109,7 @@ make live-up 3< '<protected-password-file>'
 `live-up` prints **Workspace**, **Namespace**, **Runtime Pod**, and a task-execution example. Its tested example has this shape (substitute the current printed values):
 
 ```text
-kubectl --context <context> exec -n <namespace> pod/<runtime-pod> -c runtime -- sh -c 'cd /workspace && opencode run --format json <task> && sh verify.sh'
+kubectl --context <context> exec -n <namespace> pod/<runtime-pod> -c runtime -- sh -c 'cd /workspace && opencode run --format json <quoted task> && sh verify.sh'
 ```
 
 Use the exact printed command if running a task directly; its quoting matters. For the step-by-step task below, **proposed interactive-shell convenience** (the recorded task used noninteractive execs):
@@ -167,7 +167,7 @@ Expect verification exit **0** and ` M README.md`. A successful OpenCode process
 
 **Tested scope:** the lifecycle proof checks admission, rendered resources, drift correction, discovery-only workspace authority, sampled Kubernetes API unreachability, read-only source access, CPU throttling, memory limits, ephemeral eviction, PVC admission quota, persistent byte enforcement and cleanup. The enforcing capacity check requires ENOSPC/EDQUOT with allocation and filesystem capacity within 1 MiB of the declared size, plus a rejected owned-file project-ID reset. It is not a proof of every filesystem operation, quota bypass, reboot or adversarial attack.
 
-**`live-up` does not perform the UID-map or NetworkPolicy enforcement checks that `live-run` performs.** A Ready workspace can therefore lack intended guarantees on an unsuitable cluster. The manual UID checks above address the hands-on Pod; run the full proof on the selected environment before claiming the full boundary. A NetworkPolicy manifest alone proves no network isolation.
+**`live-up` does not perform the UID-map check or the sampled Kubernetes API unreachability probe that `live-run` performs.** A Ready workspace can therefore lack intended guarantees on an unsuitable cluster. The manual UID checks above address the hands-on Pod; run the full proof on the selected environment before claiming the full boundary. A NetworkPolicy manifest alone proves no network isolation.
 
 The runtime receives no mounted Kubernetes token or source push credential. Source authentication and CA are mounted into checkout, not the runtime. Provider-kubernetes has broad platform authority; it is not the workspace identity. Operators control catalog, admission and Namespace labels. A Namespace is not a VM boundary, and declared resource limits are not platform-wide maxima.
 
@@ -233,9 +233,11 @@ Confirm it is absent from the model list. Preserve exported work and proof recor
 
 | Error or symptom | Next action |
 | --- | --- |
-| `OK180_STATE_FILE must name an explicit absolute path` | Set an absolute persistent ledger path and create its parent directory; reuse it for cleanup. |
+| `OK180_STATE_FILE must name an explicit absolute path` | Set an absolute persistent ledger path; reuse it for cleanup. |
+| `OK180_STATE_FILE parent is not a writable directory: ...` | Create the parent directory with write access for your user. |
+| `current context '...' is not the selected disposable target` | Switch the kubeconfig's current context to `TARGET_CONTEXT` (an allowlisted disposable context); `--context` alone is not enough. |
 | `OK175_TARGET_UID_SHA256 does not match the kube-system UID of the selected cluster` | Confirm the intended guest and recompute the hash without a newline. Finish guest cleanup before teardown. |
-| `registry password descriptor is empty` | Reopen the protected password file as descriptor 3 with the pull-only identity. |
+| `registry password descriptor is empty`, or `OSError: [Errno 9] Bad file descriptor` | Reopen the protected password file as descriptor 3 with the pull-only identity. |
 | `capability directory or spike inputs have uncommitted changes` | Supply clean reviewed implementation inputs for `REQUIRE_CLEAN=1`; preserve your work first. |
 | `runtime lacks python3 or perl required for the exact FS_IOC_FSSETXATTR errno probe` | Use an approved runtime digest with one of these supported probe tools. |
 | `DeveloperWorkspaces still exist; delete them first` | Complete ownership-checked workspace cleanup and wait for volume removal before uninstalling. |
@@ -251,7 +253,7 @@ Confirm it is absent from the model list. Preserve exported work and proof recor
 
 **The enforcing profile cannot run locally in the assessed setups.** They lack the verified XFS project-quota storage and user-namespace/idmapped-mount prerequisites. ok-local is a K3s/Multipass environment, not kind; Docker Desktop is a separate reference environment.
 
-**Proposed local trial, not exercised:** an operator would need a separately reviewed observed-negative profile, an explicitly allowlisted disposable context, reachable digest-pinned images and registry trust, a reachable OpenAI-compatible endpoint with a tool-calling model, and a CNI whose egress enforcement is verified by the live proof. A bundled small chat model is insufficient. Check host kernel, runtime, storage mounts and available memory rather than assuming desktop Kubernetes provides the Talos setup.
+**Proposed local trial, not exercised:** an operator would need a separately reviewed observed-negative profile, an explicitly allowlisted disposable context, reachable digest-pinned images and registry trust, a reachable OpenAI-compatible endpoint with a tool-calling model, and a CNI whose egress enforcement, including `ipBlock` rules, is verified separately; the live proof samples only Kubernetes API unreachability. A bundled small chat model is insufficient. Check host kernel, runtime, storage mounts and available memory rather than assuming desktop Kubernetes provides the Talos setup.
 
 Starting from local-path would lose the persistent byte-capacity guarantee and user-namespace isolation. Network isolation remains unproven until exercised on that CNI. CPU, memory and ephemeral limits, admission guards, receipt gating, RBAC, PVC request quotas and API-server-mediated drift correction would all need a fresh local run before any local claim. This tutorial supplies no tested local installation recipe.
 
@@ -262,6 +264,8 @@ Starting from local-path would lose the persistent byte-capacity guarantee and u
 [harness]: https://github.com/openkubes/openkubes/blob/944b1dd17a0418f61008e3bdc65b8849f7bf42af/platform/workspace/developer-workspace/crossplane/tests/live/reconcile_proof.py
 [proof]: https://github.com/openkubes/openkubes/blob/944b1dd17a0418f61008e3bdc65b8849f7bf42af/platform/workspace/developer-workspace/crossplane/README.md#live-proof-disposable-clusters-only
 [hands-on]: https://github.com/openkubes/openkubes/blob/944b1dd17a0418f61008e3bdc65b8849f7bf42af/platform/workspace/developer-workspace/crossplane/README.md#hands-on-opencode-quickstart
+[live-evidence]: https://github.com/openkubes/openkubes/blob/944b1dd17a0418f61008e3bdc65b8849f7bf42af/platform/workspace/developer-workspace/crossplane/evidence/live-ok-178-ws-933f69ab290b2fd0.json
+[hands-on-evidence]: https://github.com/openkubes/openkubes/tree/944b1dd17a0418f61008e3bdc65b8849f7bf42af/platform/workspace/developer-workspace/crossplane/evidence/hands-on-ok-178-ws-2026-10-18
 [quota-profile]: https://github.com/openkubes/openkubes/blob/944b1dd17a0418f61008e3bdc65b8849f7bf42af/platform/workspace/developer-workspace/crossplane/profiles/namespace-profile-local-quota.yaml
 [path-profile]: https://github.com/openkubes/openkubes/blob/944b1dd17a0418f61008e3bdc65b8849f7bf42af/platform/workspace/developer-workspace/crossplane/profiles/namespace-profile-local-path.yaml
 [runtime]: https://github.com/openkubes/openkubes/tree/944b1dd17a0418f61008e3bdc65b8849f7bf42af/architecture/spikes/ADR-Platform-039/live/runtime/opencode
