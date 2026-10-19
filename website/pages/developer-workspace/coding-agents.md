@@ -31,6 +31,8 @@ A coding workspace may consume an approved inference endpoint as a capability. I
 
 There is no turnkey workflow for production use. For evaluation on a **disposable** cluster, the reference implementation provides `make live-up` and `make live-down`, which bring one OpenCode workspace up and remove exactly what they created. Broader access control (a requester role) and production lifecycle operations remain implementation work.
 
+To follow a guided evaluation, see [Your First AI Coding Workspace](tutorial.md).
+
 See the [validation status](status.md) before evaluating the proof for your own environment.
 
 [Back to Developer Workspace](index.md)

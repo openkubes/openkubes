@@ -44,6 +44,7 @@ nav:
       - Installation & Verification: observability/installation.md
   - Developer Workspace:
       - Overview: developer-workspace/index.md
+      - Your First AI Coding Workspace: developer-workspace/tutorial.md
       - Architecture & Contract: developer-workspace/architecture.md
       - OpenCode & Coding Agents: developer-workspace/coding-agents.md
       - Validation & Roadmap: developer-workspace/status.md

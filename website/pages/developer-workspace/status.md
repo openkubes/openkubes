@@ -17,6 +17,8 @@ OpenKubes is actively validating a **contract-driven developer workspace** with 
 
 *Follow the public sources above for the proof scope and implementation guidance. This is a reference implementation, not production-ready; the table describes demonstrated behavior and remaining work rather than ticket status.*
 
+For a guided first evaluation, see [Your First AI Coding Workspace](tutorial.md).
+
 ## What has been proven
 
 The current [candidate verdict](https://github.com/openkubes/openkubes/blob/main/architecture/spikes/ADR-Platform-039/developer-workspace-verdict-v1.yaml) recommends **GO** for continued work and records a bounded live proof covering 18/18 required effects for OpenCode and Codex under a reviewed Namespace implementation profile.
