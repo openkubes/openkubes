@@ -100,6 +100,7 @@ def main():
         "developer-workspace/architecture/index.html",
         "developer-workspace/coding-agents/index.html",
         "developer-workspace/status/index.html",
+        "developer-workspace/tutorial/index.html",
     ):
         if not (SITE / workspace_path).is_file():
             raise SystemExit(f"Missing Developer Workspace page: {workspace_path}")

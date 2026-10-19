@@ -13,6 +13,7 @@ The goal is a portable **DeveloperWorkspace** abstraction that defines source, e
 
 | Topic | What it covers |
 | --- | --- |
+| [Your First AI Coding Workspace](tutorial.md) | A guided first evaluation of a bounded coding workspace |
 | [Architecture & Contract](architecture.md) | Portable workspace semantics, isolation and authorization boundaries |
 | [OpenCode & Coding Agents](coding-agents.md) | OpenCode reference runtime, second-runtime validation and inference |
 | [Validation & Roadmap](status.md) | What the live proof demonstrates, known limits and delivery status |
