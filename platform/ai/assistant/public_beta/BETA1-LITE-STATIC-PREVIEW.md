@@ -49,8 +49,7 @@ From platform/ai/assistant on this branch:
     python3 -m unittest discover -s tests -p 'test_lite_static_preview.py' -v
     python3 -m unittest discover -s tests -v
 
-Six new static preview tests expected; approximately 192 total if the previous
-186 remain unchanged; not yet operator-verified.
+Seven static preview tests now expected (including MkDocs staging/asset check);\napproximately 193 total if the previously operator-verified 192 remain unchanged.\nThe new build-integrity change is not yet operator-verified.
 
 ## Release gates
 
@@ -71,3 +70,16 @@ Six new static preview tests expected; approximately 192 total if the previous
 
 **No Kubernetes resources, Cloudflare settings, DNS, or website deployment have
 been changed.**
+
+## Build-staging finding (2026-10-19)
+
+Repository review found that `website/scripts/stage-legacy.py` originally copied
+only the old demo assets; the new Lite JavaScript was therefore missing from
+the MkDocs output despite the source-level tests passing. The Draft PR now
+copies `ok-ai-lite-preview.js`, `website/scripts/check-preview.py` rejects
+output lacking it, and one new static test verifies both contracts. The
+maintainer still needs to run the complete website build with pinned
+`.ok196-sources` checkouts. The legacy homepage is not Material-rendered:
+its `docs/index.html` is restored separately, so the Lite floating widget
+is **not** guaranteed to appear there; test a Material subpage such as
+`/ai/` on the preview hostname. Do not claim homepage-global coverage.
