@@ -71,6 +71,12 @@ Authorization to create, attach to, mutate or delete a workspace is evaluated se
 
 ### 4. Namespace reference profile
 
+> Decision update (2026-10-19): OK-183 Decision 1 accepts the capacity-amendment
+> direction in principle with clarification; final ADR acceptance remains pending.
+> The historical "pending the OK-183 decision" label below is retained as context.
+> Read it with the [dated amendment](#amendment-note-2026-10-19--persistent-capacity-and-conditional-acceptance),
+> which separates configuration claims from independent live enforcement evidence.
+
 The first implementation profile maps one workspace to one dedicated Namespace.
 
 A conforming Namespace profile MUST provide, at minimum:
@@ -355,3 +361,48 @@ Revisit this ADR when Namespace isolation is insufficient for a real consumer, a
 - ADR-Platform-020 — Shared Platform Services
 - ADR-Platform-034 — authorized desired-state transitions
 - OpenCode — first forcing/reference coding-agent runtime
+
+## Amendment note (2026-10-19) — persistent capacity and conditional acceptance
+
+This additive amendment records OK-183 Decision 1, accepted in principle by Arash
+Kaffamanesh on 2026-10-19 (review comment 15047). It clarifies the proposed rule in
+§4 without changing its provider-neutral boundary or the historical evidence above.
+ADR-Platform-039 remains **Proposed**; this is not final architecture acceptance.
+
+**Configuration validity.** The operator-owned `spec.persistentCapacity` declaration
+contains `runtimeEnforced` and `capacityEnforcingStorageClasses`. A declaration of
+runtime enforcement requires `hostUsers: false` and the selected `storageClassName`
+in the declared list. Composition checks MUST fail closed on inconsistent
+configuration before emitting resources. Passing those checks establishes only
+configuration validity. `runtimeEnforced: true` and the Namespace audit label
+`workspace.openkubes.io/persistent-capacity=runtime-enforced` are operator claims,
+never automatic certification of a backend.
+
+**Runtime enforcement evidence.** A persistent-capacity isolation guarantee is
+conforming only where the backend demonstrably prevents writes beyond declared
+capacity at runtime. PVC sizing and storage requests alone do not establish this.
+Before advertising a backend as capacity-conforming, the implementation profile
+MUST have an independently executed `persistent-capacity-enforced` live test for
+every advertised backend (including every listed capacity-enforcing StorageClass),
+under the required `hostUsers: false` user-namespace boundary. The evidence must
+identify the backend, declared bound, actual write refusal and boundary exercised;
+an internally consistent false declaration must not yield certification. The
+operator declaration cannot substitute for this independent live evidence.
+
+A development/local-path profile without verified runtime enforcement MUST NOT be
+presented as capacity-conforming. This does not prescribe or certify any storage
+provider, and separate storage-fixture restart/reboot evidence does not extend a
+workspace acceptance run's scope.
+
+**Mandatory readiness gates.** Decision 2 preserves all nine partial obligations as
+named, mandatory Namespace-profile readiness gates, not completed or waived
+requirements. Their scope, accountable owner, acceptance criteria and unblock
+conditions are in the [readiness-gate register](ADR-Platform-039-readiness-gates.md).
+Fail-closed boundaries remain required while implementation and proof are pending.
+
+The [conditional acceptance decision record](ADR-Platform-039-conditional-acceptance-record.md)
+records GO to develop/test against the proposed contract, NO-GO for full Namespace
+profile conformance or production readiness, and NO-GO for a production offering
+until its relevant readiness gates are independently satisfied. Final status change
+requires the decision-holder's explicit final review of the PR, documentation
+revisions, gate register and completion evidence, including OK-178 DoD/cross-links.
