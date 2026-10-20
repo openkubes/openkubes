@@ -55,7 +55,9 @@ function validate(doc, release = false, now = new Date()) {
 }
 function selfTest(doc) {
   assert.deepEqual(validate(doc), []);
-  assert.ok(validate(doc, true).some(e => e.includes("not approved")));
+  const unapproved = JSON.parse(JSON.stringify(doc));
+  unapproved.entries[0].review.status = "proposed";
+  assert.ok(validate(unapproved, true).some(e => e.includes("not approved")));
   const copy = () => JSON.parse(JSON.stringify(doc));
   let d = copy(); d.entries[1].variants = [d.entries[0].variants[0].toUpperCase()];
   assert.ok(validate(d).some(e => e.includes("duplicate normalized")));
