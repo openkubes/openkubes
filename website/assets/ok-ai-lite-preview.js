@@ -1,7 +1,7 @@
 /* Beta 1.1: approved-host curated browser UI. No API calls, AI or execution. */
 (function () {
   "use strict";
-  if (!["preview.openkubes.org", "openkubes.org"].includes(window.location.hostname)) return;
+  if (!["preview.openkubes.org", "openkubes.org", "feat-ok-205-faq-manifest.openkubes-preview.pages.dev"].includes(window.location.hostname)) return;
   if (document.getElementById("okai-floating-demo")) return;
 
   // Release-reviewed fixed text. No model-generated content is ever displayed.
