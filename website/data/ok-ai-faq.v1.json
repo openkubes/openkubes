@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "release": "beta-1.1",
+  "default_response": "Beta 1 Lite only answers a small set of reviewed questions. Please consult the official OpenKubes documentation.",
+  "entries": [
+    {
+      "question_id": "ok-local-definition",
+      "variants": [
+        "What is OpenKubes Local?",
+        "What is OK Local?",
+        "What is ok-local?"
+      ],
+      "answer": "OpenKubes Local (ok-local) is a fully automated local development environment provided by the OpenKubes project.",
+      "sources": [
+        {
+          "repository": "openkubes/ok-local",
+          "path": "docs/tutorial-basic.md",
+          "commit_sha": "60397cdb2630b0cd9cfbcb5d9a29fe2e38ce323e",
+          "url": "https://github.com/openkubes/ok-local/blob/60397cdb2630b0cd9cfbcb5d9a29fe2e38ce323e/docs/tutorial-basic.md"
+        }
+      ],
+      "review": {
+        "owner": null,
+        "reviewed_at": null,
+        "review_due": null,
+        "status": "proposed"
+      }
+    },
+    {
+      "question_id": "ok-local-availability",
+      "variants": [
+        "Does OpenKubes provide a local development environment?"
+      ],
+      "answer": "Yes. OpenKubes provides a fully automated local development environment called ok-local.",
+      "sources": [
+        {
+          "repository": "openkubes/ok-local",
+          "path": "docs/tutorial-basic.md",
+          "commit_sha": "60397cdb2630b0cd9cfbcb5d9a29fe2e38ce323e",
+          "url": "https://github.com/openkubes/ok-local/blob/60397cdb2630b0cd9cfbcb5d9a29fe2e38ce323e/docs/tutorial-basic.md"
+        }
+      ],
+      "review": {
+        "owner": null,
+        "reviewed_at": null,
+        "review_due": null,
+        "status": "proposed"
+      }
+    }
+  ]
+}
