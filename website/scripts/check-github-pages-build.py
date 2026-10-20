@@ -21,6 +21,22 @@ def main():
                  "OpenKubes-Presentation.html", "search/search_index.json"):
         if not (SITE / name).is_file():
             raise SystemExit("Missing production candidate path: " + name)
+    # Production launch guard: all pages must use the same reviewed Lite UI.
+    homepage = (SITE / "index.html").read_text(encoding="utf-8")
+    ai_page = (SITE / "ai" / "index.html").read_text(encoding="utf-8")
+    widget = (SITE / "assets" / "ok-ai-lite-preview.js").read_text(encoding="utf-8")
+    if homepage.count('script.src = "/assets/ok-ai-lite-preview.js";') != 1:
+        raise SystemExit("Production homepage missing exactly one Lite loader")
+    if 'script.src = "/assets/ok-ai-floating-demo.js";' in homepage:
+        raise SystemExit("Production homepage contains old DEMO loader")
+    for name, source in (("homepage", homepage), ("MkDocs AI", ai_page), ("Lite widget", widget)):
+        for domain in ("preview.openkubes.org", "openkubes.org"):
+            if domain not in source:
+                raise SystemExit(f"{name}: approved website host missing: {domain}")
+    if "ok-ai-lite-preview.js" not in ai_page:
+        raise SystemExit("Production MkDocs AI page missing Lite loader")
+    if "No AI backend" not in widget or "Beta 1 Lite only answers" not in widget:
+        raise SystemExit("Lite widget refusal and static backend disclosure missing")
     print("GitHub Pages production candidate safety checks passed")
 
 if __name__ == "__main__":
