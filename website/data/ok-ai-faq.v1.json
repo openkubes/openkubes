@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "release": "beta-1.1",
-  "default_response": "Beta 1 Lite only answers a small set of reviewed questions. Please consult the official OpenKubes documentation.",
+  "default_response": "Beta 1.1 only answers a small set of reviewed questions. Please consult the official OpenKubes documentation.",
   "entries": [
     {
       "question_id": "ok-local-definition",
