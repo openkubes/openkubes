@@ -69,7 +69,7 @@
       ]
     }
   });
-  var unsupported = "Beta 1 Lite only answers a small set of reviewed questions. Please consult the official OpenKubes documentation.";
+  var unsupported = "Beta 1.1 only answers a small set of reviewed questions. Please consult the official OpenKubes documentation.";
   // END GENERATED OK-205 FAQ DATA
   var root = document.createElement("div");
   root.id = "okai-floating-demo";
