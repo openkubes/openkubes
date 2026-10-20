@@ -19,7 +19,7 @@ for(const entry of manifest.entries) {
     map[key]={answer:entry.answer,sources:entry.sources.map(s=>s.url)};
   }
 }
-const generated=begin+"\n  var supported = Object.freeze("+JSON.stringify(map,null,2).split("\n").join("\n  ")+");\n  var unsupported = "+JSON.stringify(manifest.default_response)+";\n  "+end;
+const generated=begin+"\n  var supported = Object.freeze("+JSON.stringify(map,null,2).split("\n").join("\n  ")+");\n  var unsupported = "+JSON.stringify(manifest.default_response)+";\n"+end;
 const start=current.indexOf(begin),stop=current.indexOf(end);
 if(start<0||stop<start) throw new Error("Generated markers missing");
 const output=current.slice(0,start)+generated+current.slice(stop+end.length);
