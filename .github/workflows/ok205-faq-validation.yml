@@ -5,6 +5,8 @@ on:
     paths:
       - 'website/data/ok-ai-faq.v1.json'
       - 'website/scripts/validate-ok-ai-faq.js'
+      - 'website/scripts/sync-ok-ai-faq.js'
+      - 'website/assets/ok-ai-lite-preview.js'
       - 'website/tests/ok-ai-faq-golden.v1.json'
       - 'website/tests/test-ok-ai-faq-golden.js'
       - '.github/workflows/ok205-faq-validation.yml'
@@ -30,5 +32,7 @@ jobs:
         run: node website/scripts/validate-ok-ai-faq.js --self-test
       - name: Run deterministic approved/refusal golden fixtures
         run: node website/tests/test-ok-ai-faq-golden.js
+      - name: Confirm browser FAQ matches approved manifest
+        run: node website/scripts/sync-ok-ai-faq.js --check
       - name: Enforce approved and non-expired FAQ reviews
         run: node website/scripts/validate-ok-ai-faq.js --release
