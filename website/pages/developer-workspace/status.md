@@ -2,6 +2,28 @@
 
 OpenKubes is actively validating a **contract-driven developer workspace** with OpenCode as its first coding-agent profile.
 
+## Architecture direction and readiness — 20 October 2026
+
+The architecture decision-holder recorded a **conditional GO to develop and test** against the proposed contract on 2026-10-19, clarified on 2026-10-20. This approves the architectural direction in principle. It does not establish implementation readiness. **ADR-Platform-039 remains Proposed, not Accepted.** See the [recorded conditional decision](https://github.com/openkubes/openkubes/blob/main/architecture/decisions/ADR-Platform-039-conditional-acceptance-record.md).
+
+All [nine mandatory readiness gates](https://github.com/openkubes/openkubes/blob/main/architecture/decisions/ADR-Platform-039-readiness-gates.md) remain open before the Namespace profile can be called fully conforming:
+
+1. Enforce connectivity permissions for each tool, beyond allowing its endpoint.
+2. Enforce lifecycle timers and Review restrictions.
+3. Export required evidence durably before cleanup; block cleanup if export fails.
+4. Keep completed task outcomes unchanged when runtime health changes.
+5. Deliver scoped credentials through the required Secret Contract.
+6. Show full observable state: readiness, failure, termination, task outcomes and evidence.
+7. Clean up automatically at the declared lifecycle limits, respecting storage retention.
+8. Authorize creation, attachment, changes and deletion separately from the workspace's own identity.
+9. Enforce a distinct Review profile with more restrictive tools and credentials than development. Local edits and declared tests remain allowed; merge authority does not follow. Any exception needs an explicit human architecture decision, a risk explanation and concrete security evidence. No exception is assumed approved.
+
+Implementation owners for these gates still await confirmation. Recording the gates does not satisfy or waive them.
+
+For persistent capacity, a configuration declaration is not proof. `runtimeEnforced: true` and its audit label are claims, not certification. Every advertised backend needs its own independent `persistent-capacity-enforced` runtime evidence under the required user-namespace boundary (`hostUsers: false`). The development/local-path profile is not capacity-conforming. Separate storage-fixture evidence does not extend the workspace proof.
+
+**There is no production offering.** Full conformance and production readiness are not approved. Production use needs independently satisfied readiness gates and separate explicit approval. This decision adds no implementation or runtime evidence.
+
 ## Delivery status
 
 | Public source / work area | Scope | Evidence and remaining work |

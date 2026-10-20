@@ -12,6 +12,10 @@ A coding agent edits source, runs shell commands and calls external tools. Those
 
 The contract is [ADR-Platform-039](https://github.com/openkubes/openkubes/blob/main/architecture/decisions/ADR-Platform-039-developer-workspace-contract.md). This post describes its boundaries and the evidence gathered so far, distinguishing the initial contract experiment on a long-lived verification cluster from the later reconciler tests on disposable clusters.
 
+> **Update — 2026-10-20:** On 2026-10-19 the architecture decision-holder recorded a [conditional GO to develop and test](https://github.com/openkubes/openkubes/blob/main/architecture/decisions/ADR-Platform-039-conditional-acceptance-record.md) against this contract. That approves the direction, not readiness: ADR-Platform-039 is still **Proposed, not Accepted**.
+>
+> [Nine readiness gates](https://github.com/openkubes/openkubes/blob/main/architecture/decisions/ADR-Platform-039-readiness-gates.md) must be met before the Namespace profile can be called fully conforming. They are listed in plain words on the [status page](https://openkubes.org/developer-workspace/status/). Declaring storage capacity is not proof of it: each storage backend needs its own runtime evidence, and the development `local-path` profile does not qualify. There is still no production offering.
+
 ## The contract: one declaration for the whole boundary
 
 A `DeveloperWorkspace` describes a bounded execution environment for a developer, a coding agent, or both. It brings source, filesystem, identity, credentials, connectivity, resources, lifecycle and evidence into a single reviewable declaration:
