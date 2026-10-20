@@ -42,18 +42,13 @@ def main():
     html = source.replace(
         "</head>", '<link rel="stylesheet" href="/assets/openkubes-navigation.css">\n</head>', 1
     ).replace("<body>", "<body>\n" + menu, 1)
-    # The preserved legacy homepage embeds the old preview-only DEMO loader.
-    # Rewrite its script URL in the *generated artifact only*, never in
-    # docs/index.html (also the production homepage source).
-    demo_src = 'script.src = "/assets/ok-ai-floating-demo.js";'
+    # The source homepage now carries the approved Lite loader. Keep its
+    # domain allowlist unchanged when adding preview-only navigation.
     lite_src = 'script.src = "/assets/ok-ai-lite-preview.js";'
-    if source.count(demo_src) != 1:
-        raise SystemExit("Expected exactly one legacy preview demo loader")
-    if html.count(demo_src) != 1 or lite_src in source:
-        raise SystemExit("Unexpected legacy homepage widget state")
-    html = html.replace(demo_src, lite_src, 1)
-    if html.count(lite_src) != 1 or demo_src in html:
-        raise SystemExit("Failed to replace legacy preview widget")
+    if source.count(lite_src) != 1 or html.count(lite_src) != 1:
+        raise SystemExit("Expected one curated Lite loader in legacy homepage")
+    if 'script.src = "/assets/ok-ai-floating-demo.js";' in html:
+        raise SystemExit("Obsolete DEMO loader detected in homepage")
     OUTPUT.write_text(html, encoding="utf-8")
     print("Shared OpenKubes navigation injected into preview-only homepage")
 
