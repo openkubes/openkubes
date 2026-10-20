@@ -7,7 +7,7 @@ OpenKubes Developer Workspace is an emerging platform capability for running AI-
 The goal is a portable **DeveloperWorkspace** abstraction that defines source, execution, identity, connectivity, resources, lifecycle and evidence — without making a particular coding-agent product or Kubernetes Namespace part of the permanent platform API.
 
 !!! info "Implementation status"
-    **Reference implementation available; not production.** [ADR-Platform-039](https://github.com/openkubes/openkubes/blob/main/architecture/decisions/ADR-Platform-039-developer-workspace-contract.md) is **Proposed**, not Accepted. The contract spike reports 18/18 required effects for the reviewed Namespace profile, and a Crossplane reconciler for that profile has been proven on disposable clusters. There is **no production offering and no self-service creation**: only platform operators create workspaces.
+    **Reference implementation available; not production.** [ADR-Platform-039](https://github.com/openkubes/openkubes/blob/main/architecture/decisions/ADR-Platform-039-developer-workspace-contract.md) is **Accepted** as the architectural contract; its nine readiness gates remain open. The contract spike reports 18/18 required effects for the reviewed Namespace profile, and a Crossplane reconciler for that profile has been proven on disposable clusters. There is **no production offering and no self-service creation**: only platform operators create workspaces.
 
 ## Explore Developer Workspace
 

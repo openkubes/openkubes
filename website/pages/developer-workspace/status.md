@@ -4,7 +4,7 @@ OpenKubes is actively validating a **contract-driven developer workspace** with 
 
 ## Architecture direction and readiness — 20 October 2026
 
-The architecture decision-holder recorded a **conditional GO to develop and test** against the proposed contract on 2026-10-19, clarified on 2026-10-20. This approves the architectural direction in principle. It does not establish implementation readiness. **ADR-Platform-039 remains Proposed, not Accepted.** See the [recorded conditional decision](https://github.com/openkubes/openkubes/blob/main/architecture/decisions/ADR-Platform-039-conditional-acceptance-record.md).
+The architecture decision-holder recorded a **conditional GO to develop and test** on 2026-10-19. On 2026-10-20, the decision-holder accepted [ADR-Platform-039](https://github.com/openkubes/openkubes/blob/main/architecture/decisions/ADR-Platform-039-developer-workspace-contract.md) **as the architectural contract**. See the [recorded conditional decision](https://github.com/openkubes/openkubes/blob/main/architecture/decisions/ADR-Platform-039-conditional-acceptance-record.md). Acceptance does not establish implementation readiness.
 
 All [nine mandatory readiness gates](https://github.com/openkubes/openkubes/blob/main/architecture/decisions/ADR-Platform-039-readiness-gates.md) remain open before the Namespace profile can be called fully conforming:
 
@@ -22,13 +22,13 @@ Implementation owners for these gates still await confirmation. Recording the ga
 
 For persistent capacity, a configuration declaration is not proof. `runtimeEnforced: true` and its audit label are claims, not certification. Every advertised backend needs its own independent `persistent-capacity-enforced` runtime evidence under the required user-namespace boundary (`hostUsers: false`). The development/local-path profile is not capacity-conforming. Separate storage-fixture evidence does not extend the workspace proof.
 
-**There is no production offering.** Full conformance and production readiness are not approved. Production use needs independently satisfied readiness gates and separate explicit approval. This decision adds no implementation or runtime evidence.
+**There is no production offering.** Architectural acceptance is not production approval. Full conformance and production readiness are not approved. Production use needs independently satisfied readiness gates and separate explicit approval. Production publishing also requires separate approval. This decision adds no implementation or runtime evidence.
 
 ## Delivery status
 
 | Public source / work area | Scope | Evidence and remaining work |
 | --- | --- | --- |
-| [Contract spike](https://github.com/openkubes/openkubes/tree/main/architecture/spikes/ADR-Platform-039) | Contract spike and OpenCode evaluation | Bounded proof recorded; ADR remains Proposed |
+| [Contract spike](https://github.com/openkubes/openkubes/tree/main/architecture/spikes/ADR-Platform-039) | Contract spike and OpenCode evaluation | Bounded proof recorded; readiness gates remain open |
 | [Namespace reference profile](https://github.com/openkubes/openkubes/tree/main/platform/workspace/developer-workspace/crossplane) | Namespace reference profile with OpenCode | Reconciler proven on disposable clusters; not production-ready |
 | [Live isolation and lifecycle proof](https://github.com/openkubes/openkubes/blob/main/platform/workspace/developer-workspace/crossplane/README.md#live-proof-disposable-clusters-only) | Live isolation / lifecycle validation | Bounded disposable-cluster proof of resource bounds, drift correction and UID-bound cleanup recorded; restart/reboot persistence evidence is separate; limits described below |
 | [Second coding-agent runtime proof](coding-agents.md#opencode-and-the-second-runtime-proof) | Second coding-agent runtime validation | OpenCode and Codex exercised under the same reviewed profile |
@@ -58,10 +58,10 @@ The Crossplane reference implementation was then proven on disposable Talos clus
 - **Not reproducible image build attestation:** captured image digests are not end-to-end attestations.
 - **Not production authority:** agent execution never implies approval to merge, release or deploy.
 
-The governing [ADR-Platform-039](https://github.com/openkubes/openkubes/blob/main/architecture/decisions/ADR-Platform-039-developer-workspace-contract.md) remains **Proposed**. The live validation is meaningful engineering evidence, not a product GA announcement.
+The governing [ADR-Platform-039](https://github.com/openkubes/openkubes/blob/main/architecture/decisions/ADR-Platform-039-developer-workspace-contract.md) is **Accepted as the architectural contract**. The live validation is meaningful engineering evidence, not a product GA announcement.
 
 ## Next steps
 
-Complete the current implementation and validation tasks, resolve the remaining contract and security boundaries, review/accept the ADR through the project's human architecture process, and only then document a supported self-service installation flow.
+Complete the current implementation and validation tasks, resolve the remaining contract and security boundaries, and satisfy the nine mandatory readiness gates. Then document a supported self-service installation flow.
 
 [Back to Developer Workspace](index.md)
