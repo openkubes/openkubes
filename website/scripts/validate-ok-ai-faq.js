@@ -8,8 +8,8 @@ const assert = require("node:assert/strict");
 const defaultPath = path.join(__dirname, "..", "data", "ok-ai-faq.v1.json");
 const statuses = new Set(["proposed", "approved", "expired", "rejected"]);
 function normalize(s) {
-  if (typeof s !== "string" || !s.length || s.length > 240 || /[\\x00-\\x1f\\x7f]/.test(s)) return "";
-  return s.trim().toLowerCase().replace(/\\s+/g, " ").replace(/[?.!]$/, "").trim();
+  if (typeof s !== "string" || !s.length || s.length > 240 || /[\x00-\x1f\x7f]/.test(s)) return "";
+  return s.trim().toLowerCase().replace(/\s+/g, " ").replace(/[?.!]$/, "").trim();
 }
 function validate(doc, release = false, now = new Date()) {
   const errors = [], fail = (m) => errors.push(m);
@@ -33,7 +33,7 @@ function validate(doc, release = false, now = new Date()) {
     }
     if (!Array.isArray(e.sources) || !e.sources.length) fail(where + ": missing sources");
     else for (const s of e.sources) {
-      if (!s || !/^[-\\w.]+\\/[-\\w.]+$/.test(s.repository || "") ||
+      if (!s || !/^[-\w.]+\/[-\w.]+$/.test(s.repository || "") ||
         !/^[a-f0-9]{40}$/.test(s.commit_sha || "") ||
         typeof s.path !== "string" || !/^[a-zA-Z0-9_./-]+$/.test(s.path) ||
         s.path.startsWith("/") || s.path.split("/").includes("..") ||
@@ -44,8 +44,8 @@ function validate(doc, release = false, now = new Date()) {
     if (!r || !statuses.has(r.status)) { fail(where + ": missing/invalid review status"); continue; }
     if (release) {
       if (r.status !== "approved" || typeof r.owner !== "string" || !r.owner.trim() ||
-        !/^\\d{4}-\\d{2}-\\d{2}$/.test(r.reviewed_at || "") ||
-        !/^\\d{4}-\\d{2}-\\d{2}$/.test(r.review_due || "") ||
+        !/^\d{4}-\d{2}-\d{2}$/.test(r.reviewed_at || "") ||
+        !/^\d{4}-\d{2}-\d{2}$/.test(r.review_due || "") ||
         Number.isNaN(Date.parse(r.reviewed_at)) || Number.isNaN(Date.parse(r.review_due)) ||
         r.reviewed_at > r.review_due || r.review_due < now.toISOString().slice(0,10))
         fail(where + ": not approved, reviewed, or review expired");
@@ -63,7 +63,7 @@ function selfTest(doc) {
   assert.ok(validate(d).some(e => e.includes("source metadata")));
   d = copy(); d.entries[0].question_id = d.entries[1].question_id;
   assert.ok(validate(d).some(e => e.includes("duplicate question_id")));
-  for (const q of ["hello\\nworld", "x".repeat(241), "", "\\u0000"]) assert.equal(normalize(q), "");
+  for (const q of ["hello\nworld", "x".repeat(241), "", "\u0000"]) assert.equal(normalize(q), "");
   assert.equal(normalize(" What IS ok-local? "), "what is ok-local");
   assert.equal(normalize("what is ok-local??"), "what is ok-local?");
   console.log("Self-test PASS (draft validation, fail-closed release, duplicate variants/IDs, bad SHA, normalization)");
