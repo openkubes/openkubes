@@ -32,6 +32,24 @@ expressly withholding the final transition to Accepted.
    acceptance criteria and unblock conditions. The decision authorizes recording
    the gates, not asserting that their missing behavior has been delivered.
 
+**2026-10-20 — reviewer clarification, [c15059](https://kubernauts.atlassian.net/browse/OK-183?focusedCommentId=15059):**
+Suchit retains documentation, acceptance evidence and independent verification
+only. The gate register proposes owning areas for all nine implementation gates;
+each is **unconfirmed — awaiting Arash**, so the earlier TBD ownership remains
+unresolved. N10 remains **PARTIAL/open**: ADR-Platform-011 Secret Contract is the
+**Accepted/normative** required baseline while its GitOps Implementation Profile
+remains **Proposed**. Harness checkout-only credentials and bounded scans are
+shown; scoped contract delivery for DeveloperWorkspace is not demonstrated and
+still requires independent live proof. O03 remains **PARTIAL/open**: no blanket
+exception to Review being more restrictive than Development; any exception needs
+an explicit human architecture decision, threat/risk rationale and concrete
+security evidence, with no assumed approval. c15047's capacity decision stands.
+ADR-Platform-039 stays **Proposed**; conditional architectural GO permits
+develop/test only, without full profile conformance or production readiness
+acceptance. Preserve all historical evidence revisions and the 42-row mapping
+(32 met / 9 partial / 1 conditional). Remaining epic cross-links and User/Operator
+Guide alignment still require completion before final review.
+
 ## Explicit outcomes
 
 | Outcome | Authority boundary |

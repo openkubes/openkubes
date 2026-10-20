@@ -412,3 +412,10 @@ profile conformance or production readiness, and NO-GO for a production offering
 until its relevant readiness gates are independently satisfied. Final status change
 requires the decision-holder's explicit final review of the PR, documentation
 revisions, gate register and completion evidence, including OK-178 DoD/cross-links.
+
+**2026-10-20 — reviewer clarification, [c15059](https://kubernauts.atlassian.net/browse/OK-183?focusedCommentId=15059):**
+The persistent-capacity amendment and the c15047 conditional direction stand. N10
+and O03 stay partial/open, and the nine gates carry proposed implementation areas
+awaiting the decision holder's confirmation; see the
+[readiness gate register](ADR-Platform-039-readiness-gates.md). This ADR remains
+Proposed.
