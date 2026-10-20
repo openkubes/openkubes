@@ -30,4 +30,5 @@ jobs:
         run: node website/scripts/validate-ok-ai-faq.js --self-test
       - name: Run deterministic approved/refusal golden fixtures
         run: node website/tests/test-ok-ai-faq-golden.js
-      # Release readiness is a separate human-gated check; the self-test verifies fail-closed behavior.
+      - name: Enforce approved and non-expired FAQ reviews
+        run: node website/scripts/validate-ok-ai-faq.js --release
