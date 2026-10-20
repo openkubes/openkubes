@@ -754,15 +754,15 @@
   })();
 </script>
 <script>
-  /* Only load the offline OK AI UI demo on Cloudflare preview. */
+  /* Beta 1 Lite: reviewed static documentation Q&A on approved website hosts. */
   (function () {
-    if (window.location.hostname !== "preview.openkubes.org") return;
+    if (!["preview.openkubes.org", "openkubes.org"].includes(window.location.hostname)) return;
     var css = document.createElement("link");
     css.rel = "stylesheet";
     css.href = "/assets/ok-ai-floating-demo.css";
     document.head.appendChild(css);
     var script = document.createElement("script");
-    script.src = "/assets/ok-ai-floating-demo.js";
+    script.src = "/assets/ok-ai-lite-preview.js";
     document.body.appendChild(script);
   })();
 </script>
