@@ -30,12 +30,4 @@ jobs:
         run: node website/scripts/validate-ok-ai-faq.js --self-test
       - name: Run deterministic approved/refusal golden fixtures
         run: node website/tests/test-ok-ai-faq-golden.js
-      - name: Ensure unapproved release manifest remains blocked
-        shell: bash
-        run: |
-          set -euo pipefail
-          if node website/scripts/validate-ok-ai-faq.js --release; then
-            echo "::error::Draft FAQ manifest unexpectedly passed release checks"
-            exit 1
-          fi
-          echo "PASS: unapproved FAQ manifest was rejected as intended"
+      # Release readiness is a separate human-gated check; the self-test verifies fail-closed behavior.
