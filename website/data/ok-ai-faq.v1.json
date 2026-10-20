@@ -20,10 +20,10 @@
         }
       ],
       "review": {
-        "owner": null,
-        "reviewed_at": null,
-        "review_due": null,
-        "status": "proposed"
+        "owner": "Arash Kaffamanesh",
+        "reviewed_at": "2026-10-20",
+        "review_due": "2027-01-20",
+        "status": "approved"
       }
     },
     {
@@ -41,10 +41,10 @@
         }
       ],
       "review": {
-        "owner": null,
-        "reviewed_at": null,
-        "review_due": null,
-        "status": "proposed"
+        "owner": "Arash Kaffamanesh",
+        "reviewed_at": "2026-10-20",
+        "review_due": "2027-01-20",
+        "status": "approved"
       }
     },
     {
@@ -63,10 +63,10 @@
         }
       ],
       "review": {
-        "owner": null,
-        "reviewed_at": null,
-        "review_due": null,
-        "status": "proposed"
+        "owner": "Arash Kaffamanesh",
+        "reviewed_at": "2026-10-20",
+        "review_due": "2027-01-20",
+        "status": "approved"
       }
     },
     {
@@ -85,10 +85,10 @@
         }
       ],
       "review": {
-        "owner": null,
-        "reviewed_at": null,
-        "review_due": null,
-        "status": "proposed"
+        "owner": "Arash Kaffamanesh",
+        "reviewed_at": "2026-10-20",
+        "review_due": "2027-01-20",
+        "status": "approved"
       }
     },
     {
@@ -107,10 +107,10 @@
         }
       ],
       "review": {
-        "owner": null,
-        "reviewed_at": null,
-        "review_due": null,
-        "status": "proposed"
+        "owner": "Arash Kaffamanesh",
+        "reviewed_at": "2026-10-20",
+        "review_due": "2027-01-20",
+        "status": "approved"
       }
     }
   ]
