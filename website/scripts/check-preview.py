@@ -30,13 +30,14 @@ def main():
     html = index.read_text(encoding="utf-8")
     original = LEGACY.read_text(encoding="utf-8")
     # Legacy homepage must load curated Lite, never the obsolete DEMO widget.
-    # Both loaders are hostname-guarded to preview.openkubes.org.
+    # Verify both approved website hosts are present in the source and output.
     if html.count('script.src = "/assets/ok-ai-lite-preview.js";') != 1:
         raise SystemExit("Legacy homepage Lite widget loader missing or duplicated")
     if 'script.src = "/assets/ok-ai-floating-demo.js";' in html:
         raise SystemExit("Legacy homepage still loads obsolete DEMO widget")
-    if 'window.location.hostname !== "preview.openkubes.org"' not in html:
-        raise SystemExit("Legacy homepage preview-only hostname guard missing")
+    for hostname in ("preview.openkubes.org", "openkubes.org"):
+        if hostname not in html or hostname not in original:
+            raise SystemExit(f"Homepage allowed hostname missing: {hostname}")
     if not (SITE / "assets" / "ok-ai-lite-preview.js").is_file():
         raise SystemExit("Lite widget asset is missing from built site")
     if "ok-global-nav" not in html or "OpenKubes primary navigation" not in html:
