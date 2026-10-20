@@ -19,9 +19,9 @@
 {% block scripts %}
   {{ super() }}
   <script>
-    /* Preview-only widget: production does not fetch CSS/JS or render a button. */
+    /* Curated Beta 1 Lite widget: approved production and preview domains only. */
     (function () {
-      if (window.location.hostname !== "preview.openkubes.org") return;
+      if (!["preview.openkubes.org", "openkubes.org"].includes(window.location.hostname)) return;
       var stylesheet = document.createElement("link");
       stylesheet.rel = "stylesheet";
       stylesheet.href = "{{ 'assets/ok-ai-floating-demo.css' | url }}";
