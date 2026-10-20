@@ -7,7 +7,7 @@ default-deny NetworkPolicy, per-capability egress policies, ResourceQuota, Limit
 lifecycle-appropriate storage (a PVC when persistent, a size-limited `emptyDir` when ephemeral)
 and the workspace Deployment. Deleting the `DeveloperWorkspace` deletes all of it.
 
-ADR-Platform-039 stays Proposed; this directory supplies implementation evidence only.
+ADR-Platform-039 is Accepted as the architectural contract (2026-10-20); its nine readiness gates remain open, and this directory supplies implementation evidence only.
 
 ## Pieces
 

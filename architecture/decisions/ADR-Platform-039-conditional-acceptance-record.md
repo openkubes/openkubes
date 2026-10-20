@@ -87,3 +87,21 @@ harness-scope evidence only. The standalone storage persistence fixture extends
 no workspace-profile guarantee. Historical evidence pins, verdict strings and
 outcomes remain unchanged; this decision supplies no new runtime proof and does
 not upgrade any partial row to met.
+
+## Final decision — 2026-10-20
+
+In [OK-183 c15102](https://kubernauts.atlassian.net/browse/OK-183?focusedCommentId=15102)
+(2026-10-20), decision-holder Arash Kaffamanesh approves the architectural direction
+and formal acceptance of ADR-Platform-039 as the architectural contract. The
+[parent ADR](ADR-Platform-039-developer-workspace-contract.md) is Accepted; the
+earlier Proposed status, pending final acceptance and review conditions above
+record the conditional history preceding this decision.
+
+The [nine Namespace-profile readiness gates](ADR-Platform-039-readiness-gates.md)
+remain open, partial and mandatory, neither met nor waived. The persistent-capacity
+amendment and c15059 clarification stand. Historical evidence pins, verdicts and
+outcomes remain unchanged; no partial gate is upgraded and no new runtime proof
+is supplied by architectural acceptance.
+
+Acceptance is NOT production approval and is NOT a declaration that the Namespace
+reference profile is fully conforming.
