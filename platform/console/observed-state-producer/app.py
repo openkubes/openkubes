@@ -821,7 +821,11 @@ def handler_for(
             except OwnershipError as error:
                 print(f"observed-state-producer ownership unavailable key={error.object_key}")
                 self.send_json(503, {"error": "source_unavailable", "retryable": True})
-            except Exception:
+            except Exception as error:
+                # Keep the client response deliberately generic, but leave a
+                # bounded type-only diagnostic for operators. Never print the
+                # exception text because it may contain source or credential data.
+                print(f"observed-state-producer source unavailable error={type(error).__name__}")
                 self.send_json(503, {"error": "source_unavailable", "retryable": True})
 
         def do_POST(self) -> None:  # noqa: N802
