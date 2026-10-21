@@ -33,7 +33,7 @@ jobs:
         env:
           RELEASE_TAG: ${{ inputs.tag }}
         run: |
-          python3 -c 'import os,re,sys; sys.exit(0 if re.fullmatch(r"docs-search-v[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?", os.environ["RELEASE_TAG"]) else 2)'
+          python3 -c 'import os,re,sys; sys.exit(0 if re.fullmatch(r"docs-search-v[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?", os.environ["RELEASE_TAG"]) else 2)'
 
       - name: Log in to GHCR
         uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
