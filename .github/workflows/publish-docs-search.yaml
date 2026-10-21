@@ -1,0 +1,105 @@
+name: publish docs-search
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Immutable release tag (for example docs-search-v0.1.0-rc.1)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+  packages: write
+  attestations: write
+
+concurrency:
+  group: publish-docs-search
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out reviewed source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+
+      - name: Validate release tag
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          python3 -c 'import os,re,sys; sys.exit(0 if re.fullmatch(r"docs-search-v[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?", os.environ["RELEASE_TAG"]) else 2)'
+
+      - name: Log in to GHCR
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push immutable image
+        id: build
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: platform/ai/assistant
+          file: platform/ai/assistant/Dockerfile
+          push: true
+          tags: ghcr.io/openkubes/docs-search:${{ inputs.tag }}
+          provenance: false
+          sbom: false
+
+      - name: Scan published image
+        uses: aquasecurity/trivy-action@d2a0b60797ff03db6123bd4e2b293f9b37081297
+        with:
+          image-ref: ghcr.io/openkubes/docs-search@${{ steps.build.outputs.digest }}
+          format: table
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: os,library
+          severity: CRITICAL,HIGH
+
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be
+        with:
+          subject-name: ghcr.io/openkubes/docs-search
+          subject-digest: ${{ steps.build.outputs.digest }}
+          push-to-registry: true
+
+      - name: Attest SBOM
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0
+        with:
+          image: ghcr.io/openkubes/docs-search@${{ steps.build.outputs.digest }}
+          artifact-name: docs-search-sbom.spdx.json
+          output-file: docs-search-sbom.spdx.json
+          upload-artifact: true
+          upload-release-assets: false
+
+      - name: Sign immutable image digest
+        uses: sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac
+      - name: Cosign sign
+        env:
+          COSIGN_EXPERIMENTAL: 'true'
+        run: cosign sign --yes ghcr.io/openkubes/docs-search@${{ steps.build.outputs.digest }}
+
+      - name: Verify published attestations
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh attestation verify \
+            oci://ghcr.io/openkubes/docs-search@${{ steps.build.outputs.digest }} \
+            --repo openkubes/openkubes \
+            --signer-workflow openkubes/openkubes/.github/workflows/publish-docs-search.yaml \
+            --source-ref refs/heads/main \
+            --format json > "$RUNNER_TEMP/docs-search-attestation.json"
+          cosign verify ghcr.io/openkubes/docs-search@${{ steps.build.outputs.digest }} \
+            --certificate-identity-regexp 'https://github.com/openkubes/openkubes/.github/workflows/publish-docs-search.yaml@refs/heads/main' \
+            --certificate-oidc-issuer 'https://token.actions.githubusercontent.com'
+
+      - name: Print immutable release coordinates
+        run: |
+          echo "image=ghcr.io/openkubes/docs-search@${{ steps.build.outputs.digest }}"
