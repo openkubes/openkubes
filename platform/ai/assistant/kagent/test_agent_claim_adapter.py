@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 
 import pytest
 
-from agent_claim_adapter import ClaimRejected, plan_kagent_agent
+from agent_claim_adapter import ClaimRejected, plan_kagent_agent, reconcile_kagent_claim
 
 
 DIGEST = "sha256:" + "a" * 64
@@ -44,3 +44,16 @@ def test_rejects_missing_claim_fields(field):
 def test_rejects_expired_claim():
     with pytest.raises(ClaimRejected, match="future"):
         plan_kagent_agent(claim(expiresAt="2026-10-21T11:59:00Z"), now=NOW)
+
+
+def test_reconcile_uses_only_injected_apply_boundary():
+    applied = []
+
+    def apply(manifest):
+        applied.append(manifest)
+        return {"status": {"readiness": "Pending", "observedGeneration": 3}}
+
+    evidence = reconcile_kagent_claim(claim(), apply, now=NOW)
+    assert applied[0]["kind"] == "Agent"
+    assert evidence["kind"] == "AgentDeployment"
+    assert evidence["status"]["evidenceRef"] == "agent-deploy/openkubes-agents/docs-search"
