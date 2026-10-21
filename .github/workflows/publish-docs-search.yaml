@@ -54,7 +54,7 @@ jobs:
           sbom: false
 
       - name: Scan published image
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.28.0
         with:
           image-ref: ghcr.io/openkubes/docs-search@${{ steps.build.outputs.digest }}
           format: table
