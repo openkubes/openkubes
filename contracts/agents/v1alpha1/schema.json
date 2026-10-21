@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openkubes.io/contracts/agents/v1alpha1/schema.json",
+  "title": "OpenKubes Agent Contract v1alpha1",
+  "oneOf": [{ "$ref": "#/$defs/agentDefinition" }, { "$ref": "#/$defs/agentDeployment" }],
+  "$defs": {
+    "digest": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
+    "agentDefinition": {
+      "type": "object", "additionalProperties": false,
+      "required": ["apiVersion", "kind", "metadata", "spec"],
+      "properties": {
+        "apiVersion": { "const": "agents.openkubes.io/v1alpha1" },
+        "kind": { "const": "AgentDefinition" },
+        "metadata": { "type": "object", "required": ["name", "version"], "properties": { "name": { "type": "string", "minLength": 1 }, "version": { "type": "string", "minLength": 1 } } },
+        "spec": { "type": "object", "required": ["publisher", "artifact", "tools", "capabilities"], "properties": {
+          "publisher": { "type": "string", "minLength": 1 },
+          "artifact": { "type": "object", "required": ["digest", "signature", "provenance"], "properties": { "digest": { "$ref": "#/$defs/digest" }, "signature": { "type": "string", "minLength": 1 }, "provenance": { "type": "string", "minLength": 1 } } },
+          "tools": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+          "capabilities": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+        } }
+      }
+    },
+    "agentDeployment": {
+      "type": "object", "additionalProperties": false,
+      "required": ["apiVersion", "kind", "metadata", "spec", "status"],
+      "properties": {
+        "apiVersion": { "const": "agents.openkubes.io/v1alpha1" },
+        "kind": { "const": "AgentDeployment" },
+        "metadata": { "type": "object", "required": ["name", "namespace"], "properties": { "name": { "type": "string", "minLength": 1 }, "namespace": { "type": "string", "minLength": 1 } } },
+        "spec": { "type": "object", "required": ["agentRef", "clusterRef"], "properties": { "agentRef": { "type": "object", "required": ["name", "version", "digest"], "properties": { "name": { "type": "string" }, "version": { "type": "string" }, "digest": { "$ref": "#/$defs/digest" } } }, "clusterRef": { "type": "string", "minLength": 1 } } },
+        "status": { "type": "object", "required": ["readiness", "evidenceRef"], "properties": { "readiness": { "enum": ["Ready", "Pending", "Unknown"] }, "evidenceRef": { "type": "string", "minLength": 1 } } }
+      }
+    }
+  }
+}
