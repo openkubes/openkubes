@@ -612,13 +612,31 @@ def build_hosting_cluster_state(
             ],
         },
     }
-    payload["data"]["clusters"].extend(load_external_cluster_observations(config.cluster_observations_file, observed_at))
+    external_observations = load_external_cluster_observations(config.cluster_observations_file, observed_at, allow_management=True)
+    management_observation = next((item for item in external_observations if item["name"] == config.management_name), None)
+    if management_observation is not None:
+        management_cluster.update({
+            key: management_observation[key]
+            for key in ("provider", "kubernetesVersion", "region", "readiness", "revision", "evidenceId")
+        })
+        management_cluster["compatibility"] = "Read only"
+        management_cluster["contractVersion"] = management_observation["contractVersion"]
+        management_cluster["lifecycle"] = [
+            {"label": "Kubernetes API", "state": "Ready", "detail": "The bounded read-only management-cluster observation completed."},
+            *management_observation["lifecycle"],
+            {"label": "Management capabilities", "state": "Unknown", "detail": "Management capabilities are not verified by this observation."},
+        ]
+        management_evidence_id = management_observation["evidenceId"]
+        management_cluster["evidenceId"] = management_evidence_id
+        payload["data"]["evidence"][0] = management_observation.pop("_evidence")
+        external_observations = [item for item in external_observations if item["name"] != config.management_name]
+    payload["data"]["clusters"].extend(external_observations)
     for cluster in payload["data"]["clusters"][2:]:
         payload["data"]["evidence"].append(cluster.pop("_evidence"))
     return payload
 
 
-def load_external_cluster_observations(filename: str, observed_at: str) -> list[dict[str, Any]]:
+def load_external_cluster_observations(filename: str, observed_at: str, allow_management: bool = False) -> list[dict[str, Any]]:
     """Load bounded, operator-produced read-only cluster observations.
 
     This file contains observations, never credentials. Invalid or stale entries
@@ -641,7 +659,7 @@ def load_external_cluster_observations(filename: str, observed_at: str) -> list[
             if not isinstance(entry, dict):
                 continue
             name = entry.get("name")
-            if not isinstance(name, str) or not DNS_LABEL.fullmatch(name) or name in {"ok-mgmt", "ok-shared"}:
+            if not isinstance(name, str) or not DNS_LABEL.fullmatch(name) or name == "ok-shared" or (name == "ok-mgmt" and not allow_management):
                 continue
             readiness = entry.get("readiness")
             if readiness not in {"Ready", "Pending", "Failed", "Unknown"}:
@@ -651,7 +669,7 @@ def load_external_cluster_observations(filename: str, observed_at: str) -> list[
             revision = bounded_string(entry.get("revision"), "external-observation", 128)
             evidence_id = f"ev-{name}-external-observation"
             result.append({
-                "id": f"cluster-{name}", "name": name, "role": "Workload cluster",
+                "id": f"cluster-{name}", "name": name, "role": "Management plane" if name == "ok-mgmt" else "Workload cluster",
                 "provider": bounded_string(entry.get("provider"), "Kubernetes"),
                 "profile": bounded_string(entry.get("profile"), "External workload cluster"),
                 "kubernetesVersion": version, "region": region, "readiness": readiness,
