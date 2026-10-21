@@ -11,7 +11,7 @@ import re
 from docs_mcp import validate_index
 from public_beta.structured_answer import ContractRejected
 
-FENCE = re.compile(r"(?m)^\`\`\`(bash|sh)\n([^\`]*?)^\`\`\`[ \t]*$", re.DOTALL | re.MULTILINE)
+FENCE = re.compile(r"(?m)^```(bash|sh)\n([^`]*?)^```[ \t]*$", re.DOTALL | re.MULTILINE)
 # This allowlist is intentionally narrow. Docs provenance never implies safety.
 SAFE = re.compile(r"^[A-Za-z0-9_./:=@+%, \t\\-]+$")
 COMMANDS = {"kubectl", "helm", "multipass", "git"}
@@ -50,7 +50,7 @@ def render_source_commands(retrieval: dict, index: dict, source_id: str) -> str:
             raise ValueError()
         doc = docs[source_id]
         text = doc["text"]
-        if text.count("\`\`\`") != len(list(FENCE.finditer(text))) * 2:
+        if text.count("```") != len(list(FENCE.finditer(text))) * 2:
             raise ValueError()
         blocks = FENCE.findall(text)
         if not 1 <= len(blocks) <= 2:
@@ -77,7 +77,7 @@ def render_source_commands(retrieval: dict, index: dict, source_id: str) -> str:
                     raise ValueError()
                 if tokens[0] == "git" and (len(tokens) < 2 or tokens[1] not in {"status", "log", "show", "version"}):
                     raise ValueError()
-            rendered.append("\`\`\`" + language + "\n" + commands + "\`\`\`")
+            rendered.append("```" + language + "\n" + commands + "```")
         return ("Documented reference only — not executed or verified safe for your environment.\n\n"
                 + "\n\n".join(rendered) + "\n\n[Source](" + doc["url"] + ")")
     except (ValueError, TypeError, KeyError, AttributeError):
