@@ -15,6 +15,7 @@ from app import (
     ObservedStateProducer,
     ProducerConfig,
     TlsConfig,
+    agent_deployment_projection,
     build_hosting_cluster_state,
     build_observed_state,
     handler_for,
@@ -60,6 +61,35 @@ def hosting_observation(node_statuses=("True", "True"), available_replicas=2, ob
 
 
 class ProjectionTests(unittest.TestCase):
+    def test_projects_only_correlated_agent_deployment_evidence(self):
+        resources = [{
+            "apiVersion": "agents.openkubes.io/v1alpha1",
+            "kind": "AgentDeployment",
+            "metadata": {"name": "docs-search", "namespace": "openkubes-agents", "resourceVersion": "9"},
+            "spec": {
+                "agentRef": {"name": "ok-ai-document-search", "version": "beta-1.1", "digest": "sha256:" + "a" * 64},
+                "clusterRef": "ok-shared",
+                "authority": "read-only",
+            },
+            "status": {"readiness": "Ready", "evidenceRef": "agent-deploy/ns/name"},
+        }]
+        deployments, evidence = agent_deployment_projection(resources, "2026-08-21T18:30:00Z")
+
+        self.assertEqual(deployments[0]["cluster"], "ok-shared")
+        self.assertEqual(deployments[0]["digest"], "sha256:" + "a" * 64)
+        self.assertEqual(deployments[0]["evidenceId"], evidence[0]["id"])
+        self.assertEqual(evidence[0]["outcome"], "Ready")
+
+    def test_rejects_agent_pod_like_or_incomplete_observation(self):
+        with self.assertRaisesRegex(ValueError, "agentRef"):
+            agent_deployment_projection([{
+                "apiVersion": "agents.openkubes.io/v1alpha1",
+                "kind": "AgentDeployment",
+                "metadata": {"name": "docs-search", "namespace": "openkubes-agents"},
+                "spec": {"clusterRef": "ok-shared"},
+                "status": {},
+            }], "2026-08-21T18:30:00Z")
+
     def test_projects_real_claim_conditions_without_backend_diagnostics(self):
         payload = build_observed_state(claim_list(claim()), ProducerConfig(), now=lambda: NOW)
 
