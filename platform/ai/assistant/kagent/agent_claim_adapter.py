@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import re
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, Callable
 
 
 DIGEST = re.compile(r"^sha256:[a-f0-9]{64}$")
@@ -76,5 +76,35 @@ def plan_kagent_agent(claim: dict[str, Any], *, now: datetime | None = None) -> 
                 "description": f"OpenKubes agent {agent_name} ({version})",
                 "systemMessage": f"Operate only with the approved tools: {', '.join(tools)}.",
             },
+        },
+    }
+
+
+def reconcile_kagent_claim(
+    claim: dict[str, Any],
+    apply_manifest: Callable[[dict[str, Any]], dict[str, Any]],
+    *,
+    now: datetime | None = None,
+) -> dict[str, Any]:
+    """Apply one validated plan through an injected client and return evidence.
+
+    The callback is the only side-effect boundary. A real controller must bind
+    it to the target Worker Cluster client after independently checking tenant,
+    authorization, and target-cluster identity.
+    """
+    manifest = plan_kagent_agent(claim, now=now)
+    observed = apply_manifest(manifest)
+    if not isinstance(observed, dict):
+        raise ClaimRejected("kagent apply result must be an object")
+    status = observed.get("status") if isinstance(observed.get("status"), dict) else {}
+    return {
+        "apiVersion": "agents.openkubes.io/v1alpha1",
+        "kind": "AgentDeployment",
+        "metadata": claim["metadata"],
+        "spec": claim["spec"],
+        "status": {
+            "readiness": status.get("readiness", "Unknown"),
+            "observedGeneration": status.get("observedGeneration"),
+            "evidenceRef": f"agent-deploy/{claim['metadata']['namespace']}/{claim['metadata']['name']}",
         },
     }
