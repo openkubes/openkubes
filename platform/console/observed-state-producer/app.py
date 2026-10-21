@@ -24,6 +24,9 @@ QUERY_V2_PATH = "/api/console-observed-state/v0alpha2"
 MAX_OWNERSHIP_FILE_BYTES = 64 * 1024
 CLAIM_API_VERSION = "platform.openkubes.ai/v1alpha1"
 CLAIM_KIND = "KubeVirtClusterClaim"
+AGENT_CONTRACT_VERSION = "agents.openkubes.io/v1alpha1"
+AGENT_DEPLOYMENT_KIND = "AgentDeployment"
+AGENT_DIGEST = re.compile(r"^sha256:[a-f0-9]{64}$")
 DNS_LABEL = re.compile(r"^[a-z0-9]([-a-z0-9]*[a-z0-9])?$")
 MAX_TLS_FILE_BYTES = 64 * 1024
 
@@ -293,6 +296,73 @@ def claim_projection(resource: dict[str, Any], observed_at: str) -> tuple[dict[s
         "classification": "Current",
     }
     return cluster, evidence
+
+
+def agent_deployment_projection(resources: list[dict[str, Any]], observed_at: str) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Project only complete, correlated AgentDeployment observations.
+
+    This is deliberately a pure projection boundary. It does not infer a
+    deployment from Pods or Agent definitions and rejects incomplete evidence.
+    """
+    deployments: list[dict[str, Any]] = []
+    evidence: list[dict[str, Any]] = []
+    for resource in resources:
+        if not isinstance(resource, dict) or resource.get("apiVersion") != AGENT_CONTRACT_VERSION or resource.get("kind") != AGENT_DEPLOYMENT_KIND:
+            raise ValueError("An observed AgentDeployment has an incompatible contract.")
+        metadata = resource.get("metadata")
+        spec = resource.get("spec")
+        status = resource.get("status")
+        if not isinstance(metadata, dict) or not isinstance(spec, dict) or not isinstance(status, dict):
+            raise ValueError("An observed AgentDeployment must include metadata, spec and status.")
+        name = bounded_string(metadata.get("name"), "")
+        namespace = bounded_string(metadata.get("namespace"), "")
+        if not name or not DNS_LABEL.fullmatch(name) or not namespace or not DNS_LABEL.fullmatch(namespace):
+            raise ValueError("An observed AgentDeployment has an invalid identity.")
+        agent_ref = spec.get("agentRef")
+        if not isinstance(agent_ref, dict):
+            raise ValueError("An observed AgentDeployment has no agentRef.")
+        agent_name = bounded_string(agent_ref.get("name"), "")
+        version = bounded_string(agent_ref.get("version"), "")
+        digest = bounded_string(agent_ref.get("digest"), "")
+        cluster = bounded_string(spec.get("clusterRef"), "")
+        authority = bounded_string(spec.get("authority"), "")
+        evidence_ref = bounded_string(status.get("evidenceRef"), "")
+        readiness = status.get("readiness")
+        if not all((agent_name, version, cluster, authority, evidence_ref)) or not AGENT_DIGEST.fullmatch(digest):
+            raise ValueError("An observed AgentDeployment is missing immutable correlation data.")
+        if readiness not in {"Ready", "Pending", "Unknown"}:
+            raise ValueError("An observed AgentDeployment has an unsupported readiness.")
+        deployment_id = f"agent-deployment-{namespace}-{name}"
+        evidence_id = f"{evidence_ref}:{deployment_id}"
+        deployments.append({
+            "id": deployment_id,
+            "name": name,
+            "agentId": agent_name,
+            "agentName": agent_name,
+            "version": version,
+            "cluster": cluster,
+            "namespace": namespace,
+            "readiness": readiness,
+            "authority": authority,
+            "evidenceId": evidence_id,
+            "digest": digest,
+        })
+        evidence.append({
+            "id": evidence_id,
+            "title": f"{agent_name} deployment observation",
+            "type": "Observation",
+            "outcome": readiness,
+            "clusterId": cluster,
+            "contract": f"{AGENT_DEPLOYMENT_KIND}/{AGENT_CONTRACT_VERSION.split('/')[-1]}",
+            "revision": bounded_string(metadata.get("resourceVersion"), "unknown"),
+            "observedAt": observed_at,
+            "source": "OpenKubes AgentDeployment producer",
+            "summary": f"Observed immutable {agent_name} deployment evidence on {cluster}.",
+            "classification": "Current",
+        })
+    deployments.sort(key=lambda item: item["id"])
+    evidence.sort(key=lambda item: item["id"])
+    return deployments, evidence
 
 
 def build_observed_state(claim_list: dict[str, Any], config: ProducerConfig, now: Callable[[], datetime] = utc_now) -> dict[str, Any]:
