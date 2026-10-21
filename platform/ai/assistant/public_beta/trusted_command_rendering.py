@@ -15,7 +15,7 @@ FENCE = re.compile(r"(?m)^```(bash|sh)\n([^`]*?)^```[ \t]*$", re.DOTALL | re.MUL
 # This allowlist is intentionally narrow. Docs provenance never implies safety.
 SAFE = re.compile(r"^[A-Za-z0-9_./:=@+%, \t\\-]+$")
 COMMANDS = {"kubectl", "helm", "multipass", "git"}
-BLOCKED = re.compile(r"(?:\bsudo\b|\brm\b|\bcurl\b|\bwget\b|\bssh\b|\bscp\b|\bdd\b|\bmkfs\b|\bchmod\b|\bchown\b|\beval\b|\bexec\b|\bdelete\b|\bdrain\b|\breset\b|\bupgrade\b|\binstall\b|\buninstall\b|\bcreate\b|\bapply\b|\bpatch\b|\bscale\b|\brollout\b|\bsecret\b|token|password|key=)", re.I)
+BLOCKED = re.compile(r"(?:\bsudo\b|\brm\b|\bcurl\b|\bwget\b|\bssh\b|\bscp\b|\bdd\b|\bmkfs\b|\bchmod\b|\bchown\b|\beval\b|\bexec\b|\bdelete\b|\bdrain\b|\breset\b|\bupgrade\b|\binstall\b|\buninstall\b|\bcreate\b|\bapply\b|\bpatch\b|\bscale\b|\brollout\b|\bsecrets?\b|token|password|key=)", re.I)
 
 
 def render_source_commands(retrieval: dict, index: dict, source_id: str) -> str:
