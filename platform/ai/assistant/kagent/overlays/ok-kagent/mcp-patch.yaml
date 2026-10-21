@@ -10,4 +10,4 @@ spec:
         - name: ghcr-pull
       containers:
         - name: docs-search
-          image: ghcr.io/openkubes/docs-search@sha256:7af4fa364e462713df0e2fda525ba0cc573c22f2a0c4d9e1b3dd214025670b24
+          image: ghcr.io/openkubes/docs-search@sha256:013ecff99e7db43a8d7d05c0d17e5385dac22254403561905b189a2bc9c2afb1
