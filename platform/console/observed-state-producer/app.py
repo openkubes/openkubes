@@ -667,11 +667,13 @@ def load_external_cluster_observations(filename: str, observed_at: str, allow_ma
             version = bounded_string(entry.get("kubernetesVersion"), "unknown", 64)
             region = bounded_string(entry.get("region"), "unknown", 128)
             revision = bounded_string(entry.get("revision"), "external-observation", 128)
+            profile = bounded_string(entry.get("profile"), "External workload cluster")
+            role = "Infrastructure plane" if "infrastructure host" in profile.lower() else ("Management plane" if name == "ok-mgmt" else "Workload cluster")
             evidence_id = f"ev-{name}-external-observation"
             result.append({
-                "id": f"cluster-{name}", "name": name, "role": "Management plane" if name == "ok-mgmt" else "Workload cluster",
+                "id": f"cluster-{name}", "name": name, "role": role,
                 "provider": bounded_string(entry.get("provider"), "Kubernetes"),
-                "profile": bounded_string(entry.get("profile"), "External workload cluster"),
+                "profile": profile,
                 "kubernetesVersion": version, "region": region, "readiness": readiness,
                 "compatibility": "Read only", "contractVersion": "kubernetes.io/core+apps/v1",
                 "revision": revision, "evidenceId": evidence_id, "capabilities": [],
