@@ -54,7 +54,26 @@ class OfflinePolicyTests(unittest.TestCase):
         self.assertEqual(classify("# just an example")["triage"], "needs_manual_review")
 
     def test_multiple_version_checks(self):
-        self.assertEqual(classify("clusterctl version   # v1.12+\nvirtctl version --client")["triage"], "needs_manual_review")
+        self.assertEqual(classify("clusterctl version   # v1.12+\nvirtctl version --client")["triage"], "low_risk_candidate")
+
+
+    def test_readonly_continuation(self):
+        command = "kubectl get kubevirt kubevirt -n kubevirt " + "\\" + "\n  -o jsonpath='{.spec.configuration.developerConfiguration}'"
+        self.assertEqual(classify(command)["triage"], "low_risk_candidate")
+
+    def test_inline_comment_and_injection(self):
+        self.assertEqual(classify("clusterctl version   # v1.12+")["triage"], "low_risk_candidate")
+        for command in ("clusterctl version # x", "kubectl get nodes  # x",
+                        "clusterctl version  # x\nwhoami",
+                        "clusterctl version  # x; echo hi\nwhoami"):
+            with self.subTest(command=command):
+                self.assertEqual(classify(command)["triage"], "needs_manual_review")
+
+    def test_unsafe_continuation(self):
+        for suffix in ("; whoami", "--raw=/api", "$(whoami)"):
+            command = "kubectl get nodes " + "\\" + "\n  " + suffix
+            with self.subTest(command=command):
+                self.assertEqual(classify(command)["triage"], "needs_manual_review")
 
     def test_tampered_reference_rejected(self):
         idx = snapshot("kubectl get nodes")
