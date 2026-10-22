@@ -70,7 +70,7 @@ def classify_display_candidate(index: dict, reference: dict) -> dict:
     pending = ""
     for line in lines:
         if pending:
-            if line.startswith("#") or line.endswith("\\\\"):
+            if line.startswith("#") or line.endswith("\\"):
                 return _classification(canonical, False)
             line = pending + " " + line
             pending = ""
@@ -89,7 +89,7 @@ def classify_display_candidate(index: dict, reference: dict) -> dict:
             continue
         # An inline comment is allowed ONLY on an exact version query.
         if line.startswith(("clusterctl version", "virtctl version --client")):
-            line = re.sub(r"  +#[^\\r\\n]*$", "", line)
+            line = re.sub(r"  +#[^\r\n]*$", "", line)
         commands.append(line)
     allowed = bool(commands) and len(lines) <= MAX_BLOCK_LINES and all(
         any(pattern.fullmatch(line) for pattern in READ_ONLY) for line in commands
