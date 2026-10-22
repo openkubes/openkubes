@@ -19,6 +19,7 @@ from app import (
     build_hosting_cluster_state,
     build_observed_state,
     handler_for,
+    load_external_cluster_observations,
 )
 
 
@@ -142,6 +143,16 @@ class ProjectionTests(unittest.TestCase):
 
 
 class HostingClusterProjectionTests(unittest.TestCase):
+    def test_external_infrastructure_profile_projects_as_infrastructure_plane(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "observations.json"
+            path.write_text(json.dumps({"clusters": [{
+                "name": "ok-infra", "profile": "Infrastructure host cluster",
+                "readiness": "Ready", "kubernetesVersion": "v1.35.5+rke2r1",
+            }]}), encoding="utf-8")
+            observed = load_external_cluster_observations(str(path), "2026-08-21T18:30:00Z")
+        self.assertEqual(observed[0]["role"], "Infrastructure plane")
+
     def test_projects_only_bounded_hosting_cluster_state(self):
         config = ProducerConfig(
             source_mode="hosting-cluster",
