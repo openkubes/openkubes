@@ -64,10 +64,40 @@ def classify_display_candidate(index: dict, reference: dict) -> dict:
     # explanatory comment. No variable expansions, pipelines, redirects,
     # command substitution, shell separators, or wrapper tools are admitted.
     lines = [line.strip() for line in body.splitlines() if line.strip()]
-    commands = [line for line in lines if not line.startswith("#")]
+    # Only join a literal backslash-newline in a known kubectl get command.
+    # Other continuations remain unrecognized; never evaluate shell syntax.
+    normalized = []
+    pending = ""
+    for line in lines:
+        if pending:
+            if line.startswith("#") or line.endswith("\\\\"):
+                return _classification(canonical, False)
+            line = pending + " " + line
+            pending = ""
+        if line.endswith("\\"):
+            if not line.startswith("kubectl get "):
+                return _classification(canonical, False)
+            pending = line[:-1].rstrip()
+            continue
+        normalized.append(line)
+    if pending:
+        return _classification(canonical, False)
+
+    commands = []
+    for line in normalized:
+        if line.startswith("#"):
+            continue
+        # An inline comment is allowed ONLY on an exact version query.
+        if line.startswith(("clusterctl version", "virtctl version --client")):
+            line = re.sub(r"  +#[^\\r\\n]*$", "", line)
+        commands.append(line)
     allowed = bool(commands) and len(lines) <= MAX_BLOCK_LINES and all(
         any(pattern.fullmatch(line) for pattern in READ_ONLY) for line in commands
     )
+    return _classification(canonical, allowed)
+
+
+def _classification(canonical: dict, allowed: bool) -> dict:
     return {
         "source_id": canonical["source_id"],
         "block_ordinal": canonical["block_ordinal"],
