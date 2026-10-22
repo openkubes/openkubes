@@ -69,10 +69,10 @@ class CommandRenderingTests(unittest.TestCase):
             "git log --output=/tmp/trace",
             "git status --porcelain",
             "multipass info vm",
-            "kubectl get pods\\n",
+            "kubectl get pods ",
         ):
             with self.subTest(command=command):
-                index, hits = fixtures("```sh\\n" + command + "\\n```")
+                index, hits = fixtures("```sh\n" + command + "\n```")
                 with self.assertRaises(ContractRejected):
                     render_source_commands(hits, index, SID)
 
