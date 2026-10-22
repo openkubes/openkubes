@@ -45,5 +45,25 @@ class SourceInventoryTests(unittest.TestCase):
             inventory_shell_blocks(index("```bash\ngit status\n"))
 
 
+    def test_tilde_shell_fence(self):
+        results = inventory_shell_blocks(index("~~~bash\ngit status\n~~~\n"))
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0]["language"], "bash")
+
+    def test_two_distinct_fences(self):
+        text = "```sh\ngit status\n```\n\n```bash\nbrew install multipass\n```\n"
+        results = inventory_shell_blocks(index(text))
+        self.assertEqual([x["review"] for x in results], ["manual_review", "quarantine"])
+
+    def test_unclosed_non_shell_fence(self):
+        with self.assertRaises(ValueError):
+            inventory_shell_blocks(index("```yaml\nkind: Pod\n"))
+
+    def test_unclosed_shell_before_another_fence(self):
+        with self.assertRaises(ValueError):
+            inventory_shell_blocks(index("```bash\ngit status\n~~~\n"))
+
+
+
 if __name__ == "__main__":
     unittest.main()
