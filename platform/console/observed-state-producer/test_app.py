@@ -143,6 +143,22 @@ class ProjectionTests(unittest.TestCase):
 
 
 class HostingClusterProjectionTests(unittest.TestCase):
+    def test_projects_workloads_with_replica_evidence_and_no_container_secrets(self):
+        observation = hosting_observation()
+        observation["workloads"] = [observation["deployment"]]
+        config = ProducerConfig(source_mode="hosting-cluster", workload_deployments=("ok-console",))
+        payload = build_hosting_cluster_state(observation, config, now=lambda: NOW)
+        placement = payload["data"]["placements"][0]
+        self.assertEqual(placement["name"], "openkubes-console/ok-console")
+        self.assertEqual(placement["readiness"], "Ready")
+        evidence = next(item for item in payload["data"]["evidence"] if item["id"] == placement["evidenceId"])
+        self.assertIn("replicas:2/2", evidence["revision"])
+        self.assertNotIn('"SECRET"', json.dumps(payload))
+        observation["workloads"][0]["status"]["observedGeneration"] = 6
+        self.assertEqual(build_hosting_cluster_state(observation, config, now=lambda: NOW)["data"]["placements"][0]["readiness"], "Pending")
+        with self.assertRaisesRegex(ValueError, "outside the configured"):
+            build_hosting_cluster_state(observation, ProducerConfig(), now=lambda: NOW)
+
     def test_external_infrastructure_profile_projects_as_infrastructure_plane(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "observations.json"
