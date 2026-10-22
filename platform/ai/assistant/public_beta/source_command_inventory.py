@@ -33,7 +33,7 @@ def inventory_shell_blocks(index: dict) -> list[dict]:
         language = ""
         body_lines = []
         for line in doc["text"].splitlines(keepends=True):
-            match = OPEN.match(line.rstrip("\\r\\n"))
+            match = OPEN.match(line.rstrip("\r\n"))
             if not fence_char:
                 if match:
                     fence_char = match.group(1)[0]
