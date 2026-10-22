@@ -90,6 +90,7 @@ class ProducerConfig:
     hosting_region: str = "unknown"
     ownership_file: str = ""
     cluster_observations_file: str = ""
+    workload_deployments: tuple[str, ...] = ()
 
     @classmethod
     def from_environment(cls, environment: dict[str, str] | os._Environ[str] = os.environ) -> "ProducerConfig":
@@ -101,6 +102,9 @@ class ProducerConfig:
         hosting_name = environment.get("OK_OBSERVER_HOSTING_NAME", "ok-shared")
         hosting_namespace = environment.get("OK_OBSERVER_HOSTING_NAMESPACE", "openkubes-console")
         hosting_deployment = environment.get("OK_OBSERVER_HOSTING_DEPLOYMENT", "ok-console")
+        workload_deployments = tuple(filter(None, environment.get("OK_OBSERVER_WORKLOAD_DEPLOYMENTS", "").split(",")))
+        if len(workload_deployments) > 20 or len(set(workload_deployments)) != len(workload_deployments) or any(not DNS_LABEL.fullmatch(name) for name in workload_deployments):
+            raise ValueError("Workload deployments must be at most 20 unique DNS labels.")
         for name, value in (
             ("OK_OBSERVER_NAMESPACE", namespace),
             ("OK_OBSERVER_MANAGEMENT_NAME", management_name),
@@ -114,6 +118,7 @@ class ProducerConfig:
             raise ValueError("The hosting cluster must be distinct from the management plane.")
         return cls(
             source_mode=source_mode,
+            workload_deployments=workload_deployments,
             ownership_file=environment.get("OK_OBSERVER_OWNERSHIP_FILE", ""),
             cluster_observations_file=environment.get("OK_OBSERVER_CLUSTER_OBSERVATIONS_FILE", ""),
             namespace=namespace,
@@ -245,6 +250,9 @@ class KubernetesApiClient:
         if not isinstance(payload, dict):
             raise RuntimeError("The Kubernetes API returned an incompatible response.")
         return payload
+
+    def read_workload_deployment(self, namespace: str, name: str) -> dict[str, Any]:
+        return self._get_json(f"/apis/apps/v1/namespaces/{quote(namespace, safe='')}/deployments/{quote(name, safe='')}")
 
 
 def claim_projection(resource: dict[str, Any], observed_at: str) -> tuple[dict[str, Any], dict[str, Any]]:
@@ -612,6 +620,27 @@ def build_hosting_cluster_state(
             ],
         },
     }
+    for resource in observation.get("workloads", []):
+        metadata = resource.get("metadata", {})
+        name, namespace = metadata.get("name", ""), metadata.get("namespace", "")
+        if name not in config.workload_deployments or namespace != config.hosting_namespace:
+            raise ValueError("Workload identity is outside the configured observation scope.")
+        state, desired, available = deployment_readiness(resource)
+        identity = f"observed-deployment-{namespace}-{name}"
+        evidence_id = f"ev-{identity}"
+        revision = f"resourceVersion:{bounded_string(metadata.get('resourceVersion'), 'unknown')};replicas:{available}/{desired}"
+        payload["data"]["placements"].append({
+            "id": identity, "name": f"{namespace}/{name}",
+            "targetCluster": config.hosting_name, "targetClusterId": f"cluster-{config.hosting_name}",
+            "readiness": state, "evidenceId": evidence_id,
+        })
+        payload["data"]["evidence"].append({
+            "id": evidence_id, "title": f"Deployment {namespace}/{name}",
+            "type": "Observation", "outcome": state, "clusterId": f"cluster-{config.hosting_name}",
+            "contract": "Deployment/apps/v1", "revision": revision, "observedAt": observed_at,
+            "source": "Authenticated hosting-cluster Kubernetes API",
+            "summary": f"Available replicas: {available}; desired replicas: {desired}.", "classification": "Current",
+        })
     external_observations = load_external_cluster_observations(config.cluster_observations_file, observed_at, allow_management=True)
     management_observation = next((item for item in external_observations if item["name"] == config.management_name), None)
     if management_observation is not None:
@@ -797,6 +826,10 @@ class ObservedStateProducer:
                 self.config.hosting_namespace,
                 self.config.hosting_deployment,
             )
+            observation["workloads"] = [
+                self.client.read_workload_deployment(self.config.hosting_namespace, name)
+                for name in self.config.workload_deployments
+            ]
             return build_hosting_cluster_state(observation, self.config, self.now)
         return build_observed_state(self.client.list_cluster_claims(self.config.namespace), self.config, self.now)
 
