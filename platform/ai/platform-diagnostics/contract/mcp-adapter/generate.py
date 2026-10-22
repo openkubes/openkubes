@@ -14,6 +14,11 @@ import yaml
 
 HERE = Path(__file__).resolve().parent
 DEFAULT_SPEC = HERE.parent / "openapi.yaml"
+# The contract version this adapter was generated from. Pinned on purpose: the
+# spec path is resolved relative to the checkout, so a branch that has fallen
+# behind would otherwise regenerate cleanly from a stale contract and report no
+# drift. Bumping this is a deliberate act, paired with regenerating the output.
+CONTRACT_VERSION = "1.1.0"
 DEFAULT_OUTPUT = HERE / "generated_contract.py"
 HTTP_METHODS = {"get", "put", "post", "delete", "options", "head", "patch", "trace"}
 IDENTIFIER = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
@@ -28,6 +33,13 @@ def load_spec(path: Path) -> dict[str, Any]:
         document = yaml.safe_load(handle)
     if not isinstance(document, dict) or not str(document.get("openapi", "")).startswith("3."):
         raise ContractError(f"{path} is not an OpenAPI 3 document")
+    version = document.get("info", {}).get("version") if isinstance(document.get("info"), dict) else None
+    if version != CONTRACT_VERSION:
+        raise ContractError(
+            f"{path} declares contract version {version!r}, but this adapter is "
+            f"generated from {CONTRACT_VERSION}. Point --spec at the normative "
+            f"contract, or bump CONTRACT_VERSION and regenerate deliberately."
+        )
     return document
 
 
