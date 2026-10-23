@@ -15,9 +15,11 @@ from app import (
     ObservedStateProducer,
     ProducerConfig,
     TlsConfig,
+    agent_deployment_projection,
     build_hosting_cluster_state,
     build_observed_state,
     handler_for,
+    load_external_cluster_observations,
 )
 
 
@@ -60,6 +62,35 @@ def hosting_observation(node_statuses=("True", "True"), available_replicas=2, ob
 
 
 class ProjectionTests(unittest.TestCase):
+    def test_projects_only_correlated_agent_deployment_evidence(self):
+        resources = [{
+            "apiVersion": "agents.openkubes.io/v1alpha1",
+            "kind": "AgentDeployment",
+            "metadata": {"name": "docs-search", "namespace": "openkubes-agents", "resourceVersion": "9"},
+            "spec": {
+                "agentRef": {"name": "ok-ai-document-search", "version": "beta-1.1", "digest": "sha256:" + "a" * 64},
+                "clusterRef": "ok-shared",
+                "authority": "read-only",
+            },
+            "status": {"readiness": "Ready", "evidenceRef": "agent-deploy/ns/name"},
+        }]
+        deployments, evidence = agent_deployment_projection(resources, "2026-08-21T18:30:00Z")
+
+        self.assertEqual(deployments[0]["cluster"], "ok-shared")
+        self.assertEqual(deployments[0]["digest"], "sha256:" + "a" * 64)
+        self.assertEqual(deployments[0]["evidenceId"], evidence[0]["id"])
+        self.assertEqual(evidence[0]["outcome"], "Ready")
+
+    def test_rejects_agent_pod_like_or_incomplete_observation(self):
+        with self.assertRaisesRegex(ValueError, "agentRef"):
+            agent_deployment_projection([{
+                "apiVersion": "agents.openkubes.io/v1alpha1",
+                "kind": "AgentDeployment",
+                "metadata": {"name": "docs-search", "namespace": "openkubes-agents"},
+                "spec": {"clusterRef": "ok-shared"},
+                "status": {},
+            }], "2026-08-21T18:30:00Z")
+
     def test_projects_real_claim_conditions_without_backend_diagnostics(self):
         payload = build_observed_state(claim_list(claim()), ProducerConfig(), now=lambda: NOW)
 
@@ -112,6 +143,32 @@ class ProjectionTests(unittest.TestCase):
 
 
 class HostingClusterProjectionTests(unittest.TestCase):
+    def test_projects_workloads_with_replica_evidence_and_no_container_secrets(self):
+        observation = hosting_observation()
+        observation["workloads"] = [observation["deployment"]]
+        config = ProducerConfig(source_mode="hosting-cluster", workload_deployments=("ok-console",))
+        payload = build_hosting_cluster_state(observation, config, now=lambda: NOW)
+        placement = payload["data"]["placements"][0]
+        self.assertEqual(placement["name"], "openkubes-console/ok-console")
+        self.assertEqual(placement["readiness"], "Ready")
+        evidence = next(item for item in payload["data"]["evidence"] if item["id"] == placement["evidenceId"])
+        self.assertIn("replicas:2/2", evidence["revision"])
+        self.assertNotIn('"SECRET"', json.dumps(payload))
+        observation["workloads"][0]["status"]["observedGeneration"] = 6
+        self.assertEqual(build_hosting_cluster_state(observation, config, now=lambda: NOW)["data"]["placements"][0]["readiness"], "Pending")
+        with self.assertRaisesRegex(ValueError, "outside the configured"):
+            build_hosting_cluster_state(observation, ProducerConfig(), now=lambda: NOW)
+
+    def test_external_infrastructure_profile_projects_as_infrastructure_plane(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "observations.json"
+            path.write_text(json.dumps({"clusters": [{
+                "name": "ok-infra", "profile": "Infrastructure host cluster",
+                "readiness": "Ready", "kubernetesVersion": "v1.35.5+rke2r1",
+            }]}), encoding="utf-8")
+            observed = load_external_cluster_observations(str(path), "2026-08-21T18:30:00Z")
+        self.assertEqual(observed[0]["role"], "Infrastructure plane")
+
     def test_projects_only_bounded_hosting_cluster_state(self):
         config = ProducerConfig(
             source_mode="hosting-cluster",

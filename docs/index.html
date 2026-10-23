@@ -86,6 +86,43 @@
     max-width:620px;
     margin:0 auto 2rem;
   }
+  /* OK Console launch announcement: prominent but separate from the platform hero. */
+  .console-launch{
+    width:min(100%,840px);
+    margin:1.6rem auto 1.2rem;
+    padding:1.25rem 1.5rem;
+    text-align:left;
+    border:1px solid #9fc4f5;
+    border-left:5px solid #0969da;
+    border-radius:12px;
+    background:#edf5ff;
+    box-shadow:0 8px 24px rgba(9,105,218,.07);
+  }
+  .console-launch__eyebrow{
+    margin:0 0 .35rem;
+    color:#0752a2;
+    font-size:.79rem;
+    font-weight:750;
+    letter-spacing:.07em;
+    text-transform:uppercase;
+  }
+  .console-launch h2{margin:0 0 .35rem;font-size:clamp(1.18rem,2.5vw,1.6rem);color:#152f50;}
+  .console-launch p{margin:.35rem 0;color:#344054;font-size:.94rem;}
+  .console-launch pre{
+    margin:.85rem 0 .65rem;
+    padding:.8rem 1rem;
+    overflow-x:auto;
+    background:#102238;
+    color:#fff;
+    border-radius:8px;
+    white-space:pre;
+    font-size:clamp(.78rem,2vw,.95rem);
+  }
+  .console-launch pre code{background:transparent;border:0;padding:0;color:inherit;font-size:inherit;}
+  .console-launch__links{display:flex;flex-wrap:wrap;gap:1rem;margin-top:.7rem;}
+  .console-launch__links a{font-weight:650;}
+  .console-launch__note{font-size:.79rem!important;color:#475467!important;}
+  @media(max-width:680px){.console-launch{padding:1rem;}}
   .cta{
     display:flex;
     gap:0.8rem;
@@ -413,6 +450,18 @@
   </h1>
   <p class="tagline">OpenKubes is a framework for building sovereign Kubernetes platform distributions — built ADR-first, reviewed three ways, run on infrastructure you control.</p>
   <p class="tagline"><strong>OpenKubes defines the framework. OKP proves it can run.</strong> OpenKubes Platform (OKP) is its official reference distribution — deploy it as provided, adapt it, or use OpenKubes to build your own OpenKubes-conformant distribution.</p>
+  <aside class="console-launch" aria-labelledby="console-launch-title">
+    <p class="console-launch__eyebrow">🚀 New · OpenKubes Console</p>
+    <h2 id="console-launch-title">OpenKubes Console — One-Command Installer is Live!</h2>
+    <p>Explore the OpenKubes Console locally with the new installer.</p>
+    <pre aria-label="OpenKubes Console installation command"><code>curl -fsSL https://get.openkubes.ai | sh</code></pre>
+    <p class="console-launch__note">Security tip: inspect the downloaded script before running it. Review the installer prerequisites and scope for your environment.</p>
+    <div class="console-launch__links">
+      <a href="https://get.openkubes.ai" rel="noopener noreferrer">Installer ↗</a>
+      <a href="/console/">Console documentation →</a>
+      <a href="https://github.com/openkubes/ok-console">Source on GitHub ↗</a>
+    </div>
+  </aside>
   <div class="platform-hero" aria-label="Animated overview of the OpenKubes Kubernetes clusters">
     <video autoplay muted loop playsinline preload="metadata"
            poster="media/openkubes-hero-light-poster.webp"

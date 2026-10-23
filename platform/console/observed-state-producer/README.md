@@ -1,5 +1,18 @@
 # OpenKubes Console observed-state producer
 
+### Hosting workload observations
+
+In hosting-cluster mode, `OK_OBSERVER_WORKLOAD_DEPLOYMENTS` optionally selects
+up to 20 comma-separated Deployment names in `OK_OBSERVER_HOSTING_NAMESPACE`.
+The observer uses named GET requests; grant `get` only for those resourceNames.
+Each observed Deployment produces an existing placement record with an
+`observed-deployment-` ID and its own Evidence. Names include the namespace;
+Evidence revisions carry resourceVersion and available/desired replicas.
+No Pod environment, Secret, logs, or container configuration is projected.
+These records describe current Kubernetes placements, not WorkloadClaims.
+An unavailable API read fails the snapshot instead of preserving a previous
+Ready observation. An empty selection preserves the existing behavior.
+
 This small service is the read-only producer for the Console BFF query
 contracts `observed.openkubes.io/v0alpha1` and
 `observed.openkubes.io/v0alpha2`.

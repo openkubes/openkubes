@@ -24,8 +24,12 @@ QUERY_V2_PATH = "/api/console-observed-state/v0alpha2"
 MAX_OWNERSHIP_FILE_BYTES = 64 * 1024
 CLAIM_API_VERSION = "platform.openkubes.ai/v1alpha1"
 CLAIM_KIND = "KubeVirtClusterClaim"
+AGENT_CONTRACT_VERSION = "agents.openkubes.io/v1alpha1"
+AGENT_DEPLOYMENT_KIND = "AgentDeployment"
+AGENT_DIGEST = re.compile(r"^sha256:[a-f0-9]{64}$")
 DNS_LABEL = re.compile(r"^[a-z0-9]([-a-z0-9]*[a-z0-9])?$")
 MAX_TLS_FILE_BYTES = 64 * 1024
+MAX_CLUSTER_OBSERVATIONS_BYTES = 128 * 1024
 
 
 def utc_now() -> datetime:
@@ -85,6 +89,8 @@ class ProducerConfig:
     hosting_deployment: str = "ok-console"
     hosting_region: str = "unknown"
     ownership_file: str = ""
+    cluster_observations_file: str = ""
+    workload_deployments: tuple[str, ...] = ()
 
     @classmethod
     def from_environment(cls, environment: dict[str, str] | os._Environ[str] = os.environ) -> "ProducerConfig":
@@ -96,6 +102,9 @@ class ProducerConfig:
         hosting_name = environment.get("OK_OBSERVER_HOSTING_NAME", "ok-shared")
         hosting_namespace = environment.get("OK_OBSERVER_HOSTING_NAMESPACE", "openkubes-console")
         hosting_deployment = environment.get("OK_OBSERVER_HOSTING_DEPLOYMENT", "ok-console")
+        workload_deployments = tuple(filter(None, environment.get("OK_OBSERVER_WORKLOAD_DEPLOYMENTS", "").split(",")))
+        if len(workload_deployments) > 20 or len(set(workload_deployments)) != len(workload_deployments) or any(not DNS_LABEL.fullmatch(name) for name in workload_deployments):
+            raise ValueError("Workload deployments must be at most 20 unique DNS labels.")
         for name, value in (
             ("OK_OBSERVER_NAMESPACE", namespace),
             ("OK_OBSERVER_MANAGEMENT_NAME", management_name),
@@ -109,7 +118,9 @@ class ProducerConfig:
             raise ValueError("The hosting cluster must be distinct from the management plane.")
         return cls(
             source_mode=source_mode,
+            workload_deployments=workload_deployments,
             ownership_file=environment.get("OK_OBSERVER_OWNERSHIP_FILE", ""),
+            cluster_observations_file=environment.get("OK_OBSERVER_CLUSTER_OBSERVATIONS_FILE", ""),
             namespace=namespace,
             environment_id=bounded_string(environment.get("OK_OBSERVER_ENVIRONMENT_ID"), "openkubes-management"),
             environment_name=bounded_string(environment.get("OK_OBSERVER_ENVIRONMENT_NAME"), "OpenKubes management plane"),
@@ -240,6 +251,9 @@ class KubernetesApiClient:
             raise RuntimeError("The Kubernetes API returned an incompatible response.")
         return payload
 
+    def read_workload_deployment(self, namespace: str, name: str) -> dict[str, Any]:
+        return self._get_json(f"/apis/apps/v1/namespaces/{quote(namespace, safe='')}/deployments/{quote(name, safe='')}")
+
 
 def claim_projection(resource: dict[str, Any], observed_at: str) -> tuple[dict[str, Any], dict[str, Any]]:
     metadata = resource.get("metadata", {})
@@ -293,6 +307,73 @@ def claim_projection(resource: dict[str, Any], observed_at: str) -> tuple[dict[s
         "classification": "Current",
     }
     return cluster, evidence
+
+
+def agent_deployment_projection(resources: list[dict[str, Any]], observed_at: str) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Project only complete, correlated AgentDeployment observations.
+
+    This is deliberately a pure projection boundary. It does not infer a
+    deployment from Pods or Agent definitions and rejects incomplete evidence.
+    """
+    deployments: list[dict[str, Any]] = []
+    evidence: list[dict[str, Any]] = []
+    for resource in resources:
+        if not isinstance(resource, dict) or resource.get("apiVersion") != AGENT_CONTRACT_VERSION or resource.get("kind") != AGENT_DEPLOYMENT_KIND:
+            raise ValueError("An observed AgentDeployment has an incompatible contract.")
+        metadata = resource.get("metadata")
+        spec = resource.get("spec")
+        status = resource.get("status")
+        if not isinstance(metadata, dict) or not isinstance(spec, dict) or not isinstance(status, dict):
+            raise ValueError("An observed AgentDeployment must include metadata, spec and status.")
+        name = bounded_string(metadata.get("name"), "")
+        namespace = bounded_string(metadata.get("namespace"), "")
+        if not name or not DNS_LABEL.fullmatch(name) or not namespace or not DNS_LABEL.fullmatch(namespace):
+            raise ValueError("An observed AgentDeployment has an invalid identity.")
+        agent_ref = spec.get("agentRef")
+        if not isinstance(agent_ref, dict):
+            raise ValueError("An observed AgentDeployment has no agentRef.")
+        agent_name = bounded_string(agent_ref.get("name"), "")
+        version = bounded_string(agent_ref.get("version"), "")
+        digest = bounded_string(agent_ref.get("digest"), "")
+        cluster = bounded_string(spec.get("clusterRef"), "")
+        authority = bounded_string(spec.get("authority"), "")
+        evidence_ref = bounded_string(status.get("evidenceRef"), "")
+        readiness = status.get("readiness")
+        if not all((agent_name, version, cluster, authority, evidence_ref)) or not AGENT_DIGEST.fullmatch(digest):
+            raise ValueError("An observed AgentDeployment is missing immutable correlation data.")
+        if readiness not in {"Ready", "Pending", "Unknown"}:
+            raise ValueError("An observed AgentDeployment has an unsupported readiness.")
+        deployment_id = f"agent-deployment-{namespace}-{name}"
+        evidence_id = f"{evidence_ref}:{deployment_id}"
+        deployments.append({
+            "id": deployment_id,
+            "name": name,
+            "agentId": agent_name,
+            "agentName": agent_name,
+            "version": version,
+            "cluster": cluster,
+            "namespace": namespace,
+            "readiness": readiness,
+            "authority": authority,
+            "evidenceId": evidence_id,
+            "digest": digest,
+        })
+        evidence.append({
+            "id": evidence_id,
+            "title": f"{agent_name} deployment observation",
+            "type": "Observation",
+            "outcome": readiness,
+            "clusterId": cluster,
+            "contract": f"{AGENT_DEPLOYMENT_KIND}/{AGENT_CONTRACT_VERSION.split('/')[-1]}",
+            "revision": bounded_string(metadata.get("resourceVersion"), "unknown"),
+            "observedAt": observed_at,
+            "source": "OpenKubes AgentDeployment producer",
+            "summary": f"Observed immutable {agent_name} deployment evidence on {cluster}.",
+            "classification": "Current",
+        })
+    deployments.sort(key=lambda item: item["id"])
+    evidence.sort(key=lambda item: item["id"])
+    return deployments, evidence
 
 
 def build_observed_state(claim_list: dict[str, Any], config: ProducerConfig, now: Callable[[], datetime] = utc_now) -> dict[str, Any]:
@@ -496,7 +577,7 @@ def build_hosting_cluster_state(
             {"label": "OpenKubes Compositions", "state": "Unknown", "detail": "Composition and multi-cluster state are intentionally outside Phase B1."},
         ],
     }
-    return {
+    payload = {
         "apiVersion": QUERY_VERSION,
         "kind": QUERY_KIND,
         "metadata": {"observedAt": observed_at, "sourceRevision": source_revision, "partial": True},
@@ -539,6 +620,104 @@ def build_hosting_cluster_state(
             ],
         },
     }
+    for resource in observation.get("workloads", []):
+        metadata = resource.get("metadata", {})
+        name, namespace = metadata.get("name", ""), metadata.get("namespace", "")
+        if name not in config.workload_deployments or namespace != config.hosting_namespace:
+            raise ValueError("Workload identity is outside the configured observation scope.")
+        state, desired, available = deployment_readiness(resource)
+        identity = f"observed-deployment-{namespace}-{name}"
+        evidence_id = f"ev-{identity}"
+        revision = f"resourceVersion:{bounded_string(metadata.get('resourceVersion'), 'unknown')};replicas:{available}/{desired}"
+        payload["data"]["placements"].append({
+            "id": identity, "name": f"{namespace}/{name}",
+            "targetCluster": config.hosting_name, "targetClusterId": f"cluster-{config.hosting_name}",
+            "readiness": state, "evidenceId": evidence_id,
+        })
+        payload["data"]["evidence"].append({
+            "id": evidence_id, "title": f"Deployment {namespace}/{name}",
+            "type": "Observation", "outcome": state, "clusterId": f"cluster-{config.hosting_name}",
+            "contract": "Deployment/apps/v1", "revision": revision, "observedAt": observed_at,
+            "source": "Authenticated hosting-cluster Kubernetes API",
+            "summary": f"Available replicas: {available}; desired replicas: {desired}.", "classification": "Current",
+        })
+    external_observations = load_external_cluster_observations(config.cluster_observations_file, observed_at, allow_management=True)
+    management_observation = next((item for item in external_observations if item["name"] == config.management_name), None)
+    if management_observation is not None:
+        management_cluster.update({
+            key: management_observation[key]
+            for key in ("provider", "kubernetesVersion", "region", "readiness", "revision", "evidenceId")
+        })
+        management_cluster["compatibility"] = "Read only"
+        management_cluster["contractVersion"] = management_observation["contractVersion"]
+        management_cluster["lifecycle"] = [
+            {"label": "Kubernetes API", "state": "Ready", "detail": "The bounded read-only management-cluster observation completed."},
+            *management_observation["lifecycle"],
+            {"label": "Management capabilities", "state": "Unknown", "detail": "Management capabilities are not verified by this observation."},
+        ]
+        management_evidence_id = management_observation["evidenceId"]
+        management_cluster["evidenceId"] = management_evidence_id
+        payload["data"]["evidence"][0] = management_observation.pop("_evidence")
+        external_observations = [item for item in external_observations if item["name"] != config.management_name]
+    payload["data"]["clusters"].extend(external_observations)
+    for cluster in payload["data"]["clusters"][2:]:
+        payload["data"]["evidence"].append(cluster.pop("_evidence"))
+    return payload
+
+
+def load_external_cluster_observations(filename: str, observed_at: str, allow_management: bool = False) -> list[dict[str, Any]]:
+    """Load bounded, operator-produced read-only cluster observations.
+
+    This file contains observations, never credentials. Invalid or stale entries
+    are omitted so the Console cannot present an unverified cluster as current.
+    """
+    if not filename:
+        return []
+    try:
+        path = Path(filename)
+        with path.open("rb") as source:
+            body = source.read(MAX_CLUSTER_OBSERVATIONS_BYTES + 1)
+        if len(body) > MAX_CLUSTER_OBSERVATIONS_BYTES:
+            return []
+        document = json.loads(body)
+        entries = document.get("clusters") if isinstance(document, dict) else None
+        if not isinstance(entries, list):
+            return []
+        result: list[dict[str, Any]] = []
+        for entry in entries:
+            if not isinstance(entry, dict):
+                continue
+            name = entry.get("name")
+            if not isinstance(name, str) or not DNS_LABEL.fullmatch(name) or name == "ok-shared" or (name == "ok-mgmt" and not allow_management):
+                continue
+            readiness = entry.get("readiness")
+            if readiness not in {"Ready", "Pending", "Failed", "Unknown"}:
+                readiness = "Unknown"
+            version = bounded_string(entry.get("kubernetesVersion"), "unknown", 64)
+            region = bounded_string(entry.get("region"), "unknown", 128)
+            revision = bounded_string(entry.get("revision"), "external-observation", 128)
+            profile = bounded_string(entry.get("profile"), "External workload cluster")
+            role = "Infrastructure plane" if "infrastructure host" in profile.lower() else ("Management plane" if name == "ok-mgmt" else "Workload cluster")
+            evidence_id = f"ev-{name}-external-observation"
+            result.append({
+                "id": f"cluster-{name}", "name": name, "role": role,
+                "provider": bounded_string(entry.get("provider"), "Kubernetes"),
+                "profile": profile,
+                "kubernetesVersion": version, "region": region, "readiness": readiness,
+                "compatibility": "Read only", "contractVersion": "kubernetes.io/core+apps/v1",
+                "revision": revision, "evidenceId": evidence_id, "capabilities": [],
+                "lifecycle": [{"label": "External observation", "state": readiness,
+                               "detail": "Operator-provided read-only cluster observation."}],
+                "_evidence": {"id": evidence_id, "title": f"{name} external cluster observation",
+                              "type": "Observation", "outcome": readiness,
+                              "clusterId": f"cluster-{name}", "contract": "Kubernetes core/apps v1",
+                              "revision": revision, "observedAt": safe_timestamp(entry.get("observedAt"), observed_at),
+                              "source": "Operator-provided read-only observation bundle",
+                              "summary": f"{name}: Kubernetes {version}; readiness {readiness}.", "classification": "Current"},
+            })
+        return result
+    except (OSError, ValueError, RecursionError):
+        return []
 
 
 class OwnershipError(ValueError):
@@ -590,6 +769,11 @@ def ownership_projection(
             object_key = f"management/{config.management_name}"
         elif config.source_mode == "hosting-cluster" and cluster_id == f"cluster-{config.hosting_name}":
             object_key = f"hosting/{config.hosting_name}"
+        elif config.source_mode == "hosting-cluster" and cluster_id.startswith("cluster-"):
+            name = cluster_id[len("cluster-"):]
+            if not DNS_LABEL.fullmatch(name):
+                raise OwnershipError(cluster_id)
+            object_key = f"external/{name}"
         elif config.source_mode == "kubevirt-claims" and cluster_id.startswith("cluster-"):
             name = cluster_id[len("cluster-"):]
             if not DNS_LABEL.fullmatch(name):
@@ -642,6 +826,10 @@ class ObservedStateProducer:
                 self.config.hosting_namespace,
                 self.config.hosting_deployment,
             )
+            observation["workloads"] = [
+                self.client.read_workload_deployment(self.config.hosting_namespace, name)
+                for name in self.config.workload_deployments
+            ]
             return build_hosting_cluster_state(observation, self.config, self.now)
         return build_observed_state(self.client.list_cluster_claims(self.config.namespace), self.config, self.now)
 
@@ -686,7 +874,11 @@ def handler_for(
             except OwnershipError as error:
                 print(f"observed-state-producer ownership unavailable key={error.object_key}")
                 self.send_json(503, {"error": "source_unavailable", "retryable": True})
-            except Exception:
+            except Exception as error:
+                # Keep the client response deliberately generic, but leave a
+                # bounded type-only diagnostic for operators. Never print the
+                # exception text because it may contain source or credential data.
+                print(f"observed-state-producer source unavailable error={type(error).__name__}")
                 self.send_json(503, {"error": "source_unavailable", "retryable": True})
 
         def do_POST(self) -> None:  # noqa: N802
