@@ -4,13 +4,17 @@
 
 *By Suchit Thakkar*
 
-> **Status:** ADR-Platform-039 is **Proposed**. The Crossplane reference implementation is merged on `main` and has been exercised only on disposable test clusters, after an initial contract experiment on a long-lived verification cluster. It is a reference implementation, not production-ready: there is no production offering, general availability or requester self-service.
+> **Status:** ADR-Platform-039 is **Accepted as the architectural contract**. The nine Namespace-profile readiness gates remain open. Architectural acceptance is not production approval. The Crossplane reference implementation is merged on `main` and has been exercised only on disposable test clusters, after an initial contract experiment on a long-lived verification cluster. It is a reference implementation, not production-ready: there is no production offering, general availability or requester self-service.
 
 Running a coding agent on Kubernetes is easy. A Deployment, an image and an API key are enough to start one. The interesting questions come next, and they are the ones an operator has to answer for: which repository the agent may read, which credentials it holds, where it may connect, how much it may write, and what happens to its work when the environment is gone.
 
 A coding agent edits source, runs shell commands and calls external tools. Those are exactly the actions a platform wants to bound. The OpenKubes Developer Workspace states that boundary as a contract first, and then implements it.
 
 The contract is [ADR-Platform-039](https://github.com/openkubes/openkubes/blob/main/architecture/decisions/ADR-Platform-039-developer-workspace-contract.md). This post describes its boundaries and the evidence gathered so far, distinguishing the initial contract experiment on a long-lived verification cluster from the later reconciler tests on disposable clusters.
+
+> **Update — 2026-10-20:** On 2026-10-19 the architecture decision-holder recorded a [conditional GO to develop and test](https://github.com/openkubes/openkubes/blob/main/architecture/decisions/ADR-Platform-039-conditional-acceptance-record.md). On 2026-10-20, the decision-holder accepted [ADR-Platform-039](https://github.com/openkubes/openkubes/blob/main/architecture/decisions/ADR-Platform-039-developer-workspace-contract.md) **as the architectural contract**. Acceptance is not production approval. Production publishing requires separate approval.
+>
+> All [nine mandatory readiness gates](https://github.com/openkubes/openkubes/blob/main/architecture/decisions/ADR-Platform-039-readiness-gates.md) remain open and must be met before the Namespace profile can be called fully conforming. They are listed in plain words on the [status page](https://openkubes.org/developer-workspace/status/). Declaring storage capacity is not proof of it: each storage backend needs its own runtime evidence, and the development `local-path` profile does not qualify. There is still no production offering.
 
 ## The contract: one declaration for the whole boundary
 
@@ -110,7 +114,7 @@ A founding OpenKubes architecture decision, [ADR-Platform-001](https://github.co
 
 The Developer Workspace applies that decision to coding agents. The platform commits to the meaning of a workspace: what it may access, which bounds apply, how its lifecycle works and what evidence it leaves. OpenCode, Codex, Crossplane and the Namespace profile are the implementations that test that meaning, and they have already sharpened it. The step from requested to enforced storage capacity came directly from those tests.
 
-The next step is a decision on ADR-Platform-039: whether the candidate contract and its stated boundaries are the right ones. Production readiness of each implementation then follows from its own evidence.
+The next step is to satisfy the nine mandatory Namespace-profile readiness gates. Each implementation needs its own readiness evidence and separate production approval.
 
 The contract and its evidence boundaries are documented in the [public Developer Workspace docs](https://openkubes.org/developer-workspace/). The [hands-on OpenCode quickstart](https://github.com/openkubes/openkubes/blob/main/platform/workspace/developer-workspace/crossplane/README.md#hands-on-opencode-quickstart) lists the exact steps. It is currently written for the project's own disposable test clusters: the harness accepts only allowlisted cluster contexts, expects pre-published runtime image digests, and its example profiles route inference to a project-internal model endpoint. Running it elsewhere means adapting those inputs, and reports on what that took are exactly the feedback we are asking for. For a guided first evaluation, try [Your First AI Coding Workspace](https://openkubes.org/developer-workspace/tutorial/).
 
@@ -120,7 +124,7 @@ Here a UID is Kubernetes' unique object identifier, a nonce is a per-run random 
 
 ## Help shape the next iteration
 
-Feedback on the Proposed contract, reproducible boundary tests and runtime-profile contributions are welcome. Open an [issue in openkubes/openkubes](https://github.com/openkubes/openkubes/issues) with the profile you tested, what you expected and what you observed. Reports that expose a limit are useful: they help decide what the contract should promise and what further proof an implementation needs.
+Feedback on the accepted contract, reproducible boundary tests and runtime-profile contributions are welcome. Open an [issue in openkubes/openkubes](https://github.com/openkubes/openkubes/issues) with the profile you tested, what you expected and what you observed. Reports that expose a limit are useful: they help decide what the contract should promise and what further proof an implementation needs.
 
 ## References
 
