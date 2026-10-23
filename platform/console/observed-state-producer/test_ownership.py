@@ -51,16 +51,18 @@ def claims_client(*items):
 
 class OwnershipProjectionTests(unittest.TestCase):
     def test_v1_claims_and_hosting_serialization_remain_unchanged(self):
-        claims = build_observed_state(claim_list(claim()), ProducerConfig(), now=lambda: NOW)
+        claims = build_observed_state(claim_list(claim()), ProducerConfig(), now=lambda: NOW, read_started_at="2026-08-21T18:30:00Z")
         hosting = build_hosting_cluster_state(
             hosting_observation(),
             ProducerConfig(source_mode="hosting-cluster"),
             now=lambda: NOW,
+            read_started_at="2026-08-21T18:30:00Z", workload_read_times={"ok-console": "2026-08-21T18:30:00Z"},
         )
 
-        self.assertEqual(canonical_sha256(claims), "d157b1b6a4d97ebe16af9d3def9b384f80eceaaa94b093f45bb031e96a35ad7e")
+        # Claim hashes include read time instead of the Ready transition time.
+        self.assertEqual(canonical_sha256(claims), "c84b517f0dd2695effae2ab15ff2be3b430145e9cb47ba034561c78d54744abf")
         self.assertEqual(canonical_sha256(hosting), "782c5865ea36a41d79b7a2177a8281c05bd406390933f62ca70e1e4ce64b4a70")
-        self.assertEqual(wire_sha256(claims), "3fd3c3e62f53380d94c128278537366708f2ea21a6d7ba25309d0eb34b268318")
+        self.assertEqual(wire_sha256(claims), "5fd9d824825a5098a3f1cce5c19598fa163e9e7d763e150901498110b75f1de8")
         self.assertEqual(wire_sha256(hosting), "b92ffbcc179f0d00c984731d13560adc1ac175289b93e1459184c1fdb8db0761")
 
     def test_assigns_mixed_tenants_by_source_keys_and_ignores_forged_labels(self):
@@ -74,7 +76,8 @@ class OwnershipProjectionTests(unittest.TestCase):
             }
             config = ProducerConfig(ownership_file=tenant_map(directory, tenants))
             payload = build_observed_state(
-                claim_list(source_alpha, claim("beta")), config, now=lambda: NOW
+                claim_list(source_alpha, claim("beta")), config, now=lambda: NOW,
+                read_started_at="2026-08-21T18:30:00Z",
             )
 
             projected = ownership_projection(payload, config, tenants)
@@ -97,7 +100,7 @@ class OwnershipProjectionTests(unittest.TestCase):
                 source_mode="hosting-cluster",
                 ownership_file=tenant_map(directory, tenants),
             )
-            payload = build_hosting_cluster_state(hosting_observation(), config, now=lambda: NOW)
+            payload = build_hosting_cluster_state(hosting_observation(), config, now=lambda: NOW, read_started_at="2026-08-21T18:30:00Z", workload_read_times={"ok-console": "2026-08-21T18:30:00Z"})
             # Display fields are presentation only and cannot alter the id-to-owner relation.
             payload["data"]["clusters"][1]["name"] = "display-name-is-not-authority"
             payload["data"]["evidence"][1]["title"] = "forged title"

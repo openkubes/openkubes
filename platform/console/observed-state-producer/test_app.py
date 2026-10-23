@@ -1,8 +1,11 @@
+import io
+import inspect
 import json
+from contextlib import redirect_stdout
 import tempfile
 import threading
 import unittest
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from http.client import HTTPConnection
 from http.server import ThreadingHTTPServer
 from pathlib import Path
@@ -18,6 +21,7 @@ from app import (
     agent_deployment_projection,
     build_hosting_cluster_state,
     build_observed_state,
+    external_timestamp,
     handler_for,
     load_external_cluster_observations,
 )
@@ -92,7 +96,7 @@ class ProjectionTests(unittest.TestCase):
             }], "2026-08-21T18:30:00Z")
 
     def test_projects_real_claim_conditions_without_backend_diagnostics(self):
-        payload = build_observed_state(claim_list(claim()), ProducerConfig(), now=lambda: NOW)
+        payload = build_observed_state(claim_list(claim()), ProducerConfig(), now=lambda: NOW, read_started_at="2026-08-21T18:30:00Z")
 
         self.assertEqual(payload["apiVersion"], QUERY_VERSION)
         self.assertEqual(payload["kind"], QUERY_KIND)
@@ -108,14 +112,14 @@ class ProjectionTests(unittest.TestCase):
     def test_keeps_false_and_missing_ready_conditions_non_ready(self):
         without_condition = claim("edge-07")
         without_condition["status"] = {}
-        payload = build_observed_state(claim_list(claim("ok-shared", "False"), without_condition), ProducerConfig(), now=lambda: NOW)
+        payload = build_observed_state(claim_list(claim("ok-shared", "False"), without_condition), ProducerConfig(), now=lambda: NOW, read_started_at="2026-08-21T18:30:00Z")
         readiness = {item["name"]: item["readiness"] for item in payload["data"]["clusters"]}
 
         self.assertEqual(readiness["ok-shared"], "Pending")
         self.assertEqual(readiness["edge-07"], "Unknown")
 
     def test_management_plane_is_never_declared_ready_from_api_reachability(self):
-        payload = build_observed_state(claim_list(), ProducerConfig(), now=lambda: NOW)
+        payload = build_observed_state(claim_list(), ProducerConfig(), now=lambda: NOW, read_started_at="2026-08-21T18:30:00Z")
         management = payload["data"]["clusters"][0]
 
         self.assertEqual(management["role"], "Management plane")
@@ -127,16 +131,16 @@ class ProjectionTests(unittest.TestCase):
         invalid = claim()
         invalid["metadata"]["name"] = "../../secret"
         with self.assertRaisesRegex(ValueError, "invalid metadata.name"):
-            build_observed_state(claim_list(invalid), ProducerConfig(), now=lambda: NOW)
+            build_observed_state(claim_list(invalid), ProducerConfig(), now=lambda: NOW, read_started_at="2026-08-21T18:30:00Z")
 
     def test_rejects_a_claim_that_collides_with_the_management_plane(self):
         with self.assertRaisesRegex(ValueError, "distinct from the management plane"):
-            build_observed_state(claim_list(claim("ok-mgmt")), ProducerConfig(), now=lambda: NOW)
+            build_observed_state(claim_list(claim("ok-mgmt")), ProducerConfig(), now=lambda: NOW, read_started_at="2026-08-21T18:30:00Z")
 
     def test_invalid_condition_timestamp_falls_back_to_observation_time(self):
         item = claim()
         item["status"]["conditions"][0]["lastTransitionTime"] = "not-a-timestamp"
-        payload = build_observed_state(claim_list(item), ProducerConfig(), now=lambda: NOW)
+        payload = build_observed_state(claim_list(item), ProducerConfig(), now=lambda: NOW, read_started_at="2026-08-21T18:30:00Z")
         claim_evidence = payload["data"]["evidence"][1]
 
         self.assertEqual(claim_evidence["observedAt"], "2026-08-21T18:30:00Z")
@@ -147,7 +151,7 @@ class HostingClusterProjectionTests(unittest.TestCase):
         observation = hosting_observation()
         observation["workloads"] = [observation["deployment"]]
         config = ProducerConfig(source_mode="hosting-cluster", workload_deployments=("ok-console",))
-        payload = build_hosting_cluster_state(observation, config, now=lambda: NOW)
+        payload = build_hosting_cluster_state(observation, config, now=lambda: NOW, read_started_at="2026-08-21T18:30:00Z", workload_read_times={"ok-console": "2026-08-21T18:30:00Z"})
         placement = payload["data"]["placements"][0]
         self.assertEqual(placement["name"], "openkubes-console/ok-console")
         self.assertEqual(placement["readiness"], "Ready")
@@ -155,15 +159,16 @@ class HostingClusterProjectionTests(unittest.TestCase):
         self.assertIn("replicas:2/2", evidence["revision"])
         self.assertNotIn('"SECRET"', json.dumps(payload))
         observation["workloads"][0]["status"]["observedGeneration"] = 6
-        self.assertEqual(build_hosting_cluster_state(observation, config, now=lambda: NOW)["data"]["placements"][0]["readiness"], "Pending")
+        self.assertEqual(build_hosting_cluster_state(observation, config, now=lambda: NOW, read_started_at="2026-08-21T18:30:00Z", workload_read_times={"ok-console": "2026-08-21T18:30:00Z"})["data"]["placements"][0]["readiness"], "Pending")
         with self.assertRaisesRegex(ValueError, "outside the configured"):
-            build_hosting_cluster_state(observation, ProducerConfig(), now=lambda: NOW)
+            build_hosting_cluster_state(observation, ProducerConfig(), now=lambda: NOW, read_started_at="2026-08-21T18:30:00Z", workload_read_times={"ok-console": "2026-08-21T18:30:00Z"})
 
     def test_external_infrastructure_profile_projects_as_infrastructure_plane(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "observations.json"
             path.write_text(json.dumps({"clusters": [{
                 "name": "ok-infra", "profile": "Infrastructure host cluster",
+                "observedAt": "2026-08-21T18:29:00Z",
                 "readiness": "Ready", "kubernetesVersion": "v1.35.5+rke2r1",
             }]}), encoding="utf-8")
             observed = load_external_cluster_observations(str(path), "2026-08-21T18:30:00Z")
@@ -177,7 +182,7 @@ class HostingClusterProjectionTests(unittest.TestCase):
             hosting_name="ok-shared",
             hosting_region="fra-dc1",
         )
-        payload = build_hosting_cluster_state(hosting_observation(), config, now=lambda: NOW)
+        payload = build_hosting_cluster_state(hosting_observation(), config, now=lambda: NOW, read_started_at="2026-08-21T18:30:00Z", workload_read_times={"ok-console": "2026-08-21T18:30:00Z"})
 
         self.assertEqual(payload["metadata"], {
             "observedAt": "2026-08-21T18:30:00Z",
@@ -202,6 +207,7 @@ class HostingClusterProjectionTests(unittest.TestCase):
             hosting_observation(node_statuses=("True", "False"), available_replicas=1),
             config,
             now=lambda: NOW,
+            read_started_at="2026-08-21T18:30:00Z", workload_read_times={"ok-console": "2026-08-21T18:30:00Z"},
         )
         self.assertEqual(pending["data"]["clusters"][1]["readiness"], "Pending")
 
@@ -209,6 +215,7 @@ class HostingClusterProjectionTests(unittest.TestCase):
             hosting_observation(node_statuses=(), available_replicas=2),
             config,
             now=lambda: NOW,
+            read_started_at="2026-08-21T18:30:00Z", workload_read_times={"ok-console": "2026-08-21T18:30:00Z"},
         )
         self.assertEqual(unknown["data"]["clusters"][1]["readiness"], "Unknown")
 
@@ -224,6 +231,169 @@ class HostingClusterProjectionTests(unittest.TestCase):
             ProducerConfig.from_environment({"OK_OBSERVER_SOURCE_MODE": "automatic"})
         with self.assertRaisesRegex(ValueError, "distinct from the management plane"):
             ProducerConfig.from_environment({"OK_OBSERVER_HOSTING_NAME": "ok-mgmt"})
+
+
+class ObservationTimeTests(unittest.TestCase):
+    def test_external_timestamp_scales_fractions_at_future_limit(self):
+        evaluated_at = "2026-08-21T18:30:00.5Z"
+        self.assertIsNone(external_timestamp("2026-08-21T18:31:00.6Z", evaluated_at))
+        # Equivalent fractions with different precision must both stay 59.9s ahead.
+        for value in ("2026-08-21T18:31:00.4Z", "2026-08-21T18:31:00.40Z"):
+            with self.subTest(observedAt=value):
+                self.assertEqual(external_timestamp(value, evaluated_at), value)
+
+    def test_external_timestamp_validation_and_management_boundary(self):
+        invalid = [None, False, 42, [], {}, "", "2026-08-21", "2026-08-21T18:30:00",
+                   "2026-08-21 18:30:00Z", "2026-W34-5T18:30:00Z",
+                   "2026-08-21T18:30:00.1234567Z", "2026-08-21T18:30:00.0000000Z", "2026-02-30T18:30:00Z",
+                   "2026-08-21T18:30:00+24:00", "2026-08-21T18:30:00+00:60",
+                   "2026-08-21T18:30:00+14:01", "2026-08-21T18:30:00+15:00", "2026-08-21T18:30:00-14:01",
+                   "2026-08-21T18:30:00+00:00:00", "2026-08-21t18:30:00Z",
+                   "2026-08-21T18:30:00z", "2026-08-21T23:59:60Z",
+                   "2026-08-21T18:30:00Ztrailing", "2026-08-21T18:30:00Z\n", "2026-08-21T18:31:00.000001Z"]
+        valid = ["2026-08-21T18:30:00Z", "2026-08-21T20:30:00+02:00",
+                 "2026-08-21T16:30:00-02:00", "2026-08-21T18:30:00.123456Z",
+                 "2026-08-21T18:30:00.5Z", "2026-08-21T18:30:00.1234Z",
+                 "2026-08-21T18:30:00+14:00", "2000-01-01T00:00:00-14:00",
+                 "2026-08-21T18:30:00-00:00",
+                 "2026-08-21T18:31:00Z", "2000-01-01T00:00:00Z"]
+        absent = object()
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "observations.json"
+            config = ProducerConfig(source_mode="hosting-cluster", cluster_observations_file=str(path))
+            for name in ("ok-infra", "ok-mgmt"):
+                for value in [absent, *invalid, *valid]:
+                    with self.subTest(name=name, observedAt=value):
+                        entry = {"name": name, "readiness": "Ready"}
+                        if value is not absent:
+                            entry["observedAt"] = value
+                        path.write_text(json.dumps({"clusters": [entry]}), encoding="utf-8")
+                        payload = build_hosting_cluster_state(hosting_observation(), config, now=lambda: NOW, read_started_at="2026-08-21T18:30:00Z", workload_read_times={"ok-console": "2026-08-21T18:30:00Z"})
+                        matching = [item for item in payload["data"]["evidence"]
+                                    if item["id"] == f"ev-{name}-external-observation"]
+                        if isinstance(value, str) and value in valid:
+                            self.assertEqual(len(matching), 1)
+                            self.assertEqual(matching[0]["observedAt"], value)
+                        else:
+                            self.assertEqual(matching, [])
+                            management = payload["data"]["clusters"][0]
+                            self.assertEqual(management["readiness"], "Unknown")
+                            self.assertEqual(management["evidenceId"], "ev-ok-mgmt-source-boundary")
+
+    def test_mixed_bundle_keeps_management_and_signals_each_dropped_entry(self):
+        good = {"name": "ok-mgmt", "readiness": "Ready", "observedAt": "2000-01-01T00:00:00Z"}
+        absent = object()
+        cases = [(None, "unknown", "invalid-entry"), ([], "unknown", "invalid-entry")]
+        for name in (None, [], "", "bad\nname", "x" * 200 + "\n"):
+            safe_name = "unknown" if not isinstance(name, str) else name[:63].replace("\n", "?")
+            cases.append(({**good, "name": name}, safe_name, "invalid-name"))
+        for name in ("ok-shared", "../foreign"):
+            cases.append(({**good, "name": name}, name.replace("/", "?"), "invalid-name"))
+        for value in (absent, None, [], {}, 1, False, "private-value", "2026-02-30T00:00:00Z",
+                      "2026-08-21T18:30:00+14:01", "2026-08-21T18:30:00+15:00", "2026-08-21T18:30:00+00:00:00",
+                      "2026-08-21t18:30:00Z", "2026-08-21T18:30:00z",
+                      "2026-08-21T23:59:60Z", "2026-08-21T18:30:00.1234567Z", "2026-08-21T18:30:00.0000000Z",
+                      "2026-08-21T18:30:00Ztrailing", "2026-08-21T18:31:00.000001Z"):
+            entry = {**good, "name": "invalid-time"}
+            if value is absent:
+                entry.pop("observedAt")
+            else:
+                entry["observedAt"] = value
+            cases.append((entry, "invalid-time", "invalid-timestamp"))
+        for value in (absent, None, [], {}, 1, False):
+            entry = {**good, "name": "invalid-readiness"}
+            if value is absent:
+                entry.pop("readiness")
+            else:
+                entry["readiness"] = value
+            cases.append((entry, "invalid-readiness", "invalid-readiness"))
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "observations.json"
+            config = ProducerConfig(source_mode="hosting-cluster", cluster_observations_file=str(path))
+            for entry, safe_name, reason in cases:
+                for entries in ([entry, good], [good, entry]):
+                    with self.subTest(entry=entry, management_first=entries[0] is good):
+                        path.write_text(json.dumps({"clusters": entries}), encoding="utf-8")
+                        output = io.StringIO()
+                        with redirect_stdout(output):
+                            payload = build_hosting_cluster_state(
+                                hosting_observation(), config, now=lambda: NOW,
+                                read_started_at="2026-08-21T18:29:00Z", workload_read_times={},
+                            )
+                        self.assertEqual(output.getvalue().splitlines(), [
+                            f"external-observation-dropped name={safe_name} reason={reason}"
+                        ])
+                        self.assertLessEqual(len(safe_name), 63)
+                        self.assertNotIn("private-value", output.getvalue())
+                        self.assertEqual([c["name"] for c in payload["data"]["clusters"]], ["ok-mgmt", "ok-shared"])
+                        management = payload["data"]["clusters"][0]
+                        self.assertEqual(management["readiness"], "Ready")
+                        evidence = payload["data"]["evidence"][0]
+                        self.assertEqual(evidence["id"], management["evidenceId"])
+                        self.assertEqual(evidence["id"], "ev-ok-mgmt-external-observation")
+                        self.assertEqual(evidence["observedAt"], good["observedAt"])
+
+    def test_read_times_are_required_keywords_and_missing_workload_time_fails(self):
+        for function, names in ((build_observed_state, ("read_started_at",)),
+                                (build_hosting_cluster_state, ("read_started_at", "workload_read_times"))):
+            for name in names:
+                parameter = inspect.signature(function).parameters[name]
+                self.assertEqual(parameter.kind, inspect.Parameter.KEYWORD_ONLY)
+                self.assertIs(parameter.default, inspect.Parameter.empty)
+        observation = hosting_observation()
+        observation["workloads"] = [observation["deployment"]]
+        with self.assertRaises(KeyError):
+            build_hosting_cluster_state(
+                observation, ProducerConfig(workload_deployments=("ok-console",)), now=lambda: NOW,
+                read_started_at="2026-08-21T18:29:00Z", workload_read_times={},
+            )
+
+    def test_claim_evidence_uses_list_read_start_for_every_transition_value(self):
+        absent = object()
+        for value in (absent, None, False, 42, [], {}, "2026-08-21", "2026-08-21T18:30:00",
+                      "2026-08-21 18:30:00Z", "2026-08-21T18:30:00.1234567Z", "2026-08-21T18:30:00.0000000Z",
+                      "2026-08-21T18:32:00Z", "2000-01-01T00:00:00Z", "2026-08-21T18:29:00Z"):
+            with self.subTest(lastTransitionTime=value):
+                instant = [NOW]
+                item = claim()
+                condition = item["status"]["conditions"][0]
+                condition.pop("lastTransitionTime")
+                if value is not absent:
+                    condition["lastTransitionTime"] = value
+
+                class Client:
+                    def list_cluster_claims(self, _namespace):
+                        instant[0] += timedelta(seconds=10)
+                        return claim_list(item)
+
+                payload = ObservedStateProducer(Client(), ProducerConfig(), now=lambda: instant[0]).snapshot()
+                evidence = next(e for e in payload["data"]["evidence"] if e["id"] == "ev-ok-ai-claim-readiness")
+                self.assertEqual(evidence["observedAt"], "2026-08-21T18:30:00Z")
+                self.assertEqual(payload["data"]["evidence"][0]["observedAt"], "2026-08-21T18:30:00Z")
+                self.assertEqual(payload["metadata"]["observedAt"], "2026-08-21T18:30:10Z")
+
+    def test_hosting_and_each_workload_use_their_own_read_start(self):
+        instant = [NOW]
+
+        class Client:
+            def read_hosting_cluster(self, _namespace, _deployment):
+                instant[0] += timedelta(seconds=10)
+                return hosting_observation()
+
+            def read_workload_deployment(self, namespace, name):
+                resource = hosting_observation()["deployment"]
+                resource["metadata"].update(name=name, namespace=namespace)
+                instant[0] += timedelta(seconds=10)
+                return resource
+
+        config = ProducerConfig(source_mode="hosting-cluster", workload_deployments=("ok-console", "worker"))
+        payload = ObservedStateProducer(Client(), config, now=lambda: instant[0]).snapshot()
+        times = {e["id"]: e["observedAt"] for e in payload["data"]["evidence"]}
+        self.assertEqual(times["ev-ok-mgmt-source-boundary"], "2026-08-21T18:30:00Z")
+        self.assertEqual(times["ev-ok-shared-hosting-state"], "2026-08-21T18:30:00Z")
+        self.assertEqual(times["ev-observed-deployment-openkubes-console-ok-console"], "2026-08-21T18:30:10Z")
+        self.assertEqual(times["ev-observed-deployment-openkubes-console-worker"], "2026-08-21T18:30:20Z")
+        self.assertEqual(payload["metadata"]["observedAt"], "2026-08-21T18:30:30Z")
 
 
 class ApiClientTests(unittest.TestCase):
@@ -376,7 +546,7 @@ class OwnershipGuardTests(unittest.TestCase):
         from app import ownership_projection
         config = ProducerConfig()
         tenants = {"management/ok-mgmt": "a", "claim/openkubes-system/ok-ai": "b", "claim/openkubes-system/../x": "b"}
-        original = build_observed_state(claim_list(claim()), config, now=lambda: NOW)
+        original = build_observed_state(claim_list(claim()), config, now=lambda: NOW, read_started_at="2026-08-21T18:30:00Z")
         variants = []
         duplicate = copy.deepcopy(original)
         duplicate["data"]["clusters"].append(copy.deepcopy(duplicate["data"]["clusters"][1]))
