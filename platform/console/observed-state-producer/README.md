@@ -48,7 +48,7 @@ or historical Evidence read model. Consequently the producer:
 - reports the management plane and unavailable lifecycle semantics as `Unknown`;
 - returns empty Capability/workload/finding projections with `partial: true`;
 - emits redaction-safe Evidence references derived from resource identity,
-  resourceVersion, Condition status and transition time;
+  resourceVersion and Condition status;
 - ignores backend Condition messages and reasons; and
 - performs no mutation and never returns Secrets, kubeconfigs, tokens, raw
   Kubernetes objects, or unrestricted Evidence payloads.
@@ -179,3 +179,34 @@ rotation overlap, revocation strategy, and recovery exercises remain deployment
 responsibilities; this repository does not mint or embed production credentials.
 Fixture rollback remains explicit on the Console side and must never occur
 silently after an identity or TLS failure.
+
+## Observation times
+
+Envelope `metadata.observedAt` is the response-generation time. Claim Evidence
+uses the time immediately before the claim-list API read, regardless of the
+Ready Condition's `lastTransitionTime`. Management boundary Evidence uses that
+same claim-list read start in claims mode and the hosting read start in hosting
+mode. Hosting Evidence uses the read-start
+time before the bounded Kubernetes snapshot; each selected workload Deployment
+Evidence uses the time immediately before its own GET. A slow read therefore
+retains its earlier observation time rather than renewing it during projection.
+
+External bundle entries must carry `observedAt` in strict RFC 3339 form with a
+`T` separator, seconds, an explicit `Z` or ±hh:mm offset and an optional
+fraction of one to six digits. Only uppercase `T` and `Z` are accepted. Offsets
+are limited to ±14:00 (inclusive); leap seconds are rejected. Calendar dates
+must be valid. Parsing constructs the datetime from captured fields so acceptance
+is identical on Python 3.10–3.13. Missing, null, non-string, invalid calendar/offset values and
+times more than 60 seconds ahead of response generation cause that entry to be
+omitted. Entries with non-string readiness are also omitted. Each dropped entry
+emits one stdout line with a sanitized entry name of at most 63 characters
+(`unknown` if unavailable) and a fixed reason code: `invalid-entry`,
+`invalid-name`, `invalid-timestamp`, or `invalid-readiness`. For `invalid-name`
+drops, the line carries the sanitized rejected name (at most 63 characters),
+with characters outside `[a-zA-Z0-9_.-]` replaced by `?`; non-string names use
+`unknown`. Diagnostic lines never contain rejected timestamp or readiness values.
+An invalid management entry preserves the Unknown source boundary.
+Accepted timestamps are passed through verbatim, including old timestamps,
+fractional seconds and offsets. Freshness
+verdicts belong to the consumer; the existing producer classifications, profiles
+and API versions remain unchanged.
