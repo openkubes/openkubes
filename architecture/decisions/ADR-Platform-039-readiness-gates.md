@@ -82,3 +82,8 @@ Satisfying one gate closes no other gate automatically. Capacity certification
 remains an additional per-backend requirement in the dated ADR amendment, not a
 tenth partial row. Full conformance and production claims remain NO-GO as recorded
 in the decision record.
+
+ADR-Platform-039 was accepted as the architectural contract on 2026-10-20
+([OK-183 c15102](https://kubernauts.atlassian.net/browse/OK-183?focusedCommentId=15102)).
+All nine gates above remain open and mandatory; acceptance neither meets nor waives
+any of them and grants no production approval.

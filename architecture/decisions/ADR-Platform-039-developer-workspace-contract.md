@@ -2,7 +2,9 @@
 
 **Date:** 2026-09-25
 
-**Status:** Proposed
+**Status:** Accepted
+
+**Accepted:** 2026-10-20 — decision-holder Arash Kaffamanesh, OK-183 c15102
 
 **Amended:** 2026-10-19 (OK-183 persistent-capacity clarification and conditional-acceptance readiness gates)
 
@@ -419,3 +421,22 @@ and O03 stay partial/open, and the nine gates carry proposed implementation area
 awaiting the decision holder's confirmation; see the
 [readiness gate register](ADR-Platform-039-readiness-gates.md). This ADR remains
 Proposed.
+
+## Decision note (2026-10-20) — architectural contract accepted
+
+Arash Kaffamanesh accepts ADR-Platform-039 as the architectural contract in
+[OK-183 c15102](https://kubernauts.atlassian.net/browse/OK-183?focusedCommentId=15102)
+(2026-10-20). This decision records the transition from Proposed to Accepted;
+earlier Proposed and pending-decision wording is retained as historical context.
+The persistent-capacity amendment of 2026-10-19 and its 2026-10-20 clarification
+stand, including independent runtime-enforcement proof for every advertised backend.
+
+All nine Namespace-profile readiness gates remain open, partial and mandatory,
+neither met nor waived; their acceptance criteria and unblock conditions remain in
+the [readiness-gate register](ADR-Platform-039-readiness-gates.md).
+Acceptance is NOT production approval and is NOT a declaration that the Namespace
+reference profile is fully conforming. Historical evidence pins, verdicts and
+outcomes remain unchanged; acceptance supplies no new runtime evidence.
+
+The [final decision record](ADR-Platform-039-conditional-acceptance-record.md#final-decision--2026-10-20)
+records this outcome while preserving the conditional history.
