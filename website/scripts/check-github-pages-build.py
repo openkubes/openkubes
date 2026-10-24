@@ -35,7 +35,7 @@ def main():
                 raise SystemExit(f"{name}: approved website host missing: {domain}")
     if "ok-ai-lite-preview.js" not in ai_page:
         raise SystemExit("Production MkDocs AI page missing Lite loader")
-    if "No AI backend" not in widget or "Beta 1 Lite only answers" not in widget:
+    if "No AI backend" not in widget or "Beta 1.1 only answers" not in widget:
         raise SystemExit("Lite widget refusal and static backend disclosure missing")
     print("GitHub Pages production candidate safety checks passed")
 
