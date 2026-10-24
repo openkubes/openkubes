@@ -59,6 +59,23 @@ class CommandRenderingTests(unittest.TestCase):
                 with self.assertRaises(ContractRejected):
                     render_source_commands(hits, index, SID)
 
+    def test_reject_argument_level_mutation_and_side_effects(self):
+        for command in (
+            "kubectl config set-context current --namespace=default",
+            "kubectl config use-context prod",
+            "kubectl get pods -o yaml",
+            "kubectl get --raw /api",
+            "helm show values chart",
+            "git log --output=/tmp/trace",
+            "git status --porcelain",
+            "multipass info vm",
+            "kubectl get pods ",
+        ):
+            with self.subTest(command=command):
+                index, hits = fixtures("```sh\n" + command + "\n```")
+                with self.assertRaises(ContractRejected):
+                    render_source_commands(hits, index, SID)
+
     def test_wrong_question_source(self):
         index, hits = fixtures("```sh\ngit status\n```")
         hits["results"][0]["source_id"] = "0" * 16
