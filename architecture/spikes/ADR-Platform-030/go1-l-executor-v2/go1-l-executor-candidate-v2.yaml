@@ -1,0 +1,49 @@
+apiVersion: execution.openkubes.io/v1alpha1
+kind: GO1LExecutorCandidate
+metadata:
+  name: ok141-go1-l-executor-v2
+  ticket: OK-141
+  baseCommit: 9d018cd
+spec:
+  version: ok141-go1-l-executor/v2
+  state: OFFLINE-PROVEN-BLOCKED-NO-GO
+  supersedes:
+    path: ../go1-l-executor-v1/go1-l-executor-candidate-v1.yaml
+    digest: sha256:206b62b955d7709f69601989d91b7b5938afba03b2235a4909c64fcecd4fac70
+    historicalEvidencePreserved: true
+    v1AllowedForFutureExecution: false
+  credentialIdentityClosure:
+    path: ../go1-v6-credential-identity-v1/credential-identity-closure-v1.yaml
+    digest: sha256:26c840ac3e1c5eb879f107801740edb0db73a717fea9c00123ad1e36b3fdc008
+    expectedIdentityDigests:
+      ok-infra: sha256:0cab42fab537845afb82ef510169bf9402e314e0fcb3ebce972499e0a1cd8f13
+      ok-mgmt: sha256:32a164332776f37129e46415af79945745134fefe80c5237d43fe13fa0511ffe
+  pointOfUseBinding:
+    currentCredentialInspectionRequired: true
+    receiptPathRequired: true
+    receiptIdentityDigestRequired: true
+    preflightIdentityCorrelationRequired: true
+    identityClaim: HTTPS-API-ENDPOINT-AND-CA-ONLY
+    principalIdentityClaimAllowed: false
+  tool:
+    path: bounded_go1_l_executor_v2.py
+    digest: sha256:bc2d1b05c2155b5aaa1caa1e5238666abb8b52a2772e9e66991e8f51099dc74a
+    arbitraryCommandAllowed: false
+    arbitraryManifestAllowed: false
+    arbitraryCredentialPathAllowed: false
+  authorization:
+    decision: NO-GO
+    credentialUseGranted: false
+    sourceCredentialReadGranted: false
+    mutationGranted: false
+    go1LGranted: false
+    go1Granted: false
+    retryGranted: false
+    rollbackOrCleanupGranted: false
+    grantIDs: []
+  conclusions:
+    payloadSemanticsChanged: false
+    transportSemanticsChanged: false
+    pointOfUseCredentialIdentityAdded: true
+    clusterContacted: false
+    mutationAuthorized: false

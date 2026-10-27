@@ -1,0 +1,65 @@
+{
+  "apiVersion": "execution.openkubes.io/v1alpha1",
+  "kind": "OK141ApplicationSyncAfterTokenRefreshCandidate",
+  "metadata": {
+    "name": "ok141-core-sync-after-ssa-migration-v3"
+  },
+  "spec": {
+    "state": "LIVE-AUTHORIZED-ONCE",
+    "standingGrantAcknowledged": true,
+    "authorizationBasis": "continuous bounded OK-141 DEV grant; one diagnosis-based sync after disabling client-side apply migration",
+    "predecessor": {
+      "path": "/private/tmp/ok141-registration-token-refresh-v3-evidence.json",
+      "digest": "sha256:87ce64a4860d99aea415dcdfc2e7be743e3c9d33f7021b1537fde0cd331377ec"
+    },
+    "amendmentEvidence": {
+      "path": "/private/tmp/ok141-live-platform-ssa-migration-amendment-v1-evidence.json",
+      "digest": "sha256:64600860b52fcc29e1bfdf98525d4c9e025522b89c4ee506f682042318a514ac"
+    },
+    "clientPath": "/private/tmp/ok141-kubectl-v1.34.1-darwin-amd64",
+    "clientDigest": "sha256:bb211f2b31f2b3bc60562b44cc1e3b712a16a98e9072968ba255beb04cefcfdf",
+    "kubeconfigPath": "/Users/arash/.kube/ok-shared.yaml",
+    "application": {
+      "namespace": "argocd",
+      "name": "disposable-ok141-observability-core",
+      "uri": "/apis/argoproj.io/v1alpha1/namespaces/argocd/applications/disposable-ok141-observability-core",
+      "sourceRevision": "b5f7be6a7ddab798f31f32197fcbb9e86a9798b6",
+      "expectedPriorOperationFinishedAt": "2026-08-15T19:19:56Z",
+      "identityAnnotations": {
+        "openkubes.io/intent-revision": "sha256:32c2abeb6f08a6853006f31b764900b65faa9f36db2482b062aa5b3709764d13",
+        "openkubes.io/platform-revision": "sha256:86db1e51e2d4ecbe2cf32d27e7e0f76a6a29a17f6bab201289fff6eee5299925",
+        "openkubes.io/execution-fixture": "sha256:ad13f4e233a25fe4aa252bd0013f3257c8003f78955a133501a117997462feed"
+      },
+      "operation": {
+        "sync": {
+          "revision": "b5f7be6a7ddab798f31f32197fcbb9e86a9798b6",
+          "prune": true,
+          "syncOptions": [
+            "CreateNamespace=true",
+            "PrunePropagationPolicy=foreground",
+            "PruneLast=true",
+            "ServerSideApply=true",
+            "ClientSideApplyMigration=false"
+          ]
+        }
+      }
+    },
+    "observation": {
+      "intervalSeconds": 10,
+      "maxIterations": 90
+    },
+    "toolPath": "bounded_application_sync_after_token_refresh_v1.py",
+    "toolDigest": "sha256:7431d912f3e9959aea00527bd8b3b7c6cad58b157c66c7fbd473c986775d5021",
+    "outputPath": "/private/tmp/ok141-core-sync-after-ssa-migration-v3-evidence.json",
+    "stopPolicy": "STOP-PRESERVE-NO-RETRY",
+    "exclusions": [
+      "spec change",
+      "credential change",
+      "RBAC change",
+      "delete",
+      "rollback",
+      "cleanup",
+      "failure injection"
+    ]
+  }
+}

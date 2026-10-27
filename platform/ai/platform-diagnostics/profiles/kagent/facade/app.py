@@ -19,19 +19,24 @@ actions; nothing is executed.
 from __future__ import annotations
 
 import json
+import hashlib
+import logging
 import os
 import re
+import secrets
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Any, Optional
 from urllib.parse import quote
 
 import httpx
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI, Header, HTTPException, Request
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 from mcp import ClientSession
 from mcp.client.streamable_http import streamable_http_client
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 # ── config (Provider Values via env; see README) ─────────────────────────────
 KAGENT_BASE_URL = os.getenv("KAGENT_BASE_URL", "http://kagent-controller.kagent.svc.cluster.local:8083")
@@ -45,6 +50,8 @@ KAGENT_TOOLS_URL = os.getenv(
 PROVIDER_NAME = os.getenv("PROVIDER_NAME", "kagent")
 DEFAULT_CLUSTER = os.getenv("DEFAULT_CLUSTER", "ok-ai")
 AGENT_TIMEOUT = float(os.getenv("AGENT_TIMEOUT_SECONDS", "300"))
+DIAGNOSTICS_BEARER_TOKEN = os.getenv("DIAGNOSTICS_BEARER_TOKEN", "").strip()
+LOGGER = logging.getLogger("platform-diagnostics.invocation")
 
 # Provider capability declaration (ADR-021). Talos defaults (no host shell/journal).
 DEFAULT_CAPS = {
@@ -55,14 +62,105 @@ PROVIDER_CAPS = json.loads(os.getenv("PROVIDER_CAPS", json.dumps(DEFAULT_CAPS)))
 
 app = FastAPI(
     title="OpenKubes Read-Only Platform Diagnostics Contract",
-    # Provider implementation version. Keep it draft until the executable
-    # conformance suite in OK-89/OK-91 passes against this profile.
-    version="1.0.0-draft",
+    version="1.1.0",
     description="Profile A (kagent) provider. Implements ADR-Platform-021.",
 )
 
 
+def _error_response(request: Request, status: int, code: str, message: str) -> JSONResponse:
+    invocation_id = getattr(request.state, "invocation_id", None)
+    payload = {"code": code, "message": message}
+    if invocation_id:
+        payload["invocation_id"] = invocation_id
+    return JSONResponse(status_code=status, content=payload)
+
+
+@app.middleware("http")
+async def invocation_correlation(request: Request, call_next):
+    request.state.invocation_id = f"inv-{uuid.uuid4().hex}"
+    response = await call_next(request)
+    response.headers["X-Invocation-Id"] = request.state.invocation_id
+    return response
+
+
+@app.exception_handler(HTTPException)
+async def contract_http_error(request: Request, exc: HTTPException) -> JSONResponse:
+    detail = exc.detail if isinstance(exc.detail, dict) else {}
+    return _error_response(
+        request,
+        exc.status_code,
+        str(detail.get("code", "request_failed")),
+        str(detail.get("message", exc.detail)),
+    )
+
+
+@app.exception_handler(RequestValidationError)
+async def contract_validation_error(
+    request: Request,
+    exc: RequestValidationError,
+) -> JSONResponse:
+    return _error_response(
+        request,
+        422,
+        "invalid_request",
+        "request does not conform to the operation input schema",
+    )
+
+
+async def require_consumer_identity(
+    request: Request,
+    authorization: Optional[str] = Header(default=None, alias="Authorization"),
+    request_id: Optional[str] = Header(
+        default=None,
+        alias="X-Request-Id",
+        min_length=1,
+        max_length=128,
+    ),
+) -> None:
+    if not DIAGNOSTICS_BEARER_TOKEN:
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "code": "provider_unavailable",
+                "message": "consumer authentication is not configured",
+            },
+        )
+    scheme, _, token = (authorization or "").partition(" ")
+    if scheme.lower() != "bearer" or not token or not secrets.compare_digest(
+        token, DIAGNOSTICS_BEARER_TOKEN
+    ):
+        LOGGER.warning(
+            "diagnostics invocation rejected invocation_id=%s operation=%s "
+            "request_id=%s",
+            request.state.invocation_id,
+            request.url.path,
+            request_id or "-",
+        )
+        raise HTTPException(
+            status_code=401,
+            detail={
+                "code": "unauthorized",
+                "message": "a valid consumer bearer identity is required",
+            },
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    consumer_id = hashlib.sha256(token.encode("utf-8")).hexdigest()[:16]
+    LOGGER.info(
+        "diagnostics invocation accepted invocation_id=%s operation=%s "
+        "consumer_id=%s request_id=%s timestamp=%s",
+        request.state.invocation_id,
+        request.url.path,
+        consumer_id,
+        request_id or "-",
+        _now().isoformat(),
+    )
+
+
 # ── schema (mirrors contract/openapi.yaml) ───────────────────────────────────
+class ContractModel(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+
 class Confidence(str, Enum):
     low = "low"; medium = "medium"; high = "high"
 
@@ -75,7 +173,7 @@ class EvidenceStatus(str, Enum):
     available = "available"; unavailable = "unavailable"; partial = "partial"
 
 
-class RankedHypothesis(BaseModel):
+class RankedHypothesis(ContractModel):
     hypothesis: str
     confidence: Confidence = Confidence.low
     evidence_refs: list[str] = []
@@ -83,23 +181,49 @@ class RankedHypothesis(BaseModel):
     counter_evidence_status: CounterEvidence = CounterEvidence.not_checked
 
 
-class EvidenceRef(BaseModel):
+class EvidenceRef(ContractModel):
+    id: str = Field(
+        default_factory=lambda: f"ev-{uuid.uuid4().hex}",
+        pattern=r"^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+        max_length=128,
+    )
     type: str
     source: str
     status: EvidenceStatus = EvidenceStatus.available
     reason: Optional[str] = None
     uri: Optional[str] = None
-    collected_at: Optional[datetime] = None
+    collected_at: datetime = Field(default_factory=lambda: _now())
+
+    @model_validator(mode="after")
+    def validate_status_fields(self) -> "EvidenceRef":
+        if self.status in {EvidenceStatus.unavailable, EvidenceStatus.partial}:
+            if not self.reason or not self.reason.strip():
+                raise ValueError("unavailable or partial evidence requires a reason")
+        if self.status in {EvidenceStatus.available, EvidenceStatus.partial}:
+            if not self.uri or not self.uri.strip():
+                raise ValueError("available or partial evidence requires a uri")
+        return self
 
 
-class InvestigateWorkloadInput(BaseModel):
+class InvestigateWorkloadInput(ContractModel):
     cluster: str
     namespace: str
     workload: str
     time_range: str = "PT1H"
 
 
-class WorkloadInvestigation(BaseModel):
+class TimeWindow(ContractModel):
+    start: datetime
+    end: datetime
+
+
+class WorkloadInvestigation(ContractModel):
+    invocation_id: str
+    cluster: str
+    namespace: str
+    workload: str
+    generated_at: datetime
+    effective_time_range: TimeWindow
     summary: str
     symptoms: list[str] = []
     evidence: list[EvidenceRef] = []
@@ -109,24 +233,32 @@ class WorkloadInvestigation(BaseModel):
     provider_capabilities: dict[str, bool] = Field(default_factory=lambda: PROVIDER_CAPS)
 
 
-class GetPlatformHealthInput(BaseModel):
+class GetPlatformHealthInput(ContractModel):
     clusters: list[str] = []
 
 
-class ClusterHealth(BaseModel):
+class ClusterStatus(str, Enum):
+    healthy = "healthy"
+    degraded = "degraded"
+    unavailable = "unavailable"
+    unknown = "unknown"
+
+
+class ClusterHealth(ContractModel):
     cluster: str
-    status: str = "unavailable"
-    summary: Optional[str] = None
+    status: ClusterStatus = ClusterStatus.unknown
+    summary: str
     signals: list[str] = []
     provider_capabilities: dict[str, bool] = Field(default_factory=lambda: PROVIDER_CAPS)
 
 
-class PlatformHealth(BaseModel):
+class PlatformHealth(ContractModel):
+    invocation_id: str
     generated_at: datetime
     clusters: list[ClusterHealth] = []
 
 
-class CollectEvidenceInput(BaseModel):
+class CollectDiagnosticEvidenceInput(ContractModel):
     cluster: str
     namespace: str
     workload: str
@@ -134,15 +266,65 @@ class CollectEvidenceInput(BaseModel):
     evidence_types: list[str] = []
 
 
-class EvidenceBundle(BaseModel):
+class EvidenceBundle(ContractModel):
+    invocation_id: str
     cluster: str
+    namespace: str
+    workload: str
     collected_at: datetime
+    effective_time_range: TimeWindow
     evidence: list[EvidenceRef] = []
     provider_capabilities: dict[str, bool] = Field(default_factory=lambda: PROVIDER_CAPS)
 
 
 def _now() -> datetime:
     return datetime.now(timezone.utc)
+
+
+def _effective_time_range(time_range: str, end: Optional[datetime] = None) -> TimeWindow:
+    end_time = end or _now()
+    match = re.fullmatch(
+        r"P(?:(?P<days>\d+)D)?(?:T(?:(?P<hours>\d+)H)?(?:(?P<minutes>\d+)M)?)?",
+        time_range,
+    )
+    if not match or not any(match.groupdict().values()):
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "invalid_request",
+                "message": "time_range must be a supported ISO-8601 duration",
+            },
+        )
+    duration = timedelta(
+        days=int(match.group("days") or 0),
+        hours=int(match.group("hours") or 0),
+        minutes=int(match.group("minutes") or 0),
+    )
+    if duration <= timedelta(0):
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "invalid_request",
+                "message": "time_range must be greater than zero",
+            },
+        )
+    return TimeWindow(start=end_time - duration, end=end_time)
+
+
+def _investigation_context(
+    request: Request,
+    body: InvestigateWorkloadInput,
+    generated_at: Optional[datetime] = None,
+) -> dict[str, Any]:
+    timestamp = generated_at or _now()
+    return {
+        "invocation_id": request.state.invocation_id,
+        "cluster": body.cluster,
+        "namespace": body.namespace,
+        "workload": body.workload,
+        "generated_at": timestamp,
+        "effective_time_range": _effective_time_range(body.time_range, timestamp),
+    }
 
 
 class AgentError(Exception):
@@ -324,11 +506,11 @@ async def _collect_workload_observations(
     body: InvestigateWorkloadInput,
     pods: list[dict[str, Any]],
 ) -> tuple[dict[str, Any], list[EvidenceRef]]:
-    """Collect canonical observations and evidence URIs before invoking the LLM.
+    """Collect canonical observations and evidence identities before invoking the LLM.
 
     The facade, not the agent, owns evidence identity. The agent receives the
-    actual pod names and read-tool output plus a URI catalog it may cite, but it
-    cannot mint evidence references that the facade did not collect.
+    actual pod names and read-tool output plus an ID/URI catalog, but it cannot
+    mint evidence references that the facade did not collect.
     """
     encoded_cluster = quote(body.cluster, safe="")
     encoded_namespace = quote(body.namespace, safe="")
@@ -485,6 +667,7 @@ async def _collect_workload_observations(
 
     observations["evidence_catalog"] = [
         {
+            "id": item.id,
             "type": item.type,
             "source": item.source,
             "status": item.status.value,
@@ -494,8 +677,8 @@ async def _collect_workload_observations(
         for item in evidence
         if item.status == EvidenceStatus.available
     ]
-    observations["allowed_evidence_uris"] = [
-        item["uri"] for item in observations["evidence_catalog"]
+    observations["allowed_evidence_ids"] = [
+        item["id"] for item in observations["evidence_catalog"]
     ]
     return observations, evidence
 
@@ -503,6 +686,7 @@ async def _collect_workload_observations(
 def _pod_inventory_report(
     body: InvestigateWorkloadInput,
     pods: list[dict[str, Any]],
+    context: dict[str, Any],
 ) -> Optional[WorkloadInvestigation]:
     """Return a deterministic report when inventory proves no current pod fault."""
     encoded_cluster = quote(body.cluster, safe="")
@@ -564,12 +748,14 @@ def _pod_inventory_report(
     )
     if not pods:
         return WorkloadInvestigation(
+            **context,
             summary=summary,
             symptoms=[f"No pods currently match workload {body.workload}."],
             evidence=evidence,
         )
     if all_running and ready_count == len(pods) and restart_count == 0:
         return WorkloadInvestigation(
+            **context,
             summary=summary + " No current pod readiness or restart symptom was observed.",
             evidence=evidence,
         )
@@ -643,8 +829,9 @@ def _grounded_hypotheses(
     hypotheses: list[RankedHypothesis],
 ) -> list[RankedHypothesis]:
     """Keep only causes whose supporting and contradicting refs were collected."""
-    available_uris = {
-        item.uri for item in evidence
+    known_ids = {item.id for item in evidence}
+    uri_to_id = {
+        item.uri: item.id for item in evidence
         if item.status == EvidenceStatus.available and item.uri
     }
     confidence_rank = {
@@ -652,16 +839,25 @@ def _grounded_hypotheses(
         Confidence.medium: 2,
         Confidence.low: 1,
     }
-    grounded = [
-        hypothesis for hypothesis in hypotheses
-        if hypothesis.evidence_refs
-        and all(ref in available_uris for ref in hypothesis.evidence_refs)
-        and all(
-            ref in available_uris
-            for ref in hypothesis.contradicting_evidence_refs
+    grounded = []
+    for hypothesis in hypotheses:
+        supporting_ids = [uri_to_id.get(ref, ref) for ref in hypothesis.evidence_refs]
+        contradicting_ids = [
+            uri_to_id.get(ref, ref) for ref in hypothesis.contradicting_evidence_refs
+        ]
+        normalized = hypothesis.model_copy(
+            update={
+                "evidence_refs": supporting_ids,
+                "contradicting_evidence_refs": contradicting_ids,
+            }
         )
-        and hypothesis.counter_evidence_status != CounterEvidence.not_checked
-    ]
+        if (
+            supporting_ids
+            and all(ref in known_ids for ref in supporting_ids)
+            and all(ref in known_ids for ref in contradicting_ids)
+            and normalized.counter_evidence_status != CounterEvidence.not_checked
+        ):
+            grounded.append(normalized)
     return sorted(
         grounded,
         key=lambda hypothesis: confidence_rank[hypothesis.confidence],
@@ -678,12 +874,14 @@ def _investigation_validation_errors(
     """Reject LLM claims that are not linked to retrievable evidence.
 
     The facade is the trust boundary: schema-valid JSON from an agent is not
-    automatically factual. A finalized diagnosis may claim symptoms or causes
-    only when its available evidence has a URI and every hypothesis references
-    one of those URIs. ADR-021 also forbids finalized hypotheses whose
-    counter-evidence was never checked.
+    automatically factual. Available evidence must have a URI, while every
+    hypothesis reference must resolve to a stable ID. This intentionally permits
+    a hypothesis to reference unavailable evidence whose absence affected the
+    assessment. ADR-021 also forbids finalized hypotheses whose counter-evidence
+    was never checked.
     """
     errors: list[str] = []
+    known_ids = {item.id for item in evidence}
     available_uris = {
         item.uri for item in evidence
         if item.status == EvidenceStatus.available and item.uri
@@ -698,8 +896,8 @@ def _investigation_validation_errors(
             "available evidence missing uri: " + ", ".join(sorted(set(missing_uri)))
         )
 
-    if (symptoms or hypotheses) and not available_uris:
-        errors.append("diagnostic claims have no retrievable evidence")
+    if (symptoms or hypotheses) and not known_ids:
+        errors.append("diagnostic claims have no referenced evidence")
     if not hypotheses:
         errors.append("provider returned no grounded probable causes")
 
@@ -728,7 +926,7 @@ def _investigation_validation_errors(
             errors.append(f"hypothesis {index} has no evidence_refs")
         unknown_refs = [
             ref for ref in hypothesis.evidence_refs
-            if ref not in available_uris
+            if ref not in known_ids
         ]
         if unknown_refs:
             errors.append(
@@ -737,7 +935,7 @@ def _investigation_validation_errors(
             )
         unknown_counter_refs = [
             ref for ref in hypothesis.contradicting_evidence_refs
-            if ref not in available_uris
+            if ref not in known_ids
         ]
         if unknown_counter_refs:
             errors.append(
@@ -773,10 +971,10 @@ def _instruct(
         "- Do NOT ask clarifying questions or request more input. Assess with the tools\n"
         "  available and return the JSON regardless of what is missing.\n"
         "- Every evidence_refs and contradicting_evidence_refs item MUST be an exact\n"
-        "  copy of a uri from the evidence array; never reference type/source labels.\n"
+        "  copy of an id from the evidence array; never reference URI/type/source labels.\n"
         "- When facade-collected observations are present, they are authoritative.\n"
         "  Do not call tools again. Copy evidence entries only from evidence_catalog,\n"
-        "  and copy hypothesis references only from allowed_evidence_uris. Never invent\n"
+        "  and copy hypothesis references only from allowed_evidence_ids. Never invent\n"
         "  a resource name, pod name, event, log observation, or URI. Rank causes by\n"
         "  descending confidence and make the first cause the best explanation of\n"
         "  the observed states, events, and logs. If a container started and exited,\n"
@@ -793,7 +991,7 @@ def _instruct(
 
 _SHAPE_INVESTIGATE = (
     '{"summary":str,"symptoms":[str],'
-    '"evidence":[{"type":str,"source":str,"status":"available|unavailable|partial",'
+    '"evidence":[{"id":str,"type":str,"source":str,"status":"available|unavailable|partial",'
     '"reason":str,"uri":str}],'
     '"probable_causes":[{"hypothesis":str,"confidence":"low|medium|high",'
     '"evidence_refs":[str],"contradicting_evidence_refs":[str],'
@@ -801,30 +999,42 @@ _SHAPE_INVESTIGATE = (
     '"recommended_next_steps":[str],"references":[str]}'
 )
 _SHAPE_HEALTH = (
-    '{"clusters":[{"cluster":str,"status":"healthy|degraded|unavailable",'
+    '{"clusters":[{"cluster":str,"status":"healthy|degraded|unavailable|unknown",'
     '"summary":str,"signals":[str]}]}'
 )
 _SHAPE_EVIDENCE = (
-    '{"evidence":[{"type":str,"source":str,"status":"available|unavailable|partial",'
+    '{"evidence":[{"id":str,"type":str,"source":str,"status":"available|unavailable|partial",'
     '"reason":str,"uri":str}]}'
 )
 
 
 # ── the three contract functions ─────────────────────────────────────────────
-@app.post("/v1/get_platform_health", response_model=PlatformHealth,
-          operation_id="get_platform_health")
-async def get_platform_health(body: GetPlatformHealthInput) -> PlatformHealth:
+@app.post(
+    "/v1/get_platform_health",
+    response_model=PlatformHealth,
+    response_model_exclude_none=True,
+    operation_id="get_platform_health",
+    dependencies=[Depends(require_consumer_identity)],
+)
+async def get_platform_health(
+    body: GetPlatformHealthInput,
+    request: Request,
+) -> PlatformHealth:
     clusters = body.clusters or [DEFAULT_CLUSTER]
     try:
         text = await invoke_agent(_instruct("get_platform_health", body.model_dump(), _SHAPE_HEALTH))
     except AgentError as e:
-        return PlatformHealth(generated_at=_now(), clusters=[
+        return PlatformHealth(
+            invocation_id=request.state.invocation_id,
+            generated_at=_now(),
+            clusters=[
             ClusterHealth(
                 cluster=c,
-                status="unavailable",
+                status=ClusterStatus.unknown,
                 summary=f"provider unavailable: {e}",
                 signals=["provider_call_failed"],
-            ) for c in clusters])
+            ) for c in clusters],
+        )
     data = _extract_json(text) or {}
     reported: dict[str, ClusterHealth] = {}
     for c in data.get("clusters", []) if isinstance(data, dict) else []:
@@ -835,9 +1045,11 @@ async def get_platform_health(body: GetPlatformHealthInput) -> PlatformHealth:
             raw_status = str(c.get("status", "")).strip().lower()
             summary = str(c.get("summary", "")).strip()
             signals = list(c.get("signals", []) or [])
-            if raw_status not in {"healthy", "degraded", "unavailable"}:
+            if raw_status not in {
+                "healthy", "degraded", "unavailable", "unknown"
+            }:
                 reported_status = raw_status or "<missing>"
-                raw_status = "unavailable"
+                raw_status = "unknown"
                 summary = (
                     f"provider returned unverified platform health status "
                     f"{reported_status!r}"
@@ -862,33 +1074,45 @@ async def get_platform_health(body: GetPlatformHealthInput) -> PlatformHealth:
         )
         out.append(ClusterHealth(
             cluster=cluster,
-            status="unavailable",
+            status=ClusterStatus.unknown,
             summary=f"provider returned unverified platform health output: {reason}",
             signals=["provider_output_unverified"],
         ))
-    return PlatformHealth(generated_at=_now(), clusters=out)
+    return PlatformHealth(
+        invocation_id=request.state.invocation_id,
+        generated_at=_now(),
+        clusters=out,
+    )
 
 
-@app.post("/v1/investigate_workload", response_model=WorkloadInvestigation,
-          operation_id="investigate_workload")
-async def investigate_workload(body: InvestigateWorkloadInput) -> WorkloadInvestigation:
+@app.post(
+    "/v1/investigate_workload",
+    response_model=WorkloadInvestigation,
+    response_model_exclude_none=True,
+    operation_id="investigate_workload",
+    dependencies=[Depends(require_consumer_identity)],
+)
+async def investigate_workload(
+    body: InvestigateWorkloadInput,
+    request: Request,
+) -> WorkloadInvestigation:
+    context = _investigation_context(request, body)
     try:
         pods = await _get_workload_pods(body)
     except AgentError as e:
-        return WorkloadInvestigation(
-            summary=(
-                f"provider unavailable for {body.workload} in "
-                f"{body.cluster}/{body.namespace}"
-            ),
-            evidence=[EvidenceRef(
-                type="workload-pod-inventory",
-                source=PROVIDER_NAME,
-                status=EvidenceStatus.unavailable,
-                reason=str(e),
-                collected_at=_now(),
-            )],
+        LOGGER.error(
+            "workload inventory failed invocation_id=%s error_type=%s",
+            request.state.invocation_id,
+            type(e).__name__,
         )
-    inventory_report = _pod_inventory_report(body, pods)
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "code": "provider_unavailable",
+                "message": "workload inventory provider is unavailable",
+            },
+        )
+    inventory_report = _pod_inventory_report(body, pods, context)
     if inventory_report is not None:
         return inventory_report
 
@@ -903,30 +1127,27 @@ async def investigate_workload(body: InvestigateWorkloadInput) -> WorkloadInvest
             observations,
         ))
     except AgentError as e:
-        return WorkloadInvestigation(
-            summary=f"provider unavailable for {body.workload} in {body.cluster}/{body.namespace}",
-            evidence=canonical_evidence + [
-                EvidenceRef(
-                    type="agent",
-                    source=PROVIDER_NAME,
-                    status=EvidenceStatus.unavailable,
-                    reason=str(e),
-                    collected_at=_now(),
-                )
-            ])
+        LOGGER.error(
+            "diagnostics agent failed invocation_id=%s error_type=%s",
+            request.state.invocation_id,
+            type(e).__name__,
+        )
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "code": "provider_unavailable",
+                "message": "diagnostics agent is unavailable",
+            },
+        )
     data = _extract_json(text)
-    if not data:  # reached the agent but no parseable JSON — degrade gracefully, stay schema-valid
-        return WorkloadInvestigation(
-            summary=text[:1000],
-            evidence=canonical_evidence + [
-                EvidenceRef(
-                    type="agent",
-                    source=PROVIDER_NAME,
-                    status=EvidenceStatus.partial,
-                    reason="agent reply was not structured JSON",
-                    collected_at=_now(),
-                )
-            ])
+    if not data:
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "code": "provider_unavailable",
+                "message": "diagnostics agent did not return a finalized result",
+            },
+        )
     symptoms = list(data.get("symptoms", []) or [])
     reported_evidence = _coerce_evidence(data.get("evidence"))
     hypotheses = _grounded_hypotheses(
@@ -940,22 +1161,16 @@ async def investigate_workload(body: InvestigateWorkloadInput) -> WorkloadInvest
         reported_evidence,
     )
     if validation_errors:
-        return WorkloadInvestigation(
-            summary=(
-                f"provider returned unverified diagnostic output for "
-                f"{body.workload} in {body.cluster}/{body.namespace}"
-            ),
-            evidence=canonical_evidence + [
-                EvidenceRef(
-                    type="agent-output-validation",
-                    source=PROVIDER_NAME,
-                    status=EvidenceStatus.unavailable,
-                    reason="; ".join(validation_errors),
-                    collected_at=_now(),
-                )
-            ],
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "code": "provider_unavailable",
+                "message": "diagnostics agent returned an unverified result: "
+                + "; ".join(validation_errors),
+            },
         )
     return WorkloadInvestigation(
+        **context,
         summary=str(data.get("summary", "")).strip() or text[:500],
         symptoms=symptoms,
         evidence=canonical_evidence,
@@ -964,10 +1179,29 @@ async def investigate_workload(body: InvestigateWorkloadInput) -> WorkloadInvest
         references=list(data.get("references", []) or []))
 
 
-@app.post("/v1/collect_diagnostic_evidence", response_model=EvidenceBundle,
-          operation_id="collect_diagnostic_evidence")
-async def collect_diagnostic_evidence(body: CollectEvidenceInput) -> EvidenceBundle:
+@app.post(
+    "/v1/collect_diagnostic_evidence",
+    response_model=EvidenceBundle,
+    response_model_exclude_none=True,
+    operation_id="collect_diagnostic_evidence",
+    dependencies=[Depends(require_consumer_identity)],
+)
+async def collect_diagnostic_evidence(
+    body: CollectDiagnosticEvidenceInput,
+    request: Request,
+) -> EvidenceBundle:
     requested = set(body.evidence_types) or {"events", "logs", "describe"}
+    collected_at = _now()
+    context = {
+        "invocation_id": request.state.invocation_id,
+        "cluster": body.cluster,
+        "namespace": body.namespace,
+        "workload": body.workload,
+        "collected_at": collected_at,
+        "effective_time_range": _effective_time_range(
+            body.time_range, collected_at
+        ),
+    }
     investigation_input = InvestigateWorkloadInput(
         cluster=body.cluster,
         namespace=body.namespace,
@@ -981,8 +1215,7 @@ async def collect_diagnostic_evidence(body: CollectEvidenceInput) -> EvidenceBun
         )
     except AgentError as e:
         return EvidenceBundle(
-            cluster=body.cluster,
-            collected_at=_now(),
+            **context,
             evidence=[
                 EvidenceRef(
                     type=evidence_type,
@@ -1025,8 +1258,7 @@ async def collect_diagnostic_evidence(body: CollectEvidenceInput) -> EvidenceBun
         ))
 
     return EvidenceBundle(
-        cluster=body.cluster,
-        collected_at=_now(),
+        **context,
         evidence=evidence,
     )
 

@@ -1,0 +1,63 @@
+apiVersion: diagnostic.openkubes.io/v1alpha1
+kind: GO1RegistrationIntegrityDiagnosticCandidate
+metadata:
+  name: ok141-registration-integrity-diagnostic-v1
+  ticket: OK-141
+  baseCommit: 3576f98
+spec:
+  version: ok141-go1-registration-integrity-diagnostic/v1
+  state: OFFLINE-PROVEN-BLOCKED-NO-GO
+  predecessor:
+    candidate:
+      path: ../go1-platform-convergence-cause-diagnostic-v1/platform-convergence-cause-diagnostic-candidate-v1.yaml
+      digest: sha256:9302b3edd13a927969f2b92737bdcae8d56dc618e2bc538b7acb7480fcba2bc9
+    privateEvidencePath: /private/tmp/ok141-platform-convergence-cause-diagnostic-v1-evidence.json
+    privateEvidenceDigest: sha256:f16d740c00d5e04a7d9a527bb6e7c4bda48a5d66ef2f6125f37a1edb9010b987
+    privateEvidenceSemanticDigest: sha256:317c96a7cfc1d0dfeb009c76044e017f53fb68b4a3669394f47f125977df00c9
+  runtimeBinding:
+    path: /private/tmp/ok141-go1-runtime-binding-v2.json
+    digest: sha256:2e5f56cf305e6eb9241f00b2d019583664529560a0c68159ec52b9efa6653e47
+    semanticDigest: sha256:5f89ee33972c778844a61e9e31b4fbfefa232949f33588fb9d81fe0948794c64
+  registration:
+    controlPlane: ok-shared
+    credentialPath: /Users/arash/.kube/ok-shared.yaml
+    credentialIdentityDigest: sha256:790e5efe2af8f8b8703c1745b9e2643ec4ac14f254d52016ad2c2679a79bdefb
+    clientPath: /private/tmp/ok141-kubectl-v1.34.1-darwin-amd64
+    clientDigest: sha256:bb211f2b31f2b3bc60562b44cc1e3b712a16a98e9072968ba255beb04cefcfdf
+    secretURI: /api/v1/namespaces/argocd/secrets/disposable-ok141-cluster
+    expected:
+      name: disposable-ok141
+      namespaces: ok-observability,kube-system
+      clusterResources: "true"
+      project: openkubes-disposable
+      serviceAccountSubject: system:serviceaccount:kube-system:ok141-argocd-manager
+  targetProbe:
+    clientPath: /private/tmp/ok141-kubectl-v1.36.2-darwin-amd64
+    clientDigest: sha256:ce6c5e55cd17559e87e4fb5e73ebbbc2511bcf2b695d7a40c1b1461a9817d4b3
+    exactURI: /api/v1/namespaces/ok-observability
+    ephemeralKubeconfigPath: /private/tmp/ok141-registration-integrity-target-kubeconfig.yaml
+  outputPath: /private/tmp/ok141-registration-integrity-diagnostic-v1-evidence.json
+  evidenceBoundary:
+    forbids: [Secret data, token, CA payload, API endpoint, raw kubeconfig, JWT payload, raw API output]
+    retains: [identity booleans, field digests, audience and subject matches, remaining token seconds, probe status and output digests]
+  tool:
+    path: bounded_registration_integrity_diagnostic_v1.py
+    digest: sha256:b7793b97e82791ab4e658d483e7e6a3df872208d5646be270411052bf9b55066
+  authorization:
+    decision: NO-GO
+    sharedClusterContactGranted: false
+    sharedCredentialUseGranted: false
+    exactRegistrationSecretReadGranted: false
+    registrationIntegrityGranted: false
+    tokenClaimInspectionGranted: false
+    ephemeralTargetKubeconfigGranted: false
+    targetCredentialUseGranted: false
+    exactTargetNamespaceGetGranted: false
+    mutationGranted: false
+    podOrLogReadGranted: false
+    retryGranted: false
+    rollbackOrCleanupGranted: false
+    happyRunResumeGranted: false
+    evidencePublicationGranted: false
+    failureInjectionGranted: false
+    grantIDs: []

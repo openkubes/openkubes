@@ -66,6 +66,102 @@ R0 v3 private output:      /private/tmp/ok141-go1-l-recovery-snapshot-v3-evidenc
 R0-v3 carries no read or credential authority. Its output must be absent before
 a separately granted run.
 
+R0-v3 completed successfully, but its ten-minute private binding expired before
+the separately granted R1 window could be used. No delete was attempted and the
+R1 grant was not consumed. The private v3 evidence and binding remain preserved.
+
+To avoid adding another Python tool for every time-bound refresh, the additive
+attempt-v1 mechanism separates stable reviewed logic from immutable attempt
+identity:
+
+```text
+stable observer / materializer / cleanup executor
+        +
+immutable attempt candidate
+        +
+unique private evidence and binding paths
+        =
+fresh, independently granted R0 attempt
+```
+
+Each attempt still binds the exact twenty-query profile, predecessor evidence,
+candidate digest, output path, ten-minute binding lifetime, and a cleanup
+candidate that accepts only that attempt identity. Reuse of an old output,
+binding, candidate digest, or grant fails closed. The mechanism does not combine
+R0 and R1 and does not grant either operation.
+
+```text
+R0-v4 attempt candidate: sha256:243e7eb9b6633e13c7436be2b317f2621c6cc7b4ef44d8cb870aba5d59810b5e
+R0-v4 cleanup candidate: sha256:71a81d3609de890727a08bb5f7680b0c188aa080361de98a3f5aa4d0dab7b1e1
+R0-v4:                   NOT GRANTED
+R1:                      NOT GRANTED
+```
+
+R2 is also prepared as a separate read-only mechanism. The public repository
+contains only a non-granted template; the concrete R1 evidence digest, private
+binding digest, and grant identity must be materialized locally. The observer:
+
+```text
+poll exact ok-mgmt Namespace every 10 seconds
+        ↓ maximum 60 iterations / 600 seconds
+Namespace absent
+        ↓
+run the reviewed twenty-query closure inventory once
+        ↓
+PASS-R2-CLEAN only when management state is absent,
+provider runtime remains absent, and the three ok-infra prerequisites remain
+```
+
+R2 never deletes, retries R1, removes finalizers, or grants R3. A concrete R2
+candidate and its raw evidence remain private unless separately approved for a
+verified redacted publication.
+
+R3 is prepared as a separate two-gate mechanism. Its first gate is read-only:
+it validates a private `PASS-R2-CLEAN` predecessor and performs exactly three
+GETs on `ok-infra`, in deletion order:
+
+```text
+RoleBinding ok-images/disposable-ok141-talos-golden-image-cloner
+        ↓
+Role ok-images/disposable-ok141-talos-golden-image-cloner
+        ↓
+Namespace disposable-ok141
+```
+
+Only exact, present objects without deletion timestamps, finalizers, or owner
+references can produce a private UID/resourceVersion binding. The binding is
+valid for at most ten minutes. The second gate requires a separate single-run
+grant and deletes those same three objects in the same order using foreground
+deletion with both UID and resourceVersion preconditions. It stops on the first
+error and has no force, finalizer mutation, retry, rollback, or continuation to
+recreation. The public candidate and template contain no live identifiers and
+grant no read or delete authority.
+
+```text
+R3 cleanup candidate: sha256:71ef9c406a772bae02bdb0706e09cc49a772afb3d29a5ee87c11ae93144f4664
+R3 preflight:         NOT GRANTED
+R3 cleanup:           NOT GRANTED
+```
+
+R4 is prepared as a separate read-only closure observer. It first polls only
+the exact `ok-infra` Namespace for at most ten minutes. After the Namespace is
+absent, it runs the same reviewed twenty-query inventory used by R0/R2 and
+accepts the baseline only when:
+
+```text
+all ok-mgmt lifecycle state                 ABSENT
+the two bound local ok-mgmt KubeVirt APIs   API_NOT_SERVED
+all three ok-infra prerequisites            ABSENT
+all ok-infra provider runtime               ABSENT
+                                                ↓
+                                  PASS-R4-CLEAN-BASELINE
+```
+
+The public R4 template carries no concrete R3 evidence or runtime-binding
+digest and grants no reads, credential use, mutation, recreation, GO1-L, or
+GO-1. A private candidate and separate single-run read-only grant are required
+before any observation.
+
 The cleanup mechanism is prepared offline but remains blocked. A deterministic
 materializer converts only a successful, fresh R0-v2 snapshot into a private
 ten-minute UID/resourceVersion binding. The bounded executor then exposes two
@@ -142,6 +238,22 @@ python3 architecture/spikes/ADR-Platform-030/go1-l-recovery-v1/test_bounded_reco
 python3 architecture/spikes/ADR-Platform-030/go1-l-recovery-v1/bounded_recovery_cleanup_v2.py \
   verify \
   --candidate architecture/spikes/ADR-Platform-030/go1-l-recovery-v1/recovery-cleanup-candidate-v1-r0-v3.yaml
+python3 architecture/spikes/ADR-Platform-030/go1-l-recovery-v1/observe_recovery_snapshot_attempt_v1.py \
+  verify \
+  --candidate architecture/spikes/ADR-Platform-030/go1-l-recovery-v1/recovery-snapshot-attempt-r0-v4-20260814-01.yaml
+python3 architecture/spikes/ADR-Platform-030/go1-l-recovery-v1/bounded_recovery_cleanup_attempt_v1.py \
+  verify \
+  --candidate architecture/spikes/ADR-Platform-030/go1-l-recovery-v1/recovery-cleanup-candidate-r0-v4-20260814-01.yaml
+python3 architecture/spikes/ADR-Platform-030/go1-l-recovery-v1/test_recovery_snapshot_attempt_v1.py -v
+python3 architecture/spikes/ADR-Platform-030/go1-l-recovery-v1/test_recovery_r2_v1.py -v
+python3 architecture/spikes/ADR-Platform-030/go1-l-recovery-v1/prepare_recovery_r3_binding_v1.py \
+  verify \
+  --candidate architecture/spikes/ADR-Platform-030/go1-l-recovery-v1/recovery-r3-binding-candidate-v1.template.yaml
+python3 architecture/spikes/ADR-Platform-030/go1-l-recovery-v1/bounded_recovery_r3_cleanup_v1.py \
+  verify \
+  --candidate architecture/spikes/ADR-Platform-030/go1-l-recovery-v1/recovery-r3-cleanup-candidate-v1.yaml
+python3 architecture/spikes/ADR-Platform-030/go1-l-recovery-v1/test_recovery_r3_v1.py -v
+python3 architecture/spikes/ADR-Platform-030/go1-l-recovery-v1/test_recovery_r4_v1.py -v
 ```
 
 ```text

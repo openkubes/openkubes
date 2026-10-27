@@ -1,0 +1,44 @@
+apiVersion: execution.openkubes.io/v1alpha1
+kind: GO1LRecoveryR3CleanupCandidate
+metadata: {name: ok141-go1-l-recovery-r3-cleanup-v1, ticket: OK-141}
+spec:
+  version: ok141-go1-l-recovery-r3-cleanup/v1
+  state: OFFLINE-PROVEN-BLOCKED-NO-GO
+  protocolDigest: sha256:0be2957f7c417e9c7c25f2595b5168a95f11e72c76508d83f774719045df8bd9
+  tool:
+    path: bounded_recovery_r3_cleanup_v1.py
+    digest: sha256:3bc31da58cb64536a3046cd3c5af8ee09a51a391687c3fd5fd965433cc688ef9
+    kubectlPath: /private/tmp/ok141-kubectl-v1.34.1-darwin-amd64
+    kubectlDigest: sha256:bb211f2b31f2b3bc60562b44cc1e3b712a16a98e9072968ba255beb04cefcfdf
+  kubeconfigPath: /Users/arash/.kube/ok-infra.yaml
+  targets:
+    - {key: golden-image-cloner-binding, identity: 'rbac.authorization.k8s.io/v1|RoleBinding|ok-images|disposable-ok141-talos-golden-image-cloner', rawURI: /apis/rbac.authorization.k8s.io/v1/namespaces/ok-images/rolebindings/disposable-ok141-talos-golden-image-cloner}
+    - {key: golden-image-cloner-role, identity: 'rbac.authorization.k8s.io/v1|Role|ok-images|disposable-ok141-talos-golden-image-cloner', rawURI: /apis/rbac.authorization.k8s.io/v1/namespaces/ok-images/roles/disposable-ok141-talos-golden-image-cloner}
+    - {key: infra-namespace, identity: 'v1|Namespace|_|disposable-ok141', rawURI: /api/v1/namespaces/disposable-ok141}
+  transport:
+    exactGETBeforeDelete: true
+    uidPreconditionRequired: true
+    resourceVersionEqualityRequiredBeforeDelete: true
+    propagationPolicy: Foreground
+    forceAllowed: false
+    finalizerMutationAllowed: false
+    automaticRetryAllowed: false
+    automaticRollbackAllowed: false
+  authorization:
+    decision: NO-GO
+    readOnlyPreconditionAuthorized: false
+    credentialUseAuthorized: false
+    mutationAuthorized: false
+    destructiveCleanupAuthorized: false
+    uidPreconditionAuthorized: false
+    retryAuthorized: false
+    forceDeleteAuthorized: false
+    finalizerRemovalAuthorized: false
+    recreateAuthorized: false
+    go1LGranted: false
+    go1Granted: false
+    failureInjectionAuthorized: false
+  exclusions:
+    - patch update apply force delete finalizer removal retry rollback or cleanup expansion
+    - Secret ConfigMap Pod log TokenRequest discovery watch or collection access
+    - recreation GO1-L GO-1 or failure injection

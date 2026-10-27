@@ -1,0 +1,62 @@
+{
+  "apiVersion": "execution.openkubes.io/v1alpha1",
+  "kind": "OK141ApplicationSyncAfterTokenRefreshCandidate",
+  "metadata": {
+    "name": "ok141-alerting-sync-after-v8-v1"
+  },
+  "spec": {
+    "state": "LIVE-AUTHORIZED-ONCE",
+    "standingGrantAcknowledged": true,
+    "authorizationBasis": "continuous bounded OK-141 DEV grant and user instruction weiter; one diagnosis-based Alerting sync after monitoring CRDs became established",
+    "predecessor": {
+      "path": "/private/tmp/ok141-registration-token-refresh-v3-evidence.json",
+      "digest": "sha256:87ce64a4860d99aea415dcdfc2e7be743e3c9d33f7021b1537fde0cd331377ec"
+    },
+    "amendmentEvidence": {
+      "path": "/private/tmp/ok141-live-platform-defaulting-diff-amendment-v1-evidence.json",
+      "digest": "sha256:fa5717c8a197a8af60acf8c060adb086d1f9a28a2c5c6b7d152badfc727d6231"
+    },
+    "clientPath": "/private/tmp/ok141-kubectl-v1.34.1-darwin-amd64",
+    "clientDigest": "sha256:bb211f2b31f2b3bc60562b44cc1e3b712a16a98e9072968ba255beb04cefcfdf",
+    "kubeconfigPath": "/Users/arash/.kube/ok-shared.yaml",
+    "application": {
+      "namespace": "argocd",
+      "name": "disposable-ok141-observability-alerting",
+      "uri": "/apis/argoproj.io/v1alpha1/namespaces/argocd/applications/disposable-ok141-observability-alerting",
+      "sourceRevision": "b5f7be6a7ddab798f31f32197fcbb9e86a9798b6",
+      "expectedPriorOperationFinishedAt": "2026-08-15T12:38:57Z",
+      "identityAnnotations": {
+        "openkubes.io/intent-revision": "sha256:81a57ef118e339a08e80608c64da7dd6eaed7d67dcdbcfa74a34636ab16dd35f",
+        "openkubes.io/platform-revision": "sha256:311a581894905faa1eb57f93f0d236a84a4a016e82c64c5f51ee7d6c1e29c952",
+        "openkubes.io/execution-fixture": "sha256:3ad6f2dbe82da2abc15e8dc44bbf2aabf5afcfd8cb54b54b2d2807fd815b7eba"
+      },
+      "operation": {
+        "sync": {
+          "revision": "b5f7be6a7ddab798f31f32197fcbb9e86a9798b6",
+          "prune": true,
+          "syncOptions": [
+            "PrunePropagationPolicy=foreground",
+            "PruneLast=true"
+          ]
+        }
+      }
+    },
+    "observation": {
+      "intervalSeconds": 10,
+      "maxIterations": 60
+    },
+    "toolPath": "bounded_application_sync_after_token_refresh_v1.py",
+    "toolDigest": "sha256:7431d912f3e9959aea00527bd8b3b7c6cad58b157c66c7fbd473c986775d5021",
+    "outputPath": "/private/tmp/ok141-alerting-sync-after-v8-v1-evidence.json",
+    "stopPolicy": "STOP-PRESERVE-NO-RETRY",
+    "exclusions": [
+      "spec change",
+      "credential change",
+      "RBAC change",
+      "unrelated prune target",
+      "rollback",
+      "cleanup",
+      "failure injection"
+    ]
+  }
+}

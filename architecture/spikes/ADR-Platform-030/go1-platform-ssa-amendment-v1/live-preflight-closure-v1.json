@@ -1,0 +1,45 @@
+{
+  "apiVersion": "evidence.openkubes.io/v1alpha1",
+  "kind": "OK141LivePlatformSSAAmendmentPreflightClosure",
+  "metadata": {
+    "name": "ok141-live-platform-ssa-amendment-preflight-closure-v1"
+  },
+  "spec": {
+    "observedAt": "2026-08-15T15:59:42Z",
+    "candidateDigest": "sha256:55e969dc8d1664563d03074a976dd16d15c1510f5a3679abf827b09ec3e7395d",
+    "amendmentDigest": "sha256:ed774745c5846593c612a1f2c330886469cb1aff0f828defc8e656c5bb635521",
+    "identities": {
+      "P": "sha256:30946024c91c64d29840bbdd1184d5f1f1e20dde3869505e07e262caef22df7b",
+      "R": "sha256:7503b0cd54d5d68243f05e231fe76cb56173a96ba9f2e4f76c83106b30731305",
+      "FixtureDigest": "sha256:e83ddec6908ca416d0ddc718a5652ba5db2b4950c26deff1da1ae03b908f028c"
+    },
+    "offlineVerification": {
+      "reconstructedV5MatchesLiveP": true,
+      "v6Reproducible": true,
+      "negativeControlChangesP": true,
+      "desiredResourceSetChanged": false,
+      "sourceRevisionChanged": false,
+      "exactSemanticDelta": "add ServerSideApply=true to the Core Application"
+    },
+    "livePreflight": {
+      "expectedObjectCount": 13,
+      "sharedExactGetCount": 4,
+      "sharedExactGetSuccessCount": 4,
+      "managementExactGetCount": 9,
+      "managementExactGetSuccessCount": 0,
+      "managementFailureClass": "TRANSPORT-TIMEOUT",
+      "mutationPerformed": false,
+      "partialStateCreated": false,
+      "rawEvidenceCreated": false
+    },
+    "state": "STOP-ZERO-WRITE-MANAGEMENT-PLANE-UNREACHABLE",
+    "resumeRule": "repeat the full 13-object read-only preflight after ok-mgmt transport is restored; do not reuse the consumed live candidate",
+    "exclusions": {
+      "credentialChangePerformed": false,
+      "rbacChangePerformed": false,
+      "explicitSyncPerformed": false,
+      "rollbackOrCleanupPerformed": false,
+      "failureInjectionPerformed": false
+    }
+  }
+}

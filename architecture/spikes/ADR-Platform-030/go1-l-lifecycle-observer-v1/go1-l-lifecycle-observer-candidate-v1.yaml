@@ -1,0 +1,93 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: GO1LLifecycleAPIObserverCandidate
+metadata:
+  name: ok141-go1-l-lifecycle-api-observer-v1
+  ticket: OK-141
+  baseCommit: 32230388ce2ba4da50200be9424500dbd8df4295
+spec:
+  version: ok141-go1-l-lifecycle-api-observer/v1
+  state: OFFLINE-PROVEN-BLOCKED-NO-GO
+  protocol:
+    path: ../go1-v6/go1-protocol-v6.yaml
+    digest: sha256:e45e5f6b8254e666226aa874810bf2ca51f76f2411e0316adb52a7ce51254885
+    fixtureDigest: sha256:7536456a762880a78a37dcba76a5f3f0628140bd37b55d5fd62273c64e4cc3eb
+    intentRevision: sha256:166504ae61fd558d391daedde50986cbc7a28f5f4e9d57f4acbd0433b448aa0f
+  runtimePackage:
+    path: ../go1-l-runtime-package-v1/go1-l-runtime-package-candidate-v1.yaml
+    digest: sha256:ac2bb971898606c08e076f89cb153fc0ff0589a12db608e339975ea7bf4245a4
+  preflight:
+    path: ../go1-v6-preflight-v2/go1-v6-preflight-candidate-v2.yaml
+    digest: sha256:ef4b09a8835f187605a0120bdd19616d6d078b9ed19a3796a47b9cbbfc7a4fb2
+  credential:
+    closurePath: ../go1-v6-credential-identity-v1/credential-identity-closure-v1.yaml
+    closureDigest: sha256:26c840ac3e1c5eb879f107801740edb0db73a717fea9c00123ad1e36b3fdc008
+    plane: ok-mgmt
+    path: /Users/arash/.kube/ok-mgmt.yaml
+    identityDigest: sha256:32a164332776f37129e46415af79945745134fefe80c5237d43fe13fa0511ffe
+    claim: HTTPS-API-ENDPOINT-AND-CA-ONLY
+  client:
+    path: /private/tmp/ok141-kubectl-v1.34.1-darwin-amd64
+    digest: sha256:bb211f2b31f2b3bc60562b44cc1e3b712a16a98e9072968ba255beb04cefcfdf
+  observation:
+    intervalSeconds: 15
+    maximumIterations: 180
+    maximumDurationSeconds: 2700
+    outputPath: /private/tmp/ok141-go1-l-lifecycle-api-observer-v1-evidence.json
+    createMode: O_EXCL-0600
+    queries:
+      - id: cluster
+        identity: cluster.x-k8s.io/v1beta2|Cluster|disposable-ok141|disposable-ok141
+        rawURI: /apis/cluster.x-k8s.io/v1beta2/namespaces/disposable-ok141/clusters/disposable-ok141
+      - id: infrastructure-cluster
+        identity: infrastructure.cluster.x-k8s.io/v1alpha1|KubevirtCluster|disposable-ok141|disposable-ok141
+        rawURI: /apis/infrastructure.cluster.x-k8s.io/v1alpha1/namespaces/disposable-ok141/kubevirtclusters/disposable-ok141
+      - id: control-plane
+        identity: controlplane.cluster.x-k8s.io/v1alpha3|TalosControlPlane|disposable-ok141|disposable-ok141-cp
+        rawURI: /apis/controlplane.cluster.x-k8s.io/v1alpha3/namespaces/disposable-ok141/taloscontrolplanes/disposable-ok141-cp
+      - id: workers
+        identity: cluster.x-k8s.io/v1beta2|MachineDeployment|disposable-ok141|disposable-ok141-workers
+        rawURI: /apis/cluster.x-k8s.io/v1beta2/namespaces/disposable-ok141/machinedeployments/disposable-ok141-workers
+  acceptance:
+    requiredObjects: [cluster, infrastructure-cluster, control-plane, workers]
+    requiredIntentRevisionOnEveryObject: true
+    requiredClusterCondition:
+      type: ControlPlaneInitialized
+      status: 'True'
+      observedGenerationMustEqualObjectGeneration: true
+    requiredClusterObservedGenerationCurrent: true
+    requiredEndpointPresent: true
+    typedReferencesMustMatchProjection: true
+    nodeReadyRequired: false
+    networkReadyRequired: false
+    controlPlaneAvailableRequired: false
+  evidence:
+    retains:
+      - object identity and UID
+      - metadata generation and status observedGeneration
+      - typed reference identity
+      - endpoint presence and port but not Secret material
+      - selected condition type status reason and observedGeneration
+      - current credential target identity digest
+    forbids: [Secret payloads, kubeconfig bytes, tokens, private keys, certificates, full API objects]
+    predecessorClassProduced: CURRENT-LIFECYCLE-API-EVIDENCE
+  tool:
+    path: bounded_go1_l_lifecycle_observer_v1.py
+    digest: sha256:2134b322a93370686f0004a009166b63976329e9cc4f9f13a2d67ac78b9993c4
+    exactRawGetOnly: true
+    discoveryListWatchAllowed: false
+    mutationAllowed: false
+    retrySubmissionAllowed: false
+    rollbackOrCleanupAllowed: false
+  authorization:
+    decision: NO-GO
+    clusterContactGranted: false
+    credentialUseGranted: false
+    readOnlyObserverGranted: false
+    mutationGranted: false
+    g3Granted: false
+    go1Granted: false
+    retryGranted: false
+    rollbackOrCleanupGranted: false
+    evidencePublicationGranted: false
+    failureInjectionGranted: false
+    grantIDs: []

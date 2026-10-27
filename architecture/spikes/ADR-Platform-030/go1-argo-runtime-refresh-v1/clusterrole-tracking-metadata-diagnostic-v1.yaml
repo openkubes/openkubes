@@ -1,0 +1,21 @@
+apiVersion: diagnostic.openkubes.io/v1alpha1
+kind: BoundedClusterRoleTrackingMetadataDiagnostic
+metadata:
+  name: ok141-clusterrole-tracking-metadata-diagnostic-v1
+spec:
+  authorization:
+    state: GRANTED
+    source: standing-dev-execution-envelope-v1
+    envelopeDigest: sha256:85e997df331d2ced4ea147c32cc4a94a419e9efdba6de17d8a8ef3cb1dbeac93
+  predecessor:
+    path: /private/tmp/ok141-operator-clusterrole-diff-diagnostic-v1-evidence.json
+    digest: sha256:33e8462681e4bd5e5083ce812208a5706d415ac830a15b11bf6c8fbcbb9771f2
+  registrationSecretURI: /api/v1/namespaces/argocd/secrets/disposable-ok141-cluster
+  exactNames:
+    - disposable-ok141-observability-core-kube-state-metrics
+    - ok-observability-grafana-clusterrole
+    - ok-observability-log-collector
+    - ok-observability-operator
+    - ok-observability-prometheus
+  outputPath: /private/tmp/ok141-clusterrole-tracking-metadata-diagnostic-v1-evidence.json
+  exclusions: [mutation, retry, rollback, cleanup, raw-object-retention, annotation-value-retention, credential-retention, failure-injection]

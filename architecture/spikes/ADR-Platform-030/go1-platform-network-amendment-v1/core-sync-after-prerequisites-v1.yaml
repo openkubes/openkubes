@@ -1,0 +1,36 @@
+apiVersion: action.openkubes.io/v1alpha1
+kind: BoundedArgoApplicationSyncRetry
+metadata:
+  name: ok141-core-sync-after-prerequisites-v1
+spec:
+  authorization:
+    state: GRANTED
+    source: standing-dev-execution-envelope-v1
+    envelopeDigest: sha256:85e997df331d2ced4ea147c32cc4a94a419e9efdba6de17d8a8ef3cb1dbeac93
+  predecessor:
+    path: /private/tmp/ok141-exact-clusterrole-prerequisites-completion-v1-evidence.json
+    digest: sha256:e8f68d8d8742e9e95b46fea39114aaef91978d795d6b45c4d8e9f0888ff2dcde
+  remediation:
+    path: /private/tmp/ok141-exact-rbac-escalate-bind-remediation-v1-evidence.json
+    digest: sha256:0906424870e64ae6280b66665baeadd9d36b71699fa7dc230c43813c10174211
+  priorRetry:
+    path: /private/tmp/ok141-core-sync-retry-v1-evidence.json
+    digest: sha256:8469e1f86e3eb690d1067a7e9e7617800b5921206454e38210c3cfac95ba7446
+    state: PASS-SYNC-RETRY-SUBMITTED
+  application:
+    namespace: argocd
+    name: disposable-ok141-observability-core
+    uri: /apis/argoproj.io/v1alpha1/namespaces/argocd/applications/disposable-ok141-observability-core
+    R: sha256:89248df8cd908394d2d75c18fbb39d52d84cf181f66480c743bfe9d732a0aaa4
+    P: sha256:02206b92b487a0f12eee8139d82f9ef150ab9688c7a60687d3f7b6b782266472
+    fixtureDigest: sha256:3aa621cd8f3b21e87a5d7059911d02a4b0f10f2d724df351750787eb274b9ae6
+    sourceRevision: b5f7be6a7ddab798f31f32197fcbb9e86a9798b6
+    expectedPriorPhase: Failed
+    retryOrdinal: 2
+    operation:
+      sync:
+        revision: b5f7be6a7ddab798f31f32197fcbb9e86a9798b6
+        prune: true
+        syncOptions: [CreateNamespace=true, PrunePropagationPolicy=foreground, PruneLast=true]
+  outputPath: /private/tmp/ok141-core-sync-after-prerequisites-v1-evidence.json
+  exclusions: [spec-change, credential-change, rbac-change, delete, rollback, cleanup, further-retry, failure-injection]

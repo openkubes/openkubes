@@ -1,0 +1,53 @@
+# C0 — Forcing Consumer für SPIKE-Platform-033
+#
+# Zweck: die MINIMALE OKP-Single-Capability-/Placement-Composition, gegen die der
+# Spike die Autonomy-Objectives (runtime → … → disconnected) und Matrix B fährt.
+#
+# WICHTIG: bewusst KEINE Provider gesetzt. C0 beschreibt nur Capability + Placement.
+# Die Providerwahl (Zot/Harbor, Envoy/HAProxy, MetalLB/kube-vip, …) folgt erst
+# NACH der belegten Dependency Closure (ADR-033 §11, §5.1). Provider hier zu setzen
+# würde die Spike-Frage vorwegnehmen.
+apiVersion: platform.openkubes.org/v1alpha1
+kind: OKPDistribution
+
+metadata:
+  name: okp-single-spike
+
+spec:
+  topology: single
+
+  autonomy:
+    objective: runtime          # Startpunkt des Sweeps; wird hochgezogen bis disconnected
+
+  capabilities:
+
+    controlPlaneEndpoint:
+      placement: embedded
+      # provider deliberately unresolved by ADR (L0 — kube-vip static pod | keepalived/HAProxy | external LB)
+
+    registry:
+      placement: embedded
+      # provider deliberately unresolved (Zot | Harbor | Quay | Distribution)
+
+    serviceLoadBalancer:
+      placement: embedded
+      # provider deliberately unresolved (MetalLB | kube-vip service mode | external)
+
+    ingress:
+      placement: embedded
+      # provider deliberately unresolved (Envoy Gateway | Traefik | nginx | HAProxy)
+
+    certificates:
+      placement: embedded
+
+    secrets:
+      placement: embedded
+
+    gitops:
+      placement: embedded
+
+    identity:
+      placement: shared          # bewusst shared — der interessante Autonomy-Test (siehe Sweep)
+
+    observability:
+      placement: embedded

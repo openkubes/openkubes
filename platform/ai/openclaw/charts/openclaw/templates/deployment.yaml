@@ -25,6 +25,9 @@ spec:
         checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
     spec:
       serviceAccountName: {{ .Values.serviceAccount.name }}
+      # OpenClaw is an ADR-021 consumer, not a Kubernetes client. Disable the
+      # projected API token even if ServiceAccount defaults change later.
+      automountServiceAccountToken: false
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000        # image user "node"

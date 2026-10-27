@@ -24,6 +24,7 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       # No special ServiceAccount: the facade holds no kube credentials by design.
+      automountServiceAccountToken: false
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
@@ -45,6 +46,11 @@ spec:
               value: {{ .Values.kagent.agent | quote }}
             - name: KAGENT_TOOLS_URL
               value: {{ .Values.kagent.toolsUrl | quote }}
+            - name: DIAGNOSTICS_BEARER_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.consumerAuth.secretName | quote }}
+                  key: {{ .Values.consumerAuth.secretKey | quote }}
             {{- if .Values.kagent.token }}
             - name: KAGENT_TOKEN
               valueFrom:

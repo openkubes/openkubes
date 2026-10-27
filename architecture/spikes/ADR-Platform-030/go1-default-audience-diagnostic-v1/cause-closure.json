@@ -1,0 +1,17 @@
+{
+  "apiVersion": "evidence.openkubes.io/v1alpha1",
+  "kind": "GO1TargetAccessCauseDiagnosticRedactedClosure",
+  "candidateDigest": "sha256:c7ef5692247d0dbe47e773e2d2357cb4ba77c666d5af32284e4f47f14f0ec30b",
+  "privateEvidenceDigest": "sha256:d3382b75d2df4910ffe791c173cd0df169cc33461796beb1934d38fce2e86c0c",
+  "privateEvidenceSemanticDigest": "sha256:50c55e6e7770109baabe9e4e62eb17330d1f346b6ff609032b8e1d90c6bd3a25",
+  "result": "PASS-READ-ONLY-TARGET-CAUSE-DIAGNOSTIC",
+  "classification": "AUTHENTICATION",
+  "targetProbeExitCode": 1,
+  "boundaries": {
+    "rawResponsePublished": false,
+    "credentialsPublished": false,
+    "persistentMutationPerformed": false,
+    "retryPerformed": false,
+    "happyRunResumed": false
+  }
+}

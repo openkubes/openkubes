@@ -1,0 +1,31 @@
+apiVersion: authorization.openkubes.io/v1alpha1
+kind: GO1NetworkFunctionalDiagnosticGrant
+metadata:
+  name: FILL
+spec:
+  decision: NO-GO
+  authority: github:arashkaffamanesh
+  candidateDigest: FILL
+  grantID: FILL
+  singleRun: true
+  consumed: false
+  issuedAt: FILL
+  expiresAt: FILL
+  failedNetworkEvidencePath: /private/tmp/ok141-go1-l-network-ready-observer-defaulting-v1-evidence.json
+  failedNetworkEvidenceDigest: FILL
+  podName: FILL
+  podUID: FILL
+  workloadTargetIdentityDigest: FILL
+  clusterContactGranted: false
+  managementCredentialUseGranted: false
+  exactSecretReadGranted: false
+  ephemeralCredentialMaterializationGranted: false
+  workloadCredentialUseGranted: false
+  exactPodReadGranted: false
+  fixedPodExecDiagnosticGranted: false
+  persistentMutationGranted: false
+  networkObserverRetryGranted: false
+  happyRunResumeGranted: false
+  rollbackOrCleanupGranted: false
+  evidencePublicationGranted: false
+  failureInjectionGranted: false

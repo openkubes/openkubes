@@ -1,0 +1,83 @@
+apiVersion: execution.openkubes.io/v1alpha1
+kind: GO1LExecutorCandidate
+metadata:
+  name: ok141-go1-l-executor-v1
+  ticket: OK-141
+  baseCommit: b5ce889
+spec:
+  version: ok141-go1-l-executor/v1
+  state: OFFLINE-PROVEN-BLOCKED-NO-GO
+  protocol:
+    path: ../go1-v6/go1-protocol-v6.yaml
+    digest: sha256:e45e5f6b8254e666226aa874810bf2ca51f76f2411e0316adb52a7ce51254885
+  preflight:
+    path: ../go1-v6-preflight-v2/go1-v6-preflight-candidate-v2.yaml
+    digest: sha256:ef4b09a8835f187605a0120bdd19616d6d078b9ed19a3796a47b9cbbfc7a4fb2
+    requiredResult: PASS-FRESH-BASELINE-AND-PREREQUISITES
+    firstOperationMustRunBeforeFreshUntil: true
+  credentialIdentityClosure:
+    path: ../go1-v6-credential-identity-v1/credential-identity-closure-v1.yaml
+    digest: sha256:26c840ac3e1c5eb879f107801740edb0db73a717fea9c00123ad1e36b3fdc008
+  staticSubmitter:
+    path: ../go1-l-submitter-v3/go1-l-submitter-candidate-v3.yaml
+    digest: sha256:ef6869cbe35008a79934eeab1a99106d6e73ab5ee4aae08f88f41ca2116f5cd5
+    semanticsChanged: false
+  providerAccessMaterializer:
+    path: ../go1-l-provider-access-v1/provider-access-materializer-candidate-v1.yaml
+    digest: sha256:6b9b072f8daab315f46de0d6ded642cbcf75618b1c1629c020bdfba60a2aa1d5
+    semanticsChanged: false
+  client:
+    path: /private/tmp/ok141-kubectl-v1.34.1-darwin-amd64
+    digest: sha256:bb211f2b31f2b3bc60562b44cc1e3b712a16a98e9072968ba255beb04cefcfdf
+    version: v1.34.1
+    platform: darwin/amd64
+    requiredMode: "0700"
+    PATHLookupAllowed: false
+  tool:
+    path: bounded_go1_l_executor_v1.py
+    digest: sha256:f6a1c2b2517a26003dc801fe109980a9bc9586feb31374477a6e0dfad9726846
+    arbitraryCommandAllowed: false
+    arbitraryManifestAllowed: false
+    arbitraryCredentialPathAllowed: false
+  credentialPaths:
+    ok-infra: /Users/arash/.kube/ok-infra.yaml
+    ok-mgmt: /Users/arash/.kube/ok-mgmt.yaml
+  operations:
+    - {id: provider-prerequisites, order: 1, executor: static, targetPlane: ok-infra, objectCount: 3, predecessorEvidenceCount: 0}
+    - {id: management-namespace, order: 2, executor: static, targetPlane: ok-mgmt, objectCount: 1, predecessorEvidenceCount: 1}
+    - {id: provider-access-secret, order: 3, executor: provider-access, targetPlane: ok-mgmt, objectCount: 1, predecessorEvidenceCount: 2}
+    - {id: capi-lifecycle, order: 4, executor: static, targetPlane: ok-mgmt, objectCount: 7, predecessorEvidenceCount: 2}
+    - {id: helmchartproxy, order: 5, executor: static, targetPlane: ok-mgmt, objectCount: 1, predecessorEvidenceCount: 1}
+  transport:
+    createOnly: true
+    stdinPayloadOnly: true
+    serverSideApply: false
+    retryAllowed: false
+    rollbackOrCleanupAllowed: false
+    partialState: STOP-PRESERVE-NO-CLEANUP
+  runtimeAuthority:
+    separateGrantPerOperation: true
+    separateCredentialReceiptPerStaticOperation: true
+    providerSourceAndDestinationReceiptsRequired: true
+    maximumGrantMinutes: 20
+    preflightEvidenceRequired: true
+    predecessorEvidenceFilesRequired: true
+  authorization:
+    decision: NO-GO
+    credentialUseGranted: false
+    sourceCredentialReadGranted: false
+    mutationGranted: false
+    go1LGranted: false
+    go1Granted: false
+    retryGranted: false
+    rollbackOrCleanupGranted: false
+    grantIDs: []
+  conclusions:
+    candidateOfflineComplete: true
+    payloadSemanticsChanged: false
+    exactClientBound: true
+    clusterContacted: false
+    mutationAuthorized: false
+  exclusions:
+    - arbitrary commands arguments manifests credentials resources names or target planes
+    - update patch apply delete retry rollback cleanup HCP before lifecycle evidence GO-1 or failure injection

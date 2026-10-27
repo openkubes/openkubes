@@ -1,0 +1,71 @@
+apiVersion: execution.openkubes.io/v1alpha1
+kind: GO1HappyRunCandidate
+metadata:
+  name: ok141-go1-happy-run-v2
+  ticket: OK-141
+  baseCommit: fd6073e59d5023c3146178c091bfb3db0fa222c8
+spec:
+  version: ok141-go1-happy-run/v2
+  state: OFFLINE-PROVEN-BLOCKED-NO-GO
+  supersedes:
+    path: ../go1-happy-run-v1/happy-run-candidate-v1.yaml
+    digest: sha256:2792206fca811633ec7f30cc5fd04814802fe4cf20645bb888cb9e13aca784e6
+    historicalCandidatePreserved: true
+    consumedGrantReusable: false
+    v1Outcome: STOPPED-BEFORE-G1-NO-PERSISTENT-MUTATION
+  amendment:
+    class: deterministic-preflight-consumer-view
+    sourceCredentialPlanes: [ok-infra, ok-mgmt, ok-shared]
+    go1LProjectionPlanes: [ok-infra, ok-mgmt]
+    removedPlane: ok-shared
+    rationale: Historical GO1-L owns only infra and management credentials; ok-shared remains in the authoritative common preflight and is consumed later by Platform stages.
+    sourceEvidenceDigestRetained: true
+    queryResultsChanged: false
+    readinessChanged: false
+    freshnessChanged: false
+    credentialIdentitiesChanged: false
+  inherited:
+    protocolDigest: sha256:e45e5f6b8254e666226aa874810bf2ca51f76f2411e0316adb52a7ce51254885
+    fixtureDigest: sha256:7536456a762880a78a37dcba76a5f3f0628140bd37b55d5fd62273c64e4cc3eb
+    sequenceUnchanged: true
+    stopSemantics: STOP-PRESERVE-NO-RETRY
+    maximumWallClockMinutes: 120
+  v1StopEvidence:
+    preflightRawDigest: sha256:138824b4e2af21997ec89060853d3419f8d2066177b9da08deeb7134b64348e8
+    outerConsumptionReceiptDigest: sha256:d4eabcd0c33aac892ba9b90ef847f0036c26defbf849b626f1e4930d89e4294b
+    preflightResult: PASS-FRESH-BASELINE-AND-PREREQUISITES
+    preflightMutationPerformed: false
+    g1EvidenceProduced: false
+    persistentMutationObservedByExecutor: false
+  tool:
+    path: bounded_happy_run_v2.py
+    digest: sha256:98c815fa17669b3ae956f7cf4094beffde49224b22625ee2dc868414fe3d6fee
+    v1ToolUnmodified: true
+    arbitraryProjectionAllowed: false
+    retryAllowed: false
+  authorization:
+    decision: NO-GO
+    preflightGranted: false
+    credentialUseGranted: false
+    g1Granted: false
+    lifecycleObserverGranted: false
+    g3Granted: false
+    networkObserverGranted: false
+    runtimeBindingGranted: false
+    targetAccessGranted: false
+    tokenRequestGranted: false
+    registrationGranted: false
+    credentialSecretGranted: false
+    applicationSubmissionGranted: false
+    platformObserverGranted: false
+    capabilityTestGranted: false
+    capabilityTestCleanupGranted: false
+    go1LGranted: false
+    go1Granted: false
+    retryGranted: false
+    rollbackGranted: false
+    broadCleanupGranted: false
+    evidencePublicationGranted: false
+    failureInjectionGranted: false
+    outageGranted: false
+    grantIDs: []

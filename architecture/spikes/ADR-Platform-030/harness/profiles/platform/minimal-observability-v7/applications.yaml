@@ -1,0 +1,182 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: disposable-ok141-observability-core
+  namespace: argocd
+spec:
+  project: openkubes-disposable
+  source:
+    repoURL: https://github.com/openkubes/ok-observability.git
+    path: profiles/ok-observability-standard
+    targetRevision: b5f7be6a7ddab798f31f32197fcbb9e86a9798b6
+    helm:
+      valuesObject:
+        ok-observability-prometheus:
+          kube-prometheus-stack:
+            prometheus:
+              prometheusSpec:
+                retention: 3d
+                resources:
+                  requests:
+                    cpu: 250m
+                    memory: 512Mi
+                  limits:
+                    memory: 1Gi
+                storageSpec:
+                  volumeClaimTemplate:
+                    spec:
+                      storageClassName: local-path
+                      resources:
+                        requests:
+                          storage: 5Gi
+            alertmanager:
+              alertmanagerSpec:
+                resources:
+                  requests:
+                    cpu: 50m
+                    memory: 64Mi
+                storage:
+                  volumeClaimTemplate:
+                    spec:
+                      storageClassName: local-path
+                      resources:
+                        requests:
+                          storage: 1Gi
+            coreDns:
+              enabled: false
+            kubeControllerManager:
+              enabled: false
+            kubeEtcd:
+              enabled: false
+            kubeProxy:
+              enabled: false
+            kubeScheduler:
+              enabled: false
+        ok-observability-grafana:
+          grafana:
+            persistence:
+              enabled: true
+              storageClassName: local-path
+              size: 1Gi
+            resources:
+              requests:
+                cpu: 100m
+                memory: 128Mi
+              limits:
+                memory: 256Mi
+            ingress:
+              enabled: false
+        ok-observability-opensearch:
+          opensearch:
+            persistence:
+              enabled: true
+              storageClass: local-path
+              size: 5Gi
+            resources:
+              requests:
+                cpu: 250m
+                memory: 1Gi
+              limits:
+                memory: 2Gi
+          fluent-bit:
+            resources:
+              requests:
+                cpu: 50m
+                memory: 64Mi
+              limits:
+                memory: 128Mi
+  destination:
+    name: disposable-ok141
+    namespace: ok-observability
+  syncPolicy:
+    automated:
+      enabled: true
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    retry:
+      limit: 5
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 3m
+      refresh: true
+    syncOptions:
+    - CreateNamespace=true
+    - PrunePropagationPolicy=foreground
+    - PruneLast=true
+    - ServerSideApply=true
+    - ClientSideApplyMigration=false
+    managedNamespaceMetadata:
+      labels:
+        pod-security.kubernetes.io/enforce: privileged
+        pod-security.kubernetes.io/audit: privileged
+        pod-security.kubernetes.io/warn: privileged
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: disposable-ok141-observability-alerting
+  namespace: argocd
+spec:
+  project: openkubes-disposable
+  source:
+    repoURL: https://github.com/openkubes/ok-observability.git
+    path: alerting
+    targetRevision: b5f7be6a7ddab798f31f32197fcbb9e86a9798b6
+    directory:
+      recurse: false
+      include: prometheus-rules.yaml
+  destination:
+    name: disposable-ok141
+    namespace: ok-observability
+  syncPolicy:
+    automated:
+      enabled: true
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    retry:
+      limit: 5
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 3m
+      refresh: true
+    syncOptions:
+    - PrunePropagationPolicy=foreground
+    - PruneLast=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: disposable-ok141-observability-dashboards
+  namespace: argocd
+spec:
+  project: openkubes-disposable
+  source:
+    repoURL: https://github.com/openkubes/ok-observability.git
+    path: dashboards
+    targetRevision: b5f7be6a7ddab798f31f32197fcbb9e86a9798b6
+    directory:
+      recurse: false
+      include: platform-overview-configmap.yaml
+  destination:
+    name: disposable-ok141
+    namespace: ok-observability
+  syncPolicy:
+    automated:
+      enabled: true
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    retry:
+      limit: 5
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 3m
+      refresh: true
+    syncOptions:
+    - PrunePropagationPolicy=foreground
+    - PruneLast=true

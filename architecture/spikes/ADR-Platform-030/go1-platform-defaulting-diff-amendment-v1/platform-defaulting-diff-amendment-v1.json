@@ -1,0 +1,46 @@
+{
+  "apiVersion": "test.openkubes.io/v1alpha1",
+  "kind": "PlatformDefaultingDiffAmendment",
+  "metadata": {
+    "name": "ok141-platform-defaulting-diff-amendment-v1"
+  },
+  "spec": {
+    "authorization": "NO-GO",
+    "base": {
+      "P": "sha256:86db1e51e2d4ecbe2cf32d27e7e0f76a6a29a17f6bab201289fff6eee5299925",
+      "R": "sha256:32c2abeb6f08a6853006f31b764900b65faa9f36db2482b062aa5b3709764d13",
+      "fixtureDigest": "sha256:ad13f4e233a25fe4aa252bd0013f3257c8003f78955a133501a117997462feed"
+    },
+    "contract": {
+      "R": "sha256:81a57ef118e339a08e80608c64da7dd6eaed7d67dcdbcfa74a34636ab16dd35f",
+      "path": "harness/fixtures/contracts-v8/base.yaml",
+      "schemaPath": "harness/schema/contract-v3.schema.json"
+    },
+    "fixtureDigest": "sha256:3ad6f2dbe82da2abc15e8dc44bbf2aabf5afcfd8cb54b54b2d2807fd815b7eba",
+    "format": "ok141-execution-fixture-amendment/defaulting-diff-v1",
+    "identities": {
+      "FixtureDigest": "sha256:3ad6f2dbe82da2abc15e8dc44bbf2aabf5afcfd8cb54b54b2d2807fd815b7eba",
+      "P": "sha256:311a581894905faa1eb57f93f0d236a84a4a016e82c64c5f51ee7d6c1e29c952",
+      "R": "sha256:81a57ef118e339a08e80608c64da7dd6eaed7d67dcdbcfa74a34636ab16dd35f"
+    },
+    "platform": {
+      "P": "sha256:311a581894905faa1eb57f93f0d236a84a4a016e82c64c5f51ee7d6c1e29c952",
+      "applicationSetDigest": "sha256:b065b02fa1f7f3b349340e46c2b7cf1f6e76ab29ba1f556d50b153a94df4d0c9",
+      "applicationsPath": "harness/profiles/platform/minimal-observability-v8/applications.yaml",
+      "profile": "minimal-observability-v8",
+      "profilePath": "harness/profiles/platform/minimal-observability-v8/profile.json",
+      "providerValuesDigest": "sha256:41ad2fd63473364d634c6df2bb3b7fcd178ba5e82f8ebf6a9a55da41376cd759",
+      "providerValuesPath": "harness/profiles/platform/minimal-observability-v8/provider-values.yaml",
+      "sourceCommit": "b5f7be6a7ddab798f31f32197fcbb9e86a9798b6"
+    },
+    "semanticDelta": {
+      "application": "disposable-ok141-observability-core",
+      "comparisonOnly": true,
+      "desiredResourceSetChanged": false,
+      "exactDefaultFieldCount": 18,
+      "resource": "apps/StatefulSet/ok-observability/ok-observability-opensearch",
+      "sourceRevisionChanged": false,
+      "syncOptionsChanged": false
+    }
+  }
+}

@@ -1,0 +1,30 @@
+apiVersion: authorization.openkubes.io/v1alpha1
+kind: GO1RuntimeBindingDiagnosticGrant
+metadata:
+  name: FILL
+spec:
+  decision: NO-GO
+  authority: github:arashkaffamanesh
+  candidateDigest: FILL
+  grantID: FILL
+  singleRun: true
+  consumed: false
+  issuedAt: FILL
+  expiresAt: FILL
+  networkReadyEvidencePath: /private/tmp/ok141-go1-l-network-ready-observer-cache-freshness-v1-evidence.json
+  networkReadyEvidenceDigest: FILL
+  workloadTargetIdentityDigest: FILL
+  clusterContactGranted: false
+  managementCredentialUseGranted: false
+  exactSecretReadGranted: false
+  ephemeralCredentialMaterializationGranted: false
+  workloadCredentialUseGranted: false
+  exactKubeSystemReadGranted: false
+  exactLocalPathReadGranted: false
+  happyRunResumeGranted: false
+  storageInstallationGranted: false
+  persistentMutationGranted: false
+  retryGranted: false
+  rollbackOrCleanupGranted: false
+  evidencePublicationGranted: false
+  failureInjectionGranted: false

@@ -1,0 +1,134 @@
+apiVersion: test.openkubes.io/v1alpha1
+kind: GO1V6PreflightCandidate
+metadata:
+  name: ok141-go1-v6-preflight-v1
+  ticket: OK-141
+  baseCommit: ef9707f
+spec:
+  version: ok141-go1-v6-preflight/v1
+  state: OFFLINE-PROVEN-BLOCKED-NO-GO
+  bindings:
+    protocol:
+      path: ../go1-v6/go1-protocol-v6.yaml
+      digest: sha256:e45e5f6b8254e666226aa874810bf2ca51f76f2411e0316adb52a7ce51254885
+    historicalCleanBaseline:
+      path: ../go1-l-recovery-v1/r3-r4-redacted-closure-candidate-v1.yaml
+      digest: sha256:797a61fb61cc3ed0e4e57efb07cc5654ae2162b4e7b0c445029ae8e6f0b21674
+    caaphClosure:
+      path: ../m0a-runtime-v7-2-closure/m0a-v7-2-readiness-closure-v1.yaml
+      digest: sha256:5b445b91f16f1b791c28d637e84d65c5b5c0bb5d05214aa0968341b373c441b0
+    argoClosure:
+      path: ../m0b-execution-v2/m0b-v2-runtime-closure-v1.yaml
+      digest: sha256:48d9d43c1c51338982a6143d7e6f04e77256682424172531ce0cdb224355f8ba
+  tool:
+    path: bounded_go1_v6_preflight_v1.py
+    digest: sha256:6dff31e2184d26ff549a48f588282cdafd51e3cec563023a173e4fd1e0790bac
+    arbitraryCommandAllowed: false
+    arbitraryQueryAllowed: false
+  authorization:
+    decision: NO-GO
+    credentialUseGranted: false
+    preflightGranted: false
+    mutationGranted: false
+    go1LGranted: false
+    go1Granted: false
+    retryGranted: false
+    cleanupGranted: false
+    grantIDs: []
+    authorizedDigest: null
+  credentials:
+    - {plane: ok-infra, path: /Users/arash/.kube/ok-infra.yaml, requiredMode: "0600", materialState: UNINSPECTED}
+    - {plane: ok-mgmt, path: /Users/arash/.kube/ok-mgmt.yaml, requiredMode: "0600", materialState: UNINSPECTED}
+    - {plane: ok-shared, path: /Users/arash/.kube/ok-shared.yaml, requiredMode: "0600", materialState: UNINSPECTED}
+  queryBoundary:
+    verb: get
+    exactNameOnly: true
+    collectionGetAllowed: false
+    listWatchDiscoveryAllowed: false
+    secretReadAllowed: false
+    mutationAllowed: false
+  absenceClaims:
+    - {id: infra-namespace, plane: ok-infra, identity: v1|Namespace||disposable-ok141}
+    - {id: infra-image-role, plane: ok-infra, identity: rbac.authorization.k8s.io/v1|Role|ok-images|disposable-ok141-talos-golden-image-cloner}
+    - {id: infra-image-rolebinding, plane: ok-infra, identity: rbac.authorization.k8s.io/v1|RoleBinding|ok-images|disposable-ok141-talos-golden-image-cloner}
+    - {id: mgmt-namespace, plane: ok-mgmt, identity: v1|Namespace||disposable-ok141}
+    - {id: provider-access-secret, plane: ok-mgmt, identity: v1|Secret|disposable-ok141|external-infra-kubeconfig-disposable-ok141}
+    - {id: cluster, plane: ok-mgmt, identity: cluster.x-k8s.io/v1beta2|Cluster|disposable-ok141|disposable-ok141}
+    - {id: kubevirt-cluster, plane: ok-mgmt, identity: infrastructure.cluster.x-k8s.io/v1alpha1|KubevirtCluster|disposable-ok141|disposable-ok141}
+    - {id: talos-control-plane, plane: ok-mgmt, identity: controlplane.cluster.x-k8s.io/v1alpha3|TalosControlPlane|disposable-ok141|disposable-ok141-cp}
+    - {id: talos-worker-config, plane: ok-mgmt, identity: bootstrap.cluster.x-k8s.io/v1alpha3|TalosConfigTemplate|disposable-ok141|disposable-ok141-workers-v1-9-6}
+    - {id: machine-deployment, plane: ok-mgmt, identity: cluster.x-k8s.io/v1beta2|MachineDeployment|disposable-ok141|disposable-ok141-workers}
+    - {id: control-plane-template, plane: ok-mgmt, identity: infrastructure.cluster.x-k8s.io/v1alpha1|KubevirtMachineTemplate|disposable-ok141|disposable-ok141-cp-7f5dd4276432}
+    - {id: worker-template, plane: ok-mgmt, identity: infrastructure.cluster.x-k8s.io/v1alpha1|KubevirtMachineTemplate|disposable-ok141|disposable-ok141-workers-7f5dd4276432}
+    - {id: cilium-hcp, plane: ok-mgmt, identity: addons.cluster.x-k8s.io/v1alpha1|HelmChartProxy|disposable-ok141|disposable-ok141-cilium}
+  absenceQueries:
+    - id: infra-namespace-query
+      plane: ok-infra
+      resource: namespaces
+      namespace: null
+      name: disposable-ok141
+      proofRule: direct-absence
+      provesClaims: [infra-namespace]
+    - id: infra-image-role-query
+      plane: ok-infra
+      resource: roles.rbac.authorization.k8s.io
+      namespace: ok-images
+      name: disposable-ok141-talos-golden-image-cloner
+      proofRule: direct-absence
+      provesClaims: [infra-image-role]
+    - id: infra-image-rolebinding-query
+      plane: ok-infra
+      resource: rolebindings.rbac.authorization.k8s.io
+      namespace: ok-images
+      name: disposable-ok141-talos-golden-image-cloner
+      proofRule: direct-absence
+      provesClaims: [infra-image-rolebinding]
+    - id: mgmt-namespace-query
+      plane: ok-mgmt
+      resource: namespaces
+      namespace: null
+      name: disposable-ok141
+      proofRule: namespace-absence-implies-contained-object-absence
+      provesClaims: [mgmt-namespace, provider-access-secret, cluster, kubevirt-cluster, talos-control-plane, talos-worker-config, machine-deployment, control-plane-template, worker-template, cilium-hcp]
+  readinessQueries:
+    - {id: caaph-deployment, plane: ok-mgmt, resource: deployments.apps, namespace: caaph-system, name: caaph-controller-manager, rule: deployment-current-and-available}
+    - {id: caaph-certificate, plane: ok-mgmt, resource: certificates.cert-manager.io, namespace: caaph-system, name: caaph-serving-cert, rule: condition-ready}
+    - {id: caaph-hcp-crd, plane: ok-mgmt, resource: customresourcedefinitions.apiextensions.k8s.io, namespace: null, name: helmchartproxies.addons.cluster.x-k8s.io, rule: condition-established}
+    - {id: caaph-hrp-crd, plane: ok-mgmt, resource: customresourcedefinitions.apiextensions.k8s.io, namespace: null, name: helmreleaseproxies.addons.cluster.x-k8s.io, rule: condition-established}
+    - {id: caaph-metrics-endpoints, plane: ok-mgmt, resource: endpoints, namespace: caaph-system, name: caaph-controller-manager-metrics-service, rule: endpoint-address-present}
+    - {id: caaph-webhook-endpoints, plane: ok-mgmt, resource: endpoints, namespace: caaph-system, name: caaph-webhook-service, rule: endpoint-address-present}
+    - {id: argo-namespace, plane: ok-shared, resource: namespaces, namespace: null, name: argocd, rule: phase-active}
+    - {id: argo-application-crd, plane: ok-shared, resource: customresourcedefinitions.apiextensions.k8s.io, namespace: null, name: applications.argoproj.io, rule: condition-established}
+    - {id: argo-applicationset-crd, plane: ok-shared, resource: customresourcedefinitions.apiextensions.k8s.io, namespace: null, name: applicationsets.argoproj.io, rule: condition-established}
+    - {id: argo-appproject-crd, plane: ok-shared, resource: customresourcedefinitions.apiextensions.k8s.io, namespace: null, name: appprojects.argoproj.io, rule: condition-established}
+    - {id: argo-server, plane: ok-shared, resource: deployments.apps, namespace: argocd, name: argocd-server, rule: deployment-current-and-available}
+    - {id: argo-application-controller, plane: ok-shared, resource: statefulsets.apps, namespace: argocd, name: argocd-application-controller, rule: statefulset-current-and-ready}
+    - {id: argo-default-project, plane: ok-shared, resource: appprojects.argoproj.io, namespace: argocd, name: default, rule: object-present}
+  evidence:
+    rawLocalPath: /private/tmp/ok141-go1-v6-preflight-v1-evidence.json
+    createMode: O_EXCL-0600
+    freshnessMinutes: 5
+    retainUIDsOrResourceVersions: false
+    retainCredentialMaterial: false
+    retainSecretBodies: false
+    publicByDefault: false
+  acceptance:
+    requiredAbsenceClaimCount: 13
+    requiredAbsenceQueryCount: 4
+    requiredReadinessCount: 13
+    anyPresentTarget: STOP
+    anyMissingOrUnreadyPrerequisite: STOP
+    anyQueryError: STOP
+    successState: PASS-FRESH-BASELINE-AND-PREREQUISITES
+  conclusions:
+    candidateOfflineComplete: true
+    clusterContacted: false
+    preflightRunReady: false
+    mutationAuthorized: false
+    go1LGranted: false
+    go1Granted: false
+  exclusions:
+    - credential creation modification or ungranted use
+    - broad list watch discovery Secret-body reads or arbitrary queries
+    - create update patch apply delete retry rollback cleanup or failure injection
+    - GO1-L GO-1 target registration Platform convergence or evidence publication

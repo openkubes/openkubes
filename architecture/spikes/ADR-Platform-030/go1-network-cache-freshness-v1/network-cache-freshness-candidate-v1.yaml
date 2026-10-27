@@ -1,0 +1,52 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: GO1NetworkCacheFreshnessAmendmentCandidate
+metadata:
+  name: ok141-network-cache-freshness-v1
+  ticket: OK-141
+  baseCommit: 50d6092109d1fd4f856cb98c6f74342709d86c18
+spec:
+  version: ok141-network-cache-freshness/v1
+  state: OFFLINE-PROVEN-BLOCKED-NO-GO
+  supersedes:
+    historicalMaximumAgeSeconds: 120
+    historicalEvidencePreserved: true
+  upstreamSource:
+    lockPath: ../go1-network-cache-timing-diagnostic-v1/upstream-cache-source-lock.yaml
+    lockDigest: sha256:563ed197391196c7bbfd526f9f88eff0fcac73e1f4ade7113aca767e326e550f
+    ciliumCommit: 9a8982433e18019e290b8199c0c4ad24f66befe8
+  statusSemantics:
+    candidateDigest: sha256:d2ef66ab787d93fb486b170a7010ab221251b696e0a855e4a3a546764f5b797b
+  timingRule:
+    advertisedProbeIntervalRequired: true
+    minimumProbeIntervalExclusiveSeconds: 0
+    maximumProbeIntervalInclusiveSeconds: 300
+    publicationIntervalSeconds: 60
+    schedulingAndClockToleranceSeconds: 10
+    formula: probeIntervalSeconds + publicationIntervalSeconds + schedulingAndClockToleranceSeconds
+    maximumFutureTimestampSeconds: 10
+  retainedAcceptanceRules:
+    exactNodeCoverageRequired: true
+    exactPrimaryPathCoverageRequired: true
+    httpAndIcmpRequired: true
+    successfulStatusRequired: true
+    responseTimestampRequired: true
+    everyPathTimestampRequired: true
+  identityImpact:
+    platformRevisionPChanged: false
+    clusterIntentRChanged: false
+    fixtureDigestChanged: false
+    evaluatorSemanticsChanged: true
+  tool:
+    path: network_cache_freshness_v1.py
+    digest: sha256:f5c7bc8a04c7720ea205ef73f38a2f79ee4b66c22ce6c85e9ae594b5d347c5b0
+    clusterContactAllowed: false
+    mutationAllowed: false
+  authorization:
+    decision: NO-GO
+    clusterContactGranted: false
+    networkReadyObservationGranted: false
+    happyRunResumeGranted: false
+    mutationGranted: false
+    evidencePublicationGranted: false
+    failureInjectionGranted: false
+    grantIDs: []

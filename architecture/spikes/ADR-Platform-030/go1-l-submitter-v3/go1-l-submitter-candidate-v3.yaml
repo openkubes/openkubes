@@ -1,0 +1,156 @@
+apiVersion: execution.openkubes.io/v1alpha1
+kind: GO1LSubmitterCandidate
+metadata:
+  name: ok141-go1-l-submitter-v3
+  ticket: OK-141
+  baseCommit: d14881dc426f927a0a74ed9b05769240eafb7234
+spec:
+  version: ok141-go1-l-submitter/v3
+  state: OFFLINE-PROVEN-BLOCKED-NO-GO
+  supersedes:
+    path: ../go1-l-submitter-v2/go1-l-submitter-candidate-v2.yaml
+    digest: sha256:9f92172f5c383ae63168cf2b70bf543aa8afc994f6277f41a49a31a2f26d5f7a
+    state: OFFLINE-PROVEN-BLOCKED-NO-GO
+    historicalEvidencePreserved: true
+  sourcePreflight:
+    path: ../go1-l-recreation-v1/recreation-preflight-v1.yaml
+    digest: sha256:0c84943fe177b2fa87fe12b9cd470ea09c1426c832e9b33aad874b7e0ba668fc
+  fixture:
+    path: ../harness/fixtures/execution/phase-r-v5.json
+    fileDigest: sha256:e1a159ffcf32191dfba9d7455c67a38557f62ede37902b722e302ad298386068
+    fixtureDigest: sha256:7536456a762880a78a37dcba76a5f3f0628140bd37b55d5fd62273c64e4cc3eb
+    R: sha256:166504ae61fd558d391daedde50986cbc7a28f5f4e9d57f4acbd0433b448aa0f
+    E: sha256:2a849d69e9c64344e907c1bce3bb1abf3d8f77217377081a5be055d62c213300
+    P: sha256:b0f25c639a45d895b889997f5ecc2325db45dd5d51b0684998c94d5e17bd47bf
+  hcpAmendment:
+    path: ../go1-l-hcp-v1/hcp-phase-r-v5-amendment-v1.yaml
+    digest: sha256:df972b02c37c803cc09903c1567dc91c5ebfcce05d7245fb5c0456c2b9a9ffa7
+    state: OFFLINE-PROVEN-BLOCKED-NO-GO
+  tool:
+    path: bounded_go1_l_submitter_v3.py
+    digest: sha256:f7e3ac6eaad8556739dc5d23776cf6289c8c31610e67e1515c7969400d613140
+    arbitraryManifestPathAllowed: false
+    arbitraryCommandAllowed: false
+  authorization:
+    decision: NO-GO
+    currentGrantBound: false
+    mutationAuthorized: false
+    recreationGranted: false
+    go1LGranted: false
+    retryGranted: false
+    rollbackOrCleanupGranted: false
+  transport:
+    operation: CreateReviewedObjectSet
+    createOnly: true
+    serverSideApply: false
+    stdinPayloadOnly: true
+    freeFormArgumentsAllowed: false
+    automaticRetryAllowed: false
+    automaticRollbackAllowed: false
+    partialStateOnFailure: STOP-PRESERVE-NO-CLEANUP
+  combinedManagementProjectionSemanticDigest: sha256:585c5c4f6cfdeb8915954b193874c4cb23714e1214034b52886150101038ee6d
+  operations:
+    - id: provider-prerequisites
+      stage: G1
+      sequence: 1
+      targetPlane: ok-infra
+      path: ../harness/projections/phase-r-v5/ok-infra-prerequisites.yaml
+      sourceRawDigest: sha256:45d6fea6739d49cb74d4a50354976b6cbb7d64e00e3509c228174f1a31b6f9d3
+      payloadRawDigest: sha256:45d6fea6739d49cb74d4a50354976b6cbb7d64e00e3509c228174f1a31b6f9d3
+      semanticDigest: sha256:48280ac428d1f0c18bdcdbae7a8e12ab966ce0f57a0381f72ab51b4cb68e9e85
+      objectCount: 3
+      predecessorEvidenceCount: 0
+      runtimeEligible: true
+      objectIdentities:
+        - v1|Namespace|_|disposable-ok141
+        - rbac.authorization.k8s.io/v1|Role|ok-images|disposable-ok141-talos-golden-image-cloner
+        - rbac.authorization.k8s.io/v1|RoleBinding|ok-images|disposable-ok141-talos-golden-image-cloner
+    - id: management-namespace
+      stage: G1
+      sequence: 2
+      targetPlane: ok-mgmt
+      path: ../harness/projections/phase-r-v5/ok-mgmt-lifecycle.yaml
+      sourceRawDigest: sha256:631142d66ca6a02cbea9e758473c85fe9ba779803a918975a9bc571af62b7cf7
+      documentIndices: [0]
+      payloadRawDigest: sha256:fbee2a6568c3f1d8ba626724ee36c7cfd38145e37b68f8319a5de87a7c4b3b11
+      semanticDigest: sha256:b1771f137e64ae09c27cc9d446af561067e7a4f7ea3d0ae7886588b4f2ca4ce7
+      objectCount: 1
+      predecessorEvidenceCount: 1
+      runtimeEligible: true
+      objectIdentities:
+        - v1|Namespace|_|disposable-ok141
+    - id: capi-lifecycle
+      stage: G1
+      sequence: 4
+      targetPlane: ok-mgmt
+      path: ../harness/projections/phase-r-v5/ok-mgmt-lifecycle.yaml
+      sourceRawDigest: sha256:631142d66ca6a02cbea9e758473c85fe9ba779803a918975a9bc571af62b7cf7
+      documentIndices: [1, 2, 3, 4, 5, 6, 7]
+      payloadRawDigest: sha256:a221a227c97d1d005309b13356495888eecd3aba2d26c49e6bd8faa0842ff960
+      semanticDigest: sha256:3f5025be5dc20c73910e33533d67cf99038f6f38a07ac82ed08acee252ef59ff
+      objectCount: 7
+      predecessorEvidenceCount: 2
+      runtimeEligible: true
+      objectIdentities:
+        - cluster.x-k8s.io/v1beta2|Cluster|disposable-ok141|disposable-ok141
+        - infrastructure.cluster.x-k8s.io/v1alpha1|KubevirtCluster|disposable-ok141|disposable-ok141
+        - controlplane.cluster.x-k8s.io/v1alpha3|TalosControlPlane|disposable-ok141|disposable-ok141-cp
+        - bootstrap.cluster.x-k8s.io/v1alpha3|TalosConfigTemplate|disposable-ok141|disposable-ok141-workers-v1-9-6
+        - cluster.x-k8s.io/v1beta2|MachineDeployment|disposable-ok141|disposable-ok141-workers
+        - infrastructure.cluster.x-k8s.io/v1alpha1|KubevirtMachineTemplate|disposable-ok141|disposable-ok141-cp-7f5dd4276432
+        - infrastructure.cluster.x-k8s.io/v1alpha1|KubevirtMachineTemplate|disposable-ok141|disposable-ok141-workers-7f5dd4276432
+    - id: helmchartproxy
+      stage: G3
+      sequence: 5
+      targetPlane: ok-mgmt
+      path: ../go1-l-hcp-v1/helmchartproxy-phase-r-v5-candidate.yaml
+      sourceRawDigest: sha256:d2d93b5868bd9cba7b288ac117c5ceb08605b729c1e2eeae86ee001ed52887f0
+      payloadRawDigest: sha256:d2d93b5868bd9cba7b288ac117c5ceb08605b729c1e2eeae86ee001ed52887f0
+      semanticDigest: sha256:cd1a21b0b611a3a928e6e7d63d7eb2c4b4657570152ac3c6ae6061a48d4b788e
+      objectCount: 1
+      predecessorEvidenceCount: 1
+      runtimeEligible: true
+      objectIdentities:
+        - addons.cluster.x-k8s.io/v1alpha1|HelmChartProxy|disposable-ok141|disposable-ok141-cilium
+  externalPrerequisite:
+    id: provider-access-secret
+    sequence: 3
+    targetPlane: ok-mgmt
+    executedByThisTool: false
+    materializerRequired: true
+    secretRef:
+      apiVersion: v1
+      kind: Secret
+      name: external-infra-kubeconfig-disposable-ok141
+      namespace: disposable-ok141
+    secretDataKey: kubeconfig
+    credentialBytesInRepositoryAllowed: false
+    credentialBytesInArgumentsAllowed: false
+    credentialBytesInEnvironmentAllowed: false
+    credentialBytesInLogsOrEvidenceAllowed: false
+  ordering:
+    - provider-prerequisites requires a fresh grant and zero predecessor receipts
+    - management-namespace requires the accepted provider-prerequisites receipt
+    - provider-access-secret is a separate secret-safe materializer and is not executed by this tool
+    - capi-lifecycle requires both namespace and provider-access materialization receipts
+    - helmchartproxy requires current lifecycle evidence for exact Phase-R v5 R and E
+    - no operation grant authorizes a later operation
+  credentialContract:
+    model: separate-short-lived-kubeconfig-per-static-operation
+    maximumGrantMinutes: 20
+    tokenBytesInArgumentsAllowed: false
+    tokenBytesInEnvironmentAllowed: false
+    tokenBytesInLogsOrEvidenceAllowed: false
+    credentialFileMode: "0600"
+    symlinkAllowed: false
+    credentialReceiptRequired: true
+    issuanceAndRevocation: BLOCKED-SEPARATE-CREDENTIAL-GATE
+  blockers:
+    - provider-access materializer is not implemented or authorized
+    - no current operation credentials grants or predecessor receipts exist
+    - no additive GO1-L recreation protocol is bound to this submitter
+  exclusions:
+    - automatic retry rollback cleanup update patch server-side apply or deletion
+    - any Secret creation or credential materialization by this static submitter
+    - lifecycle observation HCP-to-HRP evaluation NetworkReady Platform registration or GO-1 closure
+    - any free-form shell command manifest path kubectl argument context or credential material

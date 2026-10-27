@@ -1,0 +1,16 @@
+apiVersion: publication.openkubes.io/v1alpha1
+kind: GO1PostRemediationPlatformObserverPublicationCandidate
+metadata: {name: ok141-post-remediation-platform-observer-publication-v1, ticket: OK-141}
+spec:
+  decision: BLOCKED-NO-PUBLICATION
+  scope:
+    directory: architecture/spikes/ADR-Platform-030/go1-post-remediation-platform-observer-v1
+    files:
+      README.md: sha256:40ddd52e00fb6314e7aa195cdc08a01a2ef9e7a8be939271661a62309172fa7e
+      post-remediation-platform-observer-candidate-v1.yaml: sha256:85657357c4d3e0c46c7ee3598d4b260b7b0d44e18e09c875185d89d19df2a673
+      post-remediation-platform-observer-grant-v1.template.yaml: sha256:3f20afeeba564fcdc5be653b1915b31db04b8ce8509ad25f3ea653cf6891a377
+      bounded_post_remediation_platform_observer_v1.py: sha256:c016c7eaea0fcb09f9156e8a91fc988667e84cef47d64b42c9809d8311c73223
+      test_post_remediation_platform_observer_v1.py: sha256:d2a6f30012dd624e0e4e13e8d855392202d032ce3038b0fdf06f050a4e954317
+  validation: {testsPassed: 3, candidateDigest: sha256:85657357c4d3e0c46c7ee3598d4b260b7b0d44e18e09c875185d89d19df2a673}
+  permitsAfterSeparateGrant: [commit, push, draft-pr, review, merge]
+  excludes: [private Evidence under /private/tmp, raw Application objects and messages, Secrets and target access, mutation, capability test, retry, cleanup and failure injection]

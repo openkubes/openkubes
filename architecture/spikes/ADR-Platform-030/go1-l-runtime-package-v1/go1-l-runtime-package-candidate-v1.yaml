@@ -1,0 +1,79 @@
+apiVersion: execution.openkubes.io/v1alpha1
+kind: GO1LRuntimePackageCandidate
+metadata:
+  name: ok141-go1-l-runtime-package-v1
+  ticket: OK-141
+  baseCommit: da064c4
+spec:
+  version: ok141-go1-l-runtime-package/v1
+  state: OFFLINE-PROVEN-BLOCKED-NO-GO
+  protocol:
+    path: ../go1-v6/go1-protocol-v6.yaml
+    digest: sha256:e45e5f6b8254e666226aa874810bf2ca51f76f2411e0316adb52a7ce51254885
+  executor:
+    path: ../go1-l-executor-v2/go1-l-executor-candidate-v2.yaml
+    digest: sha256:0f9693df9b89bc96278f69134517fb2777a60373a61fadc40612cdaacdc2115c
+  preflight:
+    path: ../go1-v6-preflight-v2/go1-v6-preflight-candidate-v2.yaml
+    digest: sha256:ef4b09a8835f187605a0120bdd19616d6d078b9ed19a3796a47b9cbbfc7a4fb2
+    firstG1OperationMustBeFresh: true
+  operationalDecisions:
+    authorityInputs:
+      path: ../authority-decision-preflight/authority-inputs-v1.yaml
+      digest: sha256:4b618081517eb96ef1896b40a7f9f5556054ab2d029fbbf706e8630bb6b42c5c
+    adminRiskAcceptance:
+      path: ../go1-l-admin-risk-acceptance-v1/go1-l-admin-risk-acceptance-v1.yaml
+      digest: sha256:1bedab96f582b3ca31f67c81b948263560c36fd0a113ec317442cb9c65d25fed
+    recoveryBaseline:
+      path: ../go1-l-recovery-v1/r3-r4-redacted-closure-candidate-v1.yaml
+      digest: sha256:797a61fb61cc3ed0e4e57efb07cc5654ae2162b4e7b0c445029ae8e6f0b21674
+    evidencePublicationProof:
+      path: ../evidence-publication-p1-evidence/p1-publication-evidence-v1.yaml
+      digest: sha256:3b86a78a7a8f3baf7e8e335d7716061d20623c8761eed601755139bbda8c3a3a
+    retentionDecision:
+      path: ../ghcr-retention-decision/ghcr-retention-decision-v1.yaml
+      digest: sha256:b314ee48ad88337b7340f20daef606305b3bc16d70db7b6367e30e3d9477e40b
+  execution:
+    outerWindowMinutes: 120
+    maximumStageGrantMinutes: 20
+    authority: github:arashkaffamanesh
+    runtimeDirectory: /private/tmp/ok141-go1-l-runtime-v1
+    createMode: O_EXCL-0600
+    stages:
+      - id: G1
+        operations: [provider-prerequisites, management-namespace, provider-access-secret, capi-lifecycle]
+        predecessorMap:
+          provider-prerequisites: []
+          management-namespace: [provider-prerequisites]
+          provider-access-secret: [provider-prerequisites, management-namespace]
+          capi-lifecycle: [management-namespace, provider-access-secret]
+      - id: G3
+        operations: [helmchartproxy]
+        predecessorClass: CURRENT-LIFECYCLE-API-EVIDENCE
+    receipts:
+      total: 6
+      model: JUST-IN-TIME-REDACTED-POINT-OF-USE
+    partialState: STOP-PRESERVE-NO-CLEANUP
+  tool:
+    path: bounded_go1_l_runtime_package_v1.py
+    digest: sha256:9b2e58ae008d24769c82954e632fcf14b18769ae2479899ee2b9d08c37a59a27
+    arbitraryOperationAllowed: false
+    arbitraryCredentialPathAllowed: false
+    retryAllowed: false
+    rollbackOrCleanupAllowed: false
+  authorization:
+    decision: NO-GO
+    preflightGranted: false
+    credentialUseGranted: false
+    g1Granted: false
+    g3Granted: false
+    go1LGranted: false
+    go1Granted: false
+    retryGranted: false
+    rollbackOrCleanupGranted: false
+    evidencePublicationGranted: false
+    failureInjectionGranted: false
+    grantIDs: []
+  exclusions:
+    - HCP before separately accepted current lifecycle API evidence
+    - target registration Platform convergence GO-1 retry rollback cleanup or failure injection

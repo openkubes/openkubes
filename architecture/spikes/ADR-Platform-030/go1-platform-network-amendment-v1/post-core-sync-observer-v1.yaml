@@ -1,0 +1,28 @@
+apiVersion: observer.openkubes.io/v1alpha1
+kind: BoundedPostCoreSyncObserver
+metadata:
+  name: ok141-post-core-sync-observer-v1
+spec:
+  authorization:
+    state: GRANTED
+    source: standing-dev-execution-envelope-v1
+    envelopeDigest: sha256:85e997df331d2ced4ea147c32cc4a94a419e9efdba6de17d8a8ef3cb1dbeac93
+  predecessor:
+    path: /private/tmp/ok141-core-sync-retry-v1-evidence.json
+    digest: sha256:8469e1f86e3eb690d1067a7e9e7617800b5921206454e38210c3cfac95ba7446
+    state: PASS-SYNC-RETRY-SUBMITTED
+  expected:
+    R: sha256:89248df8cd908394d2d75c18fbb39d52d84cf181f66480c743bfe9d732a0aaa4
+    P: sha256:02206b92b487a0f12eee8139d82f9ef150ab9688c7a60687d3f7b6b782266472
+    fixtureDigest: sha256:3aa621cd8f3b21e87a5d7059911d02a4b0f10f2d724df351750787eb274b9ae6
+    sourceRevision: b5f7be6a7ddab798f31f32197fcbb9e86a9798b6
+    minimumReconciledAt: "2026-08-15T13:38:30Z"
+  applications:
+    - disposable-ok141-observability-core
+  blockingConditionTypes: [ComparisonError, InvalidSpecError, SyncError, UnknownError]
+  advisoryConditionTypes: [OrphanedResourceWarning]
+  polling:
+    intervalSeconds: 15
+    maxIterations: 60
+  outputPath: /private/tmp/ok141-post-core-sync-observer-v1-evidence.json
+  exclusions: [secrets, target-reads, mutation, capability-test, retry, cleanup, failure-injection]

@@ -1,0 +1,61 @@
+{
+  "apiVersion": "action.openkubes.io/v1alpha1",
+  "kind": "OK141PrometheusOperatorAPIRefreshCandidate",
+  "metadata": {
+    "name": "ok141-prometheus-operator-api-refresh-v1"
+  },
+  "spec": {
+    "authorization": {
+      "source": "standing OK-141 DEV execution grant",
+      "scope": "one graceful UID/resourceVersion-protected restart of the exact disposable Prometheus operator pod plus bounded observation",
+      "failurePolicy": "STOP-PRESERVE-NO-RETRY"
+    },
+    "cause": {
+      "operatorPodCreatedAt": "2026-08-15T13:05:28Z",
+      "monitoringCRDsCreatedAtRange": [
+        "2026-08-15T19:28:47Z",
+        "2026-08-15T19:28:48Z"
+      ],
+      "prometheusCreatedAt": "2026-08-15T19:28:54Z",
+      "monitoringCRDsEstablished": true,
+      "prometheusStatusAbsent": true,
+      "currentAuthorizationErrorsInLast30Minutes": 0,
+      "interpretation": "the already-running operator predates every newly served monitoring API and must refresh discovery/informers"
+    },
+    "management": {
+      "workloadKubeconfigSecretURI": "/api/v1/namespaces/disposable-ok141/secrets/disposable-ok141-kubeconfig",
+      "dataKey": "value"
+    },
+    "target": {
+      "namespace": "ok-observability",
+      "podURI": "/api/v1/namespaces/ok-observability/pods/ok-observability-operator-5f8cb6878-mlsgn",
+      "replacementCollectionURI": "/api/v1/namespaces/ok-observability/pods?labelSelector=app.kubernetes.io%2Fname%3Dkube-prometheus-stack-prometheus-operator%2Capp.kubernetes.io%2Finstance%3Ddisposable-ok141-observability-core",
+      "expectedContainer": "kube-prometheus-stack",
+      "prometheusURI": "/apis/monitoring.coreos.com/v1/namespaces/ok-observability/prometheuses/ok-observability-prometheus"
+    },
+    "shared": {
+      "coreApplicationURI": "/apis/argoproj.io/v1alpha1/namespaces/argocd/applications/disposable-ok141-observability-core",
+      "requiredOperationStartedAt": "2026-08-15T19:28:41Z"
+    },
+    "operation": {
+      "gracePeriodSeconds": 30,
+      "replacementPollIntervalSeconds": 5,
+      "replacementMaximumIterations": 60,
+      "corePollIntervalSeconds": 10,
+      "coreMaximumIterations": 60,
+      "privateEvidencePath": "/private/tmp/ok141-prometheus-operator-api-refresh-v1-evidence.json"
+    },
+    "exclusions": [
+      "explicit Argo sync",
+      "application mutation",
+      "force delete",
+      "retry",
+      "rollback",
+      "general cleanup",
+      "failure injection",
+      "raw Secret retention",
+      "raw kubeconfig retention",
+      "raw log retention"
+    ]
+  }
+}

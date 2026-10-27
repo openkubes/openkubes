@@ -1,0 +1,103 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: GO1LNetworkReadyObserverCandidate
+metadata:
+  name: ok141-go1-l-network-ready-observer-v1
+  ticket: OK-141
+  baseCommit: cf07bf6d1a030e567da9431a29616b7b51276906
+spec:
+  version: ok141-go1-l-network-ready-observer/v1
+  state: OFFLINE-PROVEN-BLOCKED-NO-GO
+  protocol:
+    path: ../go1-v6/go1-protocol-v6.yaml
+    digest: sha256:e45e5f6b8254e666226aa874810bf2ca51f76f2411e0316adb52a7ce51254885
+    fixtureDigest: sha256:7536456a762880a78a37dcba76a5f3f0628140bd37b55d5fd62273c64e4cc3eb
+    R: sha256:166504ae61fd558d391daedde50986cbc7a28f5f4e9d57f4acbd0433b448aa0f
+    E: sha256:2a849d69e9c64344e907c1bce3bb1abf3d8f77217377081a5be055d62c213300
+  predecessor:
+    lifecycleObserverPath: ../go1-l-lifecycle-observer-v1/go1-l-lifecycle-observer-candidate-v1.yaml
+    lifecycleObserverDigest: sha256:00b3f9eb444e91047ffb3a6af2d90eb45b6b8cf90fa5045a299f254708949be0
+    runtimePackagePath: ../go1-l-runtime-package-v1/go1-l-runtime-package-candidate-v1.yaml
+    runtimePackageDigest: sha256:ac2bb971898606c08e076f89cb153fc0ff0589a12db608e339975ea7bf4245a4
+    hcpPath: ../go1-l-hcp-v1/helmchartproxy-phase-r-v5-candidate.yaml
+    hcpPayloadDigest: sha256:d2d93b5868bd9cba7b288ac117c5ceb08605b729c1e2eeae86ee001ed52887f0
+  sources:
+    caaph:
+      version: v0.6.4
+      commit: 825662962a26dc339f3871184c91ed4bd2f83a4f
+      generatedNamePrefix: cilium-disposable-ok141-
+      clusterLabel: cluster.x-k8s.io/cluster-name
+      hcpLabel: helmreleaseproxy.addons.cluster.x-k8s.io/helmchartproxy-name
+    cilium:
+      version: v1.19.6
+      commit: 9a8982433e18019e290b8199c0c4ad24f66befe8
+      successfulConnectivityStatus: empty-string
+      functionalProbe: [cilium-health, status, --probe, --output, json]
+  management:
+    credentialPath: /Users/arash/.kube/ok-mgmt.yaml
+    credentialIdentityDigest: sha256:32a164332776f37129e46415af79945745134fefe80c5237d43fe13fa0511ffe
+    queries:
+      - {id: cluster, mode: exact, rawURI: /apis/cluster.x-k8s.io/v1beta2/namespaces/disposable-ok141/clusters/disposable-ok141}
+      - {id: hcp, mode: exact, rawURI: /apis/addons.cluster.x-k8s.io/v1alpha1/namespaces/disposable-ok141/helmchartproxies/disposable-ok141-cilium}
+      - {id: hrp, mode: exact-bounded-collection, rawURI: '/apis/addons.cluster.x-k8s.io/v1alpha1/namespaces/disposable-ok141/helmreleaseproxies?labelSelector=cluster.x-k8s.io%2Fcluster-name%3Ddisposable-ok141%2Chelmreleaseproxy.addons.cluster.x-k8s.io%2Fhelmchartproxy-name%3Ddisposable-ok141-cilium'}
+      - {id: workload-kubeconfig, mode: exact-secret, rawURI: /api/v1/namespaces/disposable-ok141/secrets/disposable-ok141-kubeconfig, dataKey: value}
+  workload:
+    kubernetesVersion: v1.36.2
+    clientPath: /private/tmp/ok141-kubectl-v1.36.2-darwin-amd64
+    clientDigest: sha256:ce6c5e55cd17559e87e4fb5e73ebbbc2511bcf2b695d7a40c1b1461a9817d4b3
+    ephemeralKubeconfigPath: /private/tmp/ok141-go1-l-network-observer-v1-workload-kubeconfig.yaml
+    queries:
+      - {id: nodes, mode: bounded-collection, rawURI: /api/v1/nodes}
+      - {id: cilium-daemonset, mode: exact, rawURI: /apis/apps/v1/namespaces/kube-system/daemonsets/cilium}
+      - {id: envoy-daemonset, mode: exact, rawURI: /apis/apps/v1/namespaces/kube-system/daemonsets/cilium-envoy}
+      - {id: cilium-operator, mode: exact, rawURI: /apis/apps/v1/namespaces/kube-system/deployments/cilium-operator}
+      - {id: cilium-pods, mode: bounded-collection, rawURI: '/api/v1/namespaces/kube-system/pods?labelSelector=k8s-app%3Dcilium'}
+    expectedNodeCount: 2
+    expectedImages:
+      cilium-agent: quay.io/cilium/cilium:v1.19.6@sha256:0df5b2750b64c49843aba1d649e9eaf61467cb0645ad3171db6f6962c095ac92
+      cilium-envoy: quay.io/cilium/cilium-envoy:v1.36.9-1782267392-edeb3f2af56c37c407efa1f63f0b32f595399bbc@sha256:767101fb8a5e38f055778cb43b7aa8eed80450b37f8121effac3d9de9e06dc99
+      cilium-operator: quay.io/cilium/operator-generic:v1.19.6@sha256:0db4ca4e06969d8904ee036617795d0e9c3228cf7b8d902ba74fc2bb98d2d665
+  observation:
+    intervalSeconds: 15
+    maximumIterations: 120
+    maximumDurationSeconds: 1800
+    outputPath: /private/tmp/ok141-go1-l-network-ready-observer-v1-evidence.json
+    outputMode: O_EXCL-0600
+    functionalProbeMaximumAgeSeconds: 120
+  acceptance:
+    hcpCurrentAndReady: true
+    exactlyOneCurrentOwnedHrpReady: true
+    exactChartVersionValuesAndClusterRef: true
+    allCurrentNodesReady: true
+    allCurrentNodesNetworkUnavailableFalseReasonCiliumIsUp: true
+    ciliumDaemonsetsCurrentAndFullyReady: true
+    ciliumOperatorCurrentAndAvailable: true
+    exactImagesRequired: true
+    synchronousHealthHostAndEndpointHTTPAndICMPForEveryNode: true
+  evidence:
+    result: NetworkReady=True only when every acceptance rule passes in one current run
+    retains: [object UIDs, generations, selected Conditions, image identities, Node UIDs and providerIDs, workload target identity digest, summarized probe timestamps and path counts]
+    forbids: [Secret payloads, kubeconfig bytes, tokens, private keys, certificates, IP addresses, full API objects, raw probe output]
+  tool:
+    path: bounded_go1_l_network_observer_v1.py
+    digest: sha256:801780456e5f4ec4381ad4fa58b28568bdf6ad655d642b114eb537f27feb28a5
+    arbitraryCommandAllowed: false
+    arbitraryQueryAllowed: false
+    persistentMutationAllowed: false
+    fixedPodExecSubresourceOnly: true
+    secretReadScope: one exact CAPI workload kubeconfig Secret
+  authorization:
+    decision: NO-GO
+    clusterContactGranted: false
+    managementCredentialUseGranted: false
+    workloadKubeconfigSecretReadGranted: false
+    ephemeralCredentialMaterializationGranted: false
+    workloadCredentialUseGranted: false
+    readOnlyQueriesGranted: false
+    fixedPodExecProbeGranted: false
+    persistentMutationGranted: false
+    retryGranted: false
+    rollbackOrCleanupGranted: false
+    go1Granted: false
+    evidencePublicationGranted: false
+    failureInjectionGranted: false
+    grantIDs: []

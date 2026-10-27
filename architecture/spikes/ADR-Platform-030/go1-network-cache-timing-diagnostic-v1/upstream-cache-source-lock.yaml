@@ -1,0 +1,28 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: UpstreamSourceSemanticsLock
+metadata:
+  name: cilium-v1-19-6-health-cache-timing
+spec:
+  repository: cilium/cilium
+  commit: 9a8982433e18019e290b8199c0c4ad24f66befe8
+  files:
+    - path: cilium-health/cmd/status.go
+      gitBlobSHA: adf327cc692618a762c5a5cce242222cf1e944c6
+      sha256: sha256:b81886a77726916d956fe1a37a2e7c0e65d7ab5167244fe6842c6ea2a4af39e9
+      relevantFact: The hidden probe flag calls PutStatusProbe and prints its payload.
+    - path: pkg/health/server/status.go
+      gitBlobSHA: 5b589efaecde2fd4a16181105c756acdec844d54
+      relevantFact: The PUT handler returns FetchStatusResponse.
+    - path: pkg/health/server/server.go
+      gitBlobSHA: 6ab009668c3aa2ca8b4b00314193d8c399c343c1
+      sha256: sha256:3fa6bab5b499ea4683f6efa63c43ba83bf8b43523e840a5a1ed0005e0d8abcb8
+      relevantFacts:
+        - FetchStatusResponse returns GetStatusResponse without starting a probe.
+        - The API-visible connectivity cache is refreshed on a 60-second ticker.
+        - The response carries the cached probe interval and probe-cycle timestamp.
+  derivedSemantics:
+    cliProbeForcesFreshCycle: false
+    responseIsCached: true
+    publicationIntervalSeconds: 60
+    fixed120SecondFreshnessProven: false
+

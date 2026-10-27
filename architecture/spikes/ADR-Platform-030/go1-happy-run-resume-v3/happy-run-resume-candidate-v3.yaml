@@ -1,0 +1,76 @@
+apiVersion: execution.openkubes.io/v1alpha1
+kind: GO1HappyRunResumeCandidateV3
+metadata:
+  name: ok141-go1-happy-run-resume-v3
+  ticket: OK-141
+  baseCommit: 0f9bb14f1dbec91ee78e52bda5456c53b283c289
+spec:
+  version: ok141-go1-happy-run-resume/v3
+  state: OFFLINE-PROVEN-BLOCKED-NO-GO
+  supersedes:
+    path: ../go1-happy-run-resume-v2/happy-run-resume-candidate-v2.yaml
+    digest: sha256:8a9522e51816cc9d8974f8791c678e3d5d86b76abc4e3935d4c4592be74c3487
+    historicalCandidatePreserved: true
+    consumedGrantReusable: false
+  networkObserverAmendment:
+    candidatePath: ../go1-l-network-observer-defaulting-v1/network-observer-defaulting-candidate-v1.yaml
+    candidateDigest: sha256:d7fb85331150dd2ee626d7d81a5f3f4e5114163a761d3d8e61869f3f72a207fe
+    toolPath: ../go1-l-network-observer-defaulting-v1/network_observer_defaulting_v1.py
+    toolDigest: sha256:cfd2832dd08599c720c48c86830cda61b743945bb24a2c9b220fc21313790dc5
+    outputPath: /private/tmp/ok141-go1-l-network-ready-observer-defaulting-v1-evidence.json
+  requiredPrivateEvidence:
+    lifecycle:
+      path: /private/tmp/ok141-go1-l-lifecycle-api-observer-v1-evidence.json
+      digestPublishedInCandidate: false
+    g3:
+      path: /private/tmp/ok141-go1-l-runtime-v1/ok141-go1-l-20260814-v2/evidence-helmchartproxy.json
+      digestPublishedInCandidate: false
+    failedNetwork:
+      path: /private/tmp/ok141-go1-l-network-ready-observer-v1-evidence.json
+      digestPublishedInCandidate: false
+  resumeBoundary:
+    startsAfter: G3-AND-FAILED-NETWORK-OBSERVATION
+    preflightReexecutionAllowed: false
+    g1ReexecutionAllowed: false
+    remediationReexecutionAllowed: false
+    lifecycleReexecutionAllowed: false
+    g3ReexecutionAllowed: false
+    nextStage: NETWORK
+    stopSemantics: STOP-PRESERVE-NO-RETRY
+  tool:
+    path: bounded_happy_run_resume_v3.py
+    digest: sha256:e2826ee1067e71753c58895ea4f99f4cd80566771eab91229974ccfd6ae29cf0
+    arbitraryEvidencePathAllowed: false
+    arbitraryResumePointAllowed: false
+    retryAllowed: false
+    rollbackOrCleanupAllowed: false
+  authorization:
+    decision: NO-GO
+    resumeAfterG3Granted: false
+    lifecycleEvidenceReuseGranted: false
+    g3EvidenceReuseGranted: false
+    networkObserverGranted: false
+    runtimeBindingGranted: false
+    targetAccessGranted: false
+    tokenRequestGranted: false
+    registrationGranted: false
+    credentialSecretGranted: false
+    applicationSubmissionGranted: false
+    platformObserverGranted: false
+    capabilityTestGranted: false
+    capabilityTestCleanupGranted: false
+    credentialUseGranted: false
+    go1LGranted: false
+    go1Granted: false
+    preflightGranted: false
+    g1Granted: false
+    remediationGranted: false
+    lifecycleReexecutionGranted: false
+    g3Granted: false
+    retryGranted: false
+    rollbackGranted: false
+    broadCleanupGranted: false
+    evidencePublicationGranted: false
+    failureInjectionGranted: false
+    outageGranted: false
+    grantIDs: []

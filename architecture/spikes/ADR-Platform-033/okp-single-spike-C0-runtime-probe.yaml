@@ -1,0 +1,116 @@
+# C0 runtime probe — forcing consumer für den ok-shared-Isolation-Drill (objective: runtime)
+#
+# Zwei PARALLELE Zugangswege, weil Ingress und der LoadBalancer-Service unterschiedliche
+# Pfade sind (der Ingress nutzt den ClusterIP-Service als Backend und traversiert NICHT
+# die externe LoadBalancer-IP):
+#
+#   Probe A — Ingress:    external client → Ingress controller → ClusterIP svc → Pod → PVC
+#   Probe B — ServiceLB:  external client → LoadBalancer IP    → Pod → PVC
+#
+# Im Pod zusätzlich AKTIV (nicht nur als Env/Mount deklariert):
+#   - wiederholter Cluster-DNS-Lookup
+#   - wiederholter PVC Write→Read unter /data
+#
+# Damit sind cluster-dns, storage-csi-data-plane-mounted, ingress-data-plane-existing-routes
+# und serviceloadbalancer-data-plane-provisioned EINZELN belegbar.
+# Provider bewusst nicht referenziert — C0 legt nur Placement fest.
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: runtime-probe-data
+  labels: { spike: platform-033, objective: runtime }
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: runtime-probe
+  labels: { spike: platform-033, objective: runtime }
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: runtime-probe }
+  template:
+    metadata:
+      labels: { app: runtime-probe }
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        fsGroup: 65532                       # PVC schreibbar für nonroot (uid/gid 65532)
+      containers:
+        - name: probe
+          # Spike-Fixture (probe/Dockerfile), VOR Evidence per Digest pinnen.
+          # Digest gehört zur Closure: runtime (laufender Pod) required=no; restart R2
+          # (cold reschedule) required=yes — dann muss das Image ohne ok-shared auflösen.
+          image: PIN-ME/okp-spike-runtime-probe@sha256:0000000000000000000000000000000000000000000000000000000000000000
+          ports: [{ containerPort: 8080 }]
+          volumeMounts:
+            - name: data
+              mountPath: /data
+          env:
+            - name: DNS_PROBE_TARGET
+              value: runtime-probe.default.svc.cluster.local
+            - name: PVC_PROBE_PATH
+              value: /data/heartbeat
+          # /healthz ist BEWUSST von der Autonomy-Evidence entkoppelt: ein DNS-/PVC-Ausfall
+          # darf den Container NICHT neu starten (sonst testet der runtime-Drill restart-Semantik).
+          # Die eigentliche Data-Plane-Evidence liest der Drill extern von /evidence (200|503).
+          readinessProbe:
+            httpGet: { path: /healthz, port: 8080 }
+            periodSeconds: 5
+          livenessProbe:
+            httpGet: { path: /healthz, port: 8080 }
+            periodSeconds: 5
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: runtime-probe-data
+---
+# ClusterIP-Backend für Probe A (Ingress)
+apiVersion: v1
+kind: Service
+metadata:
+  name: runtime-probe
+  labels: { spike: platform-033, objective: runtime }
+spec:
+  type: ClusterIP
+  selector: { app: runtime-probe }
+  ports:
+    - port: 80
+      targetPort: 8080
+---
+# Getrennter LoadBalancer-Service für Probe B (ServiceLB-Data-Plane)
+apiVersion: v1
+kind: Service
+metadata:
+  name: runtime-probe-lb
+  labels: { spike: platform-033, objective: runtime, path: serviceLB }
+spec:
+  type: LoadBalancer                       # exercised: serviceloadbalancer-data-plane-provisioned
+  selector: { app: runtime-probe }
+  ports:
+    - port: 80
+      targetPort: 8080
+---
+# Probe A: Ingress → ClusterIP-Service (NICHT die LB-IP)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: runtime-probe
+  labels: { spike: platform-033, objective: runtime, path: ingress }
+spec:
+  rules:                                   # exercised: ingress-data-plane-existing-routes
+    - host: runtime-probe.okp-single-spike.example
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: runtime-probe        # ClusterIP-Backend
+                port: { number: 80 }

@@ -1,0 +1,241 @@
+{
+  "capabilityCheck": {
+    "argoHealthAloneIsCapabilityProof": false,
+    "contract": {
+      "digest": "sha256:b6ef10a8ecf6daf42e6d44018d51e2263f380ed649445e5a70ff5c550c73415e",
+      "path": "contracts/observability-capability-contract-v1.md"
+    },
+    "executable": {
+      "digest": "sha256:98f41106b7ddc2f7ecffaca9bd9e3c3584d97ab41b169054d8be91ae9cdfb949",
+      "path": "tests/contract-test.sh"
+    },
+    "parameters": {
+      "alertAcceptance": "firing-only",
+      "namespace": "ok-observability"
+    },
+    "requiresCurrentPassingEvidence": true
+  },
+  "format": "ok141-platform-profile/v8",
+  "mechanismPrerequisites": {
+    "includedInPlatformRevision": false,
+    "items": [
+      "registration-credentials",
+      "registration-rbac",
+      "app-project-rbac",
+      "gitops-placement-authority"
+    ]
+  },
+  "namespace": {
+    "creationOwner": "disposable-ok141-observability-core",
+    "name": "ok-observability",
+    "podSecurityLabels": {
+      "pod-security.kubernetes.io/audit": "privileged",
+      "pod-security.kubernetes.io/enforce": "privileged",
+      "pod-security.kubernetes.io/warn": "privileged"
+    }
+  },
+  "profile": "minimal-observability-v9",
+  "providerValues": {
+    "digest": "sha256:41ad2fd63473364d634c6df2bb3b7fcd178ba5e82f8ebf6a9a55da41376cd759",
+    "path": "provider-values.yaml"
+  },
+  "requiredApplications": [
+    {
+      "applicationDigest": "sha256:e48724fdfb54db0b4fe6942fc4eb15e97e63c0ac987c9a70781222d35a4cd8c5",
+      "name": "disposable-ok141-observability-core",
+      "role": "composed-profile-chart",
+      "source": {
+        "commit": "c09c18759aeb7526d22106ccb001599f5f06bc4e",
+        "path": "profiles/ok-observability-standard",
+        "repoURL": "https://github.com/openkubes/ok-observability.git"
+      },
+      "sourceArtifacts": {
+        "chartDigest": "sha256:cbc2741f88d8f46611de7ca4fef0ae19721a5ae04513e67f86b7aac71aa13032",
+        "defaultValuesDigest": "sha256:7605fc92ada990218dca3d2a36a188a108a79da4e172a9fe97a8f784597fc8a6",
+        "sourceClosure": {
+          "artifactLock": {
+            "digest": "sha256:f916900bccb3731636969145d4677dc0e1578cd16ab7cf053fb1afbbf047ce31",
+            "path": "profiles/ok-observability-standard/artifact-lock.json",
+            "schema": "openkubes.io/ok-observability-vendored-artifacts/v1"
+          },
+          "packages": [
+            {
+              "digest": "sha256:1d80132e47136ef2d0d67eca1f77d63d8a8397bff7fdc31b632cc420a277e5d8",
+              "path": "profiles/ok-observability-standard/charts/ok-observability-grafana-0.1.0.tgz"
+            },
+            {
+              "digest": "sha256:c9c8eaf2f32891cafc04eb273804fb11ed7a26c2f94b9367e4c5b879f1b609d7",
+              "path": "profiles/ok-observability-standard/charts/ok-observability-opensearch-0.1.0.tgz"
+            },
+            {
+              "digest": "sha256:241acee7834df7d2de6697f505b64a0ae5105fe2771bf3d34cfca66361fe94f0",
+              "path": "profiles/ok-observability-standard/charts/ok-observability-prometheus-0.1.0.tgz"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "applicationDigest": "sha256:45d34b49ea65fdb2576ea5de6d34681048d88d17aef95ddf2190208bbdbdf98c",
+      "name": "disposable-ok141-observability-alerting",
+      "role": "required-alerting-artifact",
+      "source": {
+        "commit": "c09c18759aeb7526d22106ccb001599f5f06bc4e",
+        "include": "prometheus-rules.yaml",
+        "path": "alerting",
+        "repoURL": "https://github.com/openkubes/ok-observability.git"
+      },
+      "sourceArtifacts": {
+        "manifestDigest": "sha256:9be38525e3ffd052eebfef759da57414d71c4bf13c49de3410f52fa7ad00857c"
+      }
+    },
+    {
+      "applicationDigest": "sha256:9b27a1106631f0fe40d444b7227e0065910bc6c4cb963e1279afc5b923e3807e",
+      "name": "disposable-ok141-observability-dashboards",
+      "role": "required-dashboard-artifact",
+      "source": {
+        "commit": "c09c18759aeb7526d22106ccb001599f5f06bc4e",
+        "include": "platform-overview-configmap.yaml",
+        "path": "dashboards",
+        "repoURL": "https://github.com/openkubes/ok-observability.git"
+      },
+      "sourceArtifacts": {
+        "manifestDigest": "sha256:9e8a0b391eb479ca9880a2f5895793e4bcec4e9f9b5587b67e1910ac11547e09"
+      }
+    }
+  ],
+  "requiredSecretContract": {
+    "keys": [
+      "grafana-admin-user",
+      "grafana-admin-password",
+      "opensearch-admin-password"
+    ],
+    "name": "ok-observability-credentials",
+    "namespace": "ok-observability",
+    "valuesAreSemantic": false
+  },
+  "resourceApplyPolicy": {
+    "application": "disposable-ok141-observability-core",
+    "clientSideApplyMigration": false,
+    "migrationSyncOption": "ClientSideApplyMigration=false",
+    "mode": "server-side-apply",
+    "reason": "the default Argo client-side migration still exceeds the annotation limit for large CRDs",
+    "scope": "core Application including Prometheus Operator CRDs",
+    "syncOption": "ServerSideApply=true"
+  },
+  "resourceComparisonPolicy": {
+    "application": "disposable-ok141-observability-core",
+    "jqPathExpressions": [
+      ".spec.template.spec.containers[]?.env[]?.valueFrom.fieldRef.apiVersion",
+      ".spec.template.spec.containers[]?.ports[]?.protocol",
+      ".spec.template.spec.containers[]?.readinessProbe.successThreshold",
+      ".spec.template.spec.containers[]?.startupProbe.successThreshold",
+      ".spec.template.spec.containers[]?.terminationMessagePath",
+      ".spec.template.spec.containers[]?.terminationMessagePolicy",
+      ".spec.template.spec.initContainers[]?.terminationMessagePath",
+      ".spec.template.spec.initContainers[]?.terminationMessagePolicy",
+      ".spec.template.spec.volumes[]?.configMap.defaultMode",
+      ".spec.volumeClaimTemplates[]?.apiVersion",
+      ".spec.volumeClaimTemplates[]?.kind",
+      ".spec.volumeClaimTemplates[]?.spec.volumeMode",
+      ".spec.volumeClaimTemplates[]?.status"
+    ],
+    "jsonPointers": [
+      "/spec/persistentVolumeClaimRetentionPolicy",
+      "/spec/revisionHistoryLimit",
+      "/spec/template/spec/dnsPolicy",
+      "/spec/template/spec/restartPolicy",
+      "/spec/template/spec/schedulerName"
+    ],
+    "mode": "ignore-exact-api-defaulted-live-fields",
+    "reason": "bounded live/render comparison found only Kubernetes API-defaulted live-only fields",
+    "resource": "apps/StatefulSet/ok-observability/ok-observability-opensearch",
+    "respectIgnoreDifferencesDuringSync": false,
+    "semanticDesiredFieldsIgnored": false
+  },
+  "syncContract": {
+    "automated": {
+      "allowEmpty": false,
+      "enabled": true,
+      "prune": true,
+      "selfHeal": true
+    },
+    "coreIgnoreDifferences": {
+      "group": "apps",
+      "jqPathExpressions": [
+        ".spec.template.spec.containers[]?.env[]?.valueFrom.fieldRef.apiVersion",
+        ".spec.template.spec.containers[]?.ports[]?.protocol",
+        ".spec.template.spec.containers[]?.readinessProbe.successThreshold",
+        ".spec.template.spec.containers[]?.startupProbe.successThreshold",
+        ".spec.template.spec.containers[]?.terminationMessagePath",
+        ".spec.template.spec.containers[]?.terminationMessagePolicy",
+        ".spec.template.spec.initContainers[]?.terminationMessagePath",
+        ".spec.template.spec.initContainers[]?.terminationMessagePolicy",
+        ".spec.template.spec.volumes[]?.configMap.defaultMode",
+        ".spec.volumeClaimTemplates[]?.apiVersion",
+        ".spec.volumeClaimTemplates[]?.kind",
+        ".spec.volumeClaimTemplates[]?.spec.volumeMode",
+        ".spec.volumeClaimTemplates[]?.status"
+      ],
+      "jsonPointers": [
+        "/spec/persistentVolumeClaimRetentionPolicy",
+        "/spec/revisionHistoryLimit",
+        "/spec/template/spec/dnsPolicy",
+        "/spec/template/spec/restartPolicy",
+        "/spec/template/spec/schedulerName"
+      ],
+      "kind": "StatefulSet",
+      "name": "ok-observability-opensearch",
+      "namespace": "ok-observability"
+    },
+    "coreSyncOptions": [
+      "ServerSideApply=true",
+      "ClientSideApplyMigration=false"
+    ],
+    "retry": {
+      "backoff": {
+        "duration": "10s",
+        "factor": 2,
+        "maxDuration": "3m"
+      },
+      "limit": 5,
+      "refresh": true
+    },
+    "syncOptions": [
+      "PrunePropagationPolicy=foreground",
+      "PruneLast=true"
+    ]
+  },
+  "target": {
+    "addressing": {
+      "registrationName": "disposable-ok141"
+    },
+    "contractIdentity": {
+      "name": "disposable-ok141",
+      "namespace": "disposable-ok141"
+    },
+    "immutableIdentityReference": {
+      "contractRef": {
+        "name": "disposable-ok141",
+        "namespace": "disposable-ok141"
+      },
+      "resolution": "runtime-required",
+      "scheme": "capi-cluster-uid/v1"
+    }
+  },
+  "targetNetworkIntegration": {
+    "cni": "cilium",
+    "disabledKubePrometheusComponents": [
+      "coreDns",
+      "kubeControllerManager",
+      "kubeEtcd",
+      "kubeProxy",
+      "kubeScheduler"
+    ],
+    "kubeProxyReplacement": true,
+    "reason": "Talos/Cilium target does not authorize GitOps management of kube-system monitoring Services",
+    "requiredRenderedNamespaces": [
+      "ok-observability"
+    ]
+  }
+}

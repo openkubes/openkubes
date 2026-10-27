@@ -1,0 +1,54 @@
+{
+  "apiVersion": "test.openkubes.io/v1alpha1",
+  "kind": "CapabilityNameBoundaryAmendment",
+  "metadata": {
+    "name": "ok141-capability-name-boundary-amendment-v1"
+  },
+  "spec": {
+    "authorization": "NO-GO",
+    "base": {
+      "P": "sha256:311a581894905faa1eb57f93f0d236a84a4a016e82c64c5f51ee7d6c1e29c952",
+      "R": "sha256:81a57ef118e339a08e80608c64da7dd6eaed7d67dcdbcfa74a34636ab16dd35f",
+      "fixtureDigest": "sha256:3ad6f2dbe82da2abc15e8dc44bbf2aabf5afcfd8cb54b54b2d2807fd815b7eba"
+    },
+    "basePlatform": {
+      "artifactLockDigest": "sha256:cdcc6f63b6202a89e90510ddb371cfd3130ff2ebc450336b3ee66e0f1fa85bf5",
+      "capabilityScriptDigest": "sha256:bd68328f35de960bfc291880dd7f85274021c0cce8d7b69ccecde0a459ead648",
+      "profile": "minimal-observability-v8",
+      "sourceCommit": "b5f7be6a7ddab798f31f32197fcbb9e86a9798b6"
+    },
+    "contract": {
+      "R": "sha256:47bb651f6bc0bdb3a7a567efcd4ca4c776f872a63496fa55c2a6aed77d6fa995",
+      "path": "harness/fixtures/contracts-v9/base.yaml",
+      "schemaPath": "harness/schema/contract-v3.schema.json"
+    },
+    "fixtureDigest": "sha256:11133538388c3562f135e814ba4560b76d9ffcb0dac6dab5019f7d75c5a71178",
+    "format": "ok141-execution-fixture-amendment/capability-name-boundary-v1",
+    "identities": {
+      "FixtureDigest": "sha256:11133538388c3562f135e814ba4560b76d9ffcb0dac6dab5019f7d75c5a71178",
+      "P": "sha256:2956184005f4860607e91672fce82164095dee6ebcbe57e5af883951a199c427",
+      "R": "sha256:47bb651f6bc0bdb3a7a567efcd4ca4c776f872a63496fa55c2a6aed77d6fa995"
+    },
+    "platform": {
+      "P": "sha256:2956184005f4860607e91672fce82164095dee6ebcbe57e5af883951a199c427",
+      "applicationSetDigest": "sha256:dfd3793c987c79225c22360f81316e0f3060bf1d26e66f1c49ca521d04faabdc",
+      "applicationsPath": "harness/profiles/platform/minimal-observability-v9/applications.yaml",
+      "artifactLockDigest": "sha256:f916900bccb3731636969145d4677dc0e1578cd16ab7cf053fb1afbbf047ce31",
+      "capabilityScriptDigest": "sha256:98f41106b7ddc2f7ecffaca9bd9e3c3584d97ab41b169054d8be91ae9cdfb949",
+      "profile": "minimal-observability-v9",
+      "profilePath": "harness/profiles/platform/minimal-observability-v9/profile.json",
+      "providerValuesDigest": "sha256:41ad2fd63473364d634c6df2bb3b7fcd178ba5e82f8ebf6a9a55da41376cd759",
+      "providerValuesPath": "harness/profiles/platform/minimal-observability-v9/provider-values.yaml",
+      "sourceCommit": "c09c18759aeb7526d22106ccb001599f5f06bc4e"
+    },
+    "semanticDelta": {
+      "applicationDesiredSpecsChangedOnlyByTargetRevision": true,
+      "artifactLockProvenanceStrengthened": true,
+      "capabilityExecutableChanged": true,
+      "capabilityNameBoundaryCorrected": true,
+      "desiredResourceSetChanged": false,
+      "renderedPlatformSemanticsChanged": false,
+      "sourceRevisionChanged": true
+    }
+  }
+}

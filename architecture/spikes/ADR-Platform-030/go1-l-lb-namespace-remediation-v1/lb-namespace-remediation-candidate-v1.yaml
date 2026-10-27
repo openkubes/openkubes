@@ -1,0 +1,109 @@
+apiVersion: execution.openkubes.io/v1alpha1
+kind: LBNamespaceRemediationCandidate
+metadata:
+  name: ok141-lb-namespace-remediation-v1
+  ticket: OK-141
+  baseCommit: 4234b492f56bf1a7367d4240cabf30853517d63d
+spec:
+  version: ok141-lb-namespace-remediation/v1
+  state: OFFLINE-PROVEN-BLOCKED-NO-GO
+  purpose: Restore the already bound Kubernetes API endpoint without changing R, E, P, or FixtureDigest.
+  failureSemantics: STOP-PRESERVE-NO-RETRY
+  sourceFix:
+    repository: openkubes/ok-cluster
+    commit: 38cfe626b328e99f07194ee254ec69b19fca1064
+    effect: Future KubevirtCluster renders bind controlPlaneServiceTemplate.metadata.namespace to CLUSTER_NAME.
+    currentRuntimeChangedBySourceFix: false
+  credentialIdentities:
+    ok-infra: sha256:0cab42fab537845afb82ef510169bf9402e314e0fcb3ebce972499e0a1cd8f13
+    ok-mgmt: sha256:32a164332776f37129e46415af79945745134fefe80c5237d43fe13fa0511ffe
+  runtime:
+    priorRunID: ok141-go1-l-20260814-v2
+    preflightEvidenceDigest: sha256:221cf748c7ae4d8698e8ad0b9033987d8cb04856aa3eb8c42fab832e62438c24
+    g1SummaryDigest: sha256:c3aef1a58e85ef4b9b2348f10cf8bd4dfdd344f4e89f6170ea132663aa544c86
+    endpoint: {host: 192.168.100.213, port: 6443}
+    observedCause: external infra kubeconfig current-context namespace routed the CAPK Service to ok-obs-verify
+  namespaceTransition: {from: ok-obs-verify, to: disposable-ok141}
+  objects:
+    secret:
+      plane: ok-mgmt
+      identity: v1|Secret|disposable-ok141|external-infra-kubeconfig-disposable-ok141
+      rawURI: /api/v1/namespaces/disposable-ok141/secrets/external-infra-kubeconfig-disposable-ok141
+      onlySemanticChange: current-context.namespace
+    misplacedService:
+      plane: ok-infra
+      identity: v1|Service|ok-obs-verify|disposable-ok141-lb
+      rawURI: /api/v1/namespaces/ok-obs-verify/services/disposable-ok141-lb
+    targetService:
+      plane: ok-infra
+      identity: v1|Service|disposable-ok141|disposable-ok141-lb
+      rawURI: /api/v1/namespaces/disposable-ok141/services/disposable-ok141-lb
+      requestedIP: 192.168.100.213
+      addressPool: ok-pool
+      selector:
+        cluster.x-k8s.io/cluster-name: disposable-ok141
+        cluster.x-k8s.io/role: control-plane
+    targetEndpoints:
+      plane: ok-infra
+      rawURI: /api/v1/namespaces/disposable-ok141/endpoints/disposable-ok141-lb
+    kubevirtCluster:
+      plane: ok-mgmt
+      identity: infrastructure.cluster.x-k8s.io/v1alpha1|KubevirtCluster|disposable-ok141|disposable-ok141
+      rawURI: /apis/infrastructure.cluster.x-k8s.io/v1alpha1/namespaces/disposable-ok141/kubevirtclusters/disposable-ok141
+      endpointReset: host-only-to-empty-with-UID-resourceVersion-JSON-tests
+    cluster:
+      plane: ok-mgmt
+      identity: cluster.x-k8s.io/v1beta2|Cluster|disposable-ok141|disposable-ok141
+      rawURI: /apis/cluster.x-k8s.io/v1beta2/namespaces/disposable-ok141/clusters/disposable-ok141
+  sequence:
+    - exact reads and fail-closed identity/current-state validation
+    - replace only the existing provider-access Secret after semantic namespace normalization
+    - create the exact target Service requesting the already bound VIP while the old Service still owns it
+    - exact re-read then delete the single misplaced Service
+    - observe target Service VIP and non-empty Endpoints
+    - atomically test UID/resourceVersion/current host then clear only provider-derived KubevirtCluster endpoint host
+    - exact read-only endpoint observation; do not resume the Happy Run
+  riskBoundary:
+    nonAtomic: true
+    oldServiceDeleteServerSideUIDPreconditionAvailableThroughKubectlRaw: false
+    mitigation: exact UID/resourceVersion re-read immediately before the single exact raw delete
+    partialStatePossible: true
+    devRecovery: rebuild disposable cluster if remediation cannot converge
+    fixedVIPRequiredBecauseTalosAlreadyBootstrapped: true
+  tool:
+    path: bounded_lb_namespace_remediation_v1.py
+    digest: sha256:a70a6188cf74ddddb931ec5f226b03ff52aff7570681de8ea1db3ed2c92e1a67
+    arbitraryObjectAllowed: false
+    arbitraryNamespaceAllowed: false
+    arbitraryIPAllowed: false
+    secretOutputAllowed: false
+    retryAllowed: false
+    rollbackAllowed: false
+  authorization:
+    decision: NO-GO
+    credentialUseGranted: false
+    secretReadGranted: false
+    secretReplaceGranted: false
+    targetServiceCreateGranted: false
+    misplacedServiceDeleteGranted: false
+    kubevirtClusterEndpointResetGranted: false
+    observationGranted: false
+    retryGranted: false
+    rollbackGranted: false
+    generalCleanupGranted: false
+    happyRunResumeGranted: false
+    g3Granted: false
+    platformConvergenceGranted: false
+    evidencePublicationGranted: false
+    failureInjectionGranted: false
+  exclusions:
+    deleteMisplacedService: single-exact-delete-after-target-create
+    generalCleanupGranted: false
+    retry: false
+    rollback: false
+    HCPorHRPSubmission: false
+    CiliumConvergence: false
+    platformConvergence: false
+    happyRunResume: false
+    evidencePublication: false
+    failureInjection: false

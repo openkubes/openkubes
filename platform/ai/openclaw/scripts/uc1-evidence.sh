@@ -418,7 +418,7 @@ fi
 record S4 "answer ends with 'Source: platform-diagnostics/<tool>'" MANUAL
 record S4 "adapter + facade logs show the matching call (server-side provenance)" MANUAL
 record S4 "stated symptoms match the S2 investigation, nothing invented" MANUAL
-record S4 "openclaw holds no cluster credentials (make verify-kubectl)" MANUAL
+record S4 "openclaw holds no cluster credentials (make verify-mcp-live)" MANUAL
 
 # ── report ───────────────────────────────────────────────────────────────────
 verdict="PASS"

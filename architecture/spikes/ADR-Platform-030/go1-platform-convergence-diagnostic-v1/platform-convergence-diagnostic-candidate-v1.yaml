@@ -1,0 +1,69 @@
+apiVersion: diagnostic.openkubes.io/v1alpha1
+kind: GO1PlatformConvergenceDiagnosticCandidate
+metadata:
+  name: ok141-platform-convergence-diagnostic-v1
+  ticket: OK-141
+  baseCommit: 3f869f6
+spec:
+  version: ok141-go1-platform-convergence-diagnostic/v1
+  state: OFFLINE-PROVEN-BLOCKED-NO-GO
+  failedRun:
+    resumeCandidate:
+      path: ../go1-happy-run-resume-v7/happy-run-resume-candidate-v7.yaml
+      digest: sha256:7477db9a637ec046569bcc97f53f1ef032dfaea0caa0f4768bb2e191ee0f2aae
+    consumedGrantDigest: sha256:e1057b3ad5aabe280ee299f1b49b14a208c6326f52aba0d7c90698ad95eec841
+    runtimeBindingDigest: sha256:2e5f56cf305e6eb9241f00b2d019583664529560a0c68159ec52b9efa6653e47
+    absencePreflightDigest: sha256:1683a29b83f9aff40b05d2cebcd9091c6af162782ed07b85bcabb359d988b5de
+    targetAccessEvidenceDigest: sha256:b6104718aa8a7296bc52c6f77f76b6e8b62c901f6c12710d434287cb459c9b4a
+    credentialEvidenceDigest: sha256:837ceab1e47a0fe7de5f9f11f9d4c3bb1c33995fd3e029a54ffea1f3f7cf13c9
+    registrationEvidenceDigest: sha256:d474a5ced94f3bdf2e3776e2f7a0183d059d25188efec5338b79981f8141e3fe
+    applicationSubmissionEvidenceDigest: sha256:58c4fdef49a7fd6376ea7824a00afc900d3a87708e6f19b116027af2b2fefd73
+    observedFailure: Applications did not converge
+    retryAllowed: false
+  argo:
+    plane: ok-shared
+    credentialPath: /Users/arash/.kube/ok-shared.yaml
+    credentialIdentityDigest: sha256:790e5efe2af8f8b8703c1745b9e2643ec4ac14f254d52016ad2c2679a79bdefb
+    clientPath: /private/tmp/ok141-kubectl-v1.34.1-darwin-amd64
+    clientDigest: sha256:bb211f2b31f2b3bc60562b44cc1e3b712a16a98e9072968ba255beb04cefcfdf
+    namespace: argocd
+    applications:
+      - disposable-ok141-observability-core
+      - disposable-ok141-observability-alerting
+      - disposable-ok141-observability-dashboards
+    expectedRevision: b5f7be6a7ddab798f31f32197fcbb9e86a9798b6
+  outputPath: /private/tmp/ok141-platform-convergence-diagnostic-v1-evidence.json
+  evidenceBoundary:
+    retains:
+      - Application names
+      - desired and observed revisions
+      - sync and health categories
+      - condition types and message digests
+      - operation phase and message digest
+      - aggregate resource-state counts
+    forbids:
+      - raw Application objects
+      - raw condition or operation messages
+      - Secrets and credential values
+      - Pods and logs
+      - endpoint addresses
+      - target-cluster access
+  tool:
+    path: bounded_platform_convergence_diagnostic_v1.py
+    digest: sha256:814dbb7a1bce9ffc0d7867798c5d5ddb14d4afdeffc44cbca5c71678a6541ae7
+  authorization:
+    decision: NO-GO
+    clusterContactGranted: false
+    credentialUseGranted: false
+    exactApplicationReadsGranted: false
+    readOnlyDiagnosticGranted: false
+    secretReadGranted: false
+    podOrLogReadGranted: false
+    targetClusterAccessGranted: false
+    mutationGranted: false
+    retryGranted: false
+    rollbackOrCleanupGranted: false
+    happyRunResumeGranted: false
+    evidencePublicationGranted: false
+    failureInjectionGranted: false
+    grantIDs: []

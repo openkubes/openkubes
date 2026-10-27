@@ -1,0 +1,44 @@
+{
+  "apiVersion": "test.openkubes.io/v1alpha1",
+  "kind": "PlatformServerSideApplyMigrationAmendment",
+  "metadata": {
+    "name": "ok141-platform-ssa-migration-amendment-v1"
+  },
+  "spec": {
+    "authorization": "NO-GO",
+    "base": {
+      "P": "sha256:30946024c91c64d29840bbdd1184d5f1f1e20dde3869505e07e262caef22df7b",
+      "R": "sha256:7503b0cd54d5d68243f05e231fe76cb56173a96ba9f2e4f76c83106b30731305",
+      "fixtureDigest": "sha256:e83ddec6908ca416d0ddc718a5652ba5db2b4950c26deff1da1ae03b908f028c"
+    },
+    "contract": {
+      "R": "sha256:32c2abeb6f08a6853006f31b764900b65faa9f36db2482b062aa5b3709764d13",
+      "path": "harness/fixtures/contracts-v7/base.yaml",
+      "schemaPath": "harness/schema/contract-v3.schema.json"
+    },
+    "fixtureDigest": "sha256:ad13f4e233a25fe4aa252bd0013f3257c8003f78955a133501a117997462feed",
+    "format": "ok141-execution-fixture-amendment/ssa-migration-v1",
+    "identities": {
+      "FixtureDigest": "sha256:ad13f4e233a25fe4aa252bd0013f3257c8003f78955a133501a117997462feed",
+      "P": "sha256:86db1e51e2d4ecbe2cf32d27e7e0f76a6a29a17f6bab201289fff6eee5299925",
+      "R": "sha256:32c2abeb6f08a6853006f31b764900b65faa9f36db2482b062aa5b3709764d13"
+    },
+    "platform": {
+      "P": "sha256:86db1e51e2d4ecbe2cf32d27e7e0f76a6a29a17f6bab201289fff6eee5299925",
+      "applicationSetDigest": "sha256:314872708a20ff8108a70e0872155991be2a2c273f6b6140d0c6fb5aa83b4c13",
+      "applicationsPath": "harness/profiles/platform/minimal-observability-v7/applications.yaml",
+      "profile": "minimal-observability-v7",
+      "profilePath": "harness/profiles/platform/minimal-observability-v7/profile.json",
+      "providerValuesDigest": "sha256:41ad2fd63473364d634c6df2bb3b7fcd178ba5e82f8ebf6a9a55da41376cd759",
+      "providerValuesPath": "harness/profiles/platform/minimal-observability-v7/provider-values.yaml",
+      "sourceCommit": "b5f7be6a7ddab798f31f32197fcbb9e86a9798b6"
+    },
+    "semanticDelta": {
+      "addedSyncOption": "ClientSideApplyMigration=false",
+      "application": "disposable-ok141-observability-core",
+      "desiredResourceSetChanged": false,
+      "serverSideApplyRetained": true,
+      "sourceRevisionChanged": false
+    }
+  }
+}

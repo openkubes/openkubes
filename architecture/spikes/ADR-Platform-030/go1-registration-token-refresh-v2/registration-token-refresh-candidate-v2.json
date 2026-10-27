@@ -1,0 +1,67 @@
+{
+  "apiVersion": "execution.openkubes.io/v1alpha1",
+  "kind": "OK141RegistrationTokenRefreshCandidate",
+  "metadata": {
+    "name": "ok141-registration-token-refresh-v2"
+  },
+  "spec": {
+    "version": "ok141-registration-token-refresh/v2",
+    "ticket": "OK-141",
+    "state": "LIVE-AUTHORIZED-ONCE-AFTER-ZERO-WRITE-PREFLIGHT",
+    "createdAt": "2026-08-15T15:33:23Z",
+    "authority": "github:arashkaffamanesh",
+    "standingGrantAcknowledged": true,
+    "authorizationBasis": "continuous bounded OK-141 DEV execution grant plus explicit approval for next and further steps",
+    "predecessor": {
+      "candidateDigest": "sha256:a69295cbb860e580f20cb1d6bcc35654e60ec8116980c269101767b78675a95b",
+      "result": "STOP-ZERO-WRITE-LOCAL-IDENTITY-CHECK",
+      "mutationPerformed": false,
+      "cause": "registration Secret server value required Base64 decoding before identity comparison"
+    },
+    "expirationSeconds": 10800,
+    "requestedAudiences": [],
+    "management": {
+      "clientPath": "/private/tmp/ok141-kubectl-v1.34.1-darwin-amd64",
+      "clientDigest": "sha256:bb211f2b31f2b3bc60562b44cc1e3b712a16a98e9072968ba255beb04cefcfdf",
+      "kubeconfigPath": "/Users/arash/.kube/ok-mgmt.yaml",
+      "workloadKubeconfigSecretURI": "/api/v1/namespaces/disposable-ok141/secrets/disposable-ok141-kubeconfig"
+    },
+    "shared": {
+      "clientPath": "/private/tmp/ok141-kubectl-v1.34.1-darwin-amd64",
+      "clientDigest": "sha256:bb211f2b31f2b3bc60562b44cc1e3b712a16a98e9072968ba255beb04cefcfdf",
+      "kubeconfigPath": "/Users/arash/.kube/ok-shared.yaml",
+      "registrationSecretURI": "/api/v1/namespaces/argocd/secrets/disposable-ok141-cluster",
+      "applicationURIs": {
+        "core": "/apis/argoproj.io/v1alpha1/namespaces/argocd/applications/disposable-ok141-observability-core",
+        "alerting": "/apis/argoproj.io/v1alpha1/namespaces/argocd/applications/disposable-ok141-observability-alerting",
+        "dashboards": "/apis/argoproj.io/v1alpha1/namespaces/argocd/applications/disposable-ok141-observability-dashboards"
+      }
+    },
+    "target": {
+      "clientPath": "/usr/local/bin/kubectl",
+      "clientDigest": "sha256:158b3b46cf74e8b6bd9b1d7cd30f665e3efb2bc1ec3c843ec925bcfdd2930de0",
+      "serviceAccountSubject": "system:serviceaccount:kube-system:ok141-argocd-manager",
+      "tokenRequestURI": "/api/v1/namespaces/kube-system/serviceaccounts/ok141-argocd-manager/token",
+      "probeURI": "/api/v1/namespaces/ok-observability"
+    },
+    "observation": {
+      "intervalSeconds": 15,
+      "maxIterations": 40
+    },
+    "ephemeralAdminKubeconfigPath": "/private/tmp/ok141-registration-token-refresh-v2-admin.yaml",
+    "ephemeralTokenKubeconfigPath": "/private/tmp/ok141-registration-token-refresh-v2-token.yaml",
+    "outputPath": "/private/tmp/ok141-registration-token-refresh-v2-evidence.json",
+    "toolPath": "bounded_registration_token_refresh_v2.py",
+    "toolDigest": "sha256:e30d286e8ad2b7fd914f877c9075cd87162038a766c914c17debffb580befb79",
+    "stopPolicy": "STOP-PRESERVE-NO-RETRY",
+    "exclusions": [
+      "explicit Argo sync",
+      "force delete",
+      "rollback",
+      "general cleanup",
+      "outage",
+      "failure injection",
+      "unredacted evidence publication"
+    ]
+  }
+}

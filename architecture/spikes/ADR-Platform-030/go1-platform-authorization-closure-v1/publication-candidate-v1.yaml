@@ -1,0 +1,14 @@
+apiVersion: publication.openkubes.io/v1alpha1
+kind: GO1PlatformAuthorizationClosurePublicationCandidate
+metadata: {name: ok141-platform-authorization-closure-publication-v1, ticket: OK-141}
+spec:
+  decision: BLOCKED-NO-PUBLICATION
+  scope:
+    directory: architecture/spikes/ADR-Platform-030/go1-platform-authorization-closure-v1
+    files:
+      README.md: sha256:2bcafe150e1faa588e9ba37d9b70f2ec9126b8365f577014979e66822cb8232f
+      platform-authorization-closure-v1.json: sha256:ea10cd6e802e5074a52c7f45ce317e8b5fb1651e898f2d11c3142cc19b20cad0
+      test_platform_authorization_closure_v1.py: sha256:5e58364479229d1f9ee5c32681c6d066628bb5fe0eff02e42f9b7c33cd91c0fe
+  validation: {testsPassed: 1, findingCount: 3, unparsedAuthorizationConditionCount: 0}
+  permitsAfterSeparateGrant: [commit, push, draft-pr, review, merge]
+  excludes: [private Evidence under /private/tmp, raw messages and subjects, endpoints and credentials, mutation, retry, cleanup and failure injection]

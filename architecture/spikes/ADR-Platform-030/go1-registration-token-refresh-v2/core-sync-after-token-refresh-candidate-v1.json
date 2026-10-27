@@ -1,0 +1,59 @@
+{
+  "apiVersion": "execution.openkubes.io/v1alpha1",
+  "kind": "OK141ApplicationSyncAfterTokenRefreshCandidate",
+  "metadata": {
+    "name": "ok141-core-sync-after-token-refresh-v1"
+  },
+  "spec": {
+    "state": "LIVE-AUTHORIZED-ONCE",
+    "standingGrantAcknowledged": true,
+    "authorizationBasis": "bounded diagnose-based retry after successful target-token refresh",
+    "predecessor": {
+      "path": "/private/tmp/ok141-registration-token-refresh-v2-evidence.json",
+      "digest": "sha256:5ed1bd176258258216fd654f2957c1a68ee29f7cd4eed5e481000c3a5a7252b9"
+    },
+    "clientPath": "/private/tmp/ok141-kubectl-v1.34.1-darwin-amd64",
+    "clientDigest": "sha256:bb211f2b31f2b3bc60562b44cc1e3b712a16a98e9072968ba255beb04cefcfdf",
+    "kubeconfigPath": "/Users/arash/.kube/ok-shared.yaml",
+    "application": {
+      "namespace": "argocd",
+      "name": "disposable-ok141-observability-core",
+      "uri": "/apis/argoproj.io/v1alpha1/namespaces/argocd/applications/disposable-ok141-observability-core",
+      "sourceRevision": "b5f7be6a7ddab798f31f32197fcbb9e86a9798b6",
+      "expectedPriorOperationFinishedAt": "2026-08-15T14:10:16Z",
+      "identityAnnotations": {
+        "openkubes.io/intent-revision": "sha256:89248df8cd908394d2d75c18fbb39d52d84cf181f66480c743bfe9d732a0aaa4",
+        "openkubes.io/platform-revision": "sha256:02206b92b487a0f12eee8139d82f9ef150ab9688c7a60687d3f7b6b782266472",
+        "openkubes.io/execution-fixture": "sha256:3aa621cd8f3b21e87a5d7059911d02a4b0f10f2d724df351750787eb274b9ae6"
+      },
+      "operation": {
+        "sync": {
+          "revision": "b5f7be6a7ddab798f31f32197fcbb9e86a9798b6",
+          "prune": true,
+          "syncOptions": [
+            "CreateNamespace=true",
+            "PrunePropagationPolicy=foreground",
+            "PruneLast=true"
+          ]
+        }
+      }
+    },
+    "observation": {
+      "intervalSeconds": 10,
+      "maxIterations": 60
+    },
+    "toolPath": "bounded_application_sync_after_token_refresh_v1.py",
+    "toolDigest": "sha256:7431d912f3e9959aea00527bd8b3b7c6cad58b157c66c7fbd473c986775d5021",
+    "outputPath": "/private/tmp/ok141-core-sync-after-token-refresh-v1-evidence.json",
+    "stopPolicy": "STOP-PRESERVE-NO-RETRY",
+    "exclusions": [
+      "spec change",
+      "credential change",
+      "RBAC change",
+      "delete",
+      "rollback",
+      "cleanup",
+      "failure injection"
+    ]
+  }
+}

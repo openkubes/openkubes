@@ -1,0 +1,23 @@
+apiVersion: authorization.openkubes.io/v1alpha1
+kind: GO1RegistrationAudienceRemediationGrant
+metadata: {name: FILL}
+spec:
+  decision: NO-GO
+  authority: github:arashkaffamanesh
+  candidateDigest: FILL
+  grantID: FILL
+  singleRun: true
+  consumed: false
+  issuedAt: FILL
+  expiresAt: FILL
+  exactTokenRequestGranted: false
+  exactTargetProbeGranted: false
+  exactRegistrationSecretReadGranted: false
+  exactRegistrationSecretReplaceGranted: false
+  optimisticConcurrencyGranted: false
+  automaticArgoReconciliationAcknowledged: false
+  retryGranted: false
+  rollbackOrCleanupGranted: false
+  platformObserverOrCapabilityTestGranted: false
+  evidencePublicationGranted: false
+  failureInjectionGranted: false

@@ -1,0 +1,63 @@
+apiVersion: diagnostic.openkubes.io/v1alpha1
+kind: GO1DefaultAudienceDiagnosticCandidate
+metadata:
+  name: ok141-default-audience-diagnostic-v1
+  ticket: OK-141
+  baseCommit: 73c16cb
+spec:
+  version: ok141-go1-default-audience-diagnostic/v1
+  state: OFFLINE-PROVEN-BLOCKED-NO-GO
+  predecessor:
+    candidate:
+      path: ../go1-target-access-cause-diagnostic-v1/target-access-cause-diagnostic-candidate-v1.yaml
+      digest: sha256:c7ef5692247d0dbe47e773e2d2357cb4ba77c666d5af32284e4f47f14f0ec30b
+    privateEvidencePath: /private/tmp/ok141-target-access-cause-diagnostic-v1-evidence.json
+    privateEvidenceDigest: sha256:d3382b75d2df4910ffe791c173cd0df169cc33461796beb1934d38fce2e86c0c
+    privateEvidenceSemanticDigest: sha256:50c55e6e7770109baabe9e4e62eb17330d1f346b6ff609032b8e1d90c6bd3a25
+  runtimeBinding:
+    path: /private/tmp/ok141-go1-runtime-binding-v2.json
+    digest: sha256:2e5f56cf305e6eb9241f00b2d019583664529560a0c68159ec52b9efa6653e47
+    semanticDigest: sha256:5f89ee33972c778844a61e9e31b4fbfefa232949f33588fb9d81fe0948794c64
+  management:
+    credentialPath: /Users/arash/.kube/ok-mgmt.yaml
+    credentialIdentityDigest: sha256:32a164332776f37129e46415af79945745134fefe80c5237d43fe13fa0511ffe
+    clientPath: /private/tmp/ok141-kubectl-v1.34.1-darwin-amd64
+    clientDigest: sha256:bb211f2b31f2b3bc60562b44cc1e3b712a16a98e9072968ba255beb04cefcfdf
+    workloadKubeconfigSecretURI: /api/v1/namespaces/disposable-ok141/secrets/disposable-ok141-kubeconfig
+  target:
+    clientPath: /private/tmp/ok141-kubectl-v1.36.2-darwin-amd64
+    clientDigest: sha256:ce6c5e55cd17559e87e4fb5e73ebbbc2511bcf2b695d7a40c1b1461a9817d4b3
+    serviceAccountSubject: system:serviceaccount:kube-system:ok141-argocd-manager
+    tokenRequestURI: /api/v1/namespaces/kube-system/serviceaccounts/ok141-argocd-manager/token
+    expirationSeconds: 600
+    requestedAudiences: []
+    exactProbeURI: /api/v1/namespaces/ok-observability
+    ephemeralAdminKubeconfigPath: /private/tmp/ok141-default-audience-admin-kubeconfig.yaml
+    ephemeralTokenKubeconfigPath: /private/tmp/ok141-default-audience-token-kubeconfig.yaml
+  outputPath: /private/tmp/ok141-default-audience-diagnostic-v1-evidence.json
+  evidenceBoundary:
+    forbids: [admin Kubeconfig, token, JWT payload, CA payload, API endpoint, raw API output]
+    retains: [claim comparison booleans, audience count, classification, response digests, cleanup booleans]
+  tool:
+    path: bounded_default_audience_diagnostic_v1.py
+    digest: sha256:7def7ebcc0040f60532889135833f01dca9dc62a4eb0ab2c717bb0b36a31eaad
+  authorization:
+    decision: NO-GO
+    managementClusterContactGranted: false
+    managementCredentialUseGranted: false
+    exactWorkloadKubeconfigSecretReadGranted: false
+    ephemeralAdminKubeconfigGranted: false
+    targetAdminCredentialUseGranted: false
+    exactTokenRequestGranted: false
+    defaultAudienceSelectionGranted: false
+    ephemeralTokenKubeconfigGranted: false
+    exactTargetNamespaceGetGranted: false
+    responseClassificationGranted: false
+    persistentMutationGranted: false
+    podOrLogReadGranted: false
+    retryGranted: false
+    rollbackOrCleanupGranted: false
+    happyRunResumeGranted: false
+    evidencePublicationGranted: false
+    failureInjectionGranted: false
+    grantIDs: []

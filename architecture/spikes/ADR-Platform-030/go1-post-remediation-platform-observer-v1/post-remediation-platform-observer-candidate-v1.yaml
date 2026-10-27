@@ -1,0 +1,39 @@
+apiVersion: observer.openkubes.io/v1alpha1
+kind: GO1PostRemediationPlatformObserverCandidate
+metadata: {name: ok141-post-remediation-platform-observer-v1, ticket: OK-141, baseCommit: 6273132}
+spec:
+  version: ok141-go1-post-remediation-platform-observer/v1
+  state: OFFLINE-PROVEN-BLOCKED-NO-GO
+  remediation:
+    candidateDigest: sha256:ac25c8cdcbdf9dcaa98012afaf01544b60d9347aabfe8d47b25eb36b11eba406
+    privateEvidencePath: /private/tmp/ok141-registration-audience-remediation-v1-evidence.json
+    privateEvidenceDigest: sha256:3e45a05b7bbb91950072dcd6bf6841ded1b1b5a882ff442552b0743f4fade39a
+    privateEvidenceSemanticDigest: sha256:124d7d17d4a6a201a06b21213369a099785d43b2c88cec55b19937459ae56490
+  argo:
+    credentialPath: /Users/arash/.kube/ok-shared.yaml
+    credentialIdentityDigest: sha256:790e5efe2af8f8b8703c1745b9e2643ec4ac14f254d52016ad2c2679a79bdefb
+    clientPath: /private/tmp/ok141-kubectl-v1.34.1-darwin-amd64
+    clientDigest: sha256:bb211f2b31f2b3bc60562b44cc1e3b712a16a98e9072968ba255beb04cefcfdf
+    namespace: argocd
+    applications:
+      - disposable-ok141-observability-core
+      - disposable-ok141-observability-alerting
+      - disposable-ok141-observability-dashboards
+    expectedRevision: b5f7be6a7ddab798f31f32197fcbb9e86a9798b6
+  observation: {intervalSeconds: 15, maxIterations: 40}
+  outputPath: /private/tmp/ok141-post-remediation-platform-observer-v1-evidence.json
+  tool: {path: bounded_post_remediation_platform_observer_v1.py, digest: sha256:c016c7eaea0fcb09f9156e8a91fc988667e84cef47d64b42c9809d8311c73223}
+  authorization:
+    decision: NO-GO
+    sharedClusterContactGranted: false
+    sharedCredentialUseGranted: false
+    exactApplicationReadsGranted: false
+    boundedPollingGranted: false
+    secretOrTargetReadGranted: false
+    mutationGranted: false
+    capabilityTestGranted: false
+    retryGranted: false
+    cleanupGranted: false
+    evidencePublicationGranted: false
+    failureInjectionGranted: false
+    grantIDs: []

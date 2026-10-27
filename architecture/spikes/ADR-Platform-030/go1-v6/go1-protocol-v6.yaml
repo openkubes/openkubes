@@ -1,0 +1,236 @@
+apiVersion: test.openkubes.io/v1alpha5
+kind: GO1Protocol
+metadata:
+  name: ok141-create-converge-observe-v6
+  ticket: OK-141
+  baseCommit: 08b8b59a152eaef44fe9752321f7d8b6437944a9
+spec:
+  protocolVersion: ok141-go1/v6
+  protocolState: BLOCKED
+  supersedesForFutureExecution:
+    protocol: ../go1-v5/go1-protocol-v5.yaml
+    digest: sha256:685b7e142e9b2e67dcee89ef091df93e4b9aa5d43ff32c7becf6df743e3df2b9
+    historicalEvidencePreserved: true
+    allowedForFutureExecution: false
+    reason: v5 remains bound to Phase-R v4 and lacks the external provider-access Secret sequence.
+  cleanBaseline:
+    path: ../go1-l-recovery-v1/r3-r4-redacted-closure-candidate-v1.yaml
+    digest: sha256:797a61fb61cc3ed0e4e57efb07cc5654ae2162b4e7b0c445029ae8e6f0b21674
+    requiredState: PASS-R4-CLEAN-BASELINE
+  fixture:
+    version: phase-r-v5
+    path: ../harness/fixtures/execution/phase-r-v5.json
+    fileDigest: sha256:e1a159ffcf32191dfba9d7455c67a38557f62ede37902b722e302ad298386068
+    fixtureDigest: sha256:7536456a762880a78a37dcba76a5f3f0628140bd37b55d5fd62273c64e4cc3eb
+    R: sha256:166504ae61fd558d391daedde50986cbc7a28f5f4e9d57f4acbd0433b448aa0f
+    E: sha256:2a849d69e9c64344e907c1bce3bb1abf3d8f77217377081a5be055d62c213300
+    P: sha256:b0f25c639a45d895b889997f5ecc2325db45dd5d51b0684998c94d5e17bd47bf
+  mechanisms:
+    staticSubmitter:
+      path: ../go1-l-submitter-v3/go1-l-submitter-candidate-v3.yaml
+      digest: sha256:ef6869cbe35008a79934eeab1a99106d6e73ab5ee4aae08f88f41ca2116f5cd5
+      state: OFFLINE-PROVEN-BLOCKED-NO-GO
+      operationCount: 4
+      objectCount: 12
+    providerAccessMaterializer:
+      path: ../go1-l-provider-access-v1/provider-access-materializer-candidate-v1.yaml
+      digest: sha256:6b9b072f8daab315f46de0d6ded642cbcf75618b1c1629c020bdfba60a2aa1d5
+      state: OFFLINE-PROVEN-BLOCKED-NO-GO
+      operationCount: 1
+      objectCount: 1
+    caaphReadiness:
+      path: ../m0a-runtime-v7-2-closure/m0a-v7-2-readiness-closure-v1.yaml
+      digest: sha256:5b445b91f16f1b791c28d637e84d65c5b5c0bb5d05214aa0968341b373c441b0
+      requiredState: CAAPH-CONTROL-PLANE-READY
+    argoInstallation:
+      path: ../m0b-execution-v2/m0b-v2-runtime-closure-v1.yaml
+      digest: sha256:48d9d43c1c51338982a6143d7e6f04e77256682424172531ce0cdb224355f8ba
+      requiredState: COMPLETE-LOCALLY-PUBLICATION-NOT-GRANTED
+  authorization:
+    decision: NO-GO
+    go1LifecycleEnablementGranted: false
+    sourceCredentialReadGranted: false
+    providerSecretMaterializationGranted: false
+    runtimePauseReleased: false
+    targetAccessGranted: false
+    tokenRequestGranted: false
+    registrationGranted: false
+    platformSubmissionGranted: false
+    go1Granted: false
+    retryGranted: false
+    rollbackOrCleanupGranted: false
+    evidencePublicationGranted: false
+    failureInjectionGranted: false
+    grantIDs: []
+    authorizedProtocolDigest: null
+    rule: This merged protocol and its digest grant no execution authority.
+  scope:
+    operation: create-converge-runtime-bind-platform-observe
+    clusterCount: 1
+    disposableOnly: true
+    cluster:
+      contractNamespace: disposable-ok141
+      contractName: disposable-ok141
+      managementNamespace: disposable-ok141
+      infrastructureNamespace: disposable-ok141
+      workloadName: disposable-ok141
+      controlPlaneReplicas: 1
+      workerReplicas: 1
+      kubernetesVersion: v1.36.2
+      infrastructureProvider: kubevirt
+    connectivity:
+      profile: datacenter-isolated-v1
+      requestedControlPlaneEndpoint: provider-allocated
+      allocationAuthority: CAPK-and-MetalLB
+      podCIDR: 10.40.0.0/16
+      serviceCIDR: 10.100.0.0/20
+      forbiddenCIDRs: [192.168.100.0/24]
+    maximumBoundary:
+      wallClockMinutes: 120
+      lifecycleEnablementMinutes: 70
+      runtimePauseDecisionMinutes: 15
+      platformAndClosureMinutes: 35
+      clustersCreated: 1
+      controlPlanesCreated: 1
+      workerMachinesCreated: 1
+      lifecycleSubmissionGroups: 4
+      lifecycleSubmissionObjects: 12
+      hcpObjects: 1
+      targetAccessObjects: 8
+      registrationObjects: 2
+      platformApplications: 3
+      prohibitedMutations:
+        - worker executor or management failure injection
+        - manual drift injection
+        - delete finalizer manipulation or break-glass action
+        - ok-mgmt outage shadow promotion or disaster recovery
+        - upgrade scaling retry rollback cleanup or exploratory mutation
+  lifecycleSubmission:
+    operation: CreateReviewedObjectsAndOneDynamicSecret
+    staticSubmitterDigest: sha256:ef6869cbe35008a79934eeab1a99106d6e73ab5ee4aae08f88f41ca2116f5cd5
+    providerAccessMaterializerDigest: sha256:6b9b072f8daab315f46de0d6ded642cbcf75618b1c1629c020bdfba60a2aa1d5
+    credentialModel: distinct-current-receipts-per-operation
+    freeFormShellEndpoint: false
+    enabled: false
+    groups:
+      - id: provider-prerequisites
+        order: 1
+        stage: G1
+        targetPlane: ok-infra
+        executor: staticSubmitter
+        objectCount: 3
+        semanticDigest: sha256:48280ac428d1f0c18bdcdbae7a8e12ab966ce0f57a0381f72ab51b4cb68e9e85
+        payloadDigest: sha256:45d6fea6739d49cb74d4a50354976b6cbb7d64e00e3509c228174f1a31b6f9d3
+        predecessorEvidenceCount: 0
+        enabled: false
+      - id: management-namespace
+        order: 2
+        stage: G1
+        targetPlane: ok-mgmt
+        executor: staticSubmitter
+        objectCount: 1
+        semanticDigest: sha256:b1771f137e64ae09c27cc9d446af561067e7a4f7ea3d0ae7886588b4f2ca4ce7
+        payloadDigest: sha256:fbee2a6568c3f1d8ba626724ee36c7cfd38145e37b68f8319a5de87a7c4b3b11
+        predecessorEvidenceCount: 1
+        enabled: false
+      - id: provider-access-secret
+        order: 3
+        stage: G1
+        targetPlane: ok-mgmt
+        executor: providerAccessMaterializer
+        objectCount: 1
+        objectIdentity: v1|Secret|disposable-ok141|external-infra-kubeconfig-disposable-ok141
+        predecessorEvidenceCount: 2
+        secretBytesInProtocolOrEvidenceAllowed: false
+        enabled: false
+      - id: capi-lifecycle
+        order: 4
+        stage: G1
+        targetPlane: ok-mgmt
+        executor: staticSubmitter
+        objectCount: 7
+        semanticDigest: sha256:3f5025be5dc20c73910e33533d67cf99038f6f38a07ac82ed08acee252ef59ff
+        payloadDigest: sha256:a221a227c97d1d005309b13356495888eecd3aba2d26c49e6bd8faa0842ff960
+        predecessorEvidenceCount: 2
+        enabled: false
+      - id: helmchartproxy
+        order: 5
+        stage: G3
+        targetPlane: ok-mgmt
+        executor: staticSubmitter
+        objectCount: 1
+        semanticDigest: sha256:cd1a21b0b611a3a928e6e7d63d7eb2c4b4657570152ac3c6ae6061a48d4b788e
+        payloadDigest: sha256:d2d93b5868bd9cba7b288ac117c5ceb08605b729c1e2eeae86ee001ed52887f0
+        predecessorEvidenceCount: 1
+        enabled: false
+    correlation:
+      projectionManifestPath: ../harness/projections/phase-r-v5/projection-manifest.json
+      projectionManifestDigest: sha256:37b65b7ff1f7f46e5809000d8a469f423943c6b7f4f043a7bc6123d033ee765b
+      authorityMapPath: ../harness/projections/phase-r-v5/authority-map.json
+      authorityMapDigest: sha256:c872b0378dfb58b845adc709aad864f07fa416f529698e050cebe80c407e927a
+      requireRCarrierOnEveryStaticObject: true
+      dynamicSecretCarrierBoundByMaterializer: true
+  inheritedLaterStages:
+    sourceProtocol: ../go1-v5/go1-protocol-v5.yaml
+    sourceDigest: sha256:685b7e142e9b2e67dcee89ef091df93e4b9aa5d43ff32c7becf6df743e3df2b9
+    resolutionRule: Each named section is inherited exactly by canonical semantic digest and evaluated under the v6 fixture identity.
+    sections:
+      runtimePause: sha256:15a15a6b8e788fb5749a9fb24f2ba1b18ebfad496f7327549c05fc3c38c7957b
+      platform: sha256:92e4a320742e2d7c4fd437a8ecfaaac8b8a7a9c19df6e588815abc4a6a2a283e
+      expectedEvidence: sha256:c274c90aee1f8f27ee584de52fd7deebb59f2ded00f707b563594c2dc069fe23
+      stopConditions: sha256:ad454794dfaf2c8c65243ab11cf2db8640c92c0da67226aafb3fa82173003e6f
+      stopResponse: sha256:9c58cce165108042154634b43fc5fa88058a8ef00e460161c0f65984a7632295
+      exclusions: sha256:5318bef5a18150e2ec75dc7fda53416ca828ca153095bd3af36c2f0c18979af2
+    aggregateDigest: sha256:48e12f27b9e768f6ee2d063ed547815ddf45e2d670eaa3b43158b9081570bb72
+  stageGates:
+    - {id: GO1-L, scope: exact-five-step-lifecycle-enable-sequence, state: NOT-GRANTED, runtimeBindingDigestRequired: false, grantsLaterStages: false}
+    - {id: GO1-RUNTIME-PAUSE, scope: review-current-runtime-binding, state: NOT-ENTERED, runtimeBindingDigestRequired: true, grantsLaterStages: false}
+    - {id: M0B-R-TA, scope: exact-eight-object-target-access-set, state: NOT-GRANTED, runtimeBindingDigestRequired: true, grantsLaterStages: false}
+    - {id: M0B-R-TR, scope: one-tokenrequest-plus-exclusive-consumption-receipt, state: NOT-GRANTED, runtimeBindingDigestRequired: true, grantsLaterStages: false}
+    - {id: M0B-R-RM, scope: exact-appproject-plus-project-scoped-registration-secret, state: NOT-GRANTED, runtimeBindingDigestRequired: true, grantsLaterStages: false}
+    - {id: GO1-P, scope: exact-three-application-submission, state: NOT-GRANTED, runtimeBindingDigestRequired: true, grantsLaterStages: false}
+  blockers:
+    - {id: FRESH-CLEAN-BASELINE, class: preflight, status: BLOCKED, closure: Re-run the exact absence inventory immediately before the test window.}
+    - {id: OPERATION-CREDENTIAL-RECEIPTS, class: credential, status: BLOCKED, closure: Bind distinct current receipts for the four static operations plus materializer source and destination.}
+    - {id: GO1-L-GRANTS, class: authorization, status: BLOCKED, closure: Create five fresh single-run grants bound to this protocol digest and one test window.}
+    - {id: OBSERVERS-AUTHORITIES, class: operational, status: BLOCKED, closure: Bind test operator GO abort recovery evidence review and independent observers.}
+    - {id: EVIDENCE-DESTINATION, class: operational, status: BLOCKED, closure: Bind allowed local raw paths and the accepted redacted DEV publication boundary.}
+    - {id: RECOVERY-ACCESS, class: operational, status: BLOCKED, closure: Reverify out-of-band access and the accepted DEV rebuild-on-loss boundary.}
+    - {id: RUNTIME-BINDING, class: runtime, status: BLOCKED-BY-DESIGN, closure: Complete and review runtime identity only after lifecycle and NetworkReady.}
+    - {id: TARGET-ACCESS-AND-REGISTRATION, class: runtime-authorization, status: BLOCKED-BY-RUNTIME, closure: Bind target access token and registration grants to the completed runtime binding.}
+    - {id: PLATFORM-GRANT, class: runtime-authorization, status: BLOCKED-BY-RUNTIME, closure: Bind exact three-Application submission to P and completed runtime identity.}
+    - {id: TARGET-AND-PLATFORM-CAPABILITIES, class: runtime, status: BLOCKED-BY-RUNTIME, closure: Prove local-path required Secrets retention and real alert delivery before PlatformReady.}
+  phases:
+    - {id: G0, name: preflight-baseline-credentials-and-grants, mutating: false, gate: GO1-L, enabled: false}
+    - {id: G1, name: execute-five-step-lifecycle-sequence-through-capi, mutating: true, gate: GO1-L, enabled: false}
+    - {id: G2, name: observe-lifecycle-convergence, mutating: false, gate: GO1-L, enabled: false}
+    - {id: G3, name: submit-current-hcp, mutating: true, gate: GO1-L, enabled: false}
+    - {id: G4, name: observe-enablement-and-networkready, mutating: false, gate: GO1-L, enabled: false}
+    - {id: G5, name: capture-and-review-runtime-binding, mutating: false, gate: GO1-RUNTIME-PAUSE, enabled: false}
+    - {id: G6, name: create-exact-target-access-set, mutating: true, gate: M0B-R-TA, enabled: false}
+    - {id: G7, name: issue-token-and-create-registration, mutating: true, gate: M0B-R-TR-plus-M0B-R-RM, enabled: false}
+    - {id: G8, name: verify-registration-and-runtime-correlation, mutating: false, gate: GO1-RUNTIME-PAUSE, enabled: false}
+    - {id: G9, name: submit-exact-three-applications, mutating: true, gate: GO1-P, enabled: false}
+    - {id: G10, name: observe-platform-convergence-and-capabilities, mutating: false, gate: GO1-P, enabled: false}
+    - {id: G11, name: aggregate-verify-evidence-and-close, mutating: false, gate: GO1-P, enabled: false}
+  recovery:
+    preExistingPlanes: Rebuild-on-loss is accepted for DEV; out-of-band access must be freshly verified before GO1-L.
+    disposableCluster: Preserve state on STOP because GO-1 v6 does not authorize deletion or finalizer changes.
+    partialLifecycle: Preserve every accepted object and dynamic Secret; cleanup requires a separate protocol and grant.
+    partialRegistration: Preserve target access AppProject registration and receipt evidence; cleanup requires a separate protocol and grant.
+    executorFailure: Accepted desired-state transitions remain authoritative and controller reconciliation may continue.
+  acceptance:
+    successRequires:
+      - exactly one GO1-L run performs the reviewed five-step sequence with twelve lifecycle objects and one HCP
+      - the dynamic provider Secret exists only under its exact identity and no credential bytes enter retained evidence
+      - current CAPI CAPK CAAPH Cilium and workload evidence converges to R and E
+      - one completed current runtime binding is reviewed before any M0b-R mutation
+      - exact target access TokenRequest registration and three Applications run once under separate current gates
+      - Argo converges exact P and independent Platform capabilities pass
+      - bounded aggregation returns Ready=True from current correlated sources
+      - the redacted evidence bundle verifies and contains no secret material
+    processExitIsLifecycleSuccess: false
+    historicalSuccessIsCurrentProof: false
+    automaticPauseReleaseAllowed: false
+    allPreRuntimeBlockersMustCloseBeforeGO1L: true
+    allRuntimeBlockersMustCloseBeforePauseRelease: true

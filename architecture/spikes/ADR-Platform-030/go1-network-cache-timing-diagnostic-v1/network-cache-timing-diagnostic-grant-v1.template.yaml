@@ -1,0 +1,32 @@
+apiVersion: authorization.openkubes.io/v1alpha1
+kind: GO1NetworkCacheTimingDiagnosticGrant
+metadata:
+  name: FILL
+spec:
+  decision: NO-GO
+  authority: github:arashkaffamanesh
+  candidateDigest: FILL
+  grantID: FILL
+  singleRun: true
+  consumed: false
+  issuedAt: FILL
+  expiresAt: FILL
+  failedEvidencePath: /private/tmp/ok141-go1-l-network-ready-observer-status-v1-evidence.json
+  failedEvidenceDigest: FILL
+  podName: FILL
+  podUID: FILL
+  workloadTargetIdentityDigest: FILL
+  clusterContactGranted: false
+  managementCredentialUseGranted: false
+  exactSecretReadGranted: false
+  ephemeralCredentialMaterializationGranted: false
+  workloadCredentialUseGranted: false
+  exactPodReadGranted: false
+  fixedProbeExecGranted: false
+  persistentMutationGranted: false
+  happyRunResumeGranted: false
+  retryGranted: false
+  rollbackOrCleanupGranted: false
+  evidencePublicationGranted: false
+  failureInjectionGranted: false
+

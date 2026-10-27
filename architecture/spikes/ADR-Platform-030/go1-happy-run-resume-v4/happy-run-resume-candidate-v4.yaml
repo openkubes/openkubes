@@ -1,0 +1,59 @@
+apiVersion: execution.openkubes.io/v1alpha1
+kind: GO1HappyRunResumeCandidateV4
+metadata:
+  name: ok141-go1-happy-run-resume-v4
+  ticket: OK-141
+  baseCommit: 841282461e4f83951ff6394694746061dc868008
+spec:
+  version: ok141-go1-happy-run-resume/v4
+  state: OFFLINE-PROVEN-BLOCKED-NO-GO
+  supersedes:
+    path: ../go1-happy-run-resume-v3/happy-run-resume-candidate-v3.yaml
+    digest: sha256:096a43c7636dcdbfc86f50f6ac22cd51303b4b7dc731d143b1503897a6807b0d
+    historicalCandidatePreserved: true
+    priorUnconsumedGrantReusable: false
+  validatorAmendment:
+    historicalRule: G3-EVIDENCE-MUST-BE-ABSENT
+    historicalPurpose: prevent accidental G3 resubmission from an after-G1 resume
+    resumeRule: EXACT-BOUND-G3-EVIDENCE-MUST-BE-PRESENT
+    resumePurpose: permit only the reviewed post-G3 boundary
+    g3ReexecutionAllowed: false
+    lifecycleReexecutionAllowed: false
+    clusterContactRequiredForValidation: false
+  tool:
+    path: bounded_happy_run_resume_v4.py
+    digest: sha256:9af849bd30bea0d8defdaa4ab1d119802cf0deda685f5936e6c5d160a4e21c86
+    arbitraryEvidencePathAllowed: false
+    arbitraryResumePointAllowed: false
+    retryAllowed: false
+    rollbackOrCleanupAllowed: false
+  authorization:
+    decision: NO-GO
+    resumeAfterG3Granted: false
+    lifecycleEvidenceReuseGranted: false
+    g3EvidenceReuseGranted: false
+    networkObserverGranted: false
+    runtimeBindingGranted: false
+    targetAccessGranted: false
+    tokenRequestGranted: false
+    registrationGranted: false
+    credentialSecretGranted: false
+    applicationSubmissionGranted: false
+    platformObserverGranted: false
+    capabilityTestGranted: false
+    capabilityTestCleanupGranted: false
+    credentialUseGranted: false
+    go1LGranted: false
+    go1Granted: false
+    preflightGranted: false
+    g1Granted: false
+    remediationGranted: false
+    lifecycleReexecutionGranted: false
+    g3Granted: false
+    retryGranted: false
+    rollbackGranted: false
+    broadCleanupGranted: false
+    evidencePublicationGranted: false
+    failureInjectionGranted: false
+    outageGranted: false
+    grantIDs: []

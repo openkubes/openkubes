@@ -1,0 +1,32 @@
+apiVersion: authorization.openkubes.io/v1alpha1
+kind: GO1RuntimeBindingResumeGrant
+metadata:
+  name: FILL
+spec:
+  decision: NO-GO
+  authority: github:arashkaffamanesh
+  candidateDigest: FILL
+  grantID: FILL
+  singleRun: true
+  consumed: false
+  issuedAt: FILL
+  expiresAt: FILL
+  lifecycleEvidenceDigest: FILL
+  networkReadyEvidenceDigest: FILL
+  storageEvidenceDigest: FILL
+  clusterContactGranted: false
+  credentialUseGranted: false
+  secretReadGranted: false
+  ephemeralMaterializationGranted: false
+  readOnlyQueriesGranted: false
+  runtimeBindingResumeGranted: false
+  retryOfFailedBindingGranted: false
+  persistentMutationGranted: false
+  targetAccessGranted: false
+  tokenRequestGranted: false
+  registrationGranted: false
+  platformSubmissionGranted: false
+  happyRunResumeGranted: false
+  cleanupGranted: false
+  evidencePublicationGranted: false
+  failureInjectionGranted: false

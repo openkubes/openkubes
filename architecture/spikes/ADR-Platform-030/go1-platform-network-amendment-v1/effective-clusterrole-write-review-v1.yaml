@@ -1,0 +1,23 @@
+apiVersion: diagnostic.openkubes.io/v1alpha1
+kind: BoundedEffectiveRBACReview
+metadata:
+  name: ok141-effective-clusterrole-write-review-v1
+spec:
+  authorization:
+    state: GRANTED
+    source: standing-dev-execution-envelope-v1
+    envelopeDigest: sha256:85e997df331d2ced4ea147c32cc4a94a419e9efdba6de17d8a8ef3cb1dbeac93
+  predecessor:
+    path: /private/tmp/ok141-effective-rbac-review-v1-evidence.json
+    digest: sha256:2d206a91b9970bf1e997051181e6884f982c2a7f1cec8442be88fcc42200f3b9
+  registrationSecretURI: /api/v1/namespaces/argocd/secrets/disposable-ok141-cluster
+  exactResourceNames:
+    - disposable-ok141-observability-core-kube-state-metrics
+    - ok-observability-grafana-clusterrole
+    - ok-observability-log-collector
+    - ok-observability-operator
+    - ok-observability-prometheus
+  exactVerbs: [create, get, patch, update]
+  ephemeralKubeconfigPath: /private/tmp/ok141-effective-clusterrole-write-review-target.yaml
+  outputPath: /private/tmp/ok141-effective-clusterrole-write-review-v1-evidence.json
+  exclusions: [persistent-resource, token-retention, endpoint-retention, raw-response, rbac-change, retry, cleanup, failure-injection]

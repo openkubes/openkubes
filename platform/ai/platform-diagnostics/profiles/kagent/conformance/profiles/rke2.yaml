@@ -1,19 +1,19 @@
 distribution: rke2
-# NOT measured. This profile states what the RKE2 provider is expected to
-# declare once it exists. The static checks below can only prove that the
-# expectation is internally consistent — never that it is correct.
+# Excluded from OK-95 acceptance by decision, not merely unmeasured. Profile A
+# is not deployed on ok-infra and is not planned to be, so there is no route
+# from here to "measured" — the static checks below still prove the
+# expectation is internally consistent, but a live provider will never exist
+# to compare it against.
 provenance:
-  state: assumed
+  state: out-of-scope
   reason: >-
-    Profile A is not installed on ok-infra: namespace, ServiceAccount,
-    ClusterRole, facade and collectors are absent, so there is no provider to
-    audit and no collector response to compare against.
-  missing:
-    - audit the deployed ServiceAccount and its effective authorization
-    - confirm host_journal and node_shell are declared available
-    - request both evidence types from the running provider
-    - verify both return status available with retrievable URIs, in the same
-      response schema used on Talos
+    Profile A is not deployed on ok-infra and is not planned to be. Live RBAC
+    and collector evidence is therefore not obtainable and is not an
+    acceptance criterion for OK-95.
+  decision:
+    date: "2026-08-18"
+    agreed_with: Arash Kaffamanesh
+    reference: OK-95
   record: evidence/OK-95-2026-08-11.md
 provider_capabilities:
   workload_events: true

@@ -3,7 +3,7 @@
 
 image:
   repository: ghcr.io/openkubes/platform-diagnostics-facade
-  tag: "0.1.7"
+  tag: "0.1.8"
   pullPolicy: IfNotPresent
 
 # Pull secrets for a private registry (e.g. a private GHCR package). Empty by
@@ -20,6 +20,13 @@ kagent:
   toolsUrl: "http://platform-diagnostics-tools.platform-diagnostics.svc.cluster.local:8084/mcp"
   # token: injected via Secret if kagent auth is enabled (Makefile handles it).
   token: ""
+
+# Consumer identity required by the normative HTTP contract. The referenced
+# Secret is a provider value and must be created by the environment; never put
+# the real bearer token in this public values file.
+consumerAuth:
+  secretName: platform-diagnostics-mcp-consumer
+  secretKey: token
 
 # Provider capability declaration (ADR-021). Talos defaults; RKE2 overlays flip
 # host_journal/node_shell to true. A capability delta is NEVER a contract delta.

@@ -1,0 +1,75 @@
+apiVersion: execution.openkubes.io/v1alpha1
+kind: GO1PlatformProjectionCandidate
+metadata:
+  name: ok141-go1-platform-projection-v1
+  ticket: OK-141
+  baseCommit: e2eb3d2b3cf17d32792e72447d8ae06f12baf01d
+spec:
+  version: ok141-go1-platform-projection/v1
+  state: OFFLINE-PROVEN-BLOCKED-NO-GO
+  fixture:
+    fixtureDigest: sha256:7536456a762880a78a37dcba76a5f3f0628140bd37b55d5fd62273c64e4cc3eb
+    R: sha256:166504ae61fd558d391daedde50986cbc7a28f5f4e9d57f4acbd0433b448aa0f
+    E: sha256:2a849d69e9c64344e907c1bce3bb1abf3d8f77217377081a5be055d62c213300
+    P: sha256:b0f25c639a45d895b889997f5ecc2325db45dd5d51b0684998c94d5e17bd47bf
+  sources:
+    targetAccess:
+      path: ../m0b-target-registration-v1/target-access-v1.template.yaml
+      digest: sha256:aeb7d1f65a1553bf8b004f0789f705d3c70b330d878bf6032b410491571fe29a
+    appProject:
+      path: ../m0b-target-registration-v1/appproject-v5-candidate.yaml
+      digest: sha256:9e689020d139a5811f6784ca768cf5b7228ff3844aed31ef6196d2c4916b5f72
+    applications:
+      path: ../harness/profiles/platform/minimal-observability-v4/applications.yaml
+      digest: sha256:7738d9501c0b19d26b51111d818251d6308994b51678aa6a9322ef54f7567392
+    profile:
+      path: ../harness/profiles/platform/minimal-observability-v4/profile.json
+      digest: sha256:dc9b45f17f767d03bde5b46ee39d525cbb4a1370df5789d05b38c7c08ff94fed
+  projection:
+    targetAccessObjectCount: 8
+    appProjectObjectCount: 1
+    applicationObjectCount: 3
+    dynamicSecretObjectCount: 2
+    totalPersistentObjectCount: 14
+    applicationNames:
+      - disposable-ok141-observability-core
+      - disposable-ok141-observability-alerting
+      - disposable-ok141-observability-dashboards
+    requiredSecretContract:
+      name: ok-observability-credentials
+      namespace: ok-observability
+      keys: [grafana-admin-user, grafana-admin-password, opensearch-admin-password]
+      valuesAreSemantic: false
+  ownership:
+    targetAccess: bounded executor creates exact RBAC; Argo uses it
+    registration: bounded bridge creates exact project-scoped registration
+    platformConvergence: Argo CD
+    capabilityEvaluation: bounded OpenKubes evaluator
+    lifecycleRepair: [CAPI, CAPK, CAAPH, Argo CD]
+  secretBoundary:
+    generation: cryptographically random runtime-only values
+    localRetention: private runtime process or O_EXCL-0600 file only
+    GitOrEvidence: forbidden
+    stdoutOrStderr: forbidden
+  tool:
+    path: bounded_platform_projection_v1.py
+    digest: sha256:09e3050e57fe7e5677632373ed9b8c84ec64ac8929768ee251872aebba237bd8
+    arbitraryManifestAllowed: false
+    arbitraryTargetAllowed: false
+    secretRenderingAllowed: false
+  authorization:
+    decision: NO-GO
+    credentialGenerationGranted: false
+    targetAccessGranted: false
+    tokenRequestGranted: false
+    registrationGranted: false
+    credentialSecretGranted: false
+    applicationSubmissionGranted: false
+    platformConvergenceGranted: false
+    capabilityTestGranted: false
+    go1LGranted: false
+    go1Granted: false
+    retryGranted: false
+    rollbackOrCleanupGranted: false
+    failureInjectionGranted: false
+    grantIDs: []

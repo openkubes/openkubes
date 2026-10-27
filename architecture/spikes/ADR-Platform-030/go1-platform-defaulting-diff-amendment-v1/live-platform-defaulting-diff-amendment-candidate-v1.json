@@ -1,0 +1,50 @@
+{
+  "apiVersion": "action.openkubes.io/v1alpha1",
+  "kind": "OK141LivePlatformDefaultingDiffAmendmentCandidate",
+  "metadata": {
+    "name": "ok141-live-platform-defaulting-diff-amendment-v1"
+  },
+  "spec": {
+    "state": "LIVE-AUTHORIZED-ONCE",
+    "standingGrantAcknowledged": true,
+    "authorizationBasis": [
+      "continuing OK-141 DEV execution grant",
+      "user instruction: weiter"
+    ],
+    "failurePolicy": "STOP-PRESERVE-NO-RETRY",
+    "amendmentPath": "go1-platform-defaulting-diff-amendment-v1/platform-defaulting-diff-amendment-v1.json",
+    "amendmentDigest": "sha256:42d9b80f04fa7cb56596bc470097b6e8edcedec69010c0836be07638c758830e",
+    "verifierPath": "go1-platform-defaulting-diff-amendment-v1/verify_platform_defaulting_diff_amendment_v1.py",
+    "toolPath": "bounded_live_platform_defaulting_diff_amendment_v1.py",
+    "toolDigest": "sha256:f4fc8c44852d7b374557084cccc9e1ef7f6dca73a38a1c0632491fb69472e64d",
+    "clientPath": "/private/tmp/ok141-kubectl-v1.34.1-darwin-amd64",
+    "clientDigest": "sha256:bb211f2b31f2b3bc60562b44cc1e3b712a16a98e9072968ba255beb04cefcfdf",
+    "managementKubeconfigPath": "/Users/arash/.kube/ok-mgmt.yaml",
+    "sharedKubeconfigPath": "/Users/arash/.kube/ok-shared.yaml",
+    "outputPath": "/private/tmp/ok141-live-platform-defaulting-diff-amendment-v1-evidence.json",
+    "identities": {
+      "FixtureDigest": "sha256:3ad6f2dbe82da2abc15e8dc44bbf2aabf5afcfd8cb54b54b2d2807fd815b7eba",
+      "P": "sha256:311a581894905faa1eb57f93f0d236a84a4a016e82c64c5f51ee7d6c1e29c952",
+      "R": "sha256:81a57ef118e339a08e80608c64da7dd6eaed7d67dcdbcfa74a34636ab16dd35f"
+    },
+    "operation": {
+      "replaceCount": 13,
+      "optimisticConcurrency": "UID and resourceVersion checked for every replace",
+      "ordering": "eight lifecycle objects, HCP, registration, two non-Core Applications, Core Application last",
+      "exactCoreDelta": "install the single v8 OpenSearch API-defaulting ignoreDifferences rule",
+      "automaticArgoReconciliationMayRun": true,
+      "explicitArgoSyncSubmitted": false
+    },
+    "exclusions": [
+      "manual Argo sync",
+      "retry",
+      "rollback",
+      "general cleanup",
+      "delete",
+      "failure injection",
+      "raw Secret retention",
+      "raw kubeconfig retention",
+      "raw API object publication"
+    ]
+  }
+}

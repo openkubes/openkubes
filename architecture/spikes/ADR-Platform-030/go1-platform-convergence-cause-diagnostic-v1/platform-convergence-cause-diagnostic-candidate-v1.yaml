@@ -1,0 +1,48 @@
+apiVersion: diagnostic.openkubes.io/v1alpha1
+kind: GO1PlatformConvergenceCauseDiagnosticCandidate
+metadata:
+  name: ok141-platform-convergence-cause-diagnostic-v1
+  ticket: OK-141
+  baseCommit: abacad3
+spec:
+  version: ok141-go1-platform-convergence-cause-diagnostic/v1
+  state: OFFLINE-PROVEN-BLOCKED-NO-GO
+  predecessor:
+    candidate:
+      path: ../go1-platform-convergence-diagnostic-v1/platform-convergence-diagnostic-candidate-v1.yaml
+      digest: sha256:aa88dd7de0a79bbde2985c5420502858121920ad0a76b491bc4be4ed51b150fe
+    privateEvidencePath: /private/tmp/ok141-platform-convergence-diagnostic-v1-evidence.json
+    privateEvidenceDigest: sha256:4bcaf5c1fcb8ae7f9b1f485f8374da1615371e058f0aa1bbb516a8861739b434
+    privateEvidenceSemanticDigest: sha256:c0280c7bbaf6d7ac457210429d4d889301349ea36e6f457ea6cc74622e18944d
+    result: {readyCount: 0, allReady: false, queryCount: 3}
+  classification:
+    indicators:
+      - TARGET-CONNECTION
+      - TLS
+      - AUTHORIZATION
+      - REPOSITORY
+      - MANIFEST-GENERATION
+      - CACHE
+      - RPC
+      - OTHER
+    rawMessagesRetained: false
+  outputPath: /private/tmp/ok141-platform-convergence-cause-diagnostic-v1-evidence.json
+  tool:
+    path: bounded_platform_convergence_cause_diagnostic_v1.py
+    digest: sha256:9d87117dd5391099427c97b30b1e154090e710260a770e78fcf98c991d84729e
+  authorization:
+    decision: NO-GO
+    clusterContactGranted: false
+    credentialUseGranted: false
+    exactApplicationReadsGranted: false
+    causeClassificationGranted: false
+    secretReadGranted: false
+    podOrLogReadGranted: false
+    targetClusterAccessGranted: false
+    mutationGranted: false
+    retryGranted: false
+    rollbackOrCleanupGranted: false
+    happyRunResumeGranted: false
+    evidencePublicationGranted: false
+    failureInjectionGranted: false
+    grantIDs: []

@@ -1,0 +1,63 @@
+apiVersion: execution.openkubes.io/v1alpha1
+kind: GO1LHCPAmendment
+metadata:
+  name: ok141-hcp-phase-r-v5-v1
+  ticket: OK-141
+  baseCommit: 5011efd13a4f52a43e44d0bc3f427817b7e7d1f6
+spec:
+  version: ok141-go1-l-hcp-amendment/v1
+  state: OFFLINE-PROVEN-BLOCKED-NO-GO
+  fixture:
+    path: ../harness/fixtures/execution/phase-r-v5.json
+    fileDigest: sha256:e1a159ffcf32191dfba9d7455c67a38557f62ede37902b722e302ad298386068
+    fixtureDigest: sha256:7536456a762880a78a37dcba76a5f3f0628140bd37b55d5fd62273c64e4cc3eb
+    R: sha256:166504ae61fd558d391daedde50986cbc7a28f5f4e9d57f4acbd0433b448aa0f
+    E: sha256:2a849d69e9c64344e907c1bce3bb1abf3d8f77217377081a5be055d62c213300
+  historicalHCP:
+    path: ../m0a-v2/helmchartproxy-v4-candidate.yaml
+    rawDigest: sha256:7fd0a0831ddccac1b2ca4beb3f5ca968e48ba446de104876897180a768e257fb
+    semanticDigest: sha256:d3e996f323c3f5565a9297ca045b15756b9c941ef9a63fe3905f0e7eda195c91
+    R: sha256:636fe23404ac53109f44d6346534dcf1367ae91c572d5e18bd32cd0a3128a16e
+    fixtureDigest: sha256:a2ae3437645db5a83426b89d36d00693d2600e4ef20dc1aba2650dcda7f936f6
+    retainedAsHistoricalEvidence: true
+    allowedForFutureSubmission: false
+  currentHCP:
+    path: helmchartproxy-phase-r-v5-candidate.yaml
+    rawDigest: sha256:d2d93b5868bd9cba7b288ac117c5ceb08605b729c1e2eeae86ee001ed52887f0
+    semanticDigest: sha256:cd1a21b0b611a3a928e6e7d63d7eb2c4b4657570152ac3c6ae6061a48d4b788e
+    objectIdentity: addons.cluster.x-k8s.io/v1alpha1|HelmChartProxy|disposable-ok141|disposable-ok141-cilium
+    R: sha256:166504ae61fd558d391daedde50986cbc7a28f5f4e9d57f4acbd0433b448aa0f
+    E: sha256:2a849d69e9c64344e907c1bce3bb1abf3d8f77217377081a5be055d62c213300
+    fixtureDigest: sha256:7536456a762880a78a37dcba76a5f3f0628140bd37b55d5fd62273c64e4cc3eb
+    desiredHelmSemanticsEqualHistorical: true
+    submissionEnabled: false
+  submitterCheckpoint:
+    path: ../go1-l-submitter-v2/go1-l-submitter-candidate-v2.yaml
+    digest: sha256:9f92172f5c383ae63168cf2b70bf543aa8afc994f6277f41a49a31a2f26d5f7a
+    state: OFFLINE-PROVEN-BLOCKED-NO-GO
+    historicalHCPOperationRuntimeEligible: false
+    additiveSubmitterBindingRequired: true
+  invariants:
+    - Only the intent-revision and execution-fixture carriers change relative to the historical HCP.
+    - Desired Helm release semantics and E remain exactly unchanged.
+    - The historical HCP remains reproducible and is never reinterpreted as current.
+    - The current HCP candidate is inert until a new submitter binding protocol grant and absence preflight exist.
+    - Metadata candidate-status is evidence only and is not an authorization control.
+  blockers:
+    - additive submitter binding to the current HCP candidate
+    - provider-access Secret materializer and receipt
+    - additive recreation protocol and fresh operation grants
+    - current lifecycle evidence before HCP submission
+  authorization:
+    credentialUseGranted: false
+    providerSecretMaterializationGranted: false
+    providerPrerequisitesGranted: false
+    managementNamespaceGranted: false
+    lifecycleGranted: false
+    hcpSubmissionGranted: false
+    recreationGranted: false
+    retryGranted: false
+    rollbackOrCleanupGranted: false
+    go1LGranted: false
+    go1Granted: false
+    failureInjectionGranted: false

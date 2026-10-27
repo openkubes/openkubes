@@ -1,0 +1,71 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: GO1V6PreflightClosure
+metadata:
+  name: ok141-go1-v6-preflight-v2-20260814
+  ticket: OK-141
+spec:
+  version: ok141-go1-v6-preflight-closure/v2-redacted
+  state: COMPLETE-LOCALLY-PUBLICATION-NOT-GRANTED
+  protocolDigest: sha256:e45e5f6b8254e666226aa874810bf2ca51f76f2411e0316adb52a7ce51254885
+  transportCorrection:
+    sourceV1CandidateDigest: sha256:5b1eb87734b16e84fdd395368b4bf8cc0aa498ff9620241b2b36f6fc9530721f
+    v2CandidateDigest: sha256:ef4b09a8835f187605a0120bdd19616d6d078b9ed19a3796a47b9cbbfc7a4fb2
+    correction: PATH kubectl replaced by exact verified kubectl v1.34.1.
+    queryAndAcceptanceContractChanged: false
+    v1AllowedForFutureExecution: false
+  client:
+    path: /private/tmp/ok141-kubectl-v1.34.1-darwin-amd64
+    digest: sha256:bb211f2b31f2b3bc60562b44cc1e3b712a16a98e9072968ba255beb04cefcfdf
+    version: v1.34.1
+    platform: darwin/amd64
+    mode: "0700"
+  credentialIdentity:
+    candidateDigest: sha256:f38c98c2ec904bed68ef6ecbf40eb581115137b0254524b8f22037b0603339b3
+    firstGrantID: ok141-go1-v6-c0-20260814-01
+    firstGrantDigest: sha256:a0f635c1c3989e53ceb4d268a140e6668c10d990830c252b23a9a2f862035a1d
+    firstResult: STOP-CREDENTIAL-MODE-NOT-0600
+    firstEvidenceWritten: false
+    remediationCandidateDigest: sha256:a1387f934bc500125b1c8211d422b6d4ef31ca39fc17a89fc0b3cc5efa213e4d
+    remediationReceiptDigest: sha256:e000ca216d71a63c9a43d5009ff741ee14c1a4b9204373bee8b21779da1ec204
+    retryGrantID: ok141-go1-v6-c0-retry-20260814-01
+    retryGrantDigest: sha256:ecb0770c49bdde0c37dde26bb950e278b039d5cccd9d04ce582e265f5d616a9f
+    retryResult: PASS-LOCAL-IDENTITIES-REDACTED
+    identityClosureDigest: sha256:26c840ac3e1c5eb879f107801740edb0db73a717fea9c00123ad1e36b3fdc008
+    planesResolved: [ok-infra, ok-mgmt, ok-shared]
+    clusterContacted: false
+  preflight:
+    grantCandidateDigest: sha256:14481dbc8f5cb37cf93bdeec4dcce209a20e003e14193cc80907cbc63bebae81
+    grantID: ok141-go1-v6-pf-v2-20260814-01
+    grantDigest: sha256:b479df87a825447221a78b3a93fd94965140b1a01c7e6c6afc0688a47f6ba67f
+    rawLocalEvidence:
+      path: /private/tmp/ok141-go1-v6-preflight-v2-evidence.json
+      digest: sha256:73ab7733eb2cd3f4370a8da8e8d978157d1fad4b7f1811ba6da907d6857230bb
+      publishable: false
+    observedAt: "2026-08-14T10:56:16.819239Z"
+    freshUntil: "2026-08-14T11:01:16.819239Z"
+    result: PASS-FRESH-BASELINE-AND-PREREQUISITES
+    physicalQueries: 17
+    logicalAbsenceClaims: 13
+    absenceQueriesPassed: 4
+    caaphReadinessPassed: 6
+    argoReadinessPassed: 7
+    secretBodiesRetained: false
+    mutationPerformed: false
+  conclusions:
+    credentialIdentityComplete: true
+    transportCorrectionComplete: true
+    preflightMechanismExecutionProven: true
+    historicalPreflightExpiredByDesign: true
+    freshPreflightRequiredImmediatelyBeforeGO1L: true
+    publicationGranted: false
+    go1LGranted: false
+    go1Granted: false
+    failureInjectionGranted: false
+  redaction:
+    rawEvidenceIncluded: false
+    tokensIncluded: false
+    kubeconfigsIncluded: false
+    privateKeysIncluded: false
+    certificatePayloadsIncluded: false
+    secretBodiesIncluded: false
+    UIDsOrResourceVersionsIncluded: false

@@ -1,0 +1,17 @@
+apiVersion: publication.openkubes.io/v1alpha1
+kind: GO1PlatformRBACRemediationPublicationCandidate
+metadata: {name: ok141-platform-rbac-remediation-publication-v1, ticket: OK-141}
+spec:
+  decision: BLOCKED-NO-PUBLICATION
+  scope:
+    directory: architecture/spikes/ADR-Platform-030/go1-platform-rbac-remediation-v1
+    files:
+      README.md: sha256:e78555ac68921d6444ec22883e9e89697bd1644f5bbe6c3a705a64653da3d1f5
+      authorization-closure.json: sha256:a4594faa45538cdc4b03fa3ca000c60ef0afacd87fb972cd9aa2ee1f2abe7189
+      platform-rbac-remediation-candidate-v1.yaml: sha256:0500c85f68c34326b932ca3a942480dc6602f619874f7bd435773ae1fad82d20
+      platform-rbac-remediation-grant-v1.template.yaml: sha256:cd7cd82ee2f339425f954c0c40d9e7b4f34b45a038410bd3271d6ebad7b65e3f
+      bounded_platform_rbac_remediation_v1.py: sha256:9c887c8c2e6ed25f36ea3cfb6658dffbc8379fea77d9468d997e5bde2de210ad
+      test_platform_rbac_remediation_v1.py: sha256:5ff6b7742317fa902e1671829e44a0fb3bc6b702abac12363696814f1c7c80b3
+  validation: {testsPassed: 4, candidateDigest: sha256:0500c85f68c34326b932ca3a942480dc6602f619874f7bd435773ae1fad82d20}
+  permitsAfterSeparateGrant: [commit, push, draft-pr, review, merge]
+  excludes: [private Evidence under /private/tmp, runtime execution, target credentials and raw objects, platform observation, retry, rollback, cleanup and failure injection]

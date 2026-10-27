@@ -1,0 +1,14 @@
+dependency,objective,required,placement,provider,failureDomain,reachableWhenSharedDown,recoverableIndependently,evidenceRef
+kubelet-container-runtime,runtime,yes,embedded,unresolved,OKP-Single,yes,na,pending:ok-shared-isolation-drill
+cni-data-plane,runtime,yes,embedded,unresolved,OKP-Single,yes,na,pending:ok-shared-isolation-drill
+storage-csi-data-plane-mounted,runtime,yes,embedded,unresolved,OKP-Single,yes,na,pending:ok-shared-isolation-drill(runtime-probe)
+cluster-dns,runtime,yes,embedded,unresolved,OKP-Single,yes,na,pending:ok-shared-isolation-drill(runtime-probe)
+ingress-data-plane-existing-routes,runtime,yes,embedded,unresolved,OKP-Single,yes,na,pending:ok-shared-isolation-drill(runtime-probe)
+serviceloadbalancer-data-plane-provisioned,runtime,yes,embedded,unresolved,OKP-Single,yes,na,pending:ok-shared-isolation-drill(runtime-probe)
+controlplaneendpoint-kube-api,runtime,no,embedded,unresolved,OKP-Single,yes,na,note:running-pods-survive-api-outage
+container-images-already-pulled,runtime,no,embedded,unresolved,OKP-Single,yes,na,note:already-on-node
+secrets-already-injected,runtime,no,embedded,unresolved,OKP-Single,yes,na,note:already-in-pod
+certificates-already-issued,runtime,no,embedded,unresolved,OKP-Single,yes,na,note:no-renewal-within-runtime
+identity,runtime,no,shared,unresolved,ok-shared,no,no,note:not-required-for-runtime-so-shared-is-tolerated
+gitops,runtime,no,embedded,unresolved,OKP-Single,yes,na,note:no-reconcile-within-runtime
+observability,runtime,no,embedded,unresolved,OKP-Single,yes,na,note:not-required-for-runtime

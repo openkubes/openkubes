@@ -4,9 +4,9 @@
 # the Phase-1 provider identity has NO verbs beyond get/list/watch, and
 # NEVER secrets, in any apiGroup, under any skill.
 #
-# Reuses the proven ruleset from platform/ai/openclaw/charts/openclaw/templates/
-# rbac.yaml, extended with the read-only groups the Cilium / observability
-# specialists need. If a specialist appears to need more: STOP — guideline Part C.
+# This provider role includes the read-only groups the Cilium / observability
+# specialists need. Consumers such as OpenClaw receive no Kubernetes credential
+# or RBAC. If a specialist appears to need more: STOP — guideline Part C.
 #
 # The agent/tool-executor pods MUST run as this ServiceAccount so their kubectl
 # path carries exactly these permissions. Wire it via the kagent Helm values

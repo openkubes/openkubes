@@ -1,0 +1,47 @@
+apiVersion: execution.openkubes.io/v1alpha1
+kind: GO1RuntimeBindingResumeCandidate
+metadata:
+  name: ok141-runtime-binding-resume-v1
+  ticket: OK-141
+  baseCommit: 1b8b2da
+spec:
+  version: ok141-runtime-binding-resume/v1
+  state: OFFLINE-PROVEN-BLOCKED-NO-GO
+  predecessor:
+    runtimeBindingCandidatePath: ../go1-runtime-binding-v2/runtime-binding-candidate-v2.yaml
+    runtimeBindingCandidateDigest: sha256:100ce0ed046e3b42399b9164a24ead29aa9feefeac71ff21ed965d4ec01f073d
+    diagnosticCandidatePath: ../go1-runtime-binding-diagnostic-v1/runtime-binding-diagnostic-candidate-v1.yaml
+    diagnosticCandidateDigest: sha256:97ca8678f47fe27f3f770c2ada6c9feb33450fb5f54cd9b78492e0f47bedbb16
+    storageCandidatePath: ../go1-local-path-prerequisite-v1/local-path-prerequisite-candidate-v1.yaml
+    storageCandidateDigest: sha256:7cd48996ca3ab78aec346eb123e11dac76505e37976ceb225c330cde077257d5
+  privateEvidence:
+    lifecyclePath: /private/tmp/ok141-go1-l-lifecycle-api-observer-v1-evidence.json
+    networkReadyPath: /private/tmp/ok141-go1-l-network-ready-observer-cache-freshness-v1-evidence.json
+    storagePath: /private/tmp/ok141-local-path-prerequisite-v1-evidence.json
+    digestsBoundByGrant: true
+  output:
+    path: /private/tmp/ok141-go1-runtime-binding-v2.json
+    containsSensitiveRuntimeMetadata: true
+    publicationForbiddenWithoutSeparateRedactionGrant: true
+  tool:
+    path: bounded_runtime_binding_resume_v1.py
+    digest: sha256:9165e9e4d90581796dfa6d25b4c2b85ea39c15fc988fcaee727bdc3020685e37
+  authorization:
+    decision: NO-GO
+    clusterContactGranted: false
+    credentialUseGranted: false
+    secretReadGranted: false
+    ephemeralMaterializationGranted: false
+    readOnlyQueriesGranted: false
+    runtimeBindingResumeGranted: false
+    retryOfFailedBindingGranted: false
+    persistentMutationGranted: false
+    targetAccessGranted: false
+    tokenRequestGranted: false
+    registrationGranted: false
+    platformSubmissionGranted: false
+    happyRunResumeGranted: false
+    cleanupGranted: false
+    evidencePublicationGranted: false
+    failureInjectionGranted: false
+    grantIDs: []

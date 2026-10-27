@@ -1,0 +1,89 @@
+{
+  "apiVersion": "evidence.openkubes.io/v1alpha1",
+  "kind": "OK141PlatformSSAMigrationRuntimeClosure",
+  "metadata": {
+    "name": "ok141-platform-ssa-migration-runtime-closure-v1"
+  },
+  "spec": {
+    "identities": {
+      "intentRevision": "sha256:32c2abeb6f08a6853006f31b764900b65faa9f36db2482b062aa5b3709764d13",
+      "platformRevision": "sha256:86db1e51e2d4ecbe2cf32d27e7e0f76a6a29a17f6bab201289fff6eee5299925",
+      "fixtureDigest": "sha256:ad13f4e233a25fe4aa252bd0013f3257c8003f78955a133501a117997462feed",
+      "sourceRevision": "b5f7be6a7ddab798f31f32197fcbb9e86a9798b6"
+    },
+    "registrationTokenRefresh": {
+      "candidateDigest": "sha256:89d85aed0c925061e9df197e3b84a54fff0c4dc75e03a09312798739f9eed71c",
+      "privateEvidenceDigest": "sha256:87ce64a4860d99aea415dcdfc2e7be743e3c9d33f7021b1537fde0cd331377ec",
+      "targetProbeSucceeded": true,
+      "credentialPayloadRetained": false
+    },
+    "migrationAmendment": {
+      "candidateDigest": "sha256:154f99e8b6be5a20123941902f65242c3048c9ba59c8018d2e4edf960b7864cc",
+      "privateEvidenceDigest": "sha256:64600860b52fcc29e1bfdf98525d4c9e025522b89c4ee506f682042318a514ac",
+      "state": "PASS-AMENDED-AWAITING-CORE-SYNC",
+      "updatedObjectCount": 13,
+      "coreSyncOptions": [
+        "CreateNamespace=true",
+        "PrunePropagationPolicy=foreground",
+        "PruneLast=true",
+        "ServerSideApply=true",
+        "ClientSideApplyMigration=false"
+      ]
+    },
+    "coreSync": {
+      "candidateDigest": "sha256:52de127c2e370eacd958775a9eec0c8da54e2ee761035e94b0fbe2befede6d72",
+      "startedAt": "2026-08-15T19:28:41Z",
+      "finishedAt": "2026-08-15T19:46:28Z",
+      "operationPhase": "Failed",
+      "applicationSync": "OutOfSync",
+      "applicationHealthAfterOperatorRefresh": "Healthy",
+      "successfulResourceCount": 94,
+      "failedResourceCount": 5,
+      "failureClasses": [
+        "four CRDs were initially not established",
+        "Prometheus StatefulSet was initially absent"
+      ],
+      "additionalSyncSubmitted": false
+    },
+    "operatorAPIRefresh": {
+      "candidateDigest": "sha256:b62bb500f53c1c2883b11c44391582bdfc5e346601fe292e4ec35865b6bf24ad",
+      "privateEvidenceDigest": "sha256:554d8d057e87d58a2aebc116c20bcc94e2895d52b0c993f9d7cad5231cad9e2e",
+      "controllerRestartPerformed": true,
+      "replacementReady": true,
+      "prometheusStatusObserved": true,
+      "explicitArgoSyncSubmitted": false,
+      "state": "STOP-PRESERVE-NO-RETRY"
+    },
+    "currentRuntime": {
+      "monitoringCRDsEstablished": 4,
+      "operatorReady": true,
+      "currentOperatorAuthorizationErrorCount": 0,
+      "prometheusConditions": [
+        "Available",
+        "Reconciled"
+      ],
+      "prometheusReplicas": 1,
+      "prometheusAvailableReplicas": 1,
+      "prometheusStatefulSetReadyReplicas": 1,
+      "prometheusStatefulSetAvailableReplicas": 1
+    },
+    "remainingDiff": {
+      "applicationSync": "OutOfSync",
+      "applicationHealth": "Healthy",
+      "prunableAdmissionHookResourceCount": 5,
+      "outOfSyncResourceCount": 1,
+      "outOfSyncResource": "apps/StatefulSet/ok-observability/ok-observability-opensearch",
+      "immutableDesiredDigest": "sha256:3ba6ed650e442b3a4afb17e039857f6fdab7fd547c2fab31115057f1f50fe0f7",
+      "liveDigest": "sha256:ae0e0253af3269116af0e4b662ad75d61c3247eb3049e18212b20323954f6a6e",
+      "differenceClassification": "API-defaulted live-only fields; no desired semantic value mismatch observed"
+    },
+    "authorizationBoundary": {
+      "retryPerformedAfterFailedCoreOperation": false,
+      "rollbackPerformed": false,
+      "generalCleanupPerformed": false,
+      "failureInjectionPerformed": false,
+      "rawEvidencePublished": false,
+      "state": "STOP-PRESERVE-NO-RETRY"
+    }
+  }
+}

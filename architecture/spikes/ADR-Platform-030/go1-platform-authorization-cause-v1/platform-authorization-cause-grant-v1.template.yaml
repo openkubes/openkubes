@@ -1,0 +1,23 @@
+apiVersion: authorization.openkubes.io/v1alpha1
+kind: GO1PlatformAuthorizationCauseGrant
+metadata: {name: FILL}
+spec:
+  decision: NO-GO
+  authority: github:arashkaffamanesh
+  candidateDigest: FILL
+  grantID: FILL
+  singleRun: true
+  consumed: false
+  issuedAt: FILL
+  expiresAt: FILL
+  sharedClusterContactGranted: false
+  sharedCredentialUseGranted: false
+  exactApplicationReadsGranted: false
+  transientMessageInspectionGranted: false
+  normalizedRBACExtractionGranted: false
+  secretPodLogOrTargetReadGranted: false
+  mutationGranted: false
+  retryGranted: false
+  cleanupGranted: false
+  evidencePublicationGranted: false
+  failureInjectionGranted: false

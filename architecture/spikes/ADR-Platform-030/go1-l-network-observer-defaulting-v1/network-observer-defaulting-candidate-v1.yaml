@@ -1,0 +1,56 @@
+apiVersion: evidence.openkubes.io/v1alpha1
+kind: GO1LNetworkObserverDefaultingAmendmentCandidate
+metadata:
+  name: ok141-go1-l-network-observer-defaulting-v1
+  ticket: OK-141
+  baseCommit: 17d3d074fabecc12c186fec9d901608f6c430767
+spec:
+  version: ok141-go1-l-network-observer-defaulting/v1
+  state: OFFLINE-PROVEN-BLOCKED-NO-GO
+  supersedes:
+    candidatePath: ../go1-l-network-observer-v1/go1-l-network-observer-candidate-v1.yaml
+    candidateDigest: sha256:15b24bd0d7247e0a05d4b1f291221cc52e4f1cefa498b8fe4c5d00b6347f3e04
+    toolPath: ../go1-l-network-observer-v1/bounded_go1_l_network_observer_v1.py
+    toolDigest: sha256:801780456e5f4ec4381ad4fa58b28568bdf6ad655d642b114eb537f27feb28a5
+    historicalEvidencePreserved: true
+  finding:
+    result: FAIL-HCP-SPEC
+    cause: API_DEFAULTING_NOT_NORMALIZED
+    exactDifference:
+      field: spec.options.enableClientCache
+      desiredFieldOmitted: true
+      observedValue: false
+      allOtherComparedFieldsEqual: true
+    rawRuntimeEvidencePath: /private/tmp/ok141-live-hcp-diagnostic-20260814.json
+    rawRuntimeEvidencePublished: false
+  defaultingSource:
+    mechanism: Kubernetes CRD OpenAPI defaulting
+    caaphVersion: v0.6.4
+    manifestPath: ../m0a-installation/caaph-v0.6.4-addon-components.yaml
+    manifestDigest: sha256:a70f4eb77eac626231daca1e2a046b4b069bb84320efa327cc8c56a9c4ca03e6
+  normalization:
+    field: spec.options.enableClientCache
+    default: false
+    appliedToDesiredAndObservedProjection: true
+    unknownFieldsIgnored: false
+    nonDefaultObservedValueFails: true
+    unrelatedDriftFails: true
+  acceptance:
+    omittedDesiredAndObservedFalseAreEquivalent: true
+    omittedDesiredAndObservedTrueAreDifferent: true
+    unexpectedAdditionalFieldFails: true
+    unrelatedSpecDriftFails: true
+  tool:
+    path: network_observer_defaulting_v1.py
+    digest: sha256:cfd2832dd08599c720c48c86830cda61b743945bb24a2c9b220fc21313790dc5
+    clusterContactAllowed: false
+    mutationAllowed: false
+  authorization:
+    decision: NO-GO
+    clusterContactGranted: false
+    networkObserverRetryGranted: false
+    happyRunResumeGranted: false
+    mutationGranted: false
+    evidencePublicationGranted: false
+    failureInjectionGranted: false
+    grantIDs: []

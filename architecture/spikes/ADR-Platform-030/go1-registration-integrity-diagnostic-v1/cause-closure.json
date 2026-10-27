@@ -1,0 +1,21 @@
+{
+  "apiVersion": "evidence.openkubes.io/v1alpha1",
+  "kind": "GO1PlatformConvergenceCauseDiagnosticRedactedClosure",
+  "candidateDigest": "sha256:9302b3edd13a927969f2b92737bdcae8d56dc618e2bc538b7acb7480fcba2bc9",
+  "privateEvidenceDigest": "sha256:f16d740c00d5e04a7d9a527bb6e7c4bda48a5d66ef2f6125f37a1edb9010b987",
+  "privateEvidenceSemanticDigest": "sha256:317c96a7cfc1d0dfeb009c76044e017f53fb68b4a3669394f47f125977df00c9",
+  "result": "PASS-READ-ONLY-CAUSE-DIAGNOSTIC",
+  "queryCount": 3,
+  "commonIndicators": ["CACHE", "TARGET-CONNECTION"],
+  "indicatorCounts": {"CACHE": 9, "TARGET-CONNECTION": 6},
+  "excludedIndicators": ["TLS", "AUTHORIZATION", "REPOSITORY", "MANIFEST-GENERATION", "RPC"],
+  "boundaries": {
+    "rawEvidencePublished": false,
+    "rawMessagesPublished": false,
+    "secretsOrCredentialsPublished": false,
+    "targetClusterContacted": false,
+    "mutationPerformed": false,
+    "retryPerformed": false,
+    "happyRunResumed": false
+  }
+}

@@ -52,7 +52,7 @@ spec:
                 chartVersion:
                   type: string
                   description: "openclaw chart version (OCI: ghcr.io/openkubes/charts/openclaw)"
-                  default: "0.1.0"
+                  default: "0.2.0"
                 tokenSecretName:
                   type: string
                   description: "Name of the Secret on ok-mgmt (namespace openkubes-system, key gateway-token) holding the gateway token. Create via `make token-secret`."
