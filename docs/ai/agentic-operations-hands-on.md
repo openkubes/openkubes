@@ -54,10 +54,6 @@ git switch main
 
 These commands obtain the lab from the maintained branch. Continue with the **[complete tutorial](https://github.com/openkubes/ok-console/blob/main/demos/wjax-2026/TUTORIAL.md)** for dependencies and every setup, approval and verification step. The Reader is included in this clone; no external Reader repository is required.
 
-!!! warning "Tutorial checkout correction"
-
-    The canonical tutorial still names the former tutorial branch in its introduction and checkout step. That branch was deleted after [PR #136](https://github.com/openkubes/ok-console/pull/136) was squash-merged. Use `main`, as shown above, wherever those instructions select the tutorial branch. This upstream documentation correction remains outstanding in `ok-console`.
-
 There is no automatic bootstrap. You explicitly create the kind cluster, namespace and initial Deployment, provision Reader and Executor permissions separately, start Ollama, and then launch the four local services: Console preview, Reader, Diagnostics and Agentic demo. Ollama is an additional prerequisite service. `make wjax-demo` launches the prepared stack; it does not provision the cluster.
 
 ## The architecture you will run
@@ -116,7 +112,3 @@ This lab does not implement production OK-147 lifecycle execution, signed grants
 **[Follow the complete tutorial on main](https://github.com/openkubes/ok-console/blob/main/demos/wjax-2026/TUTORIAL.md)** for commands, expected results, credential expiry and troubleshooting. **[Browse the implementation on main](https://github.com/openkubes/ok-console/tree/main/demos/wjax-2026)** to inspect the policy, separate identities and execution path.
 
 Return to the [OK AI overview](index.md) or explore the [reference architecture](../agentic-operations-reference-architecture.md) after your first verified recovery.
-
-### Diagram provenance
-
-The three SVGs are locally versioned, unmodified copies from **OpenKubes `ok-console`**, at squash-merge commit [`6a721101b0394ab4b2c764baf1513dcf19aa3d9c`](https://github.com/openkubes/ok-console/tree/6a721101b0394ab4b2c764baf1513dcf19aa3d9c/demos/wjax-2026/diagrams). The [upstream diagram sources](https://github.com/openkubes/ok-console/tree/6a721101b0394ab4b2c764baf1513dcf19aa3d9c/demos/wjax-2026/diagrams) include the corresponding Mermaid files. The website serves its own assets and does not depend on a deleted tutorial branch or remote image rendering.
