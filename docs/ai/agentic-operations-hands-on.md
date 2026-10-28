@@ -10,7 +10,7 @@ You will build and inspect the whole path yourself. The interesting moment is no
   <div style="aspect-ratio: 16 / 9; width: 100%; background: #082c66;">
     <img id="wjax-mascot-poster" src="/ai/assets/wjax-2026/ok-mascot-hop.jpg" width="1672" height="942" alt="OpenKubes’ smiling OK robot mascot hopping beside cloud, code and platform icons." style="display: block; width: 100%; height: 100%; object-fit: contain;">
   </div>
-  <figcaption id="wjax-mascot-description">The OpenKubes OK mascot hops beside platform icons. This decorative animation has no audio or lab instructions. Use the visible playback controls to pause or replay; with reduced motion enabled, press Play to start.</figcaption>
+  <figcaption id="wjax-mascot-description" style="position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0;">The OpenKubes OK mascot hops beside platform icons. This decorative animation has no audio or lab instructions. Use the visible playback controls to pause or replay; with reduced motion enabled, press Play to start.</figcaption>
 </figure>
 
 <template id="wjax-mascot-player">
@@ -42,8 +42,6 @@ You will build and inspect the whole path yourself. The interesting moment is no
   }
 })();
 </script>
-
-[Watch or download the mascot animation (MP4)](/ai/assets/wjax-2026/ok-mascot-hop.mp4). If scripting or video playback is unavailable, the static poster above remains a visual fallback.
 
 **[Start the complete hands-on tutorial](https://github.com/openkubes/ok-console/blob/main/demos/wjax-2026/TUTORIAL.md)** · **[Explore the lab implementation](https://github.com/openkubes/ok-console/tree/main/demos/wjax-2026)**
 
