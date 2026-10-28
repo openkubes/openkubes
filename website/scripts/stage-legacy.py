@@ -42,6 +42,15 @@ def main():
         if not source_page.is_file():
             raise SystemExit(f"Missing OK AI page: {source_page}")
         shutil.copy2(source_page, ai_target / filename)
+    # The W-JAX landing page is source-owned under docs/ai, with pinned diagrams.
+    lab_source = SOURCE / "ai" / "agentic-operations-hands-on.md"
+    if not lab_source.is_file():
+        raise SystemExit(f"Missing W-JAX hands-on landing page: {lab_source}")
+    shutil.copy2(lab_source, ai_target / lab_source.name)
+    lab_assets = SOURCE / "ai" / "assets" / "wjax-2026"
+    if not lab_assets.is_dir():
+        raise SystemExit(f"Missing W-JAX diagram assets: {lab_assets}")
+    shutil.copytree(lab_assets, ai_target / "assets" / "wjax-2026", dirs_exist_ok=True)
     # Stage the source-owned OK Observability capability pages.
     observability_source = pages / "observability"
     observability_target = TARGET / "observability"
