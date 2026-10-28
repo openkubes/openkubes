@@ -6,6 +6,45 @@ A Deployment configured with zero desired replicas can be correctly reconciled a
 
 You will build and inspect the whole path yourself. The interesting moment is not when the model says “fixed.” It is when you can show what was approved, what ran and what Kubernetes actually reports.
 
+<figure aria-label="OpenKubes mascot animation" style="margin: 1.5rem 0;">
+  <div style="aspect-ratio: 16 / 9; width: 100%; background: #082c66;">
+    <img id="wjax-mascot-poster" src="/ai/assets/wjax-2026/ok-mascot-hop.jpg" width="1672" height="942" alt="OpenKubes’ smiling OK robot mascot hopping beside cloud, code and platform icons." style="display: block; width: 100%; height: 100%; object-fit: contain;">
+  </div>
+  <figcaption id="wjax-mascot-description">The OpenKubes OK mascot hops beside platform icons. This decorative animation has no audio or lab instructions. Use the visible playback controls to pause or replay; with reduced motion enabled, press Play to start.</figcaption>
+</figure>
+
+<template id="wjax-mascot-player">
+  <video controls muted playsinline loop autoplay preload="none" poster="/ai/assets/wjax-2026/ok-mascot-hop.jpg" width="1672" height="942" aria-label="OpenKubes OK mascot hopping animation" aria-describedby="wjax-mascot-description" style="display: block; width: 100%; height: 100%; object-fit: contain;">
+    <source src="/ai/assets/wjax-2026/ok-mascot-hop.mp4" type="video/mp4">
+    Your browser does not support HTML5 video. <a href="/ai/assets/wjax-2026/ok-mascot-hop.mp4">Watch or download the OpenKubes mascot animation (MP4).</a>
+  </video>
+</template>
+<script>
+(function () {
+  var poster = document.getElementById("wjax-mascot-poster");
+  var template = document.getElementById("wjax-mascot-player");
+  if (!poster || !template || !template.content) return;
+  var motion = window.matchMedia ? window.matchMedia("(prefers-reduced-motion: reduce)") : null;
+  var video = template.content.querySelector("video").cloneNode(true);
+  video.muted = true;
+  // The template is inert: disable autoplay BEFORE inserting a reduced-motion player.
+  if (!motion || motion.matches) video.removeAttribute("autoplay");
+  poster.replaceWith(video);
+  if (motion) {
+    var stopForReducedMotion = function () {
+      if (motion.matches) {
+        video.removeAttribute("autoplay");
+        video.pause();
+      }
+    };
+    if (motion.addEventListener) motion.addEventListener("change", stopForReducedMotion);
+    else if (motion.addListener) motion.addListener(stopForReducedMotion);
+  }
+})();
+</script>
+
+[Watch or download the mascot animation (MP4)](/ai/assets/wjax-2026/ok-mascot-hop.mp4). If scripting or video playback is unavailable, the static poster above remains a visual fallback.
+
 **[Start the complete hands-on tutorial](https://github.com/openkubes/ok-console/blob/main/demos/wjax-2026/TUTORIAL.md)** · **[Explore the lab implementation](https://github.com/openkubes/ok-console/tree/main/demos/wjax-2026)**
 
 !!! info "Local educational demonstration"
