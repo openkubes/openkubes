@@ -1,0 +1,18 @@
+{
+  "registry": "127.0.0.1:30500",
+  "repository": "openkubes/machine/gitops/podinfo-kustomize",
+  "tag": "v1.0.0",
+  "manifest_digest": "sha256:a3e6823b426cfcc83c41d3c4dfbaa0d3ca0cc91057a324d514e0e3192138ec85",
+  "layer_digest": "sha256:df5956349b0b3b183a9f43a659eb8a6c5d928c540c2f7344eec9ffbd12c6e0d6",
+  "layer_size": 1641,
+  "artifact_type": "application/vnd.openkubes.gitops.manifests.v1+tar",
+  "layer_media_type": "application/vnd.oci.image.layer.v1.tar+gzip",
+  "provenance": {
+    "source": "app/podinfo-kustomize",
+    "git_revision": "a7cb66439fde21ebe374a3336f94eb8e252cbb7a",
+    "source_date_epoch": 1793275364,
+    "created": "2026-10-29T12:02:44Z",
+    "dirty": false
+  },
+  "pushed_at": "2026-10-29T12:20:09Z"
+}

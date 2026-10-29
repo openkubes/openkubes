@@ -15,7 +15,16 @@ spec:
 
   sourceRepos:
     # Only this registry, only this prefix. No Git repositories at all.
-    - oci://zot.zot.svc.cluster.local:5000/openkubes/machine/gitops/*
+    #
+    # `**`, not `*`. Measured, not assumed: with a single `*` this project
+    # refused `.../gitops/negative/two-layers` with
+    #   "application repo ... is not permitted in project 'ok167'"
+    # because `*` does not cross a `/` boundary in sourceRepos. Anyone writing
+    # `.../gitops/*` and expecting it to cover nested repositories gets a
+    # project-level rejection that looks nothing like a path problem.
+    #
+    # `**` is still a real restriction: one registry, one prefix, no Git.
+    - oci://zot.zot.svc.cluster.local:5000/openkubes/machine/gitops/**
 
   destinations:
     - server: https://kubernetes.default.svc

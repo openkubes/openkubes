@@ -1,0 +1,34 @@
+# Digest-pinned Application (test T4).
+#
+# This is the shape the report recommends for operations. targetRevision is an
+# immutable digest, so a push to any tag cannot change what this Application
+# deploys — only an edit to this file can, and that edit is a Git commit with
+# an author and a review.
+#
+# ADR-028 section 4.3: "Immutable digests SHALL be the canonical artifact
+# identity ... a mutable tag alone SHALL NOT constitute release evidence."
+#
+# DIGEST_PLACEHOLDER is substituted by `make app-digest DIGEST=sha256:...`.
+# It is a placeholder rather than a committed digest because the digest depends
+# on which commit produced the artifact.
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ok167-podinfo-digest
+  namespace: argocd
+spec:
+  project: ok167
+  source:
+    repoURL: oci://zot.zot.svc.cluster.local:5000/openkubes/machine/gitops/podinfo-manifests
+    targetRevision: DIGEST_PLACEHOLDER
+    path: .
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: ok167-digest
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=false

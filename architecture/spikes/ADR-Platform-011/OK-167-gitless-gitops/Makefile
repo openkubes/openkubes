@@ -71,10 +71,11 @@ UTC    = $(shell date -u +%Y%m%dT%H%M%SZ)
         scan-secrets debug diff upgrade clean-local \
         up down clean cluster-info \
         namespaces pki identities zot-secrets events-install events-log \
-        zot-template zot-install zot-logs zot-verify \
+        zot-template zot-install zot-logs zot-verify zot-down zot-up repo-server-restart \
         push push-dry determinism \
         argocd-install argocd-repo argocd-project argocd-password \
-        app-tag refresh app-status app-wait probe-version
+        app-tag app-digest app-semver app-kustomize app-helm app-set-revision \
+        refresh app-status app-wait probe-version measure drift
 
 # ---------------------------------------------------------------------------
 
@@ -346,6 +347,31 @@ app-tag: guard argocd-project ## Create/update the tag-based Application (D2)
 	@$(KUBECTL) apply -f argocd/application-tag.yaml >/dev/null
 	@echo "Application ok167-podinfo-tag applied"
 
+app-digest: guard argocd-project ## Create/update the digest-pinned Application (DIGEST=sha256:...)
+	@test -n '$(DIGEST)' || { echo "DIGEST= is required, e.g. make app-digest DIGEST=sha256:..."; exit 2; }
+	@sed 's|DIGEST_PLACEHOLDER|$(DIGEST)|' argocd/application-digest.yaml \
+	  | $(KUBECTL) apply -f - >/dev/null
+	@echo "Application ok167-podinfo-digest pinned to $(DIGEST)"
+
+app-semver: guard argocd-project ## Create/update the SemVer-range Application
+	@$(KUBECTL) apply -f argocd/application-semver.yaml >/dev/null
+	@echo "Application ok167-podinfo-semver applied"
+
+app-kustomize: guard argocd-project ## Create/update the Kustomize Application
+	@$(KUBECTL) apply -f argocd/application-kustomize.yaml >/dev/null
+	@echo "Application ok167-podinfo-kustomize applied"
+
+app-helm: guard argocd-project ## Create/update the Helm-chart Application
+	@$(KUBECTL) apply -f argocd/application-helm.yaml >/dev/null
+	@echo "Application ok167-podinfo-helm applied"
+
+app-set-revision: guard ## Change an Application's targetRevision (APP=... REV=...)
+	@test -n '$(APP)' || { echo "APP= is required"; exit 2; }
+	@test -n '$(REV)' || { echo "REV= is required"; exit 2; }
+	@$(KUBECTL) -n '$(ARGOCD_NAMESPACE)' patch application '$(APP)' --type=merge \
+	  -p '{"spec":{"source":{"targetRevision":"$(REV)"}}}' >/dev/null
+	@echo "$(APP) targetRevision -> $(REV)"
+
 refresh: guard ## Request an immediate refresh (APP=ok167-podinfo-tag [HARD=1])
 	@test -n '$(APP)' || { echo "APP= is required"; exit 2; }
 	@$(KUBECTL) -n '$(ARGOCD_NAMESPACE)' annotate application '$(APP)' \
@@ -372,6 +398,17 @@ app-wait: guard ## Block until an Application is Synced and Healthy (APP=... [TI
 	 done; \
 	 echo "$(APP) did not reach Synced/Healthy within $(or $(TIMEOUT),300)s"; \
 	 $(MAKE) --no-print-directory app-status APP='$(APP)'; exit 1
+
+measure: guard ## Measure sync latency (APP=... DIGEST=... [IMAGE=...] [T0=...] [LABEL=...])
+	@KUBECTL='$(KUBECTL)' JQ='$(JQ)' scripts/measure-sync.sh \
+	  --app '$(APP)' --digest '$(DIGEST)' \
+	  $(if $(IMAGE),--image '$(IMAGE)') $(if $(T0),--t0 '$(T0)') \
+	  $(if $(LABEL),--label '$(LABEL)') $(if $(MTIMEOUT),--timeout '$(MTIMEOUT)')
+
+drift: guard ## Scale the deployment by hand to test self-heal (NS=ok167-demo)
+	@test -n '$(NS)' || { echo "NS= is required"; exit 2; }
+	@$(KUBECTL) -n '$(NS)' scale deployment podinfo --replicas=5
+	@echo "scaled podinfo in $(NS) to 5 — Argo CD should revert this"
 
 probe-version: guard ## Curl podinfo's /version from inside the cluster (NS=ok167-demo)
 	@test -n '$(NS)' || { echo "NS= is required"; exit 2; }
@@ -426,6 +463,20 @@ determinism: ## P4-DET: package the same input three times and compare digests
 	   if [ -z "$$first" ]; then first="$$d"; elif [ "$$d" != "$$first" ]; then ok=0; fi; \
 	 done; \
 	 if [ "$$ok" = "1" ]; then echo "PASS identical across runs"; else echo "FAIL digests differ"; exit 1; fi
+
+zot-down: guard ## Scale zot to 0 replicas (registry outage test T8)
+	@$(KUBECTL) -n '$(ZOT_NAMESPACE)' scale statefulset '$(ZOT_RELEASE)' --replicas=0
+	@$(KUBECTL) -n '$(ZOT_NAMESPACE)' wait --for=delete pod -l app.kubernetes.io/name=zot --timeout=120s 2>/dev/null || true
+	@echo "zot scaled to 0"
+
+zot-up: guard ## Scale zot back to 1 replica
+	@$(KUBECTL) -n '$(ZOT_NAMESPACE)' scale statefulset '$(ZOT_RELEASE)' --replicas=1
+	@$(KUBECTL) -n '$(ZOT_NAMESPACE)' rollout status statefulset/'$(ZOT_RELEASE)' --timeout=300s
+	@echo "zot restored"
+
+repo-server-restart: guard ## Rollout-restart the Argo CD repo-server (T8, Q3.a)
+	@$(KUBECTL) -n '$(ARGOCD_NAMESPACE)' rollout restart deployment/argocd-repo-server >/dev/null
+	@$(KUBECTL) -n '$(ARGOCD_NAMESPACE)' rollout status deployment/argocd-repo-server --timeout=180s
 
 zot-verify: guard ## Run the V1-V8 registry checks (TLS, auth, authz, referrers)
 	@KUBECTL='$(KUBECTL)' ORAS='$(ORAS)' scripts/zot-verify.sh
