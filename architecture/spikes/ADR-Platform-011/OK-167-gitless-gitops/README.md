@@ -3,7 +3,10 @@
 **Status: complete, pending review.** All four locally testable acceptance criteria pass.
 The proposed recommendation is **CONDITIONAL GO** for the `datacenter` envelope — see
 [`REPORT.md`](REPORT.md) §12. The decision belongs to the three-way review, not to this
-directory. AC5 is open until the report is published to Confluence.
+directory.
+
+- Report in Confluence: https://kubernauts.atlassian.net/wiki/spaces/OpenKubes/pages/3179446273
+- Draft pull request: https://github.com/openkubes/openkubes/pull/462
 
 | | |
 |---|---|
@@ -12,7 +15,7 @@ directory. AC5 is open until the report is published to Confluence.
 | Assignment | [`BRIEF.md`](BRIEF.md) — binding, German |
 | Report (D3) | [`REPORT.md`](REPORT.md) |
 | Evidence | [`evidence/`](evidence/) — `00-preflight` through `11-offline-transfer` |
-| Drafts (not published) | [`drafts/`](drafts/) — Jira comment, PR description |
+| Drafts (now published) | [`drafts/`](drafts/) — Jira comment and PR description, both posted |
 
 ## What this spike asks
 
@@ -126,7 +129,7 @@ see "Findings that outlive the spike" below, item 1.
 | AC2 oras packaging as `tar+gzip` | **PASS** | | M2 no secret value in Git | **MET** |
 | AC3 Application with `oci://` repoURL | **PASS** | | M3 artifact traceable to a commit | **MET** |
 | AC4 change detection, live reconciliation | **PASS** | | M4 detection without intervention | **MET** |
-| AC5 Confluence documentation | PENDING | | K1 push refresh without a bridge | NOT MET |
+| AC5 Confluence documentation | **DONE** | | K1 push refresh without a bridge | NOT MET |
 | | | | K2 verification that blocks a sync | NOT MET |
 | | | | K3 deterministic digests | **MET** |
 | | | | K4 offline transfer with referrers | **MET** |

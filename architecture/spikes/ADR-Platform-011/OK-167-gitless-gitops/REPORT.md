@@ -1,7 +1,7 @@
 Source of truth is the repo: `architecture/spikes/ADR-Platform-011/OK-167-gitless-gitops/` at commit `5079d57`.
 
-Proposed Confluence title: **OK-167 — Gitless GitOps with Argo CD and zot — Spike Report**
-(Space `OpenKubes`).
+Published to Confluence: https://kubernauts.atlassian.net/wiki/spaces/OpenKubes/pages/3179446273
+Draft pull request: https://github.com/openkubes/openkubes/pull/462
 
 ---
 
@@ -85,7 +85,7 @@ instead of ClusterIP, no OIDC, a narrowed repository prefix, three extra extensi
 | **AC2** — package manifests with oras as `tar+gzip` | **PASS** | [`03-pipeline.md`](evidence/03-pipeline.md) |
 | **AC3** — Application with zot as `repoURL` | **PASS** | [`05-application.md`](evidence/05-application.md) |
 | **AC4** — changes detected and reconciled live | **PASS** | [`06-sync.md`](evidence/06-sync.md) — T1, T3, T4 |
-| **AC5** — documentation in Confluence | **PENDING** | this report; AC5 is met when a human publishes it |
+| **AC5** — documentation in Confluence | **DONE** | published: https://kubernauts.atlassian.net/wiki/spaces/OpenKubes/pages/3179446273 |
 
 The two checks that make AC1 meaningful are the negative ones: the read-only identity **cannot
 push** (401), and the publisher is **refused outside its repository prefix** (403). A registry

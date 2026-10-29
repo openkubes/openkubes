@@ -1,4 +1,4 @@
-<!-- DRAFT for OK-167. Not posted. Review, then publish by hand or via Cowork. -->
+<!-- POSTED to OK-167 on 2026-10-29. Do not post again. -->
 
 **Spike complete — proposed recommendation: CONDITIONAL GO (datacenter envelope).**
 

@@ -1,4 +1,4 @@
-<!-- DRAFT PR body for OK-167. Not opened. -->
+<!-- POSTED as the body of https://github.com/openkubes/openkubes/pull/462 on 2026-10-29. Do not post again. -->
 
 ## Summary
 
