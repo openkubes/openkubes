@@ -72,7 +72,7 @@ UTC    = $(shell date -u +%Y%m%dT%H%M%SZ)
         up down clean cluster-info \
         namespaces pki identities zot-secrets events-install events-log \
         zot-template zot-install zot-logs zot-verify zot-down zot-up repo-server-restart \
-        push push-dry determinism \
+        push push-dry determinism verify \
         argocd-install argocd-repo argocd-project argocd-password \
         app-tag app-digest app-semver app-kustomize app-helm app-set-revision \
         refresh app-status app-wait probe-version measure drift
@@ -506,6 +506,59 @@ yamllint-manifests: ## yamllint every YAML file the spike owns
 
 scan-secrets: ## Check tracked and staged files for credentials
 	@scripts/scan-secrets.sh
+
+# ---------------------------------------------------------------------------
+# Overall verification
+# ---------------------------------------------------------------------------
+# Checks every pass criterion that can be re-checked without pushing anything
+# new. Deliberately read-only: it must be safe to run at any time, and it must
+# not be able to manufacture the evidence it is checking.
+
+verify: guard ## Re-check every pass criterion that needs no new push
+	@fail=0; \
+	 chk() { if [ "$$2" = "$$3" ]; then printf '  PASS %s (%s)\n' "$$1" "$$2"; \
+	         else printf '  FAIL %s: got "%s", expected "%s"\n' "$$1" "$$2" "$$3"; fail=1; fi; }; \
+	 echo "--- cluster ---"; \
+	 chk "node Ready" \
+	   "$$($(KUBECTL) get nodes -o jsonpath='{.items[0].status.conditions[?(@.type=="Ready")].status}')" "True"; \
+	 chk "kubernetes version" \
+	   "$$($(KUBECTL) version -o json | $(JQ) -r .serverVersion.gitVersion)" "$(KUBERNETES_VERSION)"; \
+	 echo "--- zot ---"; \
+	 chk "zot image pin" \
+	   "$$($(KUBECTL) -n $(ZOT_NAMESPACE) get statefulset $(ZOT_RELEASE) -o jsonpath='{.spec.template.spec.containers[0].image}')" \
+	   "$(ZOT_IMAGE_REPOSITORY):$(ZOT_IMAGE_TAG)"; \
+	 chk "anonymous /v2/ refused" \
+	   "$$(curl -s -o /dev/null -w '%{http_code}' --cacert .local/pki/ca.crt https://$(ZOT_HOST)/v2/)" "401"; \
+	 chk "health endpoint open" \
+	   "$$(curl -s -o /dev/null -w '%{http_code}' --cacert .local/pki/ca.crt https://$(ZOT_HOST)/readyz)" "200"; \
+	 echo "--- argo cd ---"; \
+	 chk "argocd image pin" \
+	   "$$($(KUBECTL) -n $(ARGOCD_NAMESPACE) get statefulset argocd-application-controller -o jsonpath='{.spec.template.spec.containers[0].image}')" \
+	   "$(ARGOCD_IMAGE_REPOSITORY):$(ARGOCD_IMAGE_TAG)"; \
+	 chk "zot CA trusted" \
+	   "$$($(KUBECTL) -n $(ARGOCD_NAMESPACE) get cm argocd-tls-certs-cm -o json | $(JQ) -r '(.data // {}) | has("$(ZOT_SERVICE_HOST)")')" "true"; \
+	 chk "repo secret uses the read-only identity" \
+	   "$$($(KUBECTL) -n $(ARGOCD_NAMESPACE) get secret ok167-zot-podinfo-manifests -o jsonpath='{.data.username}' | base64 -d)" \
+	   "$(IDENTITY_PULLER)"; \
+	 chk "AppProject forbids cluster-scoped resources" \
+	   "$$($(KUBECTL) -n $(ARGOCD_NAMESPACE) get appproject $(ARGOCD_PROJECT) -o json | $(JQ) -r '.spec.clusterResourceWhitelist | length')" "0"; \
+	 echo "--- applications ---"; \
+	 for app in ok167-podinfo-tag ok167-podinfo-digest ok167-podinfo-kustomize; do \
+	   chk "$$app synced" \
+	     "$$($(KUBECTL) -n $(ARGOCD_NAMESPACE) get application $$app -o jsonpath='{.status.sync.status}/{.status.health.status}' 2>/dev/null)" \
+	     "Synced/Healthy"; \
+	   chk "$$app resource count" \
+	     "$$($(KUBECTL) -n $(ARGOCD_NAMESPACE) get application $$app -o json 2>/dev/null | $(JQ) -r '(.status.resources // []) | length')" "2"; \
+	 done; \
+	 echo "--- provenance (M3) ---"; \
+	 rev=$$($(ORAS) manifest fetch $(ZOT_HOST)/$(REPO_MANIFESTS):v1.0.0 \
+	        --ca-file .local/pki/ca.crt --registry-config .local/registry-auth/$(IDENTITY_PUBLISHER).json 2>/dev/null \
+	        | $(JQ) -r '.annotations["org.opencontainers.image.revision"] // "missing"'); \
+	 if git cat-file -t "$$rev" >/dev/null 2>&1; then \
+	   printf '  PASS revision annotation names a real commit (%s)\n' "$$(echo $$rev | cut -c1-8)"; \
+	 else printf '  FAIL revision annotation is not a commit: %s\n' "$$rev"; fail=1; fi; \
+	 echo; \
+	 if [ "$$fail" = "0" ]; then echo "verify: all checks passed"; else echo "verify: FAILURES above"; exit 1; fi
 
 # ---------------------------------------------------------------------------
 # Diagnostics

@@ -153,3 +153,75 @@ window.
 | Self-heal reverts cluster drift within a second | That it protects against anything but drift; it does not verify the source |
 | Workloads survive a full registry outage with zero restarts | That a *new* workload could start — no image pull from zot was attempted (explicit non-goal) |
 | A cold repo-server cannot render without the registry, and says `DeadlineExceeded` | That the message would be the same for other failure modes (DNS, auth, TLS) — Q1.c and Q1.d test those |
+
+---
+
+## T4 addendum — a digest pin does not keep the artifact alive
+
+Found while running `make verify` at the end of the spike, not during T4 itself.
+
+`ok167-podinfo-digest`, pinned to `sha256:627cf3ad…`, had moved from `Synced` to `Unknown`:
+
+```text
+[ComparisonError] Failed to load target state: failed to generate manifest for source 1 of 1:
+rpc error: code = Unknown desc = failed to resolve revision "sha256:627cf3ad…":
+cannot get digest for revision sha256:627cf3ad…:
+zot.zot.svc.cluster.local:5000/openkubes/machine/gitops/podinfo-manifests@sha256:627cf3ad…: not found
+```
+
+**The manifest was gone from the registry.** Not corrupted, not unauthorized — absent.
+
+### Mechanism
+
+1. During Q4.c the tag `v1.1.0` was moved to different content.
+2. `sha256:627cf3ad…` thereby became **untagged**. Confirmed: zero of the six tags in the
+   repository resolve to it.
+3. zot's garbage collection ran, as its own log shows:
+
+   ```text
+   12:36:58  executing gc of orphaned blobs for /var/lib/registry/openkubes/machine/gitops/podinfo-manifests
+   12:36:58  garbage collected blobs
+   12:36:58  gc successfully completed for …
+   ```
+
+4. The Application's digest pin was the **only** remaining reference to that manifest — and the
+   registry has no way to know it exists.
+
+Re-pinning to `sha256:b4eb3ab9…`, which is still tagged `v1.2.0`, returned the Application to
+`Synced` / `Healthy` immediately.
+
+### Why this matters more than a test artifact
+
+This directly qualifies the recommendation the spike was about to make. "Pin digests in
+operation" is necessary but **not sufficient**: a digest pin expresses *which* artifact you
+want, and expresses nothing about *keeping* it. Retention is a separate, registry-side concern,
+and nothing in the cluster communicates its dependencies back to the registry.
+
+The configuration in effect during this spike — inherited from `registry-default` — is:
+
+```json
+"storage": { "gc": true, "gcDelay": "1h", "gcInterval": "1h" },
+"Retention": { "Policies": null }
+```
+
+**No retention policy is configured**, here or in `values-ok-shared.yaml`. ADR-028 §4.7 requires
+the profile to define "tag immutability, release/staging/quarantine retention, garbage-collection
+behaviour, deletion authorization, and an emergency-deletion procedure". This is a concrete
+demonstration of what the absence of that definition costs: an artifact a cluster is actively
+running can be collected because nothing in the registry marks it as released.
+
+§4.7 also says GC "MUST NOT remove blobs still reachable from a retained manifest". The clause
+holds — the manifest was not *retained*, because nothing retained it. The gap is not a violation;
+it is the missing definition of what "retained" means for an artifact that is deployed.
+
+### Correct operating guidance
+
+Digest-pinned Applications **plus** one of:
+
+- keep an immutable release tag on every digest that is deployed (so the registry retains it), or
+- configure a retention policy that keeps released artifacts regardless of tags, or
+- treat the untagging of a deployed digest as a release-process error, caught in CI.
+
+Verdict: **T4 still PASSES** — the pin did not drift, which is what T4 tested. This is a separate
+failure mode, found only because `verify` re-checked the state later, and it is more useful than
+the original test.

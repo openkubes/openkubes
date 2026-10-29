@@ -1,15 +1,18 @@
 # OK-167 — Gitless GitOps with Argo CD and zot
 
-**Status: in progress.** Scaffold and guards are in place (Phase 1 of 12). The cluster,
-registry, pipeline and the evaluation report are not built yet. Nothing in this directory
-should be read as a result until `REPORT.md` exists.
+**Status: complete, pending review.** All four locally testable acceptance criteria pass.
+The proposed recommendation is **CONDITIONAL GO** for the `datacenter` envelope — see
+[`REPORT.md`](REPORT.md) §12. The decision belongs to the three-way review, not to this
+directory. AC5 is open until the report is published to Confluence.
 
 | | |
 |---|---|
 | Ticket | [OK-167](https://kubernauts.atlassian.net/browse/OK-167) |
 | ADR under evaluation | `ADR-Platform-011` (GitOps), with `ADR-Platform-028` (Artifact Registry) as the second yardstick |
 | Assignment | [`BRIEF.md`](BRIEF.md) — binding, German |
-| Evidence | [`evidence/`](evidence/) |
+| Report (D3) | [`REPORT.md`](REPORT.md) |
+| Evidence | [`evidence/`](evidence/) — `00-preflight` through `11-offline-transfer` |
+| Drafts (not published) | [`drafts/`](drafts/) — Jira comment, PR description |
 
 ## What this spike asks
 
@@ -54,9 +57,26 @@ make lint            # shellcheck + yamllint
 make scan-secrets    # credential scan over tracked and staged files
 ```
 
-Targets for the cluster, zot, the packaging pipeline and Argo CD arrive with their phases;
-this README is updated as each lands. `make install` will run the full stack in one step and
-`make down` will delete the cluster while keeping `.local/`.
+Full run, from nothing to a working stack:
+
+```sh
+make up                             # kind cluster, loopback only
+make namespaces pki identities      # PKI and machine identities into .local/
+make events-install                 # CloudEvents sink (before zot, on purpose)
+make zot-install                    # asserts the image pin and that no chart Secret renders
+make zot-verify                     # V1-V8
+make argocd-install                 # asserts every image is digest-pinned
+make argocd-repo REPO=podinfo-manifests
+make argocd-project
+
+make push VARIANT=plain TAG=v1.0.0
+make app-tag
+make app-wait APP=ok167-podinfo-tag
+make probe-version NS=ok167-demo    # podinfo reports its own version
+
+make verify                         # re-check every pass criterion
+make down                           # delete the cluster; .local/ is kept
+```
 
 Every tool resolves through its own Make variable, so any of them can be replaced by a pinned
 container wrapper without touching a target:
@@ -72,7 +92,10 @@ make lint YAMLLINT='docker run --rm -v "$PWD":/w -w /w <pinned-image> yamllint'
 | `BRIEF.md` | The assignment. Binding; committed unchanged. |
 | `versions.env` | Every version and digest. The only place pins are maintained. |
 | `Makefile` | The only entry point. No target touches a cluster without the guard. |
-| `scripts/` | `guard.sh`, `scan-secrets.sh`, `lib.sh`; the packaging pipeline and measurement follow in Phase 4 and 7. |
+| `scripts/` | `guard.sh`, `scan-secrets.sh`, `lib.sh`, `pki.sh`, `identities.sh`, `zot-verify.sh`, `package-and-push.sh` (D1), `measure-sync.sh`. |
+| `argocd/` | D2 — Application variants (tag, digest, SemVer, Kustomize, Helm), AppProject, Secret template. |
+| `ci/` | GitHub Actions example. Outside `.github/workflows/` on purpose. |
+| `diagrams/` | Architecture diagram, Mermaid source plus SVG for Confluence. |
 | `evidence/` | One document per phase, in the format of `docs/agentic-ai-poc-evidence-protocol.md`. |
 | `evidence/raw/` | Redacted command output. |
 | `.local/` | **Never committed.** kubeconfig, PKI, credentials, Helm state, cosign keys. |
@@ -92,9 +115,38 @@ because fixing them is not this spike's job:
   deployed `registry-default` profile uses `openkubes/{human,machine}/**`. This spike follows
   the deployed profile, since that is what it must interoperate with.
 
-A third observation concerns `registry-default` directly and is still open: the zot chart
-documents an `authHeader` value needed for the Kubernetes probes when htpasswd authentication
-is on and anonymous access is not, and `values-ok-shared.yaml` sets no such value while using
-`defaultPolicy: []`. Whether that is a latent problem there, or whether zot exempts its health
-endpoints from authentication, is measured in Phase 3 rather than guessed. See finding F5 in
-`evidence/00-preflight.md`.
+A third observation concerned `registry-default` directly and is now **closed in its favour** —
+see "Findings that outlive the spike" below, item 1.
+
+## Results in one table
+
+| AC | Verdict | | Criterion | Verdict |
+|---|---|---|---|---|
+| AC1 zot with TLS, identities, authorization | **PASS** | | M1 AC1–AC4, TLS, no insecure flags | **MET** |
+| AC2 oras packaging as `tar+gzip` | **PASS** | | M2 no secret value in Git | **MET** |
+| AC3 Application with `oci://` repoURL | **PASS** | | M3 artifact traceable to a commit | **MET** |
+| AC4 change detection, live reconciliation | **PASS** | | M4 detection without intervention | **MET** |
+| AC5 Confluence documentation | PENDING | | K1 push refresh without a bridge | NOT MET |
+| | | | K2 verification that blocks a sync | NOT MET |
+| | | | K3 deterministic digests | **MET** |
+| | | | K4 offline transfer with referrers | **MET** |
+
+Detection latency, measured: **83 / 119 / 182 s** by polling at the defaults, **0 s** with an
+on-demand refresh, **1 s** for cluster drift. Three different mechanisms — see
+[`evidence/06-sync.md`](evidence/06-sync.md).
+
+## Findings that outlive the spike
+
+1. **`registry-default` has no latent probe problem.** The zot chart documents an `authHeader`
+   for probes under htpasswd-without-anonymous access, and `values-ok-shared.yaml` sets none.
+   Measured rather than assumed: zot v2.1.20 exempts `/livez`, `/readyz` and `/startupz` from
+   access control, returning 200 anonymously while `/v2/` returns 401.
+2. **A digest pin does not keep an artifact alive.** A digest-pinned Application here broke
+   because the manifest was garbage-collected once its tag moved away. `registry-default` runs
+   with `gc: true` and `Retention.Policies: null` — the retention definition ADR-028 §4.7 asks
+   for does not exist yet.
+3. **Legacy cosign signatures are silently lost in transfer.** They are tags, not referrers, so
+   `oras cp -r` drops them and the copy then fails verification with nothing reporting a problem.
+   Awkwardly, zot only *verifies* that legacy format, while only the bundle format survives.
+4. **Argo CD v3.5.6 does no signature verification on OCI sources.** Unsigned content synced with
+   zero conditions. Signing is evidence, not enforcement.
