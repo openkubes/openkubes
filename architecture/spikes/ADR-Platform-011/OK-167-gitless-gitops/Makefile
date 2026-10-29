@@ -68,7 +68,8 @@ GUARD := scripts/guard.sh
 UTC    = $(shell date -u +%Y%m%dT%H%M%SZ)
 
 .PHONY: help guard preflight lint shellcheck-scripts yamllint-manifests \
-        scan-secrets debug diff upgrade clean-local
+        scan-secrets debug diff upgrade clean-local \
+        up down clean cluster-info
 
 # ---------------------------------------------------------------------------
 
@@ -137,6 +138,61 @@ preflight: ## Check tools, versions, architecture, ports and pins (no cluster ne
 	@if lsof -nP -iTCP:$(ZOT_NODEPORT) -sTCP:LISTEN >/dev/null 2>&1; then \
 	   echo "FAIL port $(ZOT_NODEPORT) already in use"; exit 1; fi
 	@echo "preflight OK"
+
+# ---------------------------------------------------------------------------
+# Cluster lifecycle
+# ---------------------------------------------------------------------------
+
+# `up` is the one target that cannot depend on the guard beforehand: it creates
+# the kubeconfig the guard checks. The guard runs immediately afterwards, and
+# the target fails if it does not pass.
+up: ## Create the local kind cluster (idempotent), then verify isolation
+	@mkdir -p .local
+	@if $(KIND) get clusters 2>/dev/null | grep -qx '$(CLUSTER_NAME)'; then \
+	  echo "cluster '$(CLUSTER_NAME)' already exists — nothing to do"; \
+	else \
+	  echo "creating kind cluster '$(CLUSTER_NAME)' with $(KIND_NODE_IMAGE)"; \
+	  $(KIND) create cluster \
+	    --name '$(CLUSTER_NAME)' \
+	    --config kind/cluster.yaml \
+	    --image '$(KIND_NODE_IMAGE)' \
+	    --kubeconfig '$(KUBECONFIG)' \
+	    --wait 180s; \
+	fi
+	@# kind only writes the kubeconfig when it creates the cluster, so an
+	@# existing cluster needs it exported explicitly for idempotency.
+	@if [ ! -s '$(KUBECONFIG)' ]; then \
+	  $(KIND) export kubeconfig --name '$(CLUSTER_NAME)' --kubeconfig '$(KUBECONFIG)'; \
+	fi
+	@chmod 600 '$(KUBECONFIG)'
+	@$(GUARD)
+	@$(KUBECTL) wait --for=condition=Ready node --all --timeout=180s
+	@echo "cluster '$(CLUSTER_NAME)' ready"
+
+cluster-info: guard ## Print cluster facts (version, node image, storage classes)
+	@echo "--- versions ---"
+	@$(KUBECTL) version -o json | $(JQ) -r \
+	  '"client=\(.clientVersion.gitVersion) server=\(.serverVersion.gitVersion)"'
+	@echo "--- nodes ---"
+	@$(KUBECTL) get nodes -o wide
+	@echo "--- node container image (from the host's docker) ---"
+	@$(DOCKER) inspect '$(CLUSTER_NAME)-control-plane' \
+	  --format '{{.Config.Image}}{{"\n"}}{{index .Config.Labels "io.x-k8s.kind.role"}}' 2>/dev/null || true
+	@echo "--- storage classes ---"
+	@$(KUBECTL) get storageclass
+	@echo "--- api server ---"
+	@$(KUBECTL) config view -o json | $(JQ) -r '.clusters[].cluster.server'
+
+down: ## Delete the kind cluster; .local/ (credentials, PKI) is kept
+	@if $(KIND) get clusters 2>/dev/null | grep -qx '$(CLUSTER_NAME)'; then \
+	  $(KIND) delete cluster --name '$(CLUSTER_NAME)'; \
+	  echo "cluster deleted; .local/ kept"; \
+	else \
+	  echo "cluster '$(CLUSTER_NAME)' does not exist — nothing to do"; \
+	fi
+	@rm -f '$(KUBECONFIG)'
+
+clean: down ## Alias for `down` (CONTRIBUTING.md standard target)
 
 # ---------------------------------------------------------------------------
 # Static analysis
