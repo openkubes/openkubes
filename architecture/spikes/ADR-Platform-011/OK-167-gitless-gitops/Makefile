@@ -71,7 +71,8 @@ UTC    = $(shell date -u +%Y%m%dT%H%M%SZ)
         scan-secrets debug diff upgrade clean-local \
         up down clean cluster-info \
         namespaces pki identities zot-secrets events-install events-log \
-        zot-template zot-install zot-logs zot-verify
+        zot-template zot-install zot-logs zot-verify \
+        push push-dry determinism
 
 # ---------------------------------------------------------------------------
 
@@ -280,6 +281,54 @@ zot-install: guard zot-secrets events-install ## Install zot with the pinned cha
 
 zot-logs: guard ## Tail zot's logs
 	@$(KUBECTL) -n '$(ZOT_NAMESPACE)' logs statefulset/'$(ZOT_RELEASE)' --tail=200
+
+# ---------------------------------------------------------------------------
+# Packaging pipeline (D1)
+# ---------------------------------------------------------------------------
+# VARIANT selects the manifest directory; TAG is the tag to push.
+#   make push VARIANT=plain        TAG=v1.0.0
+#   make push VARIANT=plain-update TAG=v1.0.0
+#   make push VARIANT=kustomize    TAG=v1.0.0
+VARIANT ?= plain
+TAG     ?= v1.0.0
+
+variant_source = $(strip \
+  $(if $(filter plain,$(1)),app/podinfo-plain,\
+  $(if $(filter plain-update,$(1)),app/podinfo-plain-update,\
+  $(if $(filter kustomize,$(1)),app/podinfo-kustomize,))))
+
+variant_repo = $(strip \
+  $(if $(filter kustomize,$(1)),$(REPO_KUSTOMIZE),$(REPO_MANIFESTS)))
+
+push: ## Package and push a manifest variant (VARIANT=plain|plain-update|kustomize TAG=...)
+	@src='$(call variant_source,$(VARIANT))'; \
+	 if [ -z "$$src" ]; then \
+	   echo "unknown VARIANT '$(VARIANT)'; expected plain, plain-update or kustomize"; exit 2; \
+	 fi; \
+	 ORAS='$(ORAS)' GTAR='$(GTAR)' YAMLLINT='$(YAMLLINT)' KUBECTL='$(KUBECTL)' JQ='$(JQ)' \
+	   scripts/package-and-push.sh \
+	     --source "$$src" \
+	     --repository '$(call variant_repo,$(VARIANT))' \
+	     --tag '$(TAG)'
+
+push-dry: ## Package a variant and report the layer digest without pushing
+	@src='$(call variant_source,$(VARIANT))'; \
+	 ORAS='$(ORAS)' GTAR='$(GTAR)' YAMLLINT='$(YAMLLINT)' KUBECTL='$(KUBECTL)' JQ='$(JQ)' \
+	   scripts/package-and-push.sh --source "$$src" \
+	     --repository '$(call variant_repo,$(VARIANT))' --tag '$(TAG)' --dry-run
+
+determinism: ## P4-DET: package the same input three times and compare digests
+	@echo "--- layer digest, three runs ---"; \
+	 first=""; ok=1; \
+	 for i in 1 2 3; do \
+	   d=$$(ORAS='$(ORAS)' GTAR='$(GTAR)' YAMLLINT='$(YAMLLINT)' KUBECTL='$(KUBECTL)' JQ='$(JQ)' \
+	        scripts/package-and-push.sh --source '$(call variant_source,$(VARIANT))' \
+	          --repository '$(call variant_repo,$(VARIANT))' --tag '$(TAG)' --dry-run 2>/dev/null \
+	        | grep '^LAYER_DIGEST=' | cut -d= -f2); \
+	   echo "  run $$i: $$d"; \
+	   if [ -z "$$first" ]; then first="$$d"; elif [ "$$d" != "$$first" ]; then ok=0; fi; \
+	 done; \
+	 if [ "$$ok" = "1" ]; then echo "PASS identical across runs"; else echo "FAIL digests differ"; exit 1; fi
 
 zot-verify: guard ## Run the V1-V8 registry checks (TLS, auth, authz, referrers)
 	@KUBECTL='$(KUBECTL)' ORAS='$(ORAS)' scripts/zot-verify.sh
