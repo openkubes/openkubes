@@ -54,6 +54,7 @@ nav:
       - Validation & Roadmap: developer-workspace/status.md
   - Blog:
       - Overview: blog/index.md
+      - "Learn from BEAM. Build on OpenKubes.": learn-from-beam-build-on-openkubes.md
       - "Developer Workspaces: Bounded Authority for Coding Agents": developer-workspace-blog-post.md
       - Agentic Operations: agentic-operations-reference-architecture.md
       - Vault Secret Contract: vault-secret-contract-blog-post.md
