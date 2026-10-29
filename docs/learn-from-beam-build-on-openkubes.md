@@ -20,6 +20,36 @@ This is where an older ecosystem has something to teach us.
 
 **Learn from BEAM. Build on OpenKubes.**
 
+## The idea in plain English: a supervisor for the worker
+
+Imagine OpenKubes as a workshop:
+
+- **The AI agent is the advisor.** It notices that an application is struggling and suggests changing its memory settings.
+- **OpenKubes is the responsible manager.** It checks the rules, the exact proposed change, and whether the necessary approval exists.
+- **The runner is the worker.** It carries out the authorized operation.
+- **Kubernetes runs the workshop equipment.** It keeps workloads running and can restart a crashed runner.
+
+Now imagine the runner crashes halfway through the change.
+
+Kubernetes may start the runner again. Great! **But a restarted worker does not know by itself whether the previous worker already finished the job.**
+
+If we blindly repeat the change, we might cause unintended side effects. If we assume it succeeded, we might leave the application in a broken state.
+
+This is the missing question we want to investigate: **Who supervises the operation, not just the process?**
+
+A proposed *Agent Operation Supervisor* would act like a careful team lead:
+
+1. **Check what happened.** Look at the durable operation record and the actual state reported by the responsible Kubernetes controllers.
+2. **Do not repeat work blindly.** If the requested change already happened, record that outcome rather than applying it again.
+3. **Continue only if safe and authorized.** If the result is unclear, or renewed permission is required, stop and ask for human review.
+4. **Leave evidence.** Record what was observed, what decision was made, and why.
+
+This does **not** mean giving an AI agent permission to improvise fixes. The supervisor we want to evaluate is **deterministic**: it follows explicit contracts, policies, and recovery rules.
+
+> **In one sentence:** We want OpenKubes to keep AI-initiated infrastructure operations safe even when workers crash, networks fail, or outcomes are uncertain.
+
+That is why we are looking at BEAM: not because OpenKubes needs a new programming language, but because the Erlang/OTP ecosystem has spent decades learning how to contain faults and supervise failing processes.
+
 ## Why BEAM?
 
 The BEAM virtual machine powers Erlang and Elixir. Erlang/OTP established a well-developed approach to concurrency and resilient services built around independently running processes, asynchronous message passing, and supervisors that monitor child processes.
