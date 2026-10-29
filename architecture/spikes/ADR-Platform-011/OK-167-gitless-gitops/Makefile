@@ -72,7 +72,9 @@ UTC    = $(shell date -u +%Y%m%dT%H%M%SZ)
         up down clean cluster-info \
         namespaces pki identities zot-secrets events-install events-log \
         zot-template zot-install zot-logs zot-verify \
-        push push-dry determinism
+        push push-dry determinism \
+        argocd-install argocd-repo argocd-project argocd-password \
+        app-tag refresh app-status app-wait probe-version
 
 # ---------------------------------------------------------------------------
 
@@ -281,6 +283,101 @@ zot-install: guard zot-secrets events-install ## Install zot with the pinned cha
 
 zot-logs: guard ## Tail zot's logs
 	@$(KUBECTL) -n '$(ZOT_NAMESPACE)' logs statefulset/'$(ZOT_RELEASE)' --tail=200
+
+# ---------------------------------------------------------------------------
+# Argo CD
+# ---------------------------------------------------------------------------
+
+ARGOCD_HELM_ARGS := $(ARGOCD_CHART_NAME) \
+  --repo '$(ARGOCD_CHART_REPO)' \
+  --version '$(ARGOCD_CHART_VERSION)' \
+  --namespace '$(ARGOCD_NAMESPACE)' \
+  --values argocd/values-poc.yaml
+
+# The CA is injected from .local/ at install time, never copied into the values
+# file. Dots in the key are escaped because Helm treats them as path separators.
+ARGOCD_CA_ARG := --set-file 'configs.tls.certificates.zot\.zot\.svc\.cluster\.local=.local/pki/ca.crt'
+
+argocd-install: guard namespaces pki ## Install Argo CD v3.5.6 and trust the zot CA
+	@echo "--- checking every rendered image is pinned by digest ---"
+	@$(HELM) template '$(ARGOCD_RELEASE)' $(ARGOCD_HELM_ARGS) \
+	  | $(YQ) -r 'select(.kind=="Deployment" or .kind=="StatefulSet") | .spec.template.spec.containers[].image' \
+	  | sort -u | while read -r img; do \
+	      case "$$img" in \
+	        ---) : ;; \
+	        *@sha256:*) echo "  OK   $$img" ;; \
+	        *) echo "  FAIL unpinned image: $$img"; exit 1 ;; \
+	      esac; \
+	    done
+	@$(HELM) upgrade --install '$(ARGOCD_RELEASE)' $(ARGOCD_HELM_ARGS) $(ARGOCD_CA_ARG) --wait --timeout 8m
+	@$(KUBECTL) -n '$(ARGOCD_NAMESPACE)' rollout status statefulset/argocd-application-controller --timeout=300s
+	@$(KUBECTL) -n '$(ARGOCD_NAMESPACE)' rollout status deployment/argocd-repo-server --timeout=300s
+	@echo "Argo CD $(ARGOCD_VERSION) ready in namespace $(ARGOCD_NAMESPACE)"
+
+# REPO is the last path segment, e.g. podinfo-manifests.
+argocd-repo: guard ## Create a repository Secret for one repo (REPO=podinfo-manifests)
+	@test -n '$(REPO)' || { echo "REPO= is required, e.g. make argocd-repo REPO=podinfo-manifests"; exit 2; }
+	@set -euo pipefail; \
+	 . .local/credentials.env; \
+	 pw="$$OK167_GITOPS_PULLER_PASSWORD"; \
+	 $(JQ) -n --arg name 'ok167-zot-$(REPO)' --arg ns '$(ARGOCD_NAMESPACE)' \
+	        --arg url 'oci://$(ZOT_SERVICE_HOST):$(ZOT_SERVICE_PORT)/$(REPO_PREFIX)/$(REPO)' \
+	        --arg user '$(IDENTITY_PULLER)' --arg pw "$$pw" \
+	   '{apiVersion:"v1", kind:"Secret", metadata:{name:$$name, namespace:$$ns, \
+     labels:{"argocd.argoproj.io/secret-type":"repository"}}, type:"Opaque", \
+     stringData:{type:"oci", url:$$url, username:$$user, password:$$pw}}' \
+	 | $(KUBECTL) apply -f - >/dev/null
+	@echo "repository secret ok167-zot-$(REPO) applied (value never written to disk)"
+
+argocd-project: guard namespaces ## Create the ok167 AppProject
+	@$(KUBECTL) apply -f argocd/appproject.yaml >/dev/null
+	@echo "AppProject ok167 applied"
+
+argocd-password: guard ## Print the initial admin password (for the human's port-forward)
+	@echo "This prints a credential to the terminal. Ctrl-C now if that is not what you want."
+	@$(KUBECTL) -n '$(ARGOCD_NAMESPACE)' get secret argocd-initial-admin-secret \
+	  -o jsonpath='{.data.password}' | base64 -d; echo
+
+# ---------------------------------------------------------------------------
+# Applications
+# ---------------------------------------------------------------------------
+
+app-tag: guard argocd-project ## Create/update the tag-based Application (D2)
+	@$(KUBECTL) apply -f argocd/application-tag.yaml >/dev/null
+	@echo "Application ok167-podinfo-tag applied"
+
+refresh: guard ## Request an immediate refresh (APP=ok167-podinfo-tag [HARD=1])
+	@test -n '$(APP)' || { echo "APP= is required"; exit 2; }
+	@$(KUBECTL) -n '$(ARGOCD_NAMESPACE)' annotate application '$(APP)' \
+	  argocd.argoproj.io/refresh=$(if $(HARD),hard,normal) --overwrite >/dev/null
+	@echo "refresh=$(if $(HARD),hard,normal) requested for $(APP)"
+
+app-status: guard ## Show sync status, revision and resource count (APP=...)
+	@test -n '$(APP)' || { echo "APP= is required"; exit 2; }
+	@$(KUBECTL) -n '$(ARGOCD_NAMESPACE)' get application '$(APP)' -o json | $(JQ) -r \
+	  '{name:.metadata.name, sync:.status.sync.status, health:.status.health.status, \
+	    revision:.status.sync.revision, \
+	    resources:[(.status.resources // [])[] | "\(.kind)/\(.name)"], \
+	    resource_count:((.status.resources // []) | length), \
+	    conditions:[(.status.conditions // [])[] | {type,message}]}'
+
+app-wait: guard ## Block until an Application is Synced and Healthy (APP=... [TIMEOUT=300])
+	@test -n '$(APP)' || { echo "APP= is required"; exit 2; }
+	@deadline=$$(( $$(date -u +%s) + $(or $(TIMEOUT),300) )); \
+	 while [ "$$(date -u +%s)" -lt "$$deadline" ]; do \
+	   s=$$($(KUBECTL) -n '$(ARGOCD_NAMESPACE)' get application '$(APP)' \
+	        -o jsonpath='{.status.sync.status}/{.status.health.status}' 2>/dev/null || true); \
+	   if [ "$$s" = "Synced/Healthy" ]; then echo "$(APP): $$s"; exit 0; fi; \
+	   sleep 2; \
+	 done; \
+	 echo "$(APP) did not reach Synced/Healthy within $(or $(TIMEOUT),300)s"; \
+	 $(MAKE) --no-print-directory app-status APP='$(APP)'; exit 1
+
+probe-version: guard ## Curl podinfo's /version from inside the cluster (NS=ok167-demo)
+	@test -n '$(NS)' || { echo "NS= is required"; exit 2; }
+	@$(KUBECTL) -n '$(NS)' run ok167-probe-$$$$ \
+	  --image='$(CURL_IMAGE)' --restart=Never --rm -i --quiet \
+	  --command -- curl -sS --max-time 10 http://podinfo:9898/version
 
 # ---------------------------------------------------------------------------
 # Packaging pipeline (D1)
