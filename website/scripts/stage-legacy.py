@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Stage selected existing public articles and media without editing source docs."""
+"""Stage selected public articles and media without editing source docs."""
 from pathlib import Path
 import shutil
 
@@ -8,6 +8,7 @@ SOURCE = ROOT / "docs"
 TARGET = ROOT / ".mkdocs-staging"
 ARTICLES = (
     "developer-workspace-blog-post.md",
+    "learn-from-beam-build-on-openkubes.md",
     "agentic-operations-reference-architecture.md",
     "vault-secret-contract-blog-post.md",
     "the-contract-is-the-guardrail-blog-post.md",
@@ -112,7 +113,7 @@ def main():
     if not media.is_dir():
         raise SystemExit("Legacy media directory not found.")
     shutil.copytree(media, TARGET / "media", dirs_exist_ok=True)
-    print(f"Staged {len(ARTICLES)} existing permalink articles and homepage assets.")
+    print(f"Staged {len(ARTICLES)} public articles and homepage assets.")
 
 if __name__ == "__main__":
     main()
