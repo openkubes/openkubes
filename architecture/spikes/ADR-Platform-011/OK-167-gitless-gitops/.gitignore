@@ -1,0 +1,6 @@
+# OK-167 spike: local state, credentials and build output never go into Git
+.local/
+*.tar.gz
+*.tgz
+*.key
+*.pem
