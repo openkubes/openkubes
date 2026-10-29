@@ -1,0 +1,14 @@
+{
+  "extensions": [
+    {
+      "name": "_zot",
+      "url": "https://github.com/project-zot/zot/blob/v2.1.20/pkg/extensions/_zot.md",
+      "description": "zot registry extensions",
+      "endpoints": [
+        "/v2/_zot/ext/cosign",
+        "/v2/_zot/ext/search",
+        "/v2/_zot/ext/mgmt"
+      ]
+    }
+  ]
+}

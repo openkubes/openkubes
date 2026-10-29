@@ -69,7 +69,9 @@ UTC    = $(shell date -u +%Y%m%dT%H%M%SZ)
 
 .PHONY: help guard preflight lint shellcheck-scripts yamllint-manifests \
         scan-secrets debug diff upgrade clean-local \
-        up down clean cluster-info
+        up down clean cluster-info \
+        namespaces pki identities zot-secrets events-install events-log \
+        zot-template zot-install zot-logs zot-verify
 
 # ---------------------------------------------------------------------------
 
@@ -193,6 +195,94 @@ down: ## Delete the kind cluster; .local/ (credentials, PKI) is kept
 	@rm -f '$(KUBECONFIG)'
 
 clean: down ## Alias for `down` (CONTRIBUTING.md standard target)
+
+# ---------------------------------------------------------------------------
+# Namespaces, PKI, identities
+# ---------------------------------------------------------------------------
+
+ALL_NAMESPACES := $(ZOT_NAMESPACE) $(ARGOCD_NAMESPACE) $(EVENTS_NAMESPACE) \
+                  $(NS_DEMO) $(NS_DIGEST) $(NS_SEMVER) $(NS_KUSTOMIZE) \
+                  $(NS_HELM) $(NS_NEG) $(NS_IMPORTED)
+
+namespaces: guard ## Create every namespace the spike uses (idempotent)
+	@for ns in $(ALL_NAMESPACES); do \
+	  $(KUBECTL) create namespace "$$ns" --dry-run=client -o yaml \
+	    | $(KUBECTL) apply -f - >/dev/null; \
+	done
+	@echo "namespaces present: $(ALL_NAMESPACES)"
+
+pki: ## Create the local CA and zot server certificate in .local/pki/ (idempotent)
+	@OPENSSL='$(OPENSSL)' scripts/pki.sh
+
+identities: ## Generate machine identity passwords and htpasswd in .local/ (idempotent)
+	@OPENSSL='$(OPENSSL)' scripts/identities.sh
+
+# The two Kubernetes secrets zot mounts. Both are built from .local/ and piped
+# straight into kubectl: nothing is ever written to a file under version
+# control, and no secret value appears in an argument or in the output.
+zot-secrets: guard namespaces pki identities ## Create zot's TLS and htpasswd secrets from .local/
+	@$(KUBECTL) create secret generic zot-server-tls \
+	  --namespace '$(ZOT_NAMESPACE)' \
+	  --from-file=tls.crt=.local/pki/tls.crt \
+	  --from-file=tls.key=.local/pki/tls.key \
+	  --from-file=ca.crt=.local/pki/ca.crt \
+	  --dry-run=client -o yaml | $(KUBECTL) apply -f - >/dev/null
+	@$(KUBECTL) create secret generic zot-htpasswd \
+	  --namespace '$(ZOT_NAMESPACE)' \
+	  --from-file=htpasswd=.local/htpasswd \
+	  --dry-run=client -o yaml | $(KUBECTL) apply -f - >/dev/null
+	@echo "secrets zot-server-tls and zot-htpasswd applied in namespace $(ZOT_NAMESPACE)"
+
+# ---------------------------------------------------------------------------
+# Event receiver
+# ---------------------------------------------------------------------------
+# Deployed before zot so the sink exists when zot starts and begins posting.
+
+events-install: guard namespaces ## Deploy the CloudEvents receiver used by Q3
+	@$(KUBECTL) apply -f events/receiver.yaml >/dev/null
+	@$(KUBECTL) -n '$(EVENTS_NAMESPACE)' rollout status deployment/event-receiver --timeout=120s
+	@echo "event receiver ready at http://event-receiver.$(EVENTS_NAMESPACE).svc.cluster.local:8080/"
+
+events-log: guard ## Tail what the event receiver has logged
+	@$(KUBECTL) -n '$(EVENTS_NAMESPACE)' logs deployment/event-receiver --tail=200
+
+# ---------------------------------------------------------------------------
+# zot registry
+# ---------------------------------------------------------------------------
+
+ZOT_HELM_ARGS := $(ZOT_CHART_NAME) \
+  --repo '$(ZOT_CHART_REPO)' \
+  --version '$(ZOT_CHART_VERSION)' \
+  --namespace '$(ZOT_NAMESPACE)' \
+  --values zot/values-poc.yaml
+
+zot-template: ## Render zot's manifests without installing (proof for B6 3.4)
+	@$(HELM) template '$(ZOT_RELEASE)' $(ZOT_HELM_ARGS)
+
+zot-install: guard zot-secrets events-install ## Install zot with the pinned chart and image
+	@echo "--- checking the rendered image matches the pin ---"
+	@rendered=$$($(HELM) template '$(ZOT_RELEASE)' $(ZOT_HELM_ARGS) \
+	   | $(YQ) -r 'select(.kind=="StatefulSet") | .spec.template.spec.containers[0].image'); \
+	 expected='$(ZOT_IMAGE_REPOSITORY):$(ZOT_IMAGE_TAG)'; \
+	 if [ "$$rendered" != "$$expected" ]; then \
+	   echo "FAIL rendered image '$$rendered' != pin '$$expected'"; exit 1; \
+	 fi; \
+	 echo "OK image pinned: $$rendered"
+	@echo "--- checking no chart-default htpasswd Secret is rendered ---"
+	@if $(HELM) template '$(ZOT_RELEASE)' $(ZOT_HELM_ARGS) \
+	   | $(YQ) -r 'select(.kind=="Secret") | .metadata.name' | grep -q .; then \
+	   echo "FAIL the chart rendered a Secret; the example htpasswd may be active"; exit 1; \
+	 fi
+	@echo "OK no Secret rendered by the chart"
+	@$(HELM) upgrade --install '$(ZOT_RELEASE)' $(ZOT_HELM_ARGS) --wait --timeout 5m
+	@$(KUBECTL) -n '$(ZOT_NAMESPACE)' rollout status statefulset/'$(ZOT_RELEASE)' --timeout=300s
+	@echo "zot ready at https://$(ZOT_HOST) (host) and https://$(ZOT_SERVICE_HOST):$(ZOT_SERVICE_PORT) (in cluster)"
+
+zot-logs: guard ## Tail zot's logs
+	@$(KUBECTL) -n '$(ZOT_NAMESPACE)' logs statefulset/'$(ZOT_RELEASE)' --tail=200
+
+zot-verify: guard ## Run the V1-V8 registry checks (TLS, auth, authz, referrers)
+	@KUBECTL='$(KUBECTL)' ORAS='$(ORAS)' scripts/zot-verify.sh
 
 # ---------------------------------------------------------------------------
 # Static analysis
