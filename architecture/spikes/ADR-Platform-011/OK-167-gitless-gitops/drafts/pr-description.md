@@ -6,6 +6,14 @@ This spike evaluates Argo CD v3.5.6 consuming manifests from private zot OCI rep
 
 All repository changes remain under `architecture/spikes/ADR-Platform-011/OK-167-gitless-gitops/`. Production profiles, ADRs and `.github/workflows/` are unchanged. The supplied German brief remains unchanged; revised code, comments, docs and publication text are English.
 
+## Review handoff
+
+The spike deliverables and review remediation are ready for Arash Kaffamanesh's review. No
+further implementation is pending from Daniel for this evaluation handoff. The next action
+is Arash's review of the report/evidence and a decision on accepting the spike outcome and
+scoping further work. The proposed NO-GO and documented gaps remain unchanged. The PR stays
+a draft; this handoff grants no adoption approval.
+
 ## Changes
 
 - Validate the entire loopback API authority and reject kubeconfig proxies, plugins and external credential/CA paths; enable and verify Argo CD API TLS.

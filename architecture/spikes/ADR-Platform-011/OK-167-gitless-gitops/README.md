@@ -5,6 +5,10 @@ series was 141 / 144 / 184s against the configured 180s window. AC4 and M1/M4 ar
 the original CONDITIONAL GO is withdrawn. See [REPORT.md](REPORT.md) for the
 current decision and [the remediation evidence](evidence/12-review-remediation.md) for results.
 
+The evaluation is ready for Arash Kaffamanesh's review. The next action is review and a
+decision on the documented outcome/follow-ups; no further implementation is pending from
+Daniel for this handoff. See REPORT.md section 12.
+
 - [PR #462](https://github.com/openkubes/openkubes/pull/462)
 - [Jira OK-167](https://kubernauts.atlassian.net/browse/OK-167)
 - [Confluence report](https://kubernauts.atlassian.net/wiki/spaces/OpenKubes/pages/3179446273)

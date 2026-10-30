@@ -330,6 +330,27 @@ conditions remain: an implemented signature-verifying promotion
 gate with restricted digest changes, digest pins plus a tested retention/immutability procedure,
 and an explicit decision whether polling latency is acceptable or a refresh bridge will be owned.
 
+### Review handoff — 2026-10-30
+
+The current spike deliverables are ready for review: D1 is the push script and inactive CI
+example, D2 is the commented Application configuration, and D3 is this report with retained
+runtime evidence and a proposed NO-GO. Review remediation and documentation are complete for
+this evaluation. No further implementation is pending from Daniel Santiago Gawenda before
+this review; review feedback or an agreed follow-up may create new work.
+
+**Next action owner: Arash Kaffamanesh**, the issue reporter and designated reviewer.
+Please review [PR #462](https://github.com/openkubes/openkubes/pull/462), this report and the
+[remediation evidence](evidence/12-review-remediation.md), then decide:
+
+1. Whether to accept the documented spike outcome and complete the human review.
+2. Whether the detection-window failure needs investigation and a retest, or whether a
+   different service target should be explicitly agreed for a future evaluation.
+3. Which proposed signature-enforcement, retention and refresh follow-ups should be scoped
+   and assigned. They have not been created or approved by this handoff.
+
+AC4 and M1/M4 remain NOT MET. The original observations and criteria are retained; this
+handoff grants no adoption approval. Jira remains open for review, and the PR remains a draft.
+
 ## 13. Proposed follow-ups
 
 | Proposed follow-up | Reason | Rough size |

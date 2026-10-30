@@ -1,3 +1,15 @@
+**Ready for review — handoff to Arash Kaffamanesh (2026-10-30).**
+
+Arash, please review the linked report, PR and retained evidence. D1–D3, the review remediation
+and English documentation are complete for the current evaluation. No further implementation
+is pending from Daniel Santiago Gawenda before your review. Feedback or an explicitly scoped
+follow-up may create new work. The next action is your review/decision; the proposed NO-GO
+remains unchanged and this is not an adoption approval.
+
+Please confirm the spike outcome, decide how to address the detection-window failure, and
+select any signature-enforcement, retention or refresh follow-ups that should be scoped and
+assigned. No follow-up tickets, merge or Jira status transition are created by this handoff.
+
 **Review remediation complete — proposed decision: NO-GO under the unchanged B13 criteria.** This replaces the earlier CONDITIONAL GO assessment.
 
 - [Draft PR #462](https://github.com/openkubes/openkubes/pull/462)

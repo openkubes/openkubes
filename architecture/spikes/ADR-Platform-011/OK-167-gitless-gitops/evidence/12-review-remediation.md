@@ -107,3 +107,12 @@ not modified. Git history alone cannot certify all filesystem reads in either ag
 No retrospective claim is made about all commands in the original agent session. The revised
 execution and evidence are separate from the historical `00`–`11` records. The German user
 brief remains unchanged; all remediation artifacts are English.
+
+## Review handoff — 2026-10-30
+
+D1–D3, review remediation, raw evidence and English documentation are ready for Arash
+Kaffamanesh's review. No further implementation is pending from Daniel for this evaluation
+handoff. Arash owns the next review/decision action; subsequent review feedback may create
+new work. The requested decisions are in REPORT.md section 12. The proposed NO-GO and all
+recorded gaps remain unchanged. No adoption approval, merge or Jira status transition is
+part of this handoff.
