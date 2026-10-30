@@ -1,29 +1,84 @@
-/* Beta 1 Lite: approved-host curated browser UI. No API calls, AI or execution. */
+/* Beta 1.1: approved-host curated browser UI. No API calls, AI or execution. */
 (function () {
   "use strict";
-  if (!["preview.openkubes.org", "openkubes.org"].includes(window.location.hostname)) return;
+  if (!["preview.openkubes.org", "openkubes.org", "feat-ok-205-faq-manifest.openkubes-preview.pages.dev"].includes(window.location.hostname)) return;
   if (document.getElementById("okai-floating-demo")) return;
 
   // Release-reviewed fixed text. No model-generated content is ever displayed.
   // This is a static curated Lite answer, NOT a live gateway.
-  var sourceUrl = "https://github.com/openkubes/ok-local/blob/60397cdb2630b0cd9cfbcb5d9a29fe2e38ce323e/docs/tutorial-basic.md";
-  var approvedAnswer = "OpenKubes Local (ok-local) is a fully automated local development environment provided by the OpenKubes project.";
-  var secondAnswer = "Yes. OpenKubes provides a fully automated local development environment called ok-local.";
+  // BEGIN GENERATED OK-205 FAQ DATA — edit website/data/ok-ai-faq.v1.json instead.
   var supported = Object.freeze({
-    "what is openkubes local": approvedAnswer,
-    "what is ok local": approvedAnswer,
-    "what is ok-local": approvedAnswer,
-    "does openkubes provide a local development environment": secondAnswer
+    "what is openkubes local": {
+      "answer": "OpenKubes Local (ok-local) is a fully automated local development environment provided by the OpenKubes project.",
+      "sources": [
+        "https://github.com/openkubes/ok-local/blob/60397cdb2630b0cd9cfbcb5d9a29fe2e38ce323e/docs/tutorial-basic.md"
+      ]
+    },
+    "what is ok local": {
+      "answer": "OpenKubes Local (ok-local) is a fully automated local development environment provided by the OpenKubes project.",
+      "sources": [
+        "https://github.com/openkubes/ok-local/blob/60397cdb2630b0cd9cfbcb5d9a29fe2e38ce323e/docs/tutorial-basic.md"
+      ]
+    },
+    "what is ok-local": {
+      "answer": "OpenKubes Local (ok-local) is a fully automated local development environment provided by the OpenKubes project.",
+      "sources": [
+        "https://github.com/openkubes/ok-local/blob/60397cdb2630b0cd9cfbcb5d9a29fe2e38ce323e/docs/tutorial-basic.md"
+      ]
+    },
+    "does openkubes provide a local development environment": {
+      "answer": "Yes. OpenKubes provides a fully automated local development environment called ok-local.",
+      "sources": [
+        "https://github.com/openkubes/ok-local/blob/60397cdb2630b0cd9cfbcb5d9a29fe2e38ce323e/docs/tutorial-basic.md"
+      ]
+    },
+    "what do i need to run ok-local on macos": {
+      "answer": "The documented macOS prerequisites for ok-local include Multipass, kubectl, Git and an SSH public key. Check the pinned prerequisites tutorial for required versions and setup.",
+      "sources": [
+        "https://github.com/openkubes/ok-local/blob/60397cdb2630b0cd9cfbcb5d9a29fe2e38ce323e/docs/tutorial-prerequisites.md"
+      ]
+    },
+    "what are the prerequisites for ok-local": {
+      "answer": "The documented macOS prerequisites for ok-local include Multipass, kubectl, Git and an SSH public key. Check the pinned prerequisites tutorial for required versions and setup.",
+      "sources": [
+        "https://github.com/openkubes/ok-local/blob/60397cdb2630b0cd9cfbcb5d9a29fe2e38ce323e/docs/tutorial-prerequisites.md"
+      ]
+    },
+    "what does the basic kubevirt tutorial cover": {
+      "answer": "The basic tutorial demonstrates K3s and KubeVirt inside a Multipass virtual machine on macOS. It is an introductory single-node exercise, not the complete multi-cluster ok-local setup.",
+      "sources": [
+        "https://github.com/openkubes/ok-local/blob/60397cdb2630b0cd9cfbcb5d9a29fe2e38ce323e/docs/tutorial-basic.md"
+      ]
+    },
+    "how can i try kubevirt on a mac": {
+      "answer": "The basic tutorial demonstrates K3s and KubeVirt inside a Multipass virtual machine on macOS. It is an introductory single-node exercise, not the complete multi-cluster ok-local setup.",
+      "sources": [
+        "https://github.com/openkubes/ok-local/blob/60397cdb2630b0cd9cfbcb5d9a29fe2e38ce323e/docs/tutorial-basic.md"
+      ]
+    },
+    "how is capi used in the ok-local tutorial": {
+      "answer": "The CAPI tutorial installs Cluster API and its KubeVirt infrastructure provider on ok-mgmt-local and demonstrates virtual machine management involving ok-infra-local. It does not claim a complete CAPI-managed workload cluster is built.",
+      "sources": [
+        "https://github.com/openkubes/ok-local/blob/60397cdb2630b0cd9cfbcb5d9a29fe2e38ce323e/docs/tutorial-capi.md"
+      ]
+    },
+    "where can i learn about capi and kubevirt in ok-local": {
+      "answer": "The CAPI tutorial installs Cluster API and its KubeVirt infrastructure provider on ok-mgmt-local and demonstrates virtual machine management involving ok-infra-local. It does not claim a complete CAPI-managed workload cluster is built.",
+      "sources": [
+        "https://github.com/openkubes/ok-local/blob/60397cdb2630b0cd9cfbcb5d9a29fe2e38ce323e/docs/tutorial-capi.md"
+      ]
+    }
   });
-  var unsupported = "Beta 1 Lite only answers a small set of reviewed questions. Please consult the official OpenKubes documentation.";
+  var unsupported = "Beta 1.1 only answers a small set of reviewed questions. Please consult the official OpenKubes documentation.";
+  // END GENERATED OK-205 FAQ DATA
   var root = document.createElement("div");
   root.id = "okai-floating-demo";
   root.className = "okai-float";
   root.innerHTML = [
     '<button type="button" class="okai-launch" aria-label="Open curated OK AI Lite" aria-expanded="false" aria-controls="okai-float-panel">✦ <span>Ask OK AI</span><span class="okai-launch-tag">LITE</span></button>',
     '<section id="okai-float-panel" class="okai-panel" role="dialog" aria-modal="false" aria-label="OK AI curated documentation Lite" hidden>',
-    '<header class="okai-panel-head"><span class="okai-symbol" aria-hidden="true">✦</span><span class="okai-heading"><strong>OK AI</strong><small>Documentation Q&A · Beta 1 Lite</small></span><button type="button" class="okai-close" aria-label="Close OK AI preview">×</button></header>',
-    '<div class="okai-messages" role="log" aria-live="polite" aria-relevant="additions text"><div class="okai-bubble okai-assistant">Welcome to Beta 1 Lite. I can answer selected reviewed questions about OpenKubes Local.<small>Fixed reviewed replies · No live AI · No network requests</small></div></div>',
+    '<header class="okai-panel-head"><span class="okai-symbol" aria-hidden="true">✦</span><span class="okai-heading"><strong>OK AI</strong><small>Documentation Q&A · Beta 1.1</small></span><button type="button" class="okai-close" aria-label="Close OK AI preview">×</button></header>',
+    '<div class="okai-messages" role="log" aria-live="polite" aria-relevant="additions text"><div class="okai-bubble okai-assistant">Welcome to Beta 1.1. I answer selected reviewed OpenKubes documentation questions.<small>Fixed reviewed replies · No live AI · No network requests</small></div></div>',
     '<div class="okai-suggestions"><button type="button" data-lite-question="What is OpenKubes Local?">What is OpenKubes Local?</button><button type="button" data-lite-question="Does OpenKubes provide a local development environment?">Local environment</button></div>',
     '<form class="okai-input-form"><label class="okai-visually-hidden" for="okai-floating-input">Documentation question</label><input id="okai-floating-input" type="text" maxlength="240" autocomplete="off" placeholder="Ask a reviewed question…" required><button type="submit" aria-label="Send question">Send</button></form>',
     '<p class="okai-disclaimer">Reviewed static answers · No AI backend · Do not enter secrets</p>',
@@ -47,9 +102,9 @@
     messages.scrollTop = messages.scrollHeight;
     return el;
   }
-  function linkToSource(el) {
+  function linkToSource(el, urls) {
     var a = document.createElement("a");
-    a.href = sourceUrl;
+    a.href = urls[0];
     a.target = "_blank";
     a.rel = "noopener noreferrer";
     a.textContent = "Review pinned documentation source ↗";
@@ -67,7 +122,8 @@
     var key = normalize(question);
     // Strict allowlist. No regex topic inference, model calls, or generic fallback source claims.
     if (Object.prototype.hasOwnProperty.call(supported, key)) {
-      linkToSource(bubble(supported[key], "assistant"));
+      var hit = supported[key];
+      linkToSource(bubble(hit.answer, "assistant"), hit.sources);
     } else {
       bubble(unsupported, "assistant");
     }

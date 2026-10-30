@@ -1,0 +1,38 @@
+name: OK-205 FAQ manifest and golden tests (validation only)
+
+on:
+  pull_request:
+    paths:
+      - 'website/data/ok-ai-faq.v1.json'
+      - 'website/scripts/validate-ok-ai-faq.js'
+      - 'website/scripts/sync-ok-ai-faq.js'
+      - 'website/assets/ok-ai-lite-preview.js'
+      - 'website/tests/ok-ai-faq-golden.v1.json'
+      - 'website/tests/test-ok-ai-faq-golden.js'
+      - '.github/workflows/ok205-faq-validation.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  faq-validation:
+    name: Offline FAQ contract and golden tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout candidate (read-only)
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate proposed manifest and fail-closed self-tests
+        run: node website/scripts/validate-ok-ai-faq.js --self-test
+      - name: Run deterministic approved/refusal golden fixtures
+        run: node website/tests/test-ok-ai-faq-golden.js
+      - name: Confirm browser FAQ matches approved manifest
+        run: node website/scripts/sync-ok-ai-faq.js --check
+      - name: Enforce approved and non-expired FAQ reviews
+        run: node website/scripts/validate-ok-ai-faq.js --release
