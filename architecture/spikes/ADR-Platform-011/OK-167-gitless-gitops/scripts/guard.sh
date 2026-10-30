@@ -173,7 +173,7 @@ fi
 # incomprehensibly gets disabled, so it fails clearly instead.
 if ! KUBECONFIG_JSON="$("$KUBECTL" config view -o json 2>&1)"; then
   ok167::error "KUBECONFIG is not a parseable kubeconfig: $KUBECONFIG"
-  ok167::error "kubectl said: $(printf '%s' "$KUBECONFIG_JSON" | head -2 | tr '\n' ' ')"
+  # Parser diagnostics can include malformed credential fields; do not echo them.
   exit 18
 fi
 if ! printf '%s' "$KUBECONFIG_JSON" | jq -e . >/dev/null 2>&1; then
@@ -214,14 +214,33 @@ CLUSTER_NAME_FOR_CONTEXT="$(printf '%s' "$KUBECONFIG_JSON" \
 SERVER_URL="$(printf '%s' "$KUBECONFIG_JSON" \
   | jq -r --arg c "$CLUSTER_NAME_FOR_CONTEXT" '.clusters[] | select(.name == $c) | .cluster.server')"
 
-case "$SERVER_URL" in
-  https://127.0.0.1:*) : ;;
-  *)
-    ok167::error "API server is '$SERVER_URL', expected https://127.0.0.1:<port>."
-    ok167::error "This spike runs only against the local kind cluster."
-    exit 16
-    ;;
-esac
+# Match the complete authority. A prefix check accepts userinfo such as
+# https://127.0.0.1:443@remote.example:6443, whose actual host is remote.example.
+if [[ ! "$SERVER_URL" =~ ^https://127[.]0[.]0[.]1:([0-9]{1,5})$ ]]; then
+  ok167::die "API server must be exactly https://127.0.0.1:<port>, without userinfo, path or query" 16
+fi
+PORT=$(( 10#${BASH_REMATCH[1]} ))
+[ "$PORT" -ge 1 ] && [ "$PORT" -le 65535 ] \
+  || ok167::die "API server port is outside 1..65535" 16
+
+# kind embeds its CA and client keys. File references, credential plugins and
+# proxies are unnecessary here and could escape the spike's access boundary.
+# config view does not execute plugins or flatten referenced credential files.
+# shellcheck disable=SC2016  # jq variables are literal
+if ! printf '%s' "$KUBECONFIG_JSON" | jq -e --arg cluster "$CLUSTER_NAME_FOR_CONTEXT" '
+  (.clusters | length) == 1 and
+  (.users | length) == 1 and
+  (.clusters[0].name == $cluster) and
+  (.contexts[0].context.user == .users[0].name) and
+  (.clusters[0].cluster | (.["insecure-skip-tls-verify"] // false) == false and
+    (.["proxy-url"] // "") == "" and
+    (.["certificate-authority"] // "") == "" and
+    (.["tls-server-name"] // "") == "") and
+  (.users[0].user | has("exec") or has("auth-provider") or
+    has("client-certificate") or has("client-key") or has("tokenFile") | not)
+' >/dev/null; then
+  ok167::die "kubeconfig must contain one local cluster/user, embedded credentials, verified TLS and no proxy/plugin" 16
+fi
 
 # ---------------------------------------------------------------------------
 # 7. kubectl version skew
@@ -235,7 +254,7 @@ CLUSTER_MINOR="$(printf '%s' "$EXPECTED_K8S_VERSION" | sed -E 's/^v[0-9]+\.([0-9
 
 if ! printf '%s' "$CLIENT_MINOR" | grep -qE '^[0-9]+$' \
   || ! printf '%s' "$CLUSTER_MINOR" | grep -qE '^[0-9]+$'; then
-  ok167::warn "Could not determine kubectl/cluster minor versions; skew check skipped."
+  ok167::die "Could not determine kubectl/cluster minor versions; refusing to skip the skew check" 17
 else
   SKEW=$(( CLIENT_MINOR - CLUSTER_MINOR ))
   [ "$SKEW" -lt 0 ] && SKEW=$(( -SKEW ))

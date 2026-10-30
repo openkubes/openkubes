@@ -8,6 +8,7 @@
 # with their phases; this file currently covers the Phase 1 scaffold.
 
 .DEFAULT_GOAL := help
+.NOTPARALLEL:
 SHELL := /usr/bin/env bash
 .SHELLFLAGS := -euo pipefail -c
 
@@ -73,7 +74,7 @@ UTC    = $(shell date -u +%Y%m%dT%H%M%SZ)
         namespaces pki identities zot-secrets events-install events-log \
         zot-template zot-install zot-logs zot-verify zot-down zot-up repo-server-restart \
         push push-dry determinism verify \
-        argocd-install argocd-repo argocd-project argocd-password \
+        argocd-install argocd-repo argocd-project argocd-repo-creds \
         app-tag app-digest app-semver app-kustomize app-helm app-set-revision \
         refresh app-status app-wait probe-version measure drift
 
@@ -318,26 +319,15 @@ argocd-install: guard namespaces pki ## Install Argo CD v3.5.6 and trust the zot
 # REPO is the last path segment, e.g. podinfo-manifests.
 argocd-repo: guard ## Create a repository Secret for one repo (REPO=podinfo-manifests)
 	@test -n '$(REPO)' || { echo "REPO= is required, e.g. make argocd-repo REPO=podinfo-manifests"; exit 2; }
-	@set -euo pipefail; \
-	 . .local/credentials.env; \
-	 pw="$$OK167_GITOPS_PULLER_PASSWORD"; \
-	 $(JQ) -n --arg name 'ok167-zot-$(REPO)' --arg ns '$(ARGOCD_NAMESPACE)' \
-	        --arg url 'oci://$(ZOT_SERVICE_HOST):$(ZOT_SERVICE_PORT)/$(REPO_PREFIX)/$(REPO)' \
-	        --arg user '$(IDENTITY_PULLER)' --arg pw "$$pw" \
-	   '{apiVersion:"v1", kind:"Secret", metadata:{name:$$name, namespace:$$ns, \
-     labels:{"argocd.argoproj.io/secret-type":"repository"}}, type:"Opaque", \
-     stringData:{type:"oci", url:$$url, username:$$user, password:$$pw}}' \
-	 | $(KUBECTL) apply -f - >/dev/null
-	@echo "repository secret ok167-zot-$(REPO) applied (value never written to disk)"
+	@scripts/repository-secret.sh repository '$(REPO)' | $(KUBECTL) apply -f - >/dev/null
+	@echo "repository Secret applied from local credential input"
+
+argocd-repo-creds: guard ## Create the OCI prefix credential template
+	@scripts/repository-secret.sh repo-creds | $(KUBECTL) apply -f - >/dev/null
 
 argocd-project: guard namespaces ## Create the ok167 AppProject
 	@$(KUBECTL) apply -f argocd/appproject.yaml >/dev/null
 	@echo "AppProject ok167 applied"
-
-argocd-password: guard ## Print the initial admin password (for the human's port-forward)
-	@echo "This prints a credential to the terminal. Ctrl-C now if that is not what you want."
-	@$(KUBECTL) -n '$(ARGOCD_NAMESPACE)' get secret argocd-initial-admin-secret \
-	  -o jsonpath='{.data.password}' | base64 -d; echo
 
 # ---------------------------------------------------------------------------
 # Applications
@@ -389,15 +379,7 @@ app-status: guard ## Show sync status, revision and resource count (APP=...)
 
 app-wait: guard ## Block until an Application is Synced and Healthy (APP=... [TIMEOUT=300])
 	@test -n '$(APP)' || { echo "APP= is required"; exit 2; }
-	@deadline=$$(( $$(date -u +%s) + $(or $(TIMEOUT),300) )); \
-	 while [ "$$(date -u +%s)" -lt "$$deadline" ]; do \
-	   s=$$($(KUBECTL) -n '$(ARGOCD_NAMESPACE)' get application '$(APP)' \
-	        -o jsonpath='{.status.sync.status}/{.status.health.status}' 2>/dev/null || true); \
-	   if [ "$$s" = "Synced/Healthy" ]; then echo "$(APP): $$s"; exit 0; fi; \
-	   sleep 2; \
-	 done; \
-	 echo "$(APP) did not reach Synced/Healthy within $(or $(TIMEOUT),300)s"; \
-	 $(MAKE) --no-print-directory app-status APP='$(APP)'; exit 1
+	@scripts/wait-application.sh '$(APP)' '$(DIGEST)' '$(or $(TIMEOUT),300)'
 
 measure: guard ## Measure sync latency (APP=... DIGEST=... [IMAGE=...] [T0=...] [LABEL=...])
 	@KUBECTL='$(KUBECTL)' JQ='$(JQ)' scripts/measure-sync.sh \
@@ -532,6 +514,8 @@ verify: guard ## Re-check every pass criterion that needs no new push
 	 chk "health endpoint open" \
 	   "$$(curl -s -o /dev/null -w '%{http_code}' --cacert .local/pki/ca.crt https://$(ZOT_HOST)/readyz)" "200"; \
 	 echo "--- argo cd ---"; \
+	 chk "Argo CD API TLS enabled" \
+	   "$$($(KUBECTL) -n $(ARGOCD_NAMESPACE) get cm argocd-cmd-params-cm -o jsonpath='{.data.server\.insecure}')" "false"; \
 	 chk "argocd image pin" \
 	   "$$($(KUBECTL) -n $(ARGOCD_NAMESPACE) get statefulset argocd-application-controller -o jsonpath='{.spec.template.spec.containers[0].image}')" \
 	   "$(ARGOCD_IMAGE_REPOSITORY):$(ARGOCD_IMAGE_TAG)"; \
@@ -551,12 +535,7 @@ verify: guard ## Re-check every pass criterion that needs no new push
 	     "$$($(KUBECTL) -n $(ARGOCD_NAMESPACE) get application $$app -o json 2>/dev/null | $(JQ) -r '(.status.resources // []) | length')" "2"; \
 	 done; \
 	 echo "--- provenance (M3) ---"; \
-	 rev=$$($(ORAS) manifest fetch $(ZOT_HOST)/$(REPO_MANIFESTS):v1.0.0 \
-	        --ca-file .local/pki/ca.crt --registry-config .local/registry-auth/$(IDENTITY_PUBLISHER).json 2>/dev/null \
-	        | $(JQ) -r '.annotations["org.opencontainers.image.revision"] // "missing"'); \
-	 if git cat-file -t "$$rev" >/dev/null 2>&1; then \
-	   printf '  PASS revision annotation names a real commit (%s)\n' "$$(echo $$rev | cut -c1-8)"; \
-	 else printf '  FAIL revision annotation is not a commit: %s\n' "$$rev"; fail=1; fi; \
+	 if scripts/verify-provenance.sh; then :; else fail=1; fi; \
 	 echo; \
 	 if [ "$$fail" = "0" ]; then echo "verify: all checks passed"; else echo "verify: FAILURES above"; exit 1; fi
 
@@ -595,3 +574,83 @@ upgrade: ## Not applicable for this spike — explains why
 clean-local: ## Remove generated Helm/chart caches from .local/ (keeps credentials and PKI)
 	@rm -rf .local/helm .local/charts
 	@echo "removed .local/helm and .local/charts; credentials, PKI and kubeconfig untouched"
+
+.PHONY: test-review
+# This target does not contact a cluster or registry.
+test-review: ## Run adversarial review regressions in an isolated Git fixture
+	@scripts/test-review-regressions.sh
+
+.PHONY: install argocd-without-ca exp-q1c exp-q1d exp-structure sign verify-signature offline-transfer app-negative app-imported reconcile reconcile-reset
+install: ## Create and install the isolated spike in dependency order
+	@$(MAKE) up
+	@$(MAKE) namespaces pki identities events-install zot-install argocd-install argocd-repo REPO=podinfo-manifests argocd-repo-creds argocd-project
+
+argocd-without-ca: guard ## Q1.d only: temporarily remove zot CA trust
+	@$(HELM) upgrade --install '$(ARGOCD_RELEASE)' $(ARGOCD_HELM_ARGS) --wait --timeout 8m
+
+exp-q1c: guard ## Reject an incorrect password and verify restoration
+	@scripts/experiments.sh q1c
+
+exp-q1d: guard ## Remove CA trust, observe x509 failure, then restore trust
+	@scripts/experiments.sh q1d
+
+exp-structure: guard ## Reproduce two-content-layer and non-archive rejection
+	@scripts/experiments.sh structure
+
+sign: guard ## Sign a digest without public services (DIGEST=... MODE=bundle|legacy)
+	@scripts/signing.sh sign
+
+verify-signature: guard ## Verify a digest signature offline (DIGEST=...)
+	@scripts/signing.sh verify
+
+offline-transfer: guard ## Export/import artifact and referrers, verify and synchronize (DIGEST=...)
+	@scripts/experiments.sh offline
+
+app-negative: guard ## Apply an isolated negative artifact case (CASE_ID=...)
+	@test -n '$(CASE_ID)'
+	@sed 's|CASE_PLACEHOLDER|$(CASE_ID)|g' argocd/application-negative.yaml | $(KUBECTL) apply -f - >/dev/null
+
+app-imported: guard ## Apply the imported artifact by digest (DIGEST=...)
+	@test -n '$(DIGEST)'
+	@sed 's|DIGEST_PLACEHOLDER|$(DIGEST)|g' argocd/application-imported.yaml | $(KUBECTL) apply -f - >/dev/null
+
+reconcile: guard ## Set reconciliation interval and jitter (REC=... JITTER=...)
+	@test -n '$(REC)' -a -n '$(JITTER)'
+	@$(HELM) upgrade --install '$(ARGOCD_RELEASE)' $(ARGOCD_HELM_ARGS) $(ARGOCD_CA_ARG) --set-string 'configs.cm.timeout\.reconciliation=$(REC)' --set-string 'configs.cm.timeout\.reconciliation\.jitter=$(JITTER)' --wait --timeout 8m
+	@$(KUBECTL) -n argocd rollout restart statefulset/argocd-application-controller deployment/argocd-repo-server >/dev/null
+	@$(KUBECTL) -n argocd rollout status statefulset/argocd-application-controller --timeout=300s
+	@$(KUBECTL) -n argocd rollout status deployment/argocd-repo-server --timeout=300s
+
+reconcile-reset: guard ## Restore the default 120s reconciliation and 60s jitter
+	@$(MAKE) reconcile REC=120s JITTER=60s
+
+.PHONY: probe-argocd-tls exp-webhook
+probe-argocd-tls: guard ## Verify API TLS and reject an untrusted certificate
+	@scripts/probe-argocd-tls.sh
+
+exp-webhook: guard ## Replay the zot CloudEvent to the TLS-protected Argo CD API
+	@scripts/probe-argocd-tls.sh webhook
+
+.PHONY: app-exact exp-latency exp-signing exp-recovery
+app-exact: guard ## Apply the retained exact-tag Application for T3
+	@$(KUBECTL) create namespace ok167-exact --dry-run=client -o yaml | $(KUBECTL) apply -f - >/dev/null
+	@$(KUBECTL) apply -f argocd/application-exact.yaml >/dev/null
+
+exp-latency: guard ## Repeat T1/T2 three times and observe T3/T4 for at least 360 seconds
+	@scripts/experiments.sh latency
+
+exp-signing: guard ## Verify signing and prove that an unsigned digest still synchronizes
+	@scripts/experiments.sh signing
+
+exp-recovery: guard ## Observe cache-cold registry outage and unattended recovery
+	@scripts/experiments.sh recovery
+
+.PHONY: verify-artifact exp-q1b exp-self-heal
+verify-artifact: guard ## Compare a fetched artifact with its annotated Git tree
+	@scripts/verify-provenance.sh
+
+exp-q1b: guard ## Test prefix credentials without an exact Kustomize repository Secret
+	@scripts/experiments.sh q1b
+
+exp-self-heal: guard ## Measure restoration of the Kustomize replica count
+	@scripts/experiments.sh self-heal

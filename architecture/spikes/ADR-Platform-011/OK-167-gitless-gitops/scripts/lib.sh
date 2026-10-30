@@ -169,3 +169,15 @@ ok167::redact() {
 ok167::spike_root() {
   cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd
 }
+
+# Read a literal KEY=value credential without sourcing or evaluating the file.
+# Values may contain shell metacharacters; only generated key names are accepted.
+ok167::credential() {
+  local wanted="$1" file="${2:-.local/credentials.env}" key value
+  case "$wanted" in *[!A-Z0-9_]*|'') ok167::die "invalid credential key" 2 ;; esac
+  ok167::require_file "$file" "credential file"
+  while IFS='=' read -r key value; do
+    if [ "$key" = "$wanted" ]; then printf '%s' "$value"; return 0; fi
+  done < "$file"
+  ok167::die "credential key is absent from the local file" 2
+}

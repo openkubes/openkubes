@@ -33,6 +33,8 @@ permissions:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    env:
+      GTAR: tar
     defaults:
       run:
         working-directory: architecture/spikes/ADR-Platform-011/OK-167-gitless-gitops
@@ -67,8 +69,8 @@ jobs:
       - name: Package and push
         env:
           # Credentials come from repository secrets and are read by the
-          # script from the environment. They are never echoed, never passed
-          # as flags, and never written to a file in the workspace.
+          # script through a protected, gitignored local credential file.
+          # They never appear in process arguments or command output.
           OK167_GITOPS_PUBLISHER_PASSWORD: ${{ secrets.OK167_GITOPS_PUBLISHER_PASSWORD }}
           REGISTRY_CA_PEM: ${{ secrets.OK167_REGISTRY_CA_PEM }}
         run: |
@@ -77,8 +79,8 @@ jobs:
           # The script reads credentials from .local/credentials.env, so the
           # workflow materialises exactly that file and nothing else. .local/
           # is gitignored and the runner is discarded after the job.
-          mkdir -p .local/pki
           umask 077
+          mkdir -p .local/pki
           printf 'OK167_GITOPS_PUBLISHER_PASSWORD=%s\n' \
             "$OK167_GITOPS_PUBLISHER_PASSWORD" > .local/credentials.env
           printf '%s\n' "$REGISTRY_CA_PEM" > .local/pki/ca.crt

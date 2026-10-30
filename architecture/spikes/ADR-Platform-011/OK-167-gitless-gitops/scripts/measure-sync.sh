@@ -84,9 +84,11 @@ fi
 ok167::info "measuring $APP -> $DIGEST (reconcile=$RECONCILE jitter=$JITTER timeout=${TIMEOUT}s)"
 
 T1=""; T2=""; T3=""; T4=""
+LAST_MISS=""; FIRST_MATCH_REQUEST=""; MAX_POLL_MS=0
 DEADLINE=$(( T0 + TIMEOUT ))
 
 while [ "$(ok167::epoch)" -lt "$DEADLINE" ]; do
+  POLL_START_MS="$("$JQ" -nr 'now * 1000 | floor')"
   APP_JSON="$("$KUBECTL" -n "$ARGOCD_NS" get application "$APP" -o json 2>/dev/null || true)"
 
   if [ -n "$APP_JSON" ]; then
@@ -96,9 +98,11 @@ while [ "$(ok167::epoch)" -lt "$DEADLINE" ]; do
     op_phase="$(printf '%s' "$APP_JSON" | "$JQ" -r '.status.operationState.phase // ""')"
     op_revision="$(printf '%s' "$APP_JSON" | "$JQ" -r '.status.operationState.syncResult.revision // ""')"
 
+    if [ "$revision" != "$DIGEST" ]; then LAST_MISS="$POLL_START_MS"; fi
     # t1 — the controller now knows about the new digest
     if [ -z "$T1" ] && [ "$revision" = "$DIGEST" ]; then
       T1="$(ok167::epoch)"
+      FIRST_MATCH_REQUEST="$POLL_START_MS"
       ok167::info "t1 detection after $(( T1 - T0 ))s"
     fi
 
@@ -139,6 +143,10 @@ while [ "$(ok167::epoch)" -lt "$DEADLINE" ]; do
     fi
   fi
 
+  POLL_END_MS="$("$JQ" -nr 'now * 1000 | floor')"
+  POLL_MS=$(( POLL_END_MS - POLL_START_MS ))
+  [ "$POLL_MS" -le "$MAX_POLL_MS" ] || MAX_POLL_MS="$POLL_MS"
+
   # Done when everything that was asked for has been observed.
   if [ -n "$T3" ]; then
     if [ -z "$IMAGE" ] || [ -n "$T4" ]; then break; fi
@@ -163,17 +171,26 @@ mkdir -p evidence/raw
   --arg reconcile "$RECONCILE" --arg jitter "$JITTER" \
   --arg at "$(ok167::timestamp)" \
   --argjson t0 "$T0" \
+  --arg t1 "$T1" --arg t2 "$T2" --arg t3 "$T3" --arg t4 "$T4" \
+  --arg last_miss "$LAST_MISS" --arg first_match_request "$FIRST_MATCH_REQUEST" \
+  --argjson max_poll_ms "$MAX_POLL_MS" \
   --argjson detection "$(elapsed_or_null "$T1")" \
   --argjson sync "$(elapsed_or_null "$T2")" \
   --argjson healthy "$(elapsed_or_null "$T3")" \
   --argjson rollout "$(elapsed_or_null "$T4")" \
   '{at:$at, app:$app, label:$label, digest:$digest, image:$image, result:$result,
+    timestamps:{t0:$t0,t1:($t1|if .=="" then null else tonumber end),t2:($t2|if .=="" then null else tonumber end),
+      t3:($t3|if .=="" then null else tonumber end),t4:($t4|if .=="" then null else tonumber end)},
+    sampling:{interval_seconds:1,max_poll_work_ms:$max_poll_ms,
+      last_miss_request_ms:($last_miss|if .=="" then null else tonumber end),
+      first_match_request_ms:($first_match_request|if .=="" then null else tonumber end)},
     settings:{reconciliation:$reconcile, jitter:$jitter},
     seconds:{detection:$detection, sync:$sync, healthy:$healthy, rollout:$rollout}}' \
   >> evidence/raw/measurements.json
 
 if [ "$RESULT" = "TIMEOUT" ]; then
   ok167::warn "TIMEOUT after ${TIMEOUT}s — recorded (detection=$(elapsed_or_null "$T1") healthy=$(elapsed_or_null "$T3"))"
+  exit 1
 else
   ok167::ok "detection=$(elapsed_or_null "$T1")s sync=$(elapsed_or_null "$T2")s healthy=$(elapsed_or_null "$T3")s rollout=$(elapsed_or_null "$T4")s"
 fi

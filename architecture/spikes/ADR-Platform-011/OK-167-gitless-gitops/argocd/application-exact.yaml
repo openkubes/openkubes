@@ -1,0 +1,63 @@
+# D2 — the primary Application example: Argo CD syncing from an OCI artifact
+# in zot instead of from a Git repository.
+#
+# Every field is commented, because the point of the deliverable is that
+# someone can copy this and understand why each line is the way it is.
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ok167-podinfo-exact
+  # Applications live in the Argo CD namespace, not in the target namespace.
+  namespace: argocd
+spec:
+  # The AppProject is the boundary: it restricts which repositories this
+  # Application may read and which namespaces it may write to. Without it, an
+  # Application may use any source and any destination.
+  project: ok167
+
+  source:
+    # oci:// is the scheme that makes Argo CD treat this as an OCI repository
+    # rather than Git. Support was added in v3.1.0.
+    #
+    # The in-cluster service name and port 5000 — NOT the NodePort. The
+    # NodePort exists for the host-side publisher; the repo-server resolves
+    # this name through cluster DNS.
+    #
+    # This exact string must match an entry in the AppProject's sourceRepos and
+    # must match the `url` of a repository Secret, otherwise Argo CD will not
+    # find the credentials.
+    repoURL: oci://zot.zot.svc.cluster.local:5000/openkubes/machine/gitops/podinfo-manifests
+
+    # A mutable tag. This is deliberate for test T1, which measures whether
+    # Argo CD notices that the tag now points at a different digest.
+    #
+    # It is NOT a recommendation. ADR-028 section 4.7 requires released
+    # artifacts to be protected against unintended mutation, and section 4.3
+    # says a mutable tag alone is not release evidence. For operations, pin a
+    # digest (see application-digest.yaml) or make tags immutable.
+    targetRevision: release-review
+
+    # The root of the unpacked artifact. The archive is packed at its own root
+    # (gtar -C <dir> . ), so the manifests sit directly at `.`.
+    #
+    # A wrong path here does not fail loudly: Argo CD reports Synced with zero
+    # resources. That is why every sync check in this spike also asserts the
+    # resource count.
+    path: .
+
+  destination:
+    # The cluster Argo CD itself runs on.
+    server: https://kubernetes.default.svc
+    namespace: ok167-exact
+
+  syncPolicy:
+    automated:
+      # Remove resources that disappear from the artifact.
+      prune: true
+      # Revert manual changes to live resources — tested by T7.
+      selfHeal: true
+    syncOptions:
+      # The namespace is created by `make namespaces`, not by Argo CD: the
+      # AppProject forbids cluster-scoped resources, and a Namespace is one.
+      - CreateNamespace=false

@@ -48,18 +48,34 @@ ok167::require_tool grep
 
 cd "$SPIKE_ROOT"
 
+umask 077
 WORK_DIR="$SPIKE_ROOT/.local/tmp"
 mkdir -p "$WORK_DIR"
-FINDINGS_FILE="$WORK_DIR/scan-findings.$$"
-FILE_LIST="$WORK_DIR/scan-files.$$"
+SCAN_ROOT="$(mktemp -d "$WORK_DIR/scan.XXXXXX")"
+INDEX_ROOT="$SCAN_ROOT/index"
+mkdir -p "$INDEX_ROOT"
+FINDINGS_FILE="$SCAN_ROOT/findings"
+FILE_LIST="$SCAN_ROOT/files"
 : > "$FINDINGS_FILE"
 : > "$FILE_LIST"
-trap 'rm -f "$FINDINGS_FILE" "$FILE_LIST"' EXIT
+trap 'rm -rf "$SCAN_ROOT"' EXIT
+
+source_path() {
+  case "$1" in
+    "$INDEX_ROOT/"*) printf '%s' "${1#"$INDEX_ROOT/"}" ;;
+    *) printf '%s' "$1" ;;
+  esac
+}
 
 report() {
   # report <file> <line-number> <rule> <detail>
-  ok167::error "$1:$2  [$3] $4"
-  printf '%s\n' "$1:$2:$3" >> "$FINDINGS_FILE"
+  local label
+  case "$1" in
+    "$INDEX_ROOT/"*) label="index/$(source_path "$1")" ;;
+    *) label="worktree/$1" ;;
+  esac
+  ok167::error "$label:$2  [$3] $4"
+  printf '%s\n' "$label:$2:$3" >> "$FINDINGS_FILE"
 }
 
 # grep across every in-scope file, NUL-delimited so filenames with spaces are
@@ -75,21 +91,30 @@ grep_files() {
 # ---------------------------------------------------------------------------
 # Scope: tracked + staged files in the spike directory
 # ---------------------------------------------------------------------------
-# `git ls-files` lists tracked files; --others --exclude-standard adds new files
-# that are not ignored, i.e. what a `git add` would pick up next.
-{
-  git ls-files -- . 2>/dev/null || true
-  git ls-files --others --exclude-standard -- . 2>/dev/null || true
-  git diff --cached --name-only --diff-filter=ACM -- . 2>/dev/null \
-    | sed "s|^architecture/spikes/ADR-Platform-011/OK-167-gitless-gitops/||" || true
-} | sort -u | while IFS= read -r f; do
-  [ -n "$f" ] || continue
+# Scan working files and immutable index blobs independently. A staged secret
+# remains in scope even after the working file is cleaned or removed.
+check_name() {
+  case "$1" in
+    *$'\n'*|*$'\t'*|*:*) ok167::die "unsupported filename delimiter in scan input" 2 ;;
+  esac
+}
+while IFS= read -r -d '' f; do
+  check_name "$f"
   [ -f "$f" ] || continue
-  # Text files only; a binary would produce meaningless matches.
-  if LC_ALL=C grep -qI . "$f" 2>/dev/null; then
-    printf '%s\n' "$f" >> "$FILE_LIST"
-  fi
-done
+  [ ! -L "$f" ] || ok167::die "refusing to follow a worktree symlink while scanning" 2
+  LC_ALL=C grep -qI . "$f" 2>/dev/null && printf '%s\n' "$f" >> "$FILE_LIST"
+done < <(git ls-files -z --cached --others --exclude-standard -- .)
+while IFS= read -r -d '' entry; do
+  header="${entry%%$'\t'*}"
+  f="${entry#*$'\t'}"
+  check_name "$f"
+  read -r mode oid stage <<< "$header"
+  [ "$stage" = "0" ] || ok167::die "resolve unmerged index entries before scanning" 2
+  mkdir -p "$INDEX_ROOT/$(dirname "$f")"
+  git cat-file blob "$oid" > "$INDEX_ROOT/$f"
+  LC_ALL=C grep -qI . "$INDEX_ROOT/$f" 2>/dev/null \
+    && printf '%s\n' "$INDEX_ROOT/$f" >> "$FILE_LIST"
+done < <(git ls-files -z --stage -- .)
 
 FILE_COUNT=$(wc -l < "$FILE_LIST" | tr -d ' ')
 if [ "$FILE_COUNT" -eq 0 ]; then
@@ -107,19 +132,31 @@ is_placeholder() {
   local v="$1"
   v="$(printf '%s' "$v" | sed -E 's/^[[:space:]]*["'"'"']?//; s/["'"'"']?[[:space:]]*$//')"
   [ -z "$v" ] && return 0
-  # shellcheck disable=SC2016  # these are literal markers, not expansions
+  # Explicit documentation placeholders only: arbitrary bracketed strings and
+  # dollar-prefixed YAML values may be real credentials.
   case "$v" in
-    '<'*'>'|'${'*'}'|'{{'*'}}'|'$('*')') return 0 ;;
+    '<redacted>'|'<from-secret-store>'|'<from secret store>'|'<from Vault via VSO>'|\
+    '<generated-at-runtime>'|'<set-by-makefile>') return 0 ;;
   esac
-  # A bare `$name` is a reference, not a value. Argo CD uses exactly this for
-  # secret indirection (`clientSecret: $dex.github.clientSecret`,
-  # `$<secret-name>:<key>`), which is what the Secret Contract in ADR-011 asks
-  # for — Git holds the reference, never the value. A bcrypt hash also starts
-  # with `$`, so it is excluded here; rule 2a catches it on its own anyway.
-  # shellcheck disable=SC2016  # literal bcrypt prefixes, not expansions
-  case "$v" in
-    '$2a$'*|'$2b$'*|'$2y$'*) : ;;
-    '$'?*) return 0 ;;
+  local path
+  path="$(source_path "${2:-}")"
+  case "$path" in
+    *.sh)
+      # Shell variable references are interpreted only in shell source files.
+      # shellcheck disable=SC2016
+      if [ "$path" = "scripts/scan-secrets.sh" ] && [ "$v" = '$dex.github.clientSecret' ]; then
+        return 0
+      fi
+      # shellcheck disable=SC2016  # literal shell-reference syntax
+      if printf '%s' "$v" | grep -qE '^\$(\{[A-Za-z_][A-Za-z0-9_]*\}|[A-Za-z_][A-Za-z0-9_]*)(/[A-Za-z0-9._/-]+)?$'; then
+        return 0
+      fi ;;
+    evidence/raw/helm-values-argo-cd-*.yaml|evidence/00-preflight.md)
+      # This exact commented Argo CD example is retained from the upstream chart.
+      # shellcheck disable=SC2016
+      [ "$v" = '$dex.github.clientSecret' ] && return 0
+      # shellcheck disable=SC2016
+      [ "$v" = '$oidc.azuread.clientSecret' ] && return 0 ;;
   esac
   if printf '%s' "$v" | grep -qiE '^(changeme|change-me|my-password|my-secret|password|secret|token|example|examplepass|redacted|placeholder|dummy|foo|bar|test|xxx+|\.\.\.|none|null|true|false|from-secret-store|set-by-makefile|generated-at-runtime)$'; then
     return 0
@@ -211,8 +248,6 @@ check_patterns() {
     while IFS= read -r hit; do
       [ -n "$hit" ] || continue
       rest="${hit#*:}"
-      # shellcheck disable=SC2016  # literal markers
-      case "$rest" in *'<redacted>'*|*'${'*|*'{{'*) continue ;; esac
       report "$f" "${hit%%:*}" "auth-header" "Authorization header with a payload"
     done < <(grep -nE 'Authorization:[[:space:]]*(Basic|Bearer)[[:space:]]+[A-Za-z0-9+/=._-]{16,}' "$f" 2>/dev/null || true)
 
@@ -233,10 +268,10 @@ check_patterns() {
         | sed -E 's/^[^:=]*[:=][[:space:]]*//' \
         | sed -E 's/[[:space:]]+#.*$//' \
         | sed -E 's/[[:space:]]+$//')"
-      is_placeholder "$value" && continue
+      is_placeholder "$value" "$f" && continue
       # Only opaque, secret-length values qualify. `true`, a path, or a URL is
       # configuration, not a credential.
-      printf '%s' "$value" | grep -qE '^["'"'"']?[A-Za-z0-9+/=_.-]{16,}["'"'"']?$' || continue
+      printf '%s' "$value" | grep -qE '^["'"'"']?[A-Za-z0-9+/=_.!@$%<>:-]{16,}["'"'"']?$' || continue
       printf '%s' "$value" | grep -qE '^["'"'"']?(/|\./|https?://)' && continue
       report "$f" "$ln" "assignment" "opaque value assigned to a credential key"
     done < <(grep -nEi '(password|passwd|token|secret|apikey|api_key|authheader)[[:space:]]*[:=][[:space:]]*[^[:space:]]+' "$f" 2>/dev/null || true)
@@ -248,10 +283,11 @@ check_patterns() {
 # Check 3 — files that must never be tracked at all
 # ---------------------------------------------------------------------------
 check_forbidden_paths() {
-  local f
+  local f path
   while IFS= read -r f; do
     [ -n "$f" ] || continue
-    case "$f" in
+    path="$(source_path "$f")"
+    case "$path" in
       .local/*|*/.local/*)
         report "$f" 1 "forbidden-path" ".local/ content must never be tracked"
         continue
@@ -259,10 +295,10 @@ check_forbidden_paths() {
     esac
     # Documentation and templates about credential files are fine; the files
     # themselves are not.
-    case "$f" in
+    case "$path" in
       *.template.yaml|*.md) continue ;;
     esac
-    case "$f" in
+    case "$path" in
       *.key|*.pem|*htpasswd*|*credentials.env|*kubeconfig)
         report "$f" 1 "forbidden-path" "credential material must live in .local/"
         ;;

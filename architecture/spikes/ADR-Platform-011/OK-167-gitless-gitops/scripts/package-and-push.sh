@@ -97,6 +97,7 @@ CREDS="$SPIKE_ROOT/.local/credentials.env"
 # ---------------------------------------------------------------------------
 # 1. Provenance
 # ---------------------------------------------------------------------------
+START_MS="$("$JQ" -nr 'now * 1000 | floor')"
 GIT_SHA="$(git rev-parse HEAD)"
 
 # The timestamp of the last commit that touched the source directory. Using the
@@ -105,18 +106,33 @@ SOURCE_DATE_EPOCH="$(git log -1 --format=%ct -- "$SOURCE" || true)"
 [ -n "$SOURCE_DATE_EPOCH" ] \
   || ok167::die "no commit found for $SOURCE — commit the manifests before packaging" 2
 
-# Dirty tree check, scoped to the source directory.
+# Materialize the annotated Git tree before validating or packaging it. This
+# bypasses neither ignored files nor assume-unchanged/skip-worktree index flags.
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+SOURCE_ABS="$(cd "$SOURCE" && pwd -P)"
+case "$SOURCE_ABS" in
+  "$SPIKE_ROOT/app/"*) : ;;
+  *) ok167::die "source must resolve inside the spike's app/ directory" 2 ;;
+esac
+SOURCE_REPO="${SOURCE_ABS#"$REPO_ROOT/"}"
+git cat-file -e "$GIT_SHA:$SOURCE_REPO" \
+  || ok167::die "source is absent from the annotated commit" 2
+WORK="$SPIKE_ROOT/.local/tmp/package.$$"
+umask 077
+mkdir -p "$WORK/tree"
+trap 'rm -rf "$WORK"' EXIT
+git -C "$REPO_ROOT" archive "$GIT_SHA:$SOURCE_REPO" | "$GTAR" -xf - -C "$WORK/tree"
 DIRTY=0
-if [ -n "$(git status --porcelain -- "$SOURCE")" ]; then
+if ! git diff --no-index --quiet -- "$WORK/tree" "$SOURCE_ABS"; then
   if [ "$ALLOW_DIRTY" -eq 1 ]; then
     DIRTY=1
-    ok167::warn "$SOURCE has uncommitted changes; packaging anyway (--allow-dirty)"
+    BUILD_SOURCE="$SOURCE_ABS"
+    ok167::warn "source differs from the Git tree; explicit dirty artifact requested"
   else
-    ok167::error "$SOURCE has uncommitted changes."
-    ok167::error "The revision annotation would point at a commit with different content."
-    ok167::error "Commit the manifests, or pass --allow-dirty to record the artifact as dirty."
-    exit 2
+    ok167::die "source differs from the annotated Git tree, including ignored or index-hidden content" 2
   fi
+else
+  BUILD_SOURCE="$WORK/tree"
 fi
 
 # RFC 3339 from the epoch, so .created is deterministic too. BSD date and GNU
@@ -129,10 +145,9 @@ CREATED="$(date -u -r "$SOURCE_DATE_EPOCH" +%Y-%m-%dT%H:%M:%SZ 2>/dev/null \
 # ---------------------------------------------------------------------------
 ok167::info "validating $SOURCE"
 
-if command -v "$YAMLLINT" >/dev/null 2>&1; then
-  "$YAMLLINT" -c "$SPIKE_ROOT/.yamllint.yaml" "$SOURCE" \
-    || ok167::die "yamllint failed for $SOURCE" 2
-fi
+ok167::require_tool "$YAMLLINT"
+"$YAMLLINT" -c "$SPIKE_ROOT/.yamllint.yaml" "$BUILD_SOURCE" \
+  || ok167::die "yamllint failed for the packaged source" 2
 
 # Every directory in the artifact that carries a kustomization.yaml must build.
 # A broken overlay would otherwise only surface as an Argo CD sync error, long
@@ -142,32 +157,28 @@ while IFS= read -r kdir; do
   ok167::info "kustomize build $kdir"
   "$KUBECTL" kustomize "$kdir" >/dev/null \
     || ok167::die "kustomize build failed for $kdir" 2
-done < <(find "$SOURCE" -name kustomization.yaml -exec dirname {} \; | sort)
+done < <(find "$BUILD_SOURCE" -name kustomization.yaml -exec dirname {} \; | sort)
 
 # ---------------------------------------------------------------------------
 # 3. Deterministic archive
 # ---------------------------------------------------------------------------
-WORK="$SPIKE_ROOT/.local/tmp/package.$$"
-mkdir -p "$WORK"
-trap 'rm -rf "$WORK"' EXIT
-
 ARCHIVE_NAME="manifests.tar.gz"
 
 # Every flag below removes a source of nondeterminism:
 #   --sort=name          directory order must not leak into the archive
 #   --mtime=@EPOCH       timestamps come from the commit, not from the clock
 #   --owner/--group/--numeric-owner  the building user must not matter
-#   --mode=go+u,go-w     normalise permissions
+#   --mode=u=rwX,go=rX     normalize files to 0644, executables/directories to 0755
 #   --format=posix + pax-option  drop atime/ctime, which change on every read
 #   gzip -n              no filename or timestamp in the gzip header
 "$GTAR" --sort=name \
         --mtime="@${SOURCE_DATE_EPOCH}" \
         --owner=0 --group=0 --numeric-owner \
-        --mode=go+u,go-w \
+        --mode=u=rwX,go=rX \
         --exclude=.DS_Store \
         --format=posix \
         --pax-option=exthdr.name=%d/PaxHeaders/%f,delete=atime,delete=ctime \
-        -C "$SOURCE" -cf - . \
+        -C "$BUILD_SOURCE" -cf - . \
   | gzip -n -9 > "$WORK/$ARCHIVE_NAME"
 
 LAYER_DIGEST="sha256:$(shasum -a 256 "$WORK/$ARCHIVE_NAME" | cut -d' ' -f1)"
@@ -184,13 +195,12 @@ fi
 # ---------------------------------------------------------------------------
 # 4. Authenticate
 # ---------------------------------------------------------------------------
+PACKAGE_END_MS="$("$JQ" -nr 'now * 1000 | floor')"
 ok167::require_file "$CA" "CA certificate (run 'make pki')"
 ok167::require_file "$CREDS" "credentials (run 'make identities')"
-# shellcheck disable=SC1090,SC1091
-. "$CREDS"
 
 PASSWORD_VAR="OK167_$(printf '%s' "$IDENTITY" | tr 'a-z-' 'A-Z_')_PASSWORD"
-eval "PASSWORD=\${$PASSWORD_VAR:-}"
+PASSWORD="$(ok167::credential "$PASSWORD_VAR" "$CREDS")"
 [ -n "$PASSWORD" ] || ok167::die "no password for $IDENTITY in .local/credentials.env" 3
 
 mkdir -p "$(dirname "$AUTH")"
@@ -223,6 +233,7 @@ fi
 
 ok167::info "pushing $REGISTRY/$REPOSITORY:$TAG"
 
+PUSH_START_MS="$("$JQ" -nr 'now * 1000 | floor')"
 PUSH_LOG="$WORK/push.json"
 if ! ( cd "$WORK" && "$ORAS" push "$REGISTRY/$REPOSITORY:$TAG" \
          "$ARCHIVE_NAME:$LAYER_MEDIA_TYPE" \
@@ -236,6 +247,7 @@ if ! ( cd "$WORK" && "$ORAS" push "$REGISTRY/$REPOSITORY:$TAG" \
   exit 4
 fi
 
+PUSH_END_MS="$("$JQ" -nr 'now * 1000 | floor')"
 MANIFEST_DIGEST="$("$JQ" -r '.digest // empty' "$PUSH_LOG" 2>/dev/null || true)"
 if [ -z "$MANIFEST_DIGEST" ]; then
   MANIFEST_DIGEST="$(grep -oE 'sha256:[0-9a-f]{64}' "$PUSH_LOG" "$WORK/push.err" | head -1 | sed 's/.*sha256/sha256/')"
@@ -266,6 +278,10 @@ RECORD="$EVIDENCE_DIR/push-$SAFE_REPO-$TAG-$(date -u +%Y%m%dT%H%M%SZ).json"
   --arg source_date_epoch "$SOURCE_DATE_EPOCH" \
   --arg created "$CREATED" \
   --arg dirty "$DIRTY" \
+  --argjson package_ms "$(( PACKAGE_END_MS - START_MS ))" \
+  --argjson authentication_ms "$(( PUSH_START_MS - PACKAGE_END_MS ))" \
+  --argjson push_ms "$(( PUSH_END_MS - PUSH_START_MS ))" \
+  --argjson total_ms "$(( PUSH_END_MS - START_MS ))" \
   --arg pushed_at "$(ok167::timestamp)" \
   '{registry:$registry, repository:$repository, tag:$tag,
     manifest_digest:$manifest_digest, layer_digest:$layer_digest,
@@ -274,6 +290,7 @@ RECORD="$EVIDENCE_DIR/push-$SAFE_REPO-$TAG-$(date -u +%Y%m%dT%H%M%SZ).json"
     provenance:{source:$source, git_revision:$git_sha,
                 source_date_epoch:($source_date_epoch|tonumber),
                 created:$created, dirty:($dirty=="1")},
+    timings_ms:{package_validate:$package_ms,authentication:$authentication_ms,push:$push_ms,total:$total_ms},
     pushed_at:$pushed_at}' > "$RECORD"
 
 printf 'DIGEST=%s\n' "$MANIFEST_DIGEST"

@@ -59,9 +59,8 @@ configs:
   # the shape with placeholders only.
 
   params:
-    # Single-node kind cluster: TLS between Argo CD components adds startup
-    # cost and proves nothing about the question under test.
-    server.insecure: true
+    # Keep TLS enabled on the API server as required by BRIEF B4.
+    server.insecure: false
 
 controller:
   replicas: 1

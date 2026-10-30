@@ -192,7 +192,11 @@ else
         --registry-config "$SPIKE_ROOT/$AUTH_DIR/gitops-puller.json" ) >"$WORK/v5-push.txt" 2>&1; then
     v5_write="SUCCEEDED"
   else
-    v5_write="denied"
+    if grep -qiE '401|403|unauthorized|forbidden|denied' "$WORK/v5-push.txt"; then
+      v5_write="denied"
+    else
+      v5_write="unexpected-failure"
+    fi
   fi
 
   if [ "$v5_read" = "ok" ] && [ "$v5_write" = "denied" ]; then
@@ -214,7 +218,11 @@ if (cd "$WORK" && "$ORAS" push "$REG/openkubes/machine/other/smoke:v1" \
       --registry-config "$SPIKE_ROOT/$AUTH_DIR/gitops-publisher.json" ) >"$WORK/v6.txt" 2>&1; then
   check_fail "V6 publisher pushed to openkubes/machine/other/** — the prefix is not enforced"
 else
-  check_pass "V6 publisher denied outside its prefix ($(grep -oiE '40[0-9]|denied|unauthorized|forbidden' "$WORK/v6.txt" | head -1))"
+  if grep -qiE '401|403|unauthorized|forbidden|denied' "$WORK/v6.txt"; then
+    check_pass "V6 publisher denied outside its prefix (HTTP authorization rejection)"
+  else
+    check_fail "V6 push failed without an authorization rejection"
+  fi
 fi
 
 # ---------------------------------------------------------------------------
