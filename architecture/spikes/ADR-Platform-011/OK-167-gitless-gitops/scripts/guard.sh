@@ -3,9 +3,8 @@
 # OK-167 — cluster context guard.
 #
 # Runs as the first dependency of every Makefile target that reads or changes a
-# cluster, and as a prefix for every ad-hoc read command (BRIEF B4 rule 3):
-#
-#     scripts/guard.sh && kubectl get pods -n zot
+# cluster. Use those targets: Make exports the isolated KUBECONFIG to both the
+# guard and its commands. Running `make guard` does not export it to the caller.
 #
 # It refuses to let anything in this spike talk to a cluster other than the
 # local kind cluster. It never contacts a cluster itself: every check reads the

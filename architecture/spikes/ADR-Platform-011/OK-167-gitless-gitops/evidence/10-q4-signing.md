@@ -1,5 +1,7 @@
 # 10 — Q4: artifact signing with cosign and zot trust
 
+> Historical record from 2026-10-29. Review findings and the 2026-10-30 retest are documented in [12-review-remediation.md](12-review-remediation.md). Original observations below are retained; they do not certify the revised implementation.
+
 - Test IDs: Q4.0 – Q4.f
 - Date (UTC): 2026-10-29T12:38Z – 12:44Z
 - Environment: cosign v3.1.4, zot v2.1.20 (trust extension on, cosign: true), Argo CD v3.5.6
@@ -82,8 +84,9 @@ The `v1.1.0` tag was moved to **unsigned** content and the Application refreshed
   "revision": "sha256:1522ba14cf8c…", "resources": 2, "conditions": [] }
 ```
 
-`oras discover` on that digest returns **no referrers** — the synced artifact carries no
-signature. Argo CD raised **no condition, no warning, nothing**.
+`oras discover` on that digest returned no referrers. That observation alone did not exclude
+a legacy `.sig` tag. The revised Q4 experiment checks both formats and a failed signature
+verification before recording the unsigned Application result. Argo CD raised **no condition, no warning, nothing**.
 
 **This is the decisive result for criterion K2.** Argo CD v3.5.6's "Source Integrity" feature
 covers Git GPG only; there is no signature verification for OCI sources. Signing today is

@@ -1,5 +1,7 @@
 # 02 — zot registry (AC1)
 
+> Historical record from 2026-10-29. Review findings and the 2026-10-30 retest are documented in [12-review-remediation.md](12-review-remediation.md). Original observations below are retained; they do not certify the revised implementation.
+
 - Test IDs: V1–V8 (BRIEF Phase 3.6)
 - Date (UTC): 2026-10-29T11:57Z
 - Worktree commit: `72aa815` (Phase 2)

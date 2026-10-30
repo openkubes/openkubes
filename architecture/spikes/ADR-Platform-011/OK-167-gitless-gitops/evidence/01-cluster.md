@@ -1,5 +1,7 @@
 # 01 — Local kind cluster
 
+> Historical record from 2026-10-29. Review findings and the 2026-10-30 retest are documented in [12-review-remediation.md](12-review-remediation.md). Original observations below are retained; they do not certify the revised implementation.
+
 - Test IDs: Phase 2 (cluster isolation, pinned node image, storage class)
 - Date (UTC): 2026-10-29T11:43Z
 - Worktree commit: `47d4d4d` (Phase 1 scaffold)

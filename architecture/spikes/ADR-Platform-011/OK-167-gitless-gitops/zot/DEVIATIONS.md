@@ -23,7 +23,7 @@ both **identical** to `registry-default`.
 | D10 | `serviceAccount.create: false, name: zot` | `create: true` | In production a separate template owns the ServiceAccount. Here the chart creates it. |
 | D11 | mounts `/tls`, `/auth`, `/oidc` | `/tls`, `/auth` | No OIDC (D2), so no `/oidc` secret exists to mount. |
 | D12 | — | `mountSecret: false`, `secretFiles: null` set explicitly | Neutralises the chart's example `admin:admin` / `user:user` htpasswd. See "Verified, not assumed" below. |
-| D13 | `metrics.serviceMonitor.enabled: false` (Prometheus operator present in production) | same, and no operator in this cluster | The `metrics` **extension** is on; only the chart's `ServiceMonitor` object is off. Phase 10 scrapes `/metrics` directly. |
+| D13 | `metrics.serviceMonitor.enabled: false` (Prometheus operator present in production) | same, and no operator in this cluster | The `metrics` **extension** is on; only the chart's `ServiceMonitor` object is off. The revision does not infer per-poll load from aggregate counters. |
 
 ## Unchanged, carried over on purpose
 
@@ -55,10 +55,12 @@ GET /startupz -> 200
 ```
 
 zot v2.1.20 exempts its health endpoints from access control. `values-ok-shared.yaml` therefore
-does not need `authHeader` either — this closes finding F5 from `evidence/00-preflight.md` in
-`registry-default`'s favour. Had it been required, the value would have had to be passed via
-`--set` from `.local/`, and Kubernetes would have stored it in plaintext in the StatefulSet pod
-spec, readable by anyone with `get statefulsets` in the namespace.
+does not need `authHeader` for this specific health-auth issue. The PoC omits production
+OIDC/API-key settings; it did not deploy an identical production configuration. Pinned zot
+source registers the health routes before the authenticated distribution router. This is not
+a health check of the production instance. If a future version needs credentials for probes,
+evaluate a Secret-reference mechanism; do not put their values in Git, process arguments or
+readable pod-spec headers.
 
 ## Known gap, not fixed here
 

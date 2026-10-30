@@ -1,5 +1,7 @@
 # 06 — Change detection and live reconciliation (AC4)
 
+> Historical record from 2026-10-29. Review findings and the 2026-10-30 retest are documented in [12-review-remediation.md](12-review-remediation.md). Original observations below are retained; they do not certify the revised implementation.
+
 - Test IDs: T1–T8
 - Date (UTC): 2026-10-29T12:13Z – 12:35Z
 - Worktree commit: `a7cb664`
@@ -36,8 +38,11 @@ Three pushes to the **same tag** `v1.0.0`, alternating between podinfo 6.16.0/1 
 | 3 | 119 s | 119 s | — | — |
 | **min / median / max** | **83 / 119 / 182 s** | | | |
 
-All three are inside the configured window of 120 s + up to 60 s jitter (run 1's 182 s is 2 s
-over the theoretical 180 s, within the 1 s polling resolution and the time the push itself took).
+The first observation is **182 s**, two seconds beyond 180 s. The original claim that all
+three observations were inside the configured window is withdrawn. B9 permits measurement
+tolerance, but the original raw file omitted t0 and did not quantify sampling/API overhead.
+Push duration cannot explain excess latency when t0 is defined after push completion.
+The new run retains absolute timestamps and sampling metadata; its results are separate.
 
 The spread is the jitter doing its job: detection latency depends on where in the reconciliation
 cycle the push happens to land, so a single measurement would have been meaningless. **The
@@ -139,8 +144,8 @@ Argo CD" would conflate the two. **PASS.**
 **PASS.** T1 (automatic detection with no intervention), T3 and T4 are all proven, which is what
 the brief names as the requirement. T2, T5, T6, T7 and T8 all pass as well.
 
-**M4 is met**: changes are detected without manual action inside the configured reconciliation
-window.
+**Original M4 assessment withdrawn:** these samples establish unattended detection, but not
+an unqualified upper bound of 180 s. The current assessment uses the fresh raw records.
 
 ## What this proves / What this does not prove
 
@@ -169,14 +174,16 @@ cannot get digest for revision sha256:627cf3ad…:
 zot.zot.svc.cluster.local:5000/openkubes/machine/gitops/podinfo-manifests@sha256:627cf3ad…: not found
 ```
 
-**The manifest was gone from the registry.** Not corrupted, not unauthorized — absent.
+**The digest could no longer be resolved by the registry.** The retained error establishes
+unavailability; it does not independently prove physical deletion of its blob.
 
 ### Mechanism
 
-1. During Q4.c the tag `v1.1.0` was moved to different content.
+1. T6 had already moved `v1.1.0` to `b4eb3ab9...` before the 12:32:29 measurement completed.
+   The later Q4.c push completed at 12:40:24 and cannot have caused the quoted 12:36:58 GC run.
 2. `sha256:627cf3ad…` thereby became **untagged**. Confirmed: zero of the six tags in the
    repository resolve to it.
-3. zot's garbage collection ran, as its own log shows:
+3. A GC run was logged. These generic lines do not identify the removed digest:
 
    ```text
    12:36:58  executing gc of orphaned blobs for /var/lib/registry/openkubes/machine/gitops/podinfo-manifests
@@ -206,8 +213,8 @@ The configuration in effect during this spike — inherited from `registry-defau
 
 **No retention policy is configured**, here or in `values-ok-shared.yaml`. ADR-028 §4.7 requires
 the profile to define "tag immutability, release/staging/quarantine retention, garbage-collection
-behaviour, deletion authorization, and an emergency-deletion procedure". This is a concrete
-demonstration of what the absence of that definition costs: an artifact a cluster is actively
+behaviour, deletion authorization, and an emergency-deletion procedure". The observed failure is consistent with this risk, and the pinned source confirms the default
+untagged-manifest deletion behavior: an artifact a cluster is actively
 running can be collected because nothing in the registry marks it as released.
 
 §4.7 also says GC "MUST NOT remove blobs still reachable from a retained manifest". The clause

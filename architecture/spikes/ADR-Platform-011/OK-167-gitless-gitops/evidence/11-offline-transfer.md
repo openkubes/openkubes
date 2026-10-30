@@ -1,5 +1,7 @@
 # 11 — Offline transfer of GitOps artifacts
 
+> Historical record from 2026-10-29. Review findings and the 2026-10-30 retest are documented in [12-review-remediation.md](12-review-remediation.md). Original observations below are retained; they do not certify the revised implementation.
+
 - Test IDs: Phase 9
 - Date (UTC): 2026-10-29T12:45Z – 12:48Z
 - Environment: oras 1.3.6, cosign v3.1.4, zot v2.1.20, Argo CD v3.5.6

@@ -1,5 +1,7 @@
 # 07 — Q1: authentication and trust
 
+> Historical record from 2026-10-29. Review findings and the 2026-10-30 retest are documented in [12-review-remediation.md](12-review-remediation.md). Original observations below are retained; they do not certify the revised implementation.
+
 - Test IDs: Q1.a–Q1.g
 - Date (UTC): 2026-10-29T12:09Z – 12:45Z
 - Environment: Argo CD v3.5.6, zot v2.1.20
@@ -66,8 +68,8 @@ This settles the open question from Appendix A: `argocd-tls-certs-cm`, keyed by 
 without port**, is what makes Argo CD trust a private CA for an **OCI** repository, not only for
 Git. Restoring it returned the Application to `Synced` / `Healthy`.
 
-Note the ConfigMap change reaches the repo-server only on restart, so a CA rotation needs a
-rollout, not just an apply.
+This run tested recovery with a repo-server restart. Propagation without restart was not
+measured, so it does not establish that restart is the only supported rotation mechanism.
 
 ## Q1.e — not run
 

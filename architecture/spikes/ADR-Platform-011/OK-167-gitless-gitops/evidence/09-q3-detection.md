@@ -1,5 +1,7 @@
 # 09 — Q3: detection, caching and webhooks
 
+> Historical record from 2026-10-29. Review findings and the 2026-10-30 retest are documented in [12-review-remediation.md](12-review-remediation.md). Original observations below are retained; they do not certify the revised implementation.
+
 - Test IDs: Q3.b, Q3.c (plus T1/T2 from `06-sync.md`)
 - Date (UTC): 2026-10-29T11:54Z – 12:31Z
 - Environment: Argo CD v3.5.6 (`timeout.reconciliation: 120s`, jitter `60s`), zot v2.1.20
@@ -19,8 +21,8 @@ The three are different mechanisms and should never be quoted as one number:
 - **Cluster drift** is found by watching live resources, so it is near-instant.
 - **On demand** bypasses the wait entirely.
 
-This answers the ticket's framing question: **OCI polling behaves exactly like Git polling,
-because it is the same reconciliation loop.** Argo CD does not treat an OCI source specially; it
+This answers the ticket's framing question: **OCI and Git sources use the same configured reconciliation loop. This is a structural
+comparison; equal numerical latency was not established.** Argo CD does not treat an OCI source specially; it
 resolves the tag with a `HEAD` request each cycle and compares digests.
 
 Git polling was **not measured** in this spike — there was no Git source to compare against — so

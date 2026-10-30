@@ -1,105 +1,55 @@
-<!-- POSTED as the body of https://github.com/openkubes/openkubes/pull/462 on 2026-10-29. Do not post again. -->
-
 ## Summary
 
-Spike OK-167: can Argo CD take an OCI artifact in a zot registry as an `Application` source
-instead of a Git repository? Yes, and the evidence is here. All four locally testable acceptance
-criteria pass. Two gaps keep it short of an unconditional recommendation: Argo CD v3.5.6 does no
-signature verification on OCI sources, and it cannot consume zot's CloudEvents.
+This spike evaluates Argo CD v3.5.6 consuming manifests from private zot OCI repositories. The review found real isolation, TLS, packaging, secret-scanning and evidence defects. This revision repairs those defects, adds guarded reproduction targets and retains a fresh local run instead of relying on the original self-assessment.
 
-**Proposed outcome: CONDITIONAL GO** for the `datacenter` envelope. The decision belongs to the
-three-way review, not to this PR.
+**Proposed outcome: NO-GO under the unchanged B13 rule.** Unattended detection was **141 / 144 / 184s** at `120s + 60s` jitter. The third run exceeds the 180s window beyond the recorded sampling uncertainty. Functional convergence occurred, but AC4 and M1/M4 are not met. The original CONDITIONAL GO is withdrawn. The three-way review owns the adoption decision.
 
-This touches **only** `architecture/spikes/ADR-Platform-011/OK-167-gitless-gitops/`. No ADR, no
-`platform/registry/zot/`, no `platform/gitops/`, and nothing under `.github/workflows/` — the
-GitHub Actions example lives in `ci/` precisely so it cannot run.
+All repository changes remain under `architecture/spikes/ADR-Platform-011/OK-167-gitless-gitops/`. Production profiles, ADRs and `.github/workflows/` are unchanged. The supplied German brief remains unchanged; revised code, comments, docs and publication text are English.
 
-## What is here
+## Changes
 
-| Path | What |
-|---|---|
-| `REPORT.md` | The evaluation report (D3), source for Confluence |
-| `evidence/00…11` | One document per phase, each with a "proves / does not prove" section |
-| `scripts/package-and-push.sh` | D1 — deterministic packaging and push |
-| `argocd/application-*.yaml` | D2 — tag, digest, SemVer, Kustomize and Helm variants, each commented |
-| `zot/values-poc.yaml` + `DEVIATIONS.md` | zot config and every difference from `registry-default`, with reasons |
-| `Makefile` | The only entry point; every cluster-touching target runs the context guard first |
-| `ci/github-actions-example.yaml` | D1 CI variant, `actionlint`-clean, deliberately not active |
-
-## Reproduction
-
-```sh
-cd architecture/spikes/ADR-Platform-011/OK-167-gitless-gitops
-export KUBECONFIG="$PWD/.local/kubeconfig"
-make help          # every target
-make preflight     # no cluster needed
-make up zot-install argocd-install
-make push VARIANT=plain TAG=v1.0.0 && make app-tag && make app-wait APP=ok167-podinfo-tag
-make down
-```
-
-Each tool resolves through its own Make variable, so any of them can be swapped for a pinned
-container wrapper without touching a target.
+- Validate the entire loopback API authority and reject kubeconfig proxies, plugins and external credential/CA paths; enable and verify Argo CD API TLS.
+- Package an extracted Git tree after a complete source comparison, including ignored and index-hidden files; normalize archive permissions and independently compare fetched bytes with Git.
+- Scan immutable staged blobs separately from working files, narrow placeholder exemptions, check binary credential paths, use stdin for passwords and remove the password-printing target.
+- Add guarded auth/CA failures and recovery, structure negatives, TLS/webhook, signing, offline transfer, self-heal and outage experiments. Preserve push-phase timings, t0–t4 and TIMEOUT records.
+- Correct unsupported timings, GC chronology and structural/security overclaims. Set `GTAR=tar` in the inactive Ubuntu CI example.
 
 ## Results
 
-| AC | Verdict |
+| Criterion | Revised assessment |
 |---|---|
-| AC1 zot with TLS, identities, authorization | PASS (V1–V8) |
-| AC2 oras packaging as `tar+gzip` | PASS, digests reproducible |
-| AC3 Application with `oci://` repoURL | PASS |
-| AC4 change detection and live reconciliation | PASS — 83/119/182 s, no intervention |
-| AC5 Confluence documentation | PENDING until published |
+| AC1 | MET: verified registry TLS, auth/authz and referrers; V7 event caveat retained |
+| AC2 | MET: deterministic one-layer packaging; fetched plain/signed/Kustomize bytes match Git |
+| AC3 | MET: exact digest, Healthy, Deployment plus Service |
+| AC4 | NOT MET under B9's timing requirement: T1 run 3 exceeded the window |
+| AC5 | MET by the revised Confluence report linked below |
+| M1 / M4 | NOT MET because AC4's timing requirement failed |
+| M2 / M3 | Supported by the bounded secret checks, compatible Secret shape and byte-level provenance checks |
+| K1 / K2 | NOT MET: no native zot CloudEvent handler or OCI signature gate |
+| K3 / K4 | MET locally: deterministic layers; signed digest/referrer preserved and verified after transfer |
 
-| Criterion | | |
-|---|---|---|
-| M1 AC1–AC4 with TLS and auth, no insecure flags | Must | **MET** |
-| M2 no secret value in Git | Must | **MET** |
-| M3 artifact traceable to a commit | Must | **MET** |
-| M4 detection without manual intervention | Must | **MET** |
-| K1 push refresh without a self-built bridge | Can | **NOT MET** |
-| K2 signature verification that prevents a sync | Can | **NOT MET** |
-| K3 deterministic digests | Can | **MET** |
-| K4 offline transfer with referrers | Can | **MET** |
+Other retained measurements: requested refresh detection 0/0/1s at whole-second resolution; self-heal 1.079s; cache-cold outage recovery 168.400s without refresh after registry restoration. Retained tag and digest Applications stayed populated over 560s. Three package/authenticate/push totals were 240/194/198ms. These are observations on one laptop, not benchmarks or a capacity model.
 
-## What this does not prove
+## Validation and evidence
 
-- **Nothing here establishes an air-gapped envelope.** ADR-017 defines none and ADR-028 §4.9 says
-  an offline-transfer proof does not create one. One 28 KB artifact moved between two
-  repositories on one host.
-- **No workload image was ever pulled from zot.** Containerd trust on the nodes is an explicit
-  non-goal, so podinfo still comes from ghcr.io.
-- **Nothing about scale.** One Application, one repository, one node, one laptop.
-- **Git polling was not measured** — there was no Git source to compare against, so the Q3
-  comparison is structural, not numerical.
-- Five items are recorded as **NOT RUN with reasons** rather than quietly skipped: S-D, Q1.e,
-  Q3.a, Q3.d, Q3.e.
+- 39 adversarial regression cases passed; shellcheck, yamllint and actionlint passed.
+- Registry negative checks require actual authorization rejection, not arbitrary network failure. Wrong credentials and removed CA produced 401/x509 errors and recovered.
+- Signed bundle verification and recursive local transfer passed. A digest with neither referrers nor a legacy signature tag failed verification while Argo CD still synced it.
+- The history audit compares eight local credential/password literals and private-key bodies through its recorded head; staged/worktree scanning covers the revision. These bounded checks do not prove the absence of every possible secret format.
+- Current runtime and provenance checks passed before teardown. **`make verify` does not grade the latency series.** Only `ok167` was deleted; `wjax-demo` remains and test ports are closed.
 
-## Three findings that outlive the spike
+One read-only diagnostic violated the isolation process: the caller did not inherit KUBECONFIG from `make guard`, fell back to its default configuration and failed authentication. No mutation or secret output occurred. It is explicitly documented; `make zot-status` now keeps the guard and read in the same exported environment. All cluster mutations used guarded Make targets.
 
-1. **`registry-default` has no latent probe problem.** The zot chart documents an `authHeader`
-   for probes under htpasswd-without-anonymous, and `values-ok-shared.yaml` sets none. Measured
-   rather than assumed: zot v2.1.20 exempts its health endpoints from access control.
-2. **Legacy cosign signatures do not survive `oras cp -r`** — they are tags, not referrers, and
-   the loss is silent. Relevant to ADR-028 §4.6.
-3. **`platform/gitops/README.md` recommends Flux while ADR-011 proposes Argo CD.** Reported, not
-   resolved.
+Current evidence: [review remediation index](https://github.com/openkubes/openkubes/blob/spike/OK-167-gitless-gitops/architecture/spikes/ADR-Platform-011/OK-167-gitless-gitops/evidence/12-review-remediation.md). Historical documents 00–11 are labelled and corrected.
 
-## Proposed recommendation
+## Reproduction and limits
 
-**CONDITIONAL GO**, conditional on a CI promotion gate that verifies signatures and promotes by
-digest, digest-pinned Applications in operation, and a decision on push-based refresh. Details
-in `REPORT.md` §12.
+Use the ordered commands in [README](https://github.com/openkubes/openkubes/blob/spike/OK-167-gitless-gitops/architecture/spikes/ADR-Platform-011/OK-167-gitless-gitops/README.md): `make install`, the named `exp-*` targets, `offline-transfer DIGEST=...`, `verify`, then `down`. Cluster operations must remain in guarded Make targets.
 
-## Checklist
+S-D, Q1.e, Q3.a, Q3.d and Q3.e remain NOT RUN. No production Vault/VSO integration, scale, Git-source latency, disconnected convergence or zot-hosted workload-image pull is claimed. Digest pins still require tested retention/immutability; the original GC chronology was corrected and does not prove physical deletion of the specific blob. Signature enforcement and a refresh bridge remain proposed work.
 
-- [x] `make lint`, `make scan-secrets`, `make verify` green
-- [x] No changes outside the spike directory
-- [x] No file under `.github/workflows/`
-- [x] No secret value in the branch history (scanned)
-- [x] Every version and digest pinned in `versions.env`
-- [x] Cluster torn down; `.local/` retained and gitignored
-- [ ] `REPORT.md` published to Confluence (closes AC5) — human action
-- [ ] Three-way review of the recommendation — Gawenda / Arash
+- [Confluence report](https://kubernauts.atlassian.net/wiki/spaces/OpenKubes/pages/3179446273)
+- [Jira OK-167](https://kubernauts.atlassian.net/browse/OK-167) — existing comment 15222 updated; status unchanged
+- [Original review](https://github.com/openkubes/openkubes/pull/462#pullrequestreview-5711390080)
 
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
+No approval or merge was performed. The PR remains a draft.

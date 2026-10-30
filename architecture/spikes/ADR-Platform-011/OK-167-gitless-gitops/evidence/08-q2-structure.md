@@ -1,5 +1,7 @@
 # 08 — Q2: artifact structure constraints
 
+> Historical record from 2026-10-29. Review findings and the 2026-10-30 retest are documented in [12-review-remediation.md](12-review-remediation.md). Original observations below are retained; they do not certify the revised implementation.
+
 - Test IDs: S-A – S-J
 - Date (UTC): 2026-10-29T12:25Z – 12:32Z
 - Environment: Argo CD v3.5.6
@@ -94,8 +96,8 @@ rule has to be that artifacts are hermetic, and that is a CI lint, not something
 ## Answer to Q2
 
 Argo CD v3.5.6 requires **exactly one content layer** whose media type is on the allowlist
-(by default `…tar`, `…tar+gzip`, `…helm.chart.content.v1.tar+gzip`). Everything else about the
-artifact is flexible: the artifact type is free, extra referrers are ignored, Kustomize renders
+(by default `…tar`, `…tar+gzip`, `…helm.chart.content.v1.tar+gzip`). Additional constraints include at most ten total layers, extraction-size limits and
+out-of-bounds-symlink rejection. Within those constraints, the recorded variants show that the artifact type is free, extra referrers are ignored, Kustomize renders
 from a subdirectory, and the allowlist itself is configurable. The constraint is narrow and the
 errors are precise, which makes it easy to build a pipeline against.
 

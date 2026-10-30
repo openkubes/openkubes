@@ -455,6 +455,10 @@ zot-up: guard ## Scale zot back to 1 replica
 	@$(KUBECTL) -n '$(ZOT_NAMESPACE)' rollout status statefulset/'$(ZOT_RELEASE)' --timeout=300s
 	@echo "zot restored"
 
+.PHONY: zot-status
+zot-status: guard ## Read zot pod readiness with the spike kubeconfig
+	@$(KUBECTL) -n '$(ZOT_NAMESPACE)' get pods -o wide
+
 repo-server-restart: guard ## Rollout-restart the Argo CD repo-server (T8, Q3.a)
 	@$(KUBECTL) -n '$(ARGOCD_NAMESPACE)' rollout restart deployment/argocd-repo-server >/dev/null
 	@$(KUBECTL) -n '$(ARGOCD_NAMESPACE)' rollout status deployment/argocd-repo-server --timeout=180s

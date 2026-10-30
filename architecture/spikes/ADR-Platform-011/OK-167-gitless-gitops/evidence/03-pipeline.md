@@ -1,5 +1,7 @@
 # 03 — Packaging pipeline (AC2, D1)
 
+> Historical record from 2026-10-29. Review findings and the 2026-10-30 retest are documented in [12-review-remediation.md](12-review-remediation.md). Original observations below are retained; they do not certify the revised implementation.
+
 - Test IDs: Phase 4, P4-DET, M3
 - Date (UTC): 2026-10-29T12:03Z
 - Worktree commit: `af86dd8`
@@ -58,7 +60,7 @@ What makes it reproducible, with the failure each flag prevents:
 | `--sort=name` | member order follows directory order, which is not stable |
 | `--mtime=@$SOURCE_DATE_EPOCH` | the clock enters the digest; every build differs |
 | `--owner=0 --group=0 --numeric-owner` | the building user's uid enters the digest |
-| `--mode=go+u,go-w` | local umask enters the digest |
+| `--mode=go+u,go-w` | Original intent only: owner permissions still affected the archive; fixed by packaging the Git tree with explicit normalized modes |
 | `--format=posix` + `--pax-option=…delete=atime,delete=ctime` | atime changes on every read |
 | `gzip -n` | gzip stores the input filename and the current time in its header |
 | `.created` from the commit, not `date` | the manifest changes on every push |
@@ -76,12 +78,12 @@ git diff af86dd8 -- app/podinfo-plain  ->  (empty)
 The commit named by the artifact contains byte-identical content to what was packaged.
 **M3 is met in substance, not only in form.**
 
-This is enforced, not merely observed: the script refuses to package a source directory with
-uncommitted changes, because the revision would otherwise point at a commit holding different
-content. `--allow-dirty` overrides it and records `io.openkubes.source.dirty=true` rather than
-lying by omission. The first run of the script against uncommitted manifests exited 2 with
-*"no commit found for app/podinfo-plain — commit the manifests before packaging"*, which is why
-`app/` and the script were committed together.
+The original enforcement claim is withdrawn. Git status omitted ignored files and
+`assume-unchanged` changes, while tar included their filesystem bytes. The independent review
+rebuilt all 17 recorded pushes successfully, so the recorded examples remain valid; the
+universal enforcement claim did not follow from them. The revised implementation materializes
+and validates the named Git tree and compares the complete source directory before packaging.
+See `12-review-remediation.md` for the regression cases and fresh verification.
 
 ### Validation gates
 
@@ -132,7 +134,7 @@ and cannot run by accident.
 |---|---|
 | The same input yields the same layer and manifest digest on this host | That it does so on another OS or another tar/gzip build — only GNU tar 1.35 on macOS arm64 was tested |
 | The revision annotation names a commit whose content is byte-identical to the artifact | That anyone verifies this at pull time; nothing in Argo CD checks the annotation |
-| The pipeline refuses to publish uncommitted content | That `--allow-dirty` artifacts are prevented downstream — they are only labelled |
+| The original sampled source was clean; the original universal refusal claim was false | That `--allow-dirty` artifacts are prevented downstream — they are only labelled |
 | yamllint and kustomize run before any push | That the manifests are correct, only that they parse and render |
 | No credential appears in arguments, output or the push record | That the registry token in `.local/registry-auth/` is protected beyond file permissions |
 | The CI example is syntactically valid and pins its actions by SHA | That it works — it has never been executed, by design |
