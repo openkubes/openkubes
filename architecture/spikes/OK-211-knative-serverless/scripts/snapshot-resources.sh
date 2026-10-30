@@ -85,7 +85,7 @@ join -t "$(printf '\t')" -a 1 -e 0 -o 0,1.2,1.3,1.4,1.5,2.2,2.3,2.4,2.5 \
   "$work/usage.tsv" <(sort "$work/specs.tsv") > "$work/table.tsv"
 
 # JSON line (B11 output format).
-jq -Rn --arg id "resources-$label" --arg ts "$(ok211::timestamp)" --arg raw "${raw#"$SPIKE_ROOT/"}" \
+jq -cRn --arg id "resources-$label" --arg ts "$(ok211::timestamp)" --arg raw "${raw#"$SPIKE_ROOT/"}" \
   --argjson samples "$samples" --argjson interval "$interval" '
   [inputs | split("\t") | {namespace: .[0], cpu_m_mean: (.[1]|tonumber), cpu_m_max: (.[2]|tonumber),
     mem_mi_mean: (.[3]|tonumber), mem_mi_max: (.[4]|tonumber), req_cpu_m: (.[5]|tonumber),

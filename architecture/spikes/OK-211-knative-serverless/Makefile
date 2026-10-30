@@ -54,7 +54,7 @@ KUBECONFORM ?= kubeconform
         lint lint-shell lint-yaml lint-kubeconform test-guard scan-secrets scan-history debug \
         vm-up vm-info vm-stop vm-start vm-snapshot vm-restore vm-delete k3s-install kubeconfig \
         tunnel tunnel-status tunnel-stop baseline down clean \
-        knative-install knative-verify knative-post-install probe-up probe apps-serving smoke install
+        knative-install knative-verify knative-post-install probe-up probe apps-serving smoke install vm-ssh
 
 # ---------------------------------------------------------------------------
 help: ## Show this help
@@ -155,7 +155,7 @@ probe-up: ## Create the probe pod ok211-probe in ok211-load
 	@$(KUBECTL) -n ok211-load wait --for=condition=Ready pod/ok211-probe --timeout=180s
 
 probe: ## Run CMD='...' inside the probe pod (sh -c)
-	@test -n "$(CMD)" || { echo "usage: make probe CMD='curl ...'"; exit 2; }
+	@test -n "$$CMD" || { echo "usage: make probe CMD='curl ...'"; exit 2; }
 	@$(GUARD_NODE)
 	@$(KUBECTL) -n ok211-load exec ok211-probe -- sh -c "$$CMD"
 
@@ -225,3 +225,10 @@ debug: ## Diagnostic snapshot to .local/debug/<timestamp>/ (never Secrets)
 	$(KUBECTL) get broker,trigger,channel,subscription -A -o wide   > "$$dir/eventing.txt" 2>&1 || true; \
 	$(KUBECTL) top pods -A                            > "$$dir/top.txt"     2>&1 || true; \
 	echo "wrote $$dir (Secrets are never collected; copy redacted excerpts to evidence/raw/ by hand)"
+
+# ---------------------------------------------------------------------------
+# Read-only inspection inside the VM (B4 rule 5: only through ok211::vm_ssh)
+# ---------------------------------------------------------------------------
+vm-ssh: ## Run CMD='...' in ok-knative-local through ok211::vm_ssh
+	@test -n "$$CMD" || { echo "usage: make vm-ssh CMD='...'"; exit 2; }
+	@bash -c '. scripts/lib.sh; ok211::vm_ssh "$$CMD"'

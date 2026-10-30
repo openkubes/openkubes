@@ -1,0 +1,28 @@
+# resources baseline — 2026-10-30T14:15:11Z
+mac_loadavg: { 4,27 4,28 4,46 }
+vm_uptime:  15:15:12 up 5 min,  3 users,  load average: 0.30, 0.12, 0.04
+vm_free_m:
+                 total        used        free      shared  buff/cache   available
+  Mem:            7919         778        5760           1        1573        7140
+  Swap:              0           0           0
+
+## kubectl top nodes (sample, time, node, cpu, cpu%, mem, mem%)
+1	2026-10-30T14:15:12Z	ok-knative-local	73m	1%	645Mi	8%
+2	2026-10-30T14:16:12Z	ok-knative-local	63m	1%	641Mi	8%
+3	2026-10-30T14:17:12Z	ok-knative-local	43m	1%	629Mi	7%
+
+## kubectl top pods -A (sample, time, namespace, pod, cpu, mem)
+1	2026-10-30T14:15:12Z	kube-system	coredns-8db54c48d-rl5ww	4m	10Mi
+1	2026-10-30T14:15:12Z	kube-system	local-path-provisioner-5d9d9885bc-p2ncs	1m	7Mi
+1	2026-10-30T14:15:12Z	kube-system	metrics-server-786d997795-qj6mk	5m	16Mi
+2	2026-10-30T14:16:12Z	kube-system	coredns-8db54c48d-rl5ww	4m	11Mi
+2	2026-10-30T14:16:12Z	kube-system	local-path-provisioner-5d9d9885bc-p2ncs	1m	7Mi
+2	2026-10-30T14:16:12Z	kube-system	metrics-server-786d997795-qj6mk	7m	17Mi
+3	2026-10-30T14:17:12Z	kube-system	coredns-8db54c48d-rl5ww	4m	12Mi
+3	2026-10-30T14:17:12Z	kube-system	local-path-provisioner-5d9d9885bc-p2ncs	1m	7Mi
+3	2026-10-30T14:17:12Z	kube-system	metrics-server-786d997795-qj6mk	5m	19Mi
+
+## per-namespace summary
+namespace	cpu_m_mean	cpu_m_max	mem_Mi_mean	mem_Mi_max	req_cpu_m	req_mem_Mi	lim_cpu_m	lim_mem_Mi
+kube-system	11	12	35	38	200	140	0	170
+TOTAL	11	-	35	-	200	140	-	-

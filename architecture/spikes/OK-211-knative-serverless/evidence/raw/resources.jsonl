@@ -1,0 +1,1 @@
+{"id":"resources-baseline","timestamp_utc":"2026-10-30T14:17:13Z","samples":3,"interval_s":60,"raw":"evidence/raw/resources-baseline-20261030T141511Z.txt","namespaces":[{"namespace":"kube-system","cpu_m_mean":11,"cpu_m_max":12,"mem_mi_mean":35,"mem_mi_max":38,"req_cpu_m":200,"req_mem_mi":140,"lim_cpu_m":0,"lim_mem_mi":170}]}

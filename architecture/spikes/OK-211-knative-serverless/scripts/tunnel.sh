@@ -31,7 +31,8 @@ ctl() { # ctl check|exit <ip>
 }
 
 listener() {
-  lsof -nP -iTCP:"$TUNNEL_PORT" -sTCP:LISTEN 2>/dev/null | awk 'NR>1{print $1"/"$2}' | sort -u | tr '\n' ' '
+  # lsof exits 1 when nothing listens; that is the normal "free" case.
+  { lsof -nP -iTCP:"$TUNNEL_PORT" -sTCP:LISTEN 2>/dev/null || true; } | awk 'NR>1{print $1"/"$2}' | sort -u | tr '\n' ' '
 }
 
 case "${1:-}" in
