@@ -51,7 +51,7 @@ teardown are added phase by phase below and completed in Phase 11.
 | 0 | Orientation and preflight | done (CP1 passed 2026-10-30) | [00-preflight.md](evidence/00-preflight.md) |
 | 1 | Scaffold: guard, lib, scan, Makefile | done | [00-preflight.md § Guard negative tests](evidence/00-preflight.md) |
 | 2 | VM in the ok-local profile | done | [01-vm-k3s.md](evidence/01-vm-k3s.md) |
-| 3 | Knative 1.23 install | open | — |
+| 3 | Knative 1.23 install | done | [02-knative-install.md](evidence/02-knative-install.md) |
 | 4 | Upgrade to 1.24 under load | open | — |
 | 5 | Serving PoC | open | — |
 | 6 | Eventing PoC | open | — |

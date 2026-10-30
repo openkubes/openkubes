@@ -32,7 +32,8 @@ ok211::load_versions
 K="${KUBECTL:-$SPIKE_ROOT/.local/bin/kubectl}"
 FM=knative-release
 STEP_LOG="${STEP_LOG:-$SPIKE_ROOT/.local/knative-steps.log}"
-WAIT=300s
+# Image pulls over a slow link take minutes (Phase 2: ≈ 150 KB/s from dl.k8s.io).
+WAIT="${KNATIVE_WAIT:-900s}"
 
 mark() { printf '%s\t%s\t%s\n' "$(ok211::timestamp)" "$1" "$2" >> "$STEP_LOG"; }
 

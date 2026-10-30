@@ -30,6 +30,9 @@ spec:
     - name: probe
       image: __CURL_IMAGE__
       command: ["sleep", "infinity"]
+      volumeMounts:
+        - name: work
+          mountPath: /work
       securityContext:
         allowPrivilegeEscalation: false
         readOnlyRootFilesystem: true
@@ -42,3 +45,7 @@ spec:
         limits:
           cpu: "1"
           memory: 128Mi
+  volumes:
+    - name: work
+      emptyDir:
+        sizeLimit: 64Mi

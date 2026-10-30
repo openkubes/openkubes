@@ -54,7 +54,7 @@ KUBECONFORM ?= kubeconform
         lint lint-shell lint-yaml lint-kubeconform test-guard scan-secrets scan-history debug \
         vm-up vm-info vm-stop vm-start vm-snapshot vm-restore vm-delete k3s-install kubeconfig \
         tunnel tunnel-status tunnel-stop baseline down clean \
-        knative-install knative-verify knative-post-install probe-up probe apps-serving smoke install vm-ssh
+        knative-install knative-verify knative-post-install probe-up probe apps-serving smoke install vm-ssh lint-server
 
 # ---------------------------------------------------------------------------
 help: ## Show this help
@@ -232,3 +232,8 @@ debug: ## Diagnostic snapshot to .local/debug/<timestamp>/ (never Secrets)
 vm-ssh: ## Run CMD='...' in ok-knative-local through ok211::vm_ssh
 	@test -n "$$CMD" || { echo "usage: make vm-ssh CMD='...'"; exit 2; }
 	@bash -c '. scripts/lib.sh; ok211::vm_ssh "$$CMD"'
+
+lint-server: ## Server-side dry-run of every own manifest (from Phase 3 on)
+	@$(GUARD_NODE)
+	@files=$$(find load apps ingress tls security gitops -name '*.yaml' -type f 2>/dev/null | sort); \
+	 for f in $$files; do printf '%-50s ' "$$f"; scripts/render.sh "$$f" | $(KUBECTL) apply --server-side --field-manager=ok211 --dry-run=server -f - >/dev/null && echo ok || { echo FAIL; exit 1; }; done
