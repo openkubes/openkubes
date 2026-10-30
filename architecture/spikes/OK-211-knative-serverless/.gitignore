@@ -1,0 +1,7 @@
+# OK-211 spike: local state, credentials, sockets and build output never go into Git
+.local/
+*.tar.gz
+*.tgz
+*.key
+*.pem
+*.sock
