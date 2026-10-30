@@ -1,0 +1,36 @@
+# kind cluster for the OK-167 spike.
+#
+# One control-plane node is enough: the spike measures Argo CD's change
+# detection against an OCI registry, not scheduling or HA behaviour.
+#
+# The node image is pinned by digest and is deliberately NOT kind v0.33.0's
+# default (kindest/node:v1.37.0). Argo CD 3.5 is tested only against Kubernetes
+# v1.33-v1.36, so the v1.36.4 image from the same release is used instead.
+# See versions.env (KIND_NODE_IMAGE) and evidence/00-preflight.md.
+---
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: ok167
+
+networking:
+  # kind publishes the API server on 127.0.0.1 with a random high port, which
+  # is what scripts/guard.sh asserts. Left at the default on purpose.
+  apiServerAddress: "127.0.0.1"
+
+nodes:
+  - role: control-plane
+    # The image is substituted from versions.env by `make up`; this value is
+    # the pin and must stay in step with KIND_NODE_IMAGE.
+    image: kindest/node:v1.36.4@sha256:099e049362a1526b2db71494e1947aae99bd16290d7c895f2b7ea312e3cbfaed
+    extraPortMappings:
+      # zot's NodePort, reachable from the host as localhost:30500.
+      #
+      # listenAddress is 127.0.0.1, never 0.0.0.0: binding the registry to all
+      # interfaces would expose it to the local network (BRIEF B4 rule 8).
+      #
+      # Host port 5000 is unusable on macOS — the AirPlay Receiver in Control
+      # Centre listens there — which is why 30500 is used on both sides.
+      - containerPort: 30500
+        hostPort: 30500
+        listenAddress: "127.0.0.1"
+        protocol: TCP

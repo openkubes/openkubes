@@ -1,0 +1,30 @@
+{
+  "test": "Q1.b",
+  "exact_repository_secret_names": [
+    "ok167-zot-podinfo-manifests"
+  ],
+  "prefix_template": "ok167-zot-prefix",
+  "application": {
+    "app": "ok167-podinfo-kustomize",
+    "source": {
+      "path": "overlays/poc",
+      "repoURL": "oci://zot.zot.svc.cluster.local:5000/openkubes/machine/gitops/podinfo-kustomize",
+      "targetRevision": "v1.0.0"
+    },
+    "sync": "Synced",
+    "health": "Healthy",
+    "revision": "sha256:9e6be6019ffdf6c36463ff93a2f078a0bb64b91b0680ba7e8547e3928c6dc2ef",
+    "resources": [
+      {
+        "kind": "Service",
+        "name": "podinfo"
+      },
+      {
+        "kind": "Deployment",
+        "name": "podinfo"
+      }
+    ],
+    "conditions": null
+  },
+  "result": "PASS"
+}

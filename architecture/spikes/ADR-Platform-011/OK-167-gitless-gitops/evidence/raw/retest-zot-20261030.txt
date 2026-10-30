@@ -1,0 +1,11 @@
+2026-10-30T12:18:09Z PASS guard: context=kind-ok167 server=https://127.0.0.1:62900 kubeconfig=.local/kubeconfig
+2026-10-30T12:18:09Z registry under test: https://127.0.0.1:30500
+2026-10-30T12:18:09Z PASS V1 TLS verified with the CA; rejected without it (curl: (60) SSL certificate problem: unable to get local issuer certifi)
+2026-10-30T12:18:09Z PASS V2 anonymous GET /v2/ -> 401
+2026-10-30T12:18:09Z PASS V3 gitops-publisher GET /v2/ -> 200 with Docker-Distribution-API-Version: registry/2.0
+2026-10-30T12:18:09Z PASS V4 push + pull by digest; pulled bytes hash to the digest (sha256:ca13c72a2249...)
+2026-10-30T12:18:11Z PASS V5 gitops-puller reads; write denied (denied)
+2026-10-30T12:18:13Z PASS V6 publisher denied outside its prefix (HTTP authorization rejection)
+2026-10-30T12:18:13Z WARN V7 extensions: search=on trust=on events=NO-EVENT-SEEN — recorded as a finding, not a stop (BRIEF 3.6 V7)
+2026-10-30T12:18:13Z PASS V8 oras attach + discover: 1 referrer(s) on the smoke subject
+2026-10-30T12:18:13Z V-checks: 8 passed, 0 failed

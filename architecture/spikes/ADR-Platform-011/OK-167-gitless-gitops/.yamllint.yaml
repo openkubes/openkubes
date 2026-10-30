@@ -1,0 +1,41 @@
+# yamllint configuration for the OK-167 spike.
+#
+# Deliberately strict about things that change meaning (truthy values, tabs,
+# duplicate keys) and relaxed about things that do not (line length, comment
+# formatting), so the linter stays worth reading.
+
+extends: default
+
+rules:
+  # Kubernetes manifests and Helm values routinely exceed 80 columns, and
+  # wrapping an image digest would make it unreadable.
+  line-length:
+    max: 120
+    allow-non-breakable-words: true
+    allow-non-breakable-inline-mappings: true
+
+  # `on:` in a GitHub Actions workflow is a key, not a boolean. Rejecting
+  # unquoted y/yes/on elsewhere still catches the real hazard.
+  truthy:
+    allowed-values: ['true', 'false']
+    check-keys: false
+
+  # Helm values files commonly start without ---; manifests in this spike do use
+  # it, but enforcing it on every file adds noise without adding safety.
+  document-start: disable
+
+  comments:
+    min-spaces-from-content: 1
+
+  comments-indentation: disable
+
+  # Duplicate keys silently drop configuration. Always an error.
+  key-duplicates: enable
+
+  indentation:
+    spaces: 2
+    indent-sequences: consistent
+
+ignore: |
+  .local/
+  evidence/raw/

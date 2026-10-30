@@ -1,0 +1,110 @@
+# OK-167 — Argo CD values for the local PoC.
+#
+# Chart argo-cd-10.11.6, appVersion v3.5.6 (verified in Phase 0). v3.6.0 exists
+# only as a release candidate and is out of scope.
+#
+# No credential appears in this file. The repository Secret is built in memory
+# by `make argocd-repo` from .local/credentials.env, and the CA for zot is
+# passed with --set-file at install time — neither is ever written to a tracked
+# file. That is the Secret Contract of ADR-011 applied to a values file:
+# Git holds the reference and the configuration, never the value.
+---
+global:
+  image:
+    repository: quay.io/argoproj/argocd
+    # tag@digest. The chart concatenates repository and tag, which yields a
+    # valid `repo:tag@sha256:...` reference, so the digest wins even if the tag
+    # were ever moved upstream.
+    tag: "v3.5.6@sha256:8e5cc5bb008df8a09dba439462e58c94c55b7735888d3ebde0c25fc05e4e5335"
+    imagePullPolicy: IfNotPresent
+
+# Keep the install small: this cluster has one node and the spike exercises the
+# repo-server's OCI client and the application-controller, nothing else.
+dex:
+  # No SSO in this PoC; admin access is local and only used for inspection.
+  enabled: false
+
+notifications:
+  enabled: false
+
+applicationSet:
+  # There is NO `applicationSet.enabled` key in chart 10.11.6 — unlike dex and
+  # notifications, templates/argocd-applicationset/deployment.yaml carries no
+  # `{{- if ... }}` gate, so the controller always renders. Setting
+  # `enabled: false` here would be a silently ineffective line, which is worse
+  # than none. Scaling to zero is the honest way to keep it idle; the Deployment
+  # and its RBAC still exist.
+  replicas: 0
+
+configs:
+  cm:
+    # Chart defaults, stated explicitly so every latency figure in the report
+    # names the settings it was measured under. Q3.a changes these and restores
+    # them afterwards.
+    timeout.reconciliation: 120s
+    timeout.reconciliation.jitter: 60s
+
+  tls:
+    create: true
+    # certificates is deliberately EMPTY here. The CA for zot is injected at
+    # install time with
+    #   --set-file 'configs.tls.certificates.zot\.zot\.svc\.cluster\.local=.local/pki/ca.crt'
+    # (dots in the key escaped). Copying the CA into this file would be
+    # harmless for a throwaway CA but would teach the wrong pattern.
+    certificates: {}
+
+  # NOT set: configs.repositories and configs.credentialTemplates. Both would
+  # put a registry password into a values file. `make argocd-repo` creates the
+  # Secret from .local/ instead; argocd/repository-secret.template.yaml shows
+  # the shape with placeholders only.
+
+  params:
+    # Keep TLS enabled on the API server as required by BRIEF B4.
+    server.insecure: false
+
+controller:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+
+repoServer:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+
+server:
+  replicas: 1
+  service:
+    type: ClusterIP
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+redis:
+  # The chart ships redis by tag only. Pinned by digest here for the same
+  # reason as every other image in this spike: a tag is mutable.
+  # Verified multi-arch with linux/arm64.
+  image:
+    repository: ecr-public.aws.com/docker/library/redis
+    tag: "8.6.4-alpine@sha256:2cc044fc5a07c9b701f8f1255a309ae9ad7856e694ac03513bf3648c01e40763"
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi

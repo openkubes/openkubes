@@ -1,0 +1,54 @@
+{
+  "test": "S-E/S-F",
+  "two_layers": {
+    "app": "ok167-negative-two-layers",
+    "conditions": [
+      {
+        "lastTransitionTime": "2026-10-30T11:59:24Z",
+        "message": "Failed to load target state: failed to generate manifest for source 1 of 1: rpc error: code = Unknown desc = expected only a single oci content layer, got 2",
+        "type": "ComparisonError"
+      }
+    ],
+    "sync": {
+      "comparedTo": {
+        "destination": {
+          "namespace": "ok167-neg",
+          "server": "https://kubernetes.default.svc"
+        },
+        "source": {
+          "path": ".",
+          "repoURL": "oci://zot.zot.svc.cluster.local:5000/openkubes/machine/gitops/negative/two-layers",
+          "targetRevision": "review"
+        }
+      },
+      "revision": "review",
+      "status": "Unknown"
+    }
+  },
+  "non_archive": {
+    "app": "ok167-negative-not-archive",
+    "conditions": [
+      {
+        "lastTransitionTime": "2026-10-30T11:59:25Z",
+        "message": "Failed to load target state: failed to generate manifest for source 1 of 1: rpc error: code = Unknown desc = expected only a single oci content layer, got 0",
+        "type": "ComparisonError"
+      }
+    ],
+    "sync": {
+      "comparedTo": {
+        "destination": {
+          "namespace": "ok167-neg",
+          "server": "https://kubernetes.default.svc"
+        },
+        "source": {
+          "path": ".",
+          "repoURL": "oci://zot.zot.svc.cluster.local:5000/openkubes/machine/gitops/negative/not-archive",
+          "targetRevision": "review"
+        }
+      },
+      "revision": "review",
+      "status": "Unknown"
+    }
+  },
+  "result": "PASS"
+}

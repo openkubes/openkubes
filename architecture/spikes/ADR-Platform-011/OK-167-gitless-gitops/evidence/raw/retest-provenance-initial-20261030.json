@@ -1,0 +1,8 @@
+{
+  "test": "M3",
+  "revision": "a41d913b3febb591b0b9ca264fa692eb61edca36",
+  "source": "architecture/spikes/ADR-Platform-011/OK-167-gitless-gitops/app/podinfo-plain",
+  "layer": "sha256:6d65a089bc96cb8130306296ee76b8146e243f527eacf1ee6261bf6ba51b0fdc",
+  "bytes_match_git": true,
+  "result": "PASS"
+}
