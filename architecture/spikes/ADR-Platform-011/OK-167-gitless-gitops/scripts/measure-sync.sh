@@ -24,7 +24,8 @@
 # Portability: bash 3.2.
 #
 # Exit codes
-#   0  completed (or recorded a clean TIMEOUT)
+#   0  completed
+#   1  timed out; the incomplete measurement is retained
 #   2  bad arguments
 
 set -euo pipefail

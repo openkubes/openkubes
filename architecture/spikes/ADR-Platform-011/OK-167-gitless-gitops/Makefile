@@ -4,8 +4,7 @@
 # command that reads or changes a cluster goes through a target, and every such
 # target depends on `guard` first (BRIEF B4 rule 1, B8).
 #
-# Targets are added phase by phase. Cluster, registry and Argo CD targets arrive
-# with their phases; this file currently covers the Phase 1 scaffold.
+# Targets cover installation, guarded experiments, verification and teardown.
 
 .DEFAULT_GOAL := help
 .NOTPARALLEL:
@@ -42,9 +41,8 @@ DOCKER_CONFIG_LOCAL := $(CURDIR)/.local/docker
 # ---------------------------------------------------------------------------
 # Toolchain
 # ---------------------------------------------------------------------------
-# Every external tool resolves through its own variable, so any one of them can
-# be swapped for a pinned container wrapper without touching a single target.
-# Override on the command line, e.g.  make lint YAMLLINT='docker run --rm ...'
+# Tool variables accept executable paths, including executable container wrappers.
+# A shell command string is not a portable executable override for every script.
 #
 # kubectl: the binary first on PATH is Docker Desktop's and trails the pinned
 # node image by two minor versions (evidence/00-preflight.md, finding F2).
@@ -192,6 +190,7 @@ cluster-info: guard ## Print cluster facts (version, node image, storage classes
 
 down: ## Delete the kind cluster; .local/ (credentials, PKI) is kept
 	@if $(KIND) get clusters 2>/dev/null | grep -qx '$(CLUSTER_NAME)'; then \
+	  $(GUARD); \
 	  $(KIND) delete cluster --name '$(CLUSTER_NAME)'; \
 	  echo "cluster deleted; .local/ kept"; \
 	else \
@@ -496,7 +495,7 @@ scan-secrets: ## Check tracked and staged files for credentials
 # new. Deliberately read-only: it must be safe to run at any time, and it must
 # not be able to manufacture the evidence it is checking.
 
-verify: guard ## Re-check every pass criterion that needs no new push
+verify: guard ## Check current runtime state and provenance; timing is assessed separately
 	@fail=0; \
 	 chk() { if [ "$$2" = "$$3" ]; then printf '  PASS %s (%s)\n' "$$1" "$$2"; \
 	         else printf '  FAIL %s: got "%s", expected "%s"\n' "$$1" "$$2" "$$3"; fail=1; fi; }; \

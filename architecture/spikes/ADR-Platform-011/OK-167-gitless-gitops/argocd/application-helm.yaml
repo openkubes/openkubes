@@ -1,3 +1,4 @@
+# Prepared example only: S-D Helm chart mirroring remains NOT RUN.
 # Helm chart from the registry (test S-D).
 #
 # Doubles as the upstream-mirroring example: the podinfo chart is pulled from

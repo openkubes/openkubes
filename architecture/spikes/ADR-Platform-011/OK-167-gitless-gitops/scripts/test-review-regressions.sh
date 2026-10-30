@@ -14,7 +14,7 @@ REL=architecture/spikes/ADR-Platform-011/OK-167-gitless-gitops
 FIXTURE="$WORK/repository/$REL"
 mkdir -p "$FIXTURE"
 # Copy only the test inputs; never copy the host's credentials or kubeconfig.
-for path in scripts app versions.env .yamllint.yaml .gitignore; do
+for path in scripts app ci versions.env .yamllint.yaml .gitignore; do
   cp -R "$ROOT/$path" "$FIXTURE/"
 done
 git -C "$WORK/repository" init -q --initial-branch=review-fixture
@@ -140,6 +140,28 @@ chmod +x "$WORK/jq-argv-check"
 expect_exit secret-absent-from-jq-argv 0 env JQ="$WORK/jq-argv-check" \
   EXPECTED_FIXTURE_CREDENTIAL="$opaque" scripts/repository-secret.sh repository fixture
 rm .local/credentials.env
+cat > "$WORK/kubectl-measurement-fixture" <<'STUB'
+#!/usr/bin/env bash
+case "$*" in
+  *' get cm '*) printf '%s\n' '{"data":{"timeout.reconciliation":"120s","timeout.reconciliation.jitter":"60s"}}' ;;
+  *) printf '%s\n' '{"status":{"sync":{"revision":"old","status":"Synced"},"health":{"status":"Healthy"}}}' ;;
+esac
+STUB
+chmod +x "$WORK/kubectl-measurement-fixture"
+expect_exit measurement-timeout-is-failure 1 env KUBECTL="$WORK/kubectl-measurement-fixture" \
+  scripts/measure-sync.sh --app fixture --digest expected --namespace fixture --timeout 1
+expect_exit measurement-timeout-record-retained 0 jq -e \
+  '.result=="TIMEOUT" and (.timestamps.t0|type)=="number"' evidence/raw/measurements.json
+printf '\000binary fixture\000' > tripwire.key
+git add -f tripwire.key
+expect_exit scanner-forbidden-binary-key 1 scripts/scan-secrets.sh
+git reset -q HEAD -- tripwire.key
+rm tripwire.key
+mkdir -p "$WORK/gnu-bin"
+ln -s "$(command -v "$GTAR")" "$WORK/gnu-bin/tar"
+expect_exit ci-gnu-tar-binary-name 0 env PATH="$WORK/gnu-bin:/usr/bin:/bin" GTAR=tar \
+  ORAS="$(command -v oras)" YAMLLINT="$(command -v yamllint)" \
+  scripts/package-and-push.sh --source app/podinfo-plain --repository review --tag review --dry-run
 expect_exit scanner-clean 0 scripts/scan-secrets.sh
 jq -nc --argjson passed "$PASS" --argjson failed "$FAIL" '{summary:{passed:$passed,failed:$failed}}'
 [ "$FAIL" = 0 ]

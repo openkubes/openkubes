@@ -85,7 +85,7 @@ report() {
 # `path:12:match` and every caller's parsing would silently shift by one field.
 grep_files() {
   tr '\n' '\0' < "$FILE_LIST" \
-    | xargs -0 grep -n "$@" /dev/null 2>/dev/null || true
+    | xargs -0 grep -an "$@" /dev/null 2>/dev/null || true
 }
 
 # ---------------------------------------------------------------------------
@@ -102,7 +102,7 @@ while IFS= read -r -d '' f; do
   check_name "$f"
   [ -f "$f" ] || continue
   [ ! -L "$f" ] || ok167::die "refusing to follow a worktree symlink while scanning" 2
-  LC_ALL=C grep -qI . "$f" 2>/dev/null && printf '%s\n' "$f" >> "$FILE_LIST"
+  printf '%s\n' "$f" >> "$FILE_LIST"
 done < <(git ls-files -z --cached --others --exclude-standard -- .)
 while IFS= read -r -d '' entry; do
   header="${entry%%$'\t'*}"
@@ -112,8 +112,7 @@ while IFS= read -r -d '' entry; do
   [ "$stage" = "0" ] || ok167::die "resolve unmerged index entries before scanning" 2
   mkdir -p "$INDEX_ROOT/$(dirname "$f")"
   git cat-file blob "$oid" > "$INDEX_ROOT/$f"
-  LC_ALL=C grep -qI . "$INDEX_ROOT/$f" 2>/dev/null \
-    && printf '%s\n' "$INDEX_ROOT/$f" >> "$FILE_LIST"
+  printf '%s\n' "$INDEX_ROOT/$f" >> "$FILE_LIST"
 done < <(git ls-files -z --stage -- .)
 
 FILE_COUNT=$(wc -l < "$FILE_LIST" | tr -d ' ')
@@ -220,6 +219,8 @@ check_patterns() {
 
   while IFS= read -r f; do
     [ -n "$f" ] || continue
+    # Binary files still receive known-value and forbidden-path checks.
+    LC_ALL=C grep -qI . "$f" 2>/dev/null || continue
 
     # 2a — a complete bcrypt hash: $2<a|b|y>$<cost>$<22 salt + 31 hash>.
     # The length is part of the pattern, so a redacted

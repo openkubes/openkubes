@@ -1,16 +1,5 @@
-# Digest-pinned Application (test T4).
-#
-# This is the shape the report recommends for operations. targetRevision is an
-# immutable digest, so a push to any tag cannot change what this Application
-# deploys — only an edit to this file can, and that edit is a Git commit with
-# an author and a review.
-#
-# ADR-028 section 4.3: "Immutable digests SHALL be the canonical artifact
-# identity ... a mutable tag alone SHALL NOT constitute release evidence."
-#
-# DIGEST_PLACEHOLDER is substituted by `make app-digest DIGEST=sha256:...`.
-# It is a placeholder rather than a committed digest because the digest depends
-# on which commit produced the artifact.
+# Imported artifact pinned by digest; make app-imported supplies DIGEST_PLACEHOLDER.
+# Namespaces are created by guarded Make targets, not by Argo CD.
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: Application

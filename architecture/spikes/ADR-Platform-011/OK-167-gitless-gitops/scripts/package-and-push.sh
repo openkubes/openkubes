@@ -114,6 +114,7 @@ case "$SOURCE_ABS" in
   "$SPIKE_ROOT/app/"*) : ;;
   *) ok167::die "source must resolve inside the spike's app/ directory" 2 ;;
 esac
+SOURCE="${SOURCE_ABS#"$SPIKE_ROOT/"}"
 SOURCE_REPO="${SOURCE_ABS#"$REPO_ROOT/"}"
 git cat-file -e "$GIT_SHA:$SOURCE_REPO" \
   || ok167::die "source is absent from the annotated commit" 2

@@ -24,9 +24,8 @@ spec:
     # NodePort exists for the host-side publisher; the repo-server resolves
     # this name through cluster DNS.
     #
-    # This exact string must match an entry in the AppProject's sourceRepos and
-    # must match the `url` of a repository Secret, otherwise Argo CD will not
-    # find the credentials.
+    # The URL must be admitted by the AppProject and match an exact repository
+    # Secret or the URL prefix of a repo-creds credential template.
     repoURL: oci://zot.zot.svc.cluster.local:5000/openkubes/machine/gitops/podinfo-manifests
 
     # A mutable tag. This is deliberate for test T1, which measures whether

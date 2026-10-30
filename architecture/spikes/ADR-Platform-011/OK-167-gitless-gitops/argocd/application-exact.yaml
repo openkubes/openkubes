@@ -1,8 +1,5 @@
-# D2 — the primary Application example: Argo CD syncing from an OCI artifact
-# in zot instead of from a Git repository.
-#
-# Every field is commented, because the point of the deliverable is that
-# someone can copy this and understand why each line is the way it is.
+# Retained exact-tag Application for T3; release-review is not moved during the trial.
+# Namespaces are created by guarded Make targets, not by Argo CD.
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: Application

@@ -91,9 +91,8 @@ jobs:
             --tag "v1.0.0-${GITHUB_SHA::7}" \
             --registry registry.ok-shared.internal
 
-      - name: Publish the push record
+      - name: Inspect the push records
         # The record holds digests and provenance, never credentials.
-        # actions/upload-artifact is intentionally not pinned here because this
-        # workflow is an example; a real one would pin it like the others.
+        # This inactive example does not upload artifacts to a public service.
         if: always()
         run: ls -la evidence/raw/ || true

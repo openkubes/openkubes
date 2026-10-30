@@ -44,7 +44,7 @@ case "$ACTION" in
     DOCKER_CONFIG="$AUTH_DIR" "${COSIGN:-cosign}" sign --key "$KEY_DIR/cosign.key" \
       --use-signing-config=false --tlog-upload=false --new-bundle-format="$BUNDLE" \
       --registry-cacert .local/pki/ca.crt -y "$REF" > "$LOG" 2>&1 \
-      || ok167::die "offline signing failed; private diagnostics remain in .local/" 1
+      || ok167::die "offline signing failed" 1
     ;;
   verify)
     DOCKER_CONFIG="$AUTH_DIR" "${COSIGN:-cosign}" verify --key "$KEY_DIR/cosign.pub" \
