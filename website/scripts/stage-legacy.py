@@ -104,7 +104,8 @@ def main():
     shutil.copy2(theme_css, TARGET / "assets" / theme_css.name)
     # Preview-only floating OK AI UI assets (legacy demo and curated Lite). The hostname guard in
     # website/overrides/main.html prevents loading them on production.
-    for name in ("ok-ai-floating-demo.js", "ok-ai-floating-demo.css", "ok-ai-lite-preview.js"):
+    for name in ("ok-ai-floating-demo.js", "ok-ai-floating-demo.css", "ok-ai-lite-preview.js",
+                 "openkubes-branding.css", "openkubes-branding.js"):
         source = ROOT / "website" / "assets" / name
         if not source.is_file():
             raise SystemExit(f"Missing floating UI asset: {source}")

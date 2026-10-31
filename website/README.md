@@ -37,3 +37,31 @@ The artifact should be opened through a local web server, not as file:// URLs.
 - Do not deploy this preview. Prior to cutover we need a complete URL inventory,
   linked-content checks, visual parity, shared navigation design, accessibility
   checks, and rollback approval.
+
+## OpenKubes branding
+
+`website/assets/openkubes-branding.css` and `.js` adapt the supplied OpenKubes
+MkDocs branding V1 package. Assets are staged by `stage-legacy.py` and registered
+in `mkdocs.yml`. The preserved HTML homepage loads them directly because it
+replaces MkDocs' generated index. The compact philosophy block sits before the
+existing hero in `docs/index.html`.
+
+The static wordmark partial, `website/overrides/partials/openkubes-wordmark.html`,
+is used by Material and both legacy navigation renderers. The homepage component
+uses the same markup. The shared CSS defines the exact per-letter palette supplied to match the
+wordmark on kubernauts.de. Branding
+remains visible without JavaScript. Screen readers receive all four principles
+once; reduced-motion mode shows them all without animation. A keyboard-accessible
+pause button controls typing; offscreen and hidden-tab animation is suspended.
+
+Validate without deploying (after installing the pinned requirements and staging
+the pinned upstream documentation described above):
+
+```bash
+PATH="$PWD/.venv/bin:$PATH" bash website/scripts/build-github-pages.sh
+node --test website/tests/test_openkubes_branding.cjs
+```
+
+The build script runs the strict MkDocs build, homepage/navigation rendering,
+legacy URL checks and production candidate checks. Do not use `make
+website-publish` for local validation.
