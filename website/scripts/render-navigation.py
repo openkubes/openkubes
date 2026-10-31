@@ -11,6 +11,7 @@ ROOT = Path(__file__).resolve().parents[2]
 SOURCE = ROOT / "docs" / "index.html"
 OUTPUT = ROOT / ".mkdocs-site" / "index.html"
 CSS = ROOT / "website" / "assets" / "openkubes-navigation.css"
+WORDMARK = (ROOT / "website/overrides/partials/openkubes-wordmark.html").read_text(encoding="utf-8").strip()
 NAV = [
     ("Home", "/"),
     ("Features", "/features/"),
@@ -36,7 +37,7 @@ def main():
     menu = (
         '<nav class="ok-global-nav" aria-label="OpenKubes primary navigation">'
         '<div class="ok-global-nav__inner">'
-        '<a class="ok-global-nav__brand ok-global-nav__brand--text" href="/">OpenKubes</a>'
+        '<a class="ok-global-nav__brand ok-global-nav__brand--text" href="/" aria-label="OpenKubes Home">' + WORDMARK + '</a>'
         '<div class="ok-global-nav__links">' + links + '</div></div></nav>'
     )
     html = source.replace(

@@ -2,7 +2,7 @@
 
 **OpenKubes owns workspace semantics, not the coding-agent implementation.**
 
-The proposed [ADR-Platform-039](https://github.com/openkubes/openkubes/blob/main/architecture/decisions/ADR-Platform-039-developer-workspace-contract.md) defines a `DeveloperWorkspace` as a declarative, bounded execution environment for a human, a coding agent, or both.
+The accepted [ADR-Platform-039](https://github.com/openkubes/openkubes/blob/main/architecture/decisions/ADR-Platform-039-developer-workspace-contract.md) defines a `DeveloperWorkspace` as a declarative, bounded execution environment for a human, a coding agent, or both.
 
 ## Contract boundaries
 

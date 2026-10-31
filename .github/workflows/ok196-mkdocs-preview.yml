@@ -3,6 +3,7 @@ on:
   pull_request:
     paths:
       - 'mkdocs.yml'
+      - 'docs/index.html'
       - 'website/**'
       - '.github/workflows/ok196-mkdocs-preview.yml'
   workflow_dispatch:
@@ -47,6 +48,7 @@ jobs:
       - run: pip install -r website/requirements-mkdocs.txt
       - run: python website/scripts/build-docs.py
       - run: python website/scripts/stage-legacy.py
+      - run: node --test website/tests/test_openkubes_branding.cjs
       - run: mkdocs build --strict
       - run: python website/scripts/preserve-homepage.py
       - run: python website/scripts/render-navigation.py
