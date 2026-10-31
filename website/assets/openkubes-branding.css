@@ -1,0 +1,62 @@
+/* OpenKubes MkDocs branding: home philosophy typewriter + multicolor navigation brand */
+.ok-philosophy {
+  box-sizing: border-box;
+  width: min(100%, 1120px);
+  margin: 22px auto 30px;
+  padding: 18px 22px 15px;
+  color: #fff;
+  background: #102e57;
+  border: 1px solid #294d7d;
+  border-radius: 11px;
+  font-family: inherit;
+  text-align: left;
+}
+.ok-philosophy__eyebrow {
+  margin: 0 0 10px;
+  color: #8cc6ff;
+  font-size: 11px;
+  line-height: 1.3;
+  font-weight: 700;
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+}
+.ok-philosophy__line {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  column-gap: .55em;
+  row-gap: .1em;
+  font-size: clamp(19px, 2.4vw, 27px);
+  font-weight: 400;
+  line-height: 1.4;
+  letter-spacing: -.25px;
+}
+.ok-philosophy__message { color: #ffd45a; overflow-wrap: anywhere; }
+.ok-philosophy__cursor { color: #ffd45a; }
+.ok-philosophy__cursor::after { content: '|'; }
+.ok-sr-only { position:absolute!important; width:1px!important; height:1px!important; padding:0!important; margin:-1px!important; overflow:hidden!important; clip:rect(0,0,0,0)!important; white-space:nowrap!important; border:0!important; }
+@media (max-width: 620px) {
+  .ok-philosophy { margin: 16px auto 23px; padding: 15px 16px; }
+  .ok-philosophy__eyebrow { font-size: 10px; }
+  .ok-philosophy__line { font-size: 20px; }
+}
+
+/* Logo-derived green, blue and orange, shared by the static wordmarks. */
+.ok-wordmark { white-space: nowrap; font-weight: 700; }
+.ok-wordmark__open { color: #1e9e4e; }
+.ok-wordmark__ku { color: #1c5dc1; }
+.ok-wordmark__bes { color: #ee7e14; }
+.ok-wordmark__dot { color: #fff; }
+.ok-philosophy { width: min(calc(100% - 32px), 1120px); }
+.ok-philosophy__message-wrap { display: inline-flex; width: 20ch; min-width: 0; max-width: 100%; }
+.ok-philosophy__message { min-height: 1.4em; }
+.ok-philosophy__pause {
+  margin: 12px 0 0; padding: 5px 10px; border: 1px solid #8cc6ff;
+  border-radius: 5px; background: transparent; color: #fff; font: inherit;
+  font-size: 12px; cursor: pointer;
+}
+.ok-philosophy__pause:focus-visible { outline: 3px solid #ffd45a; outline-offset: 3px; }
+.ok-philosophy [hidden] { display: none; }
+@media (prefers-reduced-motion: reduce) {
+  .ok-philosophy__cursor, .ok-philosophy__pause { display: none; }
+}

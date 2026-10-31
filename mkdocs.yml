@@ -17,6 +17,9 @@ theme:
 extra_css:
   - assets/openkubes-navigation.css
   - assets/openkubes-theme.css
+  - assets/openkubes-branding.css
+extra_javascript:
+  - assets/openkubes-branding.js
 plugins:
   - search
 markdown_extensions:
