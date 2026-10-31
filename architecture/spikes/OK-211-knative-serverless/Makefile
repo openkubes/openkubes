@@ -59,7 +59,8 @@ KUBECONFORM ?= kubeconform
         measure-s1 measure-scale-to-zero measure-coldstart measure-latency measure-autoscale measure-overhead node-image exp-s8 exp-s9 apps-serving-fastdown apps-serving-exp apps-serving-down coldstart-eval \
         apps-eventing measure-events exp-E5 exp-N1 exp-N4 \
         ingress-render ingress-install kourier-clusterip ingress-route exp-N2b exp-N2b-restore exp-N2-restore measure-fortio tls-install tls-enable tls-disable \
-        exp-X1 exp-X1-plain exp-X2 exp-X3 exp-X3-recheck exp-X3-newpod exp-X3-samepod exp-X6 footprint exp-X5 exp-X4
+        exp-X1 exp-X1-plain exp-X2 exp-X3 exp-X3-recheck exp-X3-newpod exp-X3-samepod exp-X6 footprint exp-X5 exp-X4 \
+        diff gitops-reapply exp-G2
 
 # ---------------------------------------------------------------------------
 help: ## Show this help
@@ -468,3 +469,18 @@ exp-X5: ## X5: config-observability; scrape /metrics before and with metrics-pro
 exp-X4: ## X4 (optional, last of the phase): Serving webhook scaled to 0; create/delete/config attempts; restore to 1
 	@$(GUARD_NODE)
 	@scripts/security.sh x4-webhook
+
+# ---------------------------------------------------------------------------
+# Phase 9 — GitOps lifecycle (G1-G4)
+# ---------------------------------------------------------------------------
+diff: ## G1: kubectl diff --server-side for release (knative, cert-manager, traefik) and own manifests (gitops/current-set.txt); LABEL=<name>
+	@$(GUARD_NODE)
+	@scripts/gitops.sh diff "$(or $(LABEL),now)"
+
+gitops-reapply: ## G1: apply everything a second time (release in order with overrides, cert-manager, traefik, own set)
+	@$(GUARD_NODE)
+	@scripts/gitops.sh reapply
+
+exp-G2: ## G2: minimal ksvc g2-podinfo; client-side vs server-side diff; fields added by the webhook
+	@$(GUARD_NODE)
+	@scripts/gitops.sh g2
