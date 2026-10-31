@@ -52,7 +52,7 @@ uses the same markup. The shared CSS defines the exact per-letter palette suppli
 wordmark on kubernauts.de. Branding
 remains visible without JavaScript. Screen readers receive all four principles
 once; reduced-motion mode shows them all without animation. A keyboard-accessible
-pause button controls typing; offscreen and hidden-tab animation is suspended.
+32 × 32 icon button controls typing and resumes from the current position; offscreen and hidden-tab animation is suspended.
 
 Validate without deploying (after installing the pinned requirements and staging
 the pinned upstream documentation described above):
