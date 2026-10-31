@@ -1,0 +1,55 @@
+# X2 2026-10-31T13:09:15Z — kubectl auth can-i --as=system:serviceaccount:ok211-tenant-a:tenant-a-dev
+verb       resource                                                namespace          answer
+create     services.serving.knative.dev                            ok211-tenant-a     yes
+update     services.serving.knative.dev                            ok211-tenant-a     yes
+create     services.serving.knative.dev                            ok211-serving      no
+list       services.serving.knative.dev                            ok211-serving      no
+get        configmaps/config-network                               knative-serving    no
+update     configmaps/config-network                               knative-serving    no
+update     configmaps/config-autoscaler                            knative-serving    no
+create     domainmappings.serving.knative.dev                      ok211-tenant-a     yes
+create     clusterdomainclaims.networking.internal.knative.dev     <cluster>          no
+create     brokers.eventing.knative.dev                            ok211-tenant-a     yes
+create     triggers.eventing.knative.dev                           ok211-tenant-a     yes
+create     pingsources.sources.knative.dev                         ok211-tenant-a     yes
+create     apiserversources.sources.knative.dev                    ok211-tenant-a     yes
+create     eventpolicies.eventing.knative.dev                      ok211-tenant-a     yes
+create     triggers.eventing.knative.dev                           ok211-events       no
+create     ingresses.networking.internal.knative.dev               ok211-tenant-a     no
+create     podautoscalers.autoscaling.internal.knative.dev         ok211-tenant-a     no
+get        secrets                                                 ok211-tenant-a     yes
+
+## Knative ClusterRoles aggregated into admin / edit / view
+### aggregate-to-admin: knative-bindings-namespaced-admin knative-eventing-namespaced-admin knative-flows-namespaced-admin knative-messaging-namespaced-admin knative-serving-namespaced-admin knative-sinks-namespaced-admin knative-sources-namespaced-admin 
+### aggregate-to-edit: knative-eventing-namespaced-edit knative-serving-namespaced-edit 
+### aggregate-to-view: knative-eventing-eventpolicy-reader knative-eventing-namespaced-view knative-serving-namespaced-view 
+
+## Eventing config-features (live data; empty = release default)
+{"authentication-oidc":"disabled","cross-namespace-event-links":"disabled","default-authorization-mode":"allow-same-namespace","transport-encryption":"disabled"}
+## EventPolicy CRD
+{"name":"eventpolicies.eventing.knative.dev","scope":"Namespaced","versions":["v1alpha1"]}
+GROUP:      eventing.knative.dev
+KIND:       EventPolicy
+VERSION:    v1alpha1
+
+FIELD: spec <Object>
+
+
+DESCRIPTION:
+    Spec defines the desired state of the EventPolicy.
+    
+FIELDS:
+  filters	<[]Object>
+    Filters is an array of SubscriptionsAPIFilters that evaluate to true or
+    false. If any filter expression in the array evaluates to false, the event
+    will not continue pass the ingress of the target resources of the policy
+
+  from	<[]Object>
+    From is the list of sources or oidc identities, which are allowed to send
+    events to the targets (.spec.to).
+
+  to	<[]Object>
+    To lists all resources for which this policy applies. Resources in this list
+    must act like an ingress and have an audience. The resources are part of the
+    same namespace as the EventPolicy. An empty list means it applies to all
+    resources in the EventPolicies namespace

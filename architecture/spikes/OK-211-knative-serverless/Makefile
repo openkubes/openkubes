@@ -58,7 +58,8 @@ KUBECONFORM ?= kubeconform
         apps-upgrade apps-upgrade-events knative-upgrade upgrade upgrade-collect knative-dry-run apps-upgrade-down \
         measure-s1 measure-scale-to-zero measure-coldstart measure-latency measure-autoscale measure-overhead node-image exp-s8 exp-s9 apps-serving-fastdown apps-serving-exp apps-serving-down coldstart-eval \
         apps-eventing measure-events exp-E5 exp-N1 exp-N4 \
-        ingress-render ingress-install kourier-clusterip ingress-route exp-N2b exp-N2b-restore exp-N2-restore measure-fortio tls-install tls-enable tls-disable
+        ingress-render ingress-install kourier-clusterip ingress-route exp-N2b exp-N2b-restore exp-N2-restore measure-fortio tls-install tls-enable tls-disable \
+        exp-X1 exp-X1-plain exp-X2 exp-X3 exp-X3-recheck exp-X3-newpod exp-X3-samepod exp-X6 footprint exp-X5 exp-X4
 
 # ---------------------------------------------------------------------------
 help: ## Show this help
@@ -421,3 +422,49 @@ tls-enable: ## N3: external-domain-tls Enabled with issuerRef ok211-ca-issuer; t
 tls-disable: ## N3 restore: external-domain-tls Disabled (cert-manager and issuers stay)
 	@$(GUARD_NODE)
 	@scripts/tls.sh disable
+
+# ---------------------------------------------------------------------------
+# Phase 8 — Security, tenancy, policy, observability (X1-X6)
+# ---------------------------------------------------------------------------
+exp-X1: ## X1: PSA restricted in ok211-tenant-a; secure-pod-defaults disabled vs Enabled, with restore
+	@$(GUARD_NODE)
+	@scripts/security.sh x1
+
+exp-X1-plain: ## X1 follow-up: podinfo-plain with secure-pod-defaults Enabled, pod state after 90 s, with restore
+	@$(GUARD_NODE)
+	@scripts/security.sh x1-plain
+
+exp-X2: ## X2: tenant ServiceAccount with namespace edit; auth can-i matrix, aggregated ClusterRoles, Eventing auth features
+	@$(GUARD_NODE)
+	@scripts/security.sh x2
+
+exp-X3: ## X3: default-deny NetworkPolicy in ok211-tenant-b, then allows for knative-serving and kourier-system
+	@$(GUARD_NODE)
+	@scripts/security.sh x3
+
+exp-X6: ## X6 (optional): cosign verify + verify-attestation for two Knative 1.24 images (read-only, TUF_ROOT in .local/)
+	@scripts/supply-chain.sh
+
+exp-X3-recheck: ## X3 follow-up: default deny only, settled 60 s; direct, warm and cold requests; allows re-applied
+	@$(GUARD_NODE)
+	@scripts/security.sh x3-recheck
+
+exp-X3-newpod: ## X3 follow-up: deny only; after a cold start, a request every 5 s until the first non-200 or MAX=360 s
+	@$(GUARD_NODE)
+	@scripts/security.sh x3-newpod "$(or $(MAX),360)"
+
+exp-X3-samepod: ## X3 follow-up: deny only; tb-warm pod replaced, request every 5 s until the first non-200 or MAX=600 s
+	@$(GUARD_NODE)
+	@scripts/security.sh x3-samepod "$(or $(MAX),600)"
+
+footprint: ## X4 (read-only): Knative CRDs, ClusterRoles/Bindings, webhooks with failurePolicy and rules
+	@$(GUARD_NODE)
+	@scripts/footprint.sh
+
+exp-X5: ## X5: config-observability; scrape /metrics before and with metrics-protocol=prometheus (with restore); RESTART=1 restarts the components
+	@$(GUARD_NODE)
+	@RESTART="$(RESTART)" scripts/observability.sh
+
+exp-X4: ## X4 (optional, last of the phase): Serving webhook scaled to 0; create/delete/config attempts; restore to 1
+	@$(GUARD_NODE)
+	@scripts/security.sh x4-webhook

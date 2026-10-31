@@ -57,7 +57,7 @@ teardown are added phase by phase below and completed in Phase 11.
 | 5 | Serving PoC | done | [04-serving.md](evidence/04-serving.md) |
 | 6 | Eventing PoC | done | [05-eventing.md](evidence/05-eventing.md) |
 | 7 | Networking, ingress, TLS | done | [06-networking-tls.md](evidence/06-networking-tls.md) |
-| 8 | Security, tenancy, policy, observability | open | — |
+| 8 | Security, tenancy, policy, observability | done | [07-security.md](evidence/07-security.md) |
 | 9 | GitOps lifecycle | open | — |
 | 10 | Architecture assessment | open | — |
 | 11 | Report and management summary | open | — |

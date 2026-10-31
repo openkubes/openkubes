@@ -1,0 +1,20 @@
+# OK-211 X4 — a throwaway ksvc to test admission while the Serving webhook is down.
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: x4-probe
+  namespace: ok211-serving
+  labels:
+    app.kubernetes.io/part-of: ok211
+spec:
+  template:
+    spec:
+      containers:
+        - name: podinfo
+          image: __PODINFO_IMAGE_6_16_0__
+          ports:
+            - containerPort: 9898
+          readinessProbe:
+            httpGet:
+              path: /readyz
+            successThreshold: 1

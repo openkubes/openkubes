@@ -30,7 +30,8 @@ ok211::load_versions
 
 K="${KUBECTL:-$SPIKE_ROOT/.local/bin/kubectl}"
 RAW="$SPIKE_ROOT/evidence/raw"
-NS=ok211-serving
+# OK211_NS lets the same series run in a tenant namespace (X3).
+NS="${OK211_NS:-ok211-serving}"
 # OK211_TARGET overrides the entry point, e.g. Traefik on the node (N2).
 KOURIER="${OK211_TARGET:-http://kourier.kourier-system.svc.cluster.local}"
 MAX_TIME=120
