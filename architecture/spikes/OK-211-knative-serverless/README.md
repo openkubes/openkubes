@@ -64,7 +64,7 @@ From zero to a running Knative 1.23 installation: `make install`, then
 | 9 | GitOps lifecycle | done (G3 NOT RUN) | [08-gitops.md](evidence/08-gitops.md) |
 | 10 | Architecture assessment | done | [09-architecture-assessment.md](evidence/09-architecture-assessment.md) |
 | 11 | Report and management summary | done | [REPORT.md](REPORT.md), [MANAGEMENT-SUMMARY.md](MANAGEMENT-SUMMARY.md), [drafts/](drafts/) |
-| 12 | Close-out | open | — |
+| 12 | Close-out | done, waiting at CP2 | [§ Close-out](#close-out-phase-12) |
 
 ## Deliverables
 
@@ -86,3 +86,20 @@ From zero to a running Knative 1.23 installation: `make install`, then
   `UserKnownHostsFile=.local/known_hosts` instead of the user's `~/.ssh/config`.
 - The API tunnel uses port `6450` and a control socket (`.local/tun.sock`) and is
   stopped through that socket, never with `pkill`.
+
+## Close-out (Phase 12)
+
+Run on 2026-10-31 between 14:08Z and 14:12Z.
+
+| Check | Result |
+|---|---|
+| `make verify` | PASS, 7/7 checks: `knative-verify`, smoke `200`, release dry run 1.24 without SSA conflict, evidence and report files present, `measurements.json` lines carry the B11 fields, 28 required series present, `BRIEF.md` unchanged (sha256 `fd96141b…fac5`). Negative check: with `evidence/09-…` moved away, `verify` failed with "missing: evidence/09-architecture-assessment.md" |
+| `make lint` | shellcheck clean (28 files), yamllint clean (43 files); kubeconform not installed (optional, reported at CP1) |
+| `make lint-server` | 31 manifests behave as expected; `security/x1-tenant-a.yaml` is **expected to be rejected** (PSA `restricted`, see [07](evidence/07-security.md)); Helm values files excluded |
+| `make scan-secrets`, `make scan-history` | clean (worktree, index, history `origin/main..HEAD`) |
+| `make test-guard` | all guard cases behave as expected ([raw](evidence/raw/guard-negative-tests-20261031T140624Z.txt)) |
+| Changes outside the spike folder | none: `git diff --stat origin/main...HEAD -- . ':(exclude)architecture/spikes/OK-211-knative-serverless'` is empty |
+| `multipass list` before the spike (CP1) | `No instances found.` |
+| `multipass list` now | `ok-knative-local Stopped` (Ubuntu 24.04 LTS), 1 snapshot (`knative-1-23`); created by this spike, no other instance; nothing caused by the human apart from installing Multipass before CP1 |
+| Environment | `make down`: tunnel stopped (no listener on 6450, control socket removed), VM stopped and kept for review; `.local/` is 72 MB |
+| Codex review (optional) | not run |

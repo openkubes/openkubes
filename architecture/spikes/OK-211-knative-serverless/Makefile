@@ -60,7 +60,7 @@ KUBECONFORM ?= kubeconform
         apps-eventing measure-events exp-E5 exp-N1 exp-N4 \
         ingress-render ingress-install kourier-clusterip ingress-route exp-N2b exp-N2b-restore exp-N2-restore measure-fortio tls-install tls-enable tls-disable \
         exp-X1 exp-X1-plain exp-X2 exp-X3 exp-X3-recheck exp-X3-newpod exp-X3-samepod exp-X6 footprint exp-X5 exp-X4 \
-        diff gitops-reapply exp-G2
+        diff gitops-reapply exp-G2 verify
 
 # ---------------------------------------------------------------------------
 help: ## Show this help
@@ -239,10 +239,17 @@ vm-ssh: ## Run CMD='...' in ok-knative-local through ok211::vm_ssh
 	@test -n "$$CMD" || { echo "usage: make vm-ssh CMD='...'"; exit 2; }
 	@bash -c '. scripts/lib.sh; ok211::vm_ssh "$$CMD"'
 
-lint-server: ## Server-side dry-run of every own manifest (from Phase 3 on)
+# Manifests that must be rejected by the server: X1's podinfo-plain has no
+# securityContext in a PSA-restricted namespace, on purpose.
+LINT_SERVER_EXPECT_REJECT := security/x1-tenant-a.yaml
+
+lint-server: ## Server-side dry-run of every own manifest (Helm values excluded; LINT_SERVER_EXPECT_REJECT must be rejected)
 	@$(GUARD_NODE)
-	@files=$$(find load apps ingress tls security gitops -name '*.yaml' -type f 2>/dev/null | sort); \
-	 for f in $$files; do printf '%-50s ' "$$f"; scripts/render.sh "$$f" | $(KUBECTL) apply --server-side --field-manager=ok211 --dry-run=server -f - >/dev/null && echo ok || { echo FAIL; exit 1; }; done
+	@files=$$(find load apps ingress tls security gitops -name '*.yaml' -not -name '*-values.yaml' -type f 2>/dev/null | sort); \
+	 for f in $$files; do printf '%-50s ' "$$f"; \
+	   if scripts/render.sh "$$f" | $(KUBECTL) apply --server-side --field-manager=ok211 --dry-run=server -f - >/dev/null 2>&1; then r=accepted; else r=rejected; fi; \
+	   case " $(LINT_SERVER_EXPECT_REJECT) " in *" $$f "*) want=rejected ;; *) want=accepted ;; esac; \
+	   if [ "$$r" = "$$want" ]; then echo "ok ($$r)"; else echo "FAIL ($$r, expected $$want)"; exit 1; fi; done
 
 # ---------------------------------------------------------------------------
 # Phase 4 — upgrade 1.23 -> 1.24 under load (U1, U2)
@@ -484,3 +491,10 @@ gitops-reapply: ## G1: apply everything a second time (release in order with ove
 exp-G2: ## G2: minimal ksvc g2-podinfo; client-side vs server-side diff; fields added by the webhook
 	@$(GUARD_NODE)
 	@scripts/gitops.sh g2
+
+# ---------------------------------------------------------------------------
+# Phase 12 — close-out
+# ---------------------------------------------------------------------------
+verify: ## All pass criteria checkable without a new measurement (knative-verify, smoke, dry run, evidence, measurements.json, BRIEF unchanged)
+	@$(GUARD_NODE)
+	@scripts/verify.sh

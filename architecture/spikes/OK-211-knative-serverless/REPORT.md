@@ -109,6 +109,7 @@ Full table with sources: [09 §10.5](evidence/09-architecture-assessment.md#105-
 | Option | Scale-to-zero (HTTP) | Event routing | Status | ADR-001 fit |
 |---|---|---|---|---|
 | Knative | yes (measured) | yes (measured) | CNCF Graduated | profile behind a claim |
+| Knative with the HPA class (`serving-hpa.yaml`) | no (KPA only) | as Knative | as Knative | revisions without scale-to-zero |
 | KEDA + HTTP add-on | yes; add-on beta | no | KEDA Graduated | good for scaling only |
 | Deployment + HPA | object/external metrics only; `HPAScaleToZero` Beta from K8s 1.37 (ok-local runs 1.35) | no | core | most neutral, no HTTP buffering |
 | OpenFaaS | Pro only | NATS async (CE) | not CNCF; CE not for commercial use | poor |
