@@ -1,4 +1,5 @@
-/* Adapted from the supplied OpenCms Console homepage section; no dependencies. */
+/* Adapted from openkubes-console-carousel.js in the supplied V2 package.
+ * Retains path-prefix support, lifecycle guards and keyboard focus wrapping. */
 (function () {
   'use strict';
   function init() {

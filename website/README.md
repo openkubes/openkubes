@@ -69,14 +69,14 @@ website-publish` for local validation.
 ## Console homepage gallery
 
 The section in `docs/index.html` comes from the user-supplied
-`openkubes-console-carousel-codex-complete.zip`, following its README. It sits
+`openkubes-console-carousel-codex-complete-v2.zip`, following its README. It sits
 between the unchanged installer announcement and four-cluster animation. The
 original English copy, inline visual styling, screenshot order, Open Source
 panel, links and responsive grid are retained.
 
 Integration changes: explicitly inherit left alignment within the centered hero
 header and avoid the site's generic section divider; use relative thumbnail URLs;
-move the existing modal behavior into `website/assets/openkubes-console-gallery.js`;
+move the existing modal behavior into `website/assets/openkubes-console-carousel.js`;
 resolve modal URLs from those thumbnails for path-prefix hosting; add visible
 keyboard focus, a modal backdrop, and polite image-title announcements. The native
 dialog preserves Escape, background inertness and focus restoration; an explicit

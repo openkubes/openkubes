@@ -106,7 +106,7 @@ def main():
     # website/overrides/main.html prevents loading them on production.
     for name in ("ok-ai-floating-demo.js", "ok-ai-floating-demo.css", "ok-ai-lite-preview.js",
                  "openkubes-branding.css", "openkubes-branding.js",
-                 "openkubes-console-gallery.css", "openkubes-console-gallery.js"):
+                 "openkubes-console-gallery.css", "openkubes-console-carousel.js"):
         source = ROOT / "website" / "assets" / name
         if not source.is_file():
             raise SystemExit(f"Missing floating UI asset: {source}")

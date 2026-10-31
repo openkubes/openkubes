@@ -63,7 +63,7 @@ def main():
         relative = f"assets/images/console/ok-console-{name}.webp"
         if not (SITE / relative).is_file() or f'src="{relative}"' not in html:
             raise SystemExit(f"Missing Console screenshot: {relative}")
-    for name in ("openkubes-console-gallery.css", "openkubes-console-gallery.js"):
+    for name in ("openkubes-console-gallery.css", "openkubes-console-carousel.js"):
         if not (SITE / "assets" / name).is_file() or f'assets/{name}' not in html:
             raise SystemExit(f"Missing Console gallery asset: {name}")
     if "Open Code. Public Repositories. Transparent Decisions." not in html:
