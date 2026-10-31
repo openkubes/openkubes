@@ -5,8 +5,9 @@ and Eventing as an optional, GitOps-managed OpenKubes platform capability, witho
 the core platform or the Console. The binding work order is [`BRIEF.md`](BRIEF.md) (German);
 everything this spike produces is in English.
 
-> **Status: in progress.** See [Progress](#progress). Nothing here is a production rollout
-> or an implementation commitment (ticket constraint).
+> **Status: report delivered, awaiting review (CP2).** Proposed result **CONDITIONAL GO**:
+> see [MANAGEMENT-SUMMARY.md](MANAGEMENT-SUMMARY.md) and [REPORT.md](REPORT.md).
+> Nothing here is a production rollout or an implementation commitment (ticket constraint).
 
 ## What runs where
 
@@ -42,8 +43,10 @@ make test-guard         # guard negative tests
 make lint scan-secrets
 ```
 
-The full path from zero to a running Knative installation (`make install`) and the
-teardown are added phase by phase below and completed in Phase 11.
+From zero to a running Knative 1.23 installation: `make install`, then
+`make probe-up apps-serving smoke`. Every experiment and the teardown are listed in
+[REPORT.md §19](REPORT.md#19-reproduction) (`make help` shows all targets). Teardown:
+`make down` keeps the VM, `make clean CONFIRM=yes` deletes it and its local state.
 
 ## Progress
 
@@ -60,12 +63,21 @@ teardown are added phase by phase below and completed in Phase 11.
 | 8 | Security, tenancy, policy, observability | done | [07-security.md](evidence/07-security.md) |
 | 9 | GitOps lifecycle | done (G3 NOT RUN) | [08-gitops.md](evidence/08-gitops.md) |
 | 10 | Architecture assessment | done | [09-architecture-assessment.md](evidence/09-architecture-assessment.md) |
-| 11 | Report and management summary | open | — |
+| 11 | Report and management summary | done | [REPORT.md](REPORT.md), [MANAGEMENT-SUMMARY.md](MANAGEMENT-SUMMARY.md), [drafts/](drafts/) |
 | 12 | Close-out | open | — |
+
+## Deliverables
+
+| File | Content |
+|---|---|
+| [MANAGEMENT-SUMMARY.md](MANAGEMENT-SUMMARY.md) | one page for decision makers |
+| [REPORT.md](REPORT.md) | full report (B13), findings F1–F15, criteria M1–M6/K1–K5, effort WP1–WP10 |
+| [evidence/](evidence/) | one file per phase, raw data in `evidence/raw/` (`measurements.json`) |
+| [drafts/](drafts/) | Jira comment (German) and PR description; not posted |
+| `diagrams/architecture.svg` | PENDING (needs mermaid-cli, approval required); Mermaid source in REPORT §3 |
 
 ## Deviations from ok-local
 
-Recorded as they arise.
 
 - The K3s install script is fetched from the versioned tag
   (`k3s-io/k3s/v1.35.5+k3s1/install.sh`, SHA-256 pinned) instead of the unversioned
