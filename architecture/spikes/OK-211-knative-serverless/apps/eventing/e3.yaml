@@ -1,0 +1,128 @@
+# OK-211 E3 — two triggers with different filters: one on type, one on source.
+# event-display sink sink-a: a plain Deployment, so no cold start is measured.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sink-a
+  namespace: ok211-events
+  labels:
+    app.kubernetes.io/name: sink-a
+    app.kubernetes.io/part-of: ok211
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: sink-a
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: sink-a
+    spec:
+      automountServiceAccountToken: false
+      containers:
+        - name: event-display
+          image: __EVENT_DISPLAY_IMAGE__
+          ports:
+            - containerPort: 8080
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            capabilities:
+              drop: ["ALL"]
+            seccompProfile:
+              type: RuntimeDefault
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sink-a
+  namespace: ok211-events
+spec:
+  selector:
+    app.kubernetes.io/name: sink-a
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080
+---
+# event-display sink sink-b: a plain Deployment, so no cold start is measured.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sink-b
+  namespace: ok211-events
+  labels:
+    app.kubernetes.io/name: sink-b
+    app.kubernetes.io/part-of: ok211
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: sink-b
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: sink-b
+    spec:
+      automountServiceAccountToken: false
+      containers:
+        - name: event-display
+          image: __EVENT_DISPLAY_IMAGE__
+          ports:
+            - containerPort: 8080
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            capabilities:
+              drop: ["ALL"]
+            seccompProfile:
+              type: RuntimeDefault
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sink-b
+  namespace: ok211-events
+spec:
+  selector:
+    app.kubernetes.io/name: sink-b
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080
+---
+# E3: filter on type
+apiVersion: eventing.knative.dev/v1
+kind: Trigger
+metadata:
+  name: e3-a
+  namespace: ok211-events
+spec:
+  broker: default
+  filter:
+    attributes:
+      type: dev.openkubes.ok211.e3.a
+  subscriber:
+    ref:
+      apiVersion: v1
+      kind: Service
+      name: sink-a
+---
+# E3: filter on source
+apiVersion: eventing.knative.dev/v1
+kind: Trigger
+metadata:
+  name: e3-b
+  namespace: ok211-events
+spec:
+  broker: default
+  filter:
+    attributes:
+      source: /ok211/e3/b
+  subscriber:
+    ref:
+      apiVersion: v1
+      kind: Service
+      name: sink-b

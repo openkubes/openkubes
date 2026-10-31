@@ -1,0 +1,26 @@
+2026-10-30T14:17:55Z	start	knative-install 1.23
+2026-10-30T14:17:55Z	start	apply 1.23/serving-crds.yaml
+2026-10-30T14:17:55Z	end	apply 1.23/serving-crds.yaml
+2026-10-30T14:17:56Z	start	apply 1.23/serving-core.yaml
+2026-10-30T14:17:57Z	end	apply 1.23/serving-core.yaml
+2026-10-30T14:17:57Z	start	wait knative-serving/webhook Available
+2026-10-30T14:18:04Z	end	wait knative-serving/webhook Available
+2026-10-30T14:18:04Z	start	wait knative-serving/controller Available
+2026-10-30T14:18:12Z	end	wait knative-serving/controller Available
+2026-10-30T14:18:12Z	start	apply 1.23/kourier.yaml
+2026-10-30T14:18:12Z	end	apply 1.23/kourier.yaml
+2026-10-30T14:18:12Z	start	patch knative-serving/config-network
+2026-10-30T14:18:12Z	end	patch knative-serving/config-network
+2026-10-30T14:18:12Z	start	patch knative-serving/config-domain
+2026-10-30T14:18:12Z	end	patch knative-serving/config-domain
+2026-10-30T14:18:12Z	start	apply 1.23/eventing-crds.yaml
+2026-10-30T14:18:12Z	end	apply 1.23/eventing-crds.yaml
+2026-10-30T14:18:17Z	start	apply 1.23/eventing-core.yaml
+2026-10-30T14:18:17Z	end	apply 1.23/eventing-core.yaml
+2026-10-30T14:18:17Z	start	wait knative-eventing/eventing-webhook Available
+2026-10-30T14:18:34Z	end	wait knative-eventing/eventing-webhook Available
+2026-10-30T14:18:34Z	start	apply 1.23/in-memory-channel.yaml
+2026-10-30T14:18:34Z	end	apply 1.23/in-memory-channel.yaml
+2026-10-30T14:18:34Z	start	apply 1.23/mt-channel-broker.yaml
+2026-10-30T14:18:34Z	end	apply 1.23/mt-channel-broker.yaml
+2026-10-30T14:19:10Z	end	knative-install 1.23

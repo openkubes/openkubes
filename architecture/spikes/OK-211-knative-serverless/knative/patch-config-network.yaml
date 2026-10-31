@@ -1,0 +1,6 @@
+# Merge patch for knative-serving/config-network (BRIEF B8, B9 Phase 3).
+# Selects Kourier as the networking layer. Applied with
+# `kubectl patch --type merge`, never as a full ConfigMap, so a later
+# server-side apply of the release manifest does not remove it.
+data:
+  ingress-class: kourier.ingress.networking.knative.dev

@@ -1,0 +1,4 @@
+run	last_request_vm_epoch	desired0_after_s	deletion_ts_after_s	no_pod_after_s
+1	1793439583	62.48	362	97.072
+2	1793439688	62.283	361	95.166
+3	1793439790	61.131	361	93.909

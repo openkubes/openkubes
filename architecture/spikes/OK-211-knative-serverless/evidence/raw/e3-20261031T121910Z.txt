@@ -1,0 +1,14 @@
+# E3 2026-10-31T12:19:20Z
+## sent: e3a-* type dev.openkubes.ok211.e3.a source /ok211/e3/x; e3b-* type …e3.z source /ok211/e3/b; e3z-* type …e3.z source /ok211/e3/z (5 each)
+## sink-a (trigger e3-a: type=dev.openkubes.ok211.e3.a)
+2026-10-31T13:19:11.038149180+01:00	dev.openkubes.ok211.e3.a	/ok211/e3/x	e3a-20261031T121910Z-1	knativearrivaltime=2026-10-31T12:19:11.018105983Z;seq=1
+2026-10-31T13:19:11.253868367+01:00	dev.openkubes.ok211.e3.a	/ok211/e3/x	e3a-20261031T121910Z-2	knativearrivaltime=2026-10-31T12:19:11.252831538Z;seq=2
+2026-10-31T13:19:11.460288515+01:00	dev.openkubes.ok211.e3.a	/ok211/e3/x	e3a-20261031T121910Z-3	knativearrivaltime=2026-10-31T12:19:11.459371269Z;seq=3
+2026-10-31T13:19:11.669996897+01:00	dev.openkubes.ok211.e3.a	/ok211/e3/x	e3a-20261031T121910Z-4	knativearrivaltime=2026-10-31T12:19:11.668716528Z;seq=4
+2026-10-31T13:19:11.874893010+01:00	dev.openkubes.ok211.e3.a	/ok211/e3/x	e3a-20261031T121910Z-5	knativearrivaltime=2026-10-31T12:19:11.873345892Z;seq=5
+## sink-b (trigger e3-b: source=/ok211/e3/b)
+2026-10-31T13:19:11.054655435+01:00	dev.openkubes.ok211.e3.z	/ok211/e3/b	e3b-20261031T121910Z-1	knativearrivaltime=2026-10-31T12:19:11.028188352Z;seq=1
+2026-10-31T13:19:11.261709163+01:00	dev.openkubes.ok211.e3.z	/ok211/e3/b	e3b-20261031T121910Z-2	knativearrivaltime=2026-10-31T12:19:11.260955583Z;seq=2
+2026-10-31T13:19:11.467162732+01:00	dev.openkubes.ok211.e3.z	/ok211/e3/b	e3b-20261031T121910Z-3	knativearrivaltime=2026-10-31T12:19:11.466365069Z;seq=3
+2026-10-31T13:19:11.671014600+01:00	dev.openkubes.ok211.e3.z	/ok211/e3/b	e3b-20261031T121910Z-4	knativearrivaltime=2026-10-31T12:19:11.670545853Z;seq=4
+2026-10-31T13:19:11.876457878+01:00	dev.openkubes.ok211.e3.z	/ok211/e3/b	e3b-20261031T121910Z-5	knativearrivaltime=2026-10-31T12:19:11.875372966Z;seq=5

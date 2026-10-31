@@ -1,0 +1,20 @@
+# OK-211 — base Knative Service for the smoke test (Phase 3) and S1-S3, S5.
+# Defaults only: no autoscaling annotations, so S2 measures the defaults.
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: podinfo
+  namespace: ok211-serving
+  labels:
+    app.kubernetes.io/part-of: ok211
+spec:
+  template:
+    spec:
+      containers:
+        - name: podinfo
+          image: __PODINFO_IMAGE_6_16_0__
+          ports:
+            - containerPort: 9898
+          readinessProbe:
+            httpGet:
+              path: /readyz

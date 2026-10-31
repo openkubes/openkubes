@@ -1,0 +1,55 @@
+# OK-211 X3 — tenant namespace for the NetworkPolicy test (K3s enforces
+# NetworkPolicy with its embedded kube-router controller). tb-cold scales to
+# zero quickly (window 6s); tb-warm keeps one pod (min-scale 1).
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ok211-tenant-b
+  labels:
+    app.kubernetes.io/part-of: ok211
+---
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: tb-cold
+  namespace: ok211-tenant-b
+  labels:
+    app.kubernetes.io/part-of: ok211
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/window: "6s"
+    spec:
+      containers:
+        - name: podinfo
+          image: __PODINFO_IMAGE_6_16_0__
+          ports:
+            - containerPort: 9898
+          readinessProbe:
+            httpGet:
+              path: /readyz
+            successThreshold: 1
+---
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: tb-warm
+  namespace: ok211-tenant-b
+  labels:
+    app.kubernetes.io/part-of: ok211
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/min-scale: "1"
+    spec:
+      containers:
+        - name: podinfo
+          image: __PODINFO_IMAGE_6_16_0__
+          ports:
+            - containerPort: 9898
+          readinessProbe:
+            httpGet:
+              path: /readyz
+            successThreshold: 1

@@ -1,0 +1,11 @@
+Apply failed with 5 conflicts: conflicts with "controller" using apps/v1:
+- .spec.replicas
+- .spec.template.spec.containers[name="dispatcher"].env[name="K_LEADER_ELECTION_CONFIG"].value
+- .spec.template.spec.containers[name="dispatcher"].env[name="K_LOGGING_CONFIG"].value
+- .spec.template.spec.containers[name="dispatcher"].env[name="K_NO_SHUTDOWN_AFTER"].value
+- .spec.template.spec.containers[name="dispatcher"].env[name="K_OBSERVABILITY_CONFIG"].value
+Apply failed with 1 conflict: conflict with "clusterrole-aggregation-controller": .rules
+Apply failed with 1 conflict: conflict with "clusterrole-aggregation-controller": .rules
+Apply failed with 1 conflict: conflict with "clusterrole-aggregation-controller": .rules
+Apply failed with 1 conflict: conflict with "clusterrole-aggregation-controller": .rules
+Apply failed with 1 conflict: conflict with "clusterrole-aggregation-controller": .rules

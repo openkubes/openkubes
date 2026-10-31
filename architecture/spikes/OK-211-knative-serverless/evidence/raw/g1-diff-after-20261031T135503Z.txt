@@ -1,0 +1,88 @@
+# G1 diff 'after' 2026-10-31T13:55:03Z — kubectl diff --server-side; exit 0 = no difference, 1 = difference, >1 = error
+### 1.24/serving-crds.yaml (field manager knative-release): exit 0
+### 1.24/eventing-crds.yaml (field manager knative-release): exit 0
+### 1.24/serving-core.yaml (field manager knative-release): exit 0
+### 1.24/kourier.yaml (field manager knative-release): exit 0
+### 1.24/eventing-core.yaml (field manager knative-release): exit 1
+diff -u -N /var/folders/5v/188v5s6d0rn4w550l4h3_42h0000gn/T/LIVE-4230400642/apps.v1.Deployment.knative-eventing.pingsource-mt-adapter /var/folders/5v/188v5s6d0rn4w550l4h3_42h0000gn/T/MERGED-619560816/apps.v1.Deployment.knative-eventing.pingsource-mt-adapter
+--- /var/folders/5v/188v5s6d0rn4w550l4h3_42h0000gn/T/LIVE-4230400642/apps.v1.Deployment.knative-eventing.pingsource-mt-adapter	2026-10-31 14:55:04
++++ /var/folders/5v/188v5s6d0rn4w550l4h3_42h0000gn/T/MERGED-619560816/apps.v1.Deployment.knative-eventing.pingsource-mt-adapter	2026-10-31 14:55:04
+@@ -4,7 +4,7 @@
+   annotations:
+     deployment.kubernetes.io/revision: "8"
+   creationTimestamp: "2026-10-30T14:18:17Z"
+-  generation: 8
++  generation: 9
+   labels:
+     app.kubernetes.io/component: pingsource-mt-adapter
+     app.kubernetes.io/name: knative-eventing
+@@ -48,22 +48,20 @@
+             weight: 100
+       containers:
+       - env:
+-        - name: NAMESPACE
++        - name: SYSTEM_NAMESPACE
+           valueFrom:
+             fieldRef:
+               apiVersion: v1
+               fieldPath: metadata.namespace
+-        - name: SYSTEM_NAMESPACE
++        - name: K_KLOG_VERBOSITY
++          value: "0"
++        - name: NAMESPACE
+           valueFrom:
+             fieldRef:
+               apiVersion: v1
+               fieldPath: metadata.namespace
+-        - name: K_LEADER_ELECTION_CONFIG
+-          value: '{"Component":"pingsource","Buckets":1,"LeaseDuration":60000000000,"RenewDeadline":40000000000,"RetryPeriod":10000000000,"Identity":"","LeaseNamesPrefixMapping":null}'
+-        - name: K_NO_SHUTDOWN_AFTER
+-          value: "55"
+-        - name: K_SINK_TIMEOUT
+-          value: "-1"
++        - name: K_OBSERVABILITY_CONFIG
++          value: '{"tracing":{"protocol":"none"},"metrics":{"protocol":"none"},"runtime":{"profiling":"disabled","exportInterval":15000000000},"enableSinkEventErrorReporting":false}'
+         - name: K_LOGGING_CONFIG
+           value: '{"zap-logger-config":"{\n  \"level\": \"info\",\n  \"development\":
+             false,\n  \"outputPaths\": [\"stdout\"],\n  \"errorOutputPaths\": [\"stderr\"],\n  \"encoding\":
+@@ -72,10 +70,17 @@
+             \"msg\",\n    \"stacktraceKey\": \"stacktrace\",\n    \"lineEnding\":
+             \"\",\n    \"levelEncoder\": \"\",\n    \"timeEncoder\": \"iso8601\",\n    \"durationEncoder\":
+             \"\",\n    \"callerEncoder\": \"\"\n  }\n}\n"}'
+-        - name: K_KLOG_VERBOSITY
+-          value: "0"
+-        - name: K_OBSERVABILITY_CONFIG
+-          value: '{"tracing":{"protocol":"none"},"metrics":{"protocol":"none"},"runtime":{"profiling":"disabled","exportInterval":15000000000},"enableSinkEventErrorReporting":false}'
++        - name: K_LEADER_ELECTION_CONFIG
++          value: '{"Component":"pingsource","Buckets":1,"LeaseDuration":60000000000,"RenewDeadline":40000000000,"RetryPeriod":10000000000,"Identity":"","LeaseNamesPrefixMapping":null}'
++        - name: K_NO_SHUTDOWN_AFTER
++          value: "55"
++        - name: K_SINK_TIMEOUT
++          value: "-1"
++        - name: POD_NAME
++          valueFrom:
++            fieldRef:
++              apiVersion: v1
++              fieldPath: metadata.name
+         image: gcr.io/knative-releases/knative.dev/eventing/cmd/mtping@sha256:14aa2fec23011c08c3ed5a9e6db99b171f49a7744685a0a85ed9313dd168c045
+         imagePullPolicy: IfNotPresent
+         livenessProbe:
+### 1.24/in-memory-channel.yaml (field manager knative-release): exit 0
+### 1.24/mt-channel-broker.yaml (field manager knative-release): exit 0
+### cert-manager.yaml (field manager cert-manager-release): exit 0
+### traefik-rendered (field manager traefik-chart): exit 0
+### load/probe.yaml (field manager ok211): exit 0
+### apps/serving/namespace.yaml (field manager ok211): exit 0
+### apps/serving/podinfo-fastdown.yaml (field manager ok211): exit 0
+### apps/serving/podinfo-private.yaml (field manager ok211): exit 0
+### apps/eventing/base.yaml (field manager ok211): exit 0
+### apps/eventing/e2.yaml (field manager ok211): exit 0
+### apps/eventing/e3.yaml (field manager ok211): exit 0
+### apps/eventing/e4.yaml (field manager ok211): exit 0
+### apps/eventing/e5.yaml (field manager ok211): exit 0
+### security/x2-tenant-rbac.yaml (field manager ok211): exit 0
+### security/x3-tenant-b.yaml (field manager ok211): exit 0
+### security/x3-deny.yaml (field manager ok211): exit 0
+### security/x3-allow-serving.yaml (field manager ok211): exit 0
+### security/x3-allow-kourier.yaml (field manager ok211): exit 0
+### tls/issuers.yaml (field manager ok211): exit 0

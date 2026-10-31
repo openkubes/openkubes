@@ -1,0 +1,3 @@
+# OK-211 X1 restore — the release default.
+data:
+  secure-pod-defaults: disabled

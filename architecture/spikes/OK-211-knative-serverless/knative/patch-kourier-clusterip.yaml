@@ -1,0 +1,18 @@
+# OK-211 N2 — Kourier behind the single entry point (ADR-010): the release
+# LoadBalancer Service becomes ClusterIP, so ServiceLB releases the node's
+# ports 80/443. Fields allowed only for NodePort/LoadBalancer are removed.
+# knative.sh re-applies this patch after a release apply while
+# .local/n2-active exists. Restore: patch-kourier-loadbalancer.yaml.
+spec:
+  type: ClusterIP
+  externalTrafficPolicy: null
+  allocateLoadBalancerNodePorts: null
+  ports:
+    - name: http2
+      port: 80
+      protocol: TCP
+      targetPort: 8080
+    - name: https
+      port: 443
+      protocol: TCP
+      targetPort: 8443
