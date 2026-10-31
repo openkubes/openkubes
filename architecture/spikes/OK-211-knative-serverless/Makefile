@@ -56,7 +56,8 @@ KUBECONFORM ?= kubeconform
         tunnel tunnel-status tunnel-stop baseline down clean \
         knative-install knative-verify knative-post-install probe-up probe apps-serving smoke install vm-ssh lint-server \
         apps-upgrade apps-upgrade-events knative-upgrade upgrade upgrade-collect knative-dry-run apps-upgrade-down \
-        measure-s1 measure-scale-to-zero measure-coldstart measure-latency measure-autoscale measure-overhead node-image exp-s8 exp-s9 apps-serving-fastdown apps-serving-exp apps-serving-down coldstart-eval
+        measure-s1 measure-scale-to-zero measure-coldstart measure-latency measure-autoscale measure-overhead node-image exp-s8 exp-s9 apps-serving-fastdown apps-serving-exp apps-serving-down coldstart-eval \
+        apps-eventing measure-events exp-E5
 
 # ---------------------------------------------------------------------------
 help: ## Show this help
@@ -340,3 +341,25 @@ node-image: ## S4: list or remove an image on the node: OP=<list|rmi> [IMAGE=<re
 	@test -n "$(OP)" || { echo "usage: make node-image OP=list|rmi [IMAGE=...]"; exit 2; }
 	@$(GUARD_NODE)
 	@scripts/node-image.sh "$(OP)" "$(IMAGE)"
+
+# ---------------------------------------------------------------------------
+# Phase 6 — Eventing PoC (E1-E8)
+# ---------------------------------------------------------------------------
+MEASURE_EV = scripts/measure-eventing.sh
+
+apps-eventing: ## E1/E6/E8 base (ns ok211-events, broker, event-display, PingSource, triggers) plus E2-E5 objects
+	@$(GUARD_NODE)
+	@$(call APPLY_OWN,apps/eventing/base.yaml apps/eventing/e2.yaml apps/eventing/e3.yaml apps/eventing/e4.yaml apps/eventing/e5.yaml)
+	@$(KUBECTL) -n ok211-events wait --for=condition=Ready broker/default pingsource/ok211-ping ksvc/event-display-ksvc ksvc/podinfo-fail --timeout=300s
+	@$(KUBECTL) -n ok211-events wait --for=condition=Ready trigger --all --timeout=300s
+	@$(KUBECTL) -n ok211-events wait --for=condition=Available deploy --all --timeout=300s
+
+measure-events: ## E1-E4, E6, E8: TEST=<e1|e2|e3|e4|e6|e8>
+	@test -n "$(TEST)" || { echo "usage: make measure-events TEST=e1"; exit 2; }
+	@$(GUARD_NODE)
+	@$(MEASURE_EV) "$(TEST)"
+
+exp-E5: ## E5: 100 events while the sink is down; SCENARIO=<dispatcher|ingress|restart|none> (force-delete, rollout restart, control)
+	@test -n "$(SCENARIO)" || { echo "usage: make exp-E5 SCENARIO=dispatcher|ingress|restart|none"; exit 2; }
+	@$(GUARD_NODE)
+	@$(MEASURE_EV) e5 "$(SCENARIO)"
