@@ -57,7 +57,8 @@ KUBECONFORM ?= kubeconform
         knative-install knative-verify knative-post-install probe-up probe apps-serving smoke install vm-ssh lint-server \
         apps-upgrade apps-upgrade-events knative-upgrade upgrade upgrade-collect knative-dry-run apps-upgrade-down \
         measure-s1 measure-scale-to-zero measure-coldstart measure-latency measure-autoscale measure-overhead node-image exp-s8 exp-s9 apps-serving-fastdown apps-serving-exp apps-serving-down coldstart-eval \
-        apps-eventing measure-events exp-E5
+        apps-eventing measure-events exp-E5 exp-N1 exp-N4 \
+        ingress-render ingress-install kourier-clusterip ingress-route exp-N2b exp-N2b-restore exp-N2-restore measure-fortio tls-install tls-enable tls-disable
 
 # ---------------------------------------------------------------------------
 help: ## Show this help
@@ -293,10 +294,10 @@ measure-scale-to-zero: ## S2: scale-to-zero time of podinfo with the default con
 	@$(GUARD_NODE)
 	@$(MEASURE) s2 "$(or $(RUNS),3)"
 
-measure-coldstart: ## S3/S4/S7: cold start series ID=<S3|S4|S7> KSVC=<ksvc> N=<runs>
+measure-coldstart: ## S3/S4/S7: cold start series ID=<S3|S4|S7> KSVC=<ksvc> N=<runs> [TARGET=<entry point URL>]
 	@test -n "$(ID)" -a -n "$(KSVC)" -a -n "$(N)" || { echo "usage: make measure-coldstart ID=S3 KSVC=podinfo N=10"; exit 2; }
 	@$(GUARD_NODE)
-	@$(MEASURE) coldstart "$(ID)" "$(KSVC)" "$(N)"
+	@OK211_TARGET="$(TARGET)" $(MEASURE) coldstart "$(ID)" "$(KSVC)" "$(N)"
 
 measure-latency: ## S5: warm latency of podinfo, fortio 10 qps, 200 requests after 30 s warm-up
 	@$(GUARD_NODE)
@@ -363,3 +364,60 @@ exp-E5: ## E5: 100 events while the sink is down; SCENARIO=<dispatcher|ingress|r
 	@test -n "$(SCENARIO)" || { echo "usage: make exp-E5 SCENARIO=dispatcher|ingress|restart|none"; exit 2; }
 	@$(GUARD_NODE)
 	@$(MEASURE_EV) e5 "$(SCENARIO)"
+
+# ---------------------------------------------------------------------------
+# Phase 7 — Networking, ingress and TLS (N1-N4)
+# ---------------------------------------------------------------------------
+exp-N1: ## N1: Kourier LoadBalancer via ServiceLB; a second LoadBalancer on 80/443 (removed again)
+	@$(GUARD_NODE)
+	@scripts/measure-networking.sh n1
+
+exp-N4: ## N4: ksvc podinfo-private with label visibility=cluster-local
+	@$(GUARD_NODE)
+	@scripts/measure-networking.sh n4
+
+ingress-render: ## N2: verify the Traefik chart checksum and render it with ingress/traefik-values.yaml (refuses Secrets)
+	@scripts/ingress.sh render
+
+ingress-install: ## N2: install Traefik (ADR-010 profile v1) into namespace ingress, server-side
+	@$(GUARD_NODE)
+	@scripts/ingress.sh install
+
+kourier-clusterip: ## N2: kourier Service to ClusterIP (re-applied after release applies while .local/n2-active exists)
+	@$(GUARD_NODE)
+	@scripts/ingress.sh kourier-clusterip
+
+ingress-route: ## N2: Ingress *.ok211-serving.ok211.internal (class ok-ingress) -> kourier:80, then test via NodePort 30080
+	@$(GUARD_NODE)
+	@scripts/ingress.sh route
+	@scripts/ingress.sh test
+
+exp-N2b: ## N2b: domain-template {{.Name}}-{{.Namespace}}.{{.Domain}} with a *.ok211.internal Ingress
+	@$(GUARD_NODE)
+	@scripts/ingress.sh n2b
+
+exp-N2b-restore: ## N2b restore: domain-template back to the release default
+	@$(GUARD_NODE)
+	@scripts/ingress.sh n2b-restore
+
+exp-N2-restore: ## N2 restore: route removed, kourier back to LoadBalancer (Traefik stays)
+	@$(GUARD_NODE)
+	@scripts/ingress.sh restore
+
+measure-fortio: ## fortio series ID=<id> KSVC=<ksvc> QPS= C= N=<n|duration> [TARGET=<entry point URL>]
+	@test -n "$(ID)" -a -n "$(KSVC)" -a -n "$(QPS)" -a -n "$(C)" -a -n "$(N)" || { echo "usage: make measure-fortio ID= KSVC= QPS= C= N= [TARGET=]"; exit 2; }
+	@$(GUARD_NODE)
+	@OK211_TARGET="$(TARGET)" $(MEASURE) fortio "$(ID)" "$(KSVC)" "$(QPS)" "$(C)" "$(N)"
+
+tls-install: ## N3: cert-manager (pinned manifest) and the lab CA ClusterIssuer ok211-ca-issuer
+	@$(GUARD_NODE)
+	@scripts/tls.sh install
+
+tls-enable: ## N3: external-domain-tls Enabled with issuerRef ok211-ca-issuer; then the HTTPS checks
+	@$(GUARD_NODE)
+	@scripts/tls.sh enable
+	@scripts/tls.sh test
+
+tls-disable: ## N3 restore: external-domain-tls Disabled (cert-manager and issuers stay)
+	@$(GUARD_NODE)
+	@scripts/tls.sh disable

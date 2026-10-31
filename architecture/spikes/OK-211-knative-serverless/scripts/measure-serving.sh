@@ -31,7 +31,8 @@ ok211::load_versions
 K="${KUBECTL:-$SPIKE_ROOT/.local/bin/kubectl}"
 RAW="$SPIKE_ROOT/evidence/raw"
 NS=ok211-serving
-KOURIER=http://kourier.kourier-system.svc.cluster.local
+# OK211_TARGET overrides the entry point, e.g. Traefik on the node (N2).
+KOURIER="${OK211_TARGET:-http://kourier.kourier-system.svc.cluster.local}"
 MAX_TIME=120
 
 # shellcheck disable=SC2016  # jq programs
@@ -93,7 +94,8 @@ config_json() { # config_json <ksvc>
   jq -cn --arg v "$ver" --arg ksvc "$1" --argjson ann "$ann" \
     --argjson as "$("$K" -n knative-serving get cm config-autoscaler -o json | jq -c '.data | del(._example)')" \
     --argjson df "$("$K" -n knative-serving get cm config-defaults -o json | jq -c '.data | del(._example)')" \
-    '{knative_version: $v, ksvc: $ksvc, ksvc_spec: $ann,
+    --arg target "$KOURIER" \
+    '{knative_version: $v, ksvc: $ksvc, ksvc_spec: $ann, entry_point: $target,
       config_autoscaler_overrides: $as, config_defaults_overrides: $df,
       note: "empty overrides = release defaults (stable-window 60s, scale-to-zero-grace-period 30s, scale-to-zero-pod-retention-period 0s, container-concurrency-target-percentage 70, panic-window-percentage 10, panic-threshold-percentage 200, revision-timeout-seconds 300, max-revision-timeout-seconds 600)"}'
 }

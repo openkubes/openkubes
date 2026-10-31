@@ -1,0 +1,13 @@
+# N4 2026-10-31T12:33:04Z
+## ksvc labels
+{"app.kubernetes.io/part-of":"ok211","networking.knative.dev/visibility":"cluster-local"}
+## status.url: http://podinfo-private.ok211-serving.svc.cluster.local
+## route visibility / kingress
+{"rules":[{"hosts":["podinfo-private.ok211-serving","podinfo-private.ok211-serving.svc","podinfo-private.ok211-serving.svc.cluster.local"],"visibility":"ClusterLocal"}]}
+## service podinfo-private (ExternalName to kourier-internal?)
+NAME              TYPE           CLUSTER-IP   EXTERNAL-IP                                         PORT(S)   AGE   SELECTOR
+podinfo-private   ExternalName   <none>       kourier-internal.kourier-system.svc.cluster.local   80/TCP    1s    <none>
+## external host via kourier: code time_total
+404 0.057861
+## http://podinfo-private.ok211-serving.svc.cluster.local/: code time_total
+200 0.013602

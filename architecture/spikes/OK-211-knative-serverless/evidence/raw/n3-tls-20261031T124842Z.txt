@@ -1,0 +1,54 @@
+# N3 2026-10-31T12:48:47Z
+## config-network external-domain-tls: Enabled
+## config-certmanager issuerRef:
+kind: ClusterIssuer
+name: ok211-ca-issuer
+
+## ksvc podinfo URL: https://podinfo.ok211-serving.ok211.internal
+## Knative certificate / cert-manager certificate
+NAME                                                                                     READY   REASON
+certificate.networking.internal.knative.dev/route-5259c5a4-d66c-4637-a0ca-7605f6ebf7f0   True    
+
+NAME                                                                     READY   SECRET                                       ISSUER            STATUS                                          AGE
+certificate.cert-manager.io/route-5259c5a4-d66c-4637-a0ca-7605f6ebf7f0   True    route-5259c5a4-d66c-4637-a0ca-7605f6ebf7f0   ok211-ca-issuer   Certificate is up to date and has not expired   6s
+## job tls-check-124842 (mounts only ca.crt)
+[{"name":"ca","secret":{"defaultMode":420,"items":[{"key":"ca.crt","path":"ca.crt"}],"secretName":"ok211-ca"}}]
+== 1 kourier with --cacert (expect 200, verify ok)
+* ALPN: curl offers h2,http/1.1
+* TLSv1.3 (OUT), TLS handshake, Client hello (1):
+* TLSv1.3 (IN), TLS handshake, Server hello (2):
+* TLSv1.3 (IN), TLS change cipher, Change cipher spec (1):
+* TLSv1.3 (IN), TLS handshake, Encrypted Extensions (8):
+* TLSv1.3 (IN), TLS handshake, Certificate (11):
+* TLSv1.3 (IN), TLS handshake, CERT verify (15):
+* TLSv1.3 (IN), TLS handshake, Finished (20):
+* TLSv1.3 (OUT), TLS change cipher, Change cipher spec (1):
+* TLSv1.3 (OUT), TLS handshake, Finished (20):
+* SSL connection using TLSv1.3 / TLS_AES_256_GCM_SHA384 / x25519 / RSASSA-PSS
+* ALPN: server accepted h2
+*   subject: CN=podinfo.ok211-serving.ok211.internal
+*   start date: Oct 31 12:48:41 2026 GMT
+*   expire date: Jan 29 12:48:41 2027 GMT
+*   issuer: CN=ok211 lab CA
+*   subjectAltName: "podinfo.ok211-serving.ok211.internal" matches cert's "podinfo.ok211-serving.ok211.internal"
+* TLSv1.3 (IN), TLS handshake, Newsession Ticket (4):
+* TLSv1.3 (IN), TLS handshake, Newsession Ticket (4):
+code=200 ssl_verify=0 time=0.662419
+exit=0
+== 2 kourier without --cacert (expect curl exit 60)
+curl: (60) SSL certificate OpenSSL verify result: unable to get local issuer certificate (20)
+More details here: https://curl.se/docs/sslcerts.html
+
+curl failed to verify the legitimacy of the server and therefore could not
+establish a secure connection to it. To learn more about this situation and
+how to fix it, please visit the webpage mentioned above.
+exit=60
+== 3 Traefik websecure NodePort 30443 with --cacert (which certificate does the entry point present?)
+*   subject: CN=TRAEFIK DEFAULT CERT
+*   issuer: CN=TRAEFIK DEFAULT CERT
+curl: (60) SSL: no alternative certificate subject name matches target hostname 'podinfo.ok211-serving.ok211.internal'
+code=000
+exit=0
+== 4 plain http through kourier after enabling TLS
+code=200
+exit=0
