@@ -1,0 +1,2 @@
+podinfo-min1-00001-deployment-76648d5565-mmmgr   podinfo       1m    14Mi   
+podinfo-min1-00001-deployment-76648d5565-mmmgr   queue-proxy   1m    6Mi    

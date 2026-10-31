@@ -54,7 +54,7 @@ teardown are added phase by phase below and completed in Phase 11.
 | 2 | VM in the ok-local profile | done | [01-vm-k3s.md](evidence/01-vm-k3s.md) |
 | 3 | Knative 1.23 install | done | [02-knative-install.md](evidence/02-knative-install.md) |
 | 4 | Upgrade to 1.24 under load | done (3 runs, CP3 decisions B/B2/B3) | [03-upgrade.md](evidence/03-upgrade.md) |
-| 5 | Serving PoC | open | — |
+| 5 | Serving PoC | done | [04-serving.md](evidence/04-serving.md) |
 | 6 | Eventing PoC | open | — |
 | 7 | Networking, ingress, TLS | open | — |
 | 8 | Security, tenancy, policy, observability | open | — |

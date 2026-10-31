@@ -1,0 +1,22 @@
+# OK-211 — S7: min-scale 1, so there is always one pod and no cold start.
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: podinfo-min1
+  namespace: ok211-serving
+  labels:
+    app.kubernetes.io/part-of: ok211
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/min-scale: "1"
+    spec:
+      containers:
+        - name: podinfo
+          image: __PODINFO_IMAGE_6_16_0__
+          ports:
+            - containerPort: 9898
+          readinessProbe:
+            httpGet:
+              path: /readyz

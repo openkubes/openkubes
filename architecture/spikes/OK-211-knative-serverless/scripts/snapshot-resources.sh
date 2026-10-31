@@ -84,13 +84,17 @@ awk -F'\t' '
 join -t "$(printf '\t')" -a 1 -e 0 -o 0,1.2,1.3,1.4,1.5,2.2,2.3,2.4,2.5 \
   "$work/usage.tsv" <(sort "$work/specs.tsv") > "$work/table.tsv"
 
+# Node usage: mean and max over the samples (kubectl top nodes).
+node_json="$(awk -F'\t' '{c=$4; sub(/m$/,"",c); m=$6; sub(/Mi$/,"",m); n++; sc+=c; sm+=m; if (c>mc) mc=c; if (m>mm) mm=m}
+  END {printf "{\"cpu_m_mean\":%.0f,\"cpu_m_max\":%d,\"mem_mi_mean\":%.0f,\"mem_mi_max\":%d}", sc/n, mc, sm/n, mm}' "$work/nodes.tsv")"
+
 # JSON line (B11 output format).
 jq -cRn --arg id "resources-$label" --arg ts "$(ok211::timestamp)" --arg raw "${raw#"$SPIKE_ROOT/"}" \
-  --argjson samples "$samples" --argjson interval "$interval" '
+  --argjson samples "$samples" --argjson interval "$interval" --argjson node "$node_json" '
   [inputs | split("\t") | {namespace: .[0], cpu_m_mean: (.[1]|tonumber), cpu_m_max: (.[2]|tonumber),
     mem_mi_mean: (.[3]|tonumber), mem_mi_max: (.[4]|tonumber), req_cpu_m: (.[5]|tonumber),
     req_mem_mi: (.[6]|tonumber), lim_cpu_m: (.[7]|tonumber), lim_mem_mi: (.[8]|tonumber)}]
-  | {id: $id, timestamp_utc: $ts, samples: $samples, interval_s: $interval, raw: $raw, namespaces: .}
+  | {id: $id, timestamp_utc: $ts, samples: $samples, interval_s: $interval, raw: $raw, node: $node, namespaces: .}
 ' < "$work/table.tsv" >> "$SPIKE_ROOT/evidence/raw/resources.jsonl"
 
 printf 'namespace\tcpu_m_mean\tcpu_m_max\tmem_Mi_mean\tmem_Mi_max\treq_cpu_m\treq_mem_Mi\tlim_cpu_m\tlim_mem_Mi\n' > "$work/out.tsv"

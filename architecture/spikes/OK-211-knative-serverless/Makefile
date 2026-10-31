@@ -55,7 +55,8 @@ KUBECONFORM ?= kubeconform
         vm-up vm-info vm-stop vm-start vm-snapshot vm-restore vm-delete k3s-install kubeconfig \
         tunnel tunnel-status tunnel-stop baseline down clean \
         knative-install knative-verify knative-post-install probe-up probe apps-serving smoke install vm-ssh lint-server \
-        apps-upgrade apps-upgrade-events knative-upgrade upgrade upgrade-collect
+        apps-upgrade apps-upgrade-events knative-upgrade upgrade upgrade-collect knative-dry-run apps-upgrade-down \
+        measure-s1 measure-scale-to-zero measure-coldstart measure-latency measure-autoscale measure-overhead node-image exp-s8 exp-s9 apps-serving-fastdown apps-serving-exp apps-serving-down coldstart-eval
 
 # ---------------------------------------------------------------------------
 help: ## Show this help
@@ -277,3 +278,65 @@ apps-upgrade-down: ## Remove the U1/U2 load: ksvc podinfo-upgrade, u1-probe and 
 upgrade-collect: ## Save U1/U2 probe logs with timestamps to evidence/raw/ and evaluate them
 	@$(GUARD_NODE)
 	@scripts/measure-upgrade.sh
+
+# ---------------------------------------------------------------------------
+# Phase 5 — Serving PoC (S1-S10, B11)
+# ---------------------------------------------------------------------------
+MEASURE = scripts/measure-serving.sh
+
+measure-s1: ## S1: objects of ksvc podinfo and 200 through Kourier
+	@$(GUARD_NODE)
+	@$(MEASURE) s1
+
+measure-scale-to-zero: ## S2: scale-to-zero time of podinfo with the default config (RUNS=3)
+	@$(GUARD_NODE)
+	@$(MEASURE) s2 "$(or $(RUNS),3)"
+
+measure-coldstart: ## S3/S4/S7: cold start series ID=<S3|S4|S7> KSVC=<ksvc> N=<runs>
+	@test -n "$(ID)" -a -n "$(KSVC)" -a -n "$(N)" || { echo "usage: make measure-coldstart ID=S3 KSVC=podinfo N=10"; exit 2; }
+	@$(GUARD_NODE)
+	@$(MEASURE) coldstart "$(ID)" "$(KSVC)" "$(N)"
+
+measure-latency: ## S5: warm latency of podinfo, fortio 10 qps, 200 requests after 30 s warm-up
+	@$(GUARD_NODE)
+	@$(MEASURE) fortio S5 podinfo 10 1 200
+
+measure-autoscale: ## S6: podinfo-scale (target 10), fortio 50 connections for 60 s, pods every 2 s until 0
+	@$(GUARD_NODE)
+	@$(MEASURE) s6
+
+measure-overhead: ## S10: kubectl top 3x 60 s apart per namespace, queue-proxy per pod
+	@$(GUARD_NODE)
+	@$(MEASURE) s10 3 60
+
+exp-s8: ## S8: podinfo-split revisions 6.16.0/6.17.0, 80/20 split, tag candidate, rollback by traffic
+	@$(GUARD_NODE)
+	@$(MEASURE) s8
+
+exp-s9: ## S9: podinfo-timeout (timeoutSeconds 20) with /delay/10 and /delay/30
+	@$(GUARD_NODE)
+	@$(MEASURE) s9
+
+apps-serving-fastdown: ## S3-S5: podinfo with autoscaling.knative.dev/window 6s (after S2, which uses the defaults)
+	@$(GUARD_NODE)
+	@$(call APPLY_OWN,apps/serving/podinfo-fastdown.yaml)
+	@$(KUBECTL) -n ok211-serving wait --for=condition=Ready ksvc/podinfo --timeout=300s
+
+apps-serving-exp: ## S6/S7: podinfo-scale (target 10) and podinfo-min1 (after S4, which removes the 6.16.0 image)
+	@$(GUARD_NODE)
+	@$(call APPLY_OWN,apps/serving/podinfo-scale.yaml apps/serving/podinfo-min1.yaml)
+	@$(KUBECTL) -n ok211-serving wait --for=condition=Ready ksvc/podinfo-scale ksvc/podinfo-min1 --timeout=300s
+
+apps-serving-down: ## Remove the experiment services (podinfo-scale, -min1, -split, -timeout); podinfo stays
+	@$(GUARD_NODE)
+	@$(KUBECTL) -n ok211-serving delete ksvc podinfo-scale podinfo-min1 podinfo-split podinfo-timeout --ignore-not-found --wait=true
+
+coldstart-eval: ## Re-evaluate a cold start TSV: ID=<S3|S4|S7> TSV=evidence/raw/... REV=<revision> IMG=<image digest>
+	@test -n "$(ID)" -a -n "$(TSV)" -a -n "$(REV)" -a -n "$(IMG)" || { echo "usage: make coldstart-eval ID= TSV= REV= IMG="; exit 2; }
+	@$(GUARD_NODE)
+	@$(MEASURE) coldstart-eval "$(ID)" "$(CURDIR)/$(TSV)" "$(REV)" "$(IMG)"
+
+node-image: ## S4: list or remove an image on the node: OP=<list|rmi> [IMAGE=<ref or digest>]
+	@test -n "$(OP)" || { echo "usage: make node-image OP=list|rmi [IMAGE=...]"; exit 2; }
+	@$(GUARD_NODE)
+	@scripts/node-image.sh "$(OP)" "$(IMAGE)"
