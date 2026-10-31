@@ -59,7 +59,7 @@ teardown are added phase by phase below and completed in Phase 11.
 | 7 | Networking, ingress, TLS | done | [06-networking-tls.md](evidence/06-networking-tls.md) |
 | 8 | Security, tenancy, policy, observability | done | [07-security.md](evidence/07-security.md) |
 | 9 | GitOps lifecycle | done (G3 NOT RUN) | [08-gitops.md](evidence/08-gitops.md) |
-| 10 | Architecture assessment | open | — |
+| 10 | Architecture assessment | done | [09-architecture-assessment.md](evidence/09-architecture-assessment.md) |
 | 11 | Report and management summary | open | — |
 | 12 | Close-out | open | — |
 
