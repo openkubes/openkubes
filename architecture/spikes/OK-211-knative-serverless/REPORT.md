@@ -1,4 +1,4 @@
-Source of truth is the repo: `architecture/spikes/OK-211-knative-serverless/` at commit `7e5aae0`.
+Source of truth is the repo: `architecture/spikes/OK-211-knative-serverless/` at commit `5fc228b`.
 
 # OK-211 — Knative as Optional Serverless & Event-Driven Capability — Spike Report
 
