@@ -8,7 +8,7 @@ const source = readFileSync(new URL('../assets/openkubes-branding.js', `file://$
 function setup({ reduced = false, homepage = true } = {}) {
   const text = { textContent: 'Contracts First.' };
   const cursor = { hidden: true };
-  const button = { hidden: true, textContent: 'Pause animation', addEventListener(_, fn) { this.click = fn; } };
+  const button = { hidden: true, attributes: { 'aria-label': 'Pause animation' }, setAttribute(name, value) { this.attributes[name] = value; }, addEventListener(_, fn) { this.click = fn; } };
   const root = { dataset: {}, isConnected: true, querySelector(selector) {
     return ({ '[data-ok-typed]': text, '[data-ok-cursor]': cursor, '[data-ok-pause]': button })[selector];
   } };
@@ -49,17 +49,35 @@ test('cycles through all four principles and returns to the first', () => {
   assert.equal(h.timers.size, 1);
 });
 
-test('pause leaves a full principle, stops timers, and resumes on request', () => {
+test('pause freezes deletion and resume continues from the exact position', () => {
   const h = setup(); h.tick(); h.tick();
-  assert.notEqual(h.text.textContent, 'Contracts First.');
+  const pausedText = h.text.textContent;
+  assert.equal(pausedText, 'Contracts First');
   h.button.click();
-  assert.equal(h.text.textContent, 'Contracts First.');
+  assert.equal(h.text.textContent, pausedText);
   assert.equal(h.timers.size, 0);
   assert.equal(h.cursor.hidden, true);
-  assert.equal(h.button.textContent, 'Resume animation');
+  assert.equal(h.button.attributes['aria-label'], 'Resume animation');
+  assert.equal(h.button.attributes.title, 'Resume animation');
+  assert.equal(h.button.attributes['data-paused'], 'true');
   h.button.click();
+  assert.equal(h.text.textContent, pausedText);
   assert.equal(h.timers.size, 1);
-  assert.equal(h.button.textContent, 'Pause animation');
+  assert.equal(h.cursor.hidden, false);
+  assert.equal(h.button.attributes['aria-label'], 'Pause animation');
+  assert.equal(h.button.attributes['data-paused'], 'false');
+  h.tick();
+  assert.equal(h.text.textContent, 'Contracts Firs');
+});
+
+test('resume preserves partial typing in a later phrase', () => {
+  const h = setup();
+  while (h.text.textContent !== 'Evidence') h.tick();
+  h.button.click();
+  assert.equal(h.text.textContent, 'Evidence');
+  assert.equal(h.timers.size, 0);
+  h.button.click(); h.tick();
+  assert.equal(h.text.textContent, 'Evidence ');
 });
 
 test('reduced motion shows every principle without timers or controls', () => {

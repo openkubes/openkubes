@@ -1,5 +1,6 @@
 /* OpenKubes MkDocs branding: home philosophy typewriter + multicolor navigation brand */
 .ok-philosophy {
+  position: relative;
   box-sizing: border-box;
   width: min(100%, 1120px);
   margin: 22px auto 30px;
@@ -13,6 +14,7 @@
 }
 .ok-philosophy__eyebrow {
   margin: 0 0 10px;
+  padding-right: 36px;
   color: #8cc6ff;
   font-size: 11px;
   line-height: 1.3;
@@ -57,10 +59,15 @@
 .ok-philosophy__message-wrap { display: inline-flex; width: 20ch; min-width: 0; max-width: 100%; }
 .ok-philosophy__message { min-height: 1.4em; }
 .ok-philosophy__pause {
-  margin: 12px 0 0; padding: 5px 10px; border: 1px solid #8cc6ff;
-  border-radius: 5px; background: transparent; color: #fff; font: inherit;
-  font-size: 12px; cursor: pointer;
+  position: absolute; top: 10px; right: 10px;
+  display: grid; place-items: center; width: 32px; height: 32px;
+  margin: 0; padding: 0; border: 0; border-radius: 5px;
+  background: transparent; color: #8cc6ff; cursor: pointer;
 }
+.ok-philosophy__pause:hover { background: #294d7d; color: #fff; }
+.ok-philosophy__icon--play,
+.ok-philosophy__pause[data-paused="true"] .ok-philosophy__icon--pause { display: none; }
+.ok-philosophy__pause[data-paused="true"] .ok-philosophy__icon--play { display: block; }
 .ok-philosophy__pause:focus-visible { outline: 3px solid #ffd45a; outline-offset: 3px; }
 .ok-philosophy [hidden] { display: none; }
 @media (prefers-reduced-motion: reduce) {

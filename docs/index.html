@@ -446,7 +446,12 @@
     <span class="ok-philosophy__message-wrap"><span class="ok-philosophy__message" data-ok-typed>Contracts First.</span><span class="ok-philosophy__cursor" data-ok-cursor hidden></span></span>
   </div>
   <span class="ok-sr-only">OpenKubes. Contracts First. Evidence Driven. Human Controlled. Sovereign by Design.</span>
-  <button class="ok-philosophy__pause" type="button" data-ok-pause hidden>Pause animation</button>
+  <button class="ok-philosophy__pause" type="button" data-ok-pause data-paused="false" aria-label="Pause animation" title="Pause animation" hidden>
+    <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false">
+      <path class="ok-philosophy__icon--pause" d="M7 5h3v14H7zm7 0h3v14h-3z" fill="currentColor"/>
+      <path class="ok-philosophy__icon--play" d="m8 5 11 7-11 7z" fill="currentColor"/>
+    </svg>
+  </button>
 </div>
 
 <header>

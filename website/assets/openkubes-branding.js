@@ -11,12 +11,13 @@
     var phrases = ['Contracts First.', 'Evidence Driven.', 'Human Controlled.', 'Sovereign by Design.'];
     var motion = window.matchMedia('(prefers-reduced-motion: reduce)');
     var index = 0, position = phrases[0].length, deleting = false, timer = null;
-    var inView = true, paused = false;
+    var inView = true, paused = false, nextDelay = 1900;
     function clearTimer() {
       if (timer !== null) window.clearTimeout(timer);
       timer = null;
     }
     function schedule(ms) {
+      nextDelay = ms;
       clearTimer();
       if (root.isConnected && inView && !document.hidden && !paused && !motion.matches) {
         timer = window.setTimeout(step, ms);
@@ -57,14 +58,14 @@
     }
     button.addEventListener('click', function () {
       paused = !paused;
-      button.textContent = paused ? 'Resume animation' : 'Pause animation';
+      var label = paused ? 'Resume animation' : 'Pause animation';
+      button.setAttribute('aria-label', label);
+      button.setAttribute('title', label);
+      button.setAttribute('data-paused', String(paused));
       cursor.hidden = paused;
-      if (paused) {
-        clearTimer();
-        // Leave a complete message when paused midway through typing/deleting.
-        text.textContent = phrases[index];
-        position = phrases[index].length; deleting = false;
-      } else schedule(1900);
+      // Keep the current text, phrase index and typing/deleting direction intact.
+      if (paused) clearTimer();
+      else schedule(nextDelay);
     });
     var observer;
     if ('IntersectionObserver' in window) {
