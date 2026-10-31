@@ -54,7 +54,8 @@ KUBECONFORM ?= kubeconform
         lint lint-shell lint-yaml lint-kubeconform test-guard scan-secrets scan-history debug \
         vm-up vm-info vm-stop vm-start vm-snapshot vm-restore vm-delete k3s-install kubeconfig \
         tunnel tunnel-status tunnel-stop baseline down clean \
-        knative-install knative-verify knative-post-install probe-up probe apps-serving smoke install vm-ssh lint-server
+        knative-install knative-verify knative-post-install probe-up probe apps-serving smoke install vm-ssh lint-server \
+        apps-upgrade apps-upgrade-events knative-upgrade upgrade upgrade-collect
 
 # ---------------------------------------------------------------------------
 help: ## Show this help
@@ -237,3 +238,42 @@ lint-server: ## Server-side dry-run of every own manifest (from Phase 3 on)
 	@$(GUARD_NODE)
 	@files=$$(find load apps ingress tls security gitops -name '*.yaml' -type f 2>/dev/null | sort); \
 	 for f in $$files; do printf '%-50s ' "$$f"; scripts/render.sh "$$f" | $(KUBECTL) apply --server-side --field-manager=ok211 --dry-run=server -f - >/dev/null && echo ok || { echo FAIL; exit 1; }; done
+
+# ---------------------------------------------------------------------------
+# Phase 4 — upgrade 1.23 -> 1.24 under load (U1, U2)
+# ---------------------------------------------------------------------------
+apps-upgrade: ## U1: ksvc podinfo-upgrade (min-scale 1) and the 200 ms HTTP probe pod u1-probe
+	@$(GUARD_NODE)
+	@$(call APPLY_OWN,apps/upgrade/podinfo-upgrade.yaml)
+	@$(KUBECTL) -n ok211-serving wait --for=condition=Ready ksvc/podinfo-upgrade --timeout=180s
+	@$(call APPLY_OWN,apps/upgrade/u1-probe.yaml)
+	@$(KUBECTL) -n ok211-load wait --for=condition=Ready pod/u1-probe --timeout=180s
+
+apps-upgrade-events: ## U2: broker, event-display Deployment, trigger, PingSource ok211-ping and the 1/s sender
+	@$(GUARD_NODE)
+	@$(call APPLY_OWN,apps/upgrade/u2-events.yaml)
+	@$(KUBECTL) -n ok211-events wait --for=condition=Ready broker/default trigger/u2-all pingsource/ok211-ping --timeout=180s
+	@$(KUBECTL) -n ok211-events wait --for=condition=Ready pod/u2-sender --timeout=180s
+
+knative-upgrade: ## Upgrade one minor to TO=1.24 (CRDs, serving, kourier, eventing, post-install); marks in evidence/raw/upgrade-steps.log
+	@test -n "$(TO)" || { echo "usage: make knative-upgrade TO=1.24"; exit 2; }
+	@$(GUARD_NODE)
+	@STEP_LOG="$(CURDIR)/evidence/raw/upgrade-steps.log" scripts/knative.sh upgrade "$(TO)"
+
+knative-dry-run: ## Server-side dry run of all release files of TO=<line> as the upgrade would apply them; lists SSA conflicts
+	@test -n "$(TO)" || { echo "usage: make knative-dry-run TO=1.24"; exit 2; }
+	@$(GUARD_NODE)
+	@scripts/knative.sh dry-run "$(TO)"
+
+upgrade: ## Alias for knative-upgrade (CONTRIBUTING.md standard target)
+	@$(MAKE) --no-print-directory knative-upgrade TO="$(TO)"
+
+apps-upgrade-down: ## Remove the U1/U2 load: ksvc podinfo-upgrade, u1-probe and everything from u2-events.yaml (ns ok211-events)
+	@$(GUARD_NODE)
+	@$(KUBECTL) -n ok211-load delete pod u1-probe --ignore-not-found --wait=true
+	@$(KUBECTL) -n ok211-serving delete ksvc podinfo-upgrade --ignore-not-found --wait=true
+	@scripts/render.sh apps/upgrade/u2-events.yaml | $(KUBECTL) delete --ignore-not-found --wait=true -f -
+
+upgrade-collect: ## Save U1/U2 probe logs with timestamps to evidence/raw/ and evaluate them
+	@$(GUARD_NODE)
+	@scripts/measure-upgrade.sh

@@ -15,7 +15,7 @@ everything this spike produces is in English.
 - The K3s API is reached only through an SSH tunnel on `127.0.0.1:6450`
   (kubeconfig context `ok211`). The existing ok-local VMs and their tunnels
   (6443/6444) are never touched.
-- Knative Serving + Kourier + Eventing, first `1.23`, then upgraded to `1.24`.
+- Knative Serving + Kourier + Eventing, first `1.23`, then upgraded to `1.24` (done in Phase 4).
 - All pins, digests and checksums live in [`versions.env`](versions.env).
 
 ## Safety model
@@ -27,6 +27,7 @@ everything this spike produces is in English.
 | Multipass/SSH/SCP only to `ok-knative-local`, own `known_hosts`, no `~/.ssh/config` | `ok211::vm_*` in [`scripts/lib.sh`](scripts/lib.sh) |
 | Ad-hoc reads only through the guard, never Secret data | [`scripts/kc.sh`](scripts/kc.sh) |
 | Release manifests only from `.local/manifests/`, checksum-verified | [`scripts/fetch-manifests.sh`](scripts/fetch-manifests.sh) |
+| Release manifests applied server-side without `--force-conflicts`; runtime-owned fields removed by three checked derivation rules; `make knative-dry-run` before an upgrade | `derive_apply_set` in [`scripts/knative.sh`](scripts/knative.sh), [03-upgrade.md](evidence/03-upgrade.md) |
 | No credentials in Git | [`scripts/scan-secrets.sh`](scripts/scan-secrets.sh) before every commit |
 | Credentials, sockets, downloads, tool config | `.local/` (gitignored, mode 600 for secrets) |
 
@@ -52,7 +53,7 @@ teardown are added phase by phase below and completed in Phase 11.
 | 1 | Scaffold: guard, lib, scan, Makefile | done | [00-preflight.md § Guard negative tests](evidence/00-preflight.md) |
 | 2 | VM in the ok-local profile | done | [01-vm-k3s.md](evidence/01-vm-k3s.md) |
 | 3 | Knative 1.23 install | done | [02-knative-install.md](evidence/02-knative-install.md) |
-| 4 | Upgrade to 1.24 under load | open | — |
+| 4 | Upgrade to 1.24 under load | done (3 runs, CP3 decisions B/B2/B3) | [03-upgrade.md](evidence/03-upgrade.md) |
 | 5 | Serving PoC | open | — |
 | 6 | Eventing PoC | open | — |
 | 7 | Networking, ingress, TLS | open | — |

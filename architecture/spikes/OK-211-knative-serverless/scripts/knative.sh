@@ -3,7 +3,7 @@
 # OK-211 — install, verify and upgrade Knative from the checksum-verified local
 # release manifests (BRIEF B8 "Release-Manifeste und eigene Overrides", B9 Phases 3-4).
 #
-# Usage: scripts/knative.sh install <line>|verify|upgrade <line>|post-install <line>
+# Usage: scripts/knative.sh install <line>|verify|upgrade <line>|dry-run <line>|post-install <line>
 #   <line>  1.23 | 1.24
 #
 # Rules this script implements:
@@ -12,6 +12,9 @@
 # - Release YAMLs are applied server-side with field manager knative-release.
 #   Conflicts are never overridden with --force-conflicts: the apply fails and
 #   the conflict is reported (B8).
+# - Fields owned at runtime by a controller are left to it (CP3 decisions B,
+#   B2, B3, see derive_apply_set): webhook rules, aggregated ClusterRole
+#   rules, pingsource-mt-adapter replicas and controller-filled env values.
 # - Own values only as merge patches from knative/*.yaml (never full ConfigMaps),
 #   so a later release apply does not remove them.
 # - Post-install Jobs (generateName) are created with `kubectl create`, the
@@ -53,8 +56,57 @@ manifest() {
   printf '%s\n' "$f"
 }
 
+# derive_apply_set <line> <asset> <pinned file> -> file to apply.
+# Some fields of the release objects are owned at runtime by a controller, so
+# every later server-side apply of the release value conflicts with it
+# (Phase 4, CP3 decisions B and B2). Two rules, nothing else:
+#   1. `.webhooks[].rules` of Mutating/ValidatingWebhookConfigurations: owned by
+#      Knative's webhooks (`webhook`, `channel_controller`). Eventing and IMC
+#      already ship them without rules; serving-core ships static rules.
+#   2. `.rules` of ClusterRoles with an `aggregationRule`: owned by Kubernetes'
+#      `clusterrole-aggregation-controller`. eventing-core ships `rules: []`.
+#   3. Deployment knative-eventing/pingsource-mt-adapter: `.spec.replicas` and
+#      the values of K_OBSERVABILITY_CONFIG, K_LOGGING_CONFIG,
+#      K_LEADER_ELECTION_CONFIG, K_NO_SHUTDOWN_AFTER, which the manifest itself
+#      marks as filled by the ping source controller ("DO NOT MODIFY").
+# The result is checked against an independent jq implementation of the same
+# rules, so the derived file differs from the pinned one in exactly that.
+# Files where neither rule removes anything are applied unchanged.
+derive_apply_set() {
+  local line="$1" asset="$2" f="$3" d wh cr pa pe nw nc np sum
+  wh='select(.kind == "MutatingWebhookConfiguration" or .kind == "ValidatingWebhookConfiguration")'
+  cr='select(.kind == "ClusterRole" and has("aggregationRule"))'
+  pa='select(.kind == "Deployment" and .metadata.namespace == "knative-eventing" and .metadata.name == "pingsource-mt-adapter")'
+  pe='K_OBSERVABILITY_CONFIG K_LOGGING_CONFIG K_LEADER_ELECTION_CONFIG K_NO_SHUTDOWN_AFTER'
+  nw="$(yq -N "$wh | [.webhooks[] | select(has(\"rules\"))] | length" "$f" | awk '{s+=$1} END{print s+0}')"
+  nc="$(yq -N "$cr | [select(has(\"rules\"))] | length" "$f" | awk '{s+=$1} END{print s+0}')"
+  np="$(yq -N "$pa | [1] | length" "$f" | awk '{s+=$1} END{print s+0}')"
+  if [ "$nw" -eq 0 ] && [ "$nc" -eq 0 ] && [ "$np" -eq 0 ]; then printf '%s\n' "$f"; return 0; fi
+  d="$SPIKE_ROOT/.local/manifests/$line/derived/$asset"
+  mkdir -p "$(dirname "$d")"
+  yq "($wh | .webhooks[]) |= del(.rules) | ($cr) |= del(.rules)
+      | ($pa) |= del(.spec.replicas)
+      | ($pa | .spec.template.spec.containers[].env[] | select(.name as \$n | \"$pe\" | split(\" \") | contains([\$n]))) |= del(.value)" "$f" > "$d"
+  # shellcheck disable=SC2016  # jq program
+  jq -e -n --arg pe "$pe" --slurpfile a <(yq -o=json -I=0 '.' "$f") --slurpfile b <(yq -o=json -I=0 '.' "$d") '
+    ($pe | split(" ")) as $names
+    | ($a | map(if (.kind == "MutatingWebhookConfiguration" or .kind == "ValidatingWebhookConfiguration")
+                then .webhooks |= map(del(.rules))
+              elif (.kind == "ClusterRole" and has("aggregationRule")) then del(.rules)
+              elif (.kind == "Deployment" and .metadata.namespace == "knative-eventing" and .metadata.name == "pingsource-mt-adapter")
+                then del(.spec.replicas)
+                  | .spec.template.spec.containers |= map(.env |= map(if (.name as $n | $names | index($n)) then del(.value) else . end))
+              else . end)) == $b' >/dev/null \
+    || ok211::die "derived $line/$asset differs from the pinned file in more than the derivation rules" 1
+  sum="$(shasum -a 256 "$d" | awk '{print $1}')"
+  ok211::info "derived $line/$asset: rules removed from $nw webhook(s), $nc aggregated ClusterRole(s); pingsource-mt-adapter fields removed: $np; sha256 $sum"
+  mark "info" "derived $line/$asset: webhook rules ($nw), aggregated ClusterRole rules ($nc), pingsource-mt-adapter fields ($np), sha256 $sum"
+  printf '%s\n' "$d"
+}
+
 apply_release() { # apply_release <line> <asset>
   local f; f="$(manifest "$1" "$2")"
+  f="$(derive_apply_set "$1" "$2" "$f")"
   mark "start" "apply $1/$2"
   ok211::info "apply --server-side --field-manager=$FM $1/$2"
   if ! "$K" apply --server-side --field-manager="$FM" -f "$f" > "$SPIKE_ROOT/.local/apply-$2.log" 2>&1; then
@@ -122,16 +174,17 @@ post_install() {
 run_jobs() {
   local f="$1" ns="$2" tmp prefix ver n i
   tmp="$SPIKE_ROOT/.local/tmp/postinstall-$(ok211::stamp)"; mkdir -p "$tmp"
-  yq -N 'select(.kind != "Job" and .kind != null)' "$f" > "$tmp/other.yaml"
+  yq 'select(.kind != "Job" and .kind != null)' "$f" > "$tmp/other.yaml"
   if [ -s "$tmp/other.yaml" ]; then
     mark "start" "apply non-Job objects of $(basename "$f")"
     "$K" apply --server-side --field-manager="$FM" -f "$tmp/other.yaml" >/dev/null
     mark "end" "apply non-Job objects of $(basename "$f")"
   fi
-  n="$(yq -N '[select(.kind == "Job")] | length' "$f" | awk '{s+=$1} END{print s+0}')"
+  # eval-all (ea): the index runs over the Jobs of the whole file, not per document.
+  n="$(yq ea -N '[select(.kind == "Job")] | length' "$f")"
   i=0
   while [ "$i" -lt "$n" ]; do
-    yq -N "[select(.kind == \"Job\")] | .[$i]" "$f" > "$tmp/job-$i.yaml"
+    yq ea -N "[select(.kind == \"Job\")] | .[$i]" "$f" > "$tmp/job-$i.yaml"
     prefix="$(yq -N '.metadata.generateName' "$tmp/job-$i.yaml")"
     ver="$(yq -N '.metadata.labels["app.kubernetes.io/version"]' "$tmp/job-$i.yaml")"
     done_jobs="$("$K" -n "$ns" get jobs -l "app.kubernetes.io/version=$ver" -o json \
@@ -174,6 +227,108 @@ install_line() {
   wait_all_deploy knative-serving kourier-system knative-eventing
   mark "end" "knative-install $line"
   ok211::ok "Knative $line installed (serving, kourier, eventing, imc, mt-broker)"
+}
+
+# upgrade_line <to>: one minor step, in the order of the upgrade docs and B9 U1:
+# CRDs of both projects first, then Serving core, Kourier, Eventing core and
+# channel/broker, overrides re-checked, wait until every deployment carries the
+# new version label and is Available, then post-install Jobs.
+upgrade_line() {
+  local to="$1" sk="SERVING_${1/./_}" ek="EVENTING_${1/./_}" want_serving want_eventing ns
+  want_serving="${!sk#knative-v}"
+  want_eventing="${!ek#knative-v}"
+  mark "start" "knative-upgrade to $to"
+  apply_release "$to" serving-crds.yaml
+  apply_release "$to" eventing-crds.yaml
+  wait_crds "$(manifest "$to" serving-crds.yaml)"
+  wait_crds "$(manifest "$to" eventing-crds.yaml)"
+  apply_release "$to" serving-core.yaml
+  wait_version knative-serving "$want_serving" webhook controller activator autoscaler
+  apply_release "$to" kourier.yaml
+  wait_version knative-serving "$want_serving" net-kourier-controller
+  wait_version kourier-system "$want_serving" 3scale-kourier-gateway
+  apply_overrides
+  apply_release "$to" eventing-core.yaml
+  wait_version knative-eventing "$want_eventing" eventing-webhook eventing-controller
+  apply_release "$to" in-memory-channel.yaml
+  apply_release "$to" mt-channel-broker.yaml
+  for ns in knative-serving kourier-system knative-eventing; do
+    wait_all_version "$ns"
+  done
+  mark "end" "all deployments on $to Available"
+  post_install "$to"
+  mark "end" "knative-upgrade to $to"
+  ok211::ok "Knative upgraded to $to"
+}
+
+# wait_version <ns> <version> <deployment...>: rollout of the new version done.
+wait_version() {
+  local ns="$1" want="$2" d; shift 2
+  for d in "$@"; do
+    mark "start" "rollout $ns/$d -> $want"
+    for _ in $(seq 1 180); do
+      got="$("$K" -n "$ns" get deploy "$d" -o jsonpath='{.metadata.labels.app\.kubernetes\.io/version}')"
+      [ "${got#v}" = "$want" ] && break
+      sleep 2
+    done
+    "$K" -n "$ns" rollout status "deployment/$d" --timeout="$WAIT" >/dev/null
+    mark "end" "rollout $ns/$d -> $want"
+  done
+}
+
+wait_all_version() {
+  local ns="$1" d
+  while IFS= read -r d; do
+    [ -n "$d" ] || continue
+    "$K" -n "$ns" rollout status "deployment/$d" --timeout="$WAIT" >/dev/null
+  done < <("$K" -n "$ns" get deploy -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}')
+}
+
+# dry_run <line>: server-side dry run of every release file of <line> in
+# upgrade order, as the apply would send it (pin check and derivation
+# included). Changes nothing; lists every conflict instead of stopping at the
+# first file. Exit 1 if any file would fail.
+dry_run() {
+  local line="$1" a f rc=0 log
+  log="$SPIKE_ROOT/.local/dry-run-$line.log"; : > "$log"
+  for a in serving-crds.yaml eventing-crds.yaml serving-core.yaml kourier.yaml eventing-core.yaml \
+           in-memory-channel.yaml mt-channel-broker.yaml; do
+    f="$(manifest "$line" "$a")"
+    f="$(STEP_LOG=/dev/null derive_apply_set "$line" "$a" "$f")"
+    if "$K" apply --server-side --field-manager="$FM" --dry-run=server -f "$f" > "$log.part" 2>&1; then
+      printf '  ok        %s/%s\n' "$line" "$a"
+    else
+      rc=1
+      printf '  CONFLICT  %s/%s\n' "$line" "$a"
+      # Every error line and the field list under it ("conflict with" for one
+      # field, "conflicts with" plus "- <field>" lines for several).
+      { grep -E '^(Error|Apply failed|- \.)|conflicts? with' "$log.part" || true; } | sed 's/^/            /'
+    fi
+    { echo "== $a"; cat "$log.part"; } >> "$log"
+  done
+  # Post-install files as run_jobs sends them: non-Job objects via apply, each
+  # Job via create.
+  local other n i
+  for a in serving-post-install-jobs.yaml eventing-post-install.yaml; do
+    f="$(manifest "$line" "$a")"
+    other="$(yq 'select(.kind != "Job" and .kind != null)' "$f")"
+    n="$(yq ea -N '[select(.kind == "Job")] | length' "$f")"
+    if { [ -z "$other" ] || printf '%s\n' "$other" \
+           | "$K" apply --server-side --field-manager="$FM" --dry-run=server -f -; } > "$log.part" 2>&1 \
+       && { i=0; while [ "$i" -lt "$n" ]; do
+              yq ea -N "[select(.kind == \"Job\")] | .[$i]" "$f" | "$K" create --dry-run=server -f - || exit 1
+              i=$((i + 1)); done; } >> "$log.part" 2>&1; then
+      printf '  ok        %s/%s (%s non-Job object(s), %s Job(s))\n' "$line" "$a" \
+        "$(printf '%s' "$other" | yq ea -N '[select(.kind != null)] | length')" "$n"
+    else
+      rc=1
+      printf '  FAIL      %s/%s\n' "$line" "$a"
+      { grep -E '^(Error|Apply failed|- \.)|conflicts? with' "$log.part" || true; } | sed 's/^/            /'
+    fi
+    { echo "== $a"; cat "$log.part"; } >> "$log"
+  done
+  rm -f "$log.part"
+  return "$rc"
 }
 
 # verify: all checks that do not need a new measurement. Exits 1 on any failure.
@@ -233,5 +388,7 @@ case "${1:-}" in
   install) line_ok "${2:-}"; install_line "$2" ;;
   verify) verify ;;
   post-install) line_ok "${2:-}"; post_install "$2" ;;
-  *) ok211::die "usage: $0 install <1.23|1.24>|verify|post-install <line>" 2 ;;
+  upgrade) line_ok "${2:-}"; upgrade_line "$2" ;;
+  dry-run) line_ok "${2:-}"; dry_run "$2" ;;
+  *) ok211::die "usage: $0 install <1.23|1.24>|verify|upgrade <line>|dry-run <line>|post-install <line>" 2 ;;
 esac

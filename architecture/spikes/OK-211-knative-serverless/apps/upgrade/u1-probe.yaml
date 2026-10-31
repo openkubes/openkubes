@@ -1,0 +1,50 @@
+# OK-211 U1 — HTTP probe: one request every 200 ms through Kourier.
+# Output per line: "<seq> <http_code> <time_total_s> <curl_exit>". The time
+# stamp comes from `kubectl logs --timestamps` (BusyBox date has no %N).
+apiVersion: v1
+kind: Pod
+metadata:
+  name: u1-probe
+  namespace: ok211-load
+  labels:
+    app.kubernetes.io/name: u1-probe
+    app.kubernetes.io/part-of: ok211
+spec:
+  automountServiceAccountToken: false
+  terminationGracePeriodSeconds: 1
+  restartPolicy: Never
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 100
+    runAsGroup: 101
+    seccompProfile:
+      type: RuntimeDefault
+  containers:
+    - name: probe
+      image: __CURL_IMAGE__
+      command:
+        - sh
+        - -c
+        - |
+          i=0
+          while true; do
+            i=$((i+1))
+            r=$(curl -sS -o /dev/null --max-time 5 -w '%{http_code} %{time_total}' \
+              -H 'Host: podinfo-upgrade.ok211-serving.ok211.internal' \
+              http://kourier.kourier-system.svc.cluster.local/ 2>/dev/null)
+            rc=$?
+            echo "$i ${r:-000 0} $rc"
+            sleep 0.2
+          done
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop: ["ALL"]
+      resources:
+        requests:
+          cpu: 20m
+          memory: 16Mi
+        limits:
+          cpu: 500m
+          memory: 64Mi

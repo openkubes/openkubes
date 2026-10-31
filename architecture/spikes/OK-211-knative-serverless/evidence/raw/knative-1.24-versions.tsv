@@ -1,0 +1,16 @@
+knative-eventing	Deployment	eventing-controller	1.24.0	1/1
+knative-eventing	Deployment	eventing-webhook	1.24.0	1/1
+knative-eventing	Deployment	imc-controller	1.24.0	1/1
+knative-eventing	Deployment	imc-dispatcher	1.24.0	1/1
+knative-eventing	Deployment	job-sink	1.24.0	1/1
+knative-eventing	Deployment	mt-broker-controller	1.24.0	1/1
+knative-eventing	Deployment	mt-broker-filter	1.24.0	1/1
+knative-eventing	Deployment	mt-broker-ingress	1.24.0	1/1
+knative-eventing	Deployment	pingsource-mt-adapter	1.24.0	1/1
+knative-serving	Deployment	activator	1.24.0	1/1
+knative-serving	Deployment	autoscaler	1.24.0	1/1
+knative-serving	Deployment	controller	1.24.0	1/1
+knative-serving	Deployment	net-kourier-controller	1.24.0	1/1
+knative-serving	Deployment	webhook	1.24.0	1/1
+kourier-system	Deployment	3scale-kourier-gateway	1.24.0	1/1
+knative-eventing	StatefulSet	request-reply	1.24.0	1/1
