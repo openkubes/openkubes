@@ -65,3 +65,29 @@ node --test website/tests/test_openkubes_branding.cjs
 The build script runs the strict MkDocs build, homepage/navigation rendering,
 legacy URL checks and production candidate checks. Do not use `make
 website-publish` for local validation.
+
+## Console homepage gallery
+
+The section in `docs/index.html` comes from the user-supplied
+`openkubes-console-carousel-codex-complete-v2.zip`, following its README. It sits
+between the unchanged installer announcement and four-cluster animation. The
+original English copy, inline visual styling, screenshot order, Open Source
+panel, links and responsive grid are retained.
+
+Integration changes: explicitly inherit left alignment within the centered hero
+header and avoid the site's generic section divider; use relative thumbnail URLs;
+move the existing modal behavior into `website/assets/openkubes-console-carousel.js`;
+resolve modal URLs from those thumbnails for path-prefix hosting; add visible
+keyboard focus, a modal backdrop, and polite image-title announcements. The native
+dialog preserves Escape, background inertness and focus restoration; an explicit
+Tab/Shift+Tab boundary keeps keyboard focus cycling through modal controls. Previous/next
+buttons and arrow keys wrap around the three original images; there is no autoplay.
+
+The three WebPs in `website/assets/images/console/` are byte-identical to the
+package. `stage-legacy.py` copies them and the gallery CSS/JS into the built site.
+The homepage loads its gallery assets directly; other pages do not initialize it.
+
+Run `node --test website/tests/test_*.cjs` for typewriter and gallery behavior,
+and the full non-deploying build command above for staging, placement, assets,
+legacy routes and production candidate checks. Browser QA also covers native
+modal focus/Escape behavior and responsive layouts.
