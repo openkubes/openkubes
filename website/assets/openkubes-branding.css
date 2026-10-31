@@ -41,12 +41,18 @@
   .ok-philosophy__line { font-size: 20px; }
 }
 
-/* Logo-derived green, blue and orange, shared by the static wordmarks. */
+/* Exact per-letter palette shared by navigation and philosophy wordmarks. */
 .ok-wordmark { white-space: nowrap; font-weight: 700; }
-.ok-wordmark__open { color: #1e9e4e; }
-.ok-wordmark__ku { color: #1c5dc1; }
-.ok-wordmark__bes { color: #ee7e14; }
-.ok-wordmark__dot { color: #fff; }
+.ok-wordmark > span:nth-child(1) { color: #27A8F2; }
+.ok-wordmark > span:nth-child(2) { color: #48BDF7; }
+.ok-wordmark > span:nth-child(3) { color: #76D1FF; }
+.ok-wordmark > span:nth-child(4) { color: #B4E5FF; }
+.ok-wordmark > span:nth-child(5) { color: #2DBF80; }
+.ok-wordmark > span:nth-child(6) { color: #27A8F2; }
+.ok-wordmark > span:nth-child(7) { color: #2E75CF; }
+.ok-wordmark > span:nth-child(8) { color: #F47B16; }
+.ok-wordmark > span:nth-child(9) { color: #FFA52D; }
+.ok-wordmark > span:nth-child(10) { color: #FFFFFF; }
 .ok-philosophy { width: min(calc(100% - 32px), 1120px); }
 .ok-philosophy__message-wrap { display: inline-flex; width: 20ch; min-width: 0; max-width: 100%; }
 .ok-philosophy__message { min-height: 1.4em; }

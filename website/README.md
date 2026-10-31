@@ -48,8 +48,8 @@ existing hero in `docs/index.html`.
 
 The static wordmark partial, `website/overrides/partials/openkubes-wordmark.html`,
 is used by Material and both legacy navigation renderers. The homepage component
-uses the same markup. Colors are sampled from `docs/openkubes-logo.png` (green,
-blue and orange), rather than the package's approximate palette. Branding
+uses the same markup. The shared CSS defines the exact per-letter palette supplied to match the
+wordmark on kubernauts.de. Branding
 remains visible without JavaScript. Screen readers receive all four principles
 once; reduced-motion mode shows them all without animation. A keyboard-accessible
 pause button controls typing; offscreen and hidden-tab animation is suspended.
