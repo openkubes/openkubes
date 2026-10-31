@@ -56,6 +56,18 @@ def main():
     for asset in ("openkubes-branding.css", "openkubes-branding.js"):
         if not (SITE / "assets" / asset).is_file() or f'/assets/{asset}' not in html:
             raise SystemExit(f"Missing homepage branding asset: {asset}")
+    console_start = html.index('id="ok-home-console-en"')
+    if not html.index('class="console-launch"') < console_start < html.index('class="platform-hero"'):
+        raise SystemExit("Console gallery must appear between installer announcement and hero animation")
+    for name in ("agent-catalog", "cluster-inventory", "ai-diagnostics-preview"):
+        relative = f"assets/images/console/ok-console-{name}.webp"
+        if not (SITE / relative).is_file() or f'src="{relative}"' not in html:
+            raise SystemExit(f"Missing Console screenshot: {relative}")
+    for name in ("openkubes-console-gallery.css", "openkubes-console-gallery.js"):
+        if not (SITE / "assets" / name).is_file() or f'assets/{name}' not in html:
+            raise SystemExit(f"Missing Console gallery asset: {name}")
+    if "Open Code. Public Repositories. Transparent Decisions." not in html:
+        raise SystemExit("Console Open Source panel is missing")
     for href in ("/", "/features/", "/architecture/", "/blog/", "/docs/", "/community/"):
         if f'href="{href}"' not in html:
             raise SystemExit(f"Navigation link missing: {href}")
