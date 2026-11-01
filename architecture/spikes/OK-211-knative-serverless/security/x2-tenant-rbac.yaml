@@ -1,0 +1,26 @@
+# OK-211 X2 — a tenant identity with namespace rights only: ServiceAccount
+# tenant-a-dev bound to the built-in ClusterRole edit in ok211-tenant-a.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: tenant-a-dev
+  namespace: ok211-tenant-a
+  labels:
+    app.kubernetes.io/part-of: ok211
+automountServiceAccountToken: false
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: tenant-a-dev-edit
+  namespace: ok211-tenant-a
+  labels:
+    app.kubernetes.io/part-of: ok211
+subjects:
+  - kind: ServiceAccount
+    name: tenant-a-dev
+    namespace: ok211-tenant-a
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: edit

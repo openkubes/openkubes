@@ -1,0 +1,22 @@
+# OK-211 N4 — cluster-local visibility via the label (not an annotation)
+# networking.knative.dev/visibility: cluster-local.
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: podinfo-private
+  namespace: ok211-serving
+  labels:
+    app.kubernetes.io/part-of: ok211
+    networking.knative.dev/visibility: cluster-local
+spec:
+  template:
+    spec:
+      containers:
+        - name: podinfo
+          image: __PODINFO_IMAGE_6_16_0__
+          ports:
+            - containerPort: 9898
+          readinessProbe:
+            httpGet:
+              path: /readyz
+            successThreshold: 1

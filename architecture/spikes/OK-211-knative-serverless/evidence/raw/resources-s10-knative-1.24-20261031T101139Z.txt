@@ -1,0 +1,90 @@
+# resources s10-knative-1.24 — 2026-10-31T10:11:39Z
+mac_loadavg: { 3,17 2,92 2,88 }
+vm_uptime:  11:11:39 up 49 min,  3 users,  load average: 1.27, 2.50, 2.29
+vm_free_m:
+                 total        used        free      shared  buff/cache   available
+  Mem:            7919        1549        2906           5        3670        6369
+  Swap:              0           0           0
+
+## kubectl top nodes (sample, time, node, cpu, cpu%, mem, mem%)
+1	2026-10-31T10:11:39Z	ok-knative-local	128m	3%	2410Mi	30%
+2	2026-10-31T10:12:39Z	ok-knative-local	134m	3%	2407Mi	30%
+3	2026-10-31T10:13:40Z	ok-knative-local	113m	2%	2374Mi	29%
+
+## kubectl top pods -A (sample, time, namespace, pod, cpu, mem)
+1	2026-10-31T10:11:39Z	knative-eventing	eventing-controller-67fd66569c-snzhg	4m	31Mi
+1	2026-10-31T10:11:39Z	knative-eventing	eventing-webhook-699d67b554-6v4ld	3m	21Mi
+1	2026-10-31T10:11:39Z	knative-eventing	imc-controller-658ff4db54-pks5c	4m	17Mi
+1	2026-10-31T10:11:39Z	knative-eventing	imc-dispatcher-5f7cb4558f-tq2n5	1m	10Mi
+1	2026-10-31T10:11:39Z	knative-eventing	job-sink-6577ccc65b-c4ms9	1m	8Mi
+1	2026-10-31T10:11:39Z	knative-eventing	mt-broker-controller-6587d6444-qw5pl	1m	11Mi
+1	2026-10-31T10:11:39Z	knative-eventing	mt-broker-filter-d8f688f9f-2brr8	1m	9Mi
+1	2026-10-31T10:11:39Z	knative-eventing	mt-broker-ingress-ccf7bfdf-rwb8w	1m	9Mi
+1	2026-10-31T10:11:39Z	knative-eventing	pingsource-mt-adapter-7dc5f66954-4f6bg	1m	8Mi
+1	2026-10-31T10:11:39Z	knative-eventing	request-reply-0	1m	7Mi
+1	2026-10-31T10:11:39Z	knative-serving	activator-84d687d5c9-kkpvb	1m	17Mi
+1	2026-10-31T10:11:39Z	knative-serving	autoscaler-67d7f4dcb9-md9xn	3m	15Mi
+1	2026-10-31T10:11:39Z	knative-serving	controller-7bd7679844-5ldk8	2m	23Mi
+1	2026-10-31T10:11:39Z	knative-serving	net-kourier-controller-85db696f79-gwlgm	1m	19Mi
+1	2026-10-31T10:11:39Z	knative-serving	webhook-5f66dc844f-xmqmw	3m	15Mi
+1	2026-10-31T10:11:39Z	kourier-system	3scale-kourier-gateway-565f9bb47c-hx95m	4m	73Mi
+1	2026-10-31T10:11:39Z	kube-system	coredns-8db54c48d-rl5ww	3m	67Mi
+1	2026-10-31T10:11:39Z	kube-system	local-path-provisioner-5d9d9885bc-p2ncs	1m	43Mi
+1	2026-10-31T10:11:39Z	kube-system	metrics-server-786d997795-qj6mk	4m	73Mi
+1	2026-10-31T10:11:39Z	kube-system	svclb-kourier-4dbecc97-785x7	0m	2Mi
+1	2026-10-31T10:11:39Z	ok211-load	ok211-probe	0m	9Mi
+1	2026-10-31T10:11:39Z	ok211-serving	podinfo-min1-00001-deployment-76648d5565-mmmgr	2m	20Mi
+2	2026-10-31T10:12:39Z	knative-eventing	eventing-controller-67fd66569c-snzhg	3m	31Mi
+2	2026-10-31T10:12:39Z	knative-eventing	eventing-webhook-699d67b554-6v4ld	3m	21Mi
+2	2026-10-31T10:12:39Z	knative-eventing	imc-controller-658ff4db54-pks5c	5m	18Mi
+2	2026-10-31T10:12:39Z	knative-eventing	imc-dispatcher-5f7cb4558f-tq2n5	1m	10Mi
+2	2026-10-31T10:12:39Z	knative-eventing	job-sink-6577ccc65b-c4ms9	1m	8Mi
+2	2026-10-31T10:12:39Z	knative-eventing	mt-broker-controller-6587d6444-qw5pl	1m	11Mi
+2	2026-10-31T10:12:39Z	knative-eventing	mt-broker-filter-d8f688f9f-2brr8	1m	9Mi
+2	2026-10-31T10:12:39Z	knative-eventing	mt-broker-ingress-ccf7bfdf-rwb8w	1m	9Mi
+2	2026-10-31T10:12:39Z	knative-eventing	pingsource-mt-adapter-7dc5f66954-4f6bg	1m	8Mi
+2	2026-10-31T10:12:39Z	knative-eventing	request-reply-0	1m	7Mi
+2	2026-10-31T10:12:39Z	knative-serving	activator-84d687d5c9-kkpvb	1m	14Mi
+2	2026-10-31T10:12:39Z	knative-serving	autoscaler-67d7f4dcb9-md9xn	2m	15Mi
+2	2026-10-31T10:12:39Z	knative-serving	controller-7bd7679844-5ldk8	2m	23Mi
+2	2026-10-31T10:12:39Z	knative-serving	net-kourier-controller-85db696f79-gwlgm	1m	19Mi
+2	2026-10-31T10:12:39Z	knative-serving	webhook-5f66dc844f-xmqmw	2m	15Mi
+2	2026-10-31T10:12:39Z	kourier-system	3scale-kourier-gateway-565f9bb47c-hx95m	4m	73Mi
+2	2026-10-31T10:12:39Z	kube-system	coredns-8db54c48d-rl5ww	4m	67Mi
+2	2026-10-31T10:12:39Z	kube-system	local-path-provisioner-5d9d9885bc-p2ncs	1m	43Mi
+2	2026-10-31T10:12:39Z	kube-system	metrics-server-786d997795-qj6mk	4m	73Mi
+2	2026-10-31T10:12:39Z	kube-system	svclb-kourier-4dbecc97-785x7	0m	2Mi
+2	2026-10-31T10:12:39Z	ok211-load	ok211-probe	0m	9Mi
+2	2026-10-31T10:12:39Z	ok211-serving	podinfo-min1-00001-deployment-76648d5565-mmmgr	1m	21Mi
+3	2026-10-31T10:13:40Z	knative-eventing	eventing-controller-67fd66569c-snzhg	4m	31Mi
+3	2026-10-31T10:13:40Z	knative-eventing	eventing-webhook-699d67b554-6v4ld	4m	21Mi
+3	2026-10-31T10:13:40Z	knative-eventing	imc-controller-658ff4db54-pks5c	5m	18Mi
+3	2026-10-31T10:13:40Z	knative-eventing	imc-dispatcher-5f7cb4558f-tq2n5	1m	10Mi
+3	2026-10-31T10:13:40Z	knative-eventing	job-sink-6577ccc65b-c4ms9	1m	8Mi
+3	2026-10-31T10:13:40Z	knative-eventing	mt-broker-controller-6587d6444-qw5pl	1m	11Mi
+3	2026-10-31T10:13:40Z	knative-eventing	mt-broker-filter-d8f688f9f-2brr8	1m	9Mi
+3	2026-10-31T10:13:40Z	knative-eventing	mt-broker-ingress-ccf7bfdf-rwb8w	1m	9Mi
+3	2026-10-31T10:13:40Z	knative-eventing	pingsource-mt-adapter-7dc5f66954-4f6bg	1m	8Mi
+3	2026-10-31T10:13:40Z	knative-eventing	request-reply-0	1m	7Mi
+3	2026-10-31T10:13:40Z	knative-serving	activator-84d687d5c9-kkpvb	1m	14Mi
+3	2026-10-31T10:13:40Z	knative-serving	autoscaler-67d7f4dcb9-md9xn	3m	15Mi
+3	2026-10-31T10:13:40Z	knative-serving	controller-7bd7679844-5ldk8	2m	22Mi
+3	2026-10-31T10:13:40Z	knative-serving	net-kourier-controller-85db696f79-gwlgm	1m	17Mi
+3	2026-10-31T10:13:40Z	knative-serving	webhook-5f66dc844f-xmqmw	3m	15Mi
+3	2026-10-31T10:13:40Z	kourier-system	3scale-kourier-gateway-565f9bb47c-hx95m	3m	73Mi
+3	2026-10-31T10:13:40Z	kube-system	coredns-8db54c48d-rl5ww	4m	67Mi
+3	2026-10-31T10:13:40Z	kube-system	local-path-provisioner-5d9d9885bc-p2ncs	1m	43Mi
+3	2026-10-31T10:13:40Z	kube-system	metrics-server-786d997795-qj6mk	4m	73Mi
+3	2026-10-31T10:13:40Z	kube-system	svclb-kourier-4dbecc97-785x7	0m	2Mi
+3	2026-10-31T10:13:40Z	ok211-load	ok211-probe	0m	9Mi
+3	2026-10-31T10:13:40Z	ok211-serving	podinfo-min1-00001-deployment-76648d5565-mmmgr	1m	20Mi
+
+## per-namespace summary
+namespace	cpu_m_mean	cpu_m_max	mem_Mi_mean	mem_Mi_max	req_cpu_m	req_mem_Mi	lim_cpu_m	lim_mem_Mi
+knative-eventing	19	20	132	132	750	578	2200	4296
+knative-serving	9	10	86	89	800	560	4500	3600
+kourier-system	4	4	73	73	200	200	1000	800
+kube-system	9	9	185	185	200	140	0	170
+ok211-load	0	0	9	9	10	16	1000	128
+ok211-serving	1	2	20	21	25	0	0	0
+TOTAL	42	-	505	-	1985	1494	-	-

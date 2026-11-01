@@ -1,0 +1,25 @@
+# OK-211 — S3/S4/S5 variant of the base service (BRIEF B11 "Beschleunigtes Herunterskalieren").
+# Same as podinfo.yaml plus autoscaling.knative.dev/window: 6s (the minimum), so
+# a cold-start series does not wait 60 s per run. Applied after S2, which runs
+# with the defaults; scale-to-zero-grace-period stays at its global default.
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: podinfo
+  namespace: ok211-serving
+  labels:
+    app.kubernetes.io/part-of: ok211
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/window: "6s"
+    spec:
+      containers:
+        - name: podinfo
+          image: __PODINFO_IMAGE_6_16_0__
+          ports:
+            - containerPort: 9898
+          readinessProbe:
+            httpGet:
+              path: /readyz

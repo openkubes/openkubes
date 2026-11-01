@@ -1,0 +1,22 @@
+# N2 2026-10-31T12:36:20Z
+## entry points
+NAMESPACE          NAME                               TYPE           CLUSTER-IP      EXTERNAL-IP                                         PORT(S)                                     AGE     SELECTOR
+ingress            ok-ingress-traefik                 NodePort       10.43.24.103    <none>                                              80:30080/TCP,443:30443/TCP                  22s     app.kubernetes.io/instance=ok-ingress-ingress,app.kubernetes.io/name=traefik
+knative-serving    net-kourier-controller             ClusterIP      10.43.185.91    <none>                                              18000/TCP,9090/TCP                          22h     app=net-kourier-controller
+kourier-system     kourier                            ClusterIP      10.43.179.87    <none>                                              80/TCP,443/TCP                              22h     app=3scale-kourier-gateway
+kourier-system     kourier-internal                   ClusterIP      10.43.5.182     <none>                                              80/TCP,443/TCP                              22h     app=3scale-kourier-gateway
+ok211-events       event-display-ksvc                 ExternalName   <none>          kourier-internal.kourier-system.svc.cluster.local   80/TCP                                      22m     <none>
+ok211-events       podinfo-fail                       ExternalName   <none>          kourier-internal.kourier-system.svc.cluster.local   80/TCP                                      22m     <none>
+ok211-serving      podinfo                            ExternalName   <none>          kourier-internal.kourier-system.svc.cluster.local   80/TCP                                      22h     <none>
+ok211-serving      podinfo-private                    ExternalName   <none>          kourier-internal.kourier-system.svc.cluster.local   80/TCP                                      3m17s   <none>
+## svclb pods (ServiceLB)
+No resources found in kube-system namespace.
+## ingress
+NAMESPACE        NAME                     CLASS        HOSTS                            ADDRESS   PORTS   AGE
+kourier-system   knative-via-ok-ingress   ok-ingress   *.ok211-serving.ok211.internal             80      3s
+## via Traefik http://192.168.252.2:30080 Host: podinfo.ok211-serving.ok211.internal -> code time_total
+200 1.820403
+## direct kourier (ClusterIP) -> code time_total
+200 0.020865
+## unknown host via Traefik (expect 404 from Traefik)
+404 0.000393

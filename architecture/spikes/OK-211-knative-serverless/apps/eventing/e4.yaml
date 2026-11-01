@@ -1,0 +1,102 @@
+# OK-211 E4 — retries and dead-letter sink. podinfo-fail answers /status/500;
+# PODINFO_LEVEL=debug makes podinfo log every request, so the delivery
+# attempts can be counted. The subscriber ref must be in the trigger's
+# namespace (the webhook rejects a ref into another namespace).
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: podinfo-fail
+  namespace: ok211-events
+  labels:
+    app.kubernetes.io/part-of: ok211
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/min-scale: "1"
+    spec:
+      containers:
+        - name: podinfo
+          image: __PODINFO_IMAGE_6_16_0__
+          env:
+            - name: PODINFO_LEVEL
+              value: debug
+          ports:
+            - containerPort: 9898
+          readinessProbe:
+            httpGet:
+              path: /readyz
+            successThreshold: 1
+---
+# Dead-letter sink for E4: a plain Deployment, so no cold start is measured.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: event-display-dls
+  namespace: ok211-events
+  labels:
+    app.kubernetes.io/name: event-display-dls
+    app.kubernetes.io/part-of: ok211
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: event-display-dls
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: event-display-dls
+    spec:
+      automountServiceAccountToken: false
+      containers:
+        - name: event-display
+          image: __EVENT_DISPLAY_IMAGE__
+          ports:
+            - containerPort: 8080
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            capabilities:
+              drop: ["ALL"]
+            seccompProfile:
+              type: RuntimeDefault
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: event-display-dls
+  namespace: ok211-events
+spec:
+  selector:
+    app.kubernetes.io/name: event-display-dls
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080
+---
+apiVersion: eventing.knative.dev/v1
+kind: Trigger
+metadata:
+  name: e4-retry
+  namespace: ok211-events
+spec:
+  broker: default
+  filter:
+    attributes:
+      type: dev.openkubes.ok211.e4
+  subscriber:
+    ref:
+      apiVersion: serving.knative.dev/v1
+      kind: Service
+      name: podinfo-fail
+    uri: /status/500
+  delivery:
+    retry: 3
+    backoffPolicy: exponential
+    backoffDelay: PT0.5S
+    deadLetterSink:
+      ref:
+        apiVersion: v1
+        kind: Service
+        name: event-display-dls

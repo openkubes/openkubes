@@ -1,0 +1,44 @@
+# OK-211 E2 — event-driven Knative Service: event-display as a ksvc with
+# scale-to-zero (window 6s, B11 allows it for E2) as the trigger subscriber.
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: event-display-ksvc
+  namespace: ok211-events
+  labels:
+    app.kubernetes.io/part-of: ok211
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/window: "6s"
+    spec:
+      containers:
+        - name: event-display
+          image: __EVENT_DISPLAY_IMAGE__
+          ports:
+            - containerPort: 8080
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            capabilities:
+              drop: ["ALL"]
+            seccompProfile:
+              type: RuntimeDefault
+---
+apiVersion: eventing.knative.dev/v1
+kind: Trigger
+metadata:
+  name: e2-ksvc
+  namespace: ok211-events
+spec:
+  broker: default
+  filter:
+    attributes:
+      type: dev.openkubes.ok211.e2
+  subscriber:
+    ref:
+      apiVersion: serving.knative.dev/v1
+      kind: Service
+      name: event-display-ksvc

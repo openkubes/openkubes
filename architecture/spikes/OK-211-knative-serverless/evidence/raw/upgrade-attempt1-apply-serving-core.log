@@ -1,0 +1,81 @@
+namespace/knative-serving serverside-applied
+role.rbac.authorization.k8s.io/knative-serving-activator serverside-applied
+clusterrole.rbac.authorization.k8s.io/knative-serving-activator-cluster serverside-applied
+clusterrole.rbac.authorization.k8s.io/knative-serving-aggregated-addressable-resolver serverside-applied
+clusterrole.rbac.authorization.k8s.io/knative-serving-addressable-resolver serverside-applied
+clusterrole.rbac.authorization.k8s.io/knative-serving-namespaced-admin serverside-applied
+clusterrole.rbac.authorization.k8s.io/knative-serving-namespaced-edit serverside-applied
+clusterrole.rbac.authorization.k8s.io/knative-serving-namespaced-view serverside-applied
+clusterrole.rbac.authorization.k8s.io/knative-serving-core serverside-applied
+clusterrole.rbac.authorization.k8s.io/knative-serving-podspecable-binding serverside-applied
+serviceaccount/controller serverside-applied
+clusterrole.rbac.authorization.k8s.io/knative-serving-admin serverside-applied
+clusterrolebinding.rbac.authorization.k8s.io/knative-serving-controller-admin serverside-applied
+clusterrolebinding.rbac.authorization.k8s.io/knative-serving-controller-addressable-resolver serverside-applied
+serviceaccount/activator serverside-applied
+rolebinding.rbac.authorization.k8s.io/knative-serving-activator serverside-applied
+clusterrolebinding.rbac.authorization.k8s.io/knative-serving-activator-cluster serverside-applied
+customresourcedefinition.apiextensions.k8s.io/images.caching.internal.knative.dev serverside-applied
+certificate.networking.internal.knative.dev/routing-serving-certs serverside-applied
+customresourcedefinition.apiextensions.k8s.io/certificates.networking.internal.knative.dev serverside-applied
+customresourcedefinition.apiextensions.k8s.io/configurations.serving.knative.dev serverside-applied
+customresourcedefinition.apiextensions.k8s.io/clusterdomainclaims.networking.internal.knative.dev serverside-applied
+customresourcedefinition.apiextensions.k8s.io/domainmappings.serving.knative.dev serverside-applied
+customresourcedefinition.apiextensions.k8s.io/ingresses.networking.internal.knative.dev serverside-applied
+customresourcedefinition.apiextensions.k8s.io/metrics.autoscaling.internal.knative.dev serverside-applied
+customresourcedefinition.apiextensions.k8s.io/podautoscalers.autoscaling.internal.knative.dev serverside-applied
+customresourcedefinition.apiextensions.k8s.io/revisions.serving.knative.dev serverside-applied
+customresourcedefinition.apiextensions.k8s.io/routes.serving.knative.dev serverside-applied
+customresourcedefinition.apiextensions.k8s.io/serverlessservices.networking.internal.knative.dev serverside-applied
+customresourcedefinition.apiextensions.k8s.io/services.serving.knative.dev serverside-applied
+image.caching.internal.knative.dev/queue-proxy serverside-applied
+configmap/config-autoscaler serverside-applied
+configmap/config-certmanager serverside-applied
+configmap/config-defaults serverside-applied
+configmap/config-deployment serverside-applied
+configmap/config-domain serverside-applied
+configmap/config-features serverside-applied
+configmap/config-gc serverside-applied
+configmap/config-leader-election serverside-applied
+configmap/config-logging serverside-applied
+configmap/config-network serverside-applied
+configmap/config-observability serverside-applied
+configmap/config-tracing serverside-applied
+horizontalpodautoscaler.autoscaling/activator serverside-applied
+poddisruptionbudget.policy/activator-pdb serverside-applied
+deployment.apps/activator serverside-applied
+service/activator-service serverside-applied
+deployment.apps/autoscaler serverside-applied
+service/autoscaler serverside-applied
+deployment.apps/controller serverside-applied
+service/controller serverside-applied
+horizontalpodautoscaler.autoscaling/webhook serverside-applied
+poddisruptionbudget.policy/webhook-pdb serverside-applied
+deployment.apps/webhook serverside-applied
+service/webhook serverside-applied
+validatingwebhookconfiguration.admissionregistration.k8s.io/config.webhook.serving.knative.dev serverside-applied
+secret/webhook-certs serverside-applied
+Apply failed with 1 conflict: conflict with "webhook" using admissionregistration.k8s.io/v1: .webhooks[name="webhook.serving.knative.dev"].rules
+Please review the fields above--they currently have other managers. Here
+are the ways you can resolve this warning:
+* If you intend to manage all of these fields, please re-run the apply
+  command with the `--force-conflicts` flag.
+* If you do not intend to manage all of the fields, please edit your
+  manifest to remove references to the fields that should keep their
+  current managers.
+* You may co-own fields by updating your manifest to match the existing
+  value; in this case, you'll become the manager if the other manager(s)
+  stop managing the field (remove it from their configuration).
+See https://kubernetes.io/docs/reference/using-api/server-side-apply/#conflicts
+Apply failed with 1 conflict: conflict with "webhook" using admissionregistration.k8s.io/v1: .webhooks[name="validation.webhook.serving.knative.dev"].rules
+Please review the fields above--they currently have other managers. Here
+are the ways you can resolve this warning:
+* If you intend to manage all of these fields, please re-run the apply
+  command with the `--force-conflicts` flag.
+* If you do not intend to manage all of the fields, please edit your
+  manifest to remove references to the fields that should keep their
+  current managers.
+* You may co-own fields by updating your manifest to match the existing
+  value; in this case, you'll become the manager if the other manager(s)
+  stop managing the field (remove it from their configuration).
+See https://kubernetes.io/docs/reference/using-api/server-side-apply/#conflicts

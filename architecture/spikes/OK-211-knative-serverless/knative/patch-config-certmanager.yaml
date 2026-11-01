@@ -1,0 +1,5 @@
+# OK-211 N3 — external-domain certificates from the lab CA issuer.
+data:
+  issuerRef: |
+    kind: ClusterIssuer
+    name: ok211-ca-issuer

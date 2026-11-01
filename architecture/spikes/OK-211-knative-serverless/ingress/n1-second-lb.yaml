@@ -1,0 +1,21 @@
+# OK-211 N1 — a second LoadBalancer Service on 80/443. With Kourier's
+# LoadBalancer already holding the node's host ports through K3s ServiceLB
+# (klipper-lb), this one is expected to stay Pending. Removed by exp-N1.
+apiVersion: v1
+kind: Service
+metadata:
+  name: ok211-n1-second-lb
+  namespace: ok211-serving
+  labels:
+    app.kubernetes.io/part-of: ok211
+spec:
+  type: LoadBalancer
+  selector:
+    app.kubernetes.io/name: ok211-n1-nothing
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080
+    - name: https
+      port: 443
+      targetPort: 8443

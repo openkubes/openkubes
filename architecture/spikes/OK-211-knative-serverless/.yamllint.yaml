@@ -1,0 +1,13 @@
+# yamllint configuration for the OK-211 spike.
+extends: default
+rules:
+  line-length:
+    max: 160
+  document-start: disable
+  truthy:
+    allowed-values: ["true", "false"]
+    check-keys: false
+  comments:
+    min-spaces-from-content: 1
+ignore: |
+  .local/

@@ -1,0 +1,12 @@
+# OK-211 — cloud-init for the spike VM ok-knative-local.
+#
+# Same content as ok-local's generated cloud-init.yaml (Makefile at 60397cd).
+# `make vm-up` replaces the placeholder with the public key and writes the
+# result to .local/cloud-init.yaml only; the rendered file is never tracked.
+package_update: true
+package_upgrade: false
+users:
+  - name: ubuntu
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    ssh_authorized_keys:
+      - __SSH_PUBLIC_KEY__
