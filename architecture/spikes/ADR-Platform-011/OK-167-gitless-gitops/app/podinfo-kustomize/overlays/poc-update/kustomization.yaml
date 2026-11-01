@@ -1,0 +1,22 @@
+# Overlay `poc-update`: same as `poc`, but moves podinfo to 6.17.0 through the
+# Kustomize `images` field rather than by editing the base manifest.
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+
+labels:
+  - pairs:
+      app.openkubes.io/variant: kustomize
+    includeSelectors: false
+
+replicas:
+  - name: podinfo
+    count: 2
+
+images:
+  - name: ghcr.io/stefanprodan/podinfo
+    newTag: 6.17.0
+    digest: sha256:fa2f27c1a8561097e5144bfc0853eba6054d743b68b03de4cad4675616ddefb0

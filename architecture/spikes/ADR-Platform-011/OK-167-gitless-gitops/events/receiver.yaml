@@ -1,0 +1,98 @@
+# OK-167 — CloudEvents receiver for zot's events extension.
+#
+# zot's HTTP event sink posts CloudEvents here. The image echoes every request
+# including headers and body to its log, which is what Q3.b needs: the
+# CloudEvents metadata travels in `ce-*` headers, so a receiver that logged only
+# the body would lose the event type and the subject.
+#
+# This is a test sink, not a component of the proposed architecture. It has no
+# persistence and no authentication; the only thing that can reach it is zot,
+# inside the cluster.
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: event-receiver
+  namespace: ok167-events
+  labels:
+    app.kubernetes.io/name: event-receiver
+    app.kubernetes.io/part-of: ok167
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: event-receiver
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+      protocol: TCP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: event-receiver
+  namespace: ok167-events
+  labels:
+    app.kubernetes.io/name: event-receiver
+    app.kubernetes.io/part-of: ok167
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: event-receiver
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: event-receiver
+        app.kubernetes.io/part-of: ok167
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: echo
+          # Pinned by digest; substituted from versions.env by the make target.
+          image: mendhak/http-https-echo:37@sha256:f55000d9196bd3c853d384af7315f509d21ffb85de315c26e9874033b9f83e15
+          imagePullPolicy: IfNotPresent
+          env:
+            # The image serves HTTP and HTTPS on configurable ports. Only HTTP
+            # is used: this sink is reached over the cluster network from zot,
+            # and adding a second certificate chain would prove nothing here.
+            - name: HTTP_PORT
+              value: "8080"
+            # Log the body as well as the headers.
+            - name: LOG_WITHOUT_NEWLINE
+              value: "false"
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 2
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 20

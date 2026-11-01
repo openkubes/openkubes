@@ -1,0 +1,7 @@
+{
+  "test": "API TLS",
+  "server_insecure": false,
+  "http_status": 200,
+  "untrusted_curl_exit": 60,
+  "result": "PASS"
+}

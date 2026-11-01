@@ -1,0 +1,23 @@
+# Imported artifact pinned by digest; make app-imported supplies DIGEST_PLACEHOLDER.
+# Namespaces are created by guarded Make targets, not by Argo CD.
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ok167-podinfo-imported
+  namespace: argocd
+spec:
+  project: ok167
+  source:
+    repoURL: oci://zot.zot.svc.cluster.local:5000/openkubes/machine/gitops/imported/podinfo-manifests
+    targetRevision: DIGEST_PLACEHOLDER
+    path: .
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: ok167-imported
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=false

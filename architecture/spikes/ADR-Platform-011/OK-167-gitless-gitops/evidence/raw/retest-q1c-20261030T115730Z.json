@@ -1,0 +1,51 @@
+{
+  "test": "Q1.c",
+  "failure": {
+    "app": "ok167-podinfo-tag",
+    "conditions": [
+      {
+        "lastTransitionTime": "2026-10-30T11:57:44Z",
+        "message": "Failed to load target state: failed to generate manifest for source 1 of 1: rpc error: code = Unknown desc = failed to resolve revision \"v1.0.0\": cannot get digest for revision v1.0.0: HEAD \"https://zot.zot.svc.cluster.local:5000/v2/openkubes/machine/gitops/podinfo-manifests/manifests/v1.0.0\": response status code 401: Unauthorized",
+        "type": "ComparisonError"
+      }
+    ],
+    "sync": {
+      "comparedTo": {
+        "destination": {
+          "namespace": "ok167-demo",
+          "server": "https://kubernetes.default.svc"
+        },
+        "source": {
+          "path": ".",
+          "repoURL": "oci://zot.zot.svc.cluster.local:5000/openkubes/machine/gitops/podinfo-manifests",
+          "targetRevision": "v1.0.0"
+        }
+      },
+      "revision": "v1.0.0",
+      "status": "Unknown"
+    }
+  },
+  "recovery": {
+    "app": "ok167-podinfo-tag",
+    "source": {
+      "path": ".",
+      "repoURL": "oci://zot.zot.svc.cluster.local:5000/openkubes/machine/gitops/podinfo-manifests",
+      "targetRevision": "v1.0.0"
+    },
+    "sync": "Synced",
+    "health": "Healthy",
+    "revision": "sha256:4547ec3f607bd36f88d3ecf978af6bcb5c0b293aaa5132eff0ebcdc6a65ba15e",
+    "resources": [
+      {
+        "kind": "Service",
+        "name": "podinfo"
+      },
+      {
+        "kind": "Deployment",
+        "name": "podinfo"
+      }
+    ],
+    "conditions": null
+  },
+  "result": "PASS"
+}

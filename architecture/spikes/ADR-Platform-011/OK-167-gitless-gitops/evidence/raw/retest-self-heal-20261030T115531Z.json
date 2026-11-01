@@ -1,0 +1,33 @@
+{
+  "test": "T7",
+  "timestamps_ms": {
+    "invocation_start": 1793361331458,
+    "scale_returned": 1793361331615,
+    "restored": 1793361332694
+  },
+  "seconds_from_scale_return": 1.079,
+  "replicas": 2,
+  "application": {
+    "app": "ok167-podinfo-kustomize",
+    "source": {
+      "path": "overlays/poc",
+      "repoURL": "oci://zot.zot.svc.cluster.local:5000/openkubes/machine/gitops/podinfo-kustomize",
+      "targetRevision": "v1.0.0"
+    },
+    "sync": "Synced",
+    "health": "Healthy",
+    "revision": "sha256:9e6be6019ffdf6c36463ff93a2f078a0bb64b91b0680ba7e8547e3928c6dc2ef",
+    "resources": [
+      {
+        "kind": "Service",
+        "name": "podinfo"
+      },
+      {
+        "kind": "Deployment",
+        "name": "podinfo"
+      }
+    ],
+    "conditions": null
+  },
+  "result": "PASS"
+}

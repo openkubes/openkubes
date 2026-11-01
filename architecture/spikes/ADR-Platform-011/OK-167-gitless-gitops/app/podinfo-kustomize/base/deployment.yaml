@@ -1,0 +1,65 @@
+# podinfo, the demo workload delivered through the OCI artifact.
+#
+# No `namespace:` field anywhere in this directory: the target namespace comes
+# from the Argo CD Application's destination, so the same artifact can be
+# synced into several namespaces unchanged.
+#
+# The image is pinned tag@digest. A mutable tag alone is not release evidence
+# (ADR-028 section 4.3) — and the point of this spike is traceability.
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: podinfo
+  labels:
+    app.kubernetes.io/name: podinfo
+    app.kubernetes.io/part-of: ok167
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: podinfo
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: podinfo
+        app.kubernetes.io/part-of: ok167
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: podinfo
+          image: ghcr.io/stefanprodan/podinfo:6.16.0@sha256:2c88592f2b8f51a9428c8039486fc41abac53c95dbbb884d03bebee0876a6d4d
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 9898
+              protocol: TCP
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: http
+            initialDelaySeconds: 2
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 20

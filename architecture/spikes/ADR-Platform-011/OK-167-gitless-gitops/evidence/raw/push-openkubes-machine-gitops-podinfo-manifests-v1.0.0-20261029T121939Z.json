@@ -1,0 +1,18 @@
+{
+  "registry": "127.0.0.1:30500",
+  "repository": "openkubes/machine/gitops/podinfo-manifests",
+  "tag": "v1.0.0",
+  "manifest_digest": "sha256:e3b31a28c5e37db935752a6ae9a668f7c6c20d9a89b3a4e3be9b1d62a825c67d",
+  "layer_digest": "sha256:b12c16fc978460f4977826819805585533328016dae7fd2f2b78e94c1e8caad8",
+  "layer_size": 1033,
+  "artifact_type": "application/vnd.openkubes.gitops.manifests.v1+tar",
+  "layer_media_type": "application/vnd.oci.image.layer.v1.tar+gzip",
+  "provenance": {
+    "source": "app/podinfo-plain-update",
+    "git_revision": "a7cb66439fde21ebe374a3336f94eb8e252cbb7a",
+    "source_date_epoch": 1793275364,
+    "created": "2026-10-29T12:02:44Z",
+    "dirty": false
+  },
+  "pushed_at": "2026-10-29T12:19:39Z"
+}

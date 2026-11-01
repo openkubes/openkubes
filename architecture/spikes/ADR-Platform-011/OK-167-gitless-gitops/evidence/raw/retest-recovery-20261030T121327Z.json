@@ -1,0 +1,75 @@
+{
+  "test": "T8",
+  "timestamps_ms": {
+    "registry_ready": 1793362494051,
+    "recovered": 1793362662451
+  },
+  "seconds": 168.4,
+  "refresh_after_restore": false,
+  "error": {
+    "app": "ok167-podinfo-tag",
+    "conditions": [
+      {
+        "lastTransitionTime": "2026-10-30T12:13:40Z",
+        "message": "Failed to load target state: failed to generate manifest for source 1 of 1: rpc error: code = DeadlineExceeded desc = context deadline exceeded",
+        "type": "ComparisonError"
+      }
+    ],
+    "sync": {
+      "comparedTo": {
+        "destination": {
+          "namespace": "ok167-demo",
+          "server": "https://kubernetes.default.svc"
+        },
+        "source": {
+          "path": ".",
+          "repoURL": "oci://zot.zot.svc.cluster.local:5000/openkubes/machine/gitops/podinfo-manifests",
+          "targetRevision": "unsigned-review"
+        }
+      },
+      "revision": "unsigned-review",
+      "status": "Unknown"
+    }
+  },
+  "recovery": {
+    "app": "ok167-podinfo-tag",
+    "source": {
+      "path": ".",
+      "repoURL": "oci://zot.zot.svc.cluster.local:5000/openkubes/machine/gitops/podinfo-manifests",
+      "targetRevision": "unsigned-review"
+    },
+    "sync": "Synced",
+    "health": "Healthy",
+    "revision": "sha256:ccf3ea7faf530f983861e79c288fad804209a6f0c0b92780460b2e2081ac6e35",
+    "resources": [
+      {
+        "kind": "Service",
+        "name": "podinfo"
+      },
+      {
+        "kind": "Deployment",
+        "name": "podinfo"
+      }
+    ],
+    "conditions": null
+  },
+  "pods_before": [
+    {
+      "name": "podinfo-d75b4c5-x8wkn",
+      "phase": "Running",
+      "restarts": [
+        0
+      ]
+    }
+  ],
+  "pods_after": [
+    {
+      "name": "podinfo-d75b4c5-x8wkn",
+      "phase": "Running",
+      "restarts": [
+        0
+      ]
+    }
+  ],
+  "result": "PASS"
+}

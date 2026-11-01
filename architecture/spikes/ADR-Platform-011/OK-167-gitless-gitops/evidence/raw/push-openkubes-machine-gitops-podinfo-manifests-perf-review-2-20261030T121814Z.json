@@ -1,0 +1,24 @@
+{
+  "registry": "127.0.0.1:30500",
+  "repository": "openkubes/machine/gitops/podinfo-manifests",
+  "tag": "perf-review-2",
+  "manifest_digest": "sha256:8f28a1da0c2729f97efc5be02deb68bc4cdaff89601e96dd856820828bbaedcf",
+  "layer_digest": "sha256:6d65a089bc96cb8130306296ee76b8146e243f527eacf1ee6261bf6ba51b0fdc",
+  "layer_size": 1036,
+  "artifact_type": "application/vnd.openkubes.gitops.manifests.v1+tar",
+  "layer_media_type": "application/vnd.oci.image.layer.v1.tar+gzip",
+  "provenance": {
+    "source": "app/podinfo-plain",
+    "git_revision": "537bdb6c17bfadb9cfc84c21dee793bc8dc70e29",
+    "source_date_epoch": 1793275364,
+    "created": "2026-10-29T12:02:44Z",
+    "dirty": false
+  },
+  "timings_ms": {
+    "package_validate": 130,
+    "authentication": 30,
+    "push": 34,
+    "total": 194
+  },
+  "pushed_at": "2026-10-30T12:18:14Z"
+}
