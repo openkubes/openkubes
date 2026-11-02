@@ -73,7 +73,7 @@ From zero to a running Knative 1.23 installation: `make install`, then
 | [MANAGEMENT-SUMMARY.md](MANAGEMENT-SUMMARY.md) | one page for decision makers |
 | [REPORT.md](REPORT.md) | full report (B13), findings F1–F15, criteria M1–M6/K1–K5, effort WP1–WP10 |
 | [evidence/](evidence/) | one file per phase, raw data in `evidence/raw/` (`measurements.json`) |
-| [drafts/](drafts/) | Jira comment (German) and PR description; not posted |
+| [drafts/](drafts/) | Jira comment and PR description, as posted to OK-211 and PR #463 after CP2 |
 | `diagrams/architecture.svg` | PENDING (needs mermaid-cli, approval required); Mermaid source in REPORT §3 |
 
 ## Deviations from ok-local

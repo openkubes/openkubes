@@ -1,4 +1,4 @@
-<!-- Draft PR description. Not opened; PR only after CP2 approval. -->
+<!-- PR description, opened as https://github.com/openkubes/openkubes/pull/463 after CP2 approval. -->
 
 ## OK-211 — Knative as an optional serverless & event-driven capability (spike)
 
