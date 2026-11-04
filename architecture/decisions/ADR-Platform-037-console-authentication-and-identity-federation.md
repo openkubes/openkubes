@@ -357,3 +357,99 @@ session store, ingress product, secret backend, MFA mechanism, password hashing
 parameters, hardware token, or account recovery implementation. It does not define a
 general OpenKubes user or role Contract, authorize just-in-time membership, or accept
 the OK-154 fixture vocabulary as a production API.
+
+## Proposed amendment (2026-11-04): CLI-first local identity for ok-local
+
+**Status:** Draft for review; direction approved in principle, amendment acceptance pending.
+**Tracking:** [OK-214](https://kubernauts.atlassian.net/browse/OK-214).
+
+### Scope and relationship to the original decision
+
+This amendment proposes one explicit eligibility exception to the federation-first,
+bootstrap/break-glass-only decision in sections 1 and 4 and INV-037-1: an explicitly
+configured, non-production `ok-local` profile MAY authenticate ordinary named local
+users without an external OIDC provider. It does not enable production local identity
+or make ordinary local accounts an automatic fallback for federation failure.
+
+The existing normative invariant text is retained verbatim. Its security protections
+are not relaxed: authentication remains separate from authority; credentials remain
+server-side; identity joins are stable; protected disclosure and operations require
+current server-side checks; sessions are bounded and revocable; failures deny access;
+and Evidence is credential-free. INV-037-7 continues to govern exceptional local
+access, including its operational reason. Ordinary local accounts MUST use a distinct
+authentication method and lifecycle, not be represented as Bootstrap or BreakGlass.
+
+Existing OIDC, Bootstrap and BreakGlass behavior and guards MUST remain intact.
+ADR-Platform-038 is unchanged, including its PostgreSQL session-store, separate
+identity/session ownership, encryption, expiry, revocation and recovery requirements.
+
+### Bounded implementation direction
+
+The success condition is that a named administrator can create a local user through
+an attended CLI and that user can sign in to the Console without Keycloak, Entra ID
+or any other external identity provider. Extend the existing Console BFF and its
+PostgreSQL-backed session system; do not introduce an identity service or OIDC issuer.
+
+- The profile MUST be explicitly enabled server-side and restricted to a local,
+  non-production deployment. A browser flag or profile label alone is insufficient;
+  runtime and deployment checks MUST reject unsupported exposure or production use.
+  Existing cookie, TLS and development-exception guards MUST NOT be weakened.
+- An attended operator procedure MUST provision the first named administrator without
+  public registration, default credentials or a shared administrator. Bootstrap MUST
+  close after initialization, independently of whether federation is ever configured.
+- An authenticated, authorized named administrator MAY create, list and disable local
+  users through the CLI. Authorization MUST be rechecked at point of use. Secrets
+  MUST use protected input, never command arguments, logs or ordinary command output.
+  Account deletion and general role administration are outside this MVP.
+- Local identity records MUST have immutable subject IDs and unambiguous normalized
+  usernames. Accounts MUST store only salted, versioned password verifiers using
+  maintained cryptographic primitives and reviewed, resource-bounded parameters.
+- Login MUST use durable throttling, bounded credential processing and generic errors
+  that do not distinguish unknown, disabled or incorrect-password accounts. Local
+  login and startup MUST NOT depend on successful external OIDC discovery.
+- The browser MUST receive only the existing opaque, hardened session cookies and
+  redacted session projection. No credentials or session material may be persisted in
+  browser storage. Ordinary-local method vocabulary requires explicit contract and
+  consumer compatibility review; existing methods MUST retain their semantics.
+- Enabled state and current account security revision MUST be verified for protected
+  requests, session restoration and rotation. Disablement MUST revoke affected
+  sessions and prevent concurrent login or rotation from leaving a usable session.
+  Unavailable or unverifiable identity/session state MUST fail closed.
+- Administrator disablement MUST be serialized so concurrent operations cannot remove
+  the last active administrator. Account creation and disablement MUST commit with
+  their audit records; login failures and recovery MUST also produce credential-free
+  audit events. Required audit failure MUST deny the affected operation.
+- Browser-originated state changes MUST enforce exact Origin and session-bound CSRF
+  checks. CLI operations MUST independently authenticate and authorize the operator;
+  a non-browser transport is not an authorization bypass.
+- An attended offline recovery procedure MUST work without the Console UI or external
+  OIDC, protect recovery custody, audit its use and invalidate affected sessions.
+  Database restore MUST follow ADR-038's session invalidation procedure.
+
+Local administrator status governs local-account administration only. Authentication
+MUST NOT silently create platform membership, grant Kubernetes privileges or authorize
+cluster operations. This MVP adds no Kubernetes RBAC assignments, multi-cluster
+Projects, Project lifecycle, direct kubectl access, generic Kubernetes API proxy,
+identity service, CRD or operator. Real Console user-administration UI is deferred;
+the simulation remains explicitly separate and Developer Workspaces remain independent.
+
+### Acceptance and delivery gates
+
+Gate 1 is review and explicit acceptance of this amendment. Opening or merging a PR
+alone MUST NOT be interpreted by an implementation agent as permission to start Gate 2;
+the owner must explicitly approve that transition. Both PRs remain Draft until reviewed;
+neither merge nor deployment is automatic.
+
+After Gate 1 approval, Gate 2 targets 5–8 person-days for the CLI-first scope. Security
+requirements take precedence over that estimate; any overrun or missing prerequisite
+must be reported rather than addressed by weakening a guard. Acceptance evidence MUST
+include the named-admin/create-user/login journey, negative authorization/CSRF and
+redaction cases, disabled-user session rejection, real PostgreSQL login/disable/rotate
+and last-admin concurrency tests, identity/session/throttle/audit outage tests, an
+external-IdP-unavailable startup/login exercise, an offline recovery exercise and
+regression tests for existing OIDC, Bootstrap and BreakGlass behavior.
+
+This is a non-production local-development baseline, with MFA enrollment UI deferred
+and no production assurance claim. Production ordinary-local identity requires a
+separately accepted bootstrap, recovery, MFA and storage-security baseline and its
+evidence; this amendment grants no production exception.
