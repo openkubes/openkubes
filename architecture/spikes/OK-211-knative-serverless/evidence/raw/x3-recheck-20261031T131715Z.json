@@ -1,0 +1,15 @@
+{
+  "id": "X3-recheck",
+  "timestamp_utc": "2026-10-31T13:19:21Z",
+  "deny_only_since": "2026-10-31T13:17:16Z",
+  "settle_s": 60,
+  "tb_warm_pod_ip": "10.42.0.189",
+  "direct_probe_to_pod_8012": "curl: (7) Failed to connect to 10.42.0.189:8012 after 0 ms: Could not connect to server\n000command terminated with exit code 7",
+  "warm_tb_warm": "502 0.010826",
+  "cold_1": "200 0.600173",
+  "zero_wait_1": "zero after 0 s",
+  "cold_2": "200 0.802456",
+  "zero_wait_2": "zero after 42 s",
+  "activator_log_lines": [],
+  "restored": "allow-knative-serving and allow-kourier-gateway re-applied"
+}

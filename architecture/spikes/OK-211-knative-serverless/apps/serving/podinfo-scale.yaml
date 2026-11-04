@@ -1,0 +1,23 @@
+# OK-211 — S6 autoscaling: concurrency target 10 per pod. With the default
+# container-concurrency-target-percentage 70 the effective target is 7.
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: podinfo-scale
+  namespace: ok211-serving
+  labels:
+    app.kubernetes.io/part-of: ok211
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/target: "10"
+    spec:
+      containers:
+        - name: podinfo
+          image: __PODINFO_IMAGE_6_16_0__
+          ports:
+            - containerPort: 9898
+          readinessProbe:
+            httpGet:
+              path: /readyz

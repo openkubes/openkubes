@@ -1,0 +1,12 @@
+# S8 2026-10-31T10:06:18Z
+## traffic after step 2
+[{"latestRevision":false,"percent":80,"revisionName":"podinfo-split-v6160"},{"latestRevision":false,"percent":20,"revisionName":"podinfo-split-v6170","tag":"candidate","url":"http://candidate-podinfo-split.ok211-serving.ok211.internal"}]
+## warm-up: 20 requests (both revisions get a pod)
+     16 6.16.0
+      4 6.17.0
+## 200 requests to podinfo-split
+    169 6.16.0
+     31 6.17.0
+## 20 requests to the tag host candidate-…
+     20 6.17.0
+## revisions: revision.serving.knative.dev/podinfo-split-v6160 revision.serving.knative.dev/podinfo-split-v6170 

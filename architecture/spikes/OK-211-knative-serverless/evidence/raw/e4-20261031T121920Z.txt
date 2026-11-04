@@ -1,0 +1,28 @@
+# E4 2026-10-31T12:19:48Z
+## sender
+2026-10-31T13:19:21.229204267+01:00 send e4-20261031T121920Z-1 seq=1 mode=binary
+2026-10-31T13:19:24.825743030+01:00 sent e4-20261031T121920Z-1 code=202 exit=0
+## podinfo-fail requests to /status/500 (pod/podinfo-fail-00001-deployment-778946f4c5-jcrvc)
+2026-10-31T13:19:21.254530480+01:00 {"level":"debug","ts":"2026-10-31T12:19:21.254Z","caller":"http/logging.go:39","msg":"request started","proto":"HTTP/1.1","uri":"/status/500","method":"POST","remote":"127.0.0.1:38000","user-agent":"Go-http-client/1.1"}
+2026-10-31T13:19:21.758606760+01:00 {"level":"debug","ts":"2026-10-31T12:19:21.758Z","caller":"http/logging.go:39","msg":"request started","proto":"HTTP/1.1","uri":"/status/500","method":"POST","remote":"127.0.0.1:38000","user-agent":"Go-http-client/1.1"}
+2026-10-31T13:19:22.761890344+01:00 {"level":"debug","ts":"2026-10-31T12:19:22.761Z","caller":"http/logging.go:39","msg":"request started","proto":"HTTP/1.1","uri":"/status/500","method":"POST","remote":"127.0.0.1:38000","user-agent":"Go-http-client/1.1"}
+2026-10-31T13:19:24.766197729+01:00 {"level":"debug","ts":"2026-10-31T12:19:24.766Z","caller":"http/logging.go:39","msg":"request started","proto":"HTTP/1.1","uri":"/status/500","method":"POST","remote":"127.0.0.1:38000","user-agent":"Go-http-client/1.1"}
+## dead-letter sink event-display-dls
+2026-10-31T13:19:24.824768035+01:00	dev.openkubes.ok211.e4	/ok211/e4	e4-20261031T121920Z-1	knativearrivaltime=2026-10-31T12:19:21.243283783Z;knativebrokerttl=255;knativeerrorcode=500;knativeerrordata=ewogICJzdGF0dXMiOiA1MDAKfQ==;knativeerrordest=http://podinfo-fail.ok211-events.svc.cluster.local/status/500;seq=1
+## full DLS log entry
+☁️  cloudevents.Event
+Context Attributes,
+  specversion: 1.0
+  type: dev.openkubes.ok211.e4
+  source: /ok211/e4
+  id: e4-20261031T121920Z-1
+  datacontenttype: application/json
+Extensions,
+  knativearrivaltime: 2026-10-31T12:19:21.243283783Z
+  knativebrokerttl: 255
+  knativeerrorcode: 500
+  knativeerrordata: ewogICJzdGF0dXMiOiA1MDAKfQ==
+  knativeerrordest: http://podinfo-fail.ok211-events.svc.cluster.local/status/500
+  seq: 1
+Data,
+
