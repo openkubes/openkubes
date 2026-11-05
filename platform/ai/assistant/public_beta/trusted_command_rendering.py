@@ -65,17 +65,24 @@ def render_source_commands(retrieval: dict, index: dict, source_id: str) -> str:
             for line in lines:
                 if not line or len(line) > 140 or not SAFE.fullmatch(line) or BLOCKED.search(line):
                     raise ValueError()
-                tokens = line.strip().split()
-                if not tokens or tokens[0] not in COMMANDS:
-                    raise ValueError()
-                # Only read-only, explicitly understood subcommands for now.
-                if tokens[0] == "kubectl" and (len(tokens) < 2 or tokens[1] not in {"get", "describe", "version", "config"}):
-                    raise ValueError()
-                if tokens[0] == "helm" and (len(tokens) < 2 or tokens[1] not in {"list", "show", "version"}):
-                    raise ValueError()
-                if tokens[0] == "multipass" and (len(tokens) < 2 or tokens[1] not in {"list", "info", "version"}):
-                    raise ValueError()
-                if tokens[0] == "git" and (len(tokens) < 2 or tokens[1] not in {"status", "log", "show", "version"}):
+                # v0.2: permit only exact, argument-free, non-mutating forms.
+                # Subcommand-level allowlists are insufficient: e.g.
+                # "kubectl config set-context" mutates kubeconfig.
+                allowed_lines = {
+                    "kubectl get pods",
+                    "kubectl get nodes",
+                    "kubectl get namespaces",
+                    "kubectl version",
+                    "kubectl config current-context",
+                    "helm list",
+                    "helm version",
+                    "multipass list",
+                    "multipass version",
+                    "git status",
+                    "git log",
+                    "git version",
+                }
+                if line != line.strip() or line not in allowed_lines:
                     raise ValueError()
             rendered.append("```" + language + "\n" + commands + "```")
         return ("Documented reference only — not executed or verified safe for your environment.\n\n"
