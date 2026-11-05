@@ -86,6 +86,7 @@ Governance, policy management, secret handling, and continuous delivery.
 | **025** | [Datacenter Secret Sync Profile](ADR-Platform-025-datacenter-secret-sync-profile.md) | Multi-datacenter secret synchronization |
 | **037** | [Console Authentication, Identity Federation, and Break-glass Access](ADR-Platform-037-console-authentication-and-identity-federation.md) | Federated Console identity, server-side sessions, and exceptional local access |
 | **038** | [Console Session Store Contract and PostgreSQL Reference Profile](ADR-Platform-038-console-session-store.md) | Strongly consistent Console sessions with a PostgreSQL reference profile |
+| **042** | [Console Client Identity CA, Leaf Delivery and Trust Distribution](ADR-Platform-042-console-client-identity-trust.md) | Independent Console client identity, leaf isolation and separate public trust |
 | _n/a_ | Acceptance Records (025-*) | Acceptance records for Fresh Install, Outage Recovery, Singleton Enforcement, etc. |
 
 ### 🖥️ Console & Product Experience
