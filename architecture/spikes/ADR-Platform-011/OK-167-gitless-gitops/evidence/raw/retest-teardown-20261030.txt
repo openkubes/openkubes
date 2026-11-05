@@ -1,0 +1,7 @@
+2026-10-30T12:20:16Z PASS guard: context=kind-ok167 server=https://127.0.0.1:62900 kubeconfig=.local/kubeconfig
+Deleting cluster "ok167" ...
+Deleted nodes: ["ok167-control-plane"]
+cluster deleted; .local/ kept
+wjax-demo
+loopback_port_30500_closed=True
+loopback_port_30443_closed=True

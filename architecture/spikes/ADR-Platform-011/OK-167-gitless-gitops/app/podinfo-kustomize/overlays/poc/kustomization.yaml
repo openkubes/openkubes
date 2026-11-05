@@ -1,0 +1,19 @@
+# Overlay `poc`: 2 replicas and a marker label.
+#
+# The label is what proves Argo CD actually rendered Kustomize rather than
+# applying the base directory: it exists nowhere in base/.
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+
+labels:
+  - pairs:
+      app.openkubes.io/variant: kustomize
+    includeSelectors: false
+
+replicas:
+  - name: podinfo
+    count: 2

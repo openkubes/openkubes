@@ -1,0 +1,49 @@
+# Prepared example only: S-D Helm chart mirroring remains NOT RUN.
+# Helm chart from the registry (test S-D).
+#
+# Doubles as the upstream-mirroring example: the podinfo chart is pulled from
+# ghcr.io and pushed into zot, then consumed from there. That is the shape an
+# air-gapped or restricted-network deployment needs — the cluster only ever
+# talks to its own registry.
+#
+# For an OCI Helm chart `path` is always "." — the chart is the artifact, and
+# repoURL ends at the directory holding it, with the chart name appended.
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ok167-podinfo-helm
+  namespace: argocd
+spec:
+  project: ok167
+  source:
+    repoURL: oci://zot.zot.svc.cluster.local:5000/openkubes/machine/gitops/charts/podinfo
+    targetRevision: 6.17.0
+    path: .
+    helm:
+      # valuesObject keeps the values inline and reviewable rather than in a
+      # separate file inside the chart artifact.
+      valuesObject:
+        replicaCount: 1
+        # The podinfo chart would otherwise create an HPA and a ServiceAccount
+        # the AppProject may or may not allow; keep the surface small.
+        hpa:
+          enabled: false
+        serviceAccount:
+          enabled: false
+        resources:
+          requests:
+            cpu: 10m
+            memory: 32Mi
+          limits:
+            cpu: 200m
+            memory: 128Mi
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: ok167-helm
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=false

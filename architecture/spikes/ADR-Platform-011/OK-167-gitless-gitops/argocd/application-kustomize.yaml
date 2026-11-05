@@ -1,0 +1,30 @@
+# Kustomize inside an OCI artifact (test S-C).
+#
+# The artifact contains base/ and both overlays. `path` selects the overlay
+# inside the unpacked archive, and Argo CD runs Kustomize on it — the same way
+# it would for a Git source.
+#
+# The proof that Kustomize really ran is the label app.openkubes.io/variant,
+# which exists only in the overlay, plus the replica count of 2 coming from the
+# overlay's `replicas` field rather than from the base.
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ok167-podinfo-kustomize
+  namespace: argocd
+spec:
+  project: ok167
+  source:
+    repoURL: oci://zot.zot.svc.cluster.local:5000/openkubes/machine/gitops/podinfo-kustomize
+    targetRevision: v1.0.0
+    path: overlays/poc
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: ok167-kustomize
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=false

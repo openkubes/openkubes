@@ -1,0 +1,53 @@
+{
+  "test": "Q4/K2",
+  "signed_digest": "sha256:9e415a57fb8f4decf633e9f03aca78446e9c3c248d31ef6368901fab053ee02b",
+  "unsigned_digest": "sha256:ccf3ea7faf530f983861e79c288fad804209a6f0c0b92780460b2e2081ac6e35",
+  "signing": {
+    "action": "sign",
+    "digest": "sha256:9e415a57fb8f4decf633e9f03aca78446e9c3c248d31ef6368901fab053ee02b",
+    "repository": "openkubes/machine/gitops/podinfo-manifests",
+    "format": "bundle",
+    "result": "PASS",
+    "tlog_upload": false
+  },
+  "verification": {
+    "action": "verify",
+    "digest": "sha256:9e415a57fb8f4decf633e9f03aca78446e9c3c248d31ef6368901fab053ee02b",
+    "repository": "openkubes/machine/gitops/podinfo-manifests",
+    "format": "bundle",
+    "result": "PASS",
+    "tlog_upload": false
+  },
+  "unsigned_referrers": {
+    "reference": "127.0.0.1:30500/openkubes/machine/gitops/podinfo-manifests@sha256:ccf3ea7faf530f983861e79c288fad804209a6f0c0b92780460b2e2081ac6e35",
+    "mediaType": "application/vnd.oci.image.manifest.v1+json",
+    "digest": "sha256:ccf3ea7faf530f983861e79c288fad804209a6f0c0b92780460b2e2081ac6e35",
+    "size": 969,
+    "referrers": []
+  },
+  "unsigned_has_legacy_tag": false,
+  "unsigned_verification_rejected": true,
+  "unsigned_application": {
+    "app": "ok167-podinfo-tag",
+    "source": {
+      "path": ".",
+      "repoURL": "oci://zot.zot.svc.cluster.local:5000/openkubes/machine/gitops/podinfo-manifests",
+      "targetRevision": "unsigned-review"
+    },
+    "sync": "Synced",
+    "health": "Healthy",
+    "revision": "sha256:ccf3ea7faf530f983861e79c288fad804209a6f0c0b92780460b2e2081ac6e35",
+    "resources": [
+      {
+        "kind": "Service",
+        "name": "podinfo"
+      },
+      {
+        "kind": "Deployment",
+        "name": "podinfo"
+      }
+    ],
+    "conditions": null
+  },
+  "K2": "NOT MET"
+}

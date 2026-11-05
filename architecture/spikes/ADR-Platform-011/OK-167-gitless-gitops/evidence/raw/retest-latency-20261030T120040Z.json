@@ -1,0 +1,101 @@
+{
+  "test": "T3/T4",
+  "retained_tag": "release-review",
+  "expected_digest": "sha256:5b6769d08b0bad88ade91c013f54f6725e24ef216b2c794e71f07eb3a9ef21c2",
+  "start": 1793361648,
+  "end": 1793362208,
+  "seconds": 560,
+  "exact_tag": {
+    "before": {
+      "app": "ok167-podinfo-exact",
+      "source": {
+        "path": ".",
+        "repoURL": "oci://zot.zot.svc.cluster.local:5000/openkubes/machine/gitops/podinfo-manifests",
+        "targetRevision": "release-review"
+      },
+      "sync": "Synced",
+      "health": "Healthy",
+      "revision": "sha256:5b6769d08b0bad88ade91c013f54f6725e24ef216b2c794e71f07eb3a9ef21c2",
+      "resources": [
+        {
+          "kind": "Service",
+          "name": "podinfo"
+        },
+        {
+          "kind": "Deployment",
+          "name": "podinfo"
+        }
+      ],
+      "conditions": null
+    },
+    "after": {
+      "app": "ok167-podinfo-exact",
+      "source": {
+        "path": ".",
+        "repoURL": "oci://zot.zot.svc.cluster.local:5000/openkubes/machine/gitops/podinfo-manifests",
+        "targetRevision": "release-review"
+      },
+      "sync": "Synced",
+      "health": "Healthy",
+      "revision": "sha256:5b6769d08b0bad88ade91c013f54f6725e24ef216b2c794e71f07eb3a9ef21c2",
+      "resources": [
+        {
+          "kind": "Service",
+          "name": "podinfo"
+        },
+        {
+          "kind": "Deployment",
+          "name": "podinfo"
+        }
+      ],
+      "conditions": null
+    }
+  },
+  "digest_pin": {
+    "before": {
+      "app": "ok167-podinfo-digest",
+      "source": {
+        "path": ".",
+        "repoURL": "oci://zot.zot.svc.cluster.local:5000/openkubes/machine/gitops/podinfo-manifests",
+        "targetRevision": "sha256:5b6769d08b0bad88ade91c013f54f6725e24ef216b2c794e71f07eb3a9ef21c2"
+      },
+      "sync": "Synced",
+      "health": "Healthy",
+      "revision": "sha256:5b6769d08b0bad88ade91c013f54f6725e24ef216b2c794e71f07eb3a9ef21c2",
+      "resources": [
+        {
+          "kind": "Service",
+          "name": "podinfo"
+        },
+        {
+          "kind": "Deployment",
+          "name": "podinfo"
+        }
+      ],
+      "conditions": null
+    },
+    "after": {
+      "app": "ok167-podinfo-digest",
+      "source": {
+        "path": ".",
+        "repoURL": "oci://zot.zot.svc.cluster.local:5000/openkubes/machine/gitops/podinfo-manifests",
+        "targetRevision": "sha256:5b6769d08b0bad88ade91c013f54f6725e24ef216b2c794e71f07eb3a9ef21c2"
+      },
+      "sync": "Synced",
+      "health": "Healthy",
+      "revision": "sha256:5b6769d08b0bad88ade91c013f54f6725e24ef216b2c794e71f07eb3a9ef21c2",
+      "resources": [
+        {
+          "kind": "Service",
+          "name": "podinfo"
+        },
+        {
+          "kind": "Deployment",
+          "name": "podinfo"
+        }
+      ],
+      "conditions": null
+    }
+  },
+  "result": "PASS"
+}

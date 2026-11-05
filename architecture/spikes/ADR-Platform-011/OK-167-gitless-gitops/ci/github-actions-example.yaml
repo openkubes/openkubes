@@ -1,0 +1,98 @@
+# EXAMPLE — not active. Lives outside .github/workflows on purpose.
+#
+# Copying this file into .github/workflows/ would make it run in CI against a
+# registry that does not exist in this repository, so it stays here as the
+# reference shape for a real pipeline (deliverable D1, CI variant).
+#
+# It shows the three things that matter for OK-167:
+#   1. actions are pinned by commit SHA, not by tag — a tag is mutable, and a
+#      moved tag is a supply-chain compromise with no audit trail
+#   2. the registry password never becomes a command-line argument; it reaches
+#      package-and-push.sh through the environment only
+#   3. fetch-depth: 0, because the script derives SOURCE_DATE_EPOCH from the
+#      last commit that touched the source directory, which a shallow clone
+#      cannot answer
+---
+name: Publish GitOps manifests (example)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'architecture/spikes/ADR-Platform-011/OK-167-gitless-gitops/app/**'
+  workflow_dispatch:
+
+# Least privilege. Nothing here writes to the repository.
+permissions:
+  contents: read
+  # Uncomment for keyless cosign signing (OIDC token for Sigstore). Not used by
+  # this spike, which signs with a local key and never uploads to a public
+  # transparency log.
+  # id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      GTAR: tar
+    defaults:
+      run:
+        working-directory: architecture/spikes/ADR-Platform-011/OK-167-gitless-gitops
+
+    steps:
+      - name: Check out the repository
+        # actions/checkout v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          # Full history: the packaging script needs the commit that last
+          # touched the source directory to derive a reproducible timestamp.
+          fetch-depth: 0
+
+      - name: Install oras
+        # oras-project/setup-oras v2
+        uses: oras-project/setup-oras@5e2f2482b30b0cb3e14e67f89a80c88c659a7c63
+        with:
+          version: 1.3.6
+
+      - name: Install GNU tar
+        # Ubuntu runners already ship GNU tar; this is the explicit check the
+        # script performs anyway. On a macOS runner, `brew install gnu-tar`
+        # would be required — bsdtar cannot sort archive members and the
+        # digest would stop being reproducible.
+        run: tar --version | head -1 | grep -q 'GNU tar'
+
+      - name: Install validation tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq yamllint
+
+      - name: Package and push
+        env:
+          # Credentials come from repository secrets and are read by the
+          # script through a protected, gitignored local credential file.
+          # They never appear in process arguments or command output.
+          OK167_GITOPS_PUBLISHER_PASSWORD: ${{ secrets.OK167_GITOPS_PUBLISHER_PASSWORD }}
+          REGISTRY_CA_PEM: ${{ secrets.OK167_REGISTRY_CA_PEM }}
+        run: |
+          set -euo pipefail
+
+          # The script reads credentials from .local/credentials.env, so the
+          # workflow materialises exactly that file and nothing else. .local/
+          # is gitignored and the runner is discarded after the job.
+          umask 077
+          mkdir -p .local/pki
+          printf 'OK167_GITOPS_PUBLISHER_PASSWORD=%s\n' \
+            "$OK167_GITOPS_PUBLISHER_PASSWORD" > .local/credentials.env
+          printf '%s\n' "$REGISTRY_CA_PEM" > .local/pki/ca.crt
+
+          ./scripts/package-and-push.sh \
+            --source app/podinfo-plain \
+            --repository openkubes/machine/gitops/podinfo-manifests \
+            --tag "v1.0.0-${GITHUB_SHA::7}" \
+            --registry registry.ok-shared.internal
+
+      - name: Inspect the push records
+        # The record holds digests and provenance, never credentials.
+        # This inactive example does not upload artifacts to a public service.
+        if: always()
+        run: ls -la evidence/raw/ || true

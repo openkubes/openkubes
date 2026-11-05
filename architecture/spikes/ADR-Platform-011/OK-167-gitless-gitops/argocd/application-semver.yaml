@@ -1,0 +1,32 @@
+# SemVer-constrained Application (test T5).
+#
+# targetRevision holds a range rather than a fixed tag, so Argo CD picks the
+# highest tag that satisfies it. Two things are being measured:
+#   - which constraint syntax v3.5.6 actually accepts
+#   - how much later a new matching tag is noticed, because the repo-server
+#     caches the tag list for roughly the reconciliation timeout (Q3.e)
+#
+# Note the tags pushed by this spike are v-prefixed (v1.3.0). The constraint is
+# written without the prefix, which is the usual SemVer convention; whether
+# Argo CD matches them is part of what T5 establishes rather than assumes.
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ok167-podinfo-semver
+  namespace: argocd
+spec:
+  project: ok167
+  source:
+    repoURL: oci://zot.zot.svc.cluster.local:5000/openkubes/machine/gitops/podinfo-manifests
+    targetRevision: ">=1.0.0 <2.0.0"
+    path: .
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: ok167-semver
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=false
