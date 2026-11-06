@@ -1,31 +1,42 @@
-"""Provider-neutral executable contract suite for ADR-Platform-021 tests 1-6."""
+"""Provider-neutral executable contract suite for ADR-Platform-021 tests 1-6.
+
+The suite is parameterized over every provider in ``providers.registry()`` and
+runs the identical assertions against each. Contract test 4 then compares the
+providers against one another: a backend swap that is never performed cannot
+prove that the contract is free of provider values, which is the only reason
+Profile B exists.
+
+``CONTRACT_VERSION`` pins the normative contract this suite was written against.
+The pin is deliberate: resolving the contract relative to the checkout means a
+branch that has fallen behind would otherwise validate happily against a stale
+copy of the specification. That has happened, so it is a test, not advice.
+"""
 
 from __future__ import annotations
 
 import json
 import os
-import sys
-import threading
 import unittest
-from http.server import ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
-from urllib.error import HTTPError
-from urllib.request import Request, urlopen
 
 import yaml
 from jsonschema import Draft202012Validator, FormatChecker
 
+import providers
+
+
+CONTRACT_VERSION = "1.1.0"
 
 TEST_DIR = Path(__file__).resolve().parent
 DIAGNOSTICS_ROOT = TEST_DIR.parents[1]
 DEFAULT_SPEC = DIAGNOSTICS_ROOT / "contract" / "openapi.yaml"
-DEFAULT_RBAC = DIAGNOSTICS_ROOT / "profiles" / "stub" / "rbac.yaml"
-STUB_ROOT = DIAGNOSTICS_ROOT / "profiles" / "stub"
-sys.path.insert(0, str(STUB_ROOT))
 
-from server import ProfileBHandler  # noqa: E402
-
+# Volatile by design: correlation ids and timestamps differ on every call and on
+# every provider. Everything else is contract surface and must be comparable.
+VOLATILE_KEYS = frozenset(
+    {"invocation_id", "generated_at", "collected_at", "effective_time_range"}
+)
 
 REQUESTS = {
     "get_platform_health": {"clusters": ["contract-test"]},
@@ -52,52 +63,53 @@ PATHS = {
 
 
 class ProviderClient:
-    def __init__(self, base_url: str, bearer_token: str) -> None:
-        self.base_url = base_url.rstrip("/")
+    """The consumer side of the contract. Identical for every provider."""
+
+    def __init__(self, transport: providers.Transport, bearer_token: str) -> None:
+        self.transport = transport
         self.bearer_token = bearer_token
         self.response_headers: dict[str, dict[str, str]] = {}
+        self.last_status: int | None = None
+
+    def _headers(self, operation: str) -> dict[str, str]:
+        return {
+            "Authorization": f"Bearer {self.bearer_token}",
+            "Content-Type": "application/json",
+            "X-Request-Id": f"contract-test-{operation}",
+        }
 
     def call(self, operation: str, payload: dict[str, Any]) -> dict[str, Any]:
-        request = Request(
-            self.base_url + PATHS[operation],
-            data=json.dumps(payload).encode("utf-8"),
-            headers={
-                "Authorization": f"Bearer {self.bearer_token}",
-                "Content-Type": "application/json",
-                "X-Request-Id": f"contract-test-{operation}",
-            },
-            method="POST",
+        status, headers, body = self.transport.send(
+            PATHS[operation], payload, self._headers(operation)
         )
-        try:
-            with urlopen(request, timeout=10) as response:
-                self.last_status = response.status
-                self.response_headers[operation] = dict(response.headers.items())
-                return json.loads(response.read())
-        except HTTPError as exc:
-            body = exc.read().decode("utf-8", errors="replace")
+        self.last_status = status
+        self.response_headers[operation] = {
+            key.title(): value for key, value in headers.items()
+        }
+        if status != 200:
             raise AssertionError(
-                f"{operation} returned HTTP {exc.code}: {body}"
-            ) from exc
+                f"{operation} returned HTTP {status}: "
+                f"{body.decode('utf-8', errors='replace')}"
+            )
+        return json.loads(body)
 
     def call_without_identity(
         self,
         operation: str,
         payload: dict[str, Any],
     ) -> tuple[int, dict[str, str], dict[str, Any]]:
-        request = Request(
-            self.base_url + PATHS[operation],
-            data=json.dumps(payload).encode("utf-8"),
-            headers={"Content-Type": "application/json"},
-            method="POST",
+        status, headers, body = self.transport.send(
+            PATHS[operation], payload, {"Content-Type": "application/json"}
         )
-        try:
-            with urlopen(request, timeout=10) as response:
-                raise AssertionError(
-                    f"{operation} accepted a request without consumer identity "
-                    f"with HTTP {response.status}"
-                )
-        except HTTPError as exc:
-            return exc.code, dict(exc.headers.items()), json.loads(exc.read())
+        if status == 200:
+            raise AssertionError(
+                f"{operation} accepted a request without consumer identity"
+            )
+        return (
+            status,
+            {key.title(): value for key, value in headers.items()},
+            json.loads(body),
+        )
 
 
 def _schema_validator(spec: dict[str, Any], schema: dict[str, Any]) -> Draft202012Validator:
@@ -126,6 +138,12 @@ def _assert_schema(
     )
 
 
+def _response_schema(spec: dict[str, Any], operation: str) -> dict[str, Any]:
+    return spec["paths"][PATHS[operation]]["post"]["responses"]["200"]["content"][
+        "application/json"
+    ]["schema"]
+
+
 def _walk(value: Any):
     if isinstance(value, dict):
         yield value
@@ -134,6 +152,18 @@ def _walk(value: Any):
     elif isinstance(value, list):
         for child in value:
             yield from _walk(child)
+
+
+def _without_volatile(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {
+            key: _without_volatile(child)
+            for key, child in value.items()
+            if key not in VOLATILE_KEYS
+        }
+    if isinstance(value, list):
+        return [_without_volatile(child) for child in value]
+    return value
 
 
 def _assert_evidence_integrity(
@@ -154,40 +184,71 @@ def _assert_evidence_integrity(
         )
 
 
-class DiagnosticsContractTests(unittest.TestCase):
+# Synthetic input for the negative half of test 6. Provider-independent on
+# purpose: it exercises the integrity checker, not a provider.
+_INTEGRITY_PROBE = {
+    "evidence": [
+        {"id": "ev-one", "type": "events", "source": "probe", "status": "unavailable",
+         "reason": "probe", "collected_at": "2026-08-14T10:00:00Z"},
+        {"id": "ev-two", "type": "logs", "source": "probe", "status": "unavailable",
+         "reason": "probe", "collected_at": "2026-08-14T10:00:00Z"},
+    ],
+    "probable_causes": [
+        {
+            "hypothesis": "probe",
+            "confidence": "low",
+            "evidence_refs": ["ev-one"],
+            "contradicting_evidence_refs": ["ev-two"],
+            "counter_evidence_status": "found",
+        }
+    ],
+}
+
+
+def load_spec() -> dict[str, Any]:
+    spec_path = Path(os.getenv("OPENAPI_SPEC", DEFAULT_SPEC))
+    return yaml.safe_load(spec_path.read_text())
+
+
+def exercise(provider: providers.Provider) -> tuple[ProviderClient, dict[str, Any]]:
+    """Run the identical request set through one provider."""
+    transport = provider.start()
+    client = ProviderClient(transport, providers.BEARER_TOKEN)
+    responses = {
+        operation: client.call(operation, payload)
+        for operation, payload in REQUESTS.items()
+    }
+    return client, responses
+
+
+class ContractInvariants:
+    """ADR-021 tests 1, 2, 3, 5 and 6 for a single provider.
+
+    Not a TestCase, so it is not collected on its own: ``load_tests`` builds one
+    concrete TestCase per registered provider from it. That guarantees every
+    provider is held to the same assertions rather than to a variant of them.
+    """
+
+    provider: providers.Provider
+
     @classmethod
     def setUpClass(cls) -> None:
-        spec_path = Path(os.getenv("OPENAPI_SPEC", DEFAULT_SPEC))
-        cls.spec = yaml.safe_load(spec_path.read_text())
-        cls.rbac_path = Path(os.getenv("DIAGNOSTICS_RBAC_PATH", DEFAULT_RBAC))
-        bearer_token = os.getenv(
-            "DIAGNOSTICS_BEARER_TOKEN", "profile-b-contract-test"
-        )
-        external_url = os.getenv("DIAGNOSTICS_BASE_URL")
-        cls.httpd = None
-        cls.thread = None
-        if external_url:
-            cls.client = ProviderClient(external_url, bearer_token)
-        else:
-            cls.httpd = ThreadingHTTPServer(("127.0.0.1", 0), ProfileBHandler)
-            cls.thread = threading.Thread(target=cls.httpd.serve_forever, daemon=True)
-            cls.thread.start()
-            host, port = cls.httpd.server_address
-            cls.client = ProviderClient(f"http://{host}:{port}", bearer_token)
-        cls.responses = {
-            operation: cls.client.call(operation, payload)
-            for operation, payload in REQUESTS.items()
-        }
+        cls.spec = load_spec()
+        cls.client, cls.responses = exercise(cls.provider)
 
     @classmethod
     def tearDownClass(cls) -> None:
-        if cls.httpd is not None:
-            cls.httpd.shutdown()
-            cls.httpd.server_close()
-        if cls.thread is not None:
-            cls.thread.join(timeout=5)
+        cls.client.transport.close()
 
     def test_1_openapi_schema_conformance_and_provider_neutrality(self) -> None:
+        self.assertEqual(
+            CONTRACT_VERSION,
+            self.spec["info"]["version"],
+            "the suite is pinned to a normative contract version; a differing "
+            "specification must be adopted deliberately, not resolved by "
+            "checkout layout",
+        )
+
         expected_operations = set(PATHS)
         actual_operations = {
             item["post"]["operationId"]
@@ -209,9 +270,11 @@ class DiagnosticsContractTests(unittest.TestCase):
         for operation, payload in REQUESTS.items():
             post = self.spec["paths"][PATHS[operation]]["post"]
             request_schema = post["requestBody"]["content"]["application/json"]["schema"]
-            response_schema = post["responses"]["200"]["content"]["application/json"]["schema"]
             _assert_schema(self, self.spec, request_schema, payload)
-            _assert_schema(self, self.spec, response_schema, self.responses[operation])
+            _assert_schema(
+                self, self.spec, _response_schema(self.spec, operation),
+                self.responses[operation],
+            )
             invocation_id = self.responses[operation]["invocation_id"]
             self.assertEqual(
                 invocation_id,
@@ -243,7 +306,7 @@ class DiagnosticsContractTests(unittest.TestCase):
     def test_2_provider_rbac_is_read_only_and_secret_free(self) -> None:
         documents = [
             document
-            for document in yaml.safe_load_all(self.rbac_path.read_text())
+            for document in yaml.safe_load_all(self.provider.rbac_path.read_text())
             if isinstance(document, dict)
         ]
         service_accounts = {
@@ -317,15 +380,6 @@ class DiagnosticsContractTests(unittest.TestCase):
         for fragment in forbidden_fragments:
             self.assertNotIn(fragment, serialized)
 
-    def test_4_same_consumer_suite_runs_against_profile_b(self) -> None:
-        self.assertEqual(200, self.client.last_status)
-        self.assertEqual(
-            set(PATHS),
-            set(self.responses),
-            "all public operations must run through the same HTTP client",
-        )
-        self.assertIsInstance(self.client, ProviderClient)
-
     def test_5_capability_delta_is_explicit(self) -> None:
         response = self.responses["collect_diagnostic_evidence"]
         capabilities = response["provider_capabilities"]
@@ -352,15 +406,108 @@ class DiagnosticsContractTests(unittest.TestCase):
                 set(hypothesis["contradicting_evidence_refs"]), known_ids
             )
 
-        duplicate = json.loads(json.dumps(response))
+        # The integrity checker itself is verified against synthetic input rather
+        # than against a mutated provider response: how many evidence items a
+        # provider happens to return is a provider property, and a negative test
+        # that silently degrades to a no-op on a thin response proves nothing.
+        duplicate = json.loads(json.dumps(_INTEGRITY_PROBE))
         duplicate["evidence"][1]["id"] = duplicate["evidence"][0]["id"]
         with self.assertRaises(AssertionError):
             _assert_evidence_integrity(self, duplicate)
 
-        dangling = json.loads(json.dumps(response))
+        dangling = json.loads(json.dumps(_INTEGRITY_PROBE))
         dangling["probable_causes"][0]["evidence_refs"] = ["ev-does-not-exist"]
         with self.assertRaises(AssertionError):
             _assert_evidence_integrity(self, dangling)
+
+        # Sanity: unmutated, the probe must pass, otherwise the two checks above
+        # could be passing for the wrong reason.
+        _assert_evidence_integrity(self, json.loads(json.dumps(_INTEGRITY_PROBE)))
+
+
+class BackendSwapTests(unittest.TestCase):
+    """ADR-021 test 4.
+
+    Runs the same consumer suite against every registered provider inside one
+    run and compares the results. Two things have to hold: each provider answers
+    the identical requests conformantly, and the answers are demonstrably not the
+    same artifact. The second half is what a single-provider run cannot show.
+    """
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.spec = load_spec()
+        cls.registry = providers.registry()
+        cls.clients: dict[str, ProviderClient] = {}
+        cls.results: dict[str, dict[str, Any]] = {}
+        for provider in cls.registry:
+            client, responses = exercise(provider)
+            cls.clients[provider.key] = client
+            cls.results[provider.key] = responses
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        for client in cls.clients.values():
+            client.transport.close()
+
+    def test_4_backend_swap_runs_the_same_suite_against_every_provider(self) -> None:
+        self.assertGreaterEqual(
+            len(self.results),
+            2,
+            "the backend-swap test needs at least two independent providers; "
+            "with one provider it cannot detect a provider value that leaked "
+            "into the contract",
+        )
+
+        for key, responses in self.results.items():
+            with self.subTest(provider=key):
+                self.assertEqual(set(REQUESTS), set(responses))
+                self.assertEqual(200, self.clients[key].last_status)
+                for operation in REQUESTS:
+                    _assert_schema(
+                        self,
+                        self.spec,
+                        _response_schema(self.spec, operation),
+                        responses[operation],
+                    )
+
+        invocation_ids = [
+            response["invocation_id"]
+            for responses in self.results.values()
+            for response in responses.values()
+        ]
+        self.assertEqual(
+            len(invocation_ids),
+            len(set(invocation_ids)),
+            "every invocation must be individually identifiable in the audit trail",
+        )
+
+        keys = sorted(self.results)
+        for left, right in zip(keys, keys[1:]):
+            differing = [
+                operation
+                for operation in REQUESTS
+                if _without_volatile(self.results[left][operation])
+                != _without_volatile(self.results[right][operation])
+            ]
+            self.assertTrue(
+                differing,
+                f"{left} and {right} returned identical payloads for every "
+                "operation, so the suite did not actually swap the backend",
+            )
+
+
+def load_tests(loader, tests, pattern):  # noqa: ARG001 - unittest protocol
+    suite = unittest.TestSuite()
+    for provider in providers.registry():
+        case = type(
+            f"ContractTests_{provider.key.replace('-', '_')}",
+            (ContractInvariants, unittest.TestCase),
+            {"provider": provider, "__doc__": provider.description},
+        )
+        suite.addTests(loader.loadTestsFromTestCase(case))
+    suite.addTests(loader.loadTestsFromTestCase(BackendSwapTests))
+    return suite
 
 
 if __name__ == "__main__":
