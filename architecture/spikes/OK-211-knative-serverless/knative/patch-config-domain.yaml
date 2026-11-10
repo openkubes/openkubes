@@ -1,0 +1,8 @@
+# Merge patch for knative-serving/config-domain (BRIEF B5, B9 Phase 3).
+# Every external route gets the domain ok211.internal; with the default
+# domain-template "{{.Name}}.{{.Namespace}}.{{.Domain}}" this yields
+# <ksvc>.<namespace>.ok211.internal. The value is empty: a domain key without a
+# selector applies to all routes. serving-default-domain.yaml (sslip.io) is
+# not used.
+data:
+  ok211.internal: ""

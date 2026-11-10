@@ -1,0 +1,20 @@
+# G2 2026-10-31T13:56:12Z — ksvc g2-podinfo applied server-side (field manager ok211), then diffed
+## client-side kubectl diff: exit 0
+## server-side kubectl diff --server-side: exit 0
+## manifest .spec
+{"template":{"spec":{"containers":[{"image":"ghcr.io/stefanprodan/podinfo:6.16.0@sha256:2c88592f2b8f51a9428c8039486fc41abac53c95dbbb884d03bebee0876a6d4d","ports":[{"containerPort":9898}]}]}}}
+## live .spec (after the webhook's defaulting)
+{"template":{"metadata":{},"spec":{"containerConcurrency":0,"containers":[{"image":"ghcr.io/stefanprodan/podinfo:6.16.0@sha256:2c88592f2b8f51a9428c8039486fc41abac53c95dbbb884d03bebee0876a6d4d","name":"user-container","ports":[{"containerPort":9898,"protocol":"TCP"}],"readinessProbe":{"successThreshold":1,"tcpSocket":{"port":0}},"resources":{}}],"enableServiceLinks":false,"timeoutSeconds":300}},"traffic":[{"latestRevision":true,"percent":100}]}
+## fields in live .spec that the manifest does not set (paths)
+template.spec.containerConcurrency
+template.spec.containers.0.name
+template.spec.containers.0.ports.0.protocol
+template.spec.containers.0.readinessProbe.successThreshold
+template.spec.containers.0.readinessProbe.tcpSocket.port
+template.spec.timeoutSeconds
+traffic.0.latestRevision
+traffic.0.percent
+## live annotations added
+{"serving.knative.dev/creator":"system:admin","serving.knative.dev/lastModifier":"system:admin"}
+## managedFields
+[{"manager":"ok211","operation":"Apply","subresource":null},{"manager":"controller","operation":"Update","subresource":"status"}]

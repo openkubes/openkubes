@@ -1,0 +1,18 @@
+# OK-211 guard negative tests — 2026-10-30T14:02:30Z — commit 1b0739f
+id	case	expected_exit	actual_exit	verdict	guard_message
+C0	positive control: valid synthetic kubeconfig	0	0	PASS	guard: context=ok211 server=https://127.0.0.1:6450 kubectl=v1.35
+N1	KUBECONFIG empty	10	10	PASS	KUBECONFIG is unset or empty.
+N2	path outside .local/ (traversal via ..)	12	12	PASS	KUBECONFIG points outside the spike's .local/ directory.
+N3	file does not exist	13	13	PASS	KUBECONFIG names a file that does not exist: .local/test/missing
+N4	wrong context name (kind-ok167)	15	15	PASS	Current context is 'kind-ok167', expected 'ok211'.
+N5	server :6443 (an ok-local tunnel port)	16	16	PASS	API server is 'https://127.0.0.1:6443', expected exactly 'https://127.0.0.1:6450'.
+N6	two contexts	14	14	PASS	Expected exactly one context in the kubeconfig, found: 2
+N7	symlink in .local/ pointing outside	12	12	PASS	KUBECONFIG points outside the spike's .local/ directory.
+N8	unreadable kubeconfig (mode 000)	18	18	PASS	KUBECONFIG is not readable: .local/test/unreadable
+N9	kubectl from PATH instead of .local/bin/	19	19	PASS	kubectl in use is '/usr/local/bin/kubectl', expected .local/bin/kubectl.
+N10	vm_guard with VM_NAME=ok-infra-local	30	30	PASS	VM_NAME is 'ok-infra-local', only 'ok-knative-local' may be touched.
+X1	server with userinfo (127.0.0.1:6450@remote)	16	16	PASS	API server is 'https://127.0.0.1:6450@remote.example:6443', expected exactly 'https://127.0.0.1:6450'.
+X2	insecure-skip-tls-verify: true	16	16	PASS	kubeconfig must hold one cluster and one user with embedded credentials, verified TLS and no proxy or plugin.
+X3	kubectl resolved by name from a PATH without .local/bin	19	19	PASS	kubectl in use is '/usr/local/bin/kubectl', expected .local/bin/kubectl.
+X4	vm_guard with VM_NAME unset	30	30	PASS	VM_NAME is '<unset>', only 'ok-knative-local' may be touched.
+X5	vm_guard with VM_NAME=ok-knative-local (positive control)	0	0	PASS	

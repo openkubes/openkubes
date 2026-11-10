@@ -1,0 +1,4 @@
+# OK-211 X1 run B — secure-pod-defaults Enabled (seccompProfile RuntimeDefault,
+# drop ALL, runAsNonRoot true if unset). Restore: ...-secure-off.yaml.
+data:
+  secure-pod-defaults: Enabled

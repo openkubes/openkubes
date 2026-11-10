@@ -1,0 +1,128 @@
+# OK-211 Phase 6 — eventing base: namespace, broker default (MTChannelBasedBroker
+# with InMemoryChannel from config-br-defaults), event-display, PingSource
+# ok211-ping (E6, same spec as U2) and the triggers for E1, E6 and E8.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ok211-events
+  labels:
+    app.kubernetes.io/part-of: ok211
+---
+apiVersion: eventing.knative.dev/v1
+kind: Broker
+metadata:
+  name: default
+  namespace: ok211-events
+---
+# Sink for E1, E6 and E8: a plain Deployment, so no cold start is measured.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: event-display
+  namespace: ok211-events
+  labels:
+    app.kubernetes.io/name: event-display
+    app.kubernetes.io/part-of: ok211
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: event-display
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: event-display
+    spec:
+      automountServiceAccountToken: false
+      containers:
+        - name: event-display
+          image: __EVENT_DISPLAY_IMAGE__
+          ports:
+            - containerPort: 8080
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            capabilities:
+              drop: ["ALL"]
+            seccompProfile:
+              type: RuntimeDefault
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: event-display
+  namespace: ok211-events
+spec:
+  selector:
+    app.kubernetes.io/name: event-display
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080
+---
+apiVersion: sources.knative.dev/v1
+kind: PingSource
+metadata:
+  name: ok211-ping
+  namespace: ok211-events
+spec:
+  schedule: "* * * * *"
+  contentType: application/json
+  data: '{"source": "ok211-ping"}'
+  sink:
+    ref:
+      apiVersion: eventing.knative.dev/v1
+      kind: Broker
+      name: default
+---
+# E1: only the test type
+apiVersion: eventing.knative.dev/v1
+kind: Trigger
+metadata:
+  name: e1-test
+  namespace: ok211-events
+spec:
+  broker: default
+  filter:
+    attributes:
+      type: dev.openkubes.ok211.test
+  subscriber:
+    ref:
+      apiVersion: v1
+      kind: Service
+      name: event-display
+---
+# E6: PingSource cycles
+apiVersion: eventing.knative.dev/v1
+kind: Trigger
+metadata:
+  name: e6-ping
+  namespace: ok211-events
+spec:
+  broker: default
+  filter:
+    attributes:
+      type: dev.knative.sources.ping
+  subscriber:
+    ref:
+      apiVersion: v1
+      kind: Service
+      name: event-display
+---
+# E8: the recorded zot event from OK-167
+apiVersion: eventing.knative.dev/v1
+kind: Trigger
+metadata:
+  name: e8-zot
+  namespace: ok211-events
+spec:
+  broker: default
+  filter:
+    attributes:
+      type: zotregistry.image.updated
+  subscriber:
+    ref:
+      apiVersion: v1
+      kind: Service
+      name: event-display

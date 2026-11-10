@@ -1,0 +1,66 @@
+{
+  "id": "X1-plain-enabled",
+  "since": "2026-10-31T13:07:04Z",
+  "revision": "podinfo-plain-00001",
+  "pods": [
+    {
+      "name": "podinfo-plain-00001-deployment-5bccdf87f-xgjdm",
+      "phase": "Pending",
+      "containers": [
+        {
+          "name": "podinfo",
+          "ready": false,
+          "state": {
+            "waiting": {
+              "message": "container has runAsNonRoot and image has non-numeric user (app), cannot verify user is non-root (pod: \"podinfo-plain-00001-deployment-5bccdf87f-xgjdm_ok211-tenant-a(53aacb80-eb72-438d-a602-cfee36c220c6)\", container: podinfo)",
+              "reason": "CreateContainerConfigError"
+            }
+          }
+        },
+        {
+          "name": "queue-proxy",
+          "ready": false,
+          "state": {
+            "running": {
+              "startedAt": "2026-10-31T13:07:04Z"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "warning_events_since": [
+    {
+      "reason": "Failed",
+      "message": "Error: container has runAsNonRoot and image has non-numeric user (app), cannot verify user is non-root (pod: \"podinfo-plain-00001-deployment-5bccdf87f-xgjdm_ok211-tenant-a(53aacb80-eb72-438d-a602-cfee36c220c6)\", container: podinfo)"
+    },
+    {
+      "reason": "Unhealthy",
+      "message": "Readiness probe failed: Get \"http://10.42.0.187:8012/\": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+    },
+    {
+      "reason": "Unhealthy",
+      "message": "Readiness probe failed: HTTP probe failed with statuscode: 503"
+    }
+  ],
+  "ksvc_conditions": [
+    {
+      "type": "ConfigurationsReady",
+      "status": "Unknown",
+      "reason": null,
+      "message": null
+    },
+    {
+      "type": "Ready",
+      "status": "Unknown",
+      "reason": "RevisionMissing",
+      "message": "Configuration \"podinfo-plain\" is waiting for a Revision to become ready."
+    },
+    {
+      "type": "RoutesReady",
+      "status": "Unknown",
+      "reason": "RevisionMissing",
+      "message": "Configuration \"podinfo-plain\" is waiting for a Revision to become ready."
+    }
+  ]
+}

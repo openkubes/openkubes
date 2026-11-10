@@ -1,0 +1,61 @@
+# OK-211 X1 — Pod Security "restricted" in a tenant namespace. Two Knative
+# Services: one with a restrictive container securityContext (numeric
+# runAsUser, because the podinfo image sets USER app and the kubelet cannot
+# check runAsNonRoot against a user name), one without any securityContext.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ok211-tenant-a
+  labels:
+    app.kubernetes.io/part-of: ok211
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/warn: restricted
+    pod-security.kubernetes.io/audit: restricted
+---
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: podinfo-restricted
+  namespace: ok211-tenant-a
+  labels:
+    app.kubernetes.io/part-of: ok211
+spec:
+  template:
+    spec:
+      containers:
+        - name: podinfo
+          image: __PODINFO_IMAGE_6_16_0__
+          ports:
+            - containerPort: 9898
+          readinessProbe:
+            httpGet:
+              path: /readyz
+            successThreshold: 1
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65532
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            seccompProfile:
+              type: RuntimeDefault
+---
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: podinfo-plain
+  namespace: ok211-tenant-a
+  labels:
+    app.kubernetes.io/part-of: ok211
+spec:
+  template:
+    spec:
+      containers:
+        - name: podinfo
+          image: __PODINFO_IMAGE_6_16_0__
+          ports:
+            - containerPort: 9898
+          readinessProbe:
+            httpGet:
+              path: /readyz
+            successThreshold: 1

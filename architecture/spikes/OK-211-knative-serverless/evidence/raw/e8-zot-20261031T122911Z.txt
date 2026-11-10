@@ -1,0 +1,26 @@
+# E8 2026-10-31T12:29:16Z
+source file: apps/eventing/e8-zot-event.json (copy of OK-167 evidence/raw/cloudevent-image-updated.json)
+broker response: 202
+## event-display
+2026-10-31T13:29:11.407263901+01:00	zotregistry.image.updated	zotregistry.dev	e05846b0-df32-4927-a35e-bf74c2c05ffb	knativearrivaltime=2026-10-31T12:29:11.40497645Z
+☁️  cloudevents.Event
+Context Attributes,
+  specversion: 1.0
+  type: zotregistry.image.updated
+  source: zotregistry.dev
+  id: e05846b0-df32-4927-a35e-bf74c2c05ffb
+  time: 2026-10-29T11:54:49.608962546Z
+  datacontenttype: application/json
+Extensions,
+  knativearrivaltime: 2026-10-31T12:29:11.40497645Z
+Data,
+  {
+    "actor": {
+      "name": "gitops-publisher"
+    },
+    "digest": "sha256:937bb049b19af3eeeb5e0331ccc93cbb71b3e7e29fbf373bdfec6d421514173c",
+    "manifest": "{\"schemaVersion\":2,\"mediaType\":\"application/vnd.oci.image.manifest.v1+json\",\"artifactType\":\"application/vnd.openkubes.test.v1\",\"config\":{\"mediaType\":\"application/vnd.oci.empty.v1+json\",\"digest\":\"sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a\",\"size\":2,\"data\":\"e30=\"},\"layers\":[{\"mediaType\":\"application/vnd.openkubes.test.v1+text\",\"digest\":\"sha256:ca13c72a2249110a41c9141d909e02b09cd0fbe598562a62c403cd9ecc2d3ac0\",\"size\":20,\"annotations\":{\"org.opencontainers.image.title\":\"smoke.txt\"}}],\"annotations\":{\"org.opencontainers.image.created\":\"2026-10-29T11:54:49Z\"}}",
+    "mediaType": "application/vnd.oci.image.manifest.v1+json",
+    "name": "openkubes/machine/gitops/smoke",
+    "reference": "v1",
+

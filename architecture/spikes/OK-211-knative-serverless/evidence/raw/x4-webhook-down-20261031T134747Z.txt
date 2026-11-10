@@ -1,0 +1,27 @@
+# X4 webhook down 2026-10-31T13:49:01Z (scaled to 0 at 2026-10-31T13:47:48Z; PingSource ok211-ping deleted before)
+## webhook deployment
+NAME      READY   UP-TO-DATE   AVAILABLE   AGE
+webhook   0/0     0            0           23h
+NAME      REFERENCE            TARGETS               MINPODS   MAXPODS   REPLICAS   AGE
+webhook   Deployment/webhook   cpu: <unknown>/100%   1         5         0          23h
+## create ksvc x4-probe
+Error from server (InternalError): Internal error occurred: failed calling webhook "webhook.serving.knative.dev": failed to call webhook: Post "https://webhook.knative-serving.svc:443/defaulting?timeout=10s": no endpoints available for service "webhook"
+## delete ksvc podinfo-private
+Error from server (InternalError): Internal error occurred: failed calling webhook "validation.webhook.serving.knative.dev": failed to call webhook: Post "https://webhook.knative-serving.svc:443/resource-validation?timeout=10s": no endpoints available for service "webhook"
+## patch config-autoscaler
+Error from server (InternalError): Internal error occurred: failed calling webhook "config.webhook.serving.knative.dev": failed to call webhook: Post "https://webhook.knative-serving.svc:443/config-validation?timeout=10s": no endpoints available for service "webhook"
+## data path: existing ksvc podinfo via kourier
+200 1.851343
+## controller log lines
+{"severity":"WARNING","timestamp":"2026-10-31T13:48:46.206123737Z","logger":"controller","caller":"serverlessservice/reconciler.go:295","message":"Failed to update resource status","commit":"e3c2d9b","knative.dev/pod":"controller-949b7f4c4-28h4k","knative.dev/controller":"knative.dev.serving.pkg.rec
+{"severity":"ERROR","timestamp":"2026-10-31T13:48:46.206154028Z","logger":"controller","caller":"controller/controller.go:557","message":"Reconcile error","commit":"e3c2d9b","knative.dev/pod":"controller-949b7f4c4-28h4k","knative.dev/controller":"knative.dev.serving.pkg.reconciler.serverlessservice.
+{"severity":"INFO","timestamp":"2026-10-31T13:48:46.20627632Z","logger":"controller.event-broadcaster","caller":"record/event.go:377","message":"Event(v1.ObjectReference{Kind:\"ServerlessService\", Namespace:\"ok211-serving\", Name:\"podinfo-00002\", UID:\"62e6e93d-7dd7-488b-a842-1197d9d50a8e\", API
+## restore 2026-10-31T13:49:14Z: webhook replicas 1, Available
+## create ksvc x4-probe after restore
+service.serving.knative.dev/x4-probe serverside-applied
+Error from server (NotFound): services.serving.knative.dev "x4-probe" not found
+## [completed afterwards, 2026-10-31T13:50:34Z, read-only] the script stopped here (it queried x4-probe after deleting it; fixed)
+## delete x4-probe after restore: done (ksvc not found afterwards)
+## podinfo-private still present? service.serving.knative.dev/podinfo-private
+## config-autoscaler key ok211-x4-test present: false
+## webhook now: webhook   1/1   1     1     23h

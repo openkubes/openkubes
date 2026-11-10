@@ -1,0 +1,40 @@
+# OK-211 N3 — a self-signed root CA for the lab (Knative's
+# configure-certmanager-integration example, own names). Not for production.
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: ok211-selfsigned
+  labels:
+    app.kubernetes.io/part-of: ok211
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: ok211-ca
+  namespace: cert-manager
+  labels:
+    app.kubernetes.io/part-of: ok211
+spec:
+  secretName: ok211-ca
+  commonName: ok211 lab CA
+  isCA: true
+  duration: 2160h
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  issuerRef:
+    group: cert-manager.io
+    kind: ClusterIssuer
+    name: ok211-selfsigned
+---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: ok211-ca-issuer
+  labels:
+    app.kubernetes.io/part-of: ok211
+spec:
+  ca:
+    secretName: ok211-ca

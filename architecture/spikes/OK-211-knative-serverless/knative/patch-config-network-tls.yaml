@@ -1,0 +1,6 @@
+# OK-211 N3 — TLS for external domains through cert-manager, per
+# https://knative.dev/docs/serving/encryption/external-domain-tls/ and
+# .../configure-certmanager-integration/ (read 2026-10-31). certificate-class
+# stays at its 1.24 default cert-manager.certificate.networking.knative.dev.
+data:
+  external-domain-tls: Enabled

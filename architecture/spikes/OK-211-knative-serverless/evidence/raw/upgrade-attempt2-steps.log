@@ -1,0 +1,28 @@
+2026-10-31T08:57:41Z	start	knative-upgrade to 1.24
+2026-10-31T08:57:41Z	start	apply 1.24/serving-crds.yaml
+2026-10-31T08:57:41Z	end	apply 1.24/serving-crds.yaml
+2026-10-31T08:57:41Z	start	apply 1.24/eventing-crds.yaml
+2026-10-31T08:57:42Z	end	apply 1.24/eventing-crds.yaml
+2026-10-31T08:57:48Z	info	derived 1.24/serving-core.yaml without webhook rules (2), sha256 52afa88e4374cf88fc43d85725218bd0d1451ae2a882455dfdc467cb9ad3bc32
+2026-10-31T08:57:48Z	start	apply 1.24/serving-core.yaml
+2026-10-31T08:57:49Z	end	apply 1.24/serving-core.yaml
+2026-10-31T08:57:49Z	start	rollout knative-serving/webhook -> 1.24.0
+2026-10-31T08:58:02Z	end	rollout knative-serving/webhook -> 1.24.0
+2026-10-31T08:58:02Z	start	rollout knative-serving/controller -> 1.24.0
+2026-10-31T08:58:02Z	end	rollout knative-serving/controller -> 1.24.0
+2026-10-31T08:58:02Z	start	rollout knative-serving/activator -> 1.24.0
+2026-10-31T08:58:03Z	end	rollout knative-serving/activator -> 1.24.0
+2026-10-31T08:58:03Z	start	rollout knative-serving/autoscaler -> 1.24.0
+2026-10-31T08:58:04Z	end	rollout knative-serving/autoscaler -> 1.24.0
+2026-10-31T08:58:04Z	start	apply 1.24/kourier.yaml
+2026-10-31T08:58:04Z	end	apply 1.24/kourier.yaml
+2026-10-31T08:58:04Z	start	rollout knative-serving/net-kourier-controller -> 1.24.0
+2026-10-31T08:58:12Z	end	rollout knative-serving/net-kourier-controller -> 1.24.0
+2026-10-31T08:58:12Z	start	rollout kourier-system/3scale-kourier-gateway -> 1.24.0
+2026-10-31T08:58:12Z	end	rollout kourier-system/3scale-kourier-gateway -> 1.24.0
+2026-10-31T08:58:12Z	start	patch knative-serving/config-network
+2026-10-31T08:58:12Z	end	patch knative-serving/config-network
+2026-10-31T08:58:12Z	start	patch knative-serving/config-domain
+2026-10-31T08:58:12Z	end	patch knative-serving/config-domain
+2026-10-31T08:58:13Z	start	apply 1.24/eventing-core.yaml
+2026-10-31T08:58:14Z	fail	apply 1.24/eventing-core.yaml

@@ -1,0 +1,80 @@
+{
+  "id": "X3",
+  "timestamp_utc": "2026-10-31T13:16:33Z",
+  "steps": [
+    {
+      "step": "0-none",
+      "policies": [],
+      "warm_tb_warm": "200 0.012313",
+      "cold_tb_cold": "200 1.503832",
+      "zero_wait": "zero after 58 s",
+      "sks_mode_after": {
+        "tb-cold-00001": "Proxy",
+        "tb-warm-00001": "Proxy"
+      },
+      "burst_tb_warm": null,
+      "sks_modes_during_burst": ""
+    },
+    {
+      "step": "1-deny",
+      "policies": [
+        "default-deny-ingress"
+      ],
+      "warm_tb_warm": "200 0.002046",
+      "cold_tb_cold": "200 1.750075",
+      "zero_wait": "zero after 40 s",
+      "sks_mode_after": {
+        "tb-cold-00001": "Proxy",
+        "tb-warm-00001": "Proxy"
+      },
+      "burst_tb_warm": null,
+      "sks_modes_during_burst": ""
+    },
+    {
+      "step": "2-allow-serving",
+      "policies": [
+        "allow-knative-serving",
+        "default-deny-ingress"
+      ],
+      "warm_tb_warm": "200 0.003604",
+      "cold_tb_cold": "200 1.237611",
+      "zero_wait": "zero after 39 s",
+      "sks_mode_after": {
+        "tb-cold-00001": "Proxy",
+        "tb-warm-00001": "Proxy"
+      },
+      "burst_tb_warm": {
+        "codes": {
+          "200": 423026
+        },
+        "count": 423026,
+        "p99_ms": 6.93424449210372
+      },
+      "sks_modes_during_burst": " 30 tb-cold-00001=Proxy tb-warm-00001=Proxy;"
+    },
+    {
+      "step": "3-allow-kourier",
+      "policies": [
+        "allow-knative-serving",
+        "allow-kourier-gateway",
+        "default-deny-ingress"
+      ],
+      "warm_tb_warm": "200 0.016343",
+      "cold_tb_cold": "200 1.840737",
+      "zero_wait": "zero after 0 s",
+      "sks_mode_after": {
+        "tb-cold-00001": "Proxy",
+        "tb-warm-00001": "Proxy"
+      },
+      "burst_tb_warm": {
+        "codes": {
+          "200": 341424
+        },
+        "count": 341424,
+        "p99_ms": 8.706332389809953
+      },
+      "sks_modes_during_burst": " 30 tb-cold-00001=Proxy tb-warm-00001=Proxy;"
+    }
+  ],
+  "notes": "requests from ok211-probe through kourier; warm = tb-warm (min-scale 1), cold = tb-cold from zero; policies stay in place (namespace-local)"
+}

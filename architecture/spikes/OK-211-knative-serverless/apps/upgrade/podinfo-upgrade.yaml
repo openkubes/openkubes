@@ -1,0 +1,23 @@
+# OK-211 U1 — Knative Service probed during the 1.23 -> 1.24 upgrade.
+# min-scale 1 keeps one pod running, so no cold start is measured (B9 U1).
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: podinfo-upgrade
+  namespace: ok211-serving
+  labels:
+    app.kubernetes.io/part-of: ok211
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/min-scale: "1"
+    spec:
+      containers:
+        - name: podinfo
+          image: __PODINFO_IMAGE_6_16_0__
+          ports:
+            - containerPort: 9898
+          readinessProbe:
+            httpGet:
+              path: /readyz

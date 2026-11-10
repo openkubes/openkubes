@@ -1,0 +1,3 @@
+# OK-211 N2 restore — back to the release default (LoadBalancer through ServiceLB).
+spec:
+  type: LoadBalancer

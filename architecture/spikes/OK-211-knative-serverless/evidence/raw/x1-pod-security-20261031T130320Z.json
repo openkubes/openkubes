@@ -1,0 +1,410 @@
+{
+  "id": "X1",
+  "timestamp_utc": "2026-10-31T13:06:26Z",
+  "namespaces": [
+    {
+      "namespace": "knative-serving",
+      "pod_security_labels": {}
+    },
+    {
+      "namespace": "knative-eventing",
+      "pod_security_labels": {}
+    },
+    {
+      "namespace": "kourier-system",
+      "pod_security_labels": {}
+    },
+    {
+      "namespace": "ok211-tenant-a",
+      "pod_security_labels": {
+        "pod-security.kubernetes.io/audit": "restricted",
+        "pod-security.kubernetes.io/enforce": "restricted",
+        "pod-security.kubernetes.io/warn": "restricted"
+      }
+    }
+  ],
+  "runs": [
+    {
+      "run": "A",
+      "secure_pod_defaults": "disabled (release default, key unset)",
+      "services": [
+        {
+          "ksvc": "podinfo-restricted",
+          "revision": "podinfo-restricted-00001",
+          "ksvc_conditions": [
+            {
+              "type": "ConfigurationsReady",
+              "status": "True",
+              "reason": null,
+              "message": null
+            },
+            {
+              "type": "Ready",
+              "status": "True",
+              "reason": null,
+              "message": null
+            },
+            {
+              "type": "RoutesReady",
+              "status": "True",
+              "reason": null,
+              "message": null
+            }
+          ],
+          "revision_conditions": [
+            {
+              "type": "Active",
+              "status": "True",
+              "reason": null,
+              "message": null
+            },
+            {
+              "type": "ContainerHealthy",
+              "status": "True",
+              "reason": null,
+              "message": null
+            },
+            {
+              "type": "Ready",
+              "status": "True",
+              "reason": null,
+              "message": null
+            },
+            {
+              "type": "ResourcesAvailable",
+              "status": "True",
+              "reason": null,
+              "message": null
+            }
+          ],
+          "deployment_pod_spec_security": {
+            "pod": {},
+            "containers": [
+              {
+                "name": "podinfo",
+                "securityContext": {
+                  "allowPrivilegeEscalation": false,
+                  "capabilities": {
+                    "drop": [
+                      "ALL"
+                    ]
+                  },
+                  "runAsNonRoot": true,
+                  "runAsUser": 65532,
+                  "seccompProfile": {
+                    "type": "RuntimeDefault"
+                  }
+                }
+              },
+              {
+                "name": "queue-proxy",
+                "securityContext": {
+                  "allowPrivilegeEscalation": false,
+                  "capabilities": {
+                    "drop": [
+                      "ALL"
+                    ]
+                  },
+                  "readOnlyRootFilesystem": true,
+                  "runAsNonRoot": true,
+                  "seccompProfile": {
+                    "type": "RuntimeDefault"
+                  }
+                }
+              }
+            ]
+          },
+          "replicaset_failedcreate": [],
+          "pods": 1,
+          "request_via_kourier": "200"
+        },
+        {
+          "ksvc": "podinfo-plain",
+          "revision": "podinfo-plain-00001",
+          "ksvc_conditions": [
+            {
+              "type": "ConfigurationsReady",
+              "status": "False",
+              "reason": "RevisionFailed",
+              "message": "Revision \"podinfo-plain-00001\" failed with message: pods \"podinfo-plain-00001-deployment-5dc6bb875d-p9jlf\" is forbidden: violates PodSecurity \"restricted:latest\": allowPrivilegeEscalation != false (container \"podinfo\" must set securityContext.allowPrivilegeEscalation=false), unrestricted capabilities (container \"podinfo\" must set securityContext.capabilities.drop=[\"ALL\"]), runAsNonRoot != true (pod or container \"podinfo\" must set securityContext.runAsNonRoot=true), seccompProfile (pod or container \"podinfo\" must set securityContext.seccompProfile.type to \"RuntimeDefault\" or \"Localhost\")."
+            },
+            {
+              "type": "Ready",
+              "status": "False",
+              "reason": "RevisionMissing",
+              "message": "Configuration \"podinfo-plain\" does not have any ready Revision."
+            },
+            {
+              "type": "RoutesReady",
+              "status": "False",
+              "reason": "RevisionMissing",
+              "message": "Configuration \"podinfo-plain\" does not have any ready Revision."
+            }
+          ],
+          "revision_conditions": [
+            {
+              "type": "Active",
+              "status": "Unknown",
+              "reason": "Queued",
+              "message": "Requests to the target are being buffered as resources are provisioned."
+            },
+            {
+              "type": "ContainerHealthy",
+              "status": "Unknown",
+              "reason": null,
+              "message": null
+            },
+            {
+              "type": "Ready",
+              "status": "False",
+              "reason": "FailedCreate",
+              "message": "pods \"podinfo-plain-00001-deployment-5dc6bb875d-p9jlf\" is forbidden: violates PodSecurity \"restricted:latest\": allowPrivilegeEscalation != false (container \"podinfo\" must set securityContext.allowPrivilegeEscalation=false), unrestricted capabilities (container \"podinfo\" must set securityContext.capabilities.drop=[\"ALL\"]), runAsNonRoot != true (pod or container \"podinfo\" must set securityContext.runAsNonRoot=true), seccompProfile (pod or container \"podinfo\" must set securityContext.seccompProfile.type to \"RuntimeDefault\" or \"Localhost\")"
+            },
+            {
+              "type": "ResourcesAvailable",
+              "status": "False",
+              "reason": "FailedCreate",
+              "message": "pods \"podinfo-plain-00001-deployment-5dc6bb875d-p9jlf\" is forbidden: violates PodSecurity \"restricted:latest\": allowPrivilegeEscalation != false (container \"podinfo\" must set securityContext.allowPrivilegeEscalation=false), unrestricted capabilities (container \"podinfo\" must set securityContext.capabilities.drop=[\"ALL\"]), runAsNonRoot != true (pod or container \"podinfo\" must set securityContext.runAsNonRoot=true), seccompProfile (pod or container \"podinfo\" must set securityContext.seccompProfile.type to \"RuntimeDefault\" or \"Localhost\")"
+            }
+          ],
+          "deployment_pod_spec_security": {
+            "pod": {},
+            "containers": [
+              {
+                "name": "podinfo",
+                "securityContext": {}
+              },
+              {
+                "name": "queue-proxy",
+                "securityContext": {
+                  "allowPrivilegeEscalation": false,
+                  "capabilities": {
+                    "drop": [
+                      "ALL"
+                    ]
+                  },
+                  "readOnlyRootFilesystem": true,
+                  "runAsNonRoot": true,
+                  "seccompProfile": {
+                    "type": "RuntimeDefault"
+                  }
+                }
+              }
+            ]
+          },
+          "replicaset_failedcreate": [
+            "(combined from similar events): Error creating: pods \"podinfo-plain-00001-deployment-5dc6bb875d-lk6wh\" is forbidden: violates PodSecurity \"restricted:latest\": allowPrivilegeEscalation != false (container \"podinfo\" must set securityContext.allowPrivilegeEscalation=false), unrestricted capabilities (container \"podinfo\" must set securityContext.capabilities.drop=[\"ALL\"]), runAsNonRoot != true (pod or container \"podinfo\" must set securityContext.runAsNonRoot=true), seccompProfile (pod or container \"podinfo\" must set securityContext.seccompProfile.type to \"RuntimeDefault\" or \"Localhost\")",
+            "Error creating: pods \"podinfo-plain-00001-deployment-5dc6bb875d-4wkph\" is forbidden: violates PodSecurity \"restricted:latest\": allowPrivilegeEscalation != false (container \"podinfo\" must set securityContext.allowPrivilegeEscalation=false), unrestricted capabilities (container \"podinfo\" must set securityContext.capabilities.drop=[\"ALL\"]), runAsNonRoot != true (pod or container \"podinfo\" must set securityContext.runAsNonRoot=true), seccompProfile (pod or container \"podinfo\" must set securityContext.seccompProfile.type to \"RuntimeDefault\" or \"Localhost\")",
+            "Error creating: pods \"podinfo-plain-00001-deployment-5dc6bb875d-bp459\" is forbidden: violates PodSecurity \"restricted:latest\": allowPrivilegeEscalation != false (container \"podinfo\" must set securityContext.allowPrivilegeEscalation=false), unrestricted capabilities (container \"podinfo\" must set securityContext.capabilities.drop=[\"ALL\"]), runAsNonRoot != true (pod or container \"podinfo\" must set securityContext.runAsNonRoot=true), seccompProfile (pod or container \"podinfo\" must set securityContext.seccompProfile.type to \"RuntimeDefault\" or \"Localhost\")",
+            "Error creating: pods \"podinfo-plain-00001-deployment-5dc6bb875d-gxnsk\" is forbidden: violates PodSecurity \"restricted:latest\": allowPrivilegeEscalation != false (container \"podinfo\" must set securityContext.allowPrivilegeEscalation=false), unrestricted capabilities (container \"podinfo\" must set securityContext.capabilities.drop=[\"ALL\"]), runAsNonRoot != true (pod or container \"podinfo\" must set securityContext.runAsNonRoot=true), seccompProfile (pod or container \"podinfo\" must set securityContext.seccompProfile.type to \"RuntimeDefault\" or \"Localhost\")",
+            "Error creating: pods \"podinfo-plain-00001-deployment-5dc6bb875d-lq292\" is forbidden: violates PodSecurity \"restricted:latest\": allowPrivilegeEscalation != false (container \"podinfo\" must set securityContext.allowPrivilegeEscalation=false), unrestricted capabilities (container \"podinfo\" must set securityContext.capabilities.drop=[\"ALL\"]), runAsNonRoot != true (pod or container \"podinfo\" must set securityContext.runAsNonRoot=true), seccompProfile (pod or container \"podinfo\" must set securityContext.seccompProfile.type to \"RuntimeDefault\" or \"Localhost\")",
+            "Error creating: pods \"podinfo-plain-00001-deployment-5dc6bb875d-p9jlf\" is forbidden: violates PodSecurity \"restricted:latest\": allowPrivilegeEscalation != false (container \"podinfo\" must set securityContext.allowPrivilegeEscalation=false), unrestricted capabilities (container \"podinfo\" must set securityContext.capabilities.drop=[\"ALL\"]), runAsNonRoot != true (pod or container \"podinfo\" must set securityContext.runAsNonRoot=true), seccompProfile (pod or container \"podinfo\" must set securityContext.seccompProfile.type to \"RuntimeDefault\" or \"Localhost\")",
+            "Error creating: pods \"podinfo-plain-00001-deployment-5dc6bb875d-qf8pv\" is forbidden: violates PodSecurity \"restricted:latest\": allowPrivilegeEscalation != false (container \"podinfo\" must set securityContext.allowPrivilegeEscalation=false), unrestricted capabilities (container \"podinfo\" must set securityContext.capabilities.drop=[\"ALL\"]), runAsNonRoot != true (pod or container \"podinfo\" must set securityContext.runAsNonRoot=true), seccompProfile (pod or container \"podinfo\" must set securityContext.seccompProfile.type to \"RuntimeDefault\" or \"Localhost\")",
+            "Error creating: pods \"podinfo-plain-00001-deployment-5dc6bb875d-qnqr6\" is forbidden: violates PodSecurity \"restricted:latest\": allowPrivilegeEscalation != false (container \"podinfo\" must set securityContext.allowPrivilegeEscalation=false), unrestricted capabilities (container \"podinfo\" must set securityContext.capabilities.drop=[\"ALL\"]), runAsNonRoot != true (pod or container \"podinfo\" must set securityContext.runAsNonRoot=true), seccompProfile (pod or container \"podinfo\" must set securityContext.seccompProfile.type to \"RuntimeDefault\" or \"Localhost\")",
+            "Error creating: pods \"podinfo-plain-00001-deployment-5dc6bb875d-rj8gm\" is forbidden: violates PodSecurity \"restricted:latest\": allowPrivilegeEscalation != false (container \"podinfo\" must set securityContext.allowPrivilegeEscalation=false), unrestricted capabilities (container \"podinfo\" must set securityContext.capabilities.drop=[\"ALL\"]), runAsNonRoot != true (pod or container \"podinfo\" must set securityContext.runAsNonRoot=true), seccompProfile (pod or container \"podinfo\" must set securityContext.seccompProfile.type to \"RuntimeDefault\" or \"Localhost\")",
+            "Error creating: pods \"podinfo-plain-00001-deployment-5dc6bb875d-sztn4\" is forbidden: violates PodSecurity \"restricted:latest\": allowPrivilegeEscalation != false (container \"podinfo\" must set securityContext.allowPrivilegeEscalation=false), unrestricted capabilities (container \"podinfo\" must set securityContext.capabilities.drop=[\"ALL\"]), runAsNonRoot != true (pod or container \"podinfo\" must set securityContext.runAsNonRoot=true), seccompProfile (pod or container \"podinfo\" must set securityContext.seccompProfile.type to \"RuntimeDefault\" or \"Localhost\")"
+          ],
+          "pods": 0,
+          "request_via_kourier": "404"
+        }
+      ]
+    },
+    {
+      "run": "B",
+      "secure_pod_defaults": "Enabled",
+      "services": [
+        {
+          "ksvc": "podinfo-restricted",
+          "revision": "podinfo-restricted-00001",
+          "ksvc_conditions": [
+            {
+              "type": "ConfigurationsReady",
+              "status": "True",
+              "reason": null,
+              "message": null
+            },
+            {
+              "type": "Ready",
+              "status": "True",
+              "reason": null,
+              "message": null
+            },
+            {
+              "type": "RoutesReady",
+              "status": "True",
+              "reason": null,
+              "message": null
+            }
+          ],
+          "revision_conditions": [
+            {
+              "type": "Active",
+              "status": "True",
+              "reason": null,
+              "message": null
+            },
+            {
+              "type": "ContainerHealthy",
+              "status": "True",
+              "reason": null,
+              "message": null
+            },
+            {
+              "type": "Ready",
+              "status": "True",
+              "reason": null,
+              "message": null
+            },
+            {
+              "type": "ResourcesAvailable",
+              "status": "True",
+              "reason": null,
+              "message": null
+            }
+          ],
+          "deployment_pod_spec_security": {
+            "pod": {},
+            "containers": [
+              {
+                "name": "podinfo",
+                "securityContext": {
+                  "allowPrivilegeEscalation": false,
+                  "capabilities": {
+                    "drop": [
+                      "ALL"
+                    ]
+                  },
+                  "runAsNonRoot": true,
+                  "runAsUser": 65532,
+                  "seccompProfile": {
+                    "type": "RuntimeDefault"
+                  }
+                }
+              },
+              {
+                "name": "queue-proxy",
+                "securityContext": {
+                  "allowPrivilegeEscalation": false,
+                  "capabilities": {
+                    "drop": [
+                      "ALL"
+                    ]
+                  },
+                  "readOnlyRootFilesystem": true,
+                  "runAsNonRoot": true,
+                  "seccompProfile": {
+                    "type": "RuntimeDefault"
+                  }
+                }
+              }
+            ]
+          },
+          "replicaset_failedcreate": [],
+          "pods": 2,
+          "request_via_kourier": "200"
+        },
+        {
+          "ksvc": "podinfo-plain",
+          "revision": "podinfo-plain-00001",
+          "ksvc_conditions": [
+            {
+              "type": "ConfigurationsReady",
+              "status": "Unknown",
+              "reason": null,
+              "message": null
+            },
+            {
+              "type": "Ready",
+              "status": "Unknown",
+              "reason": "RevisionMissing",
+              "message": "Configuration \"podinfo-plain\" is waiting for a Revision to become ready."
+            },
+            {
+              "type": "RoutesReady",
+              "status": "Unknown",
+              "reason": "RevisionMissing",
+              "message": "Configuration \"podinfo-plain\" is waiting for a Revision to become ready."
+            }
+          ],
+          "revision_conditions": [
+            {
+              "type": "Active",
+              "status": "Unknown",
+              "reason": "Queued",
+              "message": "Requests to the target are being buffered as resources are provisioned."
+            },
+            {
+              "type": "ContainerHealthy",
+              "status": "Unknown",
+              "reason": "Deploying",
+              "message": null
+            },
+            {
+              "type": "Ready",
+              "status": "Unknown",
+              "reason": "Deploying",
+              "message": null
+            },
+            {
+              "type": "ResourcesAvailable",
+              "status": "Unknown",
+              "reason": "Deploying",
+              "message": null
+            }
+          ],
+          "deployment_pod_spec_security": {
+            "pod": {},
+            "containers": [
+              {
+                "name": "podinfo",
+                "securityContext": {
+                  "allowPrivilegeEscalation": false,
+                  "capabilities": {
+                    "drop": [
+                      "ALL"
+                    ]
+                  },
+                  "runAsNonRoot": true,
+                  "seccompProfile": {
+                    "type": "RuntimeDefault"
+                  }
+                }
+              },
+              {
+                "name": "queue-proxy",
+                "securityContext": {
+                  "allowPrivilegeEscalation": false,
+                  "capabilities": {
+                    "drop": [
+                      "ALL"
+                    ]
+                  },
+                  "readOnlyRootFilesystem": true,
+                  "runAsNonRoot": true,
+                  "seccompProfile": {
+                    "type": "RuntimeDefault"
+                  }
+                }
+              }
+            ]
+          },
+          "replicaset_failedcreate": [
+            "(combined from similar events): Error creating: pods \"podinfo-plain-00001-deployment-5dc6bb875d-lk6wh\" is forbidden: violates PodSecurity \"restricted:latest\": allowPrivilegeEscalation != false (container \"podinfo\" must set securityContext.allowPrivilegeEscalation=false), unrestricted capabilities (container \"podinfo\" must set securityContext.capabilities.drop=[\"ALL\"]), runAsNonRoot != true (pod or container \"podinfo\" must set securityContext.runAsNonRoot=true), seccompProfile (pod or container \"podinfo\" must set securityContext.seccompProfile.type to \"RuntimeDefault\" or \"Localhost\")",
+            "Error creating: pods \"podinfo-plain-00001-deployment-5dc6bb875d-4wkph\" is forbidden: violates PodSecurity \"restricted:latest\": allowPrivilegeEscalation != false (container \"podinfo\" must set securityContext.allowPrivilegeEscalation=false), unrestricted capabilities (container \"podinfo\" must set securityContext.capabilities.drop=[\"ALL\"]), runAsNonRoot != true (pod or container \"podinfo\" must set securityContext.runAsNonRoot=true), seccompProfile (pod or container \"podinfo\" must set securityContext.seccompProfile.type to \"RuntimeDefault\" or \"Localhost\")",
+            "Error creating: pods \"podinfo-plain-00001-deployment-5dc6bb875d-bp459\" is forbidden: violates PodSecurity \"restricted:latest\": allowPrivilegeEscalation != false (container \"podinfo\" must set securityContext.allowPrivilegeEscalation=false), unrestricted capabilities (container \"podinfo\" must set securityContext.capabilities.drop=[\"ALL\"]), runAsNonRoot != true (pod or container \"podinfo\" must set securityContext.runAsNonRoot=true), seccompProfile (pod or container \"podinfo\" must set securityContext.seccompProfile.type to \"RuntimeDefault\" or \"Localhost\")",
+            "Error creating: pods \"podinfo-plain-00001-deployment-5dc6bb875d-gxnsk\" is forbidden: violates PodSecurity \"restricted:latest\": allowPrivilegeEscalation != false (container \"podinfo\" must set securityContext.allowPrivilegeEscalation=false), unrestricted capabilities (container \"podinfo\" must set securityContext.capabilities.drop=[\"ALL\"]), runAsNonRoot != true (pod or container \"podinfo\" must set securityContext.runAsNonRoot=true), seccompProfile (pod or container \"podinfo\" must set securityContext.seccompProfile.type to \"RuntimeDefault\" or \"Localhost\")",
+            "Error creating: pods \"podinfo-plain-00001-deployment-5dc6bb875d-lq292\" is forbidden: violates PodSecurity \"restricted:latest\": allowPrivilegeEscalation != false (container \"podinfo\" must set securityContext.allowPrivilegeEscalation=false), unrestricted capabilities (container \"podinfo\" must set securityContext.capabilities.drop=[\"ALL\"]), runAsNonRoot != true (pod or container \"podinfo\" must set securityContext.runAsNonRoot=true), seccompProfile (pod or container \"podinfo\" must set securityContext.seccompProfile.type to \"RuntimeDefault\" or \"Localhost\")",
+            "Error creating: pods \"podinfo-plain-00001-deployment-5dc6bb875d-p9jlf\" is forbidden: violates PodSecurity \"restricted:latest\": allowPrivilegeEscalation != false (container \"podinfo\" must set securityContext.allowPrivilegeEscalation=false), unrestricted capabilities (container \"podinfo\" must set securityContext.capabilities.drop=[\"ALL\"]), runAsNonRoot != true (pod or container \"podinfo\" must set securityContext.runAsNonRoot=true), seccompProfile (pod or container \"podinfo\" must set securityContext.seccompProfile.type to \"RuntimeDefault\" or \"Localhost\")",
+            "Error creating: pods \"podinfo-plain-00001-deployment-5dc6bb875d-qf8pv\" is forbidden: violates PodSecurity \"restricted:latest\": allowPrivilegeEscalation != false (container \"podinfo\" must set securityContext.allowPrivilegeEscalation=false), unrestricted capabilities (container \"podinfo\" must set securityContext.capabilities.drop=[\"ALL\"]), runAsNonRoot != true (pod or container \"podinfo\" must set securityContext.runAsNonRoot=true), seccompProfile (pod or container \"podinfo\" must set securityContext.seccompProfile.type to \"RuntimeDefault\" or \"Localhost\")",
+            "Error creating: pods \"podinfo-plain-00001-deployment-5dc6bb875d-qnqr6\" is forbidden: violates PodSecurity \"restricted:latest\": allowPrivilegeEscalation != false (container \"podinfo\" must set securityContext.allowPrivilegeEscalation=false), unrestricted capabilities (container \"podinfo\" must set securityContext.capabilities.drop=[\"ALL\"]), runAsNonRoot != true (pod or container \"podinfo\" must set securityContext.runAsNonRoot=true), seccompProfile (pod or container \"podinfo\" must set securityContext.seccompProfile.type to \"RuntimeDefault\" or \"Localhost\")",
+            "Error creating: pods \"podinfo-plain-00001-deployment-5dc6bb875d-rj8gm\" is forbidden: violates PodSecurity \"restricted:latest\": allowPrivilegeEscalation != false (container \"podinfo\" must set securityContext.allowPrivilegeEscalation=false), unrestricted capabilities (container \"podinfo\" must set securityContext.capabilities.drop=[\"ALL\"]), runAsNonRoot != true (pod or container \"podinfo\" must set securityContext.runAsNonRoot=true), seccompProfile (pod or container \"podinfo\" must set securityContext.seccompProfile.type to \"RuntimeDefault\" or \"Localhost\")",
+            "Error creating: pods \"podinfo-plain-00001-deployment-5dc6bb875d-sztn4\" is forbidden: violates PodSecurity \"restricted:latest\": allowPrivilegeEscalation != false (container \"podinfo\" must set securityContext.allowPrivilegeEscalation=false), unrestricted capabilities (container \"podinfo\" must set securityContext.capabilities.drop=[\"ALL\"]), runAsNonRoot != true (pod or container \"podinfo\" must set securityContext.runAsNonRoot=true), seccompProfile (pod or container \"podinfo\" must set securityContext.seccompProfile.type to \"RuntimeDefault\" or \"Localhost\")"
+          ],
+          "pods": 1,
+          "request_via_kourier": "404"
+        }
+      ]
+    }
+  ],
+  "restore": "config-features secure-pod-defaults: disabled; services deleted; namespace ok211-tenant-a kept"
+}

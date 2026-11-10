@@ -1,0 +1,32 @@
+# X6 2026-10-31T13:11:42Z — GitVersion:    v3.1.4
+TUF_ROOT=/Users/gawenda/temp/kubernauts/ok/openkubes-ok-211/architecture/spikes/OK-211-knative-serverless/.local/sigstore
+
+## controller: gcr.io/knative-releases/knative.dev/serving/cmd/controller@sha256:9bf7db638f617e2d8086919cece028bb6b7598449039bc8eb4018cc599c324c4
+### cosign verify --certificate-identity signer@knative-releases.iam.gserviceaccount.com --certificate-oidc-issuer https://accounts.google.com
+result: VERIFIED
+  Verification for gcr.io/knative-releases/knative.dev/serving/cmd/controller@sha256:9bf7db638f617e2d8086919cece028bb6b7598449039bc8eb4018cc599c324c4 --
+  The following checks were performed on each of these signatures:
+    - The cosign claims were validated
+    - Existence of the claims in the transparency log was verified offline
+    - The code-signing certificate was verified using trusted certificate authority certificates
+  subject: signer@knative-releases.iam.gserviceaccount.com  issuer: https://accounts.google.com  docker-manifest-digest: sha256:9bf7db638f617e2d8086919cece028bb6b7598449039bc8eb4018cc599c324c4
+### cosign verify-attestation --type slsaprovenance02
+result: VERIFIED
+{"predicateType":"https://slsa.dev/provenance/v0.2","builder":"https://prow.knative.dev","buildType":"https://prow.knative.dev/ProwJob@v1","subject":["gcr.io/knative-releases/knative.dev/serving/cmd/controller"]}
+
+## activator: gcr.io/knative-releases/knative.dev/serving/cmd/activator@sha256:986b7623548a759d9736e59512f1fceee7beb3cd5c39093b95d17d77f818308a
+### cosign verify --certificate-identity signer@knative-releases.iam.gserviceaccount.com --certificate-oidc-issuer https://accounts.google.com
+result: VERIFIED
+  Verification for gcr.io/knative-releases/knative.dev/serving/cmd/activator@sha256:986b7623548a759d9736e59512f1fceee7beb3cd5c39093b95d17d77f818308a --
+  The following checks were performed on each of these signatures:
+    - The cosign claims were validated
+    - Existence of the claims in the transparency log was verified offline
+    - The code-signing certificate was verified using trusted certificate authority certificates
+  subject: signer@knative-releases.iam.gserviceaccount.com  issuer: https://accounts.google.com  docker-manifest-digest: sha256:986b7623548a759d9736e59512f1fceee7beb3cd5c39093b95d17d77f818308a
+### cosign verify-attestation --type slsaprovenance02
+result: VERIFIED
+{"predicateType":"https://slsa.dev/provenance/v0.2","builder":"https://prow.knative.dev","buildType":"https://prow.knative.dev/ProwJob@v1","subject":["gcr.io/knative-releases/knative.dev/serving/cmd/activator"]}
+
+## negative check 2026-10-31T13:12:08Z: wrong --certificate-identity someone-else@example.com on the controller image
+exit=12
+error during command execution: no matching signatures: none of the expected identities matched what was in the certificate, got subjects [signer@knative-releases.iam.gserviceaccount.com] with issuer https://accounts.google.com

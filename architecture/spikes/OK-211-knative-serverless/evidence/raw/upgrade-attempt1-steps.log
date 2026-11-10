@@ -1,0 +1,7 @@
+2026-10-30T14:28:55Z	start	knative-upgrade to 1.24
+2026-10-30T14:28:55Z	start	apply 1.24/serving-crds.yaml
+2026-10-30T14:28:55Z	end	apply 1.24/serving-crds.yaml
+2026-10-30T14:28:55Z	start	apply 1.24/eventing-crds.yaml
+2026-10-30T14:28:55Z	end	apply 1.24/eventing-crds.yaml
+2026-10-30T14:29:01Z	start	apply 1.24/serving-core.yaml
+2026-10-30T14:29:02Z	fail	apply 1.24/serving-core.yaml

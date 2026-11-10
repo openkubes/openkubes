@@ -1,0 +1,4 @@
+# E5 dispatcher 2026-10-31T12:22:46Z
+disruption at 2026-10-31T12:21:32Z, sink scaled to 1 at 2026-10-31T12:21:38Z
+imc-dispatcher-5f7cb4558f-zxhqg          1/1     Running   0          74s    10.42.0.143   ok-knative-local   <none>           <none>
+mt-broker-ingress-ccf7bfdf-rwb8w         1/1     Running   0          175m   10.42.0.71    ok-knative-local   <none>           <none>
