@@ -3,8 +3,28 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>OpenKubes Kubernetes Platform Distribution Framework</title>
-<meta name="description" content="OpenKubes is a framework for building sovereign Kubernetes platform distributions. OpenKubes owns the contracts — components are swappable.">
+<title>OpenKubes | Kubernetes Meta-Framework — Build Your Own Distribution</title>
+<meta name="description" content="OpenKubes is the open-source Kubernetes meta-framework for building your own sovereign platform distribution. Contracts first, evidence driven, human controlled.">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta name="theme-color" content="#0a1120">
+<link rel="canonical" href="https://openkubes.org/">
+<link rel="icon" type="image/png" href="https://openkubes.org/openkubes-logo.png">
+<link rel="apple-touch-icon" href="https://openkubes.org/openkubes-logo.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="OpenKubes">
+<meta property="og:locale" content="en_US">
+<meta property="og:url" content="https://openkubes.org/">
+<meta property="og:title" content="OpenKubes — Your Kubernetes Meta-Framework">
+<meta property="og:description" content="Build your own Kubernetes distribution. An open-source, contracts-first framework for sovereign Kubernetes platforms.">
+<meta property="og:image" content="https://openkubes.org/media/openkubes-hero-light-poster.webp">
+<meta property="og:image:alt" content="OpenKubes Kubernetes platform architecture and cluster overview">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="OpenKubes — Your Kubernetes Meta-Framework">
+<meta name="twitter:description" content="Build your own Kubernetes distribution with open-source blueprints, declarative contracts and evidence-driven operations.">
+<meta name="twitter:image" content="https://openkubes.org/media/openkubes-hero-light-poster.webp">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"SoftwareApplication","name":"OpenKubes","url":"https://openkubes.org/","description":"Open-source Kubernetes meta-framework for building sovereign platform distributions with reusable blueprints and declarative contracts.","applicationCategory":"DeveloperApplication","operatingSystem":"Linux, Kubernetes","license":"https://github.com/openkubes/openkubes/blob/main/LICENSE","codeRepository":"https://github.com/openkubes/openkubes"}
+</script>
 <style>
   :root{
     --bg:#ffffff;
@@ -86,6 +106,36 @@
     max-width:620px;
     margin:0 auto 2rem;
   }
+  /* Meta-framework positioning hero; independent of the platform animation. */
+  .meta-hero{
+    max-width:1100px;
+    margin:0 auto 2rem;
+    padding:clamp(2.5rem,6vw,5rem) clamp(1.4rem,5vw,4.5rem);
+    border:1px solid #21455a;
+    border-radius:22px;
+    background:radial-gradient(circle at 90% 12%,rgba(18,157,165,.18),transparent 37%),linear-gradient(145deg,#0a1120,#11253c);
+    box-shadow:0 18px 48px rgba(9,26,44,.15);
+    text-align:left;
+    color:#f8fafc;
+  }
+  .meta-hero__eyebrow{margin:0 0 1rem;color:#70decf;font-size:.76rem;font-weight:750;letter-spacing:.13em;text-transform:uppercase;}
+  .meta-hero h1{max-width:950px;margin:0 0 1rem;color:#fff;font-size:clamp(2.3rem,6vw,4.6rem);line-height:1.13;letter-spacing:-.045em;font-weight:750;}
+  .meta-hero__brand{display:block;margin-bottom:.1em;}
+  .meta-hero__open{color:#6ae0c8;}
+  .meta-hero__kubes{color:#f8fafc;}
+  .meta-hero__framework{display:block;font-size:.76em;letter-spacing:-.035em;}
+  .meta-hero__framework strong{color:#6ae0c8;font-weight:inherit;}
+  .meta-hero__distribution{margin:0 0 1.4rem;color:#d9e5ef;font-size:clamp(1.25rem,2.7vw,1.9rem);line-height:1.3;font-weight:550;}
+  .meta-hero__description{max-width:750px;margin:0 0 1rem;color:#b7cad9;font-size:clamp(.98rem,1.4vw,1.1rem);line-height:1.7;}
+  .meta-hero__distinction{max-width:780px;margin:0;color:#c8d6e3;font-size:.94rem;line-height:1.65;}
+  .meta-hero__distinction strong{color:#fff;}
+  .meta-hero__actions{display:flex;flex-wrap:wrap;gap:.8rem;margin-top:2rem;}
+  .meta-hero__actions a{display:inline-flex;align-items:center;justify-content:center;padding:.78rem 1.25rem;border:1px solid #6ae0c8;border-radius:9px;font-size:.94rem;font-weight:700;text-decoration:none;}
+  .meta-hero__actions a:first-child{color:#071d25;background:#6ae0c8;}
+  .meta-hero__actions a:last-child{color:#e5f3f6;border-color:#658394;background:rgba(255,255,255,.04);}
+  .meta-hero__actions a:hover{filter:brightness(1.12);text-decoration:none;}
+  .meta-hero__actions a:focus-visible{outline:3px solid #fff;outline-offset:4px;}
+  @media(max-width:600px){.meta-hero{border-radius:14px}.meta-hero__actions a{width:100%;}}
   /* OK Console launch announcement: prominent but separate from the platform hero. */
   .console-launch{
     width:min(100%,840px);
@@ -457,18 +507,20 @@
 </div>
 
 <header>
-  <nav class="universe-nav" aria-label="OpenKubes Universe">
-    <a href="https://oki.openkubes.org/">Oki <span aria-hidden="true">↗</span></a>
-    <a href="https://aia.openkubes.org/en">Aia <span aria-hidden="true">↗</span></a>
-  </nav>
-  <img class="logo-img" src="openkubes-logo.png" alt="OpenKubes logo">
-  <h1 class="brand-hero">
-    <span class="brand-hero-name">OpenKubes.</span>
-    <span class="brand-hero-line">Your Kubernetes Framework.</span>
-    <span class="brand-hero-line">Built for the Age of AI.</span>
-  </h1>
-  <p class="tagline">OpenKubes is a framework for building sovereign Kubernetes platform distributions — built ADR-first, reviewed three ways, run on infrastructure you control.</p>
-  <p class="tagline"><strong>OpenKubes defines the framework. OKP proves it can run.</strong> OpenKubes Platform (OKP) is its official reference distribution — deploy it as provided, adapt it, or use OpenKubes to build your own OpenKubes-conformant distribution.</p>
+  <div class="meta-hero">
+    <p class="meta-hero__eyebrow">Open source · Kubernetes · Platform Engineering</p>
+    <h1>
+      <span class="meta-hero__brand"><span class="meta-hero__open">Open</span><span class="meta-hero__kubes">Kubes.</span></span>
+      <span class="meta-hero__framework">Your Kubernetes <strong>Meta-Framework.</strong></span>
+    </h1>
+    <p class="meta-hero__distribution">Build Your Own Kubernetes Distribution.</p>
+    <p class="meta-hero__description">Design, build, and operate sovereign Kubernetes platforms with reusable infrastructure blueprints, declarative contracts, and evidence-driven automation.</p>
+    <p class="meta-hero__distinction"><strong>OpenKubes defines the framework. OKP proves it can run.</strong> OpenKubes Platform (OKP) is the reference distribution — use it as provided, adapt it, or build your own OpenKubes-conformant distribution.</p>
+    <div class="meta-hero__actions">
+      <a href="https://github.com/openkubes/openkubes">Explore OpenKubes ↗</a>
+      <a href="https://github.com/openkubes/ok-local">Try OpenKubes Locally ↗</a>
+    </div>
+  </div>
   <aside class="console-launch" aria-labelledby="console-launch-title">
     <p class="console-launch__eyebrow">🚀 New · OpenKubes Console</p>
     <h2 id="console-launch-title">OpenKubes Console — One-Command Installer is Live!</h2>
