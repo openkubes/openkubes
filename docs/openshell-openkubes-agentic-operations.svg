@@ -28,5 +28,5 @@
 <text class="sub" x="600" y="666" text-anchor="middle">Attested provenance → Canonicalization → Protected human approval → Policy</text>
 <text class="sub" x="600" y="695" text-anchor="middle">Single-use grant → Contract Executor → CAS authority → CAPI / GitOps</text>
 <text class="sub" x="600" y="725" text-anchor="middle">Independent evidence · Historical outcome ≠ Current health</text>
-<text class="small" x="600" y="810" text-anchor="middle">Proposed integration architecture · Not an implemented OpenShell deployment · ADR-Platform-042 / OK-220</text>
+<text class="small" x="600" y="810" text-anchor="middle">Proposed integration architecture · Not an implemented OpenShell deployment · ADR-Platform-042</text>
 </svg>
