@@ -4,7 +4,7 @@
 
 *OpenKubes Architecture · November 11, 2026 · Architecture exploration*
 
-> **Status: Architecture proposal — not an integration announcement.** OpenKubes has not integrated or production-qualified OpenShell. [ADR-Platform-042](https://github.com/openkubes/openkubes/blob/main/architecture/decisions/ADR-Platform-042-openshell-hosted-external-agentic-operations.md) is **Proposed** and the [OK-220 feasibility spike](https://kubernauts.atlassian.net/browse/OK-220) is open. This article describes a target architecture and its required proofs, not a deployed end-to-end operation path.
+> **Status: Architecture proposal — not an integration announcement.** OpenKubes has not integrated or production-qualified OpenShell. [ADR-Platform-042](https://github.com/openkubes/openkubes/blob/main/architecture/decisions/ADR-Platform-042-openshell-hosted-external-agentic-operations.md) is **Proposed** and technical validation is still pending. This article describes a target architecture and its required proofs, not a deployed end-to-end operation path.
 
 ![Proposed OpenKubes integration: hosted agents in an OpenShell candidate runtime and independent external agents converge on the same non-authoritative diagnostics and candidate interfaces, followed by a separately trusted OpenKubes operations and evidence boundary.](openshell-openkubes-agentic-operations.svg)
 
@@ -24,7 +24,7 @@ We want OpenKubes to support **both**, without creating two governance models.
 
 ### Hosted agents: a managed secure execution runtime
 
-An OpenKubes-hosted agent could execute inside an OpenShell sandbox. OpenShell is our **preferred candidate for the default hosted-agent runtime**, subject to the OK-220 spike.
+An OpenKubes-hosted agent could execute inside an OpenShell sandbox. OpenShell is our **preferred candidate for the default hosted-agent runtime**, subject to successful technical and security validation.
 
 A hosted agent should be able to inspect *approved* read-only diagnostics, reason over platform context and submit a **non-authoritative operation candidate**. It must not inherit direct write privileges over Kubernetes, protected Git references, approvals, grants or the authoritative desired-state API.
 
@@ -57,13 +57,13 @@ These are **proposed end-to-end requirements**, not a claim that all steps are i
 
 We are exploring CMCP/MCP as a bounded, replaceable way to make diagnostics and candidate operations accessible to agents. It is **not** a back door to Kubernetes mutation, a second policy authority, or an independent source of execution truth.
 
-OpenKubes-owned versioned contracts remain authoritative; MCP can present those contracts to agents as an adapter. The central-versus-federated MCP architecture is a separate question tracked in [OK-213](https://kubernauts.atlassian.net/browse/OK-213).
+OpenKubes-owned versioned contracts remain authoritative; MCP can present those contracts to agents as an adapter. The choice between centralized and federated MCP architectures remains an open design question.
 
 We also keep our existing [Developer Workspace contract](https://github.com/openkubes/openkubes/blob/main/architecture/decisions/ADR-Platform-039-developer-workspace-contract.md) separate: a coding workspace and an operations agent may share isolation concepts but must not silently share privileges or lifecycle semantics.
 
 ## What we need to prove before adopting OpenShell
 
-The [OK-220 spike](https://kubernauts.atlassian.net/browse/OK-220) has explicit acceptance gates, including:
+Our planned technical feasibility assessment has explicit acceptance gates, including:
 
 - Can OpenShell be deployed and operated reproducibly on a disposable Kubernetes environment, with documented prerequisites, rollback and upgrade behavior?
 - Can a hosted agent access **only** approved diagnostics and candidate submission, with deny-by-default network and credential access?
