@@ -7,6 +7,7 @@ ROOT = Path(__file__).resolve().parents[2]
 SOURCE = ROOT / "docs"
 TARGET = ROOT / ".mkdocs-staging"
 ARTICLES = (
+    "openshell-meets-openkubes.md",
     "developer-workspace-blog-post.md",
     "learn-from-beam-build-on-openkubes.md",
     "agentic-operations-reference-architecture.md",
