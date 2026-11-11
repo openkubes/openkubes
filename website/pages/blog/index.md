@@ -4,6 +4,10 @@ Architecture decisions, platform engineering lessons and implementation stories.
 
 ## Latest articles
 
+### [Securing Agentic Operations: OpenShell Meets OpenKubes](/openshell-meets-openkubes/)
+
+How a secure agent runtime and governed Kubernetes operations could work together. OpenShell integration is proposed and requires validation under OK-220.
+
 ### [Learn from BEAM. Build on OpenKubes.](/learn-from-beam-build-on-openkubes/)
 
 What Erlang/OTP supervision and fault isolation can teach us about trustworthy agentic infrastructure operations. Architecture exploration, not an implementation announcement.
