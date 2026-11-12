@@ -2,7 +2,7 @@
 
 **A bounded workspace for developers and coding agents. Contracts over runtimes.**
 
-OpenKubes Developer Workspace is an emerging platform capability for running AI-assisted coding workflows in a controlled Kubernetes environment. **OpenCode** is the first reference coding-agent runtime; **Codex** has also been exercised against the same candidate contract.
+OpenKubes Developer Workspace is an emerging platform capability for running AI-assisted coding workflows in a controlled Kubernetes environment. **OpenCode** is the first reference coding-agent runtime; **Codex** has also been exercised against the same contract.
 
 The goal is a portable **DeveloperWorkspace** abstraction that defines source, execution, identity, connectivity, resources, lifecycle and evidence — without making a particular coding-agent product or Kubernetes Namespace part of the permanent platform API.
 

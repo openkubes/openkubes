@@ -81,6 +81,7 @@ Authorization to create, attach to, mutate or delete a workspace is evaluated se
 > The historical "pending the OK-183 decision" label below is retained as context.
 > Read it with the [dated amendment](#amendment-note-2026-10-19--persistent-capacity-and-conditional-acceptance),
 > which separates configuration claims from independent live enforcement evidence.
+> Decision update (2026-10-20): ADR-Platform-039 is Accepted (c15102); the amendment stands. See the [decision note](#decision-note-2026-10-20--architectural-contract-accepted).
 
 The first implementation profile maps one workspace to one dedicated Namespace.
 
