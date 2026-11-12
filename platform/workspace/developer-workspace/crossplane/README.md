@@ -743,7 +743,7 @@ general agent capability, performance, or production readiness.
   accepts an internally consistent true declaration for `local-path`, because Composition cannot
   inspect backend behavior; the live proof treats that declaration as the refusal-only
   `self-declared-negative` control. `local-path` makes no persistent-capacity isolation guarantee,
-  and its persistent workspaces are not conforming under the proposed ADR-Platform-039
+  and its persistent workspaces are not conforming under the accepted ADR-Platform-039
   persistent-capacity amendment. Conformance requires a backend proven by the
   `persistent-capacity-enforced` live check; the contract names none.
 - `hostUsers: false` requires Kubernetes/runtime support for user namespaces, idmap-compatible

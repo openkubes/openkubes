@@ -85,7 +85,7 @@ Storage is where the contract gained the most from measurement.
 
 A PVC request and a storage quota constrain allocation at admission. Holding a workload to that size while it writes needs the storage backend's cooperation: on the local-path provisioner, a workspace declaring **1 GiB was able to write 1280 MiB**. We recorded that measurement as it stands, and it shaped the next step.
 
-The proposed persistent-capacity amendment asks every persistent profile that claims enforced capacity to prove it at runtime:
+The accepted persistent-capacity amendment asks every persistent profile that claims enforced capacity to prove it at runtime:
 
 [![Persistent capacity requires a consistent profile declaration, user namespaces and a separate runtime proof of capacity and project-ID protection.](media/developer-workspace/d3-storage-capacity-gate.v2.png)](media/developer-workspace/d3-storage-capacity-gate.v2.png)
 

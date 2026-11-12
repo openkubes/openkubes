@@ -2,7 +2,7 @@
 
 **A bounded workspace for developers and coding agents. Contracts over runtimes.**
 
-OpenKubes Developer Workspace is an emerging platform capability for running AI-assisted coding workflows in a controlled Kubernetes environment. **OpenCode** is the first reference coding-agent runtime; **Codex** has also been exercised against the same candidate contract.
+OpenKubes Developer Workspace is an emerging platform capability for running AI-assisted coding workflows in a controlled Kubernetes environment. **OpenCode** is the first reference coding-agent runtime; **Codex** has also been exercised against the same contract.
 
 The goal is a portable **DeveloperWorkspace** abstraction that defines source, execution, identity, connectivity, resources, lifecycle and evidence — without making a particular coding-agent product or Kubernetes Namespace part of the permanent platform API.
 
@@ -30,7 +30,7 @@ This is a reference workflow, **not yet an automated production deployment flow*
 
 ## Source of truth
 
-- [ADR-Platform-039 — Developer Workspace Contract (Proposed)](https://github.com/openkubes/openkubes/blob/main/architecture/decisions/ADR-Platform-039-developer-workspace-contract.md)
+- [ADR-Platform-039 — Developer Workspace Contract (Accepted)](https://github.com/openkubes/openkubes/blob/main/architecture/decisions/ADR-Platform-039-developer-workspace-contract.md)
 - [Public workspace contract spike](https://github.com/openkubes/openkubes/tree/main/architecture/spikes/ADR-Platform-039)
 - [OpenCode Namespace reference profile](https://github.com/openkubes/openkubes/blob/main/platform/workspace/developer-workspace/crossplane/README.md#hands-on-opencode-quickstart)
 - [Live isolation and lifecycle proof](https://github.com/openkubes/openkubes/blob/main/platform/workspace/developer-workspace/crossplane/README.md#live-proof-disposable-clusters-only)
