@@ -62,6 +62,6 @@ A Crossplane capability reconciles each `DeveloperWorkspace` into its dedicated 
 
 An agent's completed and evidenced task must not be rewritten by later workspace drift. Current runtime health is separate from its historical terminal outcome — consistent with OpenKubes' evidence-first architecture.
 
-Read the [proposed ADR](https://github.com/openkubes/openkubes/blob/main/architecture/decisions/ADR-Platform-039-developer-workspace-contract.md) for the complete candidate invariants and non-goals.
+Read the [accepted ADR](https://github.com/openkubes/openkubes/blob/main/architecture/decisions/ADR-Platform-039-developer-workspace-contract.md) for the complete candidate invariants and non-goals.
 
 [Back to Developer Workspace](index.md)

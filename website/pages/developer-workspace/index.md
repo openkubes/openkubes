@@ -30,7 +30,7 @@ This is a reference workflow, **not yet an automated production deployment flow*
 
 ## Source of truth
 
-- [ADR-Platform-039 — Developer Workspace Contract (Proposed)](https://github.com/openkubes/openkubes/blob/main/architecture/decisions/ADR-Platform-039-developer-workspace-contract.md)
+- [ADR-Platform-039 — Developer Workspace Contract (Accepted)](https://github.com/openkubes/openkubes/blob/main/architecture/decisions/ADR-Platform-039-developer-workspace-contract.md)
 - [Public workspace contract spike](https://github.com/openkubes/openkubes/tree/main/architecture/spikes/ADR-Platform-039)
 - [OpenCode Namespace reference profile](https://github.com/openkubes/openkubes/blob/main/platform/workspace/developer-workspace/crossplane/README.md#hands-on-opencode-quickstart)
 - [Live isolation and lifecycle proof](https://github.com/openkubes/openkubes/blob/main/platform/workspace/developer-workspace/crossplane/README.md#live-proof-disposable-clusters-only)

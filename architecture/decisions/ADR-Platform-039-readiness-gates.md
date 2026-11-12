@@ -6,7 +6,7 @@
 
 **Authority:** OK-183 Decision 2, recorded in the
 [conditional acceptance record](ADR-Platform-039-conditional-acceptance-record.md).
-The [contract](ADR-Platform-039-developer-workspace-contract.md) remains Proposed.
+The [contract](ADR-Platform-039-developer-workspace-contract.md) is Accepted as the architectural contract.
 This register elaborates obligations without replacing their normative wording.
 
 Suchit Thakkar is the documentation, evidence preparation and independent verification
