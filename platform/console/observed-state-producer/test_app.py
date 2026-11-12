@@ -492,13 +492,13 @@ class TlsConfigurationTests(unittest.TestCase):
                 "OK_OBSERVER_TLS_CERT_FILE": str(root / "server.crt"),
                 "OK_OBSERVER_TLS_KEY_FILE": str(root / "server.key"),
                 "OK_OBSERVER_TLS_CLIENT_CA_FILE": str(root / "client-ca.crt"),
-                "OK_OBSERVER_TLS_CLIENT_IDENTITY": "spiffe://openkubes.io/ns/openkubes-console/sa/ok-console-bff",
+                "OK_OBSERVER_TLS_CLIENT_IDENTITY": "spiffe://openkubes.io/ns/openkubes-console/sa/ok-console",
             })
 
         self.assertEqual(config.certificate_file.name, "server.crt")
         self.assertEqual(config.private_key_file.name, "server.key")
         self.assertEqual(config.client_ca_file.name, "client-ca.crt")
-        self.assertEqual(config.expected_client_identity, "spiffe://openkubes.io/ns/openkubes-console/sa/ok-console-bff")
+        self.assertEqual(config.expected_client_identity, "spiffe://openkubes.io/ns/openkubes-console/sa/ok-console")
 
     def test_rejects_missing_or_empty_tls_material(self):
         with self.assertRaisesRegex(ValueError, "Missing required TLS"):
@@ -511,7 +511,7 @@ class TlsConfigurationTests(unittest.TestCase):
                     "OK_OBSERVER_TLS_CERT_FILE": str(empty),
                     "OK_OBSERVER_TLS_KEY_FILE": str(empty),
                     "OK_OBSERVER_TLS_CLIENT_CA_FILE": str(empty),
-                    "OK_OBSERVER_TLS_CLIENT_IDENTITY": "spiffe://openkubes.io/ns/openkubes-console/sa/ok-console-bff",
+                    "OK_OBSERVER_TLS_CLIENT_IDENTITY": "spiffe://openkubes.io/ns/openkubes-console/sa/ok-console",
                 })
 
 
@@ -612,7 +612,7 @@ class HttpBoundaryTests(unittest.TestCase):
                 return {}
 
         handler = object.__new__(handler_for(
-            object(), expected_client_identity="spiffe://openkubes.io/ns/openkubes-console/sa/ok-console-bff",
+            object(), expected_client_identity="spiffe://openkubes.io/ns/openkubes-console/sa/ok-console",
         ))
         handler.path = "/api/console-observed-state/v0alpha2"
         handler.connection = Connection()

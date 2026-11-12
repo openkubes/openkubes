@@ -155,7 +155,7 @@ reviewed immutable digest and provision `Secret/observed-state-producer-tls`
 with `tls.crt`, `tls.key`, and `client-ca.crt`. Private keys are mounted read
 only; they are never accepted through environment-variable values. The supplied
 NetworkPolicy permits ingress only from pods labelled
-`app.kubernetes.io/name=ok-console-bff` in the same namespace.
+`app.kubernetes.io/name=ok-console` in the same namespace.
 
 The server accepts TLS 1.2 or newer. `/healthz` is an HTTPS-only, non-sensitive
 probe and does not require client identity. The versioned observed-state query
