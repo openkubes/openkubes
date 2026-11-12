@@ -433,6 +433,105 @@ The mechanisms below the Contract remain replaceable. `ok up` does not gain dire
 knowledge of provider-specific imperative workflows merely to make the top-level
 command convenient.
 
+## Consolidated M3 decision: one product lifecycle, explicit execution profiles
+
+**Consolidation date:** 2026-11-12  
+**Related implementation and review:** [OK-76](https://kubernauts.atlassian.net/browse/OK-76), [OK-147](https://kubernauts.atlassian.net/browse/OK-147), [OK-148](https://kubernauts.atlassian.net/browse/OK-148), [OK-226](https://kubernauts.atlassian.net/browse/OK-226), [M3-UX-001 proposal](https://github.com/openkubes/ok-cluster/blob/docs/ok-226-m3-ux-routing-adr/docs/decisions/M3-UX-001-cli-routing-authority.md).
+
+This section **clarifies and constrains** the single product path defined above. It does not create another desired-state authority, accept a new public schema, or imply implementation conformance. The ADR remains `Proposed` until its acceptance evidence is reviewed.
+
+### 15. One user workflow and one authoritative transition path
+
+The intended first-class UX is:
+
+```text
+./openkubes.yaml
+  -> ok validate                (local, no authority contact)
+  -> ok plan                    (read authoritative desired revision; no mutation)
+  -> ok up                      (review + one user confirmation where safe)
+  -> independent Policy decision
+  -> single-use authorization claim
+  -> atomic desired-state acceptance (CAS)
+  -> existing bounded Contract Executor (OK-147)
+  -> existing CAPI/provider controllers and profile-specific lifecycle
+  -> independent observed convergence and durable evidence
+  -> ok status
+```
+
+`ok up` MUST remain a **convergence intent command**, not a generic cluster installation script, arbitrary `kubectl` wrapper, or spelling of a provider-specific `make` target. A single **human confirmation** MAY make the UX simple but MUST NOT replace an independently verified Policy authorization, immutable plan binding, target identity verification, or point-of-use validation. Where a mutable scaffold/network choice cannot be safely bound before confirmation, additional explicit approval remains necessary.
+
+The same canonical Contract, verified transition tuple, Authority Profile, Executor and evidence correlation MUST serve CLI and any later Console/agent/MCP consumer. No caller becomes an alternative desired-state writer or bypasses Policy by invoking the implementation directly.
+
+### 16. Execution profile versus authority (including Same-Plane)
+
+The management topology is a **verified runtime selection**, not a command synonym:
+
+- **Same-Plane**: the trusted management and infrastructure Kubernetes APIs are the **same verified host-cluster identity**. CAPI/provider controllers and KubeVirt/storage prerequisites may coexist there; any created workload cluster is an independently identified Kubernetes cluster. A second `ok-mgmt` is not intrinsically required.
+- **Split-Plane**: management and provider infrastructure APIs are distinct verified Kubernetes identities. This is a separate execution-profile conformance scope; it is not an automatic fallback.
+
+For the first M3 live provider **candidate**, support only the **already prepared, compatible Talos/KubeVirt Same-Plane environment**, subject to verification of the selected Authority Profile, provider prerequisites, network allocations, credentials, identity and independent lifecycle evidence. The M2b human acceptance run proves bounded **operator provisioning/teardown**, **not** the ADR-034 Authority/Policy/CAS contract.
+
+An OK-147 in-cluster Job defaulting to `ok-mgmt` describes one currently proposed deployment profile; it MUST NOT be interpreted as a universal requirement to bootstrap `ok-mgmt` for a Same-Plane workflow. Actual in-cluster Job placement, service account permissions, provider reachability and trust separation for Same-Plane MUST be explicitly specified and separately verified before that profile is enabled. Local operator execution and in-cluster Jobs MUST use the same verified bounded Go execution/contract packages where applicable; neither may independently compile Contract-to-CAPI resources.
+
+### 17. Preserve the existing CLI paths until migration is proven
+
+The existing `ok` binary currently rewrites `ok up` to `ok cluster create` (`cmd/ok/command_aliases.go`), including existing bounded Runner/Authority preparation and explicit execution gates. It does **not** invoke M2b `ok cluster provision`.
+
+The separately implemented `ok cluster plan`, `ok cluster provision`, and `ok cluster destroy` form an **expert/operator** Talos/KubeVirt Same-Plane path with trusted Make/Python tooling, explicit identity/approval checks and UID-bound schema-3 evidence. They remain operationally distinct until proven compatible with this ADR; a CLI prompt alone is not independent Policy acceptance.
+
+The experimental `ok preview` currently reads `cli.openkubes.io/v1alpha1` `Cluster/talos-kubevirt-mvp` via the legacy strict local parser and reports `LOCAL_VALIDATION_ONLY`. M2b accepts a different `ClusterRequest/talos-kubevirt-reference` schema. Neither is automatically the public canonical OpenKubes Contract reserved in this ADR. In particular:
+
+- The same `openkubes.yaml` filename does not imply schema compatibility.
+- A local intent digest is **not** an accepted Contract revision, authorization digest, transition ID, IP reservation or readiness proof.
+- The public authoring schema and normalization/conversion rules MUST be versioned, deterministic and tested before one-command live execution is enabled.
+- No routing change may silently reinterpret legacy `ok up --file` invocations as M2b mutations. Compatibility, migrations and negative routing tests MUST be reviewed first.
+- Missing Authority, invalid profile, unverified cluster identity, stale plan or unknown existing cluster MUST STOP; they MUST NOT fall back to Make provisioning or an ambient kubeconfig.
+
+The sanctioned path for reducing product complexity is to **reuse and unify verified internal Contracts and execution capabilities**, not merely alias current command names.
+
+### 18. Initial ownership and adoption of existing clusters
+
+Authority revision `ABSENT` is not by itself proof that no Kubernetes infrastructure or previously provisioned workload cluster with the same name exists.
+
+An already M2b-provisioned cluster MUST NOT trigger a second `CreateCluster` merely because the new Authority Profile lacks a corresponding revision. Before accepting `ABSENT -> R1`, the executor MUST verify inventory and target identity and rule out pre-existing unmanaged resources across the supported management/provider scope.
+
+Adopting an existing cluster requires a **separately designed, explicit authorization and ownership transition** (or approved out-of-band registration with equivalent evidence). It MUST bind existing resource identities (including relevant UIDs), management/provider API identities, provenance, original teardown evidence, target Contract revision, and exact resource ownership; it MUST NOT mutate or assume ownership opportunistically.
+
+Unknown, partial, conflicting, or orphaned state fails closed with a reviewed recovery route. These rules also protect against changed kubeconfigs, accidental tenant crossover, and uncontrolled reprovisioning.
+
+### 19. Deletion and evidence interoperability
+
+The future product `ok down` MUST remain an authorized `DeleteCluster` transition with the `DESIRED_ABSENT -> CONFIRMED_ABSENT` evidence progression specified in section 10. It MUST NOT be implemented as an alias to `ok cluster destroy`, bypass finalizers, discard pending cleanup identities or declare success from a missing namespace alone.
+
+For the Talos/KubeVirt Same-Plane execution profile, existing M2b original-UID/schema-3 teardown, Retain PV cleanup, Golden Image protection and independent absence-verification constraints are **additional provider safeguards**. Product deletion may delegate a reviewed, authorized bounded operation to those capabilities only if it preserves BOTH this ADR's durable desired-state deletion intent AND the provider-specific evidence/identity invariants. No second deletion state machine.
+
+Until `DeleteCluster` and its Authority Profile are conformant, `ok down` remains **unsupported**, and expert `ok cluster destroy` is the explicit operator command.
+
+### 20. Phased implementation and acceptance boundary
+
+1. **M3.1: unify the command/contract decision.** Maintain existing routing, record a compatibility matrix, use the experimental offline `ok preview` only for local UX exploration, and approve a single versioned authoring schema before product routing changes. The CLI routing proposal in OK-226 is subordinate to this ADR.
+2. **M3.2: one verified onboarding profile.** Pin operator paths/configuration and supported Same-Plane platform capabilities; no automatic administrator kubeconfig or topology choice. Distinguish locally verified prerequisites from independently proven authority/infrastructure readiness.
+3. **M3.3: authorized CreateCluster / NoOp.** Use OK-147/OK-148 canonicalization, authorization, claim, atomic acceptance, bounded execution, observation and evidence. Tests MUST show no second Contract-to-CAPI compiler, no bypass via CLI versus Job, no duplicate creation on unknown ownership, and no synthetic success from Make exit.
+4. **M3.4: DeleteCluster.** Add `ok down` only after the separate desired-absence contract, independent provider cleanup evidence, interrupted-teardown recovery and API identity proof pass. Until then, do not expose a misleading product deletion command.
+5. **M3.5: release readiness.** Independently review the security design, verify the exact signed/installable binary, human-test the release artifact and disposition outstanding supplementary QEMU teardown checks. `v0.1.0-beta.1` remains deferred until these gates pass.
+
+**M4 Zero-to-Cluster Bootstrap is separate:** temporary local `kind`, supported external infrastructure provider, durable `ok-infra`, controlled CAPI pivot, and independently verified ownership transfer are not required to ship M3 on an existing infra cluster. The existing CAPK Same-Plane path cannot create the initial KubeVirt infrastructure from nothing.
+
+### 21. Additional falsifiable acceptance evidence for consolidation
+
+In addition to the twelve acceptance criteria below, the consolidated design MUST be demonstrated with:
+
+1. A single canonical Contract/operation representation for all supported frontends and CLI/Job execution profiles; no second desired-state writer or Contract-to-CAPI compiler.
+2. Versioned fixtures proving canonical equivalence, explicit profile-specific conversion, and unambiguous rejection of mixed legacy `Cluster`, M2b `ClusterRequest`, and public authoring input.
+3. Positive and negative Same-Plane target identity tests, and explicit failure rather than switching to ambient kubeconfig or Split-Plane.
+4. Missing Policy Authority and failed/stale grant tests proving `ok up` never silently routes to M2b Make provisioning.
+5. Unknown/preexisting M2b cluster and ambiguous adoption tests proving no duplicate `CreateCluster` or unapproved ownership takeover.
+6. A documented one-confirmation invariant test demonstrating all post-confirmation changes remain bound to the approved immutable plan; otherwise retention of a separate gate.
+7. Authorized deletion tests that retain `DESIRED_ABSENT` and schema-3 teardown proof on partial failure, independent absence observation, and unrelated resources/Golden Images preservation.
+8. Routing compatibility and release-artifact tests that prevent accidental reinterpretation of existing `ok up` flags and unsupported command behavior.
+
+This consolidation is a **normative design proposal**, not proof that the tests have passed; the `Proposed -> Accepted` rule remains the existing twelve evidence requirements **plus** these profile-specific proof obligations.
+
 ## Consequences
 
 ### Positive
