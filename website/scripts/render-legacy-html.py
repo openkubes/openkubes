@@ -28,6 +28,7 @@ def render(source):
         f"<title>{escape(title)} | OpenKubes</title>"
         '<link rel="stylesheet" href="/assets/openkubes-navigation.css">'
         '<link rel="stylesheet" href="/assets/openkubes-branding.css">'
+        '<link rel="icon" type="image/svg+xml" href="/openkubes-cube-v2.svg">'
         '<style>body{margin:0;color:#222;font:16px/1.6 system-ui,sans-serif}'
         'main{max-width:940px;margin:2rem auto;padding:0 1.25rem}'
         'pre{overflow:auto;padding:1rem;background:#f2f4f8}'
@@ -36,7 +37,8 @@ def render(source):
         '<nav class="ok-global-nav" aria-label="OpenKubes primary navigation">'
         '<div class="ok-global-nav__inner">'
         '<a class="ok-global-nav__brand ok-global-nav__brand--text" href="/" aria-label="OpenKubes Home">' + WORDMARK + '</a>'
-        f'<div class="ok-global-nav__links">{links}</div></div></nav>'
+        f'<div class="ok-global-nav__links">{links}</div>'
+        "<a class=\"ok-global-nav__github\" href=\"https://github.com/orgs/openkubes/repositories\" target=\"_blank\" rel=\"noopener noreferrer\" aria-label=\"OpenKubes GitHub repositories\" title=\"All OpenKubes repositories\"><svg viewBox=\"0 0 24 24\" width=\"19\" height=\"19\" aria-hidden=\"true\" focusable=\"false\" fill=\"currentColor\"><path d=\"M12 .75a11.25 11.25 0 0 0-3.558 21.925c.563.105.77-.245.77-.544 0-.27-.01-1.155-.016-2.096-3.132.68-3.793-1.328-3.793-1.328-.512-1.3-1.25-1.645-1.25-1.645-1.022-.7.078-.685.078-.685 1.13.08 1.726 1.16 1.726 1.16 1.005 1.722 2.637 1.224 3.281.936.101-.727.393-1.224.715-1.505-2.5-.284-5.128-1.25-5.128-5.56 0-1.229.439-2.234 1.16-3.021-.116-.284-.502-1.428.11-2.98 0 0 .945-.303 3.095 1.154A10.76 10.76 0 0 1 12 6.174c.96.005 1.926.13 2.83.38 2.149-1.457 3.092-1.154 3.092-1.154.614 1.552.228 2.696.112 2.98.722.787 1.158 1.792 1.158 3.02 0 4.322-2.632 5.274-5.14 5.553.403.35.762 1.036.762 2.089 0 1.51-.014 2.727-.014 3.09 0 .302.204.655.775.544A11.252 11.252 0 0 0 12 .75Z\"/></svg></a></div></nav>"
         f'<main><article>{body}</article></main></body></html>\n'
     )
 

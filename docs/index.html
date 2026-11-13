@@ -8,8 +8,9 @@
 <meta name="robots" content="index, follow, max-image-preview:large">
 <meta name="theme-color" content="#0a1120">
 <link rel="canonical" href="https://openkubes.org/">
-<link rel="icon" type="image/png" href="https://openkubes.org/openkubes-logo.png">
-<link rel="apple-touch-icon" href="https://openkubes.org/openkubes-logo.png">
+<link rel="icon" type="image/svg+xml" href="/openkubes-cube-v2.svg">
+<link rel="alternate icon" type="image/png" href="/openkubes-logo.png">
+<link rel="apple-touch-icon" href="/openkubes-logo.png">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="OpenKubes">
 <meta property="og:locale" content="en_US">
@@ -106,6 +107,11 @@
     max-width:620px;
     margin:0 auto 2rem;
   }
+  /* Lightweight community call-to-action above the philosophy panel. */
+  .community-invite{width:min(calc(100% - 32px),1120px);margin:18px auto 0;padding:.72rem 1rem;text-align:center;border:1px solid #c7dfea;border-radius:10px;background:#ecf8fb;color:#17354a;font-size:clamp(.92rem,1.5vw,1rem);font-weight:600;line-height:1.5;}
+  .community-invite a{color:#075e88;font-weight:800;text-decoration:underline;text-underline-offset:3px;}
+  .community-invite a:hover{color:#064669;}
+  .community-invite a:focus-visible{outline:3px solid #0969da;outline-offset:3px;}
   /* Meta-framework positioning hero; independent of the platform animation. */
   .meta-hero{
     max-width:1100px;
@@ -496,6 +502,8 @@
 <script src="assets/openkubes-console-carousel.js" defer></script>
 </head>
 <body>
+
+<aside class="community-invite" aria-label="OpenKubes community support">Get support. Contribute. Join us on <a href="https://slack.kubernauts.io">Slack</a>. 🚀</aside>
 
 <div id="ok-mkdocs-philosophy" class="ok-philosophy" role="region" aria-labelledby="ok-philosophy-title">
   <h2 id="ok-philosophy-title" class="ok-philosophy__eyebrow">THE OPENKUBES PHILOSOPHY</h2>
