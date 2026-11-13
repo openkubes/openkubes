@@ -13,3 +13,10 @@
 .ok-global-nav__github:hover,.ok-global-nav__github:focus-visible{background:#273955;color:#fff!important}
 .ok-global-nav__github:focus-visible{outline:2px solid #76d1ff;outline-offset:2px}
 .ok-global-nav__github svg{display:block;width:20px;height:20px}
+
+/* Social links: GitHub, Slack and X form one compact responsive icon row. */
+.ok-global-nav__slack,.ok-global-nav__x{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;min-width:38px;min-height:38px;padding:.45rem;color:#e2e8f0!important;border-radius:.45rem;text-decoration:none!important}
+.ok-global-nav__slack:hover,.ok-global-nav__slack:focus-visible,.ok-global-nav__x:hover,.ok-global-nav__x:focus-visible{background:#273955;color:#fff!important}
+.ok-global-nav__slack:focus-visible,.ok-global-nav__x:focus-visible{outline:2px solid #76d1ff;outline-offset:2px}
+.ok-global-nav__slack svg,.ok-global-nav__x svg{display:block;width:20px;height:20px}
+@media(max-width:720px){.ok-global-nav__github,.ok-global-nav__slack,.ok-global-nav__x{min-width:36px;min-height:36px}}
