@@ -6,6 +6,7 @@ site_dir: .mkdocs-site
 theme:
   name: material
   custom_dir: website/overrides
+  favicon: openkubes-cube-v2.svg
   palette:
     scheme: default
     primary: blue

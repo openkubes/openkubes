@@ -7,3 +7,9 @@
 .ok-global-nav__links a:hover,.ok-global-nav__links a:focus-visible{background:#273955;color:#fff!important}
 .ok-global-nav__links a[aria-current=page]{background:#284d80;color:#fff!important}
 @media(max-width:720px){.ok-global-nav{padding:.65rem 1rem}.ok-global-nav__inner{justify-content:center}.ok-global-nav__links{justify-content:center}.ok-global-nav__links a{font-size:.83rem;padding:.4rem .48rem}}
+
+/* Repository icon remains aligned after Community on desktop and mobile. */
+.ok-global-nav__github{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;min-width:38px;min-height:38px;padding:.45rem;color:#e2e8f0!important;border-radius:.45rem;text-decoration:none!important}
+.ok-global-nav__github:hover,.ok-global-nav__github:focus-visible{background:#273955;color:#fff!important}
+.ok-global-nav__github:focus-visible{outline:2px solid #76d1ff;outline-offset:2px}
+.ok-global-nav__github svg{display:block;width:20px;height:20px}

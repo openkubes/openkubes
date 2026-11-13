@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+<title id="title">OpenKubes Cube v2 · Eight-color study</title>
+<defs>
+<linearGradient id="crown" x1=".1" y1=".1" x2=".85" y2=".95"><stop stop-color="#27A8F2"/><stop offset="1" stop-color="#087FED"/></linearGradient>
+<linearGradient id="cubeTop" x1=".05" y1="0" x2=".9" y2="1"><stop stop-color="#76D1FF"/><stop offset="1" stop-color="#2E75CF"/></linearGradient>
+<linearGradient id="cubeLeft" x1=".05" y1="0" x2=".95" y2="1"><stop stop-color="#176BC4"/><stop offset="1" stop-color="#083C86"/></linearGradient>
+<linearGradient id="cubeRight" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#25C5CE"/><stop offset="1" stop-color="#087C98"/></linearGradient>
+<linearGradient id="lowerBlue" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#287DE0"/><stop offset="1" stop-color="#1559B5"/></linearGradient>
+<linearGradient id="green" x1=".15" y1="0" x2="1" y2="1"><stop stop-color="#42D98E"/><stop offset="1" stop-color="#158B4A"/></linearGradient>
+<linearGradient id="rightOrange" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#FFA52D"/><stop offset="1" stop-color="#E68E15"/></linearGradient>
+<linearGradient id="lowerOrange" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#F47B16"/><stop offset="1" stop-color="#EB5414"/></linearGradient>
+</defs>
+<!-- Eight independent color-coded faces, same silhouette as v1. -->
+<path fill="url(#green)" d="M4 165 Q4 150 19 141 L123 66 V155 L77 180 V273 L4 304 Z"/>
+<path fill="url(#crown)" d="M144 56 226 10 Q240 2 253 10 L463 121 383 164 241 92 144 143 Z"/>
+<path fill="url(#rightOrange)" d="M403 182 478 142 V299 L403 269 Z"/>
+<path fill="url(#lowerBlue)" d="M4 329 77 297 V342 L227 417 V503 Q223 508 217 504 L19 404 Q4 397 4 378 Z"/>
+<path fill="url(#lowerOrange)" d="M255 418 403 343 V294 L478 327 V383 Q478 396 462 404 L266 505 Q255 511 255 497 Z"/>
+<!-- Center cube with original negative-space channels. -->
+<path fill="url(#cubeTop)" d="M115 190 240 127 366 190 240 250 Z"/>
+<path fill="url(#cubeLeft)" d="M99 206 227 271 V388 L99 327 Z"/>
+<path fill="url(#cubeRight)" d="M255 271 382 205 V327 L255 388 Z"/>
+</svg>
