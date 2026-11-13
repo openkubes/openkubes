@@ -4,6 +4,7 @@
 - **Date:** 2026-10-27
 - **Date updated:** 2026-11-13
 - **Decision scope:** Console client identity to the observed-state producer; design only
+- **Tracking:** https://kubernauts.atlassian.net/browse/OK-210
 - **Related:** ADR-Platform-025, ADR-Platform-037
 
 ## Context
