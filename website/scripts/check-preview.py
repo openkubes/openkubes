@@ -43,9 +43,31 @@ def main():
     if "ok-global-nav" not in html or "OpenKubes primary navigation" not in html:
         raise SystemExit("Missing shared homepage navigation")
     if 'class="ok-global-nav__brand ok-global-nav__brand--text"' not in html:
-        raise SystemExit("Missing text-only homepage branding")
+        raise SystemExit("Missing homepage wordmark link")
     if '<img src="/openkubes-logo.png"' in html.split('ok-global-nav__links',1)[0]:
         raise SystemExit("Unexpected logo image in shared homepage navigation")
+    wordmark = (ROOT / "website/overrides/partials/openkubes-wordmark.html").read_text(encoding="utf-8").strip()
+    if wordmark not in html or 'aria-label="OpenKubes Home"' not in html:
+        raise SystemExit("Missing accessible multicolor navigation wordmark")
+    if html.count('id="ok-mkdocs-philosophy"') != 1:
+        raise SystemExit("Expected exactly one homepage philosophy component")
+    if html.index('id="ok-mkdocs-philosophy"') > html.index('<header>'):
+        raise SystemExit("Philosophy must precede the existing homepage hero")
+    for asset in ("openkubes-branding.css", "openkubes-branding.js"):
+        if not (SITE / "assets" / asset).is_file() or f'/assets/{asset}' not in html:
+            raise SystemExit(f"Missing homepage branding asset: {asset}")
+    console_start = html.index('id="ok-home-console-en"')
+    if not html.index('class="console-launch"') < console_start < html.index('class="platform-hero"'):
+        raise SystemExit("Console gallery must appear between installer announcement and hero animation")
+    for name in ("agent-catalog", "cluster-inventory", "ai-diagnostics-preview"):
+        relative = f"assets/images/console/ok-console-{name}.webp"
+        if not (SITE / relative).is_file() or f'src="{relative}"' not in html:
+            raise SystemExit(f"Missing Console screenshot: {relative}")
+    for name in ("openkubes-console-gallery.css", "openkubes-console-carousel.js"):
+        if not (SITE / "assets" / name).is_file() or f'assets/{name}' not in html:
+            raise SystemExit(f"Missing Console gallery asset: {name}")
+    if "Open Code. Public Repositories. Transparent Decisions." not in html:
+        raise SystemExit("Console Open Source panel is missing")
     for href in ("/", "/features/", "/architecture/", "/blog/", "/docs/", "/community/"):
         if f'href="{href}"' not in html:
             raise SystemExit(f"Navigation link missing: {href}")
@@ -60,6 +82,10 @@ def main():
             page_html = output.read_text(encoding="utf-8")
             if section == "features" and 'ok-global-nav__brand--text' not in page_html:
                 raise SystemExit("OpenKubes text brand missing from Material navigation")
+            if wordmark not in page_html:
+                raise SystemExit(f"Multicolor navigation wordmark missing on {section}")
+            if 'id="ok-mkdocs-philosophy"' in page_html:
+                raise SystemExit(f"Homepage philosophy unexpectedly rendered on {section}")
             if "OpenKubes primary navigation" not in page_html:
                 raise SystemExit(f"Shared navigation missing on {section}")
     if not (SITE / "assets" / "openkubes-theme.css").is_file():

@@ -1,0 +1,80 @@
+# OK-211 preflight raw record
+date_utc: 2026-10-30T13:57:48Z
+commit: 1b0739fc022418472980c835acaa67021e03192a
+
+== host
+arch: arm64
+  ProductName:		macOS
+  ProductVersion:		27.0.1
+  BuildVersion:		26A434
+cpus: 10
+memsize_bytes: 25769803776
+loadavg: { 3,90 5,68 5,64 }
+available_pages: 417435  page_size: 16384  available_gib: 6,37  (STOP-8 formula)
+memory_pressure: System-wide memory free percentage: 52%
+disk_free: 100Gi of 926Gi
+docker_desktop: not running
+
+== multipass (read only)
+  multipass   1.16.4+mac
+  multipassd  1.16.4+mac
+local.driver: qemu
+multipass list:
+  No instances found.
+
+== ssh (existence and fingerprints only)
+pubkey: ~/.ssh/id_rsa.pub  2048 SHA256:/IFc0mrbcsedgs+IWOWxarVPWB27MQfcIfBGgj1BURc
+agent: holds the key
+
+== ports
+port 6450: free
+port 6443: free
+port 6444: free
+
+== kubeconfig isolation
+KUBECONFIG: ~/temp/kubernauts/ok/openkubes-ok-211/architecture/spikes/OK-211-knative-serverless/.local/kubeconfig
+kubeconfig file: absent
+
+== tools
+multipass    /usr/local/bin/multipass
+ssh          /usr/bin/ssh
+scp          /usr/bin/scp
+curl         /usr/bin/curl
+jq           /usr/bin/jq
+yq           /opt/homebrew/bin/yq
+helm         /opt/homebrew/bin/helm
+shellcheck   /opt/homebrew/bin/shellcheck
+yamllint     /opt/homebrew/bin/yamllint
+oras         /opt/homebrew/bin/oras
+cosign       /opt/homebrew/bin/cosign
+argocd       /opt/homebrew/bin/argocd
+gh           /opt/homebrew/bin/gh
+kubeconform  
+mmdc         
+openssl@3    OpenSSL 3.6.4 25 Aug 2026 (Library: OpenSSL 3.6.4 25 Aug 2026)
+kubectl      not pinned yet (make kubectl-pin)
+
+== local manifests vs. versions.env
+1.23/serving-crds.yaml: ok
+1.23/serving-core.yaml: ok
+1.23/serving-post-install-jobs.yaml: ok
+1.23/serving-storage-version-migration.yaml: ok
+1.23/kourier.yaml: ok
+1.23/eventing-crds.yaml: ok
+1.23/eventing-core.yaml: ok
+1.23/in-memory-channel.yaml: ok
+1.23/mt-channel-broker.yaml: ok
+1.23/eventing-post-install.yaml: ok
+1.23/event-display.yaml: ok
+1.24/serving-crds.yaml: ok
+1.24/serving-core.yaml: ok
+1.24/serving-post-install-jobs.yaml: ok
+1.24/serving-storage-version-migration.yaml: ok
+1.24/kourier.yaml: ok
+1.24/eventing-crds.yaml: ok
+1.24/eventing-core.yaml: ok
+1.24/in-memory-channel.yaml: ok
+1.24/mt-channel-broker.yaml: ok
+1.24/eventing-post-install.yaml: ok
+1.24/event-display.yaml: ok
+cert-manager/cert-manager.yaml: ok

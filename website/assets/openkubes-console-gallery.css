@@ -1,0 +1,6 @@
+/* Integration-only additions to the supplied section's original inline design. */
+#ok-home-console-en button:focus-visible,
+#ok-home-console-en a:focus-visible { outline: 3px solid #ffd45a; outline-offset: 3px; }
+#ok-home-console-en dialog::backdrop { background: rgba(5, 16, 39, .85); }
+#ok-home-console-en dialog button:focus-visible,
+#ok-home-console-en a[href="https://github.com/openkubes"]:focus-visible { outline-color: #1d55a0; }

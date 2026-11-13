@@ -1,0 +1,19 @@
+# S8 2026-10-31T10:07:26Z
+## traffic after step 2
+[{"latestRevision":false,"percent":80,"revisionName":"podinfo-split-v6160"},{"latestRevision":false,"percent":20,"revisionName":"podinfo-split-v6170","tag":"candidate","url":"http://candidate-podinfo-split.ok211-serving.ok211.internal"}]
+## warm-up: 20 requests (both revisions get a pod)
+     18 6.16.0
+      2 6.17.0
+## 200 requests to podinfo-split
+    156 6.16.0
+     44 6.17.0
+## 20 requests to the tag host candidate-…
+     20 6.17.0
+## revisions: revision.serving.knative.dev/podinfo-split-v6160 revision.serving.knative.dev/podinfo-split-v6170 
+## after rollback: traffic
+[{"latestRevision":false,"percent":100,"revisionName":"podinfo-split-v6160"},{"latestRevision":false,"percent":0,"revisionName":"podinfo-split-v6170","tag":"candidate","url":"http://candidate-podinfo-split.ok211-serving.ok211.internal"}]
+## 200 requests after rollback
+    200 6.16.0
+## 20 requests to the tag host after rollback
+     20 6.17.0
+## revisions: revision.serving.knative.dev/podinfo-split-v6160 revision.serving.knative.dev/podinfo-split-v6170 

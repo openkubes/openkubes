@@ -1,0 +1,26 @@
+{
+  "method": "POST",
+  "path": "/",
+  "ce_headers": {
+    "ce-id": "e05846b0-df32-4927-a35e-bf74c2c05ffb",
+    "ce-source": "zotregistry.dev",
+    "ce-specversion": "1.0",
+    "ce-time": "2026-10-29T11:54:49.608962546Z",
+    "ce-type": "zotregistry.image.updated"
+  },
+  "body": {
+    "actor": {
+      "name": "gitops-publisher"
+    },
+    "digest": "sha256:937bb049b19af3eeeb5e0331ccc93cbb71b3e7e29fbf373bdfec6d421514173c",
+    "manifest": "{\"schemaVersion\":2,\"mediaType\":\"application/vnd.oci.image.manifest.v1+json\",\"artifactType\":\"application/vnd.openkubes.test.v1\",\"config\":{\"mediaType\":\"application/vnd.oci.empty.v1+json\",\"digest\":\"sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a\",\"size\":2,\"data\":\"e30=\"},\"layers\":[{\"mediaType\":\"application/vnd.openkubes.test.v1+text\",\"digest\":\"sha256:ca13c72a2249110a41c9141d909e02b09cd0fbe598562a62c403cd9ecc2d3ac0\",\"size\":20,\"annotations\":{\"org.opencontainers.image.title\":\"smoke.txt\"}}],\"annotations\":{\"org.opencontainers.image.created\":\"2026-10-29T11:54:49Z\"}}",
+    "mediaType": "application/vnd.oci.image.manifest.v1+json",
+    "name": "openkubes/machine/gitops/smoke",
+    "reference": "v1",
+    "request": {
+      "addr": "10.244.0.1:11807",
+      "method": "PUT",
+      "useragent": "oras/1.3.6+Homebrew"
+    }
+  }
+}

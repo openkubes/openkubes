@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="850" viewBox="0 0 1200 850" role="img" aria-labelledby="title desc">
+<title id="title">OpenShell meets OpenKubes — hosted and external AI agent architecture</title>
+<desc id="desc">OpenKubes Console above two separate agent paths: hosted agents in an OpenShell candidate sandbox and external agents in independently managed runtimes. Both use non-authoritative diagnostics and candidate proposal interfaces, then trusted review, policy, execution, reconciliation and independent evidence.</desc>
+<defs>
+<style>.heading{font:700 28px system-ui,Arial,sans-serif;fill:#17283b}.sub{font:400 19px system-ui,Arial,sans-serif;fill:#526477}.mid{font:600 23px system-ui,Arial,sans-serif;fill:#17283b}.small{font:400 17px system-ui,Arial,sans-serif;fill:#526477}.line{stroke:#426885;stroke-width:3;fill:none;stroke-linejoin:round;stroke-linecap:round}.edge{fill:#426885}</style>
+<marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0 L10 5 L0 10" fill="#426885"/></marker>
+</defs>
+<rect width="1200" height="850" rx="24" fill="#f7f9fc"/>
+<rect x="55" y="38" width="1090" height="108" rx="19" fill="#eaf2fc" stroke="#cadced" stroke-width="2"/>
+<text class="heading" x="600" y="88" text-anchor="middle">OpenKubes Console / CLI</text>
+<text class="sub" x="600" y="119" text-anchor="middle">User experience · Human review · Approvals · Evidence</text>
+<path d="M600 147 V185" class="line" marker-end="url(#arrow)"/>
+<rect x="55" y="192" width="523" height="170" rx="20" fill="#eaf6f0" stroke="#abd9c3" stroke-width="2"/>
+<text class="mid" x="317" y="242" text-anchor="middle">Hosted AI Agents</text>
+<text class="sub" x="317" y="276" text-anchor="middle">OpenShell secure runtime candidate</text>
+<text class="small" x="317" y="314" text-anchor="middle">Sandbox · Runtime policies · Credentials</text>
+<rect x="622" y="192" width="523" height="170" rx="20" fill="#eef1f7" stroke="#cdd8e9" stroke-width="2"/>
+<text class="mid" x="883" y="242" text-anchor="middle">External AI Agents</text>
+<text class="sub" x="883" y="276" text-anchor="middle">Any compatible independently hosted framework</text>
+<text class="small" x="883" y="314" text-anchor="middle">Authenticated · Scoped · No direct authority</text>
+<path d="M317 362 V405 H600 V430 M883 362 V405 H600" class="line" marker-end="url(#arrow)"/>
+<rect x="115" y="438" width="970" height="111" rx="18" fill="#fff" stroke="#9fb9d9" stroke-width="2"/>
+<text class="mid" x="600" y="481" text-anchor="middle">OpenKubes-owned Agent Interface</text>
+<text class="sub" x="600" y="512" text-anchor="middle">Read-only diagnostics · Untrusted candidate proposals · MCP adapter possible</text>
+<path d="M600 549 V589" class="line" marker-end="url(#arrow)"/>
+<rect x="70" y="596" width="1060" height="156" rx="19" fill="#eaf0fc" stroke="#7b9dca" stroke-width="2"/>
+<text class="mid" x="600" y="632" text-anchor="middle">Trusted OpenKubes Operations Boundary</text>
+<text class="sub" x="600" y="666" text-anchor="middle">Attested provenance → Canonicalization → Protected human approval → Policy</text>
+<text class="sub" x="600" y="695" text-anchor="middle">Single-use grant → Contract Executor → CAS authority → CAPI / GitOps</text>
+<text class="sub" x="600" y="725" text-anchor="middle">Independent evidence · Historical outcome ≠ Current health</text>
+<text class="small" x="600" y="810" text-anchor="middle">Proposed integration architecture · Not an implemented OpenShell deployment · ADR-Platform-042</text>
+</svg>

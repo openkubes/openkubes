@@ -13,7 +13,7 @@ The first Developer Workspace profile uses [OpenCode](https://opencode.ai/) as a
 - A declared verification command, with independent checking of the agent's reported result.
 - Evidence export and controlled cleanup for ephemeral workspaces.
 
-These are **candidate contract semantics under validation**, not guarantees of a generally available hosted coding workspace.
+These are **accepted contract semantics whose implementation is still under validation**, not guarantees of a generally available hosted coding workspace.
 
 ## OpenCode and the second-runtime proof
 

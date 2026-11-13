@@ -1,0 +1,51 @@
+# OK-211 — measurement namespace and the long-running probe pod (BRIEF B11).
+# Measurements run inside the cluster so the SSH tunnel and the Mac network do
+# not distort them. The image is rendered from versions.env (CURL_IMAGE).
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ok211-load
+  labels:
+    app.kubernetes.io/part-of: ok211
+    pod-security.kubernetes.io/enforce: restricted
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: ok211-probe
+  namespace: ok211-load
+  labels:
+    app.kubernetes.io/name: ok211-probe
+    app.kubernetes.io/part-of: ok211
+spec:
+  automountServiceAccountToken: false
+  terminationGracePeriodSeconds: 1
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 100
+    runAsGroup: 101
+    seccompProfile:
+      type: RuntimeDefault
+  containers:
+    - name: probe
+      image: __CURL_IMAGE__
+      command: ["sleep", "infinity"]
+      volumeMounts:
+        - name: work
+          mountPath: /work
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop: ["ALL"]
+      resources:
+        requests:
+          cpu: 10m
+          memory: 16Mi
+        limits:
+          cpu: "1"
+          memory: 128Mi
+  volumes:
+    - name: work
+      emptyDir:
+        sizeLimit: 64Mi

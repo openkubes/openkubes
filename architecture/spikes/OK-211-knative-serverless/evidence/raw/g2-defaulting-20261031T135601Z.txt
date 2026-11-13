@@ -1,0 +1,2 @@
+# G2 2026-10-31T13:56:01Z — ksvc g2-podinfo applied server-side (field manager ok211), then diffed
+## client-side kubectl diff: exit 0

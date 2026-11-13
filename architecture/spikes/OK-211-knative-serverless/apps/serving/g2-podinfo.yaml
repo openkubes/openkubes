@@ -1,0 +1,15 @@
+# OK-211 G2 — a minimal ksvc as a GitOps tool would hold it: no defaults written out.
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: g2-podinfo
+  namespace: ok211-serving
+  labels:
+    app.kubernetes.io/part-of: ok211
+spec:
+  template:
+    spec:
+      containers:
+        - image: __PODINFO_IMAGE_6_16_0__
+          ports:
+            - containerPort: 9898

@@ -3,7 +3,7 @@
 Steps in this tutorial are labelled **Tested** (exercised in the recorded run described below) or **Proposed** (not exercised; a template you adapt).
 
 !!! warning "Reference implementation — not production-ready"
-    ADR-Platform-039 is **Proposed**. This tutorial demonstrates one bounded fixture task on a disposable cluster. It does not establish general agent capability, performance, hostile multi-tenant isolation, or production readiness.
+    ADR-Platform-039 is **Accepted** as the architectural contract; its nine readiness gates remain open. This tutorial demonstrates one bounded fixture task on a disposable cluster. It does not establish general agent capability, performance, hostile multi-tenant isolation, or production readiness.
 
 ## What you will do
 

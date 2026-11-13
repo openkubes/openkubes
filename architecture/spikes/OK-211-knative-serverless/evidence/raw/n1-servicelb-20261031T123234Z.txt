@@ -1,0 +1,25 @@
+# N1 2026-10-31T12:32:34Z
+## LoadBalancer services
+NAMESPACE        NAME      TYPE           CLUSTER-IP     EXTERNAL-IP     PORT(S)                      AGE   SELECTOR
+kourier-system   kourier   LoadBalancer   10.43.179.87   192.168.252.2   80:32500/TCP,443:32213/TCP   22h   app=3scale-kourier-gateway
+## kourier service ports (port:nodePort)
+http2 80 -> nodePort 32500, targetPort 8080
+https 443 -> nodePort 32213, targetPort 8443
+## svclb pods in kube-system
+NAME                           READY   STATUS    RESTARTS      AGE   IP           NODE               NOMINATED NODE   READINESS GATES
+svclb-kourier-4dbecc97-785x7   2/2     Running   2 (22h ago)   22h   10.42.0.30   ok-knative-local   <none>           <none>
+## svclb hostPorts
+svclb-kourier-4dbecc97-785x7 lb-tcp-80 hostPort=80
+svclb-kourier-4dbecc97-785x7 lb-tcp-443 hostPort=443
+## second LoadBalancer ok211-n1-second-lb after 20 s
+{"ingress":null,"type":"LoadBalancer"}
+NAME                 TYPE           CLUSTER-IP      EXTERNAL-IP   PORT(S)                      AGE   SELECTOR
+ok211-n1-second-lb   LoadBalancer   10.43.214.237   <pending>     80:30915/TCP,443:32389/TCP   21s   app.kubernetes.io/name=ok211-n1-nothing
+## its svclb pods
+NAME                                      READY   STATUS    RESTARTS   AGE   IP       NODE     NOMINATED NODE   READINESS GATES
+svclb-ok211-n1-second-lb-e69039f7-dtp9t   0/2     Pending   0          20s   <none>   <none>   <none>           <none>
+svclb-ok211-n1-second-lb-e69039f7-dtp9t phase=Pending Unschedulable 0/1 nodes are available: 1 node(s) didn't have free ports for the requested pod ports. no new claims to deallocate, preemption: 0/1 nodes are available: 1 node(s) didn't have free ports for the requested pod ports.
+## events
+2026-10-31T12:32:34Z EnsuringLoadBalancer Ensuring load balancer
+2026-10-31T12:32:34Z AppliedDaemonSet Applied LoadBalancer DaemonSet kube-system/svclb-ok211-n1-second-lb-e69039f7
+## removed again at 2026-10-31T12:32:56Z

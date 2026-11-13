@@ -119,3 +119,4 @@ Edge Computing, AI/ML Infrastructure, Robotics, and DBaaS profiles.
 | **019** | [Robotics Fleet Orchestration](ADR-Platform-019-robotics-fleet-orchestration.md) | Robotics fleet management capabilities |
 | **032** | [OpenKubes DBaaS](ADR-Platform-032-openkubes-dbaas.md) | Database-as-a-Service integration profile |
 | **039** | [Developer Workspace Contract](ADR-Platform-039-developer-workspace-contract.md) | Bounded developer and coding-agent execution environments |
+| **042** | [Hosted and External Agentic Operations with OpenShell](ADR-Platform-042-openshell-hosted-external-agentic-operations.md) | **Proposed** — hosted/external agents, secure runtime candidate, governed operations (OK-220) |

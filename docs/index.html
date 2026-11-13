@@ -3,8 +3,28 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>OpenKubes Kubernetes Platform Distribution Framework</title>
-<meta name="description" content="OpenKubes is a framework for building sovereign Kubernetes platform distributions. OpenKubes owns the contracts — components are swappable.">
+<title>OpenKubes | Kubernetes Meta-Framework — Build Your Own Distribution</title>
+<meta name="description" content="OpenKubes is the open-source Kubernetes meta-framework for building your own sovereign platform distribution. Contracts first, evidence driven, human controlled.">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta name="theme-color" content="#0a1120">
+<link rel="canonical" href="https://openkubes.org/">
+<link rel="icon" type="image/png" href="https://openkubes.org/openkubes-logo.png">
+<link rel="apple-touch-icon" href="https://openkubes.org/openkubes-logo.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="OpenKubes">
+<meta property="og:locale" content="en_US">
+<meta property="og:url" content="https://openkubes.org/">
+<meta property="og:title" content="OpenKubes — Your Kubernetes Meta-Framework">
+<meta property="og:description" content="Build your own Kubernetes distribution. An open-source, contracts-first framework for sovereign Kubernetes platforms.">
+<meta property="og:image" content="https://openkubes.org/media/openkubes-hero-light-poster.webp">
+<meta property="og:image:alt" content="OpenKubes Kubernetes platform architecture and cluster overview">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="OpenKubes — Your Kubernetes Meta-Framework">
+<meta name="twitter:description" content="Build your own Kubernetes distribution with open-source blueprints, declarative contracts and evidence-driven operations.">
+<meta name="twitter:image" content="https://openkubes.org/media/openkubes-hero-light-poster.webp">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"SoftwareApplication","name":"OpenKubes","url":"https://openkubes.org/","description":"Open-source Kubernetes meta-framework for building sovereign platform distributions with reusable blueprints and declarative contracts.","applicationCategory":"DeveloperApplication","operatingSystem":"Linux, Kubernetes","license":"https://github.com/openkubes/openkubes/blob/main/LICENSE","codeRepository":"https://github.com/openkubes/openkubes"}
+</script>
 <style>
   :root{
     --bg:#ffffff;
@@ -86,6 +106,42 @@
     max-width:620px;
     margin:0 auto 2rem;
   }
+  /* Meta-framework positioning hero; independent of the platform animation. */
+  .meta-hero{
+    max-width:1100px;
+    margin:0 auto 2rem;
+    padding:clamp(2.5rem,6vw,5rem) clamp(1.4rem,5vw,4.5rem);
+    border:1px solid #21455a;
+    border-radius:22px;
+    background:radial-gradient(circle at 90% 12%,rgba(18,157,165,.18),transparent 37%),linear-gradient(145deg,#0a1120,#11253c);
+    box-shadow:0 18px 48px rgba(9,26,44,.15);
+    text-align:left;
+    color:#f8fafc;
+  }
+  .meta-hero__eyebrow{margin:0 0 1rem;color:#70decf;font-size:.76rem;font-weight:750;letter-spacing:.13em;text-transform:uppercase;}
+  .meta-hero h1{max-width:950px;margin:0 0 1rem;color:#fff;font-size:clamp(2.3rem,6vw,4.6rem);line-height:1.13;letter-spacing:-.045em;font-weight:750;}
+  .meta-hero__brand{display:block;margin-bottom:.1em;white-space:normal;}
+  .meta-hero__brand .ok-wordmark{white-space:nowrap;font-weight:inherit;}
+  .meta-hero__framework{display:block;font-size:.76em;letter-spacing:-.035em;color:#fff;}
+  .meta-hero__framework strong{
+    color:#76d1ff;
+    background:linear-gradient(100deg,#27a8f2 0%,#76d1ff 23%,#2dbf80 48%,#2e75cf 70%,#f47b16 88%,#ffa52d 100%);
+    -webkit-background-clip:text;
+    background-clip:text;
+    -webkit-text-fill-color:transparent;
+    font-weight:inherit;
+  }
+  .meta-hero__distribution{margin:0 0 1.4rem;color:#d9e5ef;font-size:clamp(1.25rem,2.7vw,1.9rem);line-height:1.3;font-weight:550;}
+  .meta-hero__description{max-width:750px;margin:0 0 1rem;color:#b7cad9;font-size:clamp(.98rem,1.4vw,1.1rem);line-height:1.7;}
+  .meta-hero__distinction{max-width:780px;margin:0;color:#c8d6e3;font-size:.94rem;line-height:1.65;}
+  .meta-hero__distinction strong{color:#fff;}
+  .meta-hero__actions{display:flex;flex-wrap:wrap;gap:.8rem;margin-top:2rem;}
+  .meta-hero__actions a{display:inline-flex;align-items:center;justify-content:center;padding:.78rem 1.25rem;border:1px solid #6ae0c8;border-radius:9px;font-size:.94rem;font-weight:700;text-decoration:none;}
+  .meta-hero__actions a:first-child{color:#071d25;background:#6ae0c8;}
+  .meta-hero__actions a:last-child{color:#e5f3f6;border-color:#658394;background:rgba(255,255,255,.04);}
+  .meta-hero__actions a:hover{filter:brightness(1.12);text-decoration:none;}
+  .meta-hero__actions a:focus-visible{outline:3px solid #fff;outline-offset:4px;}
+  @media(max-width:600px){.meta-hero{border-radius:14px}.meta-hero__actions a{width:100%;}}
   /* OK Console launch announcement: prominent but separate from the platform hero. */
   .console-launch{
     width:min(100%,840px);
@@ -434,22 +490,43 @@
     .universe-card{min-height:190px;}
   }
 </style>
+<link rel="stylesheet" href="/assets/openkubes-branding.css">
+<script src="/assets/openkubes-branding.js" defer></script>
+<link rel="stylesheet" href="assets/openkubes-console-gallery.css">
+<script src="assets/openkubes-console-carousel.js" defer></script>
 </head>
 <body>
 
+<div id="ok-mkdocs-philosophy" class="ok-philosophy" role="region" aria-labelledby="ok-philosophy-title">
+  <h2 id="ok-philosophy-title" class="ok-philosophy__eyebrow">THE OPENKUBES PHILOSOPHY</h2>
+  <div class="ok-philosophy__line" aria-hidden="true">
+    <span class="ok-wordmark" aria-hidden="true"><span>O</span><span>p</span><span>e</span><span>n</span><span>K</span><span>u</span><span>b</span><span>e</span><span>s</span><span>.</span></span>
+    <span class="ok-philosophy__message-wrap"><span class="ok-philosophy__message" data-ok-typed>Contracts First.</span><span class="ok-philosophy__cursor" data-ok-cursor hidden></span></span>
+  </div>
+  <span class="ok-sr-only">OpenKubes. Contracts First. Evidence Driven. Human Controlled. Sovereign by Design.</span>
+  <button class="ok-philosophy__pause" type="button" data-ok-pause data-paused="false" aria-label="Pause animation" title="Pause animation" hidden>
+    <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false">
+      <path class="ok-philosophy__icon--pause" d="M7 5h3v14H7zm7 0h3v14h-3z" fill="currentColor"/>
+      <path class="ok-philosophy__icon--play" d="m8 5 11 7-11 7z" fill="currentColor"/>
+    </svg>
+  </button>
+</div>
+
 <header>
-  <nav class="universe-nav" aria-label="OpenKubes Universe">
-    <a href="https://oki.openkubes.org/">Oki <span aria-hidden="true">↗</span></a>
-    <a href="https://aia.openkubes.org/en">Aia <span aria-hidden="true">↗</span></a>
-  </nav>
-  <img class="logo-img" src="openkubes-logo.png" alt="OpenKubes logo">
-  <h1 class="brand-hero">
-    <span class="brand-hero-name">OpenKubes.</span>
-    <span class="brand-hero-line">Your Kubernetes Framework.</span>
-    <span class="brand-hero-line">Built for the Age of AI.</span>
-  </h1>
-  <p class="tagline">OpenKubes is a framework for building sovereign Kubernetes platform distributions — built ADR-first, reviewed three ways, run on infrastructure you control.</p>
-  <p class="tagline"><strong>OpenKubes defines the framework. OKP proves it can run.</strong> OpenKubes Platform (OKP) is its official reference distribution — deploy it as provided, adapt it, or use OpenKubes to build your own OpenKubes-conformant distribution.</p>
+  <div class="meta-hero">
+    <p class="meta-hero__eyebrow">Open source · Kubernetes · Platform Engineering</p>
+    <h1>
+      <span class="meta-hero__brand"><span class="ok-wordmark" aria-label="OpenKubes"><span>O</span><span>p</span><span>e</span><span>n</span><span>K</span><span>u</span><span>b</span><span>e</span><span>s</span><span>.</span></span></span>
+      <span class="meta-hero__framework">Your Kubernetes <strong>Meta-Framework.</strong></span>
+    </h1>
+    <p class="meta-hero__distribution">Build Your Own Kubernetes Distribution.</p>
+    <p class="meta-hero__description">Design, build, and operate sovereign Kubernetes platforms with reusable infrastructure blueprints, declarative contracts, and evidence-driven automation.</p>
+    <p class="meta-hero__distinction"><strong>OpenKubes defines the framework. OKP proves it can run.</strong> OpenKubes Platform (OKP) is the reference distribution — use it as provided, adapt it, or build your own OpenKubes-conformant distribution.</p>
+    <div class="meta-hero__actions">
+      <a href="https://github.com/openkubes/openkubes">Explore OpenKubes ↗</a>
+      <a href="https://github.com/openkubes/ok-local">Try OpenKubes Locally ↗</a>
+    </div>
+  </div>
   <aside class="console-launch" aria-labelledby="console-launch-title">
     <p class="console-launch__eyebrow">🚀 New · OpenKubes Console</p>
     <h2 id="console-launch-title">OpenKubes Console — One-Command Installer is Live!</h2>
@@ -462,6 +539,38 @@
       <a href="https://github.com/openkubes/ok-console">Source on GitHub ↗</a>
     </div>
   </aside>
+<!-- OpenKubes Console + Open Source | OpenCms Flexible Content | EN | V1 -->
+<section id="ok-home-console-en" lang="en" aria-label="OpenKubes Console" style="max-width:1140px;margin:14px auto 22px;padding:0 14px;box-sizing:border-box;font-family:Arial,Helvetica,sans-serif;text-align:left;border-bottom:0;">
+  <div style="border-radius:16px;overflow:hidden;border:1px solid #294d7d;box-shadow:0 10px 27px rgba(17,45,87,.12);">
+    <div style="background:#102e57;color:#fff;padding:32px clamp(18px,4vw,42px) 24px;">
+      <div style="font-size:11px;font-weight:700;letter-spacing:1.7px;color:#8cc6ff;margin:0 0 11px;">OPEN SOURCE · OPENKUBES CONSOLE</div>
+      <h2 style="font-size:clamp(25px,3.3vw,36px);line-height:1.18;letter-spacing:-.5px;font-weight:500;margin:0 0 12px;color:#fff;">Don't just read about it. <span style="color:#ffd45a;">Try it yourself.</span></h2>
+      <p style="font-size:15px;line-height:1.65;color:#d4e4f4;max-width:790px;margin:0 0 22px;">Explore the OpenKubes Console: Agent Catalog, Cluster Inventory and a read-only AI diagnostics preview. Discover the prototype and the publicly documented local evaluation path.</p>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:12px;"><button type="button" data-ok-console-index="0" aria-label="AI Agent Catalog" style="display:block;background:#17395e;border:1px solid #42648d;border-radius:11px;cursor:pointer;padding:0;overflow:hidden;text-align:left;color:white;min-width:0;width:100%;">
+<img src="assets/images/console/ok-console-agent-catalog.webp" alt="OpenKubes Console – AI Agent Catalog" loading="lazy" style="display:block;width:100%;height:auto;aspect-ratio:16/10;object-fit:cover;object-position:top;background:#e9eef5;">
+<span style="display:block;padding:12px 14px 3px;font-size:15px;color:#fff;font-weight:600;">AI Agent Catalog</span><span style="display:block;padding:0 14px 14px;font-size:12px;line-height:1.4;color:#c1d4ea;">Explore agents and catalog entries</span></button><button type="button" data-ok-console-index="1" aria-label="Cluster Inventory" style="display:block;background:#17395e;border:1px solid #42648d;border-radius:11px;cursor:pointer;padding:0;overflow:hidden;text-align:left;color:white;min-width:0;width:100%;">
+<img src="assets/images/console/ok-console-cluster-inventory.webp" alt="OpenKubes Console – Cluster Inventory" loading="lazy" style="display:block;width:100%;height:auto;aspect-ratio:16/10;object-fit:cover;object-position:top;background:#e9eef5;">
+<span style="display:block;padding:12px 14px 3px;font-size:15px;color:#fff;font-weight:600;">Cluster Inventory</span><span style="display:block;padding:0 14px 14px;font-size:12px;line-height:1.4;color:#c1d4ea;">Clusters and status at a glance</span></button><button type="button" data-ok-console-index="2" aria-label="AI Diagnostics Preview" style="display:block;background:#17395e;border:1px solid #42648d;border-radius:11px;cursor:pointer;padding:0;overflow:hidden;text-align:left;color:white;min-width:0;width:100%;">
+<img src="assets/images/console/ok-console-ai-diagnostics-preview.webp" alt="OpenKubes Console – AI Diagnostics Preview" loading="lazy" style="display:block;width:100%;height:auto;aspect-ratio:16/10;object-fit:cover;object-position:top;background:#e9eef5;">
+<span style="display:block;padding:12px 14px 3px;font-size:15px;color:#fff;font-weight:600;">AI Diagnostics Preview</span><span style="display:block;padding:0 14px 14px;font-size:12px;line-height:1.4;color:#c1d4ea;">Read-only preview – no live actions</span></button></div>
+      <p style="font-size:12px;line-height:1.55;color:#adc5de;margin:12px 0 20px;">Console prototype and preview screens. Local evaluation requires development tools and uses a temporary Kind cluster.</p>
+      <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;">
+        <a href="https://openkubes.org/console/" target="_blank" rel="noopener noreferrer" style="display:inline-block;background:#ffd45a;color:#183252;font-weight:700;font-size:14px;padding:12px 17px;border-radius:7px;text-decoration:none;">Try the Console locally &#8599;</a>
+        <a href="https://openkubes.org/getting-started/" target="_blank" rel="noopener noreferrer" style="display:inline-block;color:#fff;border:1px solid #8daece;font-weight:600;font-size:14px;padding:11px 16px;border-radius:7px;text-decoration:none;">Start OpenKubes Local &#8599;</a>
+      </div>
+    </div>
+    <div style="background:#f0f5fb;padding:19px clamp(18px,4vw,42px) 20px;">
+      <div style="font-size:18px;color:#17355d;font-weight:600;margin:0 0 7px;">Open Code. Public Repositories. Transparent Decisions.</div>
+      <p style="font-size:13px;line-height:1.5;color:#4b6079;margin:0 0 12px;">Source code, architecture contracts and ADRs are publicly accessible. OpenKubes Local and the Console have separate evaluation paths.</p>
+      <a href="https://github.com/openkubes" target="_blank" rel="noopener noreferrer" style="display:inline-block;font-size:14px;color:#145eb3;font-weight:700;text-decoration:underline;text-underline-offset:3px;">Explore the source on GitHub &#8599;</a>
+    </div>
+  </div>
+  <dialog data-ok-console-dialog aria-label="OpenKubes Console – Image viewer" style="border:0;background:#fff;border-radius:12px;padding:14px;max-width:min(96vw,1100px);max-height:94vh;box-shadow:0 20px 70px rgba(0,0,0,.55);box-sizing:border-box;">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;justify-content:space-between;"><strong data-ok-console-title aria-live="polite" style="color:#17355d;">OpenKubes Console</strong><button type="button" data-ok-console-close aria-label="Close" style="cursor:pointer;border:0;border-radius:7px;background:#17355d;color:#fff;padding:8px 12px;font-size:14px;">Close &#215;</button></div>
+    <img data-ok-console-big alt="OpenKubes Console" style="display:block;max-width:100%;width:auto;height:auto;max-height:70vh;margin:auto;object-fit:contain;">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:12px;"><button data-ok-console-prev type="button" aria-label="Previous image" style="cursor:pointer;padding:9px 15px;background:#eff4fa;color:#17355d;border:1px solid #cedae9;border-radius:7px;">&#8592;</button><span data-ok-console-count style="color:#17355d;font-size:13px;">1 / 3</span><button data-ok-console-next type="button" aria-label="Next image" style="cursor:pointer;padding:9px 15px;background:#eff4fa;color:#17355d;border:1px solid #cedae9;border-radius:7px;">&#8594;</button></div>
+  </dialog>
+</section>
   <div class="platform-hero" aria-label="Animated overview of the OpenKubes Kubernetes clusters">
     <video autoplay muted loop playsinline preload="metadata"
            poster="media/openkubes-hero-light-poster.webp"

@@ -1,0 +1,243 @@
+{
+  "id": "X5",
+  "timestamp_utc": "2026-10-31T13:44:50Z",
+  "config_before": [
+    {
+      "namespace": "knative-serving",
+      "overrides": {}
+    },
+    {
+      "namespace": "knative-eventing",
+      "overrides": {}
+    }
+  ],
+  "config_during": [
+    {
+      "namespace": "knative-serving",
+      "overrides": {
+        "metrics-protocol": "prometheus",
+        "request-metrics-protocol": "prometheus"
+      }
+    },
+    {
+      "namespace": "knative-eventing",
+      "overrides": {
+        "metrics-protocol": "prometheus"
+      }
+    }
+  ],
+  "config_restored": [
+    {
+      "namespace": "knative-serving",
+      "overrides": {}
+    },
+    {
+      "namespace": "knative-eventing",
+      "overrides": {}
+    }
+  ],
+  "queue_proxy_observability_env_during": "{\"tracing\":{\"protocol\":\"none\"},\"metrics\":{\"protocol\":\"prometheus\"},\"runtime\":{\"profiling\":\"disabled\",\"exportInterval\":15000000000},\"requestMetrics\":{\"protocol\":\"prometheus\"},\"requestLogTemplate\":\"{\\\"httpRequest\\\": {\\\"requestMethod\\\": \\\"{{.Request.Method}}\\\", \\\"requestUrl\\\": \\\"{{js .Request.RequestURI}}\\\", \\\"requestSize\\\": \\\"{{.Request.ContentLength}}\\\", \\\"status\\\": {{.Response.Code}}, \\\"responseSize\\\": \\\"{{.Response.Size}}\\\", \\\"userAgent\\\": \\\"{{js .Request.UserAgent}}\\\", \\\"remoteIp\\\": \\\"{{js .Request.RemoteAddr}}\\\", \\\"serverIp\\\": \\\"{{.Revision.PodIP}}\\\", \\\"referer\\\": \\\"{{js .Request.Referer}}\\\", \\\"latency\\\": \\\"{{.Response.Latency}}s\\\", \\\"protocol\\\": \\\"{{.Request.Proto}}\\\"}, \\\"traceId\\\": \\\"{{.TraceID}}\\\"}\"}",
+  "scrape_before": [
+    {
+      "component": "activator",
+      "port_name": "metrics",
+      "port": 9090,
+      "http_code": "000",
+      "metric_families": 0,
+      "names": [],
+      "curl_error": "curl: (7) Failed to connect to 10.42.0.61:9090 after 0 ms: Could not connect to server"
+    },
+    {
+      "component": "autoscaler",
+      "port_name": "metrics",
+      "port": 9090,
+      "http_code": "000",
+      "metric_families": 0,
+      "names": [],
+      "curl_error": "curl: (7) Failed to connect to 10.42.0.58:9090 after 0 ms: Could not connect to server"
+    },
+    {
+      "component": "controller",
+      "port_name": "metrics",
+      "port": 9090,
+      "http_code": "000",
+      "metric_families": 0,
+      "names": [],
+      "curl_error": "curl: (7) Failed to connect to 10.42.0.179:9090 after 0 ms: Could not connect to server"
+    },
+    {
+      "component": "eventing-controller",
+      "port_name": "metrics",
+      "port": 9090,
+      "http_code": "000",
+      "metric_families": 0,
+      "names": [],
+      "curl_error": "curl: (7) Failed to connect to 10.42.0.66:9090 after 0 ms: Could not connect to server"
+    },
+    {
+      "component": "mt-broker-ingress",
+      "port_name": "metrics",
+      "port": 9092,
+      "http_code": "000",
+      "metric_families": 0,
+      "names": [],
+      "curl_error": "curl: (7) Failed to connect to 10.42.0.146:9092 after 0 ms: Could not connect to server"
+    },
+    {
+      "component": "mt-broker-filter",
+      "port_name": "metrics",
+      "port": 9092,
+      "http_code": "000",
+      "metric_families": 0,
+      "names": [],
+      "curl_error": "curl: (7) Failed to connect to 10.42.0.70:9092 after 0 ms: Could not connect to server"
+    },
+    {
+      "component": "queue-proxy",
+      "port_name": "http-autometric",
+      "port": 9090,
+      "http_code": "000",
+      "metric_families": 0,
+      "names": [],
+      "curl_error": null
+    },
+    {
+      "component": "queue-proxy",
+      "port_name": "http-usermetric",
+      "port": 9091,
+      "http_code": "000",
+      "metric_families": 0,
+      "names": [],
+      "curl_error": "curl: (7) Failed to connect to 10.42.0.212:9091 after 0 ms: Could not connect to server"
+    }
+  ],
+  "scrape_during": [
+    {
+      "component": "activator",
+      "port_name": "metrics",
+      "port": 9090,
+      "http_code": "000",
+      "metric_families": 0,
+      "names": [],
+      "curl_error": "curl: (7) Failed to connect to 10.42.0.61:9090 after 0 ms: Could not connect to server"
+    },
+    {
+      "component": "autoscaler",
+      "port_name": "metrics",
+      "port": 9090,
+      "http_code": "000",
+      "metric_families": 0,
+      "names": [],
+      "curl_error": "curl: (7) Failed to connect to 10.42.0.58:9090 after 0 ms: Could not connect to server"
+    },
+    {
+      "component": "controller",
+      "port_name": "metrics",
+      "port": 9090,
+      "http_code": "000",
+      "metric_families": 0,
+      "names": [],
+      "curl_error": "curl: (7) Failed to connect to 10.42.0.179:9090 after 0 ms: Could not connect to server"
+    },
+    {
+      "component": "eventing-controller",
+      "port_name": "metrics",
+      "port": 9090,
+      "http_code": "000",
+      "metric_families": 0,
+      "names": [],
+      "curl_error": "curl: (7) Failed to connect to 10.42.0.66:9090 after 0 ms: Could not connect to server"
+    },
+    {
+      "component": "mt-broker-ingress",
+      "port_name": "metrics",
+      "port": 9092,
+      "http_code": "000",
+      "metric_families": 0,
+      "names": [],
+      "curl_error": "curl: (7) Failed to connect to 10.42.0.146:9092 after 0 ms: Could not connect to server"
+    },
+    {
+      "component": "mt-broker-filter",
+      "port_name": "metrics",
+      "port": 9092,
+      "http_code": "000",
+      "metric_families": 0,
+      "names": [],
+      "curl_error": "curl: (7) Failed to connect to 10.42.0.70:9092 after 0 ms: Could not connect to server"
+    },
+    {
+      "component": "queue-proxy",
+      "port_name": "http-autometric",
+      "port": 9090,
+      "http_code": "000",
+      "metric_families": 0,
+      "names": [],
+      "curl_error": null
+    },
+    {
+      "component": "queue-proxy",
+      "port_name": "http-usermetric",
+      "port": 9091,
+      "http_code": "200",
+      "metric_families": 54,
+      "names": [
+        "go_config_gogc_percent",
+        "go_gc_duration_seconds",
+        "go_gc_gogc_percent",
+        "go_gc_gomemlimit_bytes",
+        "go_goroutine_count",
+        "go_goroutines",
+        "go_info",
+        "go_memory_allocated_bytes_total",
+        "go_memory_allocations_total",
+        "go_memory_gc_goal_bytes",
+        "go_memory_used_bytes",
+        "go_memstats_alloc_bytes",
+        "go_memstats_alloc_bytes_total",
+        "go_memstats_buck_hash_sys_bytes",
+        "go_memstats_frees_total",
+        "go_memstats_gc_sys_bytes",
+        "go_memstats_heap_alloc_bytes",
+        "go_memstats_heap_idle_bytes",
+        "go_memstats_heap_inuse_bytes",
+        "go_memstats_heap_objects",
+        "go_memstats_heap_released_bytes",
+        "go_memstats_heap_sys_bytes",
+        "go_memstats_last_gc_time_seconds",
+        "go_memstats_mallocs_total",
+        "go_memstats_mcache_inuse_bytes",
+        "go_memstats_mcache_sys_bytes",
+        "go_memstats_mspan_inuse_bytes",
+        "go_memstats_mspan_sys_bytes",
+        "go_memstats_next_gc_bytes",
+        "go_memstats_other_sys_bytes",
+        "go_memstats_stack_inuse_bytes",
+        "go_memstats_stack_sys_bytes",
+        "go_memstats_sys_bytes",
+        "go_processor_limit",
+        "go_sched_gomaxprocs_threads",
+        "go_threads",
+        "http_client_request_body_size_bytes",
+        "http_client_request_duration_seconds",
+        "http_server_request_body_size_bytes",
+        "http_server_request_duration_seconds",
+        "http_server_response_body_size_bytes",
+        "kn_serving_invocation_duration_seconds",
+        "process_cpu_seconds_total",
+        "process_max_fds",
+        "process_network_receive_bytes_total",
+        "process_network_transmit_bytes_total",
+        "process_open_fds",
+        "process_resident_memory_bytes",
+        "process_start_time_seconds",
+        "process_virtual_memory_bytes",
+        "process_virtual_memory_max_bytes",
+        "promhttp_metric_handler_requests_in_flight",
+        "promhttp_metric_handler_requests_total",
+        "target_info"
+      ],
+      "curl_error": null
+    }
+  ]
+}

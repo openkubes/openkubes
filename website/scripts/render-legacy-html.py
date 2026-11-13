@@ -13,6 +13,7 @@ import markdown
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE = ROOT / "docs"
 SITE = ROOT / ".mkdocs-site"
+WORDMARK = (ROOT / "website/overrides/partials/openkubes-wordmark.html").read_text(encoding="utf-8").strip()
 NAV = (("Home", "/"), ("Features", "/features/"), ("Architecture", "/architecture/"),
        ("Blog", "/blog/"), ("Docs", "/docs/"), ("Community", "/community/"))
 
@@ -26,6 +27,7 @@ def render(source):
         '<meta name="viewport" content="width=device-width, initial-scale=1">'
         f"<title>{escape(title)} | OpenKubes</title>"
         '<link rel="stylesheet" href="/assets/openkubes-navigation.css">'
+        '<link rel="stylesheet" href="/assets/openkubes-branding.css">'
         '<style>body{margin:0;color:#222;font:16px/1.6 system-ui,sans-serif}'
         'main{max-width:940px;margin:2rem auto;padding:0 1.25rem}'
         'pre{overflow:auto;padding:1rem;background:#f2f4f8}'
@@ -33,7 +35,7 @@ def render(source):
         "</head><body>"
         '<nav class="ok-global-nav" aria-label="OpenKubes primary navigation">'
         '<div class="ok-global-nav__inner">'
-        '<a class="ok-global-nav__brand ok-global-nav__brand--text" href="/">OpenKubes</a>'
+        '<a class="ok-global-nav__brand ok-global-nav__brand--text" href="/" aria-label="OpenKubes Home">' + WORDMARK + '</a>'
         f'<div class="ok-global-nav__links">{links}</div></div></nav>'
         f'<main><article>{body}</article></main></body></html>\n'
     )

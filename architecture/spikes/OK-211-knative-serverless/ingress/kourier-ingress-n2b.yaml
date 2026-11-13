@@ -1,0 +1,24 @@
+# OK-211 N2b — with domain-template "{{.Name}}-{{.Namespace}}.{{.Domain}}"
+# every ksvc gets <name>-<namespace>.ok211.internal, one label below the
+# cluster domain, so the ADR-010 pattern <app>.<cluster>.internal holds and
+# one wildcard covers all namespaces.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: knative-via-ok-ingress-n2b
+  namespace: kourier-system
+  labels:
+    app.kubernetes.io/part-of: ok211
+spec:
+  ingressClassName: ok-ingress
+  rules:
+    - host: "*.ok211.internal"
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: kourier
+                port:
+                  number: 80

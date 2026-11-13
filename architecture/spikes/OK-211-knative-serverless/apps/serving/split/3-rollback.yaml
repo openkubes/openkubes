@@ -1,0 +1,31 @@
+# OK-211 — S8 step 3: rollback, 100 % to the old revision, no new deploy
+# (template unchanged, only traffic). The candidate tag stays on 6.17.0.
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: podinfo-split
+  namespace: ok211-serving
+  labels:
+    app.kubernetes.io/part-of: ok211
+spec:
+  template:
+    metadata:
+      name: podinfo-split-v6170
+    spec:
+      containers:
+        - name: podinfo
+          image: __PODINFO_IMAGE_6_17_0__
+          ports:
+            - containerPort: 9898
+          readinessProbe:
+            httpGet:
+              path: /readyz
+            # Knative defaults successThreshold to 1; stating it keeps a re-apply of
+            # the same named template identical (S8 finding).
+            successThreshold: 1
+  traffic:
+    - revisionName: podinfo-split-v6160
+      percent: 100
+    - revisionName: podinfo-split-v6170
+      percent: 0
+      tag: candidate

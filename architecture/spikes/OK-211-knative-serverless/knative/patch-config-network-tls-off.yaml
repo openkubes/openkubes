@@ -1,0 +1,3 @@
+# OK-211 N3 restore — back to the release default.
+data:
+  external-domain-tls: Disabled

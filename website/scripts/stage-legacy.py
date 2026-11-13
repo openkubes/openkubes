@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Stage selected existing public articles and media without editing source docs."""
+"""Stage selected public articles and media without editing source docs."""
 from pathlib import Path
 import shutil
 
@@ -7,7 +7,9 @@ ROOT = Path(__file__).resolve().parents[2]
 SOURCE = ROOT / "docs"
 TARGET = ROOT / ".mkdocs-staging"
 ARTICLES = (
+    "openshell-meets-openkubes.md",
     "developer-workspace-blog-post.md",
+    "learn-from-beam-build-on-openkubes.md",
     "agentic-operations-reference-architecture.md",
     "vault-secret-contract-blog-post.md",
     "the-contract-is-the-guardrail-blog-post.md",
@@ -42,6 +44,15 @@ def main():
         if not source_page.is_file():
             raise SystemExit(f"Missing OK AI page: {source_page}")
         shutil.copy2(source_page, ai_target / filename)
+    # The W-JAX landing page is source-owned under docs/ai, with pinned diagrams.
+    lab_source = SOURCE / "ai" / "agentic-operations-hands-on.md"
+    if not lab_source.is_file():
+        raise SystemExit(f"Missing W-JAX hands-on landing page: {lab_source}")
+    shutil.copy2(lab_source, ai_target / lab_source.name)
+    lab_assets = SOURCE / "ai" / "assets" / "wjax-2026"
+    if not lab_assets.is_dir():
+        raise SystemExit(f"Missing W-JAX diagram assets: {lab_assets}")
+    shutil.copytree(lab_assets, ai_target / "assets" / "wjax-2026", dirs_exist_ok=True)
     # Stage the source-owned OK Observability capability pages.
     observability_source = pages / "observability"
     observability_target = TARGET / "observability"
@@ -94,16 +105,20 @@ def main():
     shutil.copy2(theme_css, TARGET / "assets" / theme_css.name)
     # Preview-only floating OK AI UI assets (legacy demo and curated Lite). The hostname guard in
     # website/overrides/main.html prevents loading them on production.
-    for name in ("ok-ai-floating-demo.js", "ok-ai-floating-demo.css", "ok-ai-lite-preview.js"):
+    for name in ("ok-ai-floating-demo.js", "ok-ai-floating-demo.css", "ok-ai-lite-preview.js",
+                 "openkubes-branding.css", "openkubes-branding.js",
+                 "openkubes-console-gallery.css", "openkubes-console-carousel.js"):
         source = ROOT / "website" / "assets" / name
         if not source.is_file():
             raise SystemExit(f"Missing floating UI asset: {source}")
         shutil.copy2(source, TARGET / "assets" / name)
+    shutil.copytree(ROOT / "website/assets/images/console",
+                    TARGET / "assets/images/console", dirs_exist_ok=True)
     media = SOURCE / "media"
     if not media.is_dir():
         raise SystemExit("Legacy media directory not found.")
     shutil.copytree(media, TARGET / "media", dirs_exist_ok=True)
-    print(f"Staged {len(ARTICLES)} existing permalink articles and homepage assets.")
+    print(f"Staged {len(ARTICLES)} public articles and homepage assets.")
 
 if __name__ == "__main__":
     main()

@@ -1,0 +1,27 @@
+# OK-211 — S8 step 1: first revision podinfo-split-v6160 (6.16.0), 100 % latest.
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: podinfo-split
+  namespace: ok211-serving
+  labels:
+    app.kubernetes.io/part-of: ok211
+spec:
+  template:
+    metadata:
+      name: podinfo-split-v6160
+    spec:
+      containers:
+        - name: podinfo
+          image: __PODINFO_IMAGE_6_16_0__
+          ports:
+            - containerPort: 9898
+          readinessProbe:
+            httpGet:
+              path: /readyz
+            # Knative defaults successThreshold to 1; stating it keeps a re-apply of
+            # the same named template identical (S8 finding).
+            successThreshold: 1
+  traffic:
+    - latestRevision: true
+      percent: 100

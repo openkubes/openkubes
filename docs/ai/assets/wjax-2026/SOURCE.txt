@@ -1,0 +1,18 @@
+W-JAX 2026 diagram source attribution
+
+Source: OpenKubes / openkubes/ok-console
+Revision: 6a721101b0394ab4b2c764baf1513dcf19aa3d9c (PR #136 squash merge)
+Directory: demos/wjax-2026/diagrams
+SVGs copied unmodified; corresponding Mermaid sources remain upstream.
+
+01-architecture.svg
+https://github.com/openkubes/ok-console/blob/6a721101b0394ab4b2c764baf1513dcf19aa3d9c/demos/wjax-2026/diagrams/01-architecture.svg
+SHA-256: e6edc31299f635f0b043ace79d1b49d40038babb7883d2a99ee719cd89ed2ed4
+
+02-recovery-flow.svg
+https://github.com/openkubes/ok-console/blob/6a721101b0394ab4b2c764baf1513dcf19aa3d9c/demos/wjax-2026/diagrams/02-recovery-flow.svg
+SHA-256: 07f61bed6ed720db6ff867eccdd33ba6b800049a329e117ea48161e0dfff324f
+
+03-evidence-chain.svg
+https://github.com/openkubes/ok-console/blob/6a721101b0394ab4b2c764baf1513dcf19aa3d9c/demos/wjax-2026/diagrams/03-evidence-chain.svg
+SHA-256: 3019d0bcb35731aaa1bb36dab5c38dcd38012b52c1bc77f6156191f2671ee795

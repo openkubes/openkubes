@@ -1,0 +1,10 @@
+# S9 2026-10-31T10:08:09Z
+## config-defaults (release defaults, no overrides)
+revision-timeout-seconds: "300"  # 5 minutes
+max-revision-timeout-seconds: "600"  # 10 minutes
+revision-response-start-timeout-seconds: "300"
+revision-idle-timeout-seconds: "0"  # infinite
+## ksvc timeoutSeconds: 20
+## vm_epoch code connect starttransfer total exit
+/delay/10 1793441259 200 0.000615 10.038666 10.038744 0
+/delay/30 1793441269 504 0.001948 20.004284 20.004346 0

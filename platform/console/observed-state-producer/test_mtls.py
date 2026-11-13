@@ -62,7 +62,8 @@ def create_test_pki(root: Path) -> None:
             "-out", str(root / f"{ca_name}.crt"),
         )
     issue_certificate(root, "localhost", "trusted-ca", "serverAuth", "DNS:localhost,IP:127.0.0.1")
-    issue_certificate(root, "console-bff", "trusted-ca", "clientAuth", "URI:spiffe://openkubes.io/ns/openkubes-console/sa/ok-console-bff")
+    issue_certificate(root, "console-bff", "trusted-ca", "clientAuth", "URI:spiffe://openkubes.io/ns/openkubes-console/sa/ok-console")
+    issue_certificate(root, "old-console", "trusted-ca", "clientAuth", "URI:spiffe://openkubes.io/ns/openkubes-console/sa/ok-console-bff")
     issue_certificate(root, "other-client", "trusted-ca", "clientAuth", "URI:spiffe://openkubes.io/ns/openkubes-console/sa/other-client")
     issue_certificate(root, "wrong-purpose", "trusted-ca", "serverAuth")
     issue_certificate(root, "rogue-client", "rogue-ca", "clientAuth")
@@ -80,7 +81,7 @@ class MutualTlsBoundaryTests(unittest.TestCase):
                 return claim_list(claim())
 
         producer = ObservedStateProducer(Client(), ProducerConfig(), now=lambda: NOW)
-        expected_identity = "spiffe://openkubes.io/ns/openkubes-console/sa/ok-console-bff"
+        expected_identity = "spiffe://openkubes.io/ns/openkubes-console/sa/ok-console"
         cls.server = ThreadingHTTPServer(
             ("127.0.0.1", 0),
             handler_for(producer, expected_client_identity=expected_identity),
@@ -139,6 +140,12 @@ class MutualTlsBoundaryTests(unittest.TestCase):
 
     def test_a_trusted_but_different_workload_identity_is_denied(self):
         response, body = self.request(QUERY_PATH, "other-client")
+
+        self.assertEqual(response.status, 403)
+        self.assertEqual(body, {"error": "workload_identity_required"})
+
+    def test_old_console_workload_identity_is_denied(self):
+        response, body = self.request(QUERY_PATH, "old-console")
 
         self.assertEqual(response.status, 403)
         self.assertEqual(body, {"error": "workload_identity_required"})
