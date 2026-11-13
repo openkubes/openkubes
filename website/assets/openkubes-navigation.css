@@ -20,3 +20,9 @@
 .ok-global-nav__slack:focus-visible,.ok-global-nav__x:focus-visible{outline:2px solid #76d1ff;outline-offset:2px}
 .ok-global-nav__slack svg,.ok-global-nav__x svg{display:block;width:20px;height:20px}
 @media(max-width:720px){.ok-global-nav__github,.ok-global-nav__slack,.ok-global-nav__x{min-width:36px;min-height:36px}}
+
+/* Keep the navigation and social icons together instead of distributing each icon across the header. */
+.ok-global-nav__inner{justify-content:flex-start;gap:.25rem}
+.ok-global-nav__links{margin-left:auto}
+.ok-global-nav__socials{display:flex;align-items:center;justify-content:center;gap:.12rem;margin-left:.25rem;flex:0 0 auto}
+@media(max-width:720px){.ok-global-nav__links{margin-left:0}.ok-global-nav__socials{margin-left:.1rem}}
