@@ -26,3 +26,10 @@
 .ok-global-nav__links{margin-left:auto}
 .ok-global-nav__socials{display:flex;align-items:center;justify-content:center;gap:.12rem;margin-left:.25rem;flex:0 0 auto}
 @media(max-width:720px){.ok-global-nav__links{margin-left:0}.ok-global-nav__socials{margin-left:.1rem}}
+
+/* Bluesky completes the compact community icon group. */
+.ok-global-nav__bluesky{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;min-width:38px;min-height:38px;padding:.45rem;color:#e2e8f0!important;border-radius:.45rem;text-decoration:none!important}
+.ok-global-nav__bluesky:hover,.ok-global-nav__bluesky:focus-visible{background:#273955;color:#fff!important}
+.ok-global-nav__bluesky:focus-visible{outline:2px solid #76d1ff;outline-offset:2px}
+.ok-global-nav__bluesky svg{display:block;width:20px;height:20px}
+@media(max-width:720px){.ok-global-nav__bluesky{min-width:36px;min-height:36px}}
