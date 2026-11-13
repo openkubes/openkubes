@@ -18,7 +18,7 @@ The accepted [ADR-Platform-039](https://github.com/openkubes/openkubes/blob/main
 | Lifecycle & evidence | Create, run, idle, terminate, export required evidence and clean up |
 
 ```text
-DeveloperWorkspace (candidate contract)
+DeveloperWorkspace (contract; v0alpha1 API)
         |
         v
 Reviewed implementation profile
@@ -45,7 +45,7 @@ External human / organization approval and merge
 
 The Namespace reference profile restricts workspace resources and connectivity. It does **not** provide an independent VM kernel or a hostile multi-tenant isolation guarantee. Its security still depends on the cluster, nodes, CNI, storage implementation and reviewed runtime images.
 
-The default Kubernetes capability is **no Kubernetes API authority**; broad kubeconfigs, cluster-admin access or ambient service-account credentials are outside the proposed default profile. Access to Git, inference and MCP endpoints is explicitly selected.
+The default Kubernetes capability is **no Kubernetes API authority**; broad kubeconfigs, cluster-admin access or ambient service-account credentials are outside the default profile. Access to Git, inference and MCP endpoints is explicitly selected.
 
 The live proof also identifies unresolved boundaries, including tool-level enforcement of declared MCP tools.
 
@@ -62,6 +62,6 @@ A Crossplane capability reconciles each `DeveloperWorkspace` into its dedicated 
 
 An agent's completed and evidenced task must not be rewritten by later workspace drift. Current runtime health is separate from its historical terminal outcome — consistent with OpenKubes' evidence-first architecture.
 
-Read the [proposed ADR](https://github.com/openkubes/openkubes/blob/main/architecture/decisions/ADR-Platform-039-developer-workspace-contract.md) for the complete candidate invariants and non-goals.
+Read the [accepted ADR](https://github.com/openkubes/openkubes/blob/main/architecture/decisions/ADR-Platform-039-developer-workspace-contract.md) for the complete normative invariants and non-goals.
 
 [Back to Developer Workspace](index.md)

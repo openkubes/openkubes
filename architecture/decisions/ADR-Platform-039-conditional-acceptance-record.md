@@ -5,8 +5,9 @@
 **Scope:** OK-183 review of the persistent-capacity amendment and remaining
 Namespace-profile obligations. Related epic: OK-178.
 
-**Status:** Conditional architectural direction recorded; final acceptance pending.
-The [parent ADR](ADR-Platform-039-developer-workspace-contract.md) stays **Proposed**.
+**Status:** Conditional architectural direction recorded 2026-10-19; final acceptance recorded 2026-10-20
+([Final decision](#final-decision--2026-10-20)). The [parent ADR](ADR-Platform-039-developer-workspace-contract.md)
+is **Accepted**; the conditional text below is retained as history.
 
 **Decision-holder:** Arash Kaffamanesh.
 
