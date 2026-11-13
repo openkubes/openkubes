@@ -35,7 +35,7 @@ Only the Direction column is the owner's; all other columns, numbers (47 h,
 | Leaf delivery | CSI leaf delivery first to keep delivery lean; namespace separation fallback. | This record proposes retaining placement and pinning the selected driver; isolated Secret delivery if CSI fails proof, preserving the exact URI or separately reviewing a contract change. | Exact URI SAN, foreign identity denied, no API Secret leaf key, reload and CNPG/ingress continuity; select and pin the driver. | Proposed direction; proof required |
 | Signer hosting | Dedicated PKI mount on existing ok-mgmt Vault for the first pilot. | Independent Vault only if the pilot fails the explicit security requirements below; shared administrators and shared unseal/outage availability remain risks. | Signer isolation, exact-role/auth denial, dedicated serving trust and administrator-path assessment; outage recovery within the tested budget. | Proposed pilot; security gates required |
 | Leaf lifetime | 7-day leaf TTL, renew at 3 days remaining: hypothesis validated by rotation and outage tests. | Revise lifetime/headroom if rotation or outage tests fail; architecture owner reviews the revised exposure/recovery budget. | Two scheduled renewals with reload and uninterrupted traffic; 47-hour signer outage from the renewal threshold, alert within 15 minutes, recovery with at least 24 hours before expiry; expiry fails closed. | Hypothesis; adoption gated |
-| Residual authority (cnpg-manager) | NOT accepted unreviewed; scoped Pod Security and RBAC assessment plus explicit trusted signers/readers/approvers first. | Confine cnpg-manager below the trust boundary, or architecture owner explicitly accepts it as a trusted, cluster-admin-equivalent Console identity holder. | Installed-binding kubectl auth can-i evidence of confinement, or explicit owner acceptance; preserve reconciliation/failover and inventory trusted signers/readers/approvers. | Cutover blocked until one is chosen |
+| Residual authority (cnpg-manager) | NOT accepted unreviewed; scoped Pod Security and RBAC assessment plus explicit trusted signers/readers/approvers first. | Confine cnpg-manager below the trust boundary, or architecture owner explicitly accepts it as a trusted, cluster-admin-equivalent Console identity holder. | Installed-binding kubectl auth can-i evidence of confinement, or explicit owner acceptance; preserve reconciliation/failover and inventory trusted signers/readers/approvers. | Cutover blocked until confinement is proven on the target cluster or the architecture owner's acceptance is recorded |
 | Proof and cutover | One disposable-cluster proof and a minimal staged cutover. | Resolve a failed gate before bounded overlap and new-only; broader server-CA work stays separate. | Exact URI, foreign identity rejection, renewal at 3 days, outage behaviour and rollback in one proof; separately authorized live stages. | Proposed sequence; no live authorization |
 
 ### CSI selection criteria
@@ -64,13 +64,16 @@ real ok-mgmt Vault policy/token/auth/admin/backup inventory; synthetic proof is 
 
 ## Trust boundary
 
-Principals that can directly, or through delegated grants, read cluster Secrets,
-create Pods/controllers in arbitrary namespaces, exec into Pods, write RBAC or patch
-admission configuration are **cluster-admin-equivalent for this identity**.
-This set includes node/control-plane and management operators, cluster administrators,
-and cnpg-system/cnpg-manager as declared by the pinned release. No in-cluster control
-in this ADR (CSI, namespace separation, admission or webhooks) defends against them.
-They must be trusted or confined; the negative proof concerns non-admin principals.
+Principals that can directly, or through delegated grants, read Secrets, create
+Pods/controllers, exec into Pods, write RBAC, mint ServiceAccount tokens, write trust
+ConfigMaps or patch admission configuration **cluster-wide, or within any namespace
+holding identity material (openkubes-console, cert-manager, the selected CSI driver
+namespace)**, where the identity admission controls below do not constrain them, are
+**cluster-admin-equivalent for this identity**. This includes
+node/control-plane and management operators, cluster administrators, identity-namespace
+writers and cnpg-system/cnpg-manager as declared by the pinned release. No in-cluster
+control in this ADR defends against these holders; trust or confine them. Negative
+proof concerns non-admin principals whose effective capabilities exclude this set.
 
 ### cnpg-manager assessment and cutover decision
 
@@ -83,9 +86,9 @@ These declared grants meet the boundary above; installed bindings remain to conf
 
 Before cutover, either (a) confine cnpg-manager, for example with a namespace-scoped
 operator installation or reduced ClusterRole, until it no longer meets that boundary,
-proven by `kubectl auth can-i` on installed bindings; or (b) the architecture owner
+proven by `kubectl auth can-i` on the target cluster's installed bindings; or (b) the architecture owner
 explicitly accepts it as a trusted, cluster-admin-equivalent principal holding the
-Console identity. **Until one is chosen, cutover is blocked.** CSI and namespace
+Console identity. **Cutover is blocked until confinement is proven on the target cluster or the architecture owner's acceptance is recorded.** CSI and namespace
 separation alone cannot satisfy this decision. The security reviewer and database
 maintainer own the assessment and compatibility proof; preserve reconciliation,
 failover and credential/TLS rotation.
@@ -97,6 +100,7 @@ Inventory effective bindings and custody before adoption; this table grants no a
 | Principal role / ServiceAccount | Authority | Definition or confirmation required |
 |:---|:---|:---|
 | Cluster-admin-equivalent set | Hold or mint the Console identity; override in-cluster controls | Node/control-plane and management operators, cluster administrators, and pinned cnpg-system/cnpg-manager; inventory effective bindings and indirect administrative reach. Confine or explicitly trust each. |
+| Identity-namespace writers | Approved submitters/deployers only | Trusted holders of the scoped capabilities above in openkubes-console (Console Deployment, SA ok-console, Issuer console-identity-v1, producer, client-trust ConfigMap and Console CNPG Cluster), cert-manager and the selected CSI driver namespace; inventory effective grants and enforce admission against unapproved submitters. |
 | Signer administrators | Configure issuance or recover signer keys | Include ok-mgmt Vault administrators, storage/unseal recovery and backup holders; inventory policies, tokens, auth mounts and recovery custody; retire provisioning grants. |
 | Console identity requesters | Request exact-URI leaves and issuer-auth tokens | cert-manager controller / console-identity-issuer-auth or selected CSI driver SA; confirm requester, TokenRequest and signer bindings. Console runtime has no token-minting rights. |
 | Client-trust bundle writers | Add roots accepted for Console authentication | Inventory approved Git/release and ConfigMap writers and effective bindings; authorize trust reload explicitly. |
@@ -109,7 +113,7 @@ Inventory effective bindings and custody before adoption; this table grants no a
 | Control | Proposed contract |
 |:---|:---|
 | External signer | Independent identity root/key, with namespaced in-tree Vault Issuer openkubes-console/console-identity-v1. No identity CA key, static Vault token or AppRole SecretID in ok-shared. |
-| Authentication | Dedicated console-identity-issuer-auth SA; cert-manager controller is sole issuer-auth TokenRequest caller. Option A: Vault Kubernetes auth with stored reviewer JWT, protected custody/rotation and TokenReview RBAC; requires ok-mgmt→ok-shared API connectivity. Alternative: Vault JWT auth validates ok-shared JWKS/OIDC discovery, avoiding TokenReview; prove pinned integration compatibility. Bind exact SA/namespace and only the Issuer-derived vault:// audience. The login JWT lacks the API audience and cannot serve as TokenReview bearer credential; no issuer-auth auth-delegator option. Reject extra serviceAccountRef audiences; prove second-cluster rejection. |
+| Authentication | Dedicated console-identity-issuer-auth SA; cert-manager controller is sole issuer-auth TokenRequest caller. Option A: Vault Kubernetes auth with stored reviewer JWT, protected custody/rotation and TokenReview RBAC; requires ok-mgmt→ok-shared API connectivity. Alternative: Vault JWT auth validates ok-shared JWKS/OIDC discovery, avoiding TokenReview; prove pinned integration compatibility. Deleted-SA revocation is not visible before token expiry; record token TTL as residual exposure. Bind exact SA/namespace and only the Issuer-derived vault:// audience. The login JWT lacks the API audience and cannot serve as TokenReview bearer credential; no issuer-auth auth-delegator option. Reject extra serviceAccountRef audiences at admission (Vault bound_audiences accepts any matching audience); prove second-cluster rejection. |
 | Signing role | Exact Console URI only; client-auth EKU, non-CA, approved algorithm/key size/TTL. Deny absent/null/wrong-type/extra/foreign SANs, DNS/IP/email, CA=true, export, root, sign-verbatim, issuer override and alternate protocols. Stolen auth token cannot sign another identity. |
 | Certificate admission | Match Certificate spec.uris and parsed CertificateRequest spec.request across all issuer references. With default approval retained for this signer, CSR identity enforcement requires a validating webhook (CEL has no x509 parser); approver-policy is an alternative only if approveSignerNames excludes this signer. Inventory its principal and serving-cert trust path. Enforce issuerRef/group/kind, identity/usages/duration and original submitter on create/spec update/direct CSR; allow necessary GC/status, no spec bypass. |
 | Issuer protection | Only openkubes-console/console-identity-v1 may reference issuer-auth; forbid extra audiences and protect endpoint/auth fields. Dedicated serving CA key outside both clusters' Secrets; shared-server/transit CA impersonation must fail before login. Inventory CA holders plus address redirect authority (Service/EndpointSlice/DNS/node); reject issuer switching, stale desired objects and identity ingress-shim. |
@@ -147,7 +151,7 @@ does not authorize ok-mgmt operations or Vault policy/auth/role changes.
 |:---|:---|:---|
 | 1 — CSI-first integration | Select/pin driver; split public client/server trust; dedicated pilot PKI mount, exact issuance and Pod/template admission. | Resolve owned questions below; confine-or-accept decision and trusted-principal inventory reviewed. If CSI fails, review isolated Secret fallback before implementation. Preserve existing database/ingress placement on the CSI path. |
 | 2 — one disposable-cluster proof | Synthetic independent CAs, pinned compatible components, no live key import; one proof covering the cases below. | Denials plus working authenticated controls, rotation/outage/rollback pass; explicit residual review before live cutover. Rendering is preflight only. |
-| 3 — bounded overlap | Producer loads old+new client roots first; switch Console leaf/delivery second. Keep server trust separate and unchanged. | Real ok-mgmt Vault read-only security inventory above passes; separately authorized window, named operator role and fixed overlap deadline; every backend authenticates with consistent cert/key/trust generations and readiness/drain budget. Old CA holders retain identity authority during overlap. |
+| 3 — bounded overlap | Producer loads old+new client roots first; switch Console leaf/delivery second. Keep server trust separate and unchanged. | Read-only `kubectl auth can-i --list --as=system:serviceaccount:cnpg-system:cnpg-manager` against ok-shared's installed bindings, with effective-authority inventory including indirect grants, proves confinement below the boundary, or architecture-owner acceptance is recorded; real ok-mgmt Vault read-only security inventory above passes; separately authorized window, named operator role and fixed overlap deadline; every backend authenticates with consistent cert/key/trust generations and readiness/drain budget. Old CA holders retain identity authority during overlap. |
 | 4 — new-only | Remove old client root from every producer context and drain old connections. | Old-CA/same-URI fails; new-CA/exact-URI succeeds on every replica, renewal/reload and traffic continue. Rollback re-issues from the new CA; re-trusting old root requires fresh residual review and maintenance authorization. No automatic old-root fallback or silent overlap extension. |
 
 ### Single disposable-cluster proof
@@ -167,10 +171,11 @@ during each outage mode. Both paths require a tested recovery budget.
 | Test | Pass criterion |
 |:---|:---|
 | Exact identity and signing | New CA/exact URI produces authenticated observed-state traffic. Absent/null/wrong-type/extra/foreign SANs, DNS/IP/email, CA=true, wrong EKU/TTL, issuer switches and direct/stale requests fail admission/signing with no leaf. Valid issuer-auth token cannot sign another identity. |
-| Installed trust-boundary decision | On installed bindings, kubectl auth can-i confirms cnpg-manager is confined below the boundary (including indirect grants), or explicit architecture-owner acceptance records it as a trusted cluster-admin-equivalent Console identity holder. Include complete effective RBAC inventory and successful database reconciliation/failover; block cutover if neither holds. |
-| Non-admin negative set | A namespaced principal with ordinary workload rights in another namespace cannot obtain a cert for the exact URI through Certificate/direct CSR, CSI volume, issuer-auth TokenRequest, client-trust bundle write or signer-endpoint redirect. Each denial has an authorized positive control with authenticated traffic; include foreign/second-cluster token rejection and no API Secret leaf key for CSI. |
-| Issuer audience | An extra serviceAccountRef audience on the Issuer is rejected; the sole Issuer-derived audience succeeds. |
-| CSR enforcement | With default approval retained, exact/foreign direct CSRs exercise the validating webhook; exact succeeds, foreign fails. Test serving-cert rotation and denial with untrusted serving trust. |
+| Trust-boundary rehearsal | Disposable-cluster installed-binding kubectl auth can-i and complete effective RBAC inventory rehearse cnpg-manager confinement (including indirect grants), with successful database reconciliation/failover. This is rehearsal only; stage 3 requires target-cluster proof or recorded architecture-owner acceptance. |
+| Non-admin negative set | A namespaced principal with ordinary workload rights in another namespace cannot obtain a cert for the exact URI through Certificate/direct CSR, CSI volume, issuer-auth TokenRequest, or get a foreign leaf accepted or capture a login through client-trust bundle write/signer-endpoint redirect. Each denial has an authorized positive control with authenticated traffic; include foreign/second-cluster token rejection and no API Secret leaf key for CSI. |
+| Identity-namespace non-admin negative set | A principal with ordinary workload rights IN openkubes-console who is not an approved submitter is denied each of: Pod/Deployment using SA ok-console plus the identity volume (direct and controller-created Pods), client-trust ConfigMap write, Certificate/CertificateRequest for the exact URI, and ok-console TokenRequest. Each denial has a positive control (approved submitter succeeds) and flips when its guard is removed, then is restored. |
+| Issuer audience | An extra serviceAccountRef audience on the Issuer is rejected at admission (Vault bound_audiences accepts any matching audience); the sole Issuer-derived audience succeeds. |
+| CSR enforcement | With default approval retained, exact/foreign direct CSRs exercise the validating webhook; exact URI from the original submitter succeeds, foreign fails. Test serving-cert rotation and denial with untrusted serving trust. |
 | Signer custody, auth and endpoint | Synthetic policy/auth/custody controls pass; shared-server/transit-CA endpoint impersonation fails before login, dedicated serving-trust control succeeds. Selected stored-reviewer TokenReview or JWT/JWKS auth succeeds; foreign/second-cluster tokens fail. Real pilot inventory remains a stage-3 gate. |
 | Producer denial | Old CA/same URI fails TLS; new CA/wrong URI and no certificate return HTTP 403. Pair every denial with successful authenticated observed-state traffic so unavailability cannot pass a denial. |
 | Renewal at 3 days | Confirm actual 168-hour TTL and 72-hour remaining renewal configuration; two scheduled renewals change serial/generation, load consistent cert/key and sustain traffic without manual restart. Accelerated scheduling alone does not establish the 7d/3d hypothesis. |
