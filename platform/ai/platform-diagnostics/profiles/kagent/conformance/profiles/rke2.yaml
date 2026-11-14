@@ -1,0 +1,32 @@
+distribution: rke2
+# Excluded from OK-95 acceptance by decision, not merely unmeasured. Profile A
+# is not deployed on ok-infra and is not planned to be, so there is no route
+# from here to "measured" — the static checks below still prove the
+# expectation is internally consistent, but a live provider will never exist
+# to compare it against.
+provenance:
+  state: out-of-scope
+  reason: >-
+    Profile A is not deployed on ok-infra and is not planned to be. Live RBAC
+    and collector evidence is therefore not obtainable and is not an
+    acceptance criterion for OK-95.
+  decision:
+    date: "2026-08-18"
+    agreed_with: Arash Kaffamanesh
+    reference: OK-95
+  record: evidence/OK-95-2026-08-11.md
+provider_capabilities:
+  workload_events: true
+  workload_logs: true
+  cilium_diagnostics: true
+  host_journal: true
+  node_shell: true
+evidence_expectations:
+  host_journal:
+    status: available
+    reason_required: false
+    uri_required: true
+  node_shell:
+    status: available
+    reason_required: false
+    uri_required: true
