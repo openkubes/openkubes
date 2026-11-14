@@ -27,7 +27,7 @@ import secrets
 import uuid
 from datetime import datetime, timedelta, timezone
 from enum import Enum
-from typing import Any, Optional
+from typing import Any, ClassVar, Optional
 from urllib.parse import quote
 
 import httpx
@@ -37,6 +37,7 @@ from fastapi.responses import JSONResponse
 from mcp import ClientSession
 from mcp.client.streamable_http import streamable_http_client
 from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic.json_schema import GetJsonSchemaHandler
 
 # ── config (Provider Values via env; see README) ─────────────────────────────
 KAGENT_BASE_URL = os.getenv("KAGENT_BASE_URL", "http://kagent-controller.kagent.svc.cluster.local:8083")
@@ -161,6 +162,65 @@ class ContractModel(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
+class ContractResult(ContractModel):
+    """A response model whose *published* schema matches the normative contract.
+
+    A field with a Python default is optional in the schema Pydantic generates,
+    even when the code always populates it and the contract declares it
+    required. The provider would then advertise a weaker contract than the one it
+    implements, and a consumer or generator reading the published document would
+    be told that required fields may be absent. Contract test 1 diffs the
+    generated document against the normative file, so the published required set
+    is derived from the declared fields rather than from Python defaults.
+
+    ``_contract_optional`` names the fields the contract genuinely leaves
+    optional — for EvidenceRef, ``reason`` and ``uri`` are conditional on
+    ``status`` and are expressed in the contract with if/then, not with required.
+    """
+
+    _contract_optional: ClassVar[frozenset[str]] = frozenset()
+
+    @classmethod
+    def __get_pydantic_json_schema__(
+        cls,
+        core_schema: Any,
+        handler: GetJsonSchemaHandler,
+    ) -> dict[str, Any]:
+        schema = handler.resolve_ref_schema(handler(core_schema))
+        properties = schema.get("properties")
+        if properties:
+            schema["required"] = [
+                name for name in properties if name not in cls._contract_optional
+            ]
+        return schema
+
+
+class ProviderCapabilities(BaseModel):
+    """Normative provider capability declaration (ADR-021).
+
+    Typed rather than a bare mapping: a distribution difference is a capability
+    delta, never a contract delta, so the five declared capabilities are part of
+    the published surface. Additional boolean capabilities may be introduced
+    without a contract change. An incomplete PROVIDER_CAPS now fails at startup
+    instead of silently shipping a response that declares nothing.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        json_schema_extra={"additionalProperties": {"type": "boolean"}},
+    )
+
+    workload_events: bool
+    workload_logs: bool
+    cilium_diagnostics: bool
+    host_journal: bool
+    node_shell: bool
+
+
+# Fails fast if a deployment supplies an incomplete capability declaration.
+PROVIDER_CAPABILITIES = ProviderCapabilities(**PROVIDER_CAPS)
+
+
 class Confidence(str, Enum):
     low = "low"; medium = "medium"; high = "high"
 
@@ -173,7 +233,7 @@ class EvidenceStatus(str, Enum):
     available = "available"; unavailable = "unavailable"; partial = "partial"
 
 
-class RankedHypothesis(ContractModel):
+class RankedHypothesis(ContractResult):
     hypothesis: str
     confidence: Confidence = Confidence.low
     evidence_refs: list[str] = []
@@ -181,7 +241,50 @@ class RankedHypothesis(ContractModel):
     counter_evidence_status: CounterEvidence = CounterEvidence.not_checked
 
 
-class EvidenceRef(ContractModel):
+class FinalizedCounterEvidence(str, Enum):
+    """Counter-evidence status admissible in a finalized result.
+
+    The contract narrows the enum for a returned hypothesis; the runtime already
+    drops unchecked hypotheses, and publishing the wider enum would advertise a
+    result shape the provider never returns.
+    """
+
+    found = "found"; none_found = "none_found"
+
+
+class FinalizedRankedHypothesis(RankedHypothesis):
+    counter_evidence_status: FinalizedCounterEvidence
+
+
+class EvidenceRef(ContractResult):
+    _contract_optional: ClassVar[frozenset[str]] = frozenset({"reason", "uri"})
+
+    # The contract states the conditional requirement in the schema, so the
+    # published document has to state it too. validate_status_fields below
+    # enforces it at runtime; without this the provider would enforce a rule it
+    # never told anyone about.
+    model_config = ConfigDict(
+        extra="forbid",
+        json_schema_extra={
+            "allOf": [
+                {
+                    "if": {
+                        "required": ["status"],
+                        "properties": {"status": {"enum": ["unavailable", "partial"]}},
+                    },
+                    "then": {"required": ["reason"]},
+                },
+                {
+                    "if": {
+                        "required": ["status"],
+                        "properties": {"status": {"enum": ["available", "partial"]}},
+                    },
+                    "then": {"required": ["uri"]},
+                },
+            ]
+        },
+    )
+
     id: str = Field(
         default_factory=lambda: f"ev-{uuid.uuid4().hex}",
         pattern=r"^[A-Za-z0-9][A-Za-z0-9._:-]*$",
@@ -212,12 +315,12 @@ class InvestigateWorkloadInput(ContractModel):
     time_range: str = "PT1H"
 
 
-class TimeWindow(ContractModel):
+class TimeWindow(ContractResult):
     start: datetime
     end: datetime
 
 
-class WorkloadInvestigation(ContractModel):
+class WorkloadInvestigation(ContractResult):
     invocation_id: str
     cluster: str
     namespace: str
@@ -227,10 +330,12 @@ class WorkloadInvestigation(ContractModel):
     summary: str
     symptoms: list[str] = []
     evidence: list[EvidenceRef] = []
-    probable_causes: list[RankedHypothesis] = []
+    probable_causes: list[FinalizedRankedHypothesis] = []
     recommended_next_steps: list[str] = []
     references: list[str] = []
-    provider_capabilities: dict[str, bool] = Field(default_factory=lambda: PROVIDER_CAPS)
+    provider_capabilities: ProviderCapabilities = Field(
+        default_factory=lambda: PROVIDER_CAPABILITIES.model_copy()
+    )
 
 
 class GetPlatformHealthInput(ContractModel):
@@ -244,15 +349,17 @@ class ClusterStatus(str, Enum):
     unknown = "unknown"
 
 
-class ClusterHealth(ContractModel):
+class ClusterHealth(ContractResult):
     cluster: str
     status: ClusterStatus = ClusterStatus.unknown
     summary: str
     signals: list[str] = []
-    provider_capabilities: dict[str, bool] = Field(default_factory=lambda: PROVIDER_CAPS)
+    provider_capabilities: ProviderCapabilities = Field(
+        default_factory=lambda: PROVIDER_CAPABILITIES.model_copy()
+    )
 
 
-class PlatformHealth(ContractModel):
+class PlatformHealth(ContractResult):
     invocation_id: str
     generated_at: datetime
     clusters: list[ClusterHealth] = []
@@ -266,7 +373,7 @@ class CollectDiagnosticEvidenceInput(ContractModel):
     evidence_types: list[str] = []
 
 
-class EvidenceBundle(ContractModel):
+class EvidenceBundle(ContractResult):
     invocation_id: str
     cluster: str
     namespace: str
@@ -274,7 +381,9 @@ class EvidenceBundle(ContractModel):
     collected_at: datetime
     effective_time_range: TimeWindow
     evidence: list[EvidenceRef] = []
-    provider_capabilities: dict[str, bool] = Field(default_factory=lambda: PROVIDER_CAPS)
+    provider_capabilities: ProviderCapabilities = Field(
+        default_factory=lambda: PROVIDER_CAPABILITIES.model_copy()
+    )
 
 
 def _now() -> datetime:
