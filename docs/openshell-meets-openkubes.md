@@ -84,6 +84,16 @@ The example is **not a production security guarantee**. The CNCF article explici
 
 Our technical evaluation will include reproducing these policies in an isolated Kubernetes test environment, checking both expected admits and deliberate denials, testing bypass paths, and preserving the same candidate-only OpenKubes interface for external agents. Whether we adopt Kyverno alongside OpenShell will follow the evidence—not precede it.
 
+## Risk-based autonomy: who defines the boundaries?
+
+A recurring question from the community is how AI agents could respond quickly in production without turning human approval into a bottleneck. Our [proposed ADR-Platform-042](https://github.com/openkubes/openkubes/blob/main/architecture/decisions/ADR-Platform-042-openshell-hosted-external-agentic-operations.md) distinguishes **approval latency from execution latency**.
+
+An asynchronous, durable review flow could let CMCP submit an untrusted proposal and allow an agent to disconnect or perform other work while trusted OpenKubes services handle review. **A queued proposal is not an authorization**, and CMCP is not the approval engine. Under our current proposed architecture, agent-originated state changes still require explicit human approval of the exact canonical transition.
+
+Looking further ahead, different organizations may accept different levels of operational risk. We are researching **policy-bounded autonomy**: narrowly scoped, human-approved pre-authorizations with explicit owners, expiry, revocation, resource and tenant limits, replay protection, and independent evidence. This is **research, not an implemented capability or an approved exception** to the existing human-approval requirement. Any such change would require a separate architecture decision and security validation.
+
+**The organization defines acceptable risk. OpenKubes enforces the boundaries. AI agents operate within them.**
+
 ## What we need to prove before adopting OpenShell
 
 Our planned technical feasibility assessment has explicit acceptance gates, including:
