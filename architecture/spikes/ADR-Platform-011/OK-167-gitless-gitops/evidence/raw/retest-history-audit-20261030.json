@@ -1,0 +1,15 @@
+{
+  "at": "2026-10-30T12:20:14.399435+00:00",
+  "scope": "all spike blobs and commit messages on main..HEAD",
+  "head": "537bdb6c17bfadb9cfc84c21dee793bc8dc70e29",
+  "commits": 13,
+  "unique_blobs": 120,
+  "known_local_values_compared": 8,
+  "checks": [
+    "known local credential and password literals",
+    "private-key headers followed by a base64 body"
+  ],
+  "findings": [],
+  "result": "PASS",
+  "limit": "Bounded literal and key-header audit; current staged/worktree patterns are checked separately by scan-secrets."
+}

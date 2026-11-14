@@ -1,0 +1,11 @@
+# Base for the Kustomize variant (test S-C).
+#
+# The base is deliberately identical to app/podinfo-plain/, so any difference
+# Argo CD renders comes from the overlay and not from a divergent base.
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - deployment.yaml
+  - service.yaml

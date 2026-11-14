@@ -1,0 +1,370 @@
+# Reference: helm show values zot --repo https://zotregistry.dev/helm-charts --version 0.1.122
+# Retrieved: 2026-10-29T09:27:22Z
+# NOTE: the chart's example htpasswd bcrypt hashes (admin:admin, user:user) are redacted
+#       per BRIEF B12. Their presence is the finding; the hash values are not needed.
+# Default values for zot.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+replicaCount: 1
+image:
+  repository: ghcr.io/project-zot/zot
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: "v2.1.18"
+# Defaults to the release namespace if not specified
+namespace: ""
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+serviceHeadless:
+  # Enable headless service, only for statefulset
+  enabled: false
+  # Headless service port
+  port: 5000
+  # Annotations to add to the headless service
+  annotations: {}
+service:
+  type: NodePort
+  port: 5000
+  nodePort: null  # Set to a specific port if type is NodePort
+  # Annotations to add to the service
+  annotations: {}
+  # Set to a static IP if a static IP is desired, only works when
+  # type: ClusterIP
+  clusterIP: null
+  # Traffic policy; https://kubernetes.io/docs/reference/networking/virtual-ips/#traffic-policies
+  internalTrafficPolicy: ""
+  externalTrafficPolicy: ""
+  # Traffic distribution preferences; https://kubernetes.io/docs/reference/networking/virtual-ips/#traffic-distribution
+  trafficDistribution: ""
+# Enabling this will publicly expose your zot server
+# Only enable this if you have security enabled on your cluster
+ingress:
+  enabled: false
+  annotations: {}
+  # kubernetes.io/ingress.class: nginx
+  # kubernetes.io/tls-acme: "true"
+  # If using nginx, disable body limits and increase read and write timeouts
+  # nginx.ingress.kubernetes.io/proxy-body-size: "0"
+  # nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+  # nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+  className: "nginx"
+  pathtype: ImplementationSpecific
+  hosts:
+    - host: chart-example.local
+      paths:
+        - path: /
+  tls: []
+  #  - secretName: chart-example-tls
+  #    hosts:
+  #      - chart-example.local
+# -- HTTPRoute configuration for Gateway API (alternative to Ingress). Only enable this if you have Gateway API CRDs installed and a Gateway controller.
+httproute:
+  # -- Enable HTTPRoute resource creation instead of (or in addition to) Ingress.
+  enabled: false
+  # -- Annotations to add to the HTTPRoute resource.
+  annotations: {}
+  # -- Labels to add to the HTTPRoute resource.
+  labels: {}
+  # -- Gateway references that the HTTPRoute attaches to. At least one parentRef is required when HTTPRoute is enabled.
+  parentRefs: []
+  # Example parentRefs configuration:
+  # - name: my-gateway
+  #   namespace: gateway-system
+  #   sectionName: https  # Optional: specific listener on the gateway
+  # -- Hostnames to match for this HTTPRoute.
+  hostnames: []
+  # Example:
+  # - "zot.example.com"
+  # - "registry.example.com"
+  # -- Path matching type (PathPrefix, Exact, or RegularExpression).
+  pathType: PathPrefix
+  # -- Path to match when custom rules are not specified.
+  path: /
+  # -- Advanced routing rules (optional). If not specified, a default rule matching the path will be created.
+  # Note: Any backendRefs in custom rules will be ignored and the zot service will always be used.
+  rules: []
+  # Example rules configuration:
+  # - matches:
+  #   - path:
+  #       type: PathPrefix
+  #       value: /v2/
+  #   filters:
+  #   - type: RequestHeaderModifier
+  #     requestHeaderModifier:
+  #       add:
+  #       - name: X-Custom-Header
+  #         value: custom-value
+# -- ListenerSet configuration for Gateway API. Use this to manage listeners
+# (ports/protocols/TLS) independently from the Gateway resource.
+# The parent Gateway must allow ListenerSet attachment via allowedListeners.
+# Requires Gateway API CRDs with ListenerSet support (gateway.networking.k8s.io/v1 ListenerSet).
+listenerset:
+  # -- Enable ListenerSet resource creation.
+  enabled: false
+  # -- Annotations to add to the ListenerSet resource.
+  # You may use annotations compatible with your certificate management stack.
+  annotations: {}
+  # Example annotation:
+  # cert-manager.io/cluster-issuer: letsencrypt-prod
+  # -- Labels to add to the ListenerSet resource.
+  labels: {}
+  # -- Parent Gateway reference that this ListenerSet attaches to.
+  parentRef:
+    # -- Name of the parent Gateway. Required when ListenerSet is enabled.
+    name: ""
+    # -- Namespace of the parent Gateway. Defaults to the same namespace if not set.
+    namespace: ""
+    # -- Group of the parent Gateway resource.
+    group: "gateway.networking.k8s.io"
+    # -- Kind of the parent resource.
+    kind: "Gateway"
+  # -- List of listeners to configure on the parent Gateway.
+  # At least one listener is required when ListenerSet is enabled.
+  listeners: []
+  # Example listeners configuration:
+  # - name: https
+  #   port: 443
+  #   protocol: HTTPS
+  #   hostname: "zot.example.com"
+  #   tls:
+  #     mode: Terminate
+  #     certificateRefs:
+  #       - kind: Secret
+  #         name: zot-tls-cert
+# By default, Kubernetes HTTP probes use HTTP 'scheme'. So if TLS is enabled
+# in configuration, to prevent failures, the scheme must be set to 'HTTPS'.
+httpGet:
+  scheme: HTTP
+  port: 5000
+# By default, Kubernetes considers a Pod healthy if the liveness probe returns
+# successfully. However, sometimes applications need additional startup time on
+# their first initialization. By defining a startupProbe, we can allow the
+# application to take extra time for initialization without compromising fast
+# response to deadlocks.
+startupProbe:
+  initialDelaySeconds: 5
+  periodSeconds: 10
+  failureThreshold: 3
+# If mountConfig is true the configMap named $CHART_RELEASE-config is mounted
+# on the pod's '/etc/zot' directory
+mountConfig: false
+# If mountConfig is true the chart creates the '$CHART_RELEASE-config', if it
+# does not exist the user is in charge of managing it (as this file includes a
+# sample file you have to add it empty to handle it externally).
+configFiles:
+  config.json: |-
+    {
+      "storage": { "rootDirectory": "/var/lib/registry" },
+      "http": {
+        "address": "0.0.0.0",
+        "port": "5000",
+        "readTimeout": "60s",
+        "writeTimeout": "60s"
+      },
+      "log": { "level": "debug" }
+    }
+# Alternatively, the configuration can include authentication and accessControl
+# data and we can use mountSecret option for the passwords.
+#
+#  config.json: |-
+#    {
+#      "storage": { "rootDirectory": "/var/lib/registry" },
+#      "http": {
+#        "address": "0.0.0.0",
+#        "port": "5000",
+#        "auth": { "htpasswd": { "path": "/secret/htpasswd" } },
+#        "accessControl": {
+#          "repositories": {
+#            "**": {
+#              "policies": [{
+#                "users": ["user"],
+#                "actions": ["read"]
+#              }],
+#              "defaultPolicy": []
+#            }
+#          },
+#          "adminPolicy": {
+#            "users": ["admin"],
+#            "actions": ["read", "create", "update", "delete"]
+#          }
+#        }
+#      },
+#      "log": { "level": "debug" }
+#    }
+
+# externalSecrets allows to mount external (meaning not managed by this chart)
+# Kubernetes secrets within the Zot container.
+# The secret is identified by its name (property "secretName") and should be
+# present in the same namespace. The property "mountPath" specifies the path
+# within the container filesystem where the secret is mounted.
+#
+# Below is an example:
+#
+#  externalSecrets:
+#  - secretName: "secret1"
+#    mountPath: "/secrets/s1"
+#  - secretName: "secret2"
+#    mountPath: "/secrets/s2"
+externalSecrets: []
+# If mountSecret is true, the Secret named $CHART_RELEASE-secret is mounted on
+# the pod's '/secret' directory (it is used to keep files with passwords, like
+# a `htpasswd` file)
+mountSecret: false
+# If secretFiles does not exist the user is in charge of managing it, again, if
+# you want to manage it the value has to be added empty to avoid using this one
+secretFiles:
+  # Example htpasswd with 'admin:admin' & 'user:user' user:pass pairs
+  htpasswd: |-
+    admin:<redacted-bcrypt-hash>
+    user:<redacted-bcrypt-hash>
+# Authentication string for Kubernetes probes, which is needed when `htpasswd`
+# authentication is enabled, but the anonymous access policy is not.
+# It contains a `user:password` string encoded in base64. The example value is
+# from running `echo -n "foo:var" | base64`
+# authHeader: "Zm9vOmJhcg=="
+
+# If persistence is 'true' the service uses a persistentVolumeClaim to mount a
+# volume for zot on '/var/lib/registry'; by default the pvc used is named
+# '$CHART_RELEASE-pvc', but the name can be changed below
+persistence: false
+# PVC data, only used if persistence is 'true'
+pvc:
+  # When true, the StatefulSet uses volumeClaimTemplates to dynamically provision
+  # PVCs. Kubernetes names the resulting PVCs as:
+  #   <vctName>-<fullname>-<ordinal>
+  # where <fullname> is the StatefulSet name (typically <release>-zot).
+  # For example, with release "my-release" and default pvc.name:
+  #   my-release-pvc-my-release-zot-0
+  # When false, an existing PVC is mounted via volumes instead — set 'name' to the
+  # exact name of the pre-existing PVC. Note: all replicas will share that single
+  # PVC, so the access mode must support it (e.g. ReadWriteMany).
+  create: true
+  # When create is true, this is the volumeClaimTemplate name (the <vctName> part
+  # above). When create is false, this is the literal name of a pre-existing PVC.
+  # Defaults to '$CHART_RELEASE-pvc' if not set.
+  name: null
+  # Volume access mode, if using more than one replica we need
+  accessModes: ["ReadWriteOnce"]
+  # Size of the volume requested
+  storage: 8Gi
+  # Name of the storage class to use if it is different than the default one
+  storageClassName: null
+# List of environment variables to set on the container
+env:
+# - name: "TEST"
+#  value: "ME"
+# - name: SECRET_NAME
+#  valueFrom:
+#    secretKeyRef:
+#      name: mysecret
+#      key: username
+
+# Extra Volume Mounts
+extraVolumeMounts: []
+# - name: data
+#   mountPath: /var/lib/registry
+
+# Extra Volumes
+extraVolumes: []
+# - name: data
+#   emptyDir: {}
+
+# Init Containers that run before the main container starts
+initContainers: []
+# - name: init-config
+#   image: busybox
+#   command: ["sh", "-c", "echo initializing"]
+
+# Extra Containers running alongside the main container
+extraContainers: []
+# - name: data
+#   image: busybox
+#   command: ["sleep", "infinity"]
+
+# Deployment strategy type
+strategy:
+  # strategy.type should be set to Recreate if local storage is used
+  type: RollingUpdate
+#  rollingUpdate:
+#    maxUnavailable: 25%
+
+# Extra args to pass to the deployment's container
+extraArgs: []
+podAnnotations: {}
+podLabels: {}
+deploymentAnnotations: {}
+priorityClassName: ""
+dnsConfig: {}
+dnsPolicy: "ClusterFirst"
+hostAliases: []
+topologySpreadConstraints: []
+# Example: spread pods across zones and nodes
+# topologySpreadConstraints:
+#   - maxSkew: 1
+#     topologyKey: topology.kubernetes.io/zone
+#     whenUnsatisfiable: DoNotSchedule
+#     labelSelector:
+#       matchLabels:
+#         app.kubernetes.io/name: zot
+#         app.kubernetes.io/instance: $CHART_RELEASE
+#   - maxSkew: 1
+#     topologyKey: kubernetes.io/hostname
+#     whenUnsatisfiable: DoNotSchedule
+#     labelSelector:
+#       matchLabels:
+#         app.kubernetes.io/name: zot
+#         app.kubernetes.io/instance: $CHART_RELEASE
+
+# -- PodDisruptionBudget configuration for the zot pods, to limit disruptions
+# (e.g. node drains) so a minimum number of pods stay available. When enabled, set exactly
+# one of `minAvailable` or `maxUnavailable`. Rendering fails if both or neither is set.
+podDisruptionBudget:
+  # -- Enable creation of a PodDisruptionBudget for the zot pods.
+  enabled: false
+  # -- Minimum number/percentage of pods that must remain available during a
+  # disruption. Mutually exclusive with `maxUnavailable`.
+  minAvailable: null
+  # -- Maximum number/percentage of pods that can be unavailable during a
+  # disruption. Mutually exclusive with `minAvailable`.
+  maxUnavailable: null
+# -- Node selector for pod assignment. Rendered through `tpl`, so values may
+# contain Helm template expressions (e.g. `{{ .Values.global.pool }}`); a value
+# with no `{{ }}` markers is emitted unchanged. Do not template untrusted input.
+# To output a literal brace, escape it, e.g. `{{ "{{" }}`.
+nodeSelector: {}
+# -- Affinity rules for pod assignment. Also rendered through `tpl` (same
+# escaping / untrusted-input note as nodeSelector above).
+affinity: {}
+# -- Tolerations for pod assignment. Also rendered through `tpl` (same
+# escaping / untrusted-input note as nodeSelector above).
+tolerations: []
+# Metrics configuration
+# NOTE: need enable metric extension in config.json
+metrics:
+  # Start a prometheus exporter
+  enabled: false
+  # Prometheus Operator ServiceMonitor configuration
+  serviceMonitor:
+    # Start a ServiceMonitor for Prometheus Operator
+    enabled: false
+    # Specify the interval at which metrics should be scraped
+    interval: "30s"
+    # Specify the path to scrape metrics from
+    path: "/metrics"
+    # basicAuth credentials for serviceMonitor
+    basicAuth:
+      secretName: basic-auth
+      usernameKey: username
+      passwordKey: password
+# Test hooks configuration
+test:
+  image:
+    repository: alpine
+    tag: "3.18"
+

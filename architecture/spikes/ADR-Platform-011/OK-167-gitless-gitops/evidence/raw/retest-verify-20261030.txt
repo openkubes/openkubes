@@ -1,0 +1,32 @@
+2026-10-30T12:18:13Z PASS guard: context=kind-ok167 server=https://127.0.0.1:62900 kubeconfig=.local/kubeconfig
+--- cluster ---
+  PASS node Ready (True)
+  PASS kubernetes version (v1.36.4)
+--- zot ---
+  PASS zot image pin (ghcr.io/project-zot/zot:v2.1.20@sha256:542e25be4d32e7879c0cfad93492a93c81b1e059cbd2d30d485d4bd567318234)
+  PASS anonymous /v2/ refused (401)
+  PASS health endpoint open (200)
+--- argo cd ---
+  PASS Argo CD API TLS enabled (false)
+  PASS argocd image pin (quay.io/argoproj/argocd:v3.5.6@sha256:8e5cc5bb008df8a09dba439462e58c94c55b7735888d3ebde0c25fc05e4e5335)
+  PASS zot CA trusted (true)
+  PASS repo secret uses the read-only identity (gitops-puller)
+  PASS AppProject forbids cluster-scoped resources (0)
+--- applications ---
+  PASS ok167-podinfo-tag synced (Synced/Healthy)
+  PASS ok167-podinfo-tag resource count (2)
+  PASS ok167-podinfo-digest synced (Synced/Healthy)
+  PASS ok167-podinfo-digest resource count (2)
+  PASS ok167-podinfo-kustomize synced (Synced/Healthy)
+  PASS ok167-podinfo-kustomize resource count (2)
+--- provenance (M3) ---
+{
+  "test": "M3",
+  "revision": "689f1b073aad8f3c1b640d3604e3c82d78c35577",
+  "source": "architecture/spikes/ADR-Platform-011/OK-167-gitless-gitops/app/podinfo-plain",
+  "layer": "sha256:6d65a089bc96cb8130306296ee76b8146e243f527eacf1ee6261bf6ba51b0fdc",
+  "bytes_match_git": true,
+  "result": "PASS"
+}
+
+verify: all checks passed

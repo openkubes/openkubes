@@ -1,0 +1,5 @@
+--- layer digest, three runs ---
+  run 1: sha256:6d65a089bc96cb8130306296ee76b8146e243f527eacf1ee6261bf6ba51b0fdc
+  run 2: sha256:6d65a089bc96cb8130306296ee76b8146e243f527eacf1ee6261bf6ba51b0fdc
+  run 3: sha256:6d65a089bc96cb8130306296ee76b8146e243f527eacf1ee6261bf6ba51b0fdc
+PASS identical across runs

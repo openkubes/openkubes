@@ -1,0 +1,56 @@
+{
+  "test": "K4",
+  "digest": "sha256:9e415a57fb8f4decf633e9f03aca78446e9c3c248d31ef6368901fab053ee02b",
+  "application": {
+    "app": "ok167-podinfo-imported",
+    "source": {
+      "path": ".",
+      "repoURL": "oci://zot.zot.svc.cluster.local:5000/openkubes/machine/gitops/imported/podinfo-manifests",
+      "targetRevision": "sha256:9e415a57fb8f4decf633e9f03aca78446e9c3c248d31ef6368901fab053ee02b"
+    },
+    "sync": "Synced",
+    "health": "Healthy",
+    "revision": "sha256:9e415a57fb8f4decf633e9f03aca78446e9c3c248d31ef6368901fab053ee02b",
+    "resources": [
+      {
+        "kind": "Service",
+        "name": "podinfo"
+      },
+      {
+        "kind": "Deployment",
+        "name": "podinfo"
+      }
+    ],
+    "conditions": null
+  },
+  "verification": {
+    "action": "verify",
+    "digest": "sha256:9e415a57fb8f4decf633e9f03aca78446e9c3c248d31ef6368901fab053ee02b",
+    "repository": "openkubes/machine/gitops/imported/podinfo-manifests",
+    "format": "bundle",
+    "result": "PASS",
+    "tlog_upload": false
+  },
+  "referrers": {
+    "reference": "127.0.0.1:30500/openkubes/machine/gitops/imported/podinfo-manifests@sha256:9e415a57fb8f4decf633e9f03aca78446e9c3c248d31ef6368901fab053ee02b",
+    "mediaType": "application/vnd.oci.image.manifest.v1+json",
+    "digest": "sha256:9e415a57fb8f4decf633e9f03aca78446e9c3c248d31ef6368901fab053ee02b",
+    "size": 981,
+    "referrers": [
+      {
+        "reference": "127.0.0.1:30500/openkubes/machine/gitops/imported/podinfo-manifests@sha256:e0c72ae64fbb721e8a60b43e99faf3494ea811f497701553d2b3959a44c1272f",
+        "mediaType": "application/vnd.oci.image.manifest.v1+json",
+        "digest": "sha256:e0c72ae64fbb721e8a60b43e99faf3494ea811f497701553d2b3959a44c1272f",
+        "size": 1014,
+        "annotations": {
+          "dev.sigstore.bundle.content": "dsse-envelope",
+          "dev.sigstore.bundle.predicateType": "https://sigstore.dev/cosign/sign/v1",
+          "org.opencontainers.image.created": "2026-10-30T12:12:48Z"
+        },
+        "artifactType": "application/vnd.dev.sigstore.bundle.v0.3+json",
+        "referrers": []
+      }
+    ]
+  },
+  "result": "PASS"
+}

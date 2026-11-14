@@ -1,0 +1,205 @@
+# OK-167 — zot values for the local PoC.
+#
+# Derived from platform/registry/zot/values-ok-shared.yaml (the registry-default
+# profile). Every difference from that file is listed with its reason in
+# DEVIATIONS.md — read that before concluding anything about registry-default
+# from this file.
+#
+# Carried over unchanged from registry-default: the image pin, both security
+# contexts, mountConfig, httpGet.scheme, the externalSecrets pattern, the
+# storage block, and the nesting of the zot config (accessControl under `http`,
+# failDelay under `http.auth`).
+#
+# No secret value appears here. The TLS material and the htpasswd file arrive
+# through Kubernetes secrets created by `make zot-secrets` from .local/.
+---
+replicaCount: 1
+
+image:
+  repository: ghcr.io/project-zot/zot
+  pullPolicy: IfNotPresent
+  # tag@digest, exactly as registry-default pins it. Verified in Phase 0 to be
+  # an OCI index carrying linux/arm64/v8.
+  tag: "v2.1.20@sha256:542e25be4d32e7879c0cfad93492a93c81b1e059cbd2d30d485d4bd567318234"
+
+# registry-default sets create:false because a separate template owns the
+# ServiceAccount there. Here the chart creates it.
+serviceAccount:
+  create: true
+
+service:
+  # NodePort so the host can reach the registry at localhost:30500 through
+  # kind's extraPortMapping. Host port 5000 is taken by AirPlay on macOS.
+  type: NodePort
+  port: 5000
+  nodePort: 30500
+
+ingress:
+  enabled: false
+
+httproute:
+  enabled: false
+
+listenerset:
+  enabled: false
+
+# TLS is on, so the kubelet must probe over HTTPS.
+httpGet:
+  scheme: HTTPS
+  port: 5000
+
+# Neutralise the chart's example htpasswd (admin:admin, user:user).
+#
+# mountSecret already defaults to false in chart 0.1.122 and templates/secret.yaml
+# is gated on `and .Values.mountSecret .Values.secretFiles`, so no Secret is
+# rendered by default — verified in Phase 0, finding F4. Both keys are still set
+# explicitly: it states the intent, and it stops a later values edit from
+# switching the example users on by accident.
+mountSecret: false
+secretFiles: null
+
+mountConfig: true
+configFiles:
+  config.json: |-
+    {
+      "distSpecVersion": "1.1.1",
+      "storage": {
+        "rootDirectory": "/var/lib/registry",
+        "dedupe": true,
+        "gc": true,
+        "gcDelay": "1h",
+        "gcInterval": "1h"
+      },
+      "http": {
+        "address": "0.0.0.0",
+        "port": "5000",
+        "realm": "ok167-gitops",
+        "tls": {
+          "cert": "/tls/tls.crt",
+          "key": "/tls/tls.key"
+        },
+        "auth": {
+          "htpasswd": {
+            "path": "/auth/htpasswd"
+          },
+          "failDelay": 2
+        },
+        "accessControl": {
+          "metrics": {
+            "users": ["ok167-admin"]
+          },
+          "repositories": {
+            "openkubes/machine/gitops/**": {
+              "policies": [
+                {
+                  "users": ["gitops-publisher"],
+                  "actions": ["read", "create", "update"]
+                },
+                {
+                  "users": ["gitops-puller"],
+                  "actions": ["read"]
+                }
+              ],
+              "defaultPolicy": []
+            },
+            "**": {
+              "defaultPolicy": []
+            }
+          },
+          "adminPolicy": {
+            "users": ["ok167-admin"],
+            "actions": ["read", "create", "update", "delete"]
+          }
+        }
+      },
+      "log": {
+        "level": "info"
+      },
+      "extensions": {
+        "search": {
+          "enable": true
+        },
+        "trust": {
+          "enable": true,
+          "cosign": true,
+          "notation": false
+        },
+        "events": {
+          "enable": true,
+          "sinks": [
+            {
+              "type": "http",
+              "address": "http://event-receiver.ok167-events.svc.cluster.local:8080/",
+              "timeout": "5s"
+            }
+          ]
+        },
+        "metrics": {
+          "enable": true,
+          "prometheus": {
+            "path": "/metrics"
+          }
+        },
+        "scrub": {
+          "enable": true,
+          "interval": "24h"
+        }
+      }
+    }
+
+# Created by `make zot-secrets` from .local/. registry-default also mounts an
+# /oidc secret; this PoC has no OIDC, so that mount is absent.
+externalSecrets:
+  - secretName: zot-server-tls
+    mountPath: /tls
+  - secretName: zot-htpasswd
+    mountPath: /auth
+
+env:
+  - name: SSL_CERT_FILE
+    value: /tls/ca.crt
+
+# With persistence true the chart renders a StatefulSet, not a Deployment.
+persistence: true
+pvc:
+  create: true
+  accessModes:
+    - ReadWriteOnce
+  # registry-default asks for 20Gi on local-path. This PoC pushes a handful of
+  # small manifest artifacts.
+  storage: 2Gi
+  # kind's dynamic provisioner is named `standard`; registry-default's
+  # `local-path` does not exist here and the PVC would stay Pending.
+  storageClassName: standard
+
+podSecurityContext:
+  fsGroup: 1000
+  fsGroupChangePolicy: OnRootMismatch
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 750m
+    memory: 768Mi
+
+# The chart's ServiceMonitor needs the Prometheus operator, which this cluster
+# does not run. The metrics extension above is still on, and Phase 10 scrapes
+# /metrics directly.
+metrics:
+  enabled: false
+  serviceMonitor:
+    enabled: false

@@ -1,0 +1,49 @@
+# AppProject ok167 — the blast radius of this spike.
+#
+# Everything here is a deny-by-default boundary. If an Application tried to
+# pull from another registry, deploy outside the ok167-* namespaces, or create
+# a cluster-scoped object, the project would refuse it. That matters more than
+# usual in a spike: the whole point is to try things that might not work.
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: ok167
+  namespace: argocd
+spec:
+  description: OK-167 gitless GitOps spike — OCI sources from the local zot only
+
+  sourceRepos:
+    # Only this registry, only this prefix. No Git repositories at all.
+    #
+    # `**`, not `*`. Measured, not assumed: with a single `*` this project
+    # refused `.../gitops/negative/two-layers` with
+    #   "application repo ... is not permitted in project 'ok167'"
+    # because `*` does not cross a `/` boundary in sourceRepos. Anyone writing
+    # `.../gitops/*` and expecting it to cover nested repositories gets a
+    # project-level rejection that looks nothing like a path problem.
+    #
+    # `**` is still a real restriction: one registry, one prefix, no Git.
+    - oci://zot.zot.svc.cluster.local:5000/openkubes/machine/gitops/**
+
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: ok167-*
+
+  # No cluster-scoped resource may be created. An artifact that tried to ship a
+  # ClusterRole or a CRD is refused rather than applied.
+  clusterResourceWhitelist: []
+
+  # Only the kinds the demo workloads actually need. Each addition is a
+  # deliberate decision, not a wildcard.
+  namespaceResourceWhitelist:
+    - group: apps
+      kind: Deployment
+    - group: ''
+      kind: Service
+    # Needed by the Helm-chart variant (test S-D): the podinfo chart renders a
+    # ServiceAccount and may render an HPA depending on its values.
+    - group: ''
+      kind: ServiceAccount
+    - group: autoscaling
+      kind: HorizontalPodAutoscaler

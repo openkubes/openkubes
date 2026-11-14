@@ -1,0 +1,23 @@
+# Isolated negative format case; make app-negative substitutes CASE_PLACEHOLDER.
+# Namespaces are created by guarded Make targets, not by Argo CD.
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ok167-negative-CASE_PLACEHOLDER
+  namespace: argocd
+spec:
+  project: ok167
+  source:
+    repoURL: oci://zot.zot.svc.cluster.local:5000/openkubes/machine/gitops/negative/CASE_PLACEHOLDER
+    targetRevision: review
+    path: .
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: ok167-neg
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=false

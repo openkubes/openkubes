@@ -1,0 +1,26 @@
+# OK-167 preflight — 2026-10-29T11:39:25Z
+host: arm64 / macOS 27.0.1
+
+## tools
+docker       /usr/local/bin/docker
+kind         /opt/homebrew/bin/kind
+kubectl      /opt/homebrew/bin/kubectl
+helm         /opt/homebrew/bin/helm
+oras         /opt/homebrew/bin/oras
+cosign       /opt/homebrew/bin/cosign
+gtar         /opt/homebrew/bin/gtar
+jq           /usr/bin/jq
+yq           /opt/homebrew/bin/yq
+yamllint     /opt/homebrew/bin/yamllint
+shellcheck   /opt/homebrew/bin/shellcheck
+openssl      /opt/homebrew/opt/openssl@3/bin/openssl
+
+## docker
+cpus=10 memory_bytes=12528381952 server=29.5.3
+
+## pins
+kind_node_image=kindest/node:v1.36.4@sha256:099e049362a1526b2db71494e1947aae99bd16290d7c895f2b7ea312e3cbfaed
+zot_chart=zot-0.1.122 image=ghcr.io/project-zot/zot:v2.1.20@sha256:542e25be4d32e7879c0cfad93492a93c81b1e059cbd2d30d485d4bd567318234
+argocd_chart=argo-cd-10.11.6 version=v3.5.6
+podinfo_a=6.16.0@sha256:2c88592f2b8f51a9428c8039486fc41abac53c95dbbb884d03bebee0876a6d4d
+podinfo_b=6.17.0@sha256:fa2f27c1a8561097e5144bfc0853eba6054d743b68b03de4cad4675616ddefb0

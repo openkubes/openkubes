@@ -1,0 +1,31 @@
+flowchart LR
+  subgraph mac["Mac (Host)"]
+    git["Git worktree<br/>app/ manifests"]
+    pipe["scripts/package-and-push.sh<br/>(D1)"]
+    cos["cosign (sign/verify)"]
+    git --> pipe
+  end
+
+  subgraph kind["kind cluster ok167 (127.0.0.1 only)"]
+    subgraph nszot["ns zot"]
+      zot["zot v2.1.20<br/>TLS + htpasswd + authz<br/>ext: search, trust, events, scrub"]
+    end
+    subgraph nsargo["ns argocd"]
+      repo["argocd-repo-server<br/>OCI client"]
+      ctrl["application-controller"]
+      cm["argocd-tls-certs-cm<br/>repository Secret (type oci)"]
+    end
+    subgraph nsev["ns ok167-events"]
+      recv["event-receiver<br/>(logs CloudEvents)"]
+    end
+    subgraph nsdemo["ns ok167-*"]
+      app["podinfo<br/>Deployment + Service"]
+    end
+  end
+
+  pipe -- "oras push via NodePort 127.0.0.1:30500<br/>identity: gitops-publisher" --> zot
+  cos -- "sign / attach referrers" --> zot
+  repo -- "oci:// pull via zot.zot.svc:5000<br/>identity: gitops-puller" --> zot
+  ctrl --> repo
+  ctrl -- "sync" --> app
+  zot -- "CloudEvents (HTTP sink)" --> recv
