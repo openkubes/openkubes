@@ -61,6 +61,25 @@ OpenKubes-owned versioned contracts remain authoritative; MCP can present those 
 
 We also keep our existing [Developer Workspace contract](https://github.com/openkubes/openkubes/blob/main/architecture/decisions/ADR-Platform-039-developer-workspace-contract.md) separate: a coding workspace and an operations agent may share isolation concepts but must not silently share privileges or lifecycle semantics.
 
+## OpenShell + Kyverno: defense in depth on Kubernetes
+
+A [CNCF platform-engineering guide published on November 11, 2026](https://www.cncf.io/blog/2026/11/11/openshell-on-kubernetes-a-guide-for-platform-engineers/) describes another useful boundary: OpenShell runs its sandboxes through the Kubernetes **Agent Sandbox** API, while Kubernetes-native admission and network policies can independently constrain the resources used to run them.
+
+In the [Nirmata demonstration](https://github.com/nirmata/demo-openshell), **Kyverno** uses six validating policies and one mutating policy, written in CEL, to check Sandbox definitions and selected Kubernetes resources. These controls include non-privileged execution, restrictive OpenShell RBAC, limited workload egress, digest-pinned images, default resource requests, resource ceilings, and restrictions on injecting Kubernetes Secrets into Sandbox environment variables. **Cilium** enforces the Kubernetes NetworkPolicies; **OpenShell's supervisor** enforces finer-grained runtime restrictions such as permitted requests and credential handling.
+
+These controls address distinct questions:
+
+| Boundary | What it controls | What it does *not* prove |
+| --- | --- | --- |
+| **OpenShell** | Agent execution, per-request runtime policies and credential mediation | Authorization to change OpenKubes desired state |
+| **Kyverno** | Kubernetes resource admission, validation and mutation | That an agent-originated platform operation is approved |
+| **Cilium / NetworkPolicy** | Pod network reachability | Application-level authorization or operation outcome |
+| **OpenKubes** | Trusted proposal review, policy authorization, deterministic execution and independent evidence | The security of a runtime merely because it has passed admission |
+
+The example is **not a production security guarantee**. The CNCF article explicitly notes that the gateway's ServiceAccount can still create Pods and NetworkPolicies directly; production hardening would need admission coverage for those objects too. Policy gaps involving credentials, tenant isolation and alternate network paths must be assessed rather than assumed closed. Kyverno is therefore a **candidate reference admission-policy profile** for OpenKubes-hosted agents, not a mandatory dependency or a replacement for other policy engines.
+
+Our technical evaluation will include reproducing these policies in an isolated Kubernetes test environment, checking both expected admits and deliberate denials, testing bypass paths, and preserving the same candidate-only OpenKubes interface for external agents. Whether we adopt Kyverno alongside OpenShell will follow the evidence—not precede it.
+
 ## What we need to prove before adopting OpenShell
 
 Our planned technical feasibility assessment has explicit acceptance gates, including:
