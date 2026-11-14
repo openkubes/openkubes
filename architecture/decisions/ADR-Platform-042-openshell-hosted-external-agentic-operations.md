@@ -4,7 +4,7 @@
 **Date:** 2026-11-11  
 **Decision owner:** OpenKubes Architecture  
 **ADR:** ADR-Platform-042  
-**Related:** ADR-Platform-001, ADR-Platform-015, ADR-Platform-021, ADR-Platform-030, ADR-Platform-034, ADR-Platform-035, ADR-Platform-039; OK-213, OK-220  
+**Related:** ADR-Platform-001, ADR-Platform-015, ADR-Platform-021, ADR-Platform-030, ADR-Platform-034, ADR-Platform-035, ADR-Platform-039; OK-213, OK-220, [OK-231 — Risk-Based Autonomy & Durable Asynchronous Approval](https://kubernauts.atlassian.net/browse/OK-231)  
 **Background:** [Agentic Operations Architecture Intent](https://kubernauts.atlassian.net/wiki/spaces/OpenKubes/pages/3167420417) and [Reference Architecture v0.1](https://kubernauts.atlassian.net/wiki/spaces/OpenKubes/pages/3167584257)
 
 ---
@@ -69,6 +69,18 @@ The central-versus-federated MCP placement and implementation are deliberately *
 OpenKubes core remains functional when Agentic Operations and OpenShell are disabled. External agents do not need OpenShell to integrate. Hosted-agent deployments may select a conforming runtime profile; the public agent integration boundary must not expose OpenShell-specific assumptions as permanent platform contracts.
 
 Developer Workspace isolation and lifecycle remain governed by ADR-Platform-039. A hosted agent is not automatically a DeveloperWorkspace and cannot inherit workspace capabilities implicitly.
+
+## Clarification: asynchronous review and future risk-based autonomy (research only)
+
+Human approval and operation execution are different responsibilities. An agent-facing **CMCP/MCP adapter is not an approval engine**: it may submit an untrusted candidate and expose bounded status information, but trusted OpenKubes services must own canonicalization, protected review, authorization, durable transition state, deterministic execution, and independently sourced evidence.
+
+For the current proposed agent-originated mutation path, **protected human approval of the exact canonical semantic transition remains mandatory**. A durable asynchronous approval workflow could allow the initiating agent to disconnect or continue other work while a proposal awaits review, *without* granting execution authority or treating a queued candidate as approved. The persistence mechanism, state machine, API and operational latency are not decided by this ADR.
+
+Organizations may have different **risk appetites** for diagnostics, routine responses and critical cluster-lifecycle changes. A future design might evaluate human-approved, tightly scoped pre-authorization for narrowly defined action classes, with explicit organizational ownership, immutable policy/approval provenance, lifetime, revocation, resource and tenant bounds, rate limits, blast-radius controls, replay protection, deterministic execution and independent verification. **This is a research hypothesis, not an accepted exception to human approval.** Risk acceptance cannot be expressed by silently relaxing platform security invariants or letting an agent modify its own policy.
+
+[OK-231 — Risk-Based Autonomy & Durable Asynchronous Approval](https://kubernauts.atlassian.net/browse/OK-231) must study approval latency versus authorized execution latency, persistent asynchronous workflows, acceptable risk, abuse cases and alternatives. Any design that permits agent-originated mutation without the currently required per-transition human approval **needs a separate normative ADR**, explicit threat-model and acceptance evidence, and must reconcile conflicts with existing control-plane ADRs before implementation.
+
+**Guiding principle:** The organization defines acceptable risk. OpenKubes enforces the boundaries. AI agents operate within them.
 
 ## Logical architecture (not an implemented deployment)
 
