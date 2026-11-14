@@ -33,3 +33,24 @@
 .ok-global-nav__bluesky:focus-visible{outline:2px solid #76d1ff;outline-offset:2px}
 .ok-global-nav__bluesky svg{display:block;width:20px;height:20px}
 @media(max-width:720px){.ok-global-nav__bluesky{min-width:36px;min-height:36px}}
+
+/* Normalize Bluesky with the other monochrome social glyphs.
+   Explicit SVG fill also overrides theme-level SVG/anchor coloring. */
+.ok-global-nav .ok-global-nav__bluesky,
+.ok-global-nav .ok-global-nav__bluesky svg,
+.ok-global-nav .ok-global-nav__bluesky svg path{
+  color:#e2e8f0!important;
+  fill:#e2e8f0!important;
+}
+.ok-global-nav .ok-global-nav__bluesky svg{
+  width:18px;
+  height:18px;
+  transform:translateY(1px);
+}
+.ok-global-nav .ok-global-nav__bluesky:hover svg,
+.ok-global-nav .ok-global-nav__bluesky:hover svg path,
+.ok-global-nav .ok-global-nav__bluesky:focus-visible svg,
+.ok-global-nav .ok-global-nav__bluesky:focus-visible svg path{
+  color:#fff!important;
+  fill:#fff!important;
+}
