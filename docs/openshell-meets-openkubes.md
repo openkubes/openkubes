@@ -67,6 +67,10 @@ A [CNCF platform-engineering guide published on November 11, 2026](https://www.c
 
 In the [Nirmata demonstration](https://github.com/nirmata/demo-openshell), **Kyverno** uses six validating policies and one mutating policy, written in CEL, to check Sandbox definitions and selected Kubernetes resources. These controls include non-privileged execution, restrictive OpenShell RBAC, limited workload egress, digest-pinned images, default resource requests, resource ceilings, and restrictions on injecting Kubernetes Secrets into Sandbox environment variables. **Cilium** enforces the Kubernetes NetworkPolicies; **OpenShell's supervisor** enforces finer-grained runtime restrictions such as permitted requests and credential handling.
 
+![Conceptual defense-in-depth model for OpenKubes: Kubernetes API admission with Kyverno, hosted-agent runtime controls through OpenShell, Cilium network enforcement, and a separate trusted OpenKubes operations boundary. This is not a deployed integration.](openshell-kyverno-openkubes-defense-in-depth.svg)
+
+*Conceptual OpenKubes architecture, adapted to the responsibilities discussed in the [CNCF platform-engineering guide](https://www.cncf.io/blog/2026/11/11/openshell-on-kubernetes-a-guide-for-platform-engineers/). It is not the KarsSandbox implementation shown in other community diagrams, nor a claim that this OpenShell/Kyverno/OpenKubes combination is running today.*
+
 These controls address distinct questions:
 
 | Boundary | What it controls | What it does *not* prove |
