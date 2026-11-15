@@ -1,39 +1,7 @@
-# Privacy notice / Datenschutzerklärung
+# Privacy notice
 
-*For the OpenKubes project website / Für die OpenKubes-Projektwebsite.*  
-**Last updated / Stand: 15 November 2026**
-
-## Deutsch
-
-### 1. Verantwortliche Stelle
-
-Kubernauts GmbH, Im Mediapark 4C, 50670 Köln, Deutschland  
-E-Mail: [contact@kubernauts.de](mailto:contact@kubernauts.de)  
-Telefon: +49 221 379 90 680
-
-### 2. Hosting und technische Zugriffsdaten
-
-Die öffentliche Website `openkubes.org` wird über **GitHub Pages** bereitgestellt. Für die Vorschau `preview.openkubes.org` wird **Cloudflare Pages** eingesetzt. Beim Aufruf der Website können die jeweiligen Infrastrukturanbieter technische Verbindungsdaten verarbeiten, etwa IP-Adresse, Zeitpunkt und angeforderte Inhalte, Browserinformationen und HTTP-Status. Dies dient der Auslieferung, Stabilität und Sicherheit der Website.
-
-Als Rechtsgrundlage für unsere hierfür erforderliche Verarbeitung kommt Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an der sicheren Bereitstellung) in Betracht. Die Dienstleister können Daten außerhalb der EU verarbeiten; hierfür sind die jeweils anwendbaren datenschutzrechtlichen Übermittlungsbedingungen maßgeblich. Aufbewahrungszeiten technisch erforderlicher Protokolle richten sich nach den einschlägigen Einstellungen und Regeln der jeweiligen Anbieter sowie unserem tatsächlichen Betriebsbedarf.
-
-### 3. Cookies und Tracking
-
-OpenKubes ist auf Datensparsamkeit ausgelegt. Wir setzen nach dem geprüften Website-Stand keine Google-Analytics-, Google-Ads- oder LinkedIn-Werbepixel ein. Auf den technisch getesteten Preview-Seiten (Startseite und OK AI) wurden keine Cookies und keine Local-/Session-Storage-Einträge festgestellt. Diese Stichprobe ist keine Aussage über jeden Browser oder jede Unterseite. Eine gesonderte Einwilligungsoberfläche ist für die derzeit geprüften rein technischen Funktionen nicht vorgesehen.
-
-### 4. Ask OK AI Lite
-
-Ask OK AI Lite zeigt vorab geprüfte Antworten direkt im Browser. Es gibt derzeit **kein KI-Backend** für diesen Lite-Modus. Bei der geprüften Preview-Interaktion wurde die eingegebene Testfrage nicht an einen externen KI-Dienst übermittelt. Bitte geben Sie keine vertraulichen Informationen ein.
-
-### 5. Externe Links und Kontakt
-
-Unsere Website enthält Links zu externen Angeboten, unter anderem GitHub, YouTube, Slack und Meetup. Beim bewussten Öffnen dieser Links gelten die Datenschutzhinweise der jeweiligen Anbieter. Wenn Sie uns per E-Mail kontaktieren, verarbeiten wir Ihre Angaben zur Bearbeitung Ihrer Anfrage (je nach Anlass Art. 6 Abs. 1 lit. b oder f DSGVO); nicht mehr erforderliche Nachrichten werden entsprechend den gesetzlichen und betrieblichen Aufbewahrungspflichten gelöscht.
-
-### 6. Ihre Rechte
-
-Im Rahmen der DSGVO haben Sie insbesondere Rechte auf Auskunft, Berichtigung, Löschung, Einschränkung, Datenübertragbarkeit und Widerspruch. Eine erteilte Einwilligung können Sie jederzeit für die Zukunft widerrufen. Sie können sich bei einer zuständigen Datenschutzaufsichtsbehörde beschweren. Datenschutzanfragen richten Sie an die oben genannte E-Mail-Adresse.
-
-## English
+For the OpenKubes project website.  
+**Last updated: 15 November 2026**
 
 ### 1. Controller
 
@@ -65,4 +33,4 @@ Subject to the GDPR, you may request access, rectification, erasure, restriction
 
 ---
 
-[Imprint / Impressum](/legal/imprint/)
+[Imprint](/legal/imprint/)
