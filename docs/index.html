@@ -383,7 +383,7 @@
     margin-top:1.4rem;
   }
   .demo-preview{display:block;position:relative;border-radius:12px;overflow:hidden;border:1px solid var(--border);background:#151c29;aspect-ratio:16 / 9;}
-  .demo-preview img{display:block;width:100%;height:100%;object-fit:cover;}
+  .demo-preview-label{display:flex;flex-direction:column;justify-content:center;align-items:center;gap:.5rem;width:100%;height:100%;padding:1.2rem;text-align:center;color:#fff;background:radial-gradient(ellipse at 35% 25%,#235a76 0%,#151c29 70%);}\n  .demo-preview-label strong{font-size:clamp(1.2rem,2.8vw,2rem);letter-spacing:.02em;}\n  .demo-preview-label small{font-size:.85rem;color:#d8eaf4;}
   .demo-play{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);display:grid;place-items:center;width:68px;height:48px;background:#d9232e;color:#fff;border-radius:13px;font-size:1.6rem;line-height:1;box-shadow:0 4px 18px rgba(0,0,0,.28);}
   .demo-preview:hover .demo-play{background:#ba1620;}
   .demo-preview:focus-visible{outline:3px solid var(--accent);outline-offset:3px;}
@@ -605,7 +605,7 @@
     <h2>See OpenKubes in Action</h2>
     <div class="demo-feature">
       <a class="demo-preview" href="https://youtu.be/_LJ8tCLHrO0" target="_blank" rel="noopener noreferrer" aria-label="Watch an OpenKubes Local demo on YouTube (opens in a new tab)">
-        <img src="https://i.ytimg.com/vi/_LJ8tCLHrO0/hqdefault.jpg" alt="Video preview for OpenKubes Local" loading="lazy" width="480" height="360">
+        <span class="demo-preview-label" aria-hidden="true"><strong>OpenKubes Local</strong><small>Watch the demo on YouTube ↗</small></span>
         <span class="demo-play" aria-hidden="true">▶</span>
       </a>
       <div class="demo-copy">
