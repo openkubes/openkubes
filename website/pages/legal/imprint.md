@@ -1,28 +1,6 @@
-# Imprint / Impressum
+# Imprint
 
-*Legal information for the non-commercial OpenKubes open-source project website / Anbieterkennzeichnung für die nicht kommerzielle OpenKubes-Open-Source-Website.*
-
-## Deutsch
-
-**Website-Betreiberin und Diensteanbieterin**
-
-Kubernauts GmbH  
-Im Mediapark 4C  
-50670 Köln  
-Deutschland
-
-E-Mail: [contact@kubernauts.de](mailto:contact@kubernauts.de)  
-Telefon: [+49 221 379 90 680](tel:+4922137990680)
-
-**Vertreten durch:** Arash Kaffamanesh  
-**Registergericht:** Amtsgericht Köln  
-**Handelsregister:** HRB 94032
-
-OpenKubes ist ein Open-Source-Projekt, keine eigenständige juristische Person. Die Kubernauts GmbH ist Betreiberin dieser Website. Clouds Sky GmbH unterstützt das Projekt als **Project Supporter**.
-
-Die OpenKubes-Quelltexte und Beiträge finden Sie unter [github.com/openkubes](https://github.com/openkubes).
-
-## English
+Legal information for the OpenKubes open-source project website.
 
 **Website operator and service provider**
 
@@ -44,4 +22,4 @@ The source code and contributions are available at [github.com/openkubes](https:
 
 ---
 
-[Privacy notice / Datenschutzerklärung](/legal/privacy/)
+[Privacy notice](/legal/privacy/)
