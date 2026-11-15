@@ -12,8 +12,8 @@ Deutschland
 Telefon: +49 221 379 90 680  
 E-Mail: contact@kubernauts.de
 
-**Vertreten durch:** [Geschäftsführung anhand des aktuellen Handelsregisters verifizieren und ergänzen]  
-**Registergericht und Handelsregisternummer:** [verifizieren und ergänzen]  
+**Vertreten durch:** [Geschäftsführung anhand des aktuellen amtlichen Handelsregisterauszugs verifizieren; vorhandene Kubernauts-Datenschutzerklärung nennt Arash Kaffamanesh, während Register-Aggregatoren eine längere Namensform anzeigen]  
+**Registergericht und Handelsregisternummer:** Amtsgericht Köln, HRB 94032 [über zwei unabhängige Register-Aggregatoren plausibilisiert; vor Veröffentlichung amtlichen Registerauszug prüfen]  
 **Umsatzsteuer-Identifikationsnummer gemäß § 27a UStG:** [falls vorhanden: verifizieren und ergänzen]
 
 **Verantwortlich für journalistisch-redaktionelle Inhalte gemäß § 18 Abs. 2 MStV:** [prüfen, ob für die OpenKubes-Website erforderlich; gegebenenfalls Name und Anschrift ergänzen]
@@ -28,7 +28,7 @@ Die Website kann auf externe Dokumentationen, GitHub, YouTube, Meetup und andere
 
 ## Freigabe-Checkliste
 
-- [ ] Aktuellen Handelsregisterauszug abgleichen: Geschäftsführung, Sitz, Registergericht, HRB
+- [ ] Amtlichen Handelsregisterauszug abgleichen: vollständige Schreibweise der Geschäftsführung, Sitz, Registergericht, HRB 94032 (Drittdaten nur vorläufig)
 - [ ] USt-ID und ggf. medienrechtlich verantwortliche Person bestätigen
 - [ ] Datenschutz-Kontakt und Impressum-Mailadresse abgleichen
 - [ ] Legal review (DDG / MStV), DE/EN-Sprachversion und Mobile-Layout
