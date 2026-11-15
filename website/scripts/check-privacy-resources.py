@@ -43,7 +43,12 @@ def forbidden(url: str) -> bool:
         value = "https:" + value
     if not value.startswith(("https://", "http://")):
         return False
-    host = (urlsplit(value).hostname or "").lower().rstrip(".")
+    try:
+        host = (urlsplit(value).hostname or "").lower().rstrip(".")
+    except ValueError:
+        # Regex-based discovery may encounter JS comments or literal `//[` fragments.
+        # They are not valid resource URLs; never crash the entire site build.
+        return False
     return any(host == domain or host.endswith("." + domain) for domain in FORBIDDEN_HOSTS)
 
 
