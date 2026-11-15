@@ -6,10 +6,16 @@ const { chromium } = require('playwright');
 const fs = require('node:fs');
 const { URL } = require('node:url');
 
-const origins = [
-  'https://openkubes.org/',
-  'https://preview.openkubes.org/',
-];
+const targets = Object.freeze({
+  production: 'https://openkubes.org/',
+  preview: 'https://preview.openkubes.org/',
+});
+const target = process.env.AUDIT_TARGET || 'both';
+if (!['preview', 'production', 'both'].includes(target)) {
+  console.error('Invalid AUDIT_TARGET (expected preview, production or both).');
+  process.exit(2);
+}
+const origins = target === 'both' ? [targets.production, targets.preview] : [targets[target]];
 const routes = ['/', '/ai/'];
 const BLOCKED = [
   'googletagmanager.com', 'google-analytics.com', 'doubleclick.net',
