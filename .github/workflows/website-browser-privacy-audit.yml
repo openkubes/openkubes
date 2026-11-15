@@ -8,7 +8,9 @@ permissions:
 
 jobs:
   browser-privacy:
-    runs-on: ubuntu-latest
+    # Playwright 1.56.1 Chromium does not support the ubuntu-26.04 image yet.
+    # Keep runner OS explicit rather than following ubuntu-latest upgrades.
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - name: Checkout reviewed repository
