@@ -78,7 +78,7 @@ nav:
       - Overview: community/index.md
       - How to update the docs: community/how-to-update-docs.md
   - Legal:
-      - Imprint / Impressum: legal/imprint/index.md
-      - Privacy / Datenschutz: legal/privacy/index.md
+      - Imprint: legal/imprint/index.md
+      - Privacy Notice: legal/privacy/index.md
 extra:
   generator: false
