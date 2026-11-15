@@ -24,4 +24,8 @@ touch .mkdocs-site/.nojekyll
 rm -f .mkdocs-site/_headers
 printf 'User-agent: *\nAllow: /\n' > .mkdocs-site/robots.txt
 python website/scripts/check-github-pages-build.py
+python -m unittest discover -s website/tests -p 'test_privacy_resources.py'
+python -m unittest discover -s website/tests -p 'test_privacy_legal_draft_guard.py'
+python website/scripts/check-privacy-resources.py
+node --test website/tests/test_privacy_ok_ai_lite.cjs
 echo "GitHub Pages production candidate built. No deployment was performed."

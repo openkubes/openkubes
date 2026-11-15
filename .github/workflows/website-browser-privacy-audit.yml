@@ -1,0 +1,37 @@
+name: OpenKubes browser privacy evidence (manual, no deployment)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  browser-privacy:
+    # Playwright 1.56.1 Chromium does not support the ubuntu-26.04 image yet.
+    # Keep runner OS explicit rather than following ubuntu-latest upgrades.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout reviewed repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install pinned Playwright audit tool
+        run: |
+          npm install --no-save --no-package-lock playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Audit current production and preview routes
+        run: node website/scripts/audit-browser-privacy.cjs
+      - name: Store sanitized evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: openkubes-browser-privacy-audit
+          path: openkubes-browser-privacy-audit.json
+          retention-days: 30
+          if-no-files-found: warn
