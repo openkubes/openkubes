@@ -14,7 +14,8 @@ const blockedPatterns = [
   /\b(?:localStorage|sessionStorage|indexedDB|caches)\b/i,
   /\bdocument\s*\.\s*cookie\b/i,
   /\b(?:navigator|window)\s*\.\s*serviceWorker\b/i,
-  /\b(?:eval|Function)\s*\(/i,
+  /\beval\s*\(/,
+  /\b(?:new\s+)?Function\s*\(/,
   /\b(?:importScripts)\s*\(/i,
 ];
 
@@ -39,4 +40,14 @@ test('User-supplied question content is assigned with textContent, not HTML', ()
 test('An external link to a pinned GitHub source is navigational only', () => {
   assert.match(source, /a\.href\s*=\s*sourceUrl/);
   assert.match(source, /a\.rel\s*=\s*"noopener noreferrer"/);
+});
+
+test('Dynamic-code patterns distinguish ordinary functions from prohibited calls', () => {
+  const evalPattern = blockedPatterns.find(pattern => pattern.test('eval("1+1")'));
+  const constructorPattern = blockedPatterns.find(pattern => pattern.test('new Function("return 1")'));
+  assert.ok(evalPattern, 'eval() must be blocked');
+  assert.ok(constructorPattern, 'Function constructor must be blocked');
+  for (const pattern of blockedPatterns) {
+    assert.doesNotMatch('function toggle(open) { return open; }', pattern);
+  }
 });
