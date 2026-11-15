@@ -40,6 +40,16 @@ class PrivacyGuardTests(unittest.TestCase):
         result = self.check("app.js", 'const s = "https://snap.licdn.com/li.lms-analytics/insight.min.js";')
         self.assertTrue(result)
 
+    def test_malformed_ipv6_like_url_candidate_does_not_crash(self):
+        # Real-world markup/JS may include fragments such as //[
+        self.assertFalse(guard.forbidden("//[not-an-ipv6-address"))
+        self.assertFalse(guard.forbidden("https://[not-an-ipv6-address"))
+        self.assertTrue(guard.forbidden("https://fonts.googleapis.com/css2?family=Roboto"))
+
+    def test_malformed_url_inside_js_does_not_abort_scanner(self):
+        result = self.check("app.js", 'const x = "https://[broken";')
+        self.assertEqual(result, [])
+
     def test_allow_click_through_external_link(self):
         result = self.check("index.html", '<a href="https://youtu.be/example" target="_blank">Watch</a>')
         self.assertEqual(result, [])
