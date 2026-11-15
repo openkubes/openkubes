@@ -26,6 +26,17 @@
   </nav>
 {% endblock %}
 
+{% block footer %}
+  {{ super() }}
+  <div class="ok-legal-footer" style="text-align:center;padding:0.7rem 1rem 1.2rem;font-size:.78rem;">
+    <a href="/legal/imprint/">Imprint / Impressum</a>
+    <span aria-hidden="true"> · </span>
+    <a href="/legal/privacy/">Privacy / Datenschutz</a>
+    <span aria-hidden="true"> · </span>
+    <span>Website operator: Kubernauts GmbH</span>
+  </div>
+{% endblock %}
+
 {% block scripts %}
   {{ super() }}
   <script>
