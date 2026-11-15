@@ -54,3 +54,17 @@ Observed from the runner logs:
 8. **Scope of audit:** only four sampled routes. Confirm the wider route set and storage evidence before declaring privacy compliance.
 
 **Interpretation:** The failed audit is useful evidence of residual browser requests. It cannot by itself prove the current hosting revision, data retention, cookie compliance, or the absence of other trackers.
+
+## Preview sync and manual verification — 2026-11-15
+
+The Cloudflare preview commit marker screenshot showed `ec0a4724619b45508a1a41e993fd13bd7f7eeaaf`, matching merged PR #499. This supports preview deployment parity at that observed point, **not** production parity. The operator reported no YouTube preview requests from `/` and no Google Fonts requests from `/ai/` after preview synchronization.
+
+**Evidence limitation:** The attached Chrome DevTools screenshots show a nonempty Network text filter (`oaiq`) and a `0 / 15 requests` or `0 / 16 requests` filtered view. A blank filtered table therefore **cannot independently prove** that the YouTube/Font requests were absent. Before passing the preview gate, clear all text filters, reload with cache disabled and inspect the complete request list; preferably run the new **preview-only automated Chromium audit** after the selective workflow is merged.
+
+### Production decision remains separate
+
+- [ ] Preview-only browser audit passes on `/` and `/ai/`, including actual hostnames, Ask OK AI Lite submission, cookies and browser storage metadata
+- [ ] All third-party hosts explained; full unfiltered DevTools evidence inspected where needed
+- [ ] Production Pages source, live artifact commit, URL parity and rollback recorded
+- [ ] Hosting, data-processing and legal notices completed and independently reviewed
+- [ ] Explicit operator approval obtained before **any** production release

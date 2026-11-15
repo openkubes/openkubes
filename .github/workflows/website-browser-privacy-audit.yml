@@ -2,6 +2,16 @@ name: OpenKubes browser privacy evidence (manual, no deployment)
 
 on:
   workflow_dispatch:
+    inputs:
+      target:
+        description: 'Choose the deployed site to audit (preview first, then production after explicit release)'
+        required: true
+        type: choice
+        options:
+          - preview
+          - production
+          - both
+        default: preview
 
 permissions:
   contents: read
@@ -25,7 +35,9 @@ jobs:
         run: |
           npm install --no-save --no-package-lock playwright@1.56.1
           npx playwright install --with-deps chromium
-      - name: Audit current production and preview routes
+      - name: Audit selected deployed site routes
+        env:
+          AUDIT_TARGET: ${{ inputs.target }}
         run: node website/scripts/audit-browser-privacy.cjs
       - name: Store sanitized evidence
         if: ${{ always() }}
