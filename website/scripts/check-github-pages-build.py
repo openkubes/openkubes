@@ -47,6 +47,21 @@ def main():
                  "OpenKubes-Presentation.html", "search/search_index.json"):
         if not (SITE / name).is_file():
             raise SystemExit("Missing production candidate path: " + name)
+    # Lightweight release guard: published notices and both footer contexts exist.
+    for relative in ("legal/imprint/index.html", "legal/privacy/index.html"):
+        page = SITE / relative
+        if not page.is_file():
+            raise SystemExit("Missing public legal page: " + relative)
+        rendered = page.read_text(encoding="utf-8")
+        for expected in ("Kubernauts GmbH", "contact@kubernauts.de"):
+            if expected not in rendered:
+                raise SystemExit(f"{relative}: required operator detail missing: {expected}")
+    homepage_legal = (SITE / "index.html").read_text(encoding="utf-8")
+    ai_legal = (SITE / "ai/index.html").read_text(encoding="utf-8")
+    for name, html in (("homepage", homepage_legal), ("AI page", ai_legal)):
+        for href in ("/legal/imprint/", "/legal/privacy/"):
+            if f'href="{href}"' not in html:
+                raise SystemExit(f"{name}: legal footer link missing: {href}")
     # Production launch guard: all pages must use the same reviewed Lite UI.
     homepage = (SITE / "index.html").read_text(encoding="utf-8")
     ai_page = (SITE / "ai" / "index.html").read_text(encoding="utf-8")
