@@ -26,6 +26,16 @@ Open source is more than a list of tools. **Open Universe** is our approach to c
 | Apps & collaboration | openDesk, OpenProject | Optional applications on Kubernetes |
 | Observability & fleet | OpenSearch, OpenTelemetry, Open Cluster Management | Operational evidence, telemetry and multi-cluster capabilities |
 
+## Complete Open Universe Family
+
+The compact visual above introduces the ecosystem at a glance. For the **full technology family**, we maintain a readable, expanded diagram and individual descriptions of every currently tracked project.
+
+[**Explore all 23 Open Universe technologies and their roles →**](family.md)
+
+![Complete Open Universe technology radar, grouped by maturity status](open-universe-radar.svg)
+
+*Zoom in to read the full-size diagram; a text-based, accessible inventory with individual descriptions is available on the [Family page](family.md).*
+
 ## Technology radar
 
 The radar differentiates between **Implemented**, **Evaluating**, **Planned** and **Watchlist**. *Implemented* can mean deployed in a specific internal environment; it does **not** imply general availability, production hardening or commercial support.
