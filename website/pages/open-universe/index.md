@@ -8,7 +8,7 @@ Open source is more than a list of tools. **Open Universe** is our approach to c
 
 [**Open the full-size Open Universe Family SVG →**](open-universe-family.svg)
 
-*The graphic shows technology families and architectural opportunities, **not** an assertion that every listed component is integrated or available as a supported OpenKubes offering.*
+*The lines indicate membership in a deliberately composed ecosystem, not direct point-to-point integrations. Technologies interact through appropriate open standards and defined platform contracts where adopted. Status describes adoption maturity, **not** product availability or a live integration map.*
 
 ## Open by design. Composed by purpose. Governed by evidence.
 
