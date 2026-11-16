@@ -4,7 +4,9 @@
 
 Open source is more than a list of tools. **Open Universe** is our approach to composing selected open-source technologies around OpenKubes, with clear ownership boundaries, open interfaces and independently verifiable outcomes.
 
-![Open Universe Family capability map](open-universe-family.svg)
+[![Open Universe Family — full circular diagram with 18 connected technologies](open-universe-family.svg)](open-universe-family.svg)
+
+[**Open the full-size Open Universe Family SVG →**](open-universe-family.svg)
 
 *The graphic shows technology families and architectural opportunities, **not** an assertion that every listed component is integrated or available as a supported OpenKubes offering.*
 
