@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" role="img" aria-labelledby="title desc">
+<title id="title">Open Universe Family around OpenKubes</title>
+<desc id="desc">Six capability families connect to the OpenKubes core. The chart illustrates exploration areas, not implementation status.</desc>
+<defs><linearGradient id="bg" x2="1" y2="1"><stop stop-color="#061834"/><stop offset="1" stop-color="#0d3261"/></linearGradient><linearGradient id="hub" x2="0" y2="1"><stop stop-color="#176cb8"/><stop offset="1" stop-color="#062a5b"/></linearGradient></defs>
+<rect width="1200" height="675" fill="url(#bg)"/>
+<text x="62" y="77" fill="#ffffff" font-size="44" font-weight="750" font-family="Arial,sans-serif">Open Universe <tspan fill="#23dce5">Family</tspan></text>
+<text x="62" y="116" fill="#c7dff2" font-size="20" font-family="Arial,sans-serif">The open ecosystem around OpenKubes</text>
+<g fill="none" stroke="#58cde7" stroke-width="3" opacity=".65">
+<path d="M600 352 L600 183 M600 352 L815 250 M600 352 L815 450 M600 352 L600 535 M600 352 L385 450 M600 352 L385 250"/></g>
+<g font-family="Arial,sans-serif" text-anchor="middle">
+<circle cx="600" cy="352" r="133" fill="url(#hub)" stroke="#36e4ee" stroke-width="5"/>
+<text x="600" y="339" font-size="43" font-weight="bold" fill="white">OpenKubes</text><text x="600" y="374" font-size="23" fill="#d4f4ff">Platform Core</text>
+</g>
+<g font-family="Arial,sans-serif" text-anchor="middle">
+<g><rect x="439" y="120" width="322" height="100" rx="24" fill="#103861" stroke="#54bde6" stroke-width="2"/><text x="600" y="162" font-size="23" font-weight="bold" fill="white">Infrastructure</text><text x="600" y="193" font-size="17" fill="#c5e7f4">OpenTofu · OpenStack</text></g><g><rect x="654" y="195" width="322" height="100" rx="24" fill="#103861" stroke="#54bde6" stroke-width="2"/><text x="815" y="237" font-size="23" font-weight="bold" fill="white">AI &amp; Agents</text><text x="815" y="268" font-size="17" fill="#c5e7f4">OpenCode · OpenClaw</text></g><g><rect x="654" y="404" width="322" height="100" rx="24" fill="#103861" stroke="#54bde6" stroke-width="2"/><text x="815" y="446" font-size="23" font-weight="bold" fill="white">Security &amp; Identity</text><text x="815" y="477" font-size="17" fill="#c5e7f4">OpenIAM · OPA · OpenBao</text></g><g><rect x="439" y="492" width="322" height="100" rx="24" fill="#103861" stroke="#54bde6" stroke-width="2"/><text x="600" y="534" font-size="23" font-weight="bold" fill="white">Storage &amp; FinOps</text><text x="600" y="565" font-size="17" fill="#c5e7f4">OpenStorage · OpenCost</text></g><g><rect x="224" y="404" width="322" height="100" rx="24" fill="#103861" stroke="#54bde6" stroke-width="2"/><text x="385" y="446" font-size="23" font-weight="bold" fill="white">Apps &amp; Collaboration</text><text x="385" y="477" font-size="17" fill="#c5e7f4">openDesk · OpenProject</text></g><g><rect x="224" y="195" width="322" height="100" rx="24" fill="#103861" stroke="#54bde6" stroke-width="2"/><text x="385" y="237" font-size="23" font-weight="bold" fill="white">Observability &amp; Fleet</text><text x="385" y="268" font-size="17" fill="#c5e7f4">OpenSearch · OCM</text></g>
+</g>
+<text x="62" y="633" font-size="18" fill="#d5ebf4" font-family="Arial,sans-serif">Open by design.   Composed by purpose.   Governed by evidence.</text>
+<text x="1138" y="633" font-size="14" fill="#a3c5df" text-anchor="end" font-family="Arial,sans-serif">Capability map · not a product availability claim</text>
+</svg>
