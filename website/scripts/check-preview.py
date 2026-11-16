@@ -8,6 +8,7 @@ ROOT = Path(__file__).resolve().parents[2]
 SITE = ROOT / ".mkdocs-site"
 LEGACY = ROOT / "docs" / "index.html"
 ARTICLES = [
+    "if-we-built-kubernetes-today",
     "developer-workspace-blog-post",
     "agentic-operations-reference-architecture",
     "vault-secret-contract-blog-post",
