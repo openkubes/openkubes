@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1120" width="1600" height="1120" role="img" aria-labelledby="diagram-title diagram-desc">
+<title id="diagram-title">From Human Authority to Verifiable Execution — OpenKubes conceptual target architecture</title>
+<desc id="diagram-desc">Human governance, OpenKubes open contracts and governance, Kubernautic enterprise agentic operations, trusted execution including MCP and proposed CMCP, Kubernetes infrastructure and a loop of independent evidence returning to governance. This is a conceptual target, not an implemented solution.</desc>
+<defs><marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M1 1 L10 6 L1 11 Z" fill="#19a3b3"/></marker></defs>
+<rect x="0" y="0" width="1600" height="1120" rx="0" fill="#ffffff" stroke="#ffffff" stroke-width="0"/>
+<rect x="76" y="52" width="18" height="49" rx="5" fill="#139cb7" stroke="#139cb7" stroke-width="0"/>
+<text x="113" y="77" font-family="Inter,Arial,Helvetica,sans-serif" font-size="42" fill="#10273c" font-weight="700" text-anchor="start">From Human Authority to Verifiable Execution</text>
+<text x="113" y="112" font-family="Inter,Arial,Helvetica,sans-serif" font-size="22" fill="#607889" font-weight="400" text-anchor="start">OpenKubes / Kubernautic — Human Governance · Agentic Operations · Evidence</text>
+<rect x="1238" y="65" width="289" height="45" rx="11" fill="#f1f7fb" stroke="#d8e7ee" stroke-width="1"/>
+<text x="1382" y="93" font-family="Inter,Arial,Helvetica,sans-serif" font-size="17" fill="#35637c" font-weight="700" text-anchor="middle">CONCEPTUAL TARGET</text>
+<rect x="92" y="165" width="1200" height="132" rx="19" fill="#eaf8f8" stroke="#18a6aa" stroke-width="2"/>
+<rect x="111" y="187" width="63" height="43" rx="10" fill="#fff" stroke="#18a6aa" stroke-width="1.5"/>
+<text x="142" y="216" font-family="Inter,Arial,Helvetica,sans-serif" font-size="23" fill="#18a6aa" font-weight="700" text-anchor="middle">01</text>
+<text x="198" y="209" font-family="Inter,Arial,Helvetica,sans-serif" font-size="26" fill="#102e44" font-weight="700" text-anchor="start">HUMANS GOVERN</text>
+<rect x="198" y="231" width="332" height="52" rx="11" fill="#ffffff" stroke="#18a6aa" stroke-width="1.5"/>
+<text x="364" y="264" font-family="Inter,Arial,Helvetica,sans-serif" font-size="19" fill="#16354b" font-weight="600" text-anchor="middle">Enterprise identity</text>
+<rect x="543" y="231" width="332" height="52" rx="11" fill="#ffffff" stroke="#18a6aa" stroke-width="1.5"/>
+<text x="709" y="264" font-family="Inter,Arial,Helvetica,sans-serif" font-size="19" fill="#16354b" font-weight="600" text-anchor="middle">Human authority</text>
+<rect x="888" y="231" width="332" height="52" rx="11" fill="#ffffff" stroke="#18a6aa" stroke-width="1.5"/>
+<text x="1054" y="264" font-family="Inter,Arial,Helvetica,sans-serif" font-size="19" fill="#16354b" font-weight="600" text-anchor="middle">Autonomy contracts</text>
+<path d="M692 299 V330" stroke="#18a6b0" stroke-width="5" fill="none" marker-end="url(#arrow)"/>
+<rect x="92" y="335" width="1200" height="132" rx="19" fill="#edf6fc" stroke="#297ec2" stroke-width="2"/>
+<rect x="111" y="357" width="63" height="43" rx="10" fill="#fff" stroke="#297ec2" stroke-width="1.5"/>
+<text x="142" y="386" font-family="Inter,Arial,Helvetica,sans-serif" font-size="23" fill="#297ec2" font-weight="700" text-anchor="middle">02</text>
+<text x="198" y="379" font-family="Inter,Arial,Helvetica,sans-serif" font-size="26" fill="#102e44" font-weight="700" text-anchor="start">OPENKUBES  ·  CONTRACTS &amp; GOVERNANCE</text>
+<rect x="198" y="401" width="245.75" height="52" rx="11" fill="#ffffff" stroke="#297ec2" stroke-width="1.5"/>
+<text x="320.875" y="434" font-family="Inter,Arial,Helvetica,sans-serif" font-size="19" fill="#16354b" font-weight="600" text-anchor="middle">Capabilities</text>
+<rect x="456.75" y="401" width="245.75" height="52" rx="11" fill="#ffffff" stroke="#297ec2" stroke-width="1.5"/>
+<text x="579.625" y="434" font-family="Inter,Arial,Helvetica,sans-serif" font-size="19" fill="#16354b" font-weight="600" text-anchor="middle">Policy boundaries</text>
+<rect x="715.5" y="401" width="245.75" height="52" rx="11" fill="#ffffff" stroke="#297ec2" stroke-width="1.5"/>
+<text x="838.375" y="434" font-family="Inter,Arial,Helvetica,sans-serif" font-size="19" fill="#16354b" font-weight="600" text-anchor="middle">Authorization</text>
+<rect x="974.25" y="401" width="245.75" height="52" rx="11" fill="#ffffff" stroke="#297ec2" stroke-width="1.5"/>
+<text x="1097.125" y="434" font-family="Inter,Arial,Helvetica,sans-serif" font-size="18" fill="#16354b" font-weight="600" text-anchor="middle">Verification contracts</text>
+<path d="M692 469 V500" stroke="#18a6b0" stroke-width="5" fill="none" marker-end="url(#arrow)"/>
+<rect x="92" y="505" width="1200" height="132" rx="19" fill="#f0faf8" stroke="#13998a" stroke-width="2"/>
+<rect x="111" y="527" width="63" height="43" rx="10" fill="#fff" stroke="#13998a" stroke-width="1.5"/>
+<text x="142" y="556" font-family="Inter,Arial,Helvetica,sans-serif" font-size="23" fill="#13998a" font-weight="700" text-anchor="middle">03</text>
+<text x="198" y="549" font-family="Inter,Arial,Helvetica,sans-serif" font-size="26" fill="#102e44" font-weight="700" text-anchor="start">KUBERNAUTIC  ·  AGENTIC OPERATIONS</text>
+<rect x="198" y="571" width="245.75" height="52" rx="11" fill="#ffffff" stroke="#13998a" stroke-width="1.5"/>
+<text x="320.875" y="604" font-family="Inter,Arial,Helvetica,sans-serif" font-size="19" fill="#16354b" font-weight="600" text-anchor="middle">Agent registry</text>
+<rect x="456.75" y="571" width="245.75" height="52" rx="11" fill="#ffffff" stroke="#13998a" stroke-width="1.5"/>
+<text x="579.625" y="604" font-family="Inter,Arial,Helvetica,sans-serif" font-size="19" fill="#16354b" font-weight="600" text-anchor="middle">Diagnostics</text>
+<rect x="715.5" y="571" width="245.75" height="52" rx="11" fill="#ffffff" stroke="#13998a" stroke-width="1.5"/>
+<text x="838.375" y="604" font-family="Inter,Arial,Helvetica,sans-serif" font-size="19" fill="#16354b" font-weight="600" text-anchor="middle">Approval workflows</text>
+<rect x="974.25" y="571" width="245.75" height="52" rx="11" fill="#ffffff" stroke="#13998a" stroke-width="1.5"/>
+<text x="1097.125" y="604" font-family="Inter,Arial,Helvetica,sans-serif" font-size="19" fill="#16354b" font-weight="600" text-anchor="middle">Operations UI</text>
+<path d="M692 639 V670" stroke="#18a6b0" stroke-width="5" fill="none" marker-end="url(#arrow)"/>
+<rect x="92" y="675" width="1200" height="132" rx="19" fill="#fff7ef" stroke="#e88834" stroke-width="2"/>
+<rect x="111" y="697" width="63" height="43" rx="10" fill="#fff" stroke="#e88834" stroke-width="1.5"/>
+<text x="142" y="726" font-family="Inter,Arial,Helvetica,sans-serif" font-size="23" fill="#e88834" font-weight="700" text-anchor="middle">04</text>
+<text x="198" y="719" font-family="Inter,Arial,Helvetica,sans-serif" font-size="26" fill="#102e44" font-weight="700" text-anchor="start">TRUSTED EXECUTION &amp; ENFORCEMENT</text>
+<rect x="198" y="741" width="245.75" height="52" rx="11" fill="#ffffff" stroke="#e88834" stroke-width="1.5"/>
+<text x="320.875" y="774" font-family="Inter,Arial,Helvetica,sans-serif" font-size="19" fill="#16354b" font-weight="600" text-anchor="middle">Agent runtime</text>
+<rect x="456.75" y="741" width="245.75" height="52" rx="11" fill="#ffffff" stroke="#e88834" stroke-width="1.5"/>
+<text x="579.625" y="774" font-family="Inter,Arial,Helvetica,sans-serif" font-size="19" fill="#16354b" font-weight="600" text-anchor="middle">MCP tool gateway</text>
+<rect x="715.5" y="741" width="245.75" height="52" rx="11" fill="#ffffff" stroke="#e88834" stroke-width="1.5"/>
+<text x="838.375" y="774" font-family="Inter,Arial,Helvetica,sans-serif" font-size="19" fill="#16354b" font-weight="600" text-anchor="middle">Policy enforcement</text>
+<rect x="974.25" y="741" width="245.75" height="52" rx="11" fill="#ffffff" stroke="#e88834" stroke-width="1.5"/>
+<text x="1097.125" y="774" font-family="Inter,Arial,Helvetica,sans-serif" font-size="19" fill="#16354b" font-weight="600" text-anchor="middle">Evidence &amp; audit</text>
+<path d="M692 809 V840" stroke="#18a6b0" stroke-width="5" fill="none" marker-end="url(#arrow)"/>
+<rect x="92" y="845" width="1200" height="132" rx="19" fill="#edf6fc" stroke="#297ec2" stroke-width="2"/>
+<rect x="111" y="867" width="63" height="43" rx="10" fill="#fff" stroke="#297ec2" stroke-width="1.5"/>
+<text x="142" y="896" font-family="Inter,Arial,Helvetica,sans-serif" font-size="23" fill="#297ec2" font-weight="700" text-anchor="middle">05</text>
+<text x="198" y="889" font-family="Inter,Arial,Helvetica,sans-serif" font-size="26" fill="#102e44" font-weight="700" text-anchor="start">KUBERNETES &amp; AI INFRASTRUCTURE</text>
+<rect x="198" y="911" width="245.75" height="52" rx="11" fill="#ffffff" stroke="#297ec2" stroke-width="1.5"/>
+<text x="320.875" y="944" font-family="Inter,Arial,Helvetica,sans-serif" font-size="19" fill="#16354b" font-weight="600" text-anchor="middle">Clusters &amp; workloads</text>
+<rect x="456.75" y="911" width="245.75" height="52" rx="11" fill="#ffffff" stroke="#297ec2" stroke-width="1.5"/>
+<text x="579.625" y="944" font-family="Inter,Arial,Helvetica,sans-serif" font-size="19" fill="#16354b" font-weight="600" text-anchor="middle">GPUs &amp; AI compute</text>
+<rect x="715.5" y="911" width="245.75" height="52" rx="11" fill="#ffffff" stroke="#297ec2" stroke-width="1.5"/>
+<text x="838.375" y="944" font-family="Inter,Arial,Helvetica,sans-serif" font-size="19" fill="#16354b" font-weight="600" text-anchor="middle">Observability</text>
+<rect x="974.25" y="911" width="245.75" height="52" rx="11" fill="#ffffff" stroke="#297ec2" stroke-width="1.5"/>
+<text x="1097.125" y="944" font-family="Inter,Arial,Helvetica,sans-serif" font-size="19" fill="#16354b" font-weight="600" text-anchor="middle">Platform controllers</text>
+<rect x="160" y="644" width="466" height="25" rx="8" fill="#edf7fb" stroke="#9fc5d7" stroke-width="1"/>
+<text x="393" y="662" font-family="Inter,Arial,Helvetica,sans-serif" font-size="14" fill="#335a6b" font-weight="600" text-anchor="middle">CMCP: proposed coordination / context; no authority</text>
+<rect x="1001" y="812" width="275" height="26" rx="8" fill="#fff6eb" stroke="#e6b685" stroke-width="1"/>
+<text x="1139" y="830" font-family="Inter,Arial,Helvetica,sans-serif" font-size="14" fill="#8c5420" font-weight="600" text-anchor="middle">MCP = interface, not authority</text>
+<path d="M1292 910 H1440 Q1475 910 1475 875 V397 Q1475 360 1440 360 H1300" fill="none" stroke="#20a4ad" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<rect x="1321" y="575" width="237" height="147" rx="17" fill="#e6f8f7" stroke="#80c8c7" stroke-width="2"/>
+<text x="1439" y="614" font-family="Inter,Arial,Helvetica,sans-serif" font-size="22" fill="#116f78" font-weight="700" text-anchor="middle">INDEPENDENT</text>
+<text x="1439" y="645" font-family="Inter,Arial,Helvetica,sans-serif" font-size="22" fill="#116f78" font-weight="700" text-anchor="middle">EVIDENCE LOOP</text>
+<text x="1439" y="678" font-family="Inter,Arial,Helvetica,sans-serif" font-size="17" fill="#416a71" font-weight="400" text-anchor="middle">Telemetry · state</text>
+<text x="1439" y="704" font-family="Inter,Arial,Helvetica,sans-serif" font-size="17" fill="#416a71" font-weight="400" text-anchor="middle">verification · audit</text>
+<rect x="1322" y="176" width="230" height="118" rx="14" fill="#f6f9fb" stroke="#d9e6ef" stroke-width="1"/>
+<text x="1437" y="208" font-family="Inter,Arial,Helvetica,sans-serif" font-size="21" fill="#173850" font-weight="700" text-anchor="middle">Governance gates</text>
+<text x="1437" y="239" font-family="Inter,Arial,Helvetica,sans-serif" font-size="21" fill="#336478" font-weight="500" text-anchor="middle">Can → May →</text>
+<text x="1437" y="265" font-family="Inter,Arial,Helvetica,sans-serif" font-size="19" fill="#336478" font-weight="500" text-anchor="middle">Approved → Proven</text>
+<rect x="92" y="1010" width="1200" height="54" rx="12" fill="#102f49" stroke="#102f49" stroke-width="1"/>
+<text x="692" y="1045" font-family="Inter,Arial,Helvetica,sans-serif" font-size="25" fill="#ffffff" font-weight="700" text-anchor="middle">AI Thinks. OpenKubes Executes. Evidence Proves.</text>
+<text x="92" y="1095" font-family="Inter,Arial,Helvetica,sans-serif" font-size="18" fill="#607889" font-weight="400" text-anchor="start">Open framework; components remain replaceable. Diagram shows a proposed target, not shipped features.</text>
+</svg>
