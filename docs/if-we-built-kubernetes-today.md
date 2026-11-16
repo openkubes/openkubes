@@ -136,6 +136,16 @@ Human involvement remains, but effective oversight disappears.
 
 We believe the better approach is **Human-on-the-Loop**, with explicitly bounded autonomy.
 
+### From Human Authority to Verifiable Execution
+
+A technical permission answers whether an agent **can execute** an action. Platform policy determines whether it **may execute** it. Human authority decides when explicit approval or a pre-approved operational boundary is required. And independent verification—separate from the agent that proposed the action—establishes what actually happened.
+
+In our conceptual architecture, **OpenKubes** provides the open, replaceable contracts for governance, authorization, capabilities, and evidence. **Kubernautic** brings those contracts together in an enterprise Agentic Operations experience. Tools may be reached through **MCP**, while a proposed **CMCP** coordination/context layer remains subordinate to platform policy and never becomes an independent source of execution authority. Trusted execution and Kubernetes controllers remain separate from AI reasoning. Evidence flows back from infrastructure into governance so that outcomes can be verified and unsafe autonomy can be suspended.
+
+![Conceptual OpenKubes target architecture showing Humans Govern, OpenKubes contracts and governance, Kubernautic agentic operations, trusted execution with MCP and proposed CMCP, Kubernetes infrastructure, and independent evidence feeding back into governance.](media/human-governance-cmcp-mcp-architecture.svg)
+
+*Conceptual target architecture—not a fully implemented solution. MCP provides tool interfaces, not authorization; proposed CMCP does not override platform authority or human governance.*
+
 Instead of approving every routine action individually, humans approve the rules under which selected actions may occur.
 
 We call these rules **Autonomy Contracts**.
