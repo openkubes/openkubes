@@ -36,7 +36,7 @@ def main():
     universe_source = pages / "open-universe"
     universe_target = TARGET / "open-universe"
     universe_target.mkdir(parents=True, exist_ok=True)
-    for filename in ("index.md", "open-universe-family.svg"):
+    for filename in ("index.md", "family.md", "open-universe-family.svg", "open-universe-radar.svg"):
         src = universe_source / filename
         if not src.is_file():
             raise SystemExit(f"Missing Open Universe source: {src}")
