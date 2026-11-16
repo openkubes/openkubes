@@ -32,6 +32,15 @@ def main():
         destination = TARGET / section
         destination.mkdir(parents=True, exist_ok=True)
         shutil.copy2(source_page, destination / "index.md")
+    # Stage the Open Universe landing page and vector illustration.
+    universe_source = pages / "open-universe"
+    universe_target = TARGET / "open-universe"
+    universe_target.mkdir(parents=True, exist_ok=True)
+    for filename in ("index.md", "open-universe-family.svg"):
+        src = universe_source / filename
+        if not src.is_file():
+            raise SystemExit(f"Missing Open Universe source: {src}")
+        shutil.copy2(src, universe_target / filename)
     guide = pages / "community" / "how-to-update-docs.md"
     if not guide.is_file():
         raise SystemExit(f"Missing community contribution guide: {guide}")
