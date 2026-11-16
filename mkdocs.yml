@@ -34,6 +34,7 @@ nav:
   - Home: index.md
   - Getting Started: getting-started/index.md
   - Features: features/index.md
+  - Open Universe: open-universe/index.md
   - Architecture: architecture/index.md
   - OK AI:
       - Overview: ai/index.md
