@@ -4,6 +4,10 @@ Architecture decisions, platform engineering lessons and implementation stories.
 
 ## Latest articles
 
+### [If We Built Kubernetes Today, Would We Build Kubernetes?](/if-we-built-kubernetes-today/)
+
+Why deterministic infrastructure needs human-governed AI operations, evidence-backed decisions, and tightly bounded autonomy. A vision and architectural exploration, not an announcement of production-ready autonomous remediation.
+
 ### [Securing Agentic Operations: OpenShell Meets OpenKubes](/openshell-meets-openkubes/)
 
 How a secure agent runtime and governed Kubernetes operations could work together. OpenShell integration is proposed and requires validation under OK-220.
