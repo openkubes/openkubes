@@ -185,6 +185,13 @@ def main():
             target = SITE / relative
             if not target.is_file() or target.read_bytes() != source.read_bytes():
                 missing.append("/" + relative.as_posix())
+    # Published vision article must contain the conceptual architecture diagram and source asset.
+    vision_html = (SITE / "if-we-built-kubernetes-today" / "index.html").read_text(encoding="utf-8")
+    diagram_rel = "media/human-governance-cmcp-mcp-architecture.svg"
+    if "From Human Authority to Verifiable Execution" not in vision_html or diagram_rel not in vision_html:
+        missing.append("vision article architecture diagram or caption")
+    if not (SITE / diagram_rel).is_file():
+        missing.append("/" + diagram_rel)
     if missing:
         raise SystemExit("Preview missing files/links: " + ", ".join(sorted(set(missing))))
     print(f"Homepage, media, {len(ARTICLES)} permalink articles, docs and search checks passed.")
