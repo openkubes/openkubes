@@ -120,4 +120,4 @@ Edge Computing, AI/ML Infrastructure, Robotics, and DBaaS profiles.
 | **032** | [OpenKubes DBaaS](ADR-Platform-032-openkubes-dbaas.md) | Database-as-a-Service integration profile |
 | **039** | [Developer Workspace Contract](ADR-Platform-039-developer-workspace-contract.md) | Bounded developer and coding-agent execution environments |
 | **042** | [Hosted and External Agentic Operations with OpenShell](ADR-Platform-042-openshell-hosted-external-agentic-operations.md) | **Proposed** — hosted/external agents, secure runtime candidate, governed operations (OK-220) |
-| **TBD** | [Optional CMCP Access and Evidence Contracts](ADR-Platform-TBD-cmcp.md) | **Draft** — optional Hybrid access, local authority, portable evidence; Obot as one gateway candidate (OK-213); number pending allocation |
+| **044** | [Optional CMCP Access and Evidence Contracts](ADR-Platform-044-cmcp.md) | **Draft** — optional Hybrid access, local authority, portable evidence; Obot as one gateway candidate (OK-213) |

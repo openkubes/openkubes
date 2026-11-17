@@ -1,4 +1,4 @@
-# ADR-Platform-TBD: Optional CMCP access and evidence contracts for OpenKubes
+# ADR-Platform-044: Optional CMCP access and evidence contracts for OpenKubes
 
 **Status:** Draft — proposed architecture, not accepted  
 **Date:** 2026-11-17  
@@ -7,9 +7,31 @@
 **Tracking:** [OK-213](https://kubernauts.atlassian.net/browse/OK-213)  
 **Related:** ADR-Platform-001, ADR-Platform-015, ADR-Platform-021, ADR-Platform-030, ADR-Platform-035, ADR-Platform-036, ADR-Platform-037, ADR-Platform-039, ADR-Platform-042
 
-ADR number pending maintainer allocation. Main already contains ADR-042 for
-OpenShell and ADR-043 for Console identity. Open PR #459 still claims 042.
-This draft neither reserves 044 nor renumbers another proposal.
+## Decision summary / Status and gates
+
+The [architecture review of PR #511](https://github.com/openkubes/openkubes/pull/511#issuecomment-6948829618)
+approved the direction and allocated **ADR-Platform-044**. This record remains
+**Draft / Proposed, not Accepted**. ADR-042 and ADR-043 remain unchanged.
+
+| Scope | Status and gate |
+|:---|:---|
+| Architectural direction and documentation | **GO** for optional, provider-neutral, reuse-first CMCP; final documentation review remains pending |
+| Step A: offline contract proof | **DEFER** engineering; proposed 3–5 engineering person-days plus 0.5–1 person-day independent review, subject to separate explicit authorization |
+| Step B and pilots | **DEFER** pending Step A review, demonstrated reusable approval/enforcement interfaces and separate explicit authorization |
+| Obot selection, `ok-cmcp` repository creation and budget | **DEFER** pending explicit owner decisions; the design does not select a vendor, create a repository or allocate funding |
+| Live deployments and operations | **DEFER** pending separate explicit authorization; documentation approval does not authorize customer credentials, live actions or Runner changes |
+
+**Next smallest deliverable:** complete review of this numbered draft and both
+rendered diagrams. If separately authorized, the next engineering deliverable is
+Step A's pinned fixture profile, synthetic evidence bundle, negative cases and
+bounded offline verifier report. No live integration is part of that package.
+
+**Open owner decisions:** Arash/architecture must confirm final ADR acceptance,
+Step A authorization, budget and assigned implementation/review owners. Runner
+maintainers must confirm the supported contract baseline before engineering.
+Gateway selection, repository extraction and deployment ownership remain later
+explicit decisions. Console/identity maintainers must establish a reusable
+protected approval path before any live phase.
 
 ## Context
 
@@ -369,8 +391,7 @@ Before acceptance, architecture reviewers should confirm:
 1. The optional Hybrid boundary and continued use of normative OpenKubes APIs.
 2. The minimum scope: diagnostics and candidate/evidence contracts, with knowledge
    as an optional separate capability.
-3. Maintainer allocation of a unique ADR number.
-4. Named owners and approval for any follow-on engineering package.
+3. Named owners and approval for any follow-on engineering package.
 
 Proposed responsibilities: Arash/architecture owns acceptance and scope; Runner
 maintainers own supported execution interfaces; Console/identity maintainers own
