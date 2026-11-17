@@ -86,6 +86,7 @@ Governance, policy management, secret handling, and continuous delivery.
 | **025** | [Datacenter Secret Sync Profile](ADR-Platform-025-datacenter-secret-sync-profile.md) | Multi-datacenter secret synchronization |
 | **037** | [Console Authentication, Identity Federation, and Break-glass Access](ADR-Platform-037-console-authentication-and-identity-federation.md) | Federated Console identity, server-side sessions, and exceptional local access |
 | **038** | [Console Session Store Contract and PostgreSQL Reference Profile](ADR-Platform-038-console-session-store.md) | Strongly consistent Console sessions with a PostgreSQL reference profile |
+| **043** | [Console Client Identity CA, Leaf Delivery and Trust Distribution](ADR-Platform-043-console-client-identity-trust.md) | Console client identity CA (pilot on ok-mgmt Vault) — **Proposed** |
 | _n/a_ | Acceptance Records (025-*) | Acceptance records for Fresh Install, Outage Recovery, Singleton Enforcement, etc. |
 
 ### 🖥️ Console & Product Experience
@@ -118,3 +119,6 @@ Edge Computing, AI/ML Infrastructure, Robotics, and DBaaS profiles.
 | **019** | [Robotics Fleet Orchestration](ADR-Platform-019-robotics-fleet-orchestration.md) | Robotics fleet management capabilities |
 | **032** | [OpenKubes DBaaS](ADR-Platform-032-openkubes-dbaas.md) | Database-as-a-Service integration profile |
 | **039** | [Developer Workspace Contract](ADR-Platform-039-developer-workspace-contract.md) | Bounded developer and coding-agent execution environments |
+| **042** | [Hosted and External Agentic Operations with OpenShell](ADR-Platform-042-openshell-hosted-external-agentic-operations.md) | **Proposed** — hosted/external agents, secure runtime candidate, governed operations (OK-220) |
+| **044** | [Optional CMCP Access and Evidence Contracts](ADR-Platform-044-cmcp.md) | **Draft** — optional Hybrid access, local authority, portable evidence; Obot as one gateway candidate (OK-213) |
+| **045** | [Cross-Cluster Enterprise Workspace Governance](ADR-Platform-045-cross-cluster-enterprise-workspaces.md) | **Proposed** — tenant-scoped cross-cluster organizational governance, separate from DeveloperWorkspace |
