@@ -63,6 +63,7 @@ nav:
       - Validation & Roadmap: developer-workspace/status.md
   - Blog:
       - Overview: blog/index.md
+      - "NVIDIA Confidential Containers: Who Controls the Agent?": nvidia-confidential-containers-agent-authority.md
       - "If We Built Kubernetes Today": if-we-built-kubernetes-today.md
       - "OpenShell Meets OpenKubes": openshell-meets-openkubes.md
       - "Learn from BEAM. Build on OpenKubes.": learn-from-beam-build-on-openkubes.md
