@@ -169,7 +169,7 @@ Availability also matters. Confidential Computing does not by itself guarantee u
 
 Different actions carry different risks. Reading approved documentation is not the same as changing a production workload, and changing a workload is not the same as modifying a Kubernetes control plane.
 
-The current proposed agent-originated mutation path requires protected human approval of the exact transition. Future **risk-based autonomy** and durable asynchronous approval are research topics under [OK-231](https://kubernauts.atlassian.net/browse/OK-231), **not accepted exceptions** to that rule. Any narrower pre-authorization model would need its own normative decision, threat model, bounded scope, revocation semantics, and independent acceptance evidence.
+The current proposed agent-originated mutation path requires protected human approval of the exact transition. The research topic **Risk-Based Autonomy & Durable Asynchronous Approval for Agentic Operations** explores future options, but these are **not accepted exceptions** to that rule. Any narrower pre-authorization model would need its own normative decision, threat model, bounded scope, revocation semantics, and independent acceptance evidence.
 
 Our guiding principle is simple:
 
