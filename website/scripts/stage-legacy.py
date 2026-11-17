@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Stage selected existing public articles and media without editing source docs."""
+"""Stage selected public articles and media without editing source docs."""
 from pathlib import Path
 import shutil
 
@@ -7,7 +7,11 @@ ROOT = Path(__file__).resolve().parents[2]
 SOURCE = ROOT / "docs"
 TARGET = ROOT / ".mkdocs-staging"
 ARTICLES = (
+    "nvidia-confidential-containers-agent-authority.md",
+    "if-we-built-kubernetes-today.md",
+    "openshell-meets-openkubes.md",
     "developer-workspace-blog-post.md",
+    "learn-from-beam-build-on-openkubes.md",
     "agentic-operations-reference-architecture.md",
     "vault-secret-contract-blog-post.md",
     "the-contract-is-the-guardrail-blog-post.md",
@@ -29,6 +33,15 @@ def main():
         destination = TARGET / section
         destination.mkdir(parents=True, exist_ok=True)
         shutil.copy2(source_page, destination / "index.md")
+    # Stage the Open Universe landing page and vector illustration.
+    universe_source = pages / "open-universe"
+    universe_target = TARGET / "open-universe"
+    universe_target.mkdir(parents=True, exist_ok=True)
+    for filename in ("index.md", "family.md", "open-universe-family.svg", "open-universe-radar.svg"):
+        src = universe_source / filename
+        if not src.is_file():
+            raise SystemExit(f"Missing Open Universe source: {src}")
+        shutil.copy2(src, universe_target / filename)
     guide = pages / "community" / "how-to-update-docs.md"
     if not guide.is_file():
         raise SystemExit(f"Missing community contribution guide: {guide}")
@@ -76,6 +89,15 @@ def main():
         if not source_page.is_file():
             raise SystemExit(f"Missing Developer Workspace page: {source_page}")
         shutil.copy2(source_page, workspace_target / filename)
+    # Public, bilingual legal pages are authored separately from internal review drafts.
+    legal_source = pages / "legal"
+    for name in ("imprint", "privacy"):
+        src = legal_source / (name + ".md")
+        if not src.is_file():
+            raise SystemExit(f"Missing public legal source: {src}")
+        dest = TARGET / "legal" / name
+        dest.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(src, dest / "index.md")
     # Preserve the historical getting-started entry point as a rendered page.
     # Relative repository links in its source README point outside docs/.
     getting_started = SOURCE / "getting-started" / "README.md"
@@ -103,16 +125,20 @@ def main():
     shutil.copy2(theme_css, TARGET / "assets" / theme_css.name)
     # Preview-only floating OK AI UI assets (legacy demo and curated Lite). The hostname guard in
     # website/overrides/main.html prevents loading them on production.
-    for name in ("ok-ai-floating-demo.js", "ok-ai-floating-demo.css", "ok-ai-lite-preview.js"):
+    for name in ("ok-ai-floating-demo.js", "ok-ai-floating-demo.css", "ok-ai-lite-preview.js",
+                 "openkubes-branding.css", "openkubes-branding.js",
+                 "openkubes-console-gallery.css", "openkubes-console-carousel.js"):
         source = ROOT / "website" / "assets" / name
         if not source.is_file():
             raise SystemExit(f"Missing floating UI asset: {source}")
         shutil.copy2(source, TARGET / "assets" / name)
+    shutil.copytree(ROOT / "website/assets/images/console",
+                    TARGET / "assets/images/console", dirs_exist_ok=True)
     media = SOURCE / "media"
     if not media.is_dir():
         raise SystemExit("Legacy media directory not found.")
     shutil.copytree(media, TARGET / "media", dirs_exist_ok=True)
-    print(f"Staged {len(ARTICLES)} existing permalink articles and homepage assets.")
+    print(f"Staged {len(ARTICLES)} public articles and homepage assets.")
 
 if __name__ == "__main__":
     main()

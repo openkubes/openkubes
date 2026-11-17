@@ -1,0 +1,141 @@
+# OK-211 U2 — event flow kept running during the upgrade (B9 U2).
+# event-display runs as a plain Deployment (no ksvc, so no cold start is
+# measured), behind the default MT broker with an unfiltered Trigger. A sender
+# pod posts one CloudEvent per second with a sequence number; PingSource
+# ok211-ping adds one event per minute.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ok211-events
+  labels:
+    app.kubernetes.io/part-of: ok211
+---
+apiVersion: eventing.knative.dev/v1
+kind: Broker
+metadata:
+  name: default
+  namespace: ok211-events
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: event-display
+  namespace: ok211-events
+  labels:
+    app.kubernetes.io/name: event-display
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: event-display
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: event-display
+    spec:
+      automountServiceAccountToken: false
+      containers:
+        - name: event-display
+          image: __EVENT_DISPLAY_IMAGE__
+          ports:
+            - containerPort: 8080
+          # Same securityContext as the release asset event-display.yaml.
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            capabilities:
+              drop: ["ALL"]
+            seccompProfile:
+              type: RuntimeDefault
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: event-display
+  namespace: ok211-events
+spec:
+  selector:
+    app.kubernetes.io/name: event-display
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080
+---
+apiVersion: eventing.knative.dev/v1
+kind: Trigger
+metadata:
+  name: u2-all
+  namespace: ok211-events
+spec:
+  broker: default
+  subscriber:
+    ref:
+      apiVersion: v1
+      kind: Service
+      name: event-display
+---
+apiVersion: sources.knative.dev/v1
+kind: PingSource
+metadata:
+  name: ok211-ping
+  namespace: ok211-events
+spec:
+  schedule: "* * * * *"
+  contentType: application/json
+  data: '{"source": "ok211-ping"}'
+  sink:
+    ref:
+      apiVersion: eventing.knative.dev/v1
+      kind: Broker
+      name: default
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: u2-sender
+  namespace: ok211-events
+  labels:
+    app.kubernetes.io/name: u2-sender
+spec:
+  automountServiceAccountToken: false
+  terminationGracePeriodSeconds: 1
+  restartPolicy: Never
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 100
+    runAsGroup: 101
+    seccompProfile:
+      type: RuntimeDefault
+  containers:
+    - name: sender
+      image: __CURL_IMAGE__
+      # Output per line: "sent seq=<n> code=<http_code> exit=<curl_exit>"
+      command:
+        - sh
+        - -c
+        - |
+          i=0
+          while true; do
+            i=$((i+1))
+            code=$(curl -sS -o /dev/null --max-time 5 -w '%{http_code}' -X POST \
+              http://broker-ingress.knative-eventing.svc.cluster.local/ok211-events/default \
+              -H "Ce-Id: u2-$i" -H 'Ce-Specversion: 1.0' -H 'Ce-Type: dev.openkubes.ok211.upgrade' \
+              -H 'Ce-Source: ok211/u2-sender' -H "Ce-Seq: $i" -H 'Content-Type: application/json' \
+              -d "{\"seq\": $i}" 2>/dev/null)
+            rc=$?
+            echo "sent seq=$i code=${code:-000} exit=$rc"
+            sleep 1
+          done
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop: ["ALL"]
+      resources:
+        requests:
+          cpu: 10m
+          memory: 16Mi
+        limits:
+          cpu: 200m
+          memory: 64Mi

@@ -1,0 +1,29 @@
+# OK-211 N2 — Traefik as ADR-Platform-010 Implementation Profile v1:
+# NodePort 30080/30443, IngressClass ok-ingress (not the default class),
+# namespace ingress (set on render). Only the Kubernetes Ingress provider:
+# the CRD and Gateway providers stay off, so no Traefik CRDs are needed.
+# Image pinned by digest; versionOverride tells the chart the version.
+image:
+  digest: __TRAEFIK_IMAGE_DIGEST__
+versionOverride: __TRAEFIK_APP_VERSION__
+service:
+  spec:
+    type: NodePort
+ports:
+  web:
+    nodePort: 30080
+  websecure:
+    nodePort: 30443
+ingressClass:
+  enabled: true
+  isDefaultClass: false
+  name: ok-ingress
+providers:
+  kubernetesCRD:
+    enabled: false
+  kubernetesIngress:
+    enabled: true
+  kubernetesGateway:
+    enabled: false
+gateway:
+  enabled: false

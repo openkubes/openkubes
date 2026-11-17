@@ -1,0 +1,1605 @@
+{
+  "crds": [
+    {
+      "name": "apiserversources.sources.knative.dev",
+      "group": "sources.knative.dev",
+      "scope": "Namespaced"
+    },
+    {
+      "name": "brokers.eventing.knative.dev",
+      "group": "eventing.knative.dev",
+      "scope": "Namespaced"
+    },
+    {
+      "name": "certificates.networking.internal.knative.dev",
+      "group": "networking.internal.knative.dev",
+      "scope": "Namespaced"
+    },
+    {
+      "name": "channels.messaging.knative.dev",
+      "group": "messaging.knative.dev",
+      "scope": "Namespaced"
+    },
+    {
+      "name": "clusterdomainclaims.networking.internal.knative.dev",
+      "group": "networking.internal.knative.dev",
+      "scope": "Cluster"
+    },
+    {
+      "name": "configurations.serving.knative.dev",
+      "group": "serving.knative.dev",
+      "scope": "Namespaced"
+    },
+    {
+      "name": "containersources.sources.knative.dev",
+      "group": "sources.knative.dev",
+      "scope": "Namespaced"
+    },
+    {
+      "name": "domainmappings.serving.knative.dev",
+      "group": "serving.knative.dev",
+      "scope": "Namespaced"
+    },
+    {
+      "name": "eventpolicies.eventing.knative.dev",
+      "group": "eventing.knative.dev",
+      "scope": "Namespaced"
+    },
+    {
+      "name": "eventtransforms.eventing.knative.dev",
+      "group": "eventing.knative.dev",
+      "scope": "Namespaced"
+    },
+    {
+      "name": "eventtypes.eventing.knative.dev",
+      "group": "eventing.knative.dev",
+      "scope": "Namespaced"
+    },
+    {
+      "name": "images.caching.internal.knative.dev",
+      "group": "caching.internal.knative.dev",
+      "scope": "Namespaced"
+    },
+    {
+      "name": "ingresses.networking.internal.knative.dev",
+      "group": "networking.internal.knative.dev",
+      "scope": "Namespaced"
+    },
+    {
+      "name": "inmemorychannels.messaging.knative.dev",
+      "group": "messaging.knative.dev",
+      "scope": "Namespaced"
+    },
+    {
+      "name": "integrationsinks.sinks.knative.dev",
+      "group": "sinks.knative.dev",
+      "scope": "Namespaced"
+    },
+    {
+      "name": "integrationsources.sources.knative.dev",
+      "group": "sources.knative.dev",
+      "scope": "Namespaced"
+    },
+    {
+      "name": "jobsinks.sinks.knative.dev",
+      "group": "sinks.knative.dev",
+      "scope": "Namespaced"
+    },
+    {
+      "name": "metrics.autoscaling.internal.knative.dev",
+      "group": "autoscaling.internal.knative.dev",
+      "scope": "Namespaced"
+    },
+    {
+      "name": "parallels.flows.knative.dev",
+      "group": "flows.knative.dev",
+      "scope": "Namespaced"
+    },
+    {
+      "name": "pingsources.sources.knative.dev",
+      "group": "sources.knative.dev",
+      "scope": "Namespaced"
+    },
+    {
+      "name": "podautoscalers.autoscaling.internal.knative.dev",
+      "group": "autoscaling.internal.knative.dev",
+      "scope": "Namespaced"
+    },
+    {
+      "name": "requestreplies.eventing.knative.dev",
+      "group": "eventing.knative.dev",
+      "scope": "Namespaced"
+    },
+    {
+      "name": "revisions.serving.knative.dev",
+      "group": "serving.knative.dev",
+      "scope": "Namespaced"
+    },
+    {
+      "name": "routes.serving.knative.dev",
+      "group": "serving.knative.dev",
+      "scope": "Namespaced"
+    },
+    {
+      "name": "sequences.flows.knative.dev",
+      "group": "flows.knative.dev",
+      "scope": "Namespaced"
+    },
+    {
+      "name": "serverlessservices.networking.internal.knative.dev",
+      "group": "networking.internal.knative.dev",
+      "scope": "Namespaced"
+    },
+    {
+      "name": "services.serving.knative.dev",
+      "group": "serving.knative.dev",
+      "scope": "Namespaced"
+    },
+    {
+      "name": "sinkbindings.sources.knative.dev",
+      "group": "sources.knative.dev",
+      "scope": "Namespaced"
+    },
+    {
+      "name": "subscriptions.messaging.knative.dev",
+      "group": "messaging.knative.dev",
+      "scope": "Namespaced"
+    },
+    {
+      "name": "triggers.eventing.knative.dev",
+      "group": "eventing.knative.dev",
+      "scope": "Namespaced"
+    }
+  ],
+  "clusterroles": [
+    {
+      "name": "addressable-resolver",
+      "aggregated": true,
+      "wildcard": false,
+      "secrets": false
+    },
+    {
+      "name": "broker-addressable-resolver",
+      "aggregated": false,
+      "wildcard": false,
+      "secrets": false
+    },
+    {
+      "name": "broker-subscriber",
+      "aggregated": false,
+      "wildcard": false,
+      "secrets": false
+    },
+    {
+      "name": "builtin-podspecable-binding",
+      "aggregated": false,
+      "wildcard": false,
+      "secrets": false
+    },
+    {
+      "name": "channel-addressable-resolver",
+      "aggregated": false,
+      "wildcard": false,
+      "secrets": false
+    },
+    {
+      "name": "channel-subscriber",
+      "aggregated": false,
+      "wildcard": false,
+      "secrets": false
+    },
+    {
+      "name": "channelable-manipulator",
+      "aggregated": true,
+      "wildcard": false,
+      "secrets": false
+    },
+    {
+      "name": "crossnamespace-subscriber",
+      "aggregated": true,
+      "wildcard": false,
+      "secrets": false
+    },
+    {
+      "name": "eventing-broker-filter",
+      "aggregated": false,
+      "wildcard": false,
+      "secrets": false
+    },
+    {
+      "name": "eventing-broker-ingress",
+      "aggregated": false,
+      "wildcard": false,
+      "secrets": false
+    },
+    {
+      "name": "eventing-config-reader",
+      "aggregated": false,
+      "wildcard": false,
+      "secrets": false
+    },
+    {
+      "name": "eventing-sources-source-observer",
+      "aggregated": false,
+      "wildcard": false,
+      "secrets": false
+    },
+    {
+      "name": "eventtransforms-addressable-resolver",
+      "aggregated": false,
+      "wildcard": false,
+      "secrets": false
+    },
+    {
+      "name": "flows-addressable-resolver",
+      "aggregated": false,
+      "wildcard": false,
+      "secrets": false
+    },
+    {
+      "name": "imc-addressable-resolver",
+      "aggregated": false,
+      "wildcard": false,
+      "secrets": false
+    },
+    {
+      "name": "imc-channelable-manipulator",
+      "aggregated": false,
+      "wildcard": false,
+      "secrets": false
+    },
+    {
+      "name": "imc-controller",
+      "aggregated": false,
+      "wildcard": false,
+      "secrets": false
+    },
+    {
+      "name": "imc-dispatcher",
+      "aggregated": false,
+      "wildcard": false,
+      "secrets": false
+    },
+    {
+      "name": "imc-subscriber",
+      "aggregated": false,
+      "wildcard": false,
+      "secrets": false
+    },
+    {
+      "name": "integrationsinks-addressable-resolver",
+      "aggregated": false,
+      "wildcard": false,
+      "secrets": false
+    },
+    {
+      "name": "jobsinks-addressable-resolver",
+      "aggregated": false,
+      "wildcard": false,
+      "secrets": false
+    },
+    {
+      "name": "knative-bindings-namespaced-admin",
+      "aggregated": false,
+      "wildcard": true,
+      "secrets": false
+    },
+    {
+      "name": "knative-eventing-controller",
+      "aggregated": false,
+      "wildcard": false,
+      "secrets": true
+    },
+    {
+      "name": "knative-eventing-eventpolicy-reader",
+      "aggregated": false,
+      "wildcard": false,
+      "secrets": false
+    },
+    {
+      "name": "knative-eventing-job-sink",
+      "aggregated": false,
+      "wildcard": false,
+      "secrets": true
+    },
+    {
+      "name": "knative-eventing-mt-broker-filter",
+      "aggregated": false,
+      "wildcard": false,
+      "secrets": false
+    },
+    {
+      "name": "knative-eventing-mt-broker-ingress",
+      "aggregated": false,
+      "wildcard": false,
+      "secrets": false
+    },
+    {
+      "name": "knative-eventing-mt-channel-broker-controller",
+      "aggregated": false,
+      "wildcard": false,
+      "secrets": false
+    },
+    {
+      "name": "knative-eventing-namespaced-admin",
+      "aggregated": false,
+      "wildcard": true,
+      "secrets": false
+    },
+    {
+      "name": "knative-eventing-namespaced-edit",
+      "aggregated": false,
+      "wildcard": true,
+      "secrets": false
+    },
+    {
+      "name": "knative-eventing-namespaced-view",
+      "aggregated": false,
+      "wildcard": true,
+      "secrets": false
+    },
+    {
+      "name": "knative-eventing-pingsource-mt-adapter",
+      "aggregated": false,
+      "wildcard": false,
+      "secrets": false
+    },
+    {
+      "name": "knative-eventing-post-install-job-role",
+      "aggregated": false,
+      "wildcard": false,
+      "secrets": false
+    },
+    {
+      "name": "knative-eventing-request-reply",
+      "aggregated": false,
+      "wildcard": false,
+      "secrets": true
+    },
+    {
+      "name": "knative-eventing-sources-controller",
+      "aggregated": false,
+      "wildcard": false,
+      "secrets": true
+    },
+    {
+      "name": "knative-eventing-webhook",
+      "aggregated": false,
+      "wildcard": false,
+      "secrets": true
+    },
+    {
+      "name": "knative-flows-namespaced-admin",
+      "aggregated": false,
+      "wildcard": true,
+      "secrets": false
+    },
+    {
+      "name": "knative-messaging-namespaced-admin",
+      "aggregated": false,
+      "wildcard": true,
+      "secrets": false
+    },
+    {
+      "name": "knative-serving-activator-cluster",
+      "aggregated": false,
+      "wildcard": false,
+      "secrets": false
+    },
+    {
+      "name": "knative-serving-addressable-resolver",
+      "aggregated": false,
+      "wildcard": false,
+      "secrets": false
+    },
+    {
+      "name": "knative-serving-admin",
+      "aggregated": true,
+      "wildcard": true,
+      "secrets": true
+    },
+    {
+      "name": "knative-serving-aggregated-addressable-resolver",
+      "aggregated": true,
+      "wildcard": false,
+      "secrets": false
+    },
+    {
+      "name": "knative-serving-core",
+      "aggregated": false,
+      "wildcard": true,
+      "secrets": true
+    },
+    {
+      "name": "knative-serving-namespaced-admin",
+      "aggregated": false,
+      "wildcard": true,
+      "secrets": false
+    },
+    {
+      "name": "knative-serving-namespaced-edit",
+      "aggregated": false,
+      "wildcard": true,
+      "secrets": false
+    },
+    {
+      "name": "knative-serving-namespaced-view",
+      "aggregated": false,
+      "wildcard": true,
+      "secrets": false
+    },
+    {
+      "name": "knative-serving-podspecable-binding",
+      "aggregated": false,
+      "wildcard": false,
+      "secrets": false
+    },
+    {
+      "name": "knative-sinks-namespaced-admin",
+      "aggregated": false,
+      "wildcard": true,
+      "secrets": false
+    },
+    {
+      "name": "knative-sources-namespaced-admin",
+      "aggregated": false,
+      "wildcard": true,
+      "secrets": false
+    },
+    {
+      "name": "meta-channelable-manipulator",
+      "aggregated": false,
+      "wildcard": false,
+      "secrets": false
+    },
+    {
+      "name": "net-kourier",
+      "aggregated": false,
+      "wildcard": false,
+      "secrets": true
+    },
+    {
+      "name": "podspecable-binding",
+      "aggregated": true,
+      "wildcard": false,
+      "secrets": false
+    },
+    {
+      "name": "service-addressable-resolver",
+      "aggregated": false,
+      "wildcard": false,
+      "secrets": false
+    },
+    {
+      "name": "serving-addressable-resolver",
+      "aggregated": false,
+      "wildcard": false,
+      "secrets": false
+    },
+    {
+      "name": "source-observer",
+      "aggregated": true,
+      "wildcard": false,
+      "secrets": false
+    }
+  ],
+  "clusterrolebindings": [
+    {
+      "name": "knative-eventing-job-sink",
+      "role": "knative-eventing-job-sink",
+      "subjects": [
+        "ServiceAccount/knative-eventing/job-sink"
+      ]
+    },
+    {
+      "name": "knative-eventing-mt-broker-filter",
+      "role": "knative-eventing-mt-broker-filter",
+      "subjects": [
+        "ServiceAccount/knative-eventing/mt-broker-filter"
+      ]
+    },
+    {
+      "name": "knative-eventing-mt-broker-ingress",
+      "role": "knative-eventing-mt-broker-ingress",
+      "subjects": [
+        "ServiceAccount/knative-eventing/mt-broker-ingress"
+      ]
+    },
+    {
+      "name": "knative-eventing-pingsource-mt-adapter",
+      "role": "knative-eventing-pingsource-mt-adapter",
+      "subjects": [
+        "ServiceAccount/knative-eventing/pingsource-mt-adapter"
+      ]
+    },
+    {
+      "name": "knative-eventing-post-install-job-role-binding",
+      "role": "knative-eventing-post-install-job-role",
+      "subjects": [
+        "ServiceAccount/knative-eventing/knative-eventing-post-install-job"
+      ]
+    },
+    {
+      "name": "knative-eventing-request-reply",
+      "role": "knative-eventing-request-reply",
+      "subjects": [
+        "ServiceAccount/knative-eventing/request-reply"
+      ]
+    },
+    {
+      "name": "knative-serving-activator-cluster",
+      "role": "knative-serving-activator-cluster",
+      "subjects": [
+        "ServiceAccount/knative-serving/activator"
+      ]
+    },
+    {
+      "name": "knative-serving-controller-addressable-resolver",
+      "role": "knative-serving-aggregated-addressable-resolver",
+      "subjects": [
+        "ServiceAccount/knative-serving/controller"
+      ]
+    },
+    {
+      "name": "knative-serving-controller-admin",
+      "role": "knative-serving-admin",
+      "subjects": [
+        "ServiceAccount/knative-serving/controller"
+      ]
+    },
+    {
+      "name": "net-kourier",
+      "role": "net-kourier",
+      "subjects": [
+        "ServiceAccount/knative-serving/net-kourier"
+      ]
+    }
+  ],
+  "webhooks": [
+    {
+      "kind": "MutatingWebhookConfiguration",
+      "configuration": "inmemorychannel.eventing.knative.dev",
+      "webhook": "inmemorychannel.eventing.knative.dev",
+      "failurePolicy": "Fail",
+      "timeoutSeconds": 10,
+      "sideEffects": "None",
+      "service": "knative-eventing/inmemorychannel-webhook",
+      "namespaceSelector": {
+        "matchExpressions": [
+          {
+            "key": "webhooks.knative.dev/exclude",
+            "operator": "DoesNotExist"
+          }
+        ]
+      },
+      "objectSelector": {},
+      "rules": [
+        {
+          "groups": [
+            "messaging.knative.dev"
+          ],
+          "resources": [
+            "inmemorychannels",
+            "inmemorychannels/status"
+          ],
+          "operations": [
+            "CREATE",
+            "UPDATE"
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "MutatingWebhookConfiguration",
+      "configuration": "sinkbindings.webhook.sources.knative.dev",
+      "webhook": "sinkbindings.webhook.sources.knative.dev",
+      "failurePolicy": "Fail",
+      "timeoutSeconds": 10,
+      "sideEffects": "None",
+      "service": "knative-eventing/eventing-webhook",
+      "namespaceSelector": {
+        "matchExpressions": [
+          {
+            "key": "bindings.knative.dev/exclude",
+            "operator": "NotIn",
+            "values": [
+              "true"
+            ]
+          }
+        ]
+      },
+      "objectSelector": {
+        "matchExpressions": [
+          {
+            "key": "bindings.knative.dev/exclude",
+            "operator": "NotIn",
+            "values": [
+              "true"
+            ]
+          }
+        ]
+      },
+      "rules": []
+    },
+    {
+      "kind": "MutatingWebhookConfiguration",
+      "configuration": "webhook.eventing.knative.dev",
+      "webhook": "webhook.eventing.knative.dev",
+      "failurePolicy": "Fail",
+      "timeoutSeconds": 10,
+      "sideEffects": "None",
+      "service": "knative-eventing/eventing-webhook",
+      "namespaceSelector": {
+        "matchExpressions": [
+          {
+            "key": "webhooks.knative.dev/exclude",
+            "operator": "DoesNotExist"
+          }
+        ]
+      },
+      "objectSelector": {},
+      "rules": [
+        {
+          "groups": [
+            "eventing.knative.dev"
+          ],
+          "resources": [
+            "brokers",
+            "brokers/status"
+          ],
+          "operations": [
+            "CREATE",
+            "UPDATE"
+          ]
+        },
+        {
+          "groups": [
+            "eventing.knative.dev"
+          ],
+          "resources": [
+            "triggers",
+            "triggers/status"
+          ],
+          "operations": [
+            "CREATE",
+            "UPDATE"
+          ]
+        },
+        {
+          "groups": [
+            "eventing.knative.dev"
+          ],
+          "resources": [
+            "eventpolicies",
+            "eventpolicies/status"
+          ],
+          "operations": [
+            "CREATE",
+            "UPDATE"
+          ]
+        },
+        {
+          "groups": [
+            "eventing.knative.dev"
+          ],
+          "resources": [
+            "eventtransforms",
+            "eventtransforms/status"
+          ],
+          "operations": [
+            "CREATE",
+            "UPDATE"
+          ]
+        },
+        {
+          "groups": [
+            "eventing.knative.dev"
+          ],
+          "resources": [
+            "requestreplies",
+            "requestreplies/status"
+          ],
+          "operations": [
+            "CREATE",
+            "UPDATE"
+          ]
+        },
+        {
+          "groups": [
+            "eventing.knative.dev"
+          ],
+          "resources": [
+            "eventtypes",
+            "eventtypes/status"
+          ],
+          "operations": [
+            "CREATE",
+            "UPDATE"
+          ]
+        },
+        {
+          "groups": [
+            "eventing.knative.dev"
+          ],
+          "resources": [
+            "eventtypes",
+            "eventtypes/status"
+          ],
+          "operations": [
+            "CREATE",
+            "UPDATE"
+          ]
+        },
+        {
+          "groups": [
+            "flows.knative.dev"
+          ],
+          "resources": [
+            "parallels",
+            "parallels/status"
+          ],
+          "operations": [
+            "CREATE",
+            "UPDATE"
+          ]
+        },
+        {
+          "groups": [
+            "flows.knative.dev"
+          ],
+          "resources": [
+            "sequences",
+            "sequences/status"
+          ],
+          "operations": [
+            "CREATE",
+            "UPDATE"
+          ]
+        },
+        {
+          "groups": [
+            "messaging.knative.dev"
+          ],
+          "resources": [
+            "channels",
+            "channels/status"
+          ],
+          "operations": [
+            "CREATE",
+            "UPDATE"
+          ]
+        },
+        {
+          "groups": [
+            "messaging.knative.dev"
+          ],
+          "resources": [
+            "subscriptions",
+            "subscriptions/status"
+          ],
+          "operations": [
+            "CREATE",
+            "UPDATE"
+          ]
+        },
+        {
+          "groups": [
+            "sinks.knative.dev"
+          ],
+          "resources": [
+            "integrationsinks",
+            "integrationsinks/status"
+          ],
+          "operations": [
+            "CREATE",
+            "UPDATE"
+          ]
+        },
+        {
+          "groups": [
+            "sinks.knative.dev"
+          ],
+          "resources": [
+            "jobsinks",
+            "jobsinks/status"
+          ],
+          "operations": [
+            "CREATE",
+            "UPDATE"
+          ]
+        },
+        {
+          "groups": [
+            "sources.knative.dev"
+          ],
+          "resources": [
+            "apiserversources",
+            "apiserversources/status"
+          ],
+          "operations": [
+            "CREATE",
+            "UPDATE"
+          ]
+        },
+        {
+          "groups": [
+            "sources.knative.dev"
+          ],
+          "resources": [
+            "containersources",
+            "containersources/status"
+          ],
+          "operations": [
+            "CREATE",
+            "UPDATE"
+          ]
+        },
+        {
+          "groups": [
+            "sources.knative.dev"
+          ],
+          "resources": [
+            "pingsources",
+            "pingsources/status"
+          ],
+          "operations": [
+            "CREATE",
+            "UPDATE"
+          ]
+        },
+        {
+          "groups": [
+            "sources.knative.dev"
+          ],
+          "resources": [
+            "sinkbindings",
+            "sinkbindings/status"
+          ],
+          "operations": [
+            "CREATE",
+            "UPDATE"
+          ]
+        },
+        {
+          "groups": [
+            "sources.knative.dev"
+          ],
+          "resources": [
+            "integrationsources",
+            "integrationsources/status"
+          ],
+          "operations": [
+            "CREATE",
+            "UPDATE"
+          ]
+        },
+        {
+          "groups": [
+            "sources.knative.dev"
+          ],
+          "resources": [
+            "pingsources",
+            "pingsources/status"
+          ],
+          "operations": [
+            "CREATE",
+            "UPDATE"
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "MutatingWebhookConfiguration",
+      "configuration": "webhook.serving.knative.dev",
+      "webhook": "webhook.serving.knative.dev",
+      "failurePolicy": "Fail",
+      "timeoutSeconds": 10,
+      "sideEffects": "None",
+      "service": "knative-serving/webhook",
+      "namespaceSelector": {
+        "matchExpressions": [
+          {
+            "key": "webhooks.knative.dev/exclude",
+            "operator": "DoesNotExist"
+          }
+        ]
+      },
+      "objectSelector": {},
+      "rules": [
+        {
+          "groups": [
+            "autoscaling.internal.knative.dev"
+          ],
+          "resources": [
+            "metrics",
+            "metrics/status"
+          ],
+          "operations": [
+            "CREATE",
+            "UPDATE"
+          ]
+        },
+        {
+          "groups": [
+            "autoscaling.internal.knative.dev"
+          ],
+          "resources": [
+            "podautoscalers",
+            "podautoscalers/status"
+          ],
+          "operations": [
+            "CREATE",
+            "UPDATE"
+          ]
+        },
+        {
+          "groups": [
+            "networking.internal.knative.dev"
+          ],
+          "resources": [
+            "certificates",
+            "certificates/status"
+          ],
+          "operations": [
+            "CREATE",
+            "UPDATE"
+          ]
+        },
+        {
+          "groups": [
+            "networking.internal.knative.dev"
+          ],
+          "resources": [
+            "ingresses",
+            "ingresses/status"
+          ],
+          "operations": [
+            "CREATE",
+            "UPDATE"
+          ]
+        },
+        {
+          "groups": [
+            "networking.internal.knative.dev"
+          ],
+          "resources": [
+            "serverlessservices",
+            "serverlessservices/status"
+          ],
+          "operations": [
+            "CREATE",
+            "UPDATE"
+          ]
+        },
+        {
+          "groups": [
+            "serving.knative.dev"
+          ],
+          "resources": [
+            "configurations",
+            "configurations/status"
+          ],
+          "operations": [
+            "CREATE",
+            "UPDATE"
+          ]
+        },
+        {
+          "groups": [
+            "serving.knative.dev"
+          ],
+          "resources": [
+            "revisions",
+            "revisions/status"
+          ],
+          "operations": [
+            "CREATE",
+            "UPDATE"
+          ]
+        },
+        {
+          "groups": [
+            "serving.knative.dev"
+          ],
+          "resources": [
+            "routes",
+            "routes/status"
+          ],
+          "operations": [
+            "CREATE",
+            "UPDATE"
+          ]
+        },
+        {
+          "groups": [
+            "serving.knative.dev"
+          ],
+          "resources": [
+            "services",
+            "services/status"
+          ],
+          "operations": [
+            "CREATE",
+            "UPDATE"
+          ]
+        },
+        {
+          "groups": [
+            "serving.knative.dev"
+          ],
+          "resources": [
+            "domainmappings",
+            "domainmappings/status"
+          ],
+          "operations": [
+            "CREATE",
+            "UPDATE"
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "ValidatingWebhookConfiguration",
+      "configuration": "config.webhook.eventing.knative.dev",
+      "webhook": "config.webhook.eventing.knative.dev",
+      "failurePolicy": "Ignore",
+      "timeoutSeconds": 10,
+      "sideEffects": "None",
+      "service": "knative-eventing/eventing-webhook",
+      "namespaceSelector": {
+        "matchExpressions": [
+          {
+            "key": "kubernetes.io/metadata.name",
+            "operator": "In",
+            "values": [
+              "knative-eventing"
+            ]
+          }
+        ]
+      },
+      "objectSelector": {},
+      "rules": [
+        {
+          "groups": [
+            ""
+          ],
+          "resources": [
+            "configmaps/*"
+          ],
+          "operations": [
+            "CREATE",
+            "UPDATE"
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "ValidatingWebhookConfiguration",
+      "configuration": "config.webhook.serving.knative.dev",
+      "webhook": "config.webhook.serving.knative.dev",
+      "failurePolicy": "Fail",
+      "timeoutSeconds": 10,
+      "sideEffects": "None",
+      "service": "knative-serving/webhook",
+      "namespaceSelector": {},
+      "objectSelector": {
+        "matchExpressions": [
+          {
+            "key": "app.kubernetes.io/name",
+            "operator": "In",
+            "values": [
+              "knative-serving"
+            ]
+          },
+          {
+            "key": "app.kubernetes.io/component",
+            "operator": "In",
+            "values": [
+              "autoscaler",
+              "controller",
+              "logging",
+              "networking",
+              "observability",
+              "tracing",
+              "net-certmanager"
+            ]
+          }
+        ]
+      },
+      "rules": [
+        {
+          "groups": [
+            ""
+          ],
+          "resources": [
+            "configmaps/*"
+          ],
+          "operations": [
+            "CREATE",
+            "UPDATE"
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "ValidatingWebhookConfiguration",
+      "configuration": "validation.inmemorychannel.eventing.knative.dev",
+      "webhook": "validation.inmemorychannel.eventing.knative.dev",
+      "failurePolicy": "Fail",
+      "timeoutSeconds": 10,
+      "sideEffects": "None",
+      "service": "knative-eventing/inmemorychannel-webhook",
+      "namespaceSelector": {
+        "matchExpressions": [
+          {
+            "key": "webhooks.knative.dev/exclude",
+            "operator": "DoesNotExist"
+          }
+        ]
+      },
+      "objectSelector": {},
+      "rules": [
+        {
+          "groups": [
+            "messaging.knative.dev"
+          ],
+          "resources": [
+            "inmemorychannels",
+            "inmemorychannels/status"
+          ],
+          "operations": [
+            "CREATE",
+            "UPDATE",
+            "DELETE"
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "ValidatingWebhookConfiguration",
+      "configuration": "validation.webhook.eventing.knative.dev",
+      "webhook": "validation.webhook.eventing.knative.dev",
+      "failurePolicy": "Fail",
+      "timeoutSeconds": 10,
+      "sideEffects": "None",
+      "service": "knative-eventing/eventing-webhook",
+      "namespaceSelector": {
+        "matchExpressions": [
+          {
+            "key": "webhooks.knative.dev/exclude",
+            "operator": "DoesNotExist"
+          }
+        ]
+      },
+      "objectSelector": {},
+      "rules": [
+        {
+          "groups": [
+            "eventing.knative.dev"
+          ],
+          "resources": [
+            "brokers",
+            "brokers/status"
+          ],
+          "operations": [
+            "CREATE",
+            "UPDATE",
+            "DELETE"
+          ]
+        },
+        {
+          "groups": [
+            "eventing.knative.dev"
+          ],
+          "resources": [
+            "triggers",
+            "triggers/status"
+          ],
+          "operations": [
+            "CREATE",
+            "UPDATE",
+            "DELETE"
+          ]
+        },
+        {
+          "groups": [
+            "eventing.knative.dev"
+          ],
+          "resources": [
+            "eventpolicies",
+            "eventpolicies/status"
+          ],
+          "operations": [
+            "CREATE",
+            "UPDATE",
+            "DELETE"
+          ]
+        },
+        {
+          "groups": [
+            "eventing.knative.dev"
+          ],
+          "resources": [
+            "eventtransforms",
+            "eventtransforms/status"
+          ],
+          "operations": [
+            "CREATE",
+            "UPDATE",
+            "DELETE"
+          ]
+        },
+        {
+          "groups": [
+            "eventing.knative.dev"
+          ],
+          "resources": [
+            "requestreplies",
+            "requestreplies/status"
+          ],
+          "operations": [
+            "CREATE",
+            "UPDATE",
+            "DELETE"
+          ]
+        },
+        {
+          "groups": [
+            "eventing.knative.dev"
+          ],
+          "resources": [
+            "eventtypes",
+            "eventtypes/status"
+          ],
+          "operations": [
+            "CREATE",
+            "UPDATE",
+            "DELETE"
+          ]
+        },
+        {
+          "groups": [
+            "eventing.knative.dev"
+          ],
+          "resources": [
+            "eventtypes",
+            "eventtypes/status"
+          ],
+          "operations": [
+            "CREATE",
+            "UPDATE",
+            "DELETE"
+          ]
+        },
+        {
+          "groups": [
+            "flows.knative.dev"
+          ],
+          "resources": [
+            "parallels",
+            "parallels/status"
+          ],
+          "operations": [
+            "CREATE",
+            "UPDATE",
+            "DELETE"
+          ]
+        },
+        {
+          "groups": [
+            "flows.knative.dev"
+          ],
+          "resources": [
+            "sequences",
+            "sequences/status"
+          ],
+          "operations": [
+            "CREATE",
+            "UPDATE",
+            "DELETE"
+          ]
+        },
+        {
+          "groups": [
+            "messaging.knative.dev"
+          ],
+          "resources": [
+            "channels",
+            "channels/status"
+          ],
+          "operations": [
+            "CREATE",
+            "UPDATE",
+            "DELETE"
+          ]
+        },
+        {
+          "groups": [
+            "messaging.knative.dev"
+          ],
+          "resources": [
+            "subscriptions",
+            "subscriptions/status"
+          ],
+          "operations": [
+            "CREATE",
+            "UPDATE",
+            "DELETE"
+          ]
+        },
+        {
+          "groups": [
+            "sinks.knative.dev"
+          ],
+          "resources": [
+            "integrationsinks",
+            "integrationsinks/status"
+          ],
+          "operations": [
+            "CREATE",
+            "UPDATE",
+            "DELETE"
+          ]
+        },
+        {
+          "groups": [
+            "sinks.knative.dev"
+          ],
+          "resources": [
+            "jobsinks",
+            "jobsinks/status"
+          ],
+          "operations": [
+            "CREATE",
+            "UPDATE",
+            "DELETE"
+          ]
+        },
+        {
+          "groups": [
+            "sources.knative.dev"
+          ],
+          "resources": [
+            "apiserversources",
+            "apiserversources/status"
+          ],
+          "operations": [
+            "CREATE",
+            "UPDATE",
+            "DELETE"
+          ]
+        },
+        {
+          "groups": [
+            "sources.knative.dev"
+          ],
+          "resources": [
+            "containersources",
+            "containersources/status"
+          ],
+          "operations": [
+            "CREATE",
+            "UPDATE",
+            "DELETE"
+          ]
+        },
+        {
+          "groups": [
+            "sources.knative.dev"
+          ],
+          "resources": [
+            "pingsources",
+            "pingsources/status"
+          ],
+          "operations": [
+            "CREATE",
+            "UPDATE",
+            "DELETE"
+          ]
+        },
+        {
+          "groups": [
+            "sources.knative.dev"
+          ],
+          "resources": [
+            "sinkbindings",
+            "sinkbindings/status"
+          ],
+          "operations": [
+            "CREATE",
+            "UPDATE",
+            "DELETE"
+          ]
+        },
+        {
+          "groups": [
+            "sources.knative.dev"
+          ],
+          "resources": [
+            "integrationsources",
+            "integrationsources/status"
+          ],
+          "operations": [
+            "CREATE",
+            "UPDATE",
+            "DELETE"
+          ]
+        },
+        {
+          "groups": [
+            "sources.knative.dev"
+          ],
+          "resources": [
+            "pingsources",
+            "pingsources/status"
+          ],
+          "operations": [
+            "CREATE",
+            "UPDATE",
+            "DELETE"
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "ValidatingWebhookConfiguration",
+      "configuration": "validation.webhook.serving.knative.dev",
+      "webhook": "validation.webhook.serving.knative.dev",
+      "failurePolicy": "Fail",
+      "timeoutSeconds": 10,
+      "sideEffects": "None",
+      "service": "knative-serving/webhook",
+      "namespaceSelector": {
+        "matchExpressions": [
+          {
+            "key": "webhooks.knative.dev/exclude",
+            "operator": "DoesNotExist"
+          }
+        ]
+      },
+      "objectSelector": {},
+      "rules": [
+        {
+          "groups": [
+            "autoscaling.internal.knative.dev"
+          ],
+          "resources": [
+            "metrics",
+            "metrics/status"
+          ],
+          "operations": [
+            "CREATE",
+            "UPDATE",
+            "DELETE"
+          ]
+        },
+        {
+          "groups": [
+            "autoscaling.internal.knative.dev"
+          ],
+          "resources": [
+            "podautoscalers",
+            "podautoscalers/status"
+          ],
+          "operations": [
+            "CREATE",
+            "UPDATE",
+            "DELETE"
+          ]
+        },
+        {
+          "groups": [
+            "networking.internal.knative.dev"
+          ],
+          "resources": [
+            "certificates",
+            "certificates/status"
+          ],
+          "operations": [
+            "CREATE",
+            "UPDATE",
+            "DELETE"
+          ]
+        },
+        {
+          "groups": [
+            "networking.internal.knative.dev"
+          ],
+          "resources": [
+            "ingresses",
+            "ingresses/status"
+          ],
+          "operations": [
+            "CREATE",
+            "UPDATE",
+            "DELETE"
+          ]
+        },
+        {
+          "groups": [
+            "networking.internal.knative.dev"
+          ],
+          "resources": [
+            "serverlessservices",
+            "serverlessservices/status"
+          ],
+          "operations": [
+            "CREATE",
+            "UPDATE",
+            "DELETE"
+          ]
+        },
+        {
+          "groups": [
+            "serving.knative.dev"
+          ],
+          "resources": [
+            "configurations",
+            "configurations/status"
+          ],
+          "operations": [
+            "CREATE",
+            "UPDATE",
+            "DELETE"
+          ]
+        },
+        {
+          "groups": [
+            "serving.knative.dev"
+          ],
+          "resources": [
+            "revisions",
+            "revisions/status"
+          ],
+          "operations": [
+            "CREATE",
+            "UPDATE",
+            "DELETE"
+          ]
+        },
+        {
+          "groups": [
+            "serving.knative.dev"
+          ],
+          "resources": [
+            "routes",
+            "routes/status"
+          ],
+          "operations": [
+            "CREATE",
+            "UPDATE",
+            "DELETE"
+          ]
+        },
+        {
+          "groups": [
+            "serving.knative.dev"
+          ],
+          "resources": [
+            "services",
+            "services/status"
+          ],
+          "operations": [
+            "CREATE",
+            "UPDATE",
+            "DELETE"
+          ]
+        },
+        {
+          "groups": [
+            "serving.knative.dev"
+          ],
+          "resources": [
+            "domainmappings",
+            "domainmappings/status"
+          ],
+          "operations": [
+            "CREATE",
+            "UPDATE",
+            "DELETE"
+          ]
+        }
+      ]
+    }
+  ]
+}

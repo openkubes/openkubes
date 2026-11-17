@@ -1,0 +1,7 @@
+# OK-211 — namespace for the serving experiments (S1-S10).
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ok211-serving
+  labels:
+    app.kubernetes.io/part-of: ok211

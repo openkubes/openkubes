@@ -27,7 +27,7 @@ The mother implements nothing. She holds the family together by owning everythin
 
 | Repository | Capability | Current implementation |
 |---|---|---|
-| [`ok-linux`](https://github.com/openkubes/ok-linux) | **Host OS** — tells every node which OS it runs | Talos Linux (version, schematic ID, `machineconfig.yaml`) |
+| [`ok-linux`](https://github.com/openkubes/ok-linux) | **Host OS** — tells every node which OS it runs | Talos Linux and Flatcar Linux (OS capability profiles); Ubuntu via the kubeadm-based cluster path |
 | [`ok-cluster`](https://github.com/openkubes/ok-cluster) | **Cluster Lifecycle** — creates and operates clusters | CAPI · CAPK · Crossplane · Cilium · Traefik |
 | `ok-storage` | **Storage** — persistent volumes as a platform capability | Longhorn, three storage classes |
 | `ok-gitops` | **GitOps** — reconciliation of desired state | Argo CD |
@@ -39,12 +39,13 @@ The mother implements nothing. She holds the family together by owning everythin
   child must honour. The child chooses how.
 - **Grey, solid (child → child):** each layer *consumes only the contract of
   the layer directly below it* — never its implementation. Example: `ok-cluster`
-  reads the Talos version and schematic ID from `ok-linux`; it does not decide
-  them.
+  consumes OS capability information from `ok-linux` for Talos and Flatcar;
+  Ubuntu follows a separate kubeadm-based cluster profile. The lifecycle layer
+  does not own OS implementation details.
 
 ### Why a family, not a monorepo?
 
-Because contracts outlive implementations. Talos, CAPI, Longhorn, and Argo CD
+Because contracts outlive implementations. Talos, Flatcar, Ubuntu, CAPI, Longhorn, and Argo CD
 are all replaceable — as long as the replacement honours the same contract, no
 other family member changes. The mother makes that possible by being the one
 place where contracts (and the decisions behind them) are recorded, reviewed,

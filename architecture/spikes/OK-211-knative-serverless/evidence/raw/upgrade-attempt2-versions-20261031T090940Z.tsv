@@ -1,0 +1,15 @@
+knative-eventing	eventing-controller	1.24.0
+knative-eventing	eventing-webhook	1.24.0
+knative-eventing	imc-controller	1.23.1
+knative-eventing	imc-dispatcher	1.23.1
+knative-eventing	job-sink	1.24.0
+knative-eventing	mt-broker-controller	1.23.1
+knative-eventing	mt-broker-filter	1.23.1
+knative-eventing	mt-broker-ingress	1.23.1
+knative-eventing	pingsource-mt-adapter	1.23.1
+knative-serving	activator	1.24.0
+knative-serving	autoscaler	1.24.0
+knative-serving	controller	1.24.0
+knative-serving	net-kourier-controller	1.24.0
+knative-serving	webhook	1.24.0
+kourier-system	3scale-kourier-gateway	1.24.0

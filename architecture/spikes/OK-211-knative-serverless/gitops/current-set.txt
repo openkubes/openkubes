@@ -1,0 +1,19 @@
+# OK-211 G1 — the own manifests that describe the desired state after Phase 8
+# (field manager ok211). Variants of the same object (podinfo.yaml vs
+# podinfo-fastdown.yaml, split steps, x1 services that were deleted on
+# purpose) are left out; the current variant is listed.
+load/probe.yaml
+apps/serving/namespace.yaml
+apps/serving/podinfo-fastdown.yaml
+apps/serving/podinfo-private.yaml
+apps/eventing/base.yaml
+apps/eventing/e2.yaml
+apps/eventing/e3.yaml
+apps/eventing/e4.yaml
+apps/eventing/e5.yaml
+security/x2-tenant-rbac.yaml
+security/x3-tenant-b.yaml
+security/x3-deny.yaml
+security/x3-allow-serving.yaml
+security/x3-allow-kourier.yaml
+tls/issuers.yaml

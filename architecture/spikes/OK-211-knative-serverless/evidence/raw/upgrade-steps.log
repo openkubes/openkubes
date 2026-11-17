@@ -1,0 +1,47 @@
+2026-10-31T09:25:45Z	start	knative-upgrade to 1.24
+2026-10-31T09:25:45Z	start	apply 1.24/serving-crds.yaml
+2026-10-31T09:25:45Z	end	apply 1.24/serving-crds.yaml
+2026-10-31T09:25:45Z	start	apply 1.24/eventing-crds.yaml
+2026-10-31T09:25:45Z	end	apply 1.24/eventing-crds.yaml
+2026-10-31T09:25:51Z	info	derived 1.24/serving-core.yaml: webhook rules (2), aggregated ClusterRole rules (0), pingsource-mt-adapter fields (0), sha256 52afa88e4374cf88fc43d85725218bd0d1451ae2a882455dfdc467cb9ad3bc32
+2026-10-31T09:25:51Z	start	apply 1.24/serving-core.yaml
+2026-10-31T09:25:51Z	end	apply 1.24/serving-core.yaml
+2026-10-31T09:25:51Z	start	rollout knative-serving/webhook -> 1.24.0
+2026-10-31T09:26:04Z	end	rollout knative-serving/webhook -> 1.24.0
+2026-10-31T09:26:04Z	start	rollout knative-serving/controller -> 1.24.0
+2026-10-31T09:26:07Z	end	rollout knative-serving/controller -> 1.24.0
+2026-10-31T09:26:07Z	start	rollout knative-serving/activator -> 1.24.0
+2026-10-31T09:26:09Z	end	rollout knative-serving/activator -> 1.24.0
+2026-10-31T09:26:09Z	start	rollout knative-serving/autoscaler -> 1.24.0
+2026-10-31T09:26:09Z	end	rollout knative-serving/autoscaler -> 1.24.0
+2026-10-31T09:26:09Z	start	apply 1.24/kourier.yaml
+2026-10-31T09:26:09Z	end	apply 1.24/kourier.yaml
+2026-10-31T09:26:09Z	start	rollout knative-serving/net-kourier-controller -> 1.24.0
+2026-10-31T09:26:17Z	end	rollout knative-serving/net-kourier-controller -> 1.24.0
+2026-10-31T09:26:17Z	start	rollout kourier-system/3scale-kourier-gateway -> 1.24.0
+2026-10-31T09:26:17Z	end	rollout kourier-system/3scale-kourier-gateway -> 1.24.0
+2026-10-31T09:26:17Z	start	patch knative-serving/config-network
+2026-10-31T09:26:17Z	end	patch knative-serving/config-network
+2026-10-31T09:26:17Z	start	patch knative-serving/config-domain
+2026-10-31T09:26:17Z	end	patch knative-serving/config-domain
+2026-10-31T09:26:17Z	info	derived 1.24/eventing-core.yaml: webhook rules (0), aggregated ClusterRole rules (5), pingsource-mt-adapter fields (1), sha256 d4fe18623575bbb75bfcb1c6146da58143573b8ef76451f02a8d62e957047282
+2026-10-31T09:26:17Z	start	apply 1.24/eventing-core.yaml
+2026-10-31T09:26:18Z	end	apply 1.24/eventing-core.yaml
+2026-10-31T09:26:18Z	start	rollout knative-eventing/eventing-webhook -> 1.24.0
+2026-10-31T09:26:29Z	end	rollout knative-eventing/eventing-webhook -> 1.24.0
+2026-10-31T09:26:29Z	start	rollout knative-eventing/eventing-controller -> 1.24.0
+2026-10-31T09:26:47Z	end	rollout knative-eventing/eventing-controller -> 1.24.0
+2026-10-31T09:26:47Z	start	apply 1.24/in-memory-channel.yaml
+2026-10-31T09:26:47Z	end	apply 1.24/in-memory-channel.yaml
+2026-10-31T09:26:47Z	start	apply 1.24/mt-channel-broker.yaml
+2026-10-31T09:26:47Z	end	apply 1.24/mt-channel-broker.yaml
+2026-10-31T09:27:24Z	end	all deployments on 1.24 Available
+2026-10-31T09:27:24Z	start	create Job storage-version-migration-serving-* (1.24.0)
+2026-10-31T09:27:33Z	end	create Job storage-version-migration-serving-6cbrv (1.24.0) Complete
+2026-10-31T09:27:33Z	start	create Job cleanup-serving-* (1.24.0)
+2026-10-31T09:27:42Z	end	create Job cleanup-serving-jsz54 (1.24.0) Complete
+2026-10-31T09:27:42Z	start	apply non-Job objects of eventing-post-install.yaml
+2026-10-31T09:27:42Z	end	apply non-Job objects of eventing-post-install.yaml
+2026-10-31T09:27:42Z	start	create Job storage-version-migration-eventing-* (1.24.0)
+2026-10-31T09:27:52Z	end	create Job storage-version-migration-eventing-jmjfh (1.24.0) Complete
+2026-10-31T09:27:52Z	end	knative-upgrade to 1.24

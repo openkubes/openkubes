@@ -1,0 +1,12 @@
+# N2b 2026-10-31T12:47:49Z
+## config-network domain-template: {{.Name}}-{{.Namespace}}.{{.Domain}}
+## ksvc URLs
+NS              NAME                 URL
+ok211-events    event-display-ksvc   http://event-display-ksvc-ok211-events.ok211.internal
+ok211-events    podinfo-fail         http://podinfo-fail-ok211-events.ok211.internal
+ok211-serving   podinfo              http://podinfo-ok211-serving.ok211.internal
+ok211-serving   podinfo-private      http://podinfo-private.ok211-serving.svc.cluster.local
+## via Traefik, new host podinfo-ok211-serving.ok211.internal -> code time_total
+200 0.649480
+## via Traefik, old host podinfo.ok211-serving.ok211.internal -> code time_total
+404 0.000541

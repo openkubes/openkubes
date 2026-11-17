@@ -88,7 +88,7 @@ spec:
             - name: OK_OBSERVER_TLS_CLIENT_CA_FILE
               value: /var/run/secrets/openkubes/producer/client-ca.crt
             - name: OK_OBSERVER_TLS_CLIENT_IDENTITY
-              value: spiffe://openkubes.io/ns/openkubes-console/sa/ok-console-bff
+              value: spiffe://openkubes.io/ns/openkubes-console/sa/ok-console
             - name: OK_OBSERVER_OWNERSHIP_FILE
               value: /var/run/config/openkubes/ownership/ownership.json
           volumeMounts:
@@ -160,7 +160,7 @@ spec:
     - from:
         - podSelector:
             matchLabels:
-              app.kubernetes.io/name: ok-console-bff
+              app.kubernetes.io/name: ok-console
       ports:
         - protocol: TCP
           port: 8443

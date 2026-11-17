@@ -1,0 +1,31 @@
+# ksvc podinfo, revision podinfo-00001 (2026-10-31T09:39:29Z)
+## ksvc
+NAME      URL                                           LATESTCREATED   LATESTREADY     READY   REASON
+podinfo   http://podinfo.ok211-serving.ok211.internal   podinfo-00001   podinfo-00001   True    
+## configuration
+NAME      LATESTCREATED   LATESTREADY     READY   REASON
+podinfo   podinfo-00001   podinfo-00001   True    
+## revision
+NAME            CONFIG NAME   GENERATION   READY   REASON   ACTUAL REPLICAS   DESIRED REPLICAS
+podinfo-00001   podinfo       1            True             0                 0
+## route
+NAME      URL                                           READY   REASON
+podinfo   http://podinfo.ok211-serving.ok211.internal   True    
+## podautoscaler
+NAME            DESIREDSCALE   ACTUALSCALE   READY   REASON
+podinfo-00001   0              0             False   NoTraffic
+## sks
+NAME            MODE    ACTIVATORS   SERVICENAME     PRIVATESERVICENAME      READY     REASON
+podinfo-00001   Proxy   3            podinfo-00001   podinfo-00001-private   Unknown   NoHealthyBackends
+## ingresses.networking.internal.knative.dev
+NAME      READY   REASON
+podinfo   True    
+## ownerReferences
+Configuration/podinfo <- Service/podinfo
+Revision/podinfo-00001 <- Configuration/podinfo
+Route/podinfo <- Service/podinfo
+PodAutoscaler/podinfo-00001 <- Revision/podinfo-00001
+ServerlessService/podinfo-00001 <- PodAutoscaler/podinfo-00001
+Ingress/podinfo <- Route/podinfo
+## request: vm_epoch code connect starttransfer total exit
+1793439571 200 0.013431 1.822505 1.822564 0

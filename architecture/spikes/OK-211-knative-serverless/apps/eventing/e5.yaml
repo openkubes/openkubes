@@ -1,0 +1,68 @@
+# OK-211 E5 — durability: sink-e5 can be scaled to 0 so events wait in the
+# dispatcher's retry loop (retry 5, exponential, PT1S: up to 1+2+4+8+16 = 31 s).
+# event-display sink sink-e5: a plain Deployment, so no cold start is measured.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sink-e5
+  namespace: ok211-events
+  labels:
+    app.kubernetes.io/name: sink-e5
+    app.kubernetes.io/part-of: ok211
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: sink-e5
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: sink-e5
+    spec:
+      automountServiceAccountToken: false
+      containers:
+        - name: event-display
+          image: __EVENT_DISPLAY_IMAGE__
+          ports:
+            - containerPort: 8080
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            capabilities:
+              drop: ["ALL"]
+            seccompProfile:
+              type: RuntimeDefault
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sink-e5
+  namespace: ok211-events
+spec:
+  selector:
+    app.kubernetes.io/name: sink-e5
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080
+---
+apiVersion: eventing.knative.dev/v1
+kind: Trigger
+metadata:
+  name: e5-durable
+  namespace: ok211-events
+spec:
+  broker: default
+  filter:
+    attributes:
+      type: dev.openkubes.ok211.e5
+  subscriber:
+    ref:
+      apiVersion: v1
+      kind: Service
+      name: sink-e5
+  delivery:
+    retry: 5
+    backoffPolicy: exponential
+    backoffDelay: PT1S

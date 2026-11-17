@@ -20,7 +20,7 @@ abort("ownership ConfigMap volume must be readable only by the service group") u
 
 abort("producer must expose only 8443/https") unless container.fetch("ports") == [{ "name" => "https", "containerPort" => 8443 }]
 abort("producer must listen on 8443") unless environment["OK_OBSERVER_PORT"] == "8443"
-abort("exact SPIFFE client identity is required") unless environment["OK_OBSERVER_TLS_CLIENT_IDENTITY"] == "spiffe://openkubes.io/ns/openkubes-console/sa/ok-console-bff"
+abort("exact SPIFFE client identity is required") unless environment["OK_OBSERVER_TLS_CLIENT_IDENTITY"] == "spiffe://openkubes.io/ns/openkubes-console/sa/ok-console"
 %w[OK_OBSERVER_TLS_CERT_FILE OK_OBSERVER_TLS_KEY_FILE OK_OBSERVER_TLS_CLIENT_CA_FILE].each do |name|
   abort("#{name} must use the read-only producer mount") unless environment.fetch(name).start_with?("/var/run/secrets/openkubes/producer/")
 end
@@ -34,3 +34,4 @@ abort("producer TLS Secret must be read-only") unless container.fetch("volumeMou
 
 network_policy = resources.find { |resource| resource["kind"] == "NetworkPolicy" }
 abort("NetworkPolicy must expose only the TLS port") unless network_policy.dig("spec", "ingress", 0, "ports") == [{ "protocol" => "TCP", "port" => 8443 }]
+abort("NetworkPolicy ingress must select the Console pod label") unless network_policy.dig("spec", "ingress", 0, "from") == [{ "podSelector" => { "matchLabels" => { "app.kubernetes.io/name" => "ok-console" } } }]

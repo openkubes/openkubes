@@ -9,7 +9,7 @@ import os
 import re
 import ssl
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any, Callable
@@ -46,14 +46,48 @@ def bounded_string(value: Any, fallback: str, maximum: int = 256) -> str:
     return value
 
 
-def safe_timestamp(value: Any, fallback: str) -> str:
+RFC3339_TIMESTAMP = re.compile(
+    r"(?P<year>[0-9]{4})-(?P<month>[0-9]{2})-(?P<day>[0-9]{2})T"
+    r"(?P<hour>[0-9]{2}):(?P<minute>[0-9]{2}):(?P<second>[0-9]{2})"
+    r"(?:\.(?P<fraction>[0-9]{1,6}))?"
+    r"(?P<zone>Z|(?P<sign>[+-])(?P<offset_hour>[0-9]{2}):(?P<offset_minute>[0-9]{2}))"
+)
+
+
+def parse_observation_timestamp(value: str) -> datetime:
+    match = RFC3339_TIMESTAMP.fullmatch(value)
+    if match is None:
+        raise ValueError("Invalid observation timestamp grammar.")
+    parts = match.groupdict()
+    offset_hour = int(parts["offset_hour"] or 0)
+    offset_minute = int(parts["offset_minute"] or 0)
+    if offset_hour > 14 or offset_minute > 59 or (offset_hour == 14 and offset_minute != 0):
+        raise ValueError("Invalid observation timestamp offset.")
+    offset = timedelta(hours=offset_hour, minutes=offset_minute)
+    if parts["sign"] == "-":
+        offset = -offset
+    return datetime(
+        *(int(parts[key]) for key in ("year", "month", "day", "hour", "minute", "second")),
+        microsecond=int((parts["fraction"] or "").ljust(6, "0")),
+        tzinfo=timezone(offset),
+    )
+
+
+def external_timestamp(value: Any, evaluated_at: str) -> str | None:
     if not isinstance(value, str):
-        return fallback
+        return None
     try:
-        datetime.fromisoformat(value.replace("Z", "+00:00"))
+        timestamp = parse_observation_timestamp(value)
     except ValueError:
-        return fallback
+        return None
+    if timestamp - parse_observation_timestamp(evaluated_at) > timedelta(seconds=60):
+        return None
     return value
+
+
+def dropped_external_entry(name: Any, reason: str) -> None:
+    safe_name = re.sub(r"[^a-zA-Z0-9_.-]", "?", name[:63]) if isinstance(name, str) else "unknown"
+    print(f"external-observation-dropped name={safe_name} reason={reason}", flush=True)
 
 
 def ready_condition(resource: dict[str, Any]) -> tuple[str, str | None]:
@@ -262,7 +296,7 @@ def claim_projection(resource: dict[str, Any], observed_at: str) -> tuple[dict[s
     if not DNS_LABEL.fullmatch(name):
         raise ValueError("A cluster claim has an invalid metadata.name.")
     resource_version = bounded_string(metadata.get("resourceVersion"), "unknown")
-    readiness, transition_time = ready_condition(resource)
+    readiness, _ = ready_condition(resource)
     evidence_id = f"ev-{name}-claim-readiness"
     version = bounded_string(spec.get("controlPlane", {}).get("kubernetesVersion"), "unknown")
     provider = bounded_string(spec.get("provider"), "unknown")
@@ -301,7 +335,7 @@ def claim_projection(resource: dict[str, Any], observed_at: str) -> tuple[dict[s
         "clusterId": f"cluster-{name}",
         "contract": f"{CLAIM_KIND}/{CLAIM_API_VERSION.split('/')[-1]}",
         "revision": f"resourceVersion:{resource_version}",
-        "observedAt": safe_timestamp(transition_time, observed_at),
+        "observedAt": observed_at,
         "source": "OpenKubes management-plane Kubernetes API",
         "summary": state_detail,
         "classification": "Current",
@@ -376,7 +410,7 @@ def agent_deployment_projection(resources: list[dict[str, Any]], observed_at: st
     return deployments, evidence
 
 
-def build_observed_state(claim_list: dict[str, Any], config: ProducerConfig, now: Callable[[], datetime] = utc_now) -> dict[str, Any]:
+def build_observed_state(claim_list: dict[str, Any], config: ProducerConfig, now: Callable[[], datetime] = utc_now, *, read_started_at: str) -> dict[str, Any]:
     observed_at = isoformat(now())
     list_metadata = claim_list.get("metadata", {})
     source_revision = bounded_string(list_metadata.get("resourceVersion"), "unknown")
@@ -389,7 +423,7 @@ def build_observed_state(claim_list: dict[str, Any], config: ProducerConfig, now
     for item in items:
         if not isinstance(item, dict):
             raise ValueError("Every cluster Claim must be an object.")
-        cluster, evidence_item = claim_projection(item, observed_at)
+        cluster, evidence_item = claim_projection(item, read_started_at)
         workload_clusters.append(cluster)
         evidence.append(evidence_item)
     names = [cluster["name"] for cluster in workload_clusters]
@@ -427,7 +461,7 @@ def build_observed_state(claim_list: dict[str, Any], config: ProducerConfig, now
         "clusterId": f"cluster-{config.management_name}",
         "contract": "Unavailable",
         "revision": f"claimListResourceVersion:{source_revision}",
-        "observedAt": observed_at,
+        "observedAt": read_started_at,
         "source": "OpenKubes observed-state producer",
         "summary": "Management plane identity is configured, but this source has no normative readiness Contract.",
         "classification": "Current",
@@ -516,6 +550,9 @@ def build_hosting_cluster_state(
     observation: dict[str, Any],
     config: ProducerConfig,
     now: Callable[[], datetime] = utc_now,
+    *,
+    read_started_at: str,
+    workload_read_times: dict[str, str],
 ) -> dict[str, Any]:
     version = observation.get("version")
     nodes = observation.get("nodes")
@@ -523,6 +560,7 @@ def build_hosting_cluster_state(
     if not all(isinstance(value, dict) for value in (version, nodes, deployment)):
         raise ValueError("The hosting-cluster observation is incomplete.")
     observed_at = isoformat(now())
+    hosting_observed_at = read_started_at
     kubernetes_version = bounded_string(version.get("gitVersion"), "unknown", 64)
     node_state, ready_nodes, not_ready_nodes, unknown_nodes = node_readiness(nodes)
     console_state, desired_replicas, available_replicas = deployment_readiness(deployment)
@@ -599,7 +637,7 @@ def build_hosting_cluster_state(
                     "clusterId": f"cluster-{config.management_name}",
                     "contract": "Unavailable",
                     "revision": "not-observed-by-hosting-source",
-                    "observedAt": observed_at,
+                    "observedAt": hosting_observed_at,
                     "source": "OpenKubes hosting-cluster source boundary",
                     "summary": f"{config.management_name} identity is configured, but no management-plane or Composition state is observed in Phase B1.",
                     "classification": "Current",
@@ -612,7 +650,7 @@ def build_hosting_cluster_state(
                     "clusterId": f"cluster-{config.hosting_name}",
                     "contract": "Kubernetes core/apps v1",
                     "revision": f"nodes:{node_revision};deployment:{deployment_revision}",
-                    "observedAt": observed_at,
+                    "observedAt": hosting_observed_at,
                     "source": "Bounded Kubernetes API projection",
                     "summary": f"Console hosting cluster: {ready_nodes} Ready Nodes; Console replicas {available_replicas if available_replicas is not None else 'unknown'}/{desired_replicas if desired_replicas is not None else 'unknown'} available.",
                     "classification": "Current",
@@ -637,7 +675,7 @@ def build_hosting_cluster_state(
         payload["data"]["evidence"].append({
             "id": evidence_id, "title": f"Deployment {namespace}/{name}",
             "type": "Observation", "outcome": state, "clusterId": f"cluster-{config.hosting_name}",
-            "contract": "Deployment/apps/v1", "revision": revision, "observedAt": observed_at,
+            "contract": "Deployment/apps/v1", "revision": revision, "observedAt": workload_read_times[name],
             "source": "Authenticated hosting-cluster Kubernetes API",
             "summary": f"Available replicas: {available}; desired replicas: {desired}.", "classification": "Current",
         })
@@ -668,8 +706,10 @@ def build_hosting_cluster_state(
 def load_external_cluster_observations(filename: str, observed_at: str, allow_management: bool = False) -> list[dict[str, Any]]:
     """Load bounded, operator-produced read-only cluster observations.
 
-    This file contains observations, never credentials. Invalid or stale entries
-    are omitted so the Console cannot present an unverified cluster as current.
+    This file contains observations, never credentials. Entries need strict RFC
+    3339 timestamps with explicit offsets and at most six fractional digits.
+    Invalid entries and times over 60 seconds in the future are omitted. Old
+    timestamps are preserved verbatim; the consumer owns the freshness verdict.
     """
     if not filename:
         return []
@@ -686,11 +726,20 @@ def load_external_cluster_observations(filename: str, observed_at: str, allow_ma
         result: list[dict[str, Any]] = []
         for entry in entries:
             if not isinstance(entry, dict):
+                dropped_external_entry(None, "invalid-entry")
                 continue
             name = entry.get("name")
             if not isinstance(name, str) or not DNS_LABEL.fullmatch(name) or name == "ok-shared" or (name == "ok-mgmt" and not allow_management):
+                dropped_external_entry(name, "invalid-name")
+                continue
+            timestamp = external_timestamp(entry.get("observedAt"), observed_at)
+            if timestamp is None:
+                dropped_external_entry(name, "invalid-timestamp")
                 continue
             readiness = entry.get("readiness")
+            if not isinstance(readiness, str):
+                dropped_external_entry(name, "invalid-readiness")
+                continue
             if readiness not in {"Ready", "Pending", "Failed", "Unknown"}:
                 readiness = "Unknown"
             version = bounded_string(entry.get("kubernetesVersion"), "unknown", 64)
@@ -711,7 +760,7 @@ def load_external_cluster_observations(filename: str, observed_at: str, allow_ma
                 "_evidence": {"id": evidence_id, "title": f"{name} external cluster observation",
                               "type": "Observation", "outcome": readiness,
                               "clusterId": f"cluster-{name}", "contract": "Kubernetes core/apps v1",
-                              "revision": revision, "observedAt": safe_timestamp(entry.get("observedAt"), observed_at),
+                              "revision": revision, "observedAt": timestamp,
                               "source": "Operator-provided read-only observation bundle",
                               "summary": f"{name}: Kubernetes {version}; readiness {readiness}.", "classification": "Current"},
             })
@@ -821,17 +870,25 @@ class ObservedStateProducer:
         return ownership_projection(self.snapshot(), self.config, self.tenants)
 
     def snapshot(self) -> dict[str, Any]:
+        read_started_at = isoformat(self.now())
         if self.config.source_mode == "hosting-cluster":
             observation = self.client.read_hosting_cluster(
                 self.config.hosting_namespace,
                 self.config.hosting_deployment,
             )
-            observation["workloads"] = [
-                self.client.read_workload_deployment(self.config.hosting_namespace, name)
-                for name in self.config.workload_deployments
-            ]
-            return build_hosting_cluster_state(observation, self.config, self.now)
-        return build_observed_state(self.client.list_cluster_claims(self.config.namespace), self.config, self.now)
+            observation["workloads"] = []
+            workload_read_times = {}
+            for name in self.config.workload_deployments:
+                workload_read_times[name] = isoformat(self.now())
+                observation["workloads"].append(
+                    self.client.read_workload_deployment(self.config.hosting_namespace, name)
+                )
+            return build_hosting_cluster_state(
+                observation, self.config, self.now,
+                read_started_at=read_started_at, workload_read_times=workload_read_times,
+            )
+        claims = self.client.list_cluster_claims(self.config.namespace)
+        return build_observed_state(claims, self.config, self.now, read_started_at=read_started_at)
 
 
 def handler_for(

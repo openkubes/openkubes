@@ -1,0 +1,11 @@
+# OK-211 X3 step 2 — default deny for all ingress traffic in ok211-tenant-b.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-ingress
+  namespace: ok211-tenant-b
+  labels:
+    app.kubernetes.io/part-of: ok211
+spec:
+  podSelector: {}
+  policyTypes: ["Ingress"]

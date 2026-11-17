@@ -5,7 +5,10 @@ docs_dir: .mkdocs-staging
 site_dir: .mkdocs-site
 theme:
   name: material
+  # Privacy by Design: do not request Google Fonts from visitors' browsers.
+  font: false
   custom_dir: website/overrides
+  favicon: openkubes-cube-v2.svg
   palette:
     scheme: default
     primary: blue
@@ -17,6 +20,9 @@ theme:
 extra_css:
   - assets/openkubes-navigation.css
   - assets/openkubes-theme.css
+  - assets/openkubes-branding.css
+extra_javascript:
+  - assets/openkubes-branding.js
 plugins:
   - search
 markdown_extensions:
@@ -28,6 +34,9 @@ nav:
   - Home: index.md
   - Getting Started: getting-started/index.md
   - Features: features/index.md
+  - Open Universe:
+      - Overview: open-universe/index.md
+      - Full Family & Technology Guide: open-universe/family.md
   - Architecture: architecture/index.md
   - OK AI:
       - Overview: ai/index.md
@@ -54,6 +63,10 @@ nav:
       - Validation & Roadmap: developer-workspace/status.md
   - Blog:
       - Overview: blog/index.md
+      - "NVIDIA Confidential Containers: Who Controls the Agent?": nvidia-confidential-containers-agent-authority.md
+      - "If We Built Kubernetes Today": if-we-built-kubernetes-today.md
+      - "OpenShell Meets OpenKubes": openshell-meets-openkubes.md
+      - "Learn from BEAM. Build on OpenKubes.": learn-from-beam-build-on-openkubes.md
       - "Developer Workspaces: Bounded Authority for Coding Agents": developer-workspace-blog-post.md
       - Agentic Operations: agentic-operations-reference-architecture.md
       - Vault Secret Contract: vault-secret-contract-blog-post.md
@@ -69,5 +82,8 @@ nav:
   - Community:
       - Overview: community/index.md
       - How to update the docs: community/how-to-update-docs.md
+  - Legal:
+      - Imprint: legal/imprint/index.md
+      - Privacy Notice: legal/privacy/index.md
 extra:
   generator: false

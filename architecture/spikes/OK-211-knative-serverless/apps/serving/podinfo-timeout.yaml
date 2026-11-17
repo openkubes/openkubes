@@ -1,0 +1,21 @@
+# OK-211 — S9: request timeout 20 s (config-defaults: revision-timeout-seconds 300,
+# max-revision-timeout-seconds 600).
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: podinfo-timeout
+  namespace: ok211-serving
+  labels:
+    app.kubernetes.io/part-of: ok211
+spec:
+  template:
+    spec:
+      timeoutSeconds: 20
+      containers:
+        - name: podinfo
+          image: __PODINFO_IMAGE_6_16_0__
+          ports:
+            - containerPort: 9898
+          readinessProbe:
+            httpGet:
+              path: /readyz
