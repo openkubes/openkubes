@@ -165,15 +165,17 @@ The first CMCP offline-contract proof, if separately authorized, would establish
 
 Availability also matters. Confidential Computing does not by itself guarantee uptime, and an optional AI integration must not become a dependency for ordinary Kubernetes operations.
 
-## How autonomous should AI agents really be?
+## HITL or HOTL? Scaling AI autonomy without losing control
 
-Different actions carry different risks. Reading approved documentation is not the same as changing a production workload, and changing a workload is not the same as modifying a Kubernetes control plane.
+**Human-in-the-Loop (HITL) becomes a bottleneck when hundreds of agents need approval for every change.** Approval fatigue can undermine the safety it is meant to provide.
 
-The current proposed agent-originated mutation path requires protected human approval of the exact transition. The research topic **Risk-Based Autonomy & Durable Asynchronous Approval for Agentic Operations** explores future options, but these are **not accepted exceptions** to that rule. Any narrower pre-authorization model would need its own normative decision, threat model, bounded scope, revocation semantics, and independent acceptance evidence.
+Our long-term direction is **human-governed, risk-based Human-on-the-Loop (HOTL)**: people define permitted actions and their limits; trusted OpenKubes components enforce those boundaries for every operation. Requests outside the authorized scope are denied or escalated, never silently executed.
 
-Our guiding principle is simple:
+OpenShell may isolate agents. CMCP may expose governed tools. **Neither grants operational authority.**
 
-**The organization defines acceptable risk. The platform enforces the boundaries. AI agents operate within them.**
+**Today, our proposed agent-originated mutation path still requires approval of each exact transition.** Bounded HOTL is a research direction, not an implemented capability or an approved exception. Its authorization criteria, revocation, and safety evidence still require a separate architecture decision and validation.
+
+**Humans define the boundaries. OpenKubes enforces them. Independent evidence verifies the outcomes.**
 
 ## The architecture we are building toward
 
