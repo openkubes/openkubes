@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="970" viewBox="0 0 1200 970" role="img" aria-labelledby="diagram-title diagram-description" preserveAspectRatio="xMidYMid meet">
+  <title id="diagram-title">Agentic Operations: separate AI access, inference privacy, and Kubernetes authority</title>
+  <desc id="diagram-description">Conceptual OpenKubes target architecture, not an implemented integration map. Hosted agents using an unvalidated OpenShell candidate and external agents can access optional CMCP/MCP governed tools or existing authenticated APIs. Separately, agents may use an optional confidential inference provider, with NVIDIA Confidential Containers as a reference architecture and Privatemode or Tinfoil as unvalidated alternatives. Only the trusted customer platform domain owns canonical proposals, protected human approval, independent policy, single-use grants, deterministic execution, CAS desired-state acceptance, Kubernetes reconciliation, and independent evidence. Tool access and confidential inference never confer operation authority.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#f8fbff"/><stop offset="1" stop-color="#f5faf8"/></linearGradient>
+    <linearGradient id="trust" x1="0" x2="1"><stop stop-color="#e7f5ee"/><stop offset="1" stop-color="#eff9f5"/></linearGradient>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 Z" fill="#647b96"/></marker>
+    <marker id="arrgreen" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 Z" fill="#32866d"/></marker>
+    <style>
+      .title{font:700 31px system-ui,-apple-system,'Segoe UI',Arial,sans-serif;fill:#152c44}
+      .subtitle{font:400 18px system-ui,-apple-system,'Segoe UI',Arial,sans-serif;fill:#4b657c}
+      .small{font:400 17px system-ui,-apple-system,'Segoe UI',Arial,sans-serif;fill:#476178}
+      .note{font:400 16px system-ui,-apple-system,'Segoe UI',Arial,sans-serif;fill:#516c83}
+      .header{font:700 21px system-ui,-apple-system,'Segoe UI',Arial,sans-serif;fill:#18354b}
+      .cardTitle{font:700 22px system-ui,-apple-system,'Segoe UI',Arial,sans-serif}
+      .cardText{font:400 18px system-ui,-apple-system,'Segoe UI',Arial,sans-serif}
+      .label{font:700 16px system-ui,-apple-system,'Segoe UI',Arial,sans-serif;letter-spacing:.5px}
+      .path{fill:none;stroke:#647b96;stroke-width:2.8;stroke-linecap:round;stroke-linejoin:round;marker-end:url(#arr)}
+      .dash{fill:none;stroke:#647b96;stroke-width:2.5;stroke-dasharray:8 7;stroke-linecap:round;stroke-linejoin:round;marker-end:url(#arr)}
+      .greenpath{fill:none;stroke:#32866d;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;marker-end:url(#arrgreen)}
+    </style>
+  </defs>
+  <rect width="1200" height="970" fill="url(#bg)" rx="24"/>
+  <rect x="24" y="24" width="1152" height="920" rx="19" fill="#fff" stroke="#d5e1eb" stroke-width="2"/>
+  <text x="56" y="71" class="title">Who controls the agent?</text>
+  <text x="56" y="102" class="subtitle">Four security boundaries for proposed OpenKubes Agentic Operations</text>
+  <rect x="886" y="49" width="260" height="31" rx="15" fill="#fff1d8" stroke="#e5b766"/>
+  <text x="1016" y="70" font-family="system-ui,Arial,sans-serif" font-size="15" font-weight="700" fill="#785316" text-anchor="middle">TARGET ARCHITECTURE</text>
+  <rect x="58" y="132" width="513" height="110" rx="15" fill="#e4effb" stroke="#7babc9" stroke-width="2"/>
+  <text x="81" y="161" class="label" fill="#406d91">BOUNDARY 1 · AGENT RUNTIME</text>
+  <text x="81" y="190" class="cardTitle" fill="#174a70">Hosted AI agents</text>
+  <text x="81" y="215" class="cardText" fill="#355b75">OpenShell candidate · Not validated</text>
+  <rect x="629" y="132" width="513" height="110" rx="15" fill="#e4effb" stroke="#7babc9" stroke-width="2"/>
+  <text x="652" y="161" class="label" fill="#406d91">EXTERNAL AGENT ENTRY</text>
+  <text x="652" y="190" class="cardTitle" fill="#174a70">External AI agents</text>
+  <text x="652" y="215" class="cardText" fill="#355b75">Any compatible runtime · No OpenShell</text>
+  <path d="M314 242 V280" class="path"/>
+  <path d="M886 242 V280" class="dash"/>
+  <path d="M718 242 V260 H521 V280" class="dash"/>
+  <rect x="58" y="284" width="513" height="150" rx="16" fill="#f1eafa" stroke="#af90d1" stroke-width="2"/>
+  <text x="82" y="312" class="label" fill="#7954a2">BOUNDARY 2 · GOVERNED TOOL ACCESS</text>
+  <text x="82" y="342" class="cardTitle" fill="#573a82">Optional CMCP / MCP</text>
+  <text x="82" y="369" class="cardText" fill="#664b88">Scoped diagnostics and candidate intake</text>
+  <text x="82" y="394" class="cardText" fill="#664b88">Backend authorization still required</text>
+  <text x="82" y="417" class="note">Draft / Proposed · Gateway replaceable</text>
+  <rect x="629" y="284" width="513" height="150" rx="16" fill="#e4f6f4" stroke="#6fb2a9" stroke-width="2"/>
+  <text x="654" y="312" class="label" fill="#267a74">BOUNDARY 3 · CONFIDENTIAL INFERENCE</text>
+  <text x="654" y="342" class="cardTitle" fill="#1d6867">NVIDIA Confidential Containers</text>
+  <text x="654" y="369" class="cardText" fill="#2f6f70">Kata VM · Confidential GPU · Trustee</text>
+  <text x="654" y="394" class="cardText" fill="#2f6f70">Attestation-gated key release</text>
+  <text x="654" y="417" class="note">Reference candidate · Integration unvalidated</text>
+  <rect x="629" y="447" width="513" height="31" rx="8" fill="#f3f7f9" stroke="#c5d8df"/>
+  <text x="886" y="468" text-anchor="middle" class="note">Alternatives: Privatemode AI · Tinfoil (unvalidated)</text>
+  <path d="M314 434 V489" class="path"/>
+  <rect x="58" y="494" width="513" height="76" rx="13" fill="#ecf3fa" stroke="#91b3ce" stroke-width="2"/>
+  <text x="81" y="522" class="header">OpenKubes-owned APIs</text>
+  <text x="81" y="548" class="small">Existing read-only foundations + proposed candidate intake</text>
+  <path d="M314 570 V601" class="path"/>
+  <text x="606" y="531" class="small">Inference returns context to agent;</text>
+  <text x="606" y="554" class="small">it never authorizes a change.</text>
+  <text x="604" y="585" class="note">Direct authenticated API access also remains possible.</text>
+  <rect x="49" y="611" width="1102" height="270" rx="20" fill="url(#trust)" stroke="#5ba78c" stroke-width="2.6"/>
+  <text x="80" y="644" font-family="system-ui,Arial,sans-serif" font-size="23" font-weight="700" fill="#215e4b">BOUNDARY 4 · TRUSTED OPERATIONAL AUTHORITY</text>
+  <text x="80" y="668" class="small" fill="#326857">Customer / platform trust domain · Target end-to-end protocol</text>
+  <rect x="76" y="689" width="244" height="86" rx="12" fill="#fff" stroke="#8ebda9" stroke-width="1.8"/>
+  <text x="94" y="717" class="label" fill="#26785e">1 · PROPOSE</text>
+  <text x="94" y="744" font-family="system-ui,Arial,sans-serif" font-size="18" fill="#244f40">Provenance, validation</text>
+  <text x="94" y="764" font-family="system-ui,Arial,sans-serif" font-size="18" fill="#244f40">and canonical transition</text>
+  <rect x="352" y="689" width="244" height="86" rx="12" fill="#fff" stroke="#8ebda9" stroke-width="1.8"/>
+  <text x="370" y="717" class="label" fill="#26785e">2 · REVIEW</text>
+  <text x="370" y="744" font-family="system-ui,Arial,sans-serif" font-size="18" fill="#244f40">Protected human</text>
+  <text x="370" y="764" font-family="system-ui,Arial,sans-serif" font-size="18" fill="#244f40">approval · Policy</text>
+  <rect x="628" y="689" width="244" height="86" rx="12" fill="#fff" stroke="#8ebda9" stroke-width="1.8"/>
+  <text x="646" y="717" class="label" fill="#26785e">3 · EXECUTE</text>
+  <text x="646" y="744" font-family="system-ui,Arial,sans-serif" font-size="18" fill="#244f40">Single-use grant</text>
+  <text x="646" y="764" font-family="system-ui,Arial,sans-serif" font-size="18" fill="#244f40">Executor · CAS</text>
+  <rect x="904" y="689" width="219" height="86" rx="12" fill="#fff" stroke="#8ebda9" stroke-width="1.8"/>
+  <text x="922" y="717" class="label" fill="#26785e">4 · VERIFY</text>
+  <text x="922" y="744" font-family="system-ui,Arial,sans-serif" font-size="18" fill="#244f40">Controllers</text>
+  <text x="922" y="764" font-family="system-ui,Arial,sans-serif" font-size="18" fill="#244f40">Independent evidence</text>
+  <path d="M320 731 H346" class="greenpath"/>
+  <path d="M596 731 H622" class="greenpath"/>
+  <path d="M872 731 H897" class="greenpath"/>
+  <rect x="77" y="800" width="1045" height="55" rx="10" fill="#d8ebdf" stroke="#9dcab3"/>
+  <text x="600" y="824" font-family="system-ui,Arial,sans-serif" font-size="19" font-weight="700" fill="#235f48" text-anchor="middle">Agent outputs and inference attestations are NOT operation approvals or outcome evidence.</text>
+  <text x="600" y="846" font-family="system-ui,Arial,sans-serif" font-size="16" fill="#2e6b54" text-anchor="middle">Historical outcome verification is separate from current Kubernetes health.</text>
+  <text x="58" y="913" class="subtitle">Own the contracts, not the components.</text>
+  <text x="1142" y="913" text-anchor="end" class="note">ADR-Platform-042 · ADR-Platform-044</text>
+  <text x="58" y="935" class="note">OpenKubes architecture exploration · Not a deployed or production-qualified integration</text>
+</svg>

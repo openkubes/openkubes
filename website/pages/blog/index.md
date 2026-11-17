@@ -4,6 +4,10 @@ Architecture decisions, platform engineering lessons and implementation stories.
 
 ## Latest articles
 
+### [NVIDIA Confidential Containers Can Protect AI Inference. But Who Controls the Agent?](/nvidia-confidential-containers-agent-authority/)
+
+Why confidential inference, governed MCP tools, and trusted Kubernetes operational authority must remain separate. An architecture proposal, not an OpenKubes integration announcement.
+
 ### [If We Built Kubernetes Today, Would We Build Kubernetes?](/if-we-built-kubernetes-today/)
 
 Why deterministic infrastructure needs human-governed AI operations, evidence-backed decisions, and tightly bounded autonomy. A vision and architectural exploration, not an announcement of production-ready autonomous remediation.
