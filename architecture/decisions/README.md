@@ -121,4 +121,4 @@ Edge Computing, AI/ML Infrastructure, Robotics, and DBaaS profiles.
 | **039** | [Developer Workspace Contract](ADR-Platform-039-developer-workspace-contract.md) | Bounded developer and coding-agent execution environments |
 | **042** | [Hosted and External Agentic Operations with OpenShell](ADR-Platform-042-openshell-hosted-external-agentic-operations.md) | **Proposed** — hosted/external agents, secure runtime candidate, governed operations (OK-220) |
 | **044** | [Optional CMCP Access and Evidence Contracts](ADR-Platform-044-cmcp.md) | **Draft** — optional Hybrid access, local authority, portable evidence; Obot as one gateway candidate (OK-213) |
-| **045** | [Cross-Cluster Enterprise Workspace Governance](ADR-Platform-045-cross-cluster-enterprise-workspaces.md) | **Proposed** — tenant-scoped cross-cluster organizational governance, separate from DeveloperWorkspace |
+| **045** | [Cross-Cluster Enterprise Workspace Governance](ADR-Platform-045-cross-cluster-enterprise-workspaces.md) | **Accepted** — tenant-scoped cross-cluster governance; Console label `Project`; separate from DeveloperWorkspace |
