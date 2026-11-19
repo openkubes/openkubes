@@ -1,11 +1,11 @@
 # ADR-Platform-045: Cross-Cluster Enterprise Workspace Model and Governance
 
 **Date:** 2026-10-28  
-**Status:** Proposed  
+**Status:** Accepted  
 **Extends:** ADR-Platform-001 (Contracts not Components)  
 **Related:** ADR-Platform-006 (Management Cluster), ADR-Platform-011 (GitOps), ADR-Platform-013 (Workload Cluster Registration), ADR-Platform-015 (Agentic AI), ADR-Platform-017 (Constraint Envelopes), ADR-Platform-030 (Control Plane Execution Model), ADR-Platform-034 (Authorized Desired-State Transitions), ADR-Platform-037 (Console Authentication and Identity Federation), ADR-Platform-039 (Developer Workspace Contract)  
 **Decision owner:** OpenKubes Architecture  
-**Scope:** Architecture contract proposal; no production implementation or authorization to roll out
+**Scope:** Accepted architectural boundaries; concrete API schema, implementation and production rollout require separate validation and approval
 
 ---
 
@@ -43,9 +43,11 @@ How can OpenKubes manage tenant-scoped, cluster-independent team governance and 
 5. **Independent custom IAM and permissions database.** Rejected as default: duplication and risk of inconsistent authorization.
 6. **Management-plane Enterprise Workspace + explicit bindings + cluster-native enforcement.** Proposed; balances a portable contract and verifiable execution boundaries.
 
-## Proposed decision
+## Accepted decision
 
 **D-045-1 — Separate domains.** Introduce an enterprise governance domain named **Enterprise Workspace**. It owns organizational grouping and governance intent, not execution environments. Its future public API kind is **undecided** (`EnterpriseWorkspace` versus `Workspace`); the architecture spike MUST check existing API-group collisions before choosing. A `DeveloperWorkspace` continues to mean only the ADR-039 bounded execution environment.
+
+**Console naming:** Project is the Console-facing name of the Enterprise Workspace governance domain, not a separate domain object. The Console must reuse the same governance identity, ownership and Namespace bindings; it must not introduce an independent Project API, controller or source of truth. This does not grant Kubernetes API access or change the separate ADR-039 `DeveloperWorkspace` contract.
 
 **D-045-2 — Management-plane ownership.** Tenant, Enterprise Workspace, and Namespace-binding desired state are defined within the OpenKubes management plane, compatible with GitOps. The selected persistence mechanism (CRDs or equivalent) remains subject to spike evidence. The management plane does not replace the Kubernetes API authorization of workload clusters.
 
@@ -199,7 +201,7 @@ No work for this ADR is required in the W-JAX demonstration on **2026-11-03**. N
 
 ## Acceptance gates for this ADR
 
-The decision stays **Proposed** until an architecture spike provides: inventory of existing components and ADR conflicts; candidate API and state machine; threat model; source-of-truth/ownership matrix; authorization and revocation design; compatibility test plan and results; negative isolation/failure tests; and reviewed incremental MVP estimate. Acceptance requires architecture review and explicit approval; a passing prototype alone is insufficient.
+**Decision accepted:** The governance-domain boundaries and Console naming are approved. The following remain implementation gates, not claims of completed verification: component/ADR inventory, final API kind and state machine, threat model, ownership matrix, authorization and revocation design, ADR-039 compatibility tests, negative isolation/failure tests, and an incremental MVP estimate. No production rollout is authorized by this ADR alone.
 
 ## Non-goals
 
