@@ -1,12 +1,12 @@
 # ADR-Platform-046: Console User and Access Management: Identity Modes, Access Assignments and Multi-Cluster Projects
 
 **Date:** 2026-11-19
-**Status:** Proposed
+**Status:** Accepted
 **Tracking:** [OK-214](https://kubernauts.atlassian.net/browse/OK-214)
 **Extends:** ADR-Platform-037 (Console Authentication and Identity Federation)
 **Related:** ADR-Platform-011 (GitOps), ADR-Platform-013 (Workload Cluster Registration), ADR-Platform-019 (Robotics Fleet, OIDC group delegation), ADR-Platform-034 (Authorized Desired-State Transitions), ADR-Platform-035 (Hybrid Intent), ADR-Platform-036 (Console), ADR-Platform-038 (Session Store), ADR-Platform-039 (Developer Workspace), ADR-Platform-043 (Console Client Identity), ADR-Platform-044 (CMCP), ADR-Platform-045 (Enterprise Workspaces)
 **Decision owner:** OpenKubes Architecture
-**Scope:** Architecture proposal and draft contracts. No production implementation, contract publication or rollout is authorized by Proposed status.
+**Scope:** Accepted architecture and draft contracts. Acceptance is not authorization for production deployment, contract publication or privileged writes; each capability is enabled only after its §16 implementation gate is resolved, evidenced and separately approved.
 
 ---
 
@@ -81,7 +81,7 @@ What exists today:
 | 039 Developer Workspace | Accepted (conditional) | `kubernetes.access = none`; workspace identity is not user identity | Requester authorization (gate O02) can reuse presets later | Presets must never bind into workspace namespaces (§4 denylist) |
 | 043 Console client identity | Proposed | mTLS producer as read backend; effective-authority method for tests | Per-target RBAC observation | BFF RoleBinding writes would give the Console identity grant authority over every target namespace (§5); rejected |
 | 044 CMCP | Draft | Tenant/target/operation authorization tuple | Candidate "reusable protected approval path" | None, provided Console traffic does not traverse CMCP |
-| 045 Enterprise Workspaces | Proposed | Management-plane GitOps desired state; `(cluster, namespaceUID)` binding; pending-revocation rule; no competing reconciler | Revocation and freshness design asked for by D-045-8 | None for grouping: Project is its Console name (Decision 2, §6); non-goal "custom password store" vs local mode (Decision 1) |
+| 045 Enterprise Workspaces | Accepted | Management-plane GitOps desired state; `(cluster, namespaceUID)` binding; pending-revocation rule; no competing reconciler | Revocation and freshness design asked for by D-045-8 | None for grouping: Project is its Console name (Decision 2, §6); non-goal "custom password store" vs local mode (Decision 1) |
 
 No existing ADR defines presets, group-claim mapping, impersonation, per-user cluster
 delegation or multi-cluster partial-failure semantics; this ADR does.
@@ -434,7 +434,7 @@ appear only inside a Project or a target picker, not as a top-level area.
 
 ## 12. Draft contracts (`access.openkubes.io/v0alpha1`)
 
-Non-normative drafts, published on acceptance as schema + fixtures under `contracts/access/v0alpha1/`
+Non-normative drafts, published through M1 (Decision 8 gate) as schema + fixtures under `contracts/access/v0alpha1/`
 with the layout and compatibility rules proposed in OK-221 c15382 (additive optional fields within
 a version, unknown fields ignored, breaking changes get a new version).
 
@@ -543,7 +543,7 @@ Reason codes (draft; parameters go in `params`, never in the code): `SELF_APPROV
 
 | # | Item | Effort (pd) | Depends on |
 |---|---|---|---|
-| M1 | Publish `access` v0alpha1 schema + valid/invalid fixtures | 2–3 | Acceptance; Decision 8 |
+| M1 | Publish `access` v0alpha1 schema + valid/invalid fixtures | 2–3 | Decision 8 |
 | M2 | Preset ClusterRoles, P1–P3, revocation list, reconciler identity; negative tests on a disposable cluster | 4–6 | M1; Decision 4 |
 | M7 | OIDC group capture, revalidation and expiry; issuer map and trust probe | 4–5 | Decision 7 |
 | M4 | Producer: binding inventory, rule resolution, probes, `AccessEvidence` | 5–7 | M2, M7; ADR-043 identity; OK-221 cluster id |
@@ -567,28 +567,42 @@ Sequencing: I1 → I2; I3 runs in parallel once Decision 1 is yes. Total ≈ 48�
 
 **GO** for increment I1 (read-only access inspection, Federated mode and the existing
 `ok-local` Local profile), then I2 on its exit criteria.
-**REVISE** before work starts on two items: production standalone `Local`/`Hybrid` mode
-(Decision 1, extends ADR-037) and the ADR-045 Workspace identity that Project-scoped
-increments reference (Decision 2 decided yes; the API kind remains ADR-045's).
+**REVISE** before work starts on production standalone `Local`/`Hybrid` mode (Decision 1,
+extends ADR-037). Project-scoped increments reference the ADR-045 Workspace identity
+(Decision 2 decided yes; the API kind remains ADR-045's).
+
+Implementation starts with the scoped read-only MVP (I1), reusing the existing Console
+identity, session and observed-state paths and target-cluster Kubernetes RBAC. GitOps remains
+the intended write path for access assignments. Write capabilities (I2) and production
+`Local` (I3) each require their own demonstrated gates (§16) and separate approval.
 **STOP** the direct-mutation path (§5 B), cluster-scope self-service and any Secret-secrecy
 claim for `Editor`.
 
-A new platform ADR is needed (this one) and new Console/API contracts are needed
-(`access.openkubes.io/v0alpha1`, plus additive Presentation Contract kinds for access
-inspection). Both are created only after this ADR is accepted.
+New Console/API contracts are needed (`access.openkubes.io/v0alpha1`, plus additive
+Presentation Contract kinds for access inspection). They are published only through M1,
+under the Decision 8 gate.
 
-## 16. Decisions requested
+## 16. Implementation decisions and gates
 
-1. Approve `Local` and `Hybrid` login in production standalone installs, extending INV-037-1 under the §3.3 baseline? yes/no
-2. ~~Approve converging Project with the ADR-045 Enterprise Workspace?~~ **Decided yes** (OK-214 c15411): Project is the Console-facing name of the Enterprise Workspace governance domain (§6).
-3. Approve GitOps PR + approval as the only write path, with read-only inspection where no Git profile exists? yes/no
-4. Approve the §4 presets as namespace-wide trust grants, with Pod Security and ServiceAccount preconditions and no cluster-scope grants? yes/no
-5. Approve that no preset, including `ProjectAdmin`, gets in-cluster RBAC writes? yes/no
-6. Approve inspection-only access for local subjects in the MVP (no `kubectl`, no mediated reads)? yes/no
-7. Approve derived subject names with prefixes `oidc:`, `<alias>:` and `ok-local:` and a Git-declared issuer→cluster trust map? yes/no
-8. Approve `contracts/access/v0alpha1/` as the contract path after acceptance? yes/no
-9. Approve a merge-queue PR merge that passes `access-approval-gate` as the interim authority until an ADR-034 Authority Profile is accepted? yes/no
-10. Approve a dedicated reconciler ServiceAccount per target, reached only through Argo CD sync impersonation by the existing ADR-013 cluster credential (no second credential source)? yes/no
+Architecture acceptance is not authorization for production deployment, contract publication
+or privileged writes. Decision 2 is decided (§6). Every other item below is an **open
+implementation decision**: accepting this ADR does not approve it. Each one is resolved and
+evidenced, then approved separately, before the capability it gates is enabled.
+
+| # | Implementation decision (open unless marked) | Gates | Evidence before enabling |
+|---|---|---|---|
+| 1 | Production `Local` and `Hybrid` login in standalone installs, extending INV-037-1 under the §3.3 baseline | M8, I3 | ADR-037 extension approved; I3 exit criteria (§14) |
+| 2 | Project is the Console-facing name of the ADR-045 Enterprise Workspace | — | **Decided yes** (OK-214 c15411; ADR-045 accepted) |
+| 3 | GitOps PR + approval as the only write path; read-only inspection where no Git profile exists | M3, M6, I2 | I2 exit criteria |
+| 4 | `Editor` and `ProjectAdmin` as namespace-wide trust grants, with Pod Security and ServiceAccount preconditions and no cluster-scope grants (§4) | M2; any `Editor`/`ProjectAdmin` assignment | Every P1–P3 negative case denied on two disposable clusters (I1 exit) |
+| 5 | No preset, including `ProjectAdmin`, gets in-cluster RBAC writes | M2 | RBAC-write and ClusterRoleBinding attempts denied in the negative tests |
+| 6 | Inspection-only access for local subjects in the MVP (no `kubectl`, no mediated reads) | M5 for local subjects | I1 exit criteria |
+| 7 | Issuer and subject mapping: derived names with `oidc:`, `<alias>:` and `ok-local:` prefixes and a Git-declared issuer→cluster trust map (§3.1) | M7, M4 | Trust probe passes; mismatched issuer and prefix cases rejected |
+| 8 | `contracts/access/v0alpha1/` as the contract path | M1 | Schema with valid and invalid fixtures reviewed |
+| 9 | GitOps approval eligibility (§5.1): a merge-queue PR merge passing `access-approval-gate` as the interim authority until an ADR-034 Authority Profile is accepted | M9, I2 | Self, stale-commit, out-of-scope and revoked approvers rejected (I2 exit) |
+| 10 | Reconciler identity: a dedicated ServiceAccount per target, reached only through Argo CD sync impersonation by the ADR-013 cluster credential | M2; any write | Impersonation shown on two disposable clusters; STOP (§14) if impossible |
+| R | Revocation (§5.2, §8) | I2; any write | Removal reaches `AccessRevoked` within the §5.2 bound; override blocks re-creation |
+| N | Negative security tests (§9, §14) | Every increment | The increment's REVISE/STOP cases run and pass before its GO |
 
 ## Consequences
 
