@@ -54,10 +54,11 @@ What exists today:
   `ProjectAdmin` are **namespace-wide trust** grants (§4): they guarantee confinement to the
   namespace, not secrecy of what the namespace holds. Cluster-scope grants are outside this
   ADR and require a separate decision.
-- **D-046-5 Project is a grouping of namespace targets, not a runtime.** A Project groups
-  `(cluster, namespace)` targets for assignment. It is not a Developer Workspace (ADR-039)
-  and not a Kubernetes object. This ADR proposes that Project converges with the ADR-045
-  Enterprise Workspace rather than becoming a third grouping concept (Decision 2).
+- **D-046-5 Project is the Console-facing name of the ADR-045 Enterprise Workspace.** It is
+  not a separate domain object (Decision 2, decided yes in OK-214 c15411). This ADR reuses
+  the single ADR-045 governance identity and ownership model and introduces no Project API,
+  controller, membership model or source of truth. The ADR-039 DeveloperWorkspace contract is
+  unchanged.
 - **D-046-6 Split BFF.** Effective-access read projections and proposal writes are separate
   routes with separate permissions. The BFF holds no Kubernetes write credential and no
   long-lived kubeconfig.
@@ -80,7 +81,7 @@ What exists today:
 | 039 Developer Workspace | Accepted (conditional) | `kubernetes.access = none`; workspace identity is not user identity | Requester authorization (gate O02) can reuse presets later | Presets must never bind into workspace namespaces (§4 denylist) |
 | 043 Console client identity | Proposed | mTLS producer as read backend; effective-authority method for tests | Per-target RBAC observation | BFF RoleBinding writes would give the Console identity grant authority over every target namespace (§5); rejected |
 | 044 CMCP | Draft | Tenant/target/operation authorization tuple | Candidate "reusable protected approval path" | None, provided Console traffic does not traverse CMCP |
-| 045 Enterprise Workspaces | Proposed | Management-plane GitOps desired state; `(cluster, namespaceUID)` binding; pending-revocation rule; no competing reconciler | Revocation and freshness design asked for by D-045-8 | **Overlapping grouping concept** (Decision 2); non-goal "custom password store" vs local mode (Decision 1) |
+| 045 Enterprise Workspaces | Proposed | Management-plane GitOps desired state; `(cluster, namespaceUID)` binding; pending-revocation rule; no competing reconciler | Revocation and freshness design asked for by D-045-8 | None for grouping: Project is its Console name (Decision 2, §6); non-goal "custom password store" vs local mode (Decision 1) |
 
 No existing ADR defines presets, group-claim mapping, impersonation, per-user cluster
 delegation or multi-cluster partial-failure semantics; this ADR does.
@@ -98,7 +99,7 @@ delegation or multi-cluster partial-failure semantics; this ADR does.
 | Applying RBAC | GitOps reconciler (ADR-011), syncing as a dedicated target identity | Target cluster | Console BFF service account; the general cluster credential |
 | Enforcement | Target-cluster Kubernetes RBAC + admission policy | Target cluster | Console UI state |
 | Observation / evidence | Observed-state producer (ADR-043) | `AccessEvidence` | Claiming success without read-back |
-| Governance scope | ADR-045 domain (if Decision 2 = yes) | Management plane, GitOps | Implicit RBAC from membership |
+| Governance scope (Console label "Project") | ADR-045 Enterprise Workspace domain | Management plane, GitOps (D-045-2) | Implicit RBAC from membership; a second Project store |
 | Workspace runtime RBAC | ADR-039 reconciler | DeveloperWorkspace | Preset bindings in workspace namespaces |
 
 ## 3. Identity modes
@@ -289,18 +290,22 @@ applied.
 
 ## 6. Project, Developer Workspace and Enterprise Workspace
 
-| | Project (this ADR) | Developer Workspace (ADR-039) | Enterprise Workspace (ADR-045) |
-|---|---|---|---|
-| Is | Named set of namespace targets for access assignment | Bounded execution environment | Tenant-scoped governance scope |
-| Kubernetes object | None on targets | Dedicated Namespace + ServiceAccount | Management-plane desired state |
-| Grants access | Only via `AccessAssignment` | `kubernetes.access = none` by default | Never by membership alone |
-| Namespace exclusivity | Proposed: follows D-045-4 if converged | Owns its namespace | One namespace, one workspace |
+| | Project = Enterprise Workspace (ADR-045) | Developer Workspace (ADR-039) |
+|---|---|---|
+| Is | Tenant-scoped governance scope; the Console calls it "Project" | Bounded execution environment |
+| Kubernetes object | None on targets; management-plane desired state (D-045-2) | Dedicated Namespace + ServiceAccount |
+| Grants access | Never by membership alone (D-045-5); only via `AccessAssignment` | `kubernetes.access = none` by default |
+| Namespace exclusivity | One namespace instance, at most one workspace (D-045-4) | Owns its namespace |
 
-**Proposal (Decision 2):** Project and Enterprise Workspace are the same domain object. The
-ADR-045 spike chooses the API kind; the Console labels it "Project" to avoid confusion with
-Developer Workspaces; `ProjectRef` points at it; namespace targets use the D-045-4 binding
-key. Until ADR-045 is accepted, a Project is a GitOps-declared list of `NamespaceTarget`s
-inside one tenant with no ownership claim.
+**Decision 2 (decided yes, OK-214 c15411):** Project is the Console-facing name of the ADR-045
+Enterprise Workspace governance domain, not a separate domain object. This ADR reuses the
+single ADR-045 governance identity (stable Tenant ID and Workspace ID) and ownership model
+(D-045-2, D-045-4, D-045-6). It introduces no Project API, controller, membership model or
+source of truth: `ProjectRef` is only a reference to an Enterprise Workspace, and the ADR-045
+spike still chooses that domain's API kind (D-045-1). An assignment lists its targets
+explicitly; once ADR-045 bindings exist, every target must be a verified binding of the
+referenced workspace (D-045-4). The ADR-039 DeveloperWorkspace contract is unchanged
+(INV-045-1).
 
 **Cluster identity.** `NamespaceTarget.clusterId` is the ADR-013 cluster name, which is also
 the observed-state cluster `id` join under discussion in OK-221 c15382 (gap G2). The field
@@ -437,7 +442,7 @@ a version, unknown fields ignored, breaking changes get a new version).
 |---|---|---|---|
 | `SubjectRef` | embedded | `kind` + `issuer` + `subject`; Kubernetes name derived (§3.1) | `displayName` optional, never a key |
 | `NamespaceTarget` | embedded | `clusterId` + `namespace` + `namespaceUid` (`clusterUid` reserved) | — |
-| `ProjectRef` | embedded | `tenantId` + `projectId` | — |
+| `ProjectRef` | embedded | `tenantId` + `projectId`: the ADR-045 Tenant ID and Workspace ID (reference only, §6) | — |
 | `RolePreset` | resource (catalog) | `name` + `revision` + `rulesDigest` | — |
 | `AccessAssignment` | resource (in Git) | `metadata.uid`, immutable | — |
 | `AccessDecision` | response | `decisionId` | reason codes and parameters only, no rule dumps |
@@ -542,7 +547,7 @@ Reason codes (draft; parameters go in `params`, never in the code): `SELF_APPROV
 | M2 | Preset ClusterRoles, P1–P3, revocation list, reconciler identity; negative tests on a disposable cluster | 4–6 | M1; Decision 4 |
 | M7 | OIDC group capture, revalidation and expiry; issuer map and trust probe | 4–5 | Decision 7 |
 | M4 | Producer: binding inventory, rule resolution, probes, `AccessEvidence` | 5–7 | M2, M7; ADR-043 identity; OK-221 cluster id |
-| M5 | BFF access-inspection projection with project-scoped `access.read` | 3–4 | M4, M7; Decision 2 (Project definition) |
+| M5 | BFF access-inspection projection with project-scoped `access.read` | 3–4 | M4, M7; ADR-045 Workspace identity (Decision 2) |
 | M3 | Renderer + CI validator (derived names, preconditions, removal-only lane) | 4–5 | M1, M2; Decisions 3, 9 |
 | M9 | `access-approval-gate` check, approver map, merge-queue binding | 3–4 | M3, M7 |
 | M6 | BFF proposal route (PR only) + wireflow UI replacing the preview simulation | 5–7 | M3, M5, M9 |
@@ -563,8 +568,8 @@ Sequencing: I1 → I2; I3 runs in parallel once Decision 1 is yes. Total ≈ 48�
 **GO** for increment I1 (read-only access inspection, Federated mode and the existing
 `ok-local` Local profile), then I2 on its exit criteria.
 **REVISE** before work starts on two items: production standalone `Local`/`Hybrid` mode
-(Decision 1, extends ADR-037) and the Project/Enterprise Workspace convergence (Decision 2,
-with ADR-045).
+(Decision 1, extends ADR-037) and the ADR-045 Workspace identity that Project-scoped
+increments reference (Decision 2 decided yes; the API kind remains ADR-045's).
 **STOP** the direct-mutation path (§5 B), cluster-scope self-service and any Secret-secrecy
 claim for `Editor`.
 
@@ -575,7 +580,7 @@ inspection). Both are created only after this ADR is accepted.
 ## 16. Decisions requested
 
 1. Approve `Local` and `Hybrid` login in production standalone installs, extending INV-037-1 under the §3.3 baseline? yes/no
-2. Approve converging Project with the ADR-045 Enterprise Workspace (one domain object, Console label "Project")? yes/no
+2. ~~Approve converging Project with the ADR-045 Enterprise Workspace?~~ **Decided yes** (OK-214 c15411): Project is the Console-facing name of the Enterprise Workspace governance domain (§6).
 3. Approve GitOps PR + approval as the only write path, with read-only inspection where no Git profile exists? yes/no
 4. Approve the §4 presets as namespace-wide trust grants, with Pod Security and ServiceAccount preconditions and no cluster-scope grants? yes/no
 5. Approve that no preset, including `ProjectAdmin`, gets in-cluster RBAC writes? yes/no
