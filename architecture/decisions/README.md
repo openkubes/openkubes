@@ -97,6 +97,7 @@ Contract-aligned product surfaces and their evolution.
 | **036** | [Native OpenKubes Console](ADR-Platform-036-openkubes-console-architecture.md) | Curated-first Console and evolution toward contract-adaptive UI |
 | **037** | [Console Authentication, Identity Federation, and Break-glass Access](ADR-Platform-037-console-authentication-and-identity-federation.md) | Federated-first authentication and controlled recovery access |
 | **038** | [Console Session Store Contract and PostgreSQL Reference Profile](ADR-Platform-038-console-session-store.md) | Portable session-store semantics and PostgreSQL reference implementation |
+| **046** | [Console User and Access Management](ADR-Platform-046-console-user-and-access-management.md) | **Accepted** — Local/Federated/Hybrid identity, GitOps access assignments to namespaced RBAC presets, multi-cluster Projects (OK-214) |
 
 ### 📊 Observability & Diagnostics
 Telemetry, health checks, diagnostic contracts, and gating.
