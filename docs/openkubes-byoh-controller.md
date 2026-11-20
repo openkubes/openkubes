@@ -7,6 +7,8 @@ description: "A practical engineering story about bringing existing Linux hosts 
 
 *Bringing bare-metal and virtual infrastructure into a consistent Kubernetes lifecycle.*
 
+![OpenKubes BYOH Controller Architecture](openkubes-byoh-controller-overview.svg)
+
 Kubernetes infrastructure does not begin and end with cloud instances. Many teams operate physical servers, private infrastructure and virtual machines they already own. They want the benefits of Kubernetes without having to move every workload onto a single infrastructure service.
 
 That is the environment behind our work on the OpenKubes-maintained Bring Your Own Host (BYOH) provider.
