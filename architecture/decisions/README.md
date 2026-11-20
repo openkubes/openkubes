@@ -64,6 +64,7 @@ Cluster API (CAPI) integrations, management cluster design, and cluster registra
 | **023** | [CAPI Infrastructure Providers as Implementation Profiles](ADR-Platform-023-capi-infrastructure-providers-as-implementation-profiles.md) | Infrastructure providers as profiles |
 | **031** | [OK Mgmt Disaster Recovery](ADR-Platform-031-ok-mgmt-disaster-recovery.md) | Mgmt cluster backup & DR strategy |
 | **033** | [OpenKubes OKP Single](ADR-Platform-033-openkubes-okp-single.md) | Single-node / single-cluster topology profile |
+| **048** | [Infrastructure Lifecycle Strategies](ADR-Platform-048-infrastructure-lifecycle-strategies.md) | **Proposed** — InPlaceOnly and RollingReplacement strategy contracts |
 
 ### 💾 Storage, Networking & Services
 Plattform infrastructure capabilities including storage, ingress, and artifact hosting.
@@ -87,6 +88,7 @@ Governance, policy management, secret handling, and continuous delivery.
 | **037** | [Console Authentication, Identity Federation, and Break-glass Access](ADR-Platform-037-console-authentication-and-identity-federation.md) | Federated Console identity, server-side sessions, and exceptional local access |
 | **038** | [Console Session Store Contract and PostgreSQL Reference Profile](ADR-Platform-038-console-session-store.md) | Strongly consistent Console sessions with a PostgreSQL reference profile |
 | **043** | [Console Client Identity CA, Leaf Delivery and Trust Distribution](ADR-Platform-043-console-client-identity-trust.md) | Console client identity CA (pilot on ok-mgmt Vault) — **Proposed** |
+| **047** | [No-Replacement Protection and In-Place Upgrade Authorization](ADR-Platform-047-no-replacement-and-inplace-upgrade-exceptions.md) | **Proposed** — BYOH identity preservation, disjoint upgrade/replacement authority, fail-closed admission |
 | _n/a_ | Acceptance Records (025-*) | Acceptance records for Fresh Install, Outage Recovery, Singleton Enforcement, etc. |
 
 ### 🖥️ Console & Product Experience
