@@ -12,15 +12,15 @@
     <marker id="arrowGreen" markerWidth="12" markerHeight="12" refX="9" refY="6" orient="auto"><path d="M1 1 L10 6 L1 11" fill="none" stroke="#27845f" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></marker>
     <style>
       text{font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;fill:#183247}
-      .eyebrow{font-size:15px;font-weight:700;letter-spacing:2.4px}
+      .eyebrow{font-size:16px;font-weight:700;letter-spacing:2.4px}
       .h1{font-size:38px;font-weight:750;letter-spacing:-.8px}
-      .subtitle{font-size:18px;fill:#597386}
-      .cardTitle{font-size:22px;font-weight:700;fill:#fff}
-      .cardSub{font-size:15px;fill:#e5f2f7}
-      .boxTitle{font-size:19px;font-weight:700}
-      .body{font-size:15px;fill:#4e687a}
-      .small{font-size:13px;fill:#607b8d}
-      .tag{font-size:12px;font-weight:700;letter-spacing:1px}
+      .subtitle{font-size:19px;fill:#597386}
+      .cardTitle{font-size:23px;font-weight:700;fill:#fff}
+      .cardSub{font-size:16px;fill:#e5f2f7}
+      .boxTitle{font-size:20px;font-weight:700}
+      .body{font-size:17px;fill:#4e687a}
+      .small{font-size:15px;fill:#4f697a;font-weight:500}
+      .tag{font-size:13px;font-weight:700;letter-spacing:1px}
       .white{fill:#fff}
     </style>
   </defs>
@@ -38,9 +38,9 @@
   <text x="130" y="250" class="eyebrow white">MANAGEMENT PLANE</text>
   <text x="130" y="292" class="cardTitle">Kubernetes Management Cluster</text>
   <text x="130" y="324" class="cardSub">Cluster API · Desired state · Provider reconciliation · Bootstrap and control-plane coordination</text>
-  <g transform="translate(1110 246)">
-    <rect width="340" height="88" rx="14" fill="#ffffff" opacity=".12" stroke="#c9e5f2" stroke-opacity=".35"/>
-    <text x="24" y="31" class="cardTitle" style="font-size:18px">CAPI APIs &amp; Controllers</text>
+  <g transform="translate(1080 246)">
+    <rect width="370" height="88" rx="14" fill="#ffffff" opacity=".12" stroke="#c9e5f2" stroke-opacity=".35"/>
+    <text x="24" y="31" class="cardTitle" style="font-size:19px">CAPI APIs &amp; Controllers</text>
     <text x="24" y="54" class="cardSub">Cluster · Machine · KCP</text>
     <text x="24" y="73" class="cardSub">MachineDeployment</text>
   </g>
@@ -55,7 +55,7 @@
   <text x="130" y="462" class="eyebrow white">INFRASTRUCTURE PROVIDER</text>
   <text x="130" y="506" class="cardTitle">OpenKubes-maintained BYOH Provider</text>
   <text x="130" y="539" class="cardSub">BYOCluster · BYOHost · BYOMachine · Templates · Admission · Installer configuration</text>
-  <g transform="translate(1110 455)">
+  <g transform="translate(1080 455)">
     <rect width="340" height="88" rx="14" fill="#ffffff" opacity=".13" stroke="#d7ffff" stroke-opacity=".45"/>
     <text x="22" y="32" class="cardTitle" style="font-size:18px">Reconcile host-backed</text>
     <text x="22" y="56" class="cardTitle" style="font-size:18px">CAPI infrastructure</text>
@@ -72,8 +72,8 @@
   <text x="130" y="686" class="eyebrow white">HOST EXECUTION LAYER</text>
   <text x="130" y="728" class="cardTitle">BYOH Host Agent &amp; Installer</text>
   <text x="130" y="752" class="cardSub">Host registration · Kubernetes prerequisites · Node bootstrap and host-side operations</text>
-  <g transform="translate(1110 675)">
-    <rect width="340" height="66" rx="14" fill="#ffffff" opacity=".13" stroke="#dcf7e9" stroke-opacity=".45"/>
+  <g transform="translate(1080 675)">
+    <rect width="370" height="66" rx="14" fill="#ffffff" opacity=".13" stroke="#dcf7e9" stroke-opacity=".45"/>
     <text x="22" y="28" class="cardTitle" style="font-size:18px">Runs on the host</text>
     <text x="22" y="50" class="cardSub">Not the management controller</text>
   </g>
