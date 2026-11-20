@@ -1,0 +1,117 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1120" viewBox="0 0 1600 1120" role="img" aria-labelledby="title desc">
+  <title id="title">OpenKubes BYOH Controller Architecture</title>
+  <desc id="desc">Conceptual architecture showing CAPI management cluster, the OpenKubes-maintained BYOH provider, host agent and installer, safety and upgrade planning capabilities, and pre-provisioned bare-metal and virtual-machine infrastructure. Implemented and planned capabilities are distinguished.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f7fbff"/><stop offset="1" stop-color="#edf5f7"/></linearGradient>
+    <linearGradient id="navy" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#183b63"/><stop offset="1" stop-color="#245c86"/></linearGradient>
+    <linearGradient id="teal" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#087e8b"/><stop offset="1" stop-color="#13a3a0"/></linearGradient>
+    <linearGradient id="green" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#236b50"/><stop offset="1" stop-color="#2d956c"/></linearGradient>
+    <linearGradient id="orange" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#9a5a1c"/><stop offset="1" stop-color="#c47a27"/></linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="150%"><feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#17324d" flood-opacity=".12"/></filter>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="9" refY="6" orient="auto"><path d="M1 1 L10 6 L1 11" fill="none" stroke="#55758b" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></marker>
+    <marker id="arrowGreen" markerWidth="12" markerHeight="12" refX="9" refY="6" orient="auto"><path d="M1 1 L10 6 L1 11" fill="none" stroke="#27845f" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></marker>
+    <style>
+      text{font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;fill:#183247}
+      .eyebrow{font-size:15px;font-weight:700;letter-spacing:2.4px}
+      .h1{font-size:38px;font-weight:750;letter-spacing:-.8px}
+      .subtitle{font-size:18px;fill:#597386}
+      .cardTitle{font-size:22px;font-weight:700;fill:#fff}
+      .cardSub{font-size:15px;fill:#e5f2f7}
+      .boxTitle{font-size:19px;font-weight:700}
+      .body{font-size:15px;fill:#4e687a}
+      .small{font-size:13px;fill:#607b8d}
+      .tag{font-size:12px;font-weight:700;letter-spacing:1px}
+      .white{fill:#fff}
+    </style>
+  </defs>
+  <rect width="1600" height="1120" fill="url(#bg)"/>
+  <circle cx="1450" cy="80" r="190" fill="#dceef1" opacity=".45"/>
+  <circle cx="110" cy="920" r="210" fill="#dce8f4" opacity=".42"/>
+  <text x="90" y="78" class="eyebrow" fill="#16838a">OPENKUBES / INFRASTRUCTURE LIFECYCLE</text>
+  <text x="90" y="132" class="h1">BYOH Controller Architecture</text>
+  <text x="90" y="166" class="subtitle">Bring existing Linux hosts into a consistent, CAPI-managed Kubernetes lifecycle.</text>
+
+  <!-- Management plane -->
+  <g filter="url(#shadow)">
+    <rect x="90" y="210" width="1420" height="150" rx="22" fill="url(#navy)"/>
+  </g>
+  <text x="130" y="250" class="eyebrow white">MANAGEMENT PLANE</text>
+  <text x="130" y="292" class="cardTitle">Kubernetes Management Cluster</text>
+  <text x="130" y="324" class="cardSub">Cluster API · Desired state · Provider reconciliation · Bootstrap and control-plane coordination</text>
+  <g transform="translate(1110 246)">
+    <rect width="340" height="88" rx="14" fill="#ffffff" opacity=".12" stroke="#c9e5f2" stroke-opacity=".35"/>
+    <text x="24" y="31" class="cardTitle" style="font-size:18px">CAPI APIs &amp; Controllers</text>
+    <text x="24" y="54" class="cardSub">Cluster · Machine · KCP</text>
+    <text x="24" y="73" class="cardSub">MachineDeployment</text>
+  </g>
+
+  <path d="M800 360 V405" stroke="#55758b" stroke-width="3" fill="none" marker-end="url(#arrow)"/>
+  <text x="824" y="390" class="small">desired state / reconciliation</text>
+
+  <!-- BYOH provider -->
+  <g filter="url(#shadow)">
+    <rect x="90" y="420" width="1420" height="166" rx="22" fill="url(#teal)"/>
+  </g>
+  <text x="130" y="462" class="eyebrow white">INFRASTRUCTURE PROVIDER</text>
+  <text x="130" y="506" class="cardTitle">OpenKubes-maintained BYOH Provider</text>
+  <text x="130" y="539" class="cardSub">BYOCluster · BYOHost · BYOMachine · Templates · Admission · Installer configuration</text>
+  <g transform="translate(1110 455)">
+    <rect width="340" height="88" rx="14" fill="#ffffff" opacity=".13" stroke="#d7ffff" stroke-opacity=".45"/>
+    <text x="22" y="32" class="cardTitle" style="font-size:18px">Reconcile host-backed</text>
+    <text x="22" y="56" class="cardTitle" style="font-size:18px">CAPI infrastructure</text>
+    <text x="22" y="76" class="cardSub">Uses hosts provisioned elsewhere</text>
+  </g>
+
+  <path d="M800 586 V630" stroke="#55758b" stroke-width="3" fill="none" marker-end="url(#arrow)"/>
+  <text x="824" y="616" class="small">host workflow / agent interaction</text>
+
+  <!-- Agent layer -->
+  <g filter="url(#shadow)">
+    <rect x="90" y="646" width="1420" height="124" rx="22" fill="url(#green)"/>
+  </g>
+  <text x="130" y="686" class="eyebrow white">HOST EXECUTION LAYER</text>
+  <text x="130" y="728" class="cardTitle">BYOH Host Agent &amp; Installer</text>
+  <text x="130" y="752" class="cardSub">Host registration · Kubernetes prerequisites · Node bootstrap and host-side operations</text>
+  <g transform="translate(1110 675)">
+    <rect width="340" height="66" rx="14" fill="#ffffff" opacity=".13" stroke="#dcf7e9" stroke-opacity=".45"/>
+    <text x="22" y="28" class="cardTitle" style="font-size:18px">Runs on the host</text>
+    <text x="22" y="50" class="cardSub">Not the management controller</text>
+  </g>
+
+  <path d="M800 770 V816" stroke="#27845f" stroke-width="3" fill="none" marker-end="url(#arrowGreen)"/>
+
+  <!-- Infrastructure -->
+  <g filter="url(#shadow)">
+    <rect x="90" y="832" width="680" height="130" rx="20" fill="#fff" stroke="#c7d8e2" stroke-width="1.5"/>
+    <rect x="830" y="832" width="680" height="130" rx="20" fill="#fff" stroke="#c7d8e2" stroke-width="1.5"/>
+  </g>
+  <g transform="translate(132 868)">
+    <rect width="58" height="58" rx="14" fill="#e8f0f8"/>
+    <path d="M14 18 H44 V42 H14 Z M19 13 H39 M19 47 H39 M21 25 H37 M21 32 H37" fill="none" stroke="#245c86" stroke-width="2.5" stroke-linecap="round"/>
+  </g>
+  <text x="216" y="884" class="boxTitle">Bare-metal hosts</text>
+  <text x="216" y="912" class="body">Physical Linux servers · operator-provisioned</text>
+  <text x="216" y="938" class="small">Host identity and hardware remain externally owned</text>
+  <g transform="translate(872 868)">
+    <rect width="58" height="58" rx="14" fill="#e3f4f2"/>
+    <rect x="13" y="14" width="32" height="30" rx="4" fill="none" stroke="#087e8b" stroke-width="2.5"/>
+    <path d="M19 22 H39 M19 29 H39 M19 36 H32" stroke="#087e8b" stroke-width="2.5" stroke-linecap="round"/>
+  </g>
+  <text x="956" y="884" class="boxTitle">Virtual machines</text>
+  <text x="956" y="912" class="body">Existing Linux VMs · cloud or private infrastructure</text>
+  <text x="956" y="938" class="small">Infrastructure lifecycle remains separately managed</text>
+
+  <!-- Side capabilities -->
+  <g filter="url(#shadow)">
+    <rect x="90" y="1080" width="680" height="1" fill="#d3e0e8"/>
+  </g>
+  <text x="90" y="1090" class="small">Architecture overview · Draft · Capability maturity is stated in the accompanying documentation.</text>
+
+  <!-- Overlay capability notes -->
+  <g transform="translate(90 0)">
+    <rect x="90" y="990" width="300" height="30" rx="15" fill="#fff1dc" stroke="#e4bd86"/>
+    <text x="108" y="1010" class="tag" fill="#94591e">SAFETY: INITIAL / OPT-IN</text>
+    <rect x="410" y="990" width="300" height="30" rx="15" fill="#e2f3ef" stroke="#9bcfbd"/>
+    <text x="428" y="1010" class="tag" fill="#236b50">UPGRADE PLANNER: READ-ONLY</text>
+  </g>
+</svg>
