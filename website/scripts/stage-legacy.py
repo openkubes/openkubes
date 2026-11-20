@@ -8,6 +8,7 @@ SOURCE = ROOT / "docs"
 TARGET = ROOT / ".mkdocs-staging"
 ARTICLES = (
     "nvidia-confidential-containers-agent-authority.md",
+    "openkubes-byoh-controller.md",
     "if-we-built-kubernetes-today.md",
     "openshell-meets-openkubes.md",
     "developer-workspace-blog-post.md",

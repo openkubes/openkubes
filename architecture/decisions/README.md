@@ -64,6 +64,7 @@ Cluster API (CAPI) integrations, management cluster design, and cluster registra
 | **023** | [CAPI Infrastructure Providers as Implementation Profiles](ADR-Platform-023-capi-infrastructure-providers-as-implementation-profiles.md) | Infrastructure providers as profiles |
 | **031** | [OK Mgmt Disaster Recovery](ADR-Platform-031-ok-mgmt-disaster-recovery.md) | Mgmt cluster backup & DR strategy |
 | **033** | [OpenKubes OKP Single](ADR-Platform-033-openkubes-okp-single.md) | Single-node / single-cluster topology profile |
+| **048** | [Infrastructure Lifecycle Strategies](ADR-Platform-048-infrastructure-lifecycle-strategies.md) | **Proposed** — InPlaceOnly and RollingReplacement strategy contracts |
 
 ### 💾 Storage, Networking & Services
 Plattform infrastructure capabilities including storage, ingress, and artifact hosting.
@@ -87,6 +88,7 @@ Governance, policy management, secret handling, and continuous delivery.
 | **037** | [Console Authentication, Identity Federation, and Break-glass Access](ADR-Platform-037-console-authentication-and-identity-federation.md) | Federated Console identity, server-side sessions, and exceptional local access |
 | **038** | [Console Session Store Contract and PostgreSQL Reference Profile](ADR-Platform-038-console-session-store.md) | Strongly consistent Console sessions with a PostgreSQL reference profile |
 | **043** | [Console Client Identity CA, Leaf Delivery and Trust Distribution](ADR-Platform-043-console-client-identity-trust.md) | Console client identity CA (pilot on ok-mgmt Vault) — **Proposed** |
+| **047** | [No-Replacement Protection and In-Place Upgrade Authorization](ADR-Platform-047-no-replacement-and-inplace-upgrade-exceptions.md) | **Proposed** — BYOH identity preservation, disjoint upgrade/replacement authority, fail-closed admission |
 | _n/a_ | Acceptance Records (025-*) | Acceptance records for Fresh Install, Outage Recovery, Singleton Enforcement, etc. |
 
 ### 🖥️ Console & Product Experience
@@ -97,6 +99,7 @@ Contract-aligned product surfaces and their evolution.
 | **036** | [Native OpenKubes Console](ADR-Platform-036-openkubes-console-architecture.md) | Curated-first Console and evolution toward contract-adaptive UI |
 | **037** | [Console Authentication, Identity Federation, and Break-glass Access](ADR-Platform-037-console-authentication-and-identity-federation.md) | Federated-first authentication and controlled recovery access |
 | **038** | [Console Session Store Contract and PostgreSQL Reference Profile](ADR-Platform-038-console-session-store.md) | Portable session-store semantics and PostgreSQL reference implementation |
+| **046** | [Console User and Access Management](ADR-Platform-046-console-user-and-access-management.md) | **Accepted** — Local/Federated/Hybrid identity, GitOps access assignments to namespaced RBAC presets, multi-cluster Projects (OK-214) |
 
 ### 📊 Observability & Diagnostics
 Telemetry, health checks, diagnostic contracts, and gating.
@@ -121,3 +124,4 @@ Edge Computing, AI/ML Infrastructure, Robotics, and DBaaS profiles.
 | **039** | [Developer Workspace Contract](ADR-Platform-039-developer-workspace-contract.md) | Bounded developer and coding-agent execution environments |
 | **042** | [Hosted and External Agentic Operations with OpenShell](ADR-Platform-042-openshell-hosted-external-agentic-operations.md) | **Proposed** — hosted/external agents, secure runtime candidate, governed operations (OK-220) |
 | **044** | [Optional CMCP Access and Evidence Contracts](ADR-Platform-044-cmcp.md) | **Draft** — optional Hybrid access, local authority, portable evidence; Obot as one gateway candidate (OK-213) |
+| **045** | [Cross-Cluster Enterprise Workspace Governance](ADR-Platform-045-cross-cluster-enterprise-workspaces.md) | **Accepted** — tenant-scoped cross-cluster governance; Console label `Project`; separate from DeveloperWorkspace |
