@@ -4,6 +4,10 @@ Architecture decisions, platform engineering lessons and implementation stories.
 
 ## Latest articles
 
+### [Why We Built the OpenKubes BYOH Controller](/openkubes-byoh-controller/)
+
+How OpenKubes builds on Cluster API and BYOH to bring existing Linux hosts into a consistent lifecycle, with explicit boundaries between upgrades and replacement. Engineering story; in-place execution and real-host proof remain in progress.
+
 ### [NVIDIA Confidential Containers Can Protect AI Inference. But Who Controls the Agent?](/nvidia-confidential-containers-agent-authority/)
 
 Why confidential inference, governed MCP tools, and trusted Kubernetes operational authority must remain separate. An architecture proposal, not an OpenKubes integration announcement.
