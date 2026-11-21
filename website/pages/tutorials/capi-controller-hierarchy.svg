@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 980" role="img" aria-labelledby="title desc">
+<title id="title">The controller hierarchy and its Kubernetes analogy</title>
+<desc id="desc">Comparison of Kubernetes Deployment, ReplicaSet and Pods with CAPI MachineDeployment, MachineSet and Machine, plus the separate KubeadmControlPlane and infrastructure machine paths.</desc>
+<defs>
+<style>
+text{font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;fill:#14243b}
+.title{font-size:34px;font-weight:750}.group{font-size:23px;font-weight:700}.node{font-size:21px;font-weight:700}.small{font-size:16px;font-weight:550}.note{font-size:15px;font-style:italic;fill:#496078}
+.panel{stroke-width:2.5}.blue{fill:#eaf4ff;stroke:#76a9d8}.mint{fill:#e9f8f5;stroke:#6dbbb0}
+.boxblue{fill:#246fc5;stroke:#15549c;stroke-width:2}.boxlight{fill:#8ed0f5;stroke:#4e9dcf;stroke-width:2}.boxteal{fill:#087d7b;stroke:#075c61;stroke-width:2}.boxmint{fill:#83d7cf;stroke:#4baea7;stroke-width:2}
+.white{fill:#fff}.dark{fill:#12243d}.line{fill:none;stroke:#203a59;stroke-width:3;marker-end:url(#arrow)}.dash{fill:none;stroke:#138b91;stroke-width:3;stroke-dasharray:10 8;marker-end:url(#arrowTeal)}
+</style>
+<marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#203a59"/></marker>
+<marker id="arrowTeal" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#138b91"/></marker>
+</defs>
+<rect width="1440" height="980" fill="#fff"/>
+<text x="720" y="55" text-anchor="middle" class="title">The controller hierarchy and its Kubernetes analogy</text>
+<!-- Kubernetes -->
+<rect x="35" y="95" width="1370" height="190" rx="22" class="panel blue"/>
+<text x="75" y="139" class="group">Kubernetes workload controllers</text>
+<rect x="100" y="178" width="300" height="70" rx="13" class="boxblue"/><text x="250" y="222" text-anchor="middle" class="node white">Deployment</text>
+<path d="M400 213H555" class="line"/><text x="477" y="194" text-anchor="middle" class="small">manages</text>
+<rect x="565" y="178" width="300" height="70" rx="13" class="boxblue"/><text x="715" y="222" text-anchor="middle" class="node white">ReplicaSet</text>
+<path d="M865 213H1020" class="line"/><text x="942" y="194" text-anchor="middle" class="small">manages</text>
+<rect x="1030" y="178" width="300" height="70" rx="13" class="boxlight"/><text x="1180" y="222" text-anchor="middle" class="node">Pods</text>
+<!-- CAPI -->
+<rect x="35" y="330" width="1370" height="190" rx="22" class="panel blue"/>
+<text x="75" y="374" class="group">Cluster API management controllers</text>
+<rect x="100" y="414" width="300" height="70" rx="13" class="boxblue"/><text x="250" y="458" text-anchor="middle" class="node white">MachineDeployment</text>
+<path d="M400 449H555" class="line"/><text x="477" y="430" text-anchor="middle" class="small">manages</text>
+<rect x="565" y="414" width="300" height="70" rx="13" class="boxblue"/><text x="715" y="458" text-anchor="middle" class="node white">MachineSet</text>
+<path d="M865 449H1020" class="line"/><text x="942" y="430" text-anchor="middle" class="small">manages</text>
+<rect x="1030" y="414" width="300" height="70" rx="13" class="boxlight"/><text x="1180" y="458" text-anchor="middle" class="node">Machine</text>
+<!-- analogy arrows -->
+<path d="M715 249V408" class="dash"/><rect x="738" y="303" width="145" height="28" rx="8" fill="#fff"/><text x="810" y="323" text-anchor="middle" class="note">analogy only</text>
+<path d="M1180 249V408" class="dash"/><rect x="1200" y="303" width="145" height="28" rx="8" fill="#fff"/><text x="1272" y="323" text-anchor="middle" class="note">analogy only</text>
+<!-- lower panels -->
+<rect x="35" y="565" width="590" height="285" rx="22" class="panel mint"/>
+<text x="75" y="610" class="group">CAPI control-plane path</text>
+<rect x="70" y="685" width="225" height="100" rx="13" class="boxteal"/><text x="182" y="725" text-anchor="middle" class="node white">KubeadmControlPlane</text><text x="182" y="754" text-anchor="middle" class="small white">(KCP)</text>
+<path d="M295 735H365" class="line"/><text x="330" y="710" text-anchor="middle" class="small">reconciles</text>
+<rect x="375" y="685" width="220" height="100" rx="13" class="boxmint"/><text x="485" y="725" text-anchor="middle" class="node">Control-plane</text><text x="485" y="754" text-anchor="middle" class="node">Machines</text>
+<rect x="655" y="565" width="750" height="285" rx="22" class="panel blue"/>
+<text x="695" y="610" class="group">Infrastructure and workload cluster</text>
+<rect x="735" y="685" width="390" height="100" rx="13" class="boxteal"/><text x="930" y="725" text-anchor="middle" class="node white">InfrastructureMachine</text><text x="930" y="754" text-anchor="middle" class="small white">(e.g. CAPD DevMachine)</text>
+<rect x="1190" y="685" width="180" height="100" rx="13" class="boxlight"/><text x="1280" y="725" text-anchor="middle" class="node">Kubernetes</text><text x="1280" y="754" text-anchor="middle" class="node">Node</text>
+<path d="M1120 484V640H930V678" class="line"/><rect x="1030" y="615" width="105" height="28" rx="7" fill="#fff"/><text x="1082" y="635" text-anchor="middle" class="small">references</text>
+<path d="M595 735H728" class="line"/><rect x="615" y="695" width="118" height="35" rx="7" fill="#e9f8f5"/><text x="674" y="710" text-anchor="middle" class="small">references</text><text x="674" y="727" text-anchor="middle" class="small">infrastructure</text>
+<path d="M1125 735H1182" class="line"/><text x="1153" y="675" text-anchor="middle" class="small">backs a</text><text x="1153" y="693" text-anchor="middle" class="small">machine that</text><text x="1153" y="711" text-anchor="middle" class="small">joins as</text>
+<!-- legend -->
+<rect x="100" y="890" width="1240" height="58" rx="13" fill="#f4f6f8" stroke="#cbd5df" stroke-width="1.5"/>
+<path d="M145 919H225" class="line"/><text x="245" y="925" class="small">Controller relationship (manages, reconciles, references, backs)</text>
+<path d="M850 919H930" class="dash"/><text x="950" y="925" class="small">Analogy only</text>
+</svg>
