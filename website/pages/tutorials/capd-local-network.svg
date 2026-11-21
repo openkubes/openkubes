@@ -1,0 +1,116 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1120" viewBox="0 0 1600 1120" role="img" aria-labelledby="title desc">
+  <title id="title">OpenKubes CAPD Local Network Overview</title>
+  <desc id="desc">Network architecture showing a developer Mac connecting through a published localhost port to the CAPD workload cluster load balancer inside Colima. The Kind management cluster controls the workload lifecycle. The workload has a control-plane and worker node connected by the kindnet pod network.</desc>
+  <defs>
+    <style>
+      text{font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;fill:#17243a}
+      .h1{font-size:38px;font-weight:750}.subtitle{font-size:21px;fill:#53647b}
+      .section{font-size:25px;font-weight:700}.heading{font-size:20px;font-weight:700}
+      .body{font-size:17px}.small{font-size:15px;fill:#46566d}.tiny{font-size:13px;fill:#46566d}
+      .italic{font-size:16px;font-style:italic;fill:#526176}
+      .outer{fill:#f4f8fd;stroke:#4779a8;stroke-width:3}
+      .management{fill:#e5f1ff;stroke:#4388cf;stroke-width:2.5}
+      .workload{fill:#eff9ef;stroke:#69a96c;stroke-width:2.5}
+      .node{fill:#e5f1ff;stroke:#32699c;stroke-width:2}
+      .module{fill:#fff;stroke:#72859d;stroke-width:1.7}
+      .soft{fill:#f1f5f9;stroke:#a8b8ca;stroke-width:1.5}
+      .dash{fill:none;stroke:#7b8798;stroke-width:2;stroke-dasharray:9 7}
+      .line{fill:none;stroke:#263c55;stroke-width:3;marker-end:url(#arrow)}
+      .both{fill:none;stroke:#263c55;stroke-width:2.5;marker-start:url(#arrowStart);marker-end:url(#arrow)}
+      .host{fill:none;stroke:#263c55;stroke-width:3;marker-end:url(#arrow)}
+      .accent{fill:#fff0e8;stroke:#e87942;stroke-width:2}
+      .warn{fill:#fff6d9;stroke:#e5a52e;stroke-width:2}
+    </style>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#263c55"/></marker>
+    <marker id="arrowStart" markerWidth="10" markerHeight="10" refX="2" refY="5" orient="auto"><path d="M10 0L0 5L10 10Z" fill="#263c55"/></marker>
+  </defs>
+
+  <rect width="1600" height="1120" fill="#ffffff"/>
+  <text x="800" y="58" text-anchor="middle" class="h1">OpenKubes CAPD Local Network Overview</text>
+  <text x="800" y="91" text-anchor="middle" class="subtitle">macOS + Colima + kind management cluster + CAPD workload cluster</text>
+
+  <!-- Developer Mac -->
+  <rect x="35" y="300" width="300" height="500" rx="22" fill="#eaf5ff" stroke="#4c96c7" stroke-width="3"/>
+  <rect x="120" y="345" width="130" height="82" rx="9" fill="#fff" stroke="#263c55" stroke-width="4"/>
+  <path d="M102 438h166l-16 16H118Z" fill="#dbe7f2" stroke="#263c55" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M174 370c-8-10 4-20 12-13 6-6 18-3 18 7-1 14-12 27-19 27-5 0-7-5-11-5-5 1-9 0-12-5-5-8 1-17 12-11Z" fill="#263c55"/>
+  <text x="185" y="495" text-anchor="middle" class="section">Developer Mac</text>
+  <rect x="65" y="535" width="240" height="82" rx="12" class="module"/>
+  <text x="185" y="568" text-anchor="middle" class="body">kubectl / make</text>
+  <text x="185" y="594" text-anchor="middle" class="body">ok-capd-workload-up</text>
+  <rect x="82" y="655" width="206" height="76" rx="12" fill="#dceeff" stroke="#4388cf" stroke-width="2"/>
+  <text x="185" y="685" text-anchor="middle" class="body" font-style="italic">Local workload</text>
+  <text x="185" y="710" text-anchor="middle" class="body" font-style="italic">kubeconfig</text>
+
+  <!-- Colima VM -->
+  <rect x="385" y="135" width="1180" height="825" rx="28" class="outer"/>
+  <text x="435" y="185" class="section">Colima VM / Docker Host</text>
+  <g transform="translate(410 151)" fill="#1685c7">
+    <rect x="0" y="0" width="17" height="17" rx="2"/><rect x="20" y="0" width="17" height="17" rx="2"/><rect x="40" y="0" width="17" height="17" rx="2"/>
+    <rect x="10" y="-20" width="17" height="17" rx="2"/><rect x="30" y="-20" width="17" height="17" rx="2"/>
+    <path d="M0 22h58c-2 20-14 30-33 30C9 52 1 43 0 22Z"/>
+  </g>
+
+  <!-- Management cluster -->
+  <rect x="420" y="220" width="1110" height="210" rx="20" class="management"/>
+  <text x="465" y="265" class="section">kind management cluster (ok-capd-dev)</text>
+  <rect x="475" y="295" width="280" height="65" rx="12" class="module"/>
+  <rect x="825" y="295" width="300" height="65" rx="12" class="module"/>
+  <rect x="1190" y="295" width="290" height="65" rx="12" class="module"/>
+  <text x="615" y="335" text-anchor="middle" class="heading">CAPI Core</text>
+  <text x="975" y="335" text-anchor="middle" class="heading">CAPD controller</text>
+  <text x="1335" y="335" text-anchor="middle" class="heading">Kubeadm providers</text>
+  <text x="975" y="397" text-anchor="middle" class="italic">manages workload lifecycle</text>
+
+  <path d="M975 430V470" class="line"/>
+  <rect x="875" y="438" width="200" height="38" rx="10" class="soft"/>
+  <text x="975" y="463" text-anchor="middle" class="body">CAPI resources</text>
+
+  <!-- Workload cluster -->
+  <rect x="420" y="495" width="1110" height="420" rx="22" class="workload"/>
+  <text x="465" y="545" class="section">CAPD workload cluster (ok-capd-smoke)</text>
+
+  <!-- Host to LB arrow and endpoint -->
+  <path d="M335 695H535" class="host"/>
+  <rect x="350" y="640" width="260" height="42" rx="11" class="accent"/>
+  <text x="480" y="668" text-anchor="middle" class="heading" style="fill:#a33d19">https://127.0.0.1:32768</text>
+  <text x="420" y="725" text-anchor="middle" class="small">host-reachable API endpoint</text>
+
+  <!-- LB -->
+  <rect x="535" y="635" width="250" height="160" rx="16" class="node"/>
+  <text x="660" y="675" text-anchor="middle" class="heading">Load Balancer</text>
+  <text x="660" y="702" text-anchor="middle" class="heading">HAProxy</text>
+  <text x="660" y="738" text-anchor="middle" class="body">172.18.0.5:6443</text>
+  <text x="660" y="768" text-anchor="middle" class="small">Docker publishes 32768</text>
+
+  <!-- API arrow -->
+  <path d="M785 690H1040" class="line"/>
+  <rect x="855" y="650" width="160" height="35" rx="9" class="soft"/>
+  <text x="935" y="674" text-anchor="middle" class="small">Kubernetes API</text>
+
+  <!-- Pod network -->
+  <rect x="1030" y="575" width="450" height="285" rx="20" class="dash"/>
+  <text x="1255" y="610" text-anchor="middle" class="heading">kindnet CNI / Pod network</text>
+  <text x="1255" y="635" text-anchor="middle" class="small">Pod CIDR: 192.168.0.0/16</text>
+
+  <rect x="1070" y="655" width="370" height="85" rx="14" class="node"/>
+  <text x="1255" y="687" text-anchor="middle" class="heading">Control Plane Node</text>
+  <text x="1255" y="712" text-anchor="middle" class="small">ok-capd-smoke-control-plane · 172.18.0.6</text>
+
+  <rect x="1070" y="770" width="370" height="75" rx="14" class="node"/>
+  <text x="1255" y="800" text-anchor="middle" class="heading">Worker Node</text>
+  <text x="1255" y="825" text-anchor="middle" class="small">ok-capd-smoke-md-0 · 172.18.0.7</text>
+
+  <path d="M1255 740V768" class="both"/>
+  <rect x="1300" y="742" width="145" height="28" rx="8" class="soft"/>
+  <text x="1372" y="762" text-anchor="middle" class="tiny">cluster traffic</text>
+
+  <text x="975" y="890" text-anchor="middle" class="italic">Docker network inside Colima VM</text>
+
+  <!-- Bottom note -->
+  <rect x="35" y="990" width="1530" height="95" rx="16" class="warn"/>
+  <path d="M82 1015l25 45H57Z" fill="#e6a126"/>
+  <text x="82" y="1048" text-anchor="middle" font-size="25" font-weight="800" fill="#fff">!</text>
+  <text x="130" y="1030" class="heading">Important: 172.18.0.5 is reachable inside the Docker network, but macOS reaches the</text>
+  <text x="130" y="1060" class="heading">workload API through the published localhost port.</text>
+</svg>
