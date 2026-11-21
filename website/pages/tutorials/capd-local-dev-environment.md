@@ -88,41 +88,10 @@ The following analogy is useful when learning CAPI. It describes the
 *relationship between controllers*, not identical APIs or identical runtime
 semantics.
 
-```mermaid
-flowchart TB
-  subgraph K8S["Kubernetes workload controllers"]
-    D["Deployment"]
-    RS["ReplicaSet"]
-    P["Pods"]
-    D -->|"manages"| RS
-    RS -->|"manages"| P
-  end
+![CAPI controller hierarchy and Kubernetes analogy](capi-controller-hierarchy.svg)
 
-  subgraph CAPI["Cluster API management controllers"]
-    MD["MachineDeployment"]
-    MS["MachineSet"]
-    M["Machine"]
-    MD -->|"manages"| MS
-    MS -->|"manages"| M
-  end
-
-  subgraph CP["CAPI control-plane path"]
-    KCP["KubeadmControlPlane (KCP)"]
-    MCP["Control-plane Machines"]
-    KCP -->|"reconciles"| MCP
-  end
-
-  subgraph INFRA["Infrastructure and workload cluster"]
-    IM["InfrastructureMachine<br/>(e.g. CAPD DevMachine)"]
-    N["Kubernetes Node"]
-    M -->|"references"| IM
-    MCP -->|"references infrastructure"| IM
-    IM -->|"backs a machine that joins as"| N
-  end
-
-  P -. "analogy only" .-> M
-  RS -. "analogy only" .-> MS
-```
+The diagram is a native SVG asset: labels, nodes, connectors and arrows remain
+vector-based and scale cleanly at different screen sizes.
 
 Read the worker side from top to bottom:
 
@@ -272,35 +241,12 @@ not a claim that `make ok-up` or `BYOH_ENROLL=true` completes all of them.
 
 ### Two infrastructure paths, one CAPI management model
 
-```mermaid
-flowchart TB
-  subgraph CAPDM["CAPD local test environment (ok-capd-dev)"]
-    CAPI1["CAPI Core + Kubeadm + CAPD"]
-    CAPD["CAPD controller"]
-    DOCKER["Local Docker daemon<br/>(Colima VM or Linux Docker host)"]
-    DCP["Docker container<br/>control-plane machine"]
-    DW["Docker container<br/>worker machine"]
-    CAPI1 --> CAPD
-    CAPD -->|"Docker API"| DOCKER
-    DOCKER --> DCP
-    DOCKER --> DW
-  end
+![Two infrastructure paths: CAPD and BYOH under one CAPI management model](capd-vs-byoh-infrastructure.svg)
 
-  subgraph BYOHM["BYOH management environment (ok-byoh-dev)"]
-    CAPI2["CAPI Core + Kubeadm"]
-    BYOHC["OpenKubes BYOH controller"]
-    H1["Existing Linux host<br/>BYOH agent"]
-    H2["Existing Linux host<br/>BYOH agent"]
-    CAPI2 --> BYOHC
-    BYOHC <-->|"registered host / infrastructure lifecycle"| H1
-    BYOHC <-->|"registered host / infrastructure lifecycle"| H2
-  end
-
-  DCP -->|"kubeadm + kubelet"| WK["CAPD workload cluster"]
-  DW -->|"kubeadm join + kubelet"| WK
-  H1 -->|"machine bootstrap / join"| BK["BYOH workload cluster"]
-  H2 -->|"machine bootstrap / join"| BK
-```
+The Docker daemon is the infrastructure host for CAPD's container-machines.
+It is not itself a Kubernetes worker Node. The Docker containers are the
+machine instances that are bootstrapped and join the workload cluster as
+Kubernetes Nodes.
 
 The Docker daemon is the infrastructure host for CAPD's container-machines.
 It is not itself a Kubernetes worker Node. The Docker containers are the

@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 1040" role="img" aria-labelledby="title desc">
+<title id="title">Two infrastructure paths, one CAPI management model</title>
+<desc id="desc">Side-by-side comparison of the CAPD local test environment using Docker-backed machines and the BYOH management environment using existing Linux hosts with the OpenKubes BYOH controller.</desc>
+<defs>
+<style>
+text{font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;fill:#14243b}
+.title{font-size:34px;font-weight:750}.header{font-size:22px;font-weight:700;fill:#fff}.node{font-size:20px;font-weight:700}.small{font-size:16px;font-weight:550}.foot{font-size:17px;font-style:italic;fill:#40536b}
+.frame{stroke-width:2.5}.left{fill:#edf5ff;stroke:#7da9d8}.right{fill:#eef8f6;stroke:#70b8ae}
+.card{fill:#d9eaff;stroke:#4988c7;stroke-width:2}.host{fill:#d8f3ee;stroke:#48a99d;stroke-width:2}.container{fill:#e9f3fc;stroke:#6798c4;stroke-width:2}.outL{fill:#1765b4;stroke:#0e4d91;stroke-width:2}.outR{fill:#087f78;stroke:#06645f;stroke-width:2}
+.arrow{fill:none;stroke:#203a59;stroke-width:3;marker-end:url(#arr)}.muted{fill:#e9edf2;stroke:#d2d9e2;stroke-width:1}
+.white{fill:#fff}
+</style>
+<marker id="arr" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#203a59"/></marker>
+</defs>
+<rect width="1440" height="1040" fill="#fff"/>
+<text x="720" y="55" text-anchor="middle" class="title">Two infrastructure paths, one CAPI management model</text>
+<!-- columns -->
+<rect x="35" y="95" width="665" height="790" rx="22" class="frame left"/>
+<rect x="740" y="95" width="665" height="790" rx="22" class="frame right"/>
+<path d="M35 117Q35 95 57 95H678Q700 95 700 117V175H35Z" fill="#183454"/>
+<path d="M740 117Q740 95 762 95H1383Q1405 95 1405 117V175H740Z" fill="#183454"/>
+<text x="367" y="145" text-anchor="middle" class="header">CAPD local test environment (ok-capd-dev)</text>
+<text x="1072" y="145" text-anchor="middle" class="header">BYOH management environment (ok-byoh-dev)</text>
+<!-- CAPD path -->
+<rect x="105" y="210" width="525" height="78" rx="13" class="card"/><text x="367" y="258" text-anchor="middle" class="node">CAPI Core + Kubeadm + CAPD</text>
+<path d="M367 288V326" class="arrow"/>
+<rect x="105" y="335" width="525" height="78" rx="13" class="card"/><text x="367" y="383" text-anchor="middle" class="node">CAPD controller</text>
+<path d="M367 413V454" class="arrow"/><rect x="390" y="421" width="130" height="28" rx="7" class="muted"/><text x="455" y="441" text-anchor="middle" class="small">Docker API</text>
+<rect x="105" y="465" width="525" height="92" rx="13" class="host"/><text x="367" y="505" text-anchor="middle" class="node">Local Docker daemon</text><text x="367" y="532" text-anchor="middle" class="small">(Colima VM or Linux Docker host)</text>
+<path d="M367 557V582H210V610" class="arrow"/><path d="M367 582H525V610" class="arrow"/>
+<rect x="70" y="620" width="280" height="112" rx="13" class="container"/><text x="210" y="660" text-anchor="middle" class="node">Docker container</text><text x="210" y="687" text-anchor="middle" class="small">control-plane machine</text>
+<rect x="385" y="620" width="280" height="112" rx="13" class="container"/><text x="525" y="660" text-anchor="middle" class="node">Docker container</text><text x="525" y="687" text-anchor="middle" class="small">worker machine</text>
+<path d="M210 732V790" class="arrow"/><path d="M525 732V790" class="arrow"/>
+<rect x="83" y="744" width="254" height="31" rx="8" class="muted"/><text x="210" y="765" text-anchor="middle" class="small">kubeadm + kubelet</text>
+<rect x="398" y="744" width="254" height="31" rx="8" class="muted"/><text x="525" y="765" text-anchor="middle" class="small">kubeadm join + kubelet</text>
+<rect x="95" y="800" width="545" height="65" rx="13" class="outL"/><text x="367" y="841" text-anchor="middle" class="node white">CAPD workload cluster</text>
+<!-- BYOH path -->
+<rect x="810" y="210" width="525" height="78" rx="13" class="card"/><text x="1072" y="258" text-anchor="middle" class="node">CAPI Core + Kubeadm</text>
+<path d="M1072 288V326" class="arrow"/>
+<rect x="810" y="335" width="525" height="78" rx="13" class="card"/><text x="1072" y="383" text-anchor="middle" class="node">OpenKubes BYOH controller</text>
+<path d="M1072 413V462H915V520" class="arrow"/><path d="M1072 462H1230V520" class="arrow"/>
+<rect x="780" y="530" width="270" height="120" rx="13" class="host"/><text x="915" y="570" text-anchor="middle" class="node">Existing Linux host</text><text x="915" y="598" text-anchor="middle" class="small">BYOH agent · Host 1</text>
+<rect x="1095" y="530" width="270" height="120" rx="13" class="host"/><text x="1230" y="570" text-anchor="middle" class="node">Existing Linux host</text><text x="1230" y="598" text-anchor="middle" class="small">BYOH agent · Host 2</text>
+<rect x="786" y="438" width="258" height="56" rx="9" class="muted"/><text x="915" y="460" text-anchor="middle" class="small">registered host /</text><text x="915" y="481" text-anchor="middle" class="small">infrastructure lifecycle</text>
+<rect x="1101" y="438" width="258" height="56" rx="9" class="muted"/><text x="1230" y="460" text-anchor="middle" class="small">registered host /</text><text x="1230" y="481" text-anchor="middle" class="small">infrastructure lifecycle</text>
+<path d="M915 650V790" class="arrow"/><path d="M1230 650V790" class="arrow"/>
+<rect x="786" y="704" width="258" height="56" rx="9" class="muted"/><text x="915" y="738" text-anchor="middle" class="small">machine bootstrap / join</text>
+<rect x="1101" y="704" width="258" height="56" rx="9" class="muted"/><text x="1230" y="738" text-anchor="middle" class="small">machine bootstrap / join</text>
+<rect x="800" y="800" width="545" height="65" rx="13" class="outR"/><text x="1072" y="841" text-anchor="middle" class="node white">BYOH workload cluster</text>
+<!-- footer -->
+<text x="720" y="940" text-anchor="middle" class="foot">The Docker daemon is the infrastructure host for CAPD container-machines.</text>
+<text x="720" y="967" text-anchor="middle" class="foot">It is not itself a Kubernetes worker Node.</text>
+</svg>
