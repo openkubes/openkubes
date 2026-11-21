@@ -4,6 +4,9 @@
 
 Use this guide to install the `ok` CLI, explore it locally and prepare a workload-cluster request.
 
+![How OpenKubes OK CLI works with the management cluster](ok-cli-v1.0.1-management-workflow.svg)
+
+
 ## What you need
 
 - macOS (Apple Silicon or Intel) or Linux AMD64.
