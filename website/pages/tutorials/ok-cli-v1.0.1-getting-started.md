@@ -10,12 +10,29 @@ Use this guide to install the `ok` CLI, explore it locally and prepare a workloa
 ## What you need
 
 - macOS (Apple Silicon or Intel) or Linux AMD64.
-- Git, Make, Python 3 with PyYAML, kubectl, clusterctl and Helm.
+- Git, Make, Python 3 **with PyYAML available to the same `python3` that `ok up` will use**, kubectl, clusterctl and Helm.
 - For creating a cluster: an already prepared Kubernetes management cluster that meets the **Same-Plane Talos/KubeVirt** requirements, plus an authorized management kubeconfig.
 
 The CLI does **not** install Kubernetes or prepare the management cluster, CAPI, KubeVirt, storage, networking, CDI, cert-manager or Talos Golden Images.
 
 The workstation bundle and workload architecture are different: the CLI runs natively on Apple Silicon, but v1.0.1 provisions **AMD64** workload VMs only.
+
+### Check Python before `ok up`
+
+```bash
+python3 -c 'import yaml; print("PyYAML", yaml.__version__)'
+```
+
+If this fails, install PyYAML in a dedicated environment (no system Python changes):
+
+```bash
+python3 -m venv "$HOME/.local/share/ok/python-env"
+"$HOME/.local/share/ok/python-env/bin/python" -m pip install 'PyYAML>=6,<7'
+export PATH="$HOME/.local/share/ok/python-env/bin:$PATH"
+python3 -c 'import yaml; print("PyYAML", yaml.__version__)'
+```
+
+Keep that environment active in the same terminal when running `ok up`; otherwise the CLI may find a different `python3`. This check is local and does not contact Kubernetes.
 
 ## 1. Download and verify
 
