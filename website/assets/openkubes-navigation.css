@@ -1,4 +1,4 @@
-.ok-global-nav{background:#101c30;color:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;position:relative;z-index:100;padding:.75rem 1.5rem;box-sizing:border-box;border-bottom:1px solid #34465f}
+.ok-global-nav{background:#101c30;color:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;position:sticky;top:0;z-index:1000;padding:.75rem 1.5rem;box-sizing:border-box;border-bottom:1px solid #34465f}
 .ok-global-nav *{box-sizing:border-box}
 .ok-global-nav__inner{max-width:1160px;margin:auto;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap}
 .ok-global-nav__brand{display:flex;align-items:center;gap:.6rem;color:#fff!important;font-weight:750;font-size:1.05rem;text-decoration:none!important}
@@ -53,4 +53,14 @@
 .ok-global-nav .ok-global-nav__bluesky:focus-visible svg path{
   color:#fff!important;
   fill:#fff!important;
+}
+
+
+/* Keep the shared navigation visible while scrolling.
+   The legacy homepage has no separate Material header, so it sticks at 0.
+   Material content pages retain their compact search/header bar above it. */
+.ok-global-nav--material{
+  position:sticky;
+  top:var(--md-header-height, 2.4rem);
+  z-index:1001;
 }

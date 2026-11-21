@@ -77,6 +77,11 @@ def main():
             raise SystemExit(f"Hero media reference lost: {asset}")
     if not (SITE / "assets" / "openkubes-navigation.css").is_file():
         raise SystemExit("Shared brand stylesheet missing")
+    nav_css = (SITE / "assets" / "openkubes-navigation.css").read_text(encoding="utf-8")
+    if ".ok-global-nav{" not in nav_css or "position:sticky;top:0;z-index:1000" not in nav_css:
+        raise SystemExit("Homepage global navigation is not configured as sticky")
+    if ".ok-global-nav--material" not in nav_css or "position:sticky" not in nav_css:
+        raise SystemExit("Material global navigation is not configured as sticky")
     for section in ("features", "architecture", "blog", "community", "docs"):
         output = SITE / section / "index.html"
         if output.is_file():
