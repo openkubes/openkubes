@@ -85,7 +85,7 @@ def main():
     tutorials_source = pages / "tutorials"
     tutorials_target = TARGET / "tutorials"
     tutorials_target.mkdir(parents=True, exist_ok=True)
-    for filename in ("index.md", "capd-local-dev-environment.md", "capd-local-network.svg"):
+    for filename in ("index.md", "capd-local-dev-environment.md", "capd-local-network.svg", "capi-controller-hierarchy.svg", "capd-vs-byoh-infrastructure.svg"):
         source_page = tutorials_source / filename
         if not source_page.is_file():
             raise SystemExit(f"Missing Tutorials page or asset: {source_page}")
