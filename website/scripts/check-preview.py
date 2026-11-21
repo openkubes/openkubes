@@ -153,6 +153,8 @@ def main():
         raise SystemExit("Tutorials landing page is missing the CAPD contributor tutorial")
     if "capd-local-network.svg" not in capd_html:
         raise SystemExit("CAPD tutorial is missing its network diagram reference")
+    if '<a href="/tutorials/">Tutorials</a>' not in capd_html:
+        raise SystemExit("Shared Material page navigation is missing Tutorials")
     # Ensure Developer Workspace pages are generated and linked in the new nav.
     for workspace_path in (
         "developer-workspace/index.html",
