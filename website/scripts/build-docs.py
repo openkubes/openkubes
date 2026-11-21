@@ -16,6 +16,14 @@ def main():
         shutil.rmtree(STAGING)
     (STAGING / "docs").mkdir(parents=True)
     (STAGING / "assets").mkdir()
+    tutorials = STAGING / "tutorials"
+    tutorials.mkdir(parents=True, exist_ok=True)
+    for filename in ("index.md", "capd-local-dev-environment.md", "capd-local-network.svg"):
+        source = ROOT / "website" / "pages" / "tutorials" / filename
+        if not source.is_file():
+            raise SystemExit(f"Missing tutorial source: {source}")
+        shutil.copy2(source, tutorials / filename)
+        print(f"Staged tutorials/{filename}")
     (STAGING / "docs" / "index.md").write_text(
         "# Developer Documentation\n\n"
         "Preview of source-owned docs from the OpenKubes repositories.\n\n"
