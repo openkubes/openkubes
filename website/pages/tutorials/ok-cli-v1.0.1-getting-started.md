@@ -29,8 +29,9 @@ If the import fails, use a dedicated environment (recommended on all platforms):
 
 ```bash
 python3 -m venv "$HOME/.local/share/ok/python-env"
-"$HOME/.local/share/ok/python-env/bin/python" -m pip install 'PyYAML>=6,<7'
+env -u PYTHONPATH "$HOME/.local/share/ok/python-env/bin/python" -m pip install 'PyYAML>=6,<7'
 export PATH="$HOME/.local/share/ok/python-env/bin:$PATH"
+env -i HOME="$HOME" PATH="$PATH" PYTHONNOUSERSITE=1 python3 -c 'import yaml; print("PyYAML", yaml.__version__)'
 ```
 
 On Ubuntu/Debian or WSL2, install `python3-venv` using your distribution package manager first if `venv` is unavailable. Reuse the same PATH when running `ok up`.
@@ -146,6 +147,8 @@ ok destroy my-cluster
 ```
 
 Review the management identity and deletion inventory before confirming. Verify that the workload resources are gone. Do not manually remove lifecycle evidence, finalizers or storage to bypass a refusal.
+
+**Verified on Hetzner (21 November 2026):** The official macOS ARM64 v1.0.1 bundle completed the full Same-Plane lifecycle: 1 Talos control-plane node and 1 worker node Ready (Kubernetes v1.34.1), Cilium and CoreDNS Running, a BusyBox pod Ready with successful in-cluster DNS lookup, and a five-stage `ok destroy` with independently observed teardown. The Golden Image and other clusters were preserved. This is one successful community-preview environment test, not a general production certification.
 
 ## Next
 
