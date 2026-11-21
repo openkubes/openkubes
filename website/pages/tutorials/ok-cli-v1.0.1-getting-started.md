@@ -35,16 +35,7 @@ export PATH="$HOME/.local/share/ok/python-env/bin:$PATH"
 
 On Ubuntu/Debian or WSL2, install `python3-venv` using your distribution package manager first if `venv` is unavailable. Reuse the same PATH when running `ok up`.
 
-**Optional: permanent Homebrew-Python setup (macOS Apple Silicon / Intel).** Homebrew's Python may reject `pip install --user` because of PEP 668. To keep PyYAML in your home directory without a venv:
-
-```bash
-python3 -m pip install --target "$HOME/.local/share/ok/python-packages" 'PyYAML>=6,<7'
-echo 'export PYTHONPATH="$HOME/.local/share/ok/python-packages${PYTHONPATH:+:$PYTHONPATH}"' >> ~/.zshrc
-source ~/.zshrc
-python3 -c 'import yaml; print("PyYAML", yaml.__version__)'
-```
-
-This persists in new zsh sessions but affects other Python programs and may need reinstalling after a Python upgrade. Do not use `--break-system-packages`. On Linux/WSL2, prefer the venv above or a distribution-provided `python3-yaml` package if it matches your active `python3`.
+**Important for v1.0.1:** `ok up` starts Python with a restricted environment that does **not** pass through `PYTHONPATH`. Installing PyYAML via `pip --target` plus `PYTHONPATH` can make `import yaml` work in your terminal but still fail the CLI preflight. Use the venv above, with its `bin` directory at the start of `PATH`, instead. On Linux/WSL2, a distro-provided `python3-yaml` package is also suitable when installed for the same interpreter selected by the CLI. Do not use `--break-system-packages`.
 
 ## 1. Download and verify
 
