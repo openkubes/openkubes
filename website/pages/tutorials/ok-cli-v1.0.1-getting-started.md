@@ -17,22 +17,34 @@ The CLI does **not** install Kubernetes or prepare the management cluster, CAPI,
 
 The workstation bundle and workload architecture are different: the CLI runs natively on Apple Silicon, but v1.0.1 provisions **AMD64** workload VMs only.
 
-### Check Python before `ok up`
+### Check PyYAML before `ok up`
+
+Run on **macOS, Linux or WSL2**:
 
 ```bash
 python3 -c 'import yaml; print("PyYAML", yaml.__version__)'
 ```
 
-If this fails, install PyYAML in a dedicated environment (no system Python changes):
+If the import fails, use a dedicated environment (recommended on all platforms):
 
 ```bash
 python3 -m venv "$HOME/.local/share/ok/python-env"
 "$HOME/.local/share/ok/python-env/bin/python" -m pip install 'PyYAML>=6,<7'
 export PATH="$HOME/.local/share/ok/python-env/bin:$PATH"
+```
+
+On Ubuntu/Debian or WSL2, install `python3-venv` using your distribution package manager first if `venv` is unavailable. Reuse the same PATH when running `ok up`.
+
+**Optional: permanent Homebrew-Python setup (macOS Apple Silicon / Intel).** Homebrew's Python may reject `pip install --user` because of PEP 668. To keep PyYAML in your home directory without a venv:
+
+```bash
+python3 -m pip install --target "$HOME/.local/share/ok/python-packages" 'PyYAML>=6,<7'
+echo 'export PYTHONPATH="$HOME/.local/share/ok/python-packages${PYTHONPATH:+:$PYTHONPATH}"' >> ~/.zshrc
+source ~/.zshrc
 python3 -c 'import yaml; print("PyYAML", yaml.__version__)'
 ```
 
-Keep that environment active in the same terminal when running `ok up`; otherwise the CLI may find a different `python3`. This check is local and does not contact Kubernetes.
+This persists in new zsh sessions but affects other Python programs and may need reinstalling after a Python upgrade. Do not use `--break-system-packages`. On Linux/WSL2, prefer the venv above or a distribution-provided `python3-yaml` package if it matches your active `python3`.
 
 ## 1. Download and verify
 
