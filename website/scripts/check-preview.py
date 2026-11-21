@@ -69,7 +69,7 @@ def main():
             raise SystemExit(f"Missing Console gallery asset: {name}")
     if "Open Code. Public Repositories. Transparent Decisions." not in html:
         raise SystemExit("Console Open Source panel is missing")
-    for href in ("/", "/features/", "/architecture/", "/blog/", "/docs/", "/community/"):
+    for href in ("/", "/features/", "/architecture/", "/blog/", "/tutorials/", "/docs/", "/community/"):
         if f'href="{href}"' not in html:
             raise SystemExit(f"Navigation link missing: {href}")
     for asset in ("media/openkubes-hero-light.webm", "media/openkubes-hero-light.mp4", "media/openkubes-hero-light-poster.webp"):
@@ -139,6 +139,20 @@ def main():
         raise SystemExit("Missing OK Console generated page")
     if "Local Kind installation" not in console_html.read_text(encoding="utf-8"):
         raise SystemExit("OK Console documentation incomplete")
+    # Ensure the contributor Tutorials section and CAPD diagram are generated.
+    for tutorial_path in (
+        "tutorials/index.html",
+        "tutorials/capd-local-dev-environment/index.html",
+        "tutorials/capd-local-network.svg",
+    ):
+        if not (SITE / tutorial_path).is_file():
+            raise SystemExit(f"Missing Tutorials output: {tutorial_path}")
+    tutorials_html = (SITE / "tutorials" / "index.html").read_text(encoding="utf-8")
+    capd_html = (SITE / "tutorials" / "capd-local-dev-environment" / "index.html").read_text(encoding="utf-8")
+    if "Build a Local OpenKubes BYOH Development Environment with CAPD" not in tutorials_html:
+        raise SystemExit("Tutorials landing page is missing the CAPD contributor tutorial")
+    if "capd-local-network.svg" not in capd_html:
+        raise SystemExit("CAPD tutorial is missing its network diagram reference")
     # Ensure Developer Workspace pages are generated and linked in the new nav.
     for workspace_path in (
         "developer-workspace/index.html",
