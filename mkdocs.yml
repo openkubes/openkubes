@@ -55,6 +55,9 @@ nav:
       - Installation & Verification: observability/installation.md
   - OK Console:
       - Local Kind Installation: console/index.md
+  - Tutorials:
+      - Overview: tutorials/index.md
+      - Local CAPD Developer Environment: tutorials/capd-local-dev-environment.md
   - Developer Workspace:
       - Overview: developer-workspace/index.md
       - Your First AI Coding Workspace: developer-workspace/tutorial.md

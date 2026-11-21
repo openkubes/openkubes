@@ -81,6 +81,15 @@ def main():
     console_target = TARGET / "console"
     console_target.mkdir(parents=True, exist_ok=True)
     shutil.copy2(console_source, console_target / "index.md")
+    # Stage the source-owned Tutorials section and its local diagram assets.
+    tutorials_source = pages / "tutorials"
+    tutorials_target = TARGET / "tutorials"
+    tutorials_target.mkdir(parents=True, exist_ok=True)
+    for filename in ("index.md", "capd-local-dev-environment.md", "capd-local-network.svg"):
+        source_page = tutorials_source / filename
+        if not source_page.is_file():
+            raise SystemExit(f"Missing Tutorials page or asset: {source_page}")
+        shutil.copy2(source_page, tutorials_target / filename)
     # Stage the source-owned Developer Workspace capability pages.
     workspace_source = pages / "developer-workspace"
     workspace_target = TARGET / "developer-workspace"
