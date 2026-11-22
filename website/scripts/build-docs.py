@@ -50,9 +50,7 @@ def main():
     capi_source = workspace / "ok-cluster" / "docs" / "architecture" / "capi"
     capi_target = STAGING / "architecture" / "capi"
     required = (
-        "README.md",
         "blueprint.md",
-        "decisions/README.md",
         "decisions/ADR-CAPI-001-management-topologies.md",
         "decisions/ADR-CAPI-002-git-source-of-truth.md",
         "decisions/ADR-CAPI-003-ownership-fencing.md",
@@ -74,12 +72,16 @@ def main():
         dst = capi_target / relative
         dst.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(src, dst)
-    # The imported README is the section landing page for MkDocs.
-    (capi_target / "index.md").write_bytes((capi_target / "README.md").read_bytes())
-    (capi_target / "decisions" / "index.md").write_bytes(
-        (capi_target / "decisions" / "README.md").read_bytes()
-    )
-    print(f"Staged {len(required)} pinned CAPI architecture source files.")
+    # Copy source README files only as MkDocs index pages: no duplicate URLs.
+    for section, source in (
+        (capi_target, capi_source / "README.md"),
+        (capi_target / "decisions", capi_source / "decisions" / "README.md"),
+    ):
+        if not source.is_file() or source.is_symlink():
+            raise SystemExit(f"Missing safe CAPI section index: {source}")
+        section.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source, section / "index.md")
+    print(f"Staged {len(required) + 2} pinned CAPI architecture source files.")
     print(f"Ready: {STAGING}")
 
 if __name__ == "__main__":
