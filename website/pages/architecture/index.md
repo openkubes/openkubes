@@ -18,6 +18,12 @@ Desired state, transition decisions and runtime reconciliation are separate resp
 
 Platform acceptance relies on inspectable evidence and clearly defined outcomes rather than informal success signals.
 
+## Cluster lifecycle and CAPI architecture
+
+The [OpenKubes CAPI Architecture Blueprint](capi/blueprint.md) describes the independent self-managed and centralized management topologies, BYOH shadow management, explicit ownership and fencing, Git-first configuration, planned Blue/Green management handover, and cold disaster recovery.
+
+The [seven standalone CAPI architecture decisions](capi/decisions/index.md) are maintained in the `ok-cluster` repository and imported here from a pinned revision. They are **accepted architecture decisions**, not blanket claims of completed implementation or production-grade E2E validation.
+
 ## Further reading
 
 - [Agentic Operations Reference Architecture](/agentic-operations-reference-architecture/)
