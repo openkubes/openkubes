@@ -9,7 +9,7 @@
 
 OpenKubes provisions and operates Kubernetes through the `ok` CLI and infrastructure/lifecycle integrations including CAPI/BYOH. Distinct requests are emerging for (1) full Kubernetes clusters on VM/bare metal, (2) full Kubernetes clusters on KubeVirt VMs, and (3) virtual Kubernetes control planes hosted inside an existing Kubernetes cluster. These must not share unqualified capability or isolation claims.
 
-CAPI/BYOH remains independent of KubeVirt and vCluster. Cilium is the standard CNI profile for CAPI/BYOH-provisioned full clusters; KubeVirt and Longhorn are separate optional capabilities. The first vCluster spike targets a future HA Kubernetes host on Scaleway Stack B (three control-plane, two worker VMs), but no live infrastructure changes are authorized by this ADR.
+CAPI/BYOH remains independent of KubeVirt and vCluster. Cilium is the standard CNI profile for CAPI/BYOH-provisioned full clusters; KubeVirt and Longhorn are separate optional capabilities. The first vCluster spike targets an eligible HA Kubernetes host in LAB Stack B / C. The precise infrastructure provider, topology and placement are environment-specific test inputs, not part of this architectural contract. No live infrastructure changes are authorized by this ADR.
 
 OpenKubes owns contracts rather than reimplementing platform components (ADR-001). ADR-013 separates workload-cluster registration from provisioning. ADR-030 distinguishes contract/policy/executor/controller authority; ADR-034 *proposes* semantics for `ok validate/plan/up/status/down` and requested revision transitions. Proposed ADRs must not be presented as accepted stable CLI functionality. Current CLI schema and command behavior in `openkubes/ok-cluster` must be explicitly mapped before any implementation.
 
@@ -108,9 +108,9 @@ Capture actor, installation method and version, host and virtual identity, reque
 
 Target a version-pinned, verifiable upstream OSS shared-node profile for the first spike. Before installation, independently verify exact upstream release, chart/source hashes, license, commercial/Platform connectivity requirements, security features, feature availability and air-gap support for the selected distribution. Do not assume private nodes, SSO, custom-resource sync, enterprise audit or private network isolation are available in every edition. Record a feature/edition matrix as evidence. No bundled or redistributed proprietary component without an explicit review.
 
-## 10. Scaleway Stack B proof-of-concept plan (OK-235)
+## 10. LAB Stack B / C proof-of-concept plan (OK-235)
 
-Prerequisite: Stack B HA Kubernetes cluster available (planned 3 CP + 2 worker VMs), tested connectivity, documented capacity and approved isolated namespaces. CAPI/BYOH provisioning and management handover remain independent tasks. No modifications to Stack A/B during this design phase.
+Prerequisite: an eligible HA Kubernetes host cluster in LAB Stack B / C, tested connectivity, documented topology and capacity, and approved isolated namespaces. The exact host platform and node count are supplied by the test environment; the vCluster integration contract MUST remain infrastructure-provider-neutral. CAPI/BYOH provisioning and management handover remain independent tasks. No modifications to LAB Stack B / C during this design phase.
 
 **Execution design after a separate approval:**
 
@@ -149,7 +149,7 @@ No benchmark, security isolation guarantee, SLA or E2E pass is asserted by this 
 ## 12. Roadmap and decision status
 
 - **Phase 1 — ADR + contract inventory:** this Proposed ADR, OK-235 and read-only review of repository/CLI.
-- **Phase 2 — vCluster PoC:** only after Stack B HA readiness and explicit change authorization; capture VC-01…VC-12.
+- **Phase 2 — vCluster PoC:** only after LAB Stack B / C host-cluster readiness and explicit change authorization; capture VC-01…VC-12.
 - **Phase 3 — `ok` integration:** separate implementation proposal after A/B/C decision, compatibility tests and security gates.
 - **Phase 4 — optional VNC evaluation:** full Kubernetes on KubeVirt VMs as a separate provider track, referencing OK-141 and OK-232; no dependency forced into BYOH.
 
