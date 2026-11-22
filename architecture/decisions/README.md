@@ -65,6 +65,7 @@ Cluster API (CAPI) integrations, management cluster design, and cluster registra
 | **031** | [OK Mgmt Disaster Recovery](ADR-Platform-031-ok-mgmt-disaster-recovery.md) | Mgmt cluster backup & DR strategy |
 | **033** | [OpenKubes OKP Single](ADR-Platform-033-openkubes-okp-single.md) | Single-node / single-cluster topology profile |
 | **048** | [Infrastructure Lifecycle Strategies](ADR-Platform-048-infrastructure-lifecycle-strategies.md) | **Proposed** — InPlaceOnly and RollingReplacement strategy contracts |
+| **050** | [Virtual Cluster Models and Provider-Neutral Lifecycle Boundaries](ADR-Platform-050-virtual-cluster-models.md) | **Proposed** — standard Kubernetes, vCluster, and VNC taxonomy; adapter/authority boundaries (OK-235) |
 
 ### 💾 Storage, Networking & Services
 Plattform infrastructure capabilities including storage, ingress, and artifact hosting.
