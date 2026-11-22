@@ -11,7 +11,7 @@ mkdir -p .ok196-sources
 git clone https://github.com/openkubes/ok-local.git .ok196-sources/ok-local
 git -C .ok196-sources/ok-local checkout --detach 60397cdb2630b0cd9cfbcb5d9a29fe2e38ce323e
 git clone https://github.com/openkubes/ok-cluster.git .ok196-sources/ok-cluster
-git -C .ok196-sources/ok-cluster checkout --detach a341f4ad4eff73e3cf7a69a38d1de8e2455e73a6
+git -C .ok196-sources/ok-cluster checkout --detach e73de4f4c4e7b421785ded992881a6074005c6bd
 
 python website/scripts/build-docs.py
 python website/scripts/stage-legacy.py

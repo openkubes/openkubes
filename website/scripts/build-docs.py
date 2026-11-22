@@ -45,6 +45,44 @@ def main():
                 raise SystemExit(f"Missing source documentation: {src}")
             shutil.copy2(src, target / Path(relative).name)
             print(f"Staged {name}/{relative}")
+    # Import the complete, pinned CAPI architecture tree as a read-only projection.
+    # The ok-cluster repository remains the sole authoritative source.
+    capi_source = workspace / "ok-cluster" / "docs" / "architecture" / "capi"
+    capi_target = STAGING / "architecture" / "capi"
+    required = (
+        "blueprint.md",
+        "decisions/ADR-CAPI-001-management-topologies.md",
+        "decisions/ADR-CAPI-002-git-source-of-truth.md",
+        "decisions/ADR-CAPI-003-ownership-fencing.md",
+        "decisions/ADR-CAPI-004-disposable-bootstrap.md",
+        "decisions/ADR-CAPI-005-git-velero-recovery.md",
+        "decisions/ADR-CAPI-006-blue-green-handover.md",
+        "decisions/ADR-CAPI-007-disaster-recovery.md",
+        "diagrams/management-topologies.svg",
+        "diagrams/bootstrap-pivot.svg",
+        "diagrams/blue-green-handover.svg",
+        "diagrams/disaster-recovery.svg",
+    )
+    for relative in required:
+        src = capi_source / relative
+        if not src.is_file():
+            raise SystemExit(f"Missing pinned CAPI architecture source: {src}")
+        if src.is_symlink():
+            raise SystemExit(f"Refusing symlink in CAPI source: {src}")
+        dst = capi_target / relative
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(src, dst)
+    # Copy source README files only as MkDocs index pages: no duplicate URLs.
+    for section, source in (
+        (capi_target, capi_source / "README.md"),
+        (capi_target / "decisions", capi_source / "decisions" / "README.md"),
+    ):
+        if not source.is_file() or source.is_symlink():
+            raise SystemExit(f"Missing safe CAPI section index: {source}")
+        section.mkdir(parents=True, exist_ok=True)
+        index_text = source.read_text(encoding="utf-8").replace("../README.md", "../index.md")
+        (section / "index.md").write_text(index_text, encoding="utf-8")
+    print(f"Staged {len(required) + 2} pinned CAPI architecture source files.")
     print(f"Ready: {STAGING}")
 
 if __name__ == "__main__":

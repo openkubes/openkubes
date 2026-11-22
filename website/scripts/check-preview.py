@@ -165,6 +165,32 @@ def main():
             raise SystemExit(f"CAPD tutorial is missing diagram reference: {diagram}")
     if '<a href="/tutorials/">Tutorials</a>' not in capd_html:
         raise SystemExit("Shared Material page navigation is missing Tutorials")
+    # Check imported, pinned CAPI architecture pages, ADRs and SVG assets.
+    capi = SITE / "architecture" / "capi"
+    for required in ("index.html", "blueprint/index.html", "decisions/index.html"):
+        if not (capi / required).is_file():
+            raise SystemExit(f"Missing CAPI architecture page: {required}")
+    expected_adrs = (
+        "ADR-CAPI-001-management-topologies",
+        "ADR-CAPI-002-git-source-of-truth",
+        "ADR-CAPI-003-ownership-fencing",
+        "ADR-CAPI-004-disposable-bootstrap",
+        "ADR-CAPI-005-git-velero-recovery",
+        "ADR-CAPI-006-blue-green-handover",
+        "ADR-CAPI-007-disaster-recovery",
+    )
+    for slug in expected_adrs:
+        if not (capi / "decisions" / slug / "index.html").is_file():
+            raise SystemExit(f"Missing imported CAPI ADR: {slug}")
+    article = (capi / "blueprint" / "index.html").read_text(encoding="utf-8")
+    for name in ("management-topologies.svg", "bootstrap-pivot.svg",
+                 "blue-green-handover.svg", "disaster-recovery.svg"):
+        if not (capi / "diagrams" / name).is_file() or name not in article:
+            raise SystemExit(f"CAPI architecture diagram missing or unlinked: {name}")
+    for phrase in ("Management is replaceable", "Workload clusters remain",
+                   "production-readiness"):
+        if phrase not in article:
+            raise SystemExit(f"CAPI blueprint status/principle missing: {phrase}")
     # Ensure Developer Workspace pages are generated and linked in the new nav.
     for workspace_path in (
         "developer-workspace/index.html",
