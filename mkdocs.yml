@@ -37,7 +37,18 @@ nav:
   - Open Universe:
       - Overview: open-universe/index.md
       - Full Family & Technology Guide: open-universe/family.md
-  - Architecture: architecture/index.md
+  - Architecture:
+      - Overview: architecture/index.md
+      - CAPI Architecture Blueprint: architecture/capi/blueprint.md
+      - CAPI Architecture Decisions:
+          - Overview: architecture/capi/decisions/index.md
+          - ADR-CAPI-001 Management Topologies: architecture/capi/decisions/ADR-CAPI-001-management-topologies.md
+          - ADR-CAPI-002 Git Source of Truth: architecture/capi/decisions/ADR-CAPI-002-git-source-of-truth.md
+          - ADR-CAPI-003 Ownership and Fencing: architecture/capi/decisions/ADR-CAPI-003-ownership-fencing.md
+          - ADR-CAPI-004 Disposable Bootstrap: architecture/capi/decisions/ADR-CAPI-004-disposable-bootstrap.md
+          - ADR-CAPI-005 Git and Velero Recovery: architecture/capi/decisions/ADR-CAPI-005-git-velero-recovery.md
+          - ADR-CAPI-006 Blue/Green Handover: architecture/capi/decisions/ADR-CAPI-006-blue-green-handover.md
+          - ADR-CAPI-007 Disaster Recovery: architecture/capi/decisions/ADR-CAPI-007-disaster-recovery.md
   - OK AI:
       - Overview: ai/index.md
       - AI Roadmap: ai/ai-roadmap.md
