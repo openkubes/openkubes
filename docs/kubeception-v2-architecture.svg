@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 940" role="img" aria-labelledby="title desc">
+<title id="title">Kubeception V2: Four Kubernetes architectural models</title>
+<desc id="desc">Comparative architecture of classic full Kubernetes, shared-node vCluster, KubeVirt-based virtual nested cluster, and hosted control plane. Each model distinguishes control-plane, worker and host ownership.</desc>
+<rect x="0" y="0" width="1600" height="940" rx="0" fill="#F7FAFF" stroke="none" stroke-width="1"/>
+<rect x="0" y="0" width="1600" height="12" rx="0" fill="#126BC4" stroke="none" stroke-width="1"/>
+<text x="64" y="69" font-size="22" fill="#1767BB" font-weight="700" text-anchor="start" font-family="Inter, Arial, sans-serif">KUBECEPTION V2</text>
+<text x="64" y="120" font-size="39" fill="#10213B" font-weight="750" text-anchor="start" font-family="Inter, Arial, sans-serif">One Platform. Multiple Kubernetes Models.</text>
+<text x="64" y="158" font-size="20" fill="#61728B" font-weight="400" text-anchor="start" font-family="Inter, Arial, sans-serif">What is isolated, who owns the nodes, and where does Kubernetes run?</text>
+<rect x="64" y="188" width="1472" height="74" rx="15" fill="#102846" stroke="none" stroke-width="1"/>
+<text x="104" y="220" font-size="23" fill="#FFFFFF" font-weight="700" text-anchor="start" font-family="Inter, Arial, sans-serif">OpenKubes  /  ok CLI</text>
+<text x="104" y="246" font-size="17" fill="#C9DBEF" font-weight="400" text-anchor="start" font-family="Inter, Arial, sans-serif">Common intent, identity, lifecycle boundaries, policy and evidence — not identical capabilities</text>
+<rect x="64" y="286" width="338" height="548" rx="18" fill="#FFFFFF" stroke="#D9E3F0" stroke-width="2"/>
+<rect x="64" y="286" width="338" height="8" rx="4" fill="#1874C8" stroke="none" stroke-width="1"/>
+<text x="86" y="326" font-size="15" fill="#1874C8" font-weight="700" text-anchor="start" font-family="Inter, Arial, sans-serif">01</text>
+<text x="86" y="363" font-size="21" fill="#142B46" font-weight="750" text-anchor="start" font-family="Inter, Arial, sans-serif">CLASSIC KUBERNETES</text>
+<text x="86" y="388" font-size="16" fill="#61728B" font-weight="400" text-anchor="start" font-family="Inter, Arial, sans-serif">CAPI / BYOH</text>
+<rect x="82" y="415" width="302" height="76" rx="10" fill="#E8F2FE" stroke="none" stroke-width="1"/>
+<text x="98" y="446" font-size="17" fill="#165FA0" font-weight="700" text-anchor="start" font-family="Inter, Arial, sans-serif">OWN CONTROL PLANE</text>
+<text x="98" y="472" font-size="15" fill="#365573" font-weight="400" text-anchor="start" font-family="Inter, Arial, sans-serif">API / etcd / controllers</text>
+<line x1="233" y1="493" x2="233" y2="516" stroke="#9AABC4" stroke-width="2"/>
+<rect x="82" y="518" width="302" height="92" rx="10" fill="#EAF4FF" stroke="none" stroke-width="1"/>
+<text x="98" y="549" font-size="17" fill="#165FA0" font-weight="700" text-anchor="start" font-family="Inter, Arial, sans-serif">OWN WORKER NODES</text>
+<text x="98" y="575" font-size="15" fill="#365573" font-weight="400" text-anchor="start" font-family="Inter, Arial, sans-serif">kubelet · CNI · workloads</text>
+<text x="98" y="597" font-size="14" fill="#365573" font-weight="400" text-anchor="start" font-family="Inter, Arial, sans-serif">Node lifecycle controlled</text>
+<line x1="233" y1="612" x2="233" y2="636" stroke="#9AABC4" stroke-width="2"/>
+<rect x="82" y="638" width="302" height="88" rx="10" fill="#EDF1F7" stroke="none" stroke-width="1"/>
+<text x="98" y="672" font-size="17" fill="#2C4260" font-weight="700" text-anchor="start" font-family="Inter, Arial, sans-serif">VMs OR BARE METAL</text>
+<text x="98" y="698" font-size="15" fill="#60748D" font-weight="400" text-anchor="start" font-family="Inter, Arial, sans-serif">Infrastructure provider</text>
+<rect x="82" y="749" width="302" height="60" rx="9" fill="#F7FAFE" stroke="#E2EAF3" stroke-width="1"/>
+<text x="233" y="785" font-size="15" fill="#38506E" font-weight="600" text-anchor="middle" font-family="Inter, Arial, sans-serif">Dedicated cluster resources</text>
+<rect x="442" y="286" width="338" height="548" rx="18" fill="#FFFFFF" stroke="#D9E3F0" stroke-width="2"/>
+<rect x="442" y="286" width="338" height="8" rx="4" fill="#168E85" stroke="none" stroke-width="1"/>
+<text x="464" y="326" font-size="15" fill="#168E85" font-weight="700" text-anchor="start" font-family="Inter, Arial, sans-serif">02</text>
+<text x="464" y="363" font-size="21" fill="#142B46" font-weight="750" text-anchor="start" font-family="Inter, Arial, sans-serif">vCLUSTER</text>
+<text x="464" y="388" font-size="16" fill="#61728B" font-weight="400" text-anchor="start" font-family="Inter, Arial, sans-serif">Virtual control plane</text>
+<rect x="460" y="415" width="302" height="84" rx="10" fill="#DFF6F2" stroke="none" stroke-width="1"/>
+<text x="476" y="446" font-size="16" fill="#116C64" font-weight="700" text-anchor="start" font-family="Inter, Arial, sans-serif">VIRTUAL CONTROL PLANE</text>
+<text x="476" y="472" font-size="15" fill="#365573" font-weight="400" text-anchor="start" font-family="Inter, Arial, sans-serif">Own API / RBAC / namespaces</text>
+<line x1="611" y1="501" x2="611" y2="521" stroke="#9AABC4" stroke-width="2"/>
+<rect x="460" y="524" width="302" height="86" rx="10" fill="#E8F2FE" stroke="none" stroke-width="1"/>
+<text x="476" y="555" font-size="17" fill="#165FA0" font-weight="700" text-anchor="start" font-family="Inter, Arial, sans-serif">SYNCED WORKLOADS</text>
+<text x="476" y="581" font-size="15" fill="#365573" font-weight="400" text-anchor="start" font-family="Inter, Arial, sans-serif">Run as host-cluster Pods</text>
+<line x1="611" y1="612" x2="611" y2="636" stroke="#9AABC4" stroke-width="2"/>
+<rect x="460" y="638" width="302" height="88" rx="10" fill="#EDF1F7" stroke="none" stroke-width="1"/>
+<text x="476" y="672" font-size="17" fill="#2C4260" font-weight="700" text-anchor="start" font-family="Inter, Arial, sans-serif">SHARED HOST NODES</text>
+<text x="476" y="698" font-size="15" fill="#60748D" font-weight="400" text-anchor="start" font-family="Inter, Arial, sans-serif">Host owns CNI + kubelets</text>
+<rect x="460" y="749" width="302" height="60" rx="9" fill="#F7FAFE" stroke="#E2EAF3" stroke-width="1"/>
+<text x="611" y="785" font-size="15" fill="#38506E" font-weight="600" text-anchor="middle" font-family="Inter, Arial, sans-serif">Virtual API ≠ private kernel</text>
+<rect x="820" y="286" width="338" height="548" rx="18" fill="#FFFFFF" stroke="#D9E3F0" stroke-width="2"/>
+<rect x="820" y="286" width="338" height="8" rx="4" fill="#8261BC" stroke="none" stroke-width="1"/>
+<text x="842" y="326" font-size="15" fill="#8261BC" font-weight="700" text-anchor="start" font-family="Inter, Arial, sans-serif">03</text>
+<text x="842" y="363" font-size="21" fill="#142B46" font-weight="750" text-anchor="start" font-family="Inter, Arial, sans-serif">VNC / KUBEVIRT</text>
+<text x="842" y="388" font-size="16" fill="#61728B" font-weight="400" text-anchor="start" font-family="Inter, Arial, sans-serif">Full guest Kubernetes</text>
+<rect x="838" y="415" width="302" height="76" rx="10" fill="#F0EAFE" stroke="none" stroke-width="1"/>
+<text x="854" y="446" font-size="16" fill="#62469B" font-weight="700" text-anchor="start" font-family="Inter, Arial, sans-serif">GUEST CONTROL PLANE</text>
+<text x="854" y="472" font-size="15" fill="#365573" font-weight="400" text-anchor="start" font-family="Inter, Arial, sans-serif">Own API / etcd / controllers</text>
+<line x1="989" y1="493" x2="989" y2="516" stroke="#9AABC4" stroke-width="2"/>
+<rect x="838" y="518" width="302" height="92" rx="10" fill="#F0EAFE" stroke="none" stroke-width="1"/>
+<text x="854" y="549" font-size="17" fill="#62469B" font-weight="700" text-anchor="start" font-family="Inter, Arial, sans-serif">GUEST WORKER VMs</text>
+<text x="854" y="575" font-size="15" fill="#365573" font-weight="400" text-anchor="start" font-family="Inter, Arial, sans-serif">Guest OS · CNI · kubelet</text>
+<text x="854" y="597" font-size="14" fill="#365573" font-weight="400" text-anchor="start" font-family="Inter, Arial, sans-serif">Independent guest nodes</text>
+<line x1="989" y1="612" x2="989" y2="636" stroke="#9AABC4" stroke-width="2"/>
+<rect x="838" y="638" width="302" height="88" rx="10" fill="#EDF1F7" stroke="none" stroke-width="1"/>
+<text x="854" y="672" font-size="17" fill="#2C4260" font-weight="700" text-anchor="start" font-family="Inter, Arial, sans-serif">KUBEVIRT HOST</text>
+<text x="854" y="698" font-size="15" fill="#60748D" font-weight="400" text-anchor="start" font-family="Inter, Arial, sans-serif">Native or nested KVM</text>
+<rect x="838" y="749" width="302" height="60" rx="9" fill="#F7FAFE" stroke="#E2EAF3" stroke-width="1"/>
+<text x="989" y="785" font-size="15" fill="#38506E" font-weight="600" text-anchor="middle" font-family="Inter, Arial, sans-serif">Full cluster, host dependent</text>
+<rect x="1198" y="286" width="338" height="548" rx="18" fill="#FFFFFF" stroke="#D9E3F0" stroke-width="2"/>
+<rect x="1198" y="286" width="338" height="8" rx="4" fill="#C07730" stroke="none" stroke-width="1"/>
+<text x="1220" y="326" font-size="15" fill="#C07730" font-weight="700" text-anchor="start" font-family="Inter, Arial, sans-serif">04</text>
+<text x="1220" y="363" font-size="21" fill="#142B46" font-weight="750" text-anchor="start" font-family="Inter, Arial, sans-serif">HOSTED CONTROL PLANE</text>
+<text x="1220" y="388" font-size="16" fill="#61728B" font-weight="400" text-anchor="start" font-family="Inter, Arial, sans-serif">Separate CP hosting</text>
+<rect x="1216" y="415" width="302" height="76" rx="10" fill="#FFF0DB" stroke="none" stroke-width="1"/>
+<text x="1232" y="446" font-size="16" fill="#A65D1D" font-weight="700" text-anchor="start" font-family="Inter, Arial, sans-serif">HOSTED CONTROL PLANE</text>
+<text x="1232" y="472" font-size="15" fill="#365573" font-weight="400" text-anchor="start" font-family="Inter, Arial, sans-serif">CP runs in hosting domain</text>
+<line x1="1367" y1="493" x2="1367" y2="516" stroke="#9AABC4" stroke-width="2"/>
+<rect x="1216" y="518" width="302" height="92" rx="10" fill="#EAF4FF" stroke="none" stroke-width="1"/>
+<text x="1232" y="549" font-size="17" fill="#165FA0" font-weight="700" text-anchor="start" font-family="Inter, Arial, sans-serif">SEPARATE WORKERS</text>
+<text x="1232" y="575" font-size="15" fill="#365573" font-weight="400" text-anchor="start" font-family="Inter, Arial, sans-serif">Join hosted API remotely</text>
+<text x="1232" y="597" font-size="14" fill="#365573" font-weight="400" text-anchor="start" font-family="Inter, Arial, sans-serif">Own lifecycle boundaries</text>
+<line x1="1367" y1="612" x2="1367" y2="636" stroke="#9AABC4" stroke-width="2"/>
+<rect x="1216" y="638" width="302" height="88" rx="10" fill="#EDF1F7" stroke="none" stroke-width="1"/>
+<text x="1232" y="672" font-size="16" fill="#2C4260" font-weight="700" text-anchor="start" font-family="Inter, Arial, sans-serif">TWO HOSTING DOMAINS</text>
+<text x="1232" y="698" font-size="15" fill="#60748D" font-weight="400" text-anchor="start" font-family="Inter, Arial, sans-serif">CP + worker infrastructure</text>
+<rect x="1216" y="749" width="302" height="60" rx="9" fill="#F7FAFE" stroke="#E2EAF3" stroke-width="1"/>
+<text x="1367" y="785" font-size="15" fill="#38506E" font-weight="600" text-anchor="middle" font-family="Inter, Arial, sans-serif">Design model; not deployed</text>
+<line x1="64" y1="856" x2="1536" y2="856" stroke="#CFDBEA" stroke-width="2"/>
+<text x="64" y="886" font-size="15" fill="#1767BB" font-weight="700" text-anchor="start" font-family="Inter, Arial, sans-serif">OPENKUBES ARCHITECTURE</text>
+<text x="64" y="911" font-size="16" fill="#506580" font-weight="400" text-anchor="start" font-family="Inter, Arial, sans-serif">Classic: integration / E2E validation    •    vCluster: proposed (ADR-050 / OK-235)    •    VNC: evaluation    •    HCP: planned</text>
+<text x="1536" y="887" font-size="16" fill="#1767BB" font-weight="700" text-anchor="end" font-family="Inter, Arial, sans-serif">openkubes.org</text>
+</svg>
