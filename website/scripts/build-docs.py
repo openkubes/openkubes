@@ -45,6 +45,41 @@ def main():
                 raise SystemExit(f"Missing source documentation: {src}")
             shutil.copy2(src, target / Path(relative).name)
             print(f"Staged {name}/{relative}")
+    # Import the complete, pinned CAPI architecture tree as a read-only projection.
+    # The ok-cluster repository remains the sole authoritative source.
+    capi_source = workspace / "ok-cluster" / "docs" / "architecture" / "capi"
+    capi_target = STAGING / "architecture" / "capi"
+    required = (
+        "README.md",
+        "blueprint.md",
+        "decisions/README.md",
+        "decisions/ADR-CAPI-001-management-topologies.md",
+        "decisions/ADR-CAPI-002-git-source-of-truth.md",
+        "decisions/ADR-CAPI-003-ownership-fencing.md",
+        "decisions/ADR-CAPI-004-disposable-bootstrap.md",
+        "decisions/ADR-CAPI-005-git-velero-recovery.md",
+        "decisions/ADR-CAPI-006-blue-green-handover.md",
+        "decisions/ADR-CAPI-007-disaster-recovery.md",
+        "diagrams/management-topologies.svg",
+        "diagrams/bootstrap-pivot.svg",
+        "diagrams/blue-green-handover.svg",
+        "diagrams/disaster-recovery.svg",
+    )
+    for relative in required:
+        src = capi_source / relative
+        if not src.is_file():
+            raise SystemExit(f"Missing pinned CAPI architecture source: {src}")
+        if src.is_symlink():
+            raise SystemExit(f"Refusing symlink in CAPI source: {src}")
+        dst = capi_target / relative
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(src, dst)
+    # The imported README is the section landing page for MkDocs.
+    (capi_target / "index.md").write_bytes((capi_target / "README.md").read_bytes())
+    (capi_target / "decisions" / "index.md").write_bytes(
+        (capi_target / "decisions" / "README.md").read_bytes()
+    )
+    print(f"Staged {len(required)} pinned CAPI architecture source files.")
     print(f"Ready: {STAGING}")
 
 if __name__ == "__main__":
