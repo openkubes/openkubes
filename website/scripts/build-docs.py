@@ -80,7 +80,8 @@ def main():
         if not source.is_file() or source.is_symlink():
             raise SystemExit(f"Missing safe CAPI section index: {source}")
         section.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(source, section / "index.md")
+        index_text = source.read_text(encoding="utf-8").replace("../README.md", "../index.md")
+        (section / "index.md").write_text(index_text, encoding="utf-8")
     print(f"Staged {len(required) + 2} pinned CAPI architecture source files.")
     print(f"Ready: {STAGING}")
 
