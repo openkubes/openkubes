@@ -21,7 +21,7 @@ A UI `requireApproval` switch, prompt, sandbox, MCP/CMCP adapter or model output
 
 [![OpenKubes policy-bounded authorization architecture — proposed responsibilities and future HOTL research](policy-bounded-autonomy.svg)](policy-bounded-autonomy.svg)
 
-*Conceptual architecture, not a deployed system diagram. Solid HITL flow represents the current proposed ADR-035 design; the dashed standing-mandate branch remains research only. Select the diagram for its full-size native SVG.*
+*Conceptual architecture, not a deployed system diagram. Solid HITL flow represents the current proposed ADR-035 design; the dashed standing-mandate branch remains research only. Select the diagram to enlarge it in an overlay without leaving this page (on GitHub, the original SVG opens normally).*
 
 ## The current proposed execution contract
 
