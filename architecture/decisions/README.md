@@ -83,6 +83,7 @@ Governance, policy management, secret handling, and continuous delivery.
 
 | ADR | Title | Scope |
 |:---|:---|:---|
+| **000** | [Security First: Lifecycle Security by Contract](ADR-Platform-000-security-first.md) | **Accepted (proposed in this PR)** — foundational lifecycle security principles; no production certification |
 | **011** | [GitOps](ADR-Platform-011-gitops.md) | GitOps-driven platform reconciliation |
 | **017** | [Constraint Envelopes](ADR-Platform-017-constraint-envelopes.md) | Policy & constraint enforcement |
 | **025** | [Datacenter Secret Sync Profile](ADR-Platform-025-datacenter-secret-sync-profile.md) | Multi-datacenter secret synchronization |
