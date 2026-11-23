@@ -21,7 +21,7 @@ The existing proposed agent-originated mutation path still requires protected hu
 - [ADR-Platform-000 — Security First (Accepted principles)](https://github.com/openkubes/openkubes/blob/main/architecture/decisions/ADR-Platform-000-security-first.md)
 - [ADR-Platform-034 — Authorized Desired-State Transitions](https://github.com/openkubes/openkubes/blob/main/architecture/decisions/ADR-Platform-034-ok-up.md)
 - [ADR-Platform-035 — Agentic Lifecycle Boundary](https://github.com/openkubes/openkubes/blob/main/architecture/decisions/ADR-Platform-035-hybrid-intent-and-control-plane-execution.md)
-- [OK-231 — Risk-Based Autonomy & Durable Asynchronous Approval](https://kubernauts.atlassian.net/browse/OK-231)
-- [OK-236 — kagent HITL/HOTL Security Lab](https://kubernauts.atlassian.net/browse/OK-236)
+- **Risk-Based Autonomy & Durable Asynchronous Approval** — ongoing architecture research into authorization contracts, revocation and recovery.
+- **kagent HITL/HOTL Security Lab** — isolated experimental validation of bounded agent operations and negative security tests.
 
 **Evidence boundary:** An isolated lab PASS does not prove a production OpenKubes security guarantee. Unresolved authorization races, revocation ordering, budget consistency, and restore-safe authority remain research topics.
