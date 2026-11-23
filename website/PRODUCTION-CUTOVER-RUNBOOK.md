@@ -1,5 +1,8 @@
 # OK-196 — GitHub Pages MkDocs release runbook (draft)
 
+> **Historical record:** This runbook includes old Cloudflare preview milestones. New preview validation is GitHub Actions artifact-only; production remains approval-gated GitHub Pages. The current commands are documented in [PUBLISH-FLOW.md](PUBLISH-FLOW.md). The external Cloudflare Pages project/domain are not deleted by this repository change.
+
+
 **Status: NOT APPROVED FOR PUBLICATION.** This plan changes only the build, not the existing hosting provider or Git branches.
 
 ## Agreed architecture
