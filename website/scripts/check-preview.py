@@ -168,6 +168,24 @@ def main():
         raise SystemExit("Security First must be native SVG, not embedded raster")
     if "ADR-Platform-000" not in svg_source or "SECURITY FIRST" not in svg_source:
         raise SystemExit("Security First SVG missing foundation labels")
+    models_svg = SITE / "architecture" / "kubernetes-models-simple.svg"
+    if not models_svg.is_file():
+        raise SystemExit("Missing simplified Kubernetes models SVG")
+    models_source = models_svg.read_text(encoding="utf-8")
+    if "<svg" not in models_source or "<image" in models_source or "data:image/" in models_source:
+        raise SystemExit("Kubernetes models diagram must be native vector SVG")
+    for label in ("Classic / BYOH", "vCluster", "VNC / KubeVirt", "HCP"):
+        if label not in models_source:
+            raise SystemExit(f"Kubernetes models diagram missing label: {label}")
+    if "kubernetes-models-simple.svg" not in security_html:
+        raise SystemExit("Security First article is missing model diagram")
+    if "ok-security-models-figure" not in security_html:
+        raise SystemExit("Security First model diagram link and responsive wrapper absent")
+    if 'href="kubernetes-models-simple.svg"' not in security_html:
+        raise SystemExit("Kubernetes models diagram does not link to full-size SVG")
+    styles = (SITE / "assets" / "openkubes-theme.css").read_text(encoding="utf-8")
+    if ".ok-security-models-figure" not in styles or "max-width: 768px" not in styles:
+        raise SystemExit("Kubernetes models mobile layout CSS missing")
     navigation = (ROOT / "mkdocs.yml").read_text(encoding="utf-8")
     if navigation.index("- Security First: architecture/security-first.md") > navigation.index("- CAPI Overview: architecture/capi/index.md"):
         raise SystemExit("Security First must precede CAPI in Architecture navigation")
