@@ -1,6 +1,6 @@
 # How to update the docs
 
-**OpenKubes documentation is open source and Git-driven.** Every public change starts with a reviewed pull request. The website is built using MkDocs Material; Cloudflare hosts the preview, and GitHub Pages hosts production.
+**OpenKubes documentation is open source and Git-driven.** Every public change starts with a reviewed pull request. The website is built using MkDocs Material. Preview builds are downloadable artifacts from GitHub Actions; GitHub Pages hosts production.
 
 ## Find the source of the page
 
@@ -44,16 +44,16 @@ To change the **left navigation**, update [`mkdocs.yml`](https://github.com/open
 
 ## 3. Preview changes
 
-An authorized contributor with push access to the preview branch can run:
+An authorized contributor with permission to dispatch GitHub Actions workflows can run:
 
 ```bash
 make website-preview
 make website-status
 ```
 
-Preview: **[preview.openkubes.org](https://preview.openkubes.org/)**
+Preview output is a **downloadable HTML artifact** linked from the successful GitHub Actions run; no external preview hosting is required.
 
-The publishing script works from the reviewed **remote `main`** revision through a temporary Git worktree. Local uncommitted edits are not included, and there is no need to stash them.
+The publishing script builds from the reviewed **remote `main`** revision through GitHub Actions. Local uncommitted edits are not included, and there is no need to stash them.
 
 ## 4. Release to production
 
@@ -63,7 +63,7 @@ For maintainers with release permissions:
 make website-release
 ```
 
-The command updates preview, verifies the exact deployed commit, runs a GitHub Pages dry run and then asks:
+The command validates the exact reviewed commit with a preview artifact, runs a GitHub Pages dry run and then asks:
 
 ```text
 Type OK to continue:
@@ -73,7 +73,7 @@ Enter **`OK`** to approve the production stage. The workflow retains its interna
 
 Production: **[openkubes.org](https://openkubes.org/)**
 
-You may also use `make website-publish` for an already verified preview. Contributors without production privileges should request a release from a maintainer rather than attempting to change repository release gates.
+You may also use `make website-publish`, which repeats the preview and dry-run checks before requesting approval. Contributors without production privileges should request a release from a maintainer rather than attempting to change repository release gates.
 
 ## Need help?
 
