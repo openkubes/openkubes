@@ -54,3 +54,20 @@
 .md-typeset .ok-ai-roadmap__card a{margin-top:auto;font-size:.76rem;font-weight:700;padding-top:.5rem}
 @media(max-width:1100px){.ok-ai-roadmap__card{padding:1.2rem}}
 @media(min-width:1101px){.md-content:has(.ok-ai-roadmap) .md-content__inner{max-width:70rem}.md-content:has(.ok-ai-roadmap){min-width:0}}
+
+/* Blog editorial provenance, rendered from explicit metadata or Git history. */
+.md-typeset .ok-editorial-dates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .3rem .5rem;
+  align-items: baseline;
+  margin: .35rem 0 1.25rem;
+  color: var(--md-default-fg-color--light, #52657d);
+  font-size: .72rem;
+  line-height: 1.6;
+}
+.md-typeset .ok-editorial-dates time { font-variant-numeric: tabular-nums; }
+.md-typeset .ok-editorial-dates__separator { opacity: .65; }
+@media (max-width: 600px) {
+  .md-typeset .ok-editorial-dates { font-size: .68rem; }
+}
