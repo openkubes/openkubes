@@ -260,10 +260,10 @@ def main():
         page = SITE / relative
         if not page.is_file():
             raise SystemExit(f"Diagram page missing: {relative}")
-        html = page.read_text(encoding="utf-8")
-        if "openkubes-research-lightbox.js" not in html:
+        diagram_html = page.read_text(encoding="utf-8")
+        if "openkubes-research-lightbox.js" not in diagram_html:
             raise SystemExit(f"Sitewide SVG lightbox script missing on: {relative}")
-        if not re.search(r"<img[^>]+\.svg", html, re.I):
+        if not re.search(r"<img[^>]+\.svg", diagram_html, re.I):
             raise SystemExit(f"Expected inline SVG diagram missing on: {relative}")
     research_svg = SITE / "research/security/policy-bounded-autonomy.svg"
     if not research_svg.is_file():
