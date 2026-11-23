@@ -1,5 +1,8 @@
 # Independent Architecture Review — AI Security Agent v0.1
 
+> **Historical v0.1 review brief.** Codex completed a source-based REVISE review. The current revised design is [Specification v0.2](CAPABILITY-SPEC-v0.2.md), [Catalog v0.2](CONTROL-CATALOG-v0.2.md) and [Contract v0alpha2](ASSESSMENT-CONTRACT-v0alpha2.md); review those against the [Codex dispositions](CODEX-REVIEW-DISPOSITION-v0.2.md). Claude's independent review is still pending. Gemini's earlier result lacked document access.
+
+
 **Use this same prompt and the same exact source revisions for Claude, Codex and Gemini.**
 
 ## Review objective
