@@ -10,7 +10,7 @@ OK AI is the AI capability area of OpenKubes: run self-hosted AI services on Kub
 
 ## OK AI roadmap
 
-Explore our [three-phase OK AI roadmap](ai-roadmap.md): **Documentation Assistant → Read-only Diagnostics → Agentic Operations**. The Documentation Assistant has passed an isolated private lab format-and-source-ID integration check; the public service is not yet released.
+Explore the [four-agent OK AI roadmap](ai-roadmap.md): **AI Assistant, AI Diagnostic Agent, AI SRE Agent and AI Security Agent**. These parallel capability tracks share independent Security-by-Contract boundaries. The AI SRE track includes exact HITL and a **future, research-only HOTL** option requiring a new accepted normative ADR and technical proof. The Documentation Assistant has passed only an isolated private-lab format-and-source-ID check; no public four-agent service is announced.
 
 ## Explore OK AI
 
@@ -19,8 +19,10 @@ Explore our [three-phase OK AI roadmap](ai-roadmap.md): **Documentation Assistan
 | **Open WebUI** | Self-hosted chat frontend for AI backends | [Open WebUI](open-webui.md) |
 | **OpenClaw** | Optional agent backend through the Agent Interface Contract | [OpenClaw](openclaw.md) |
 | **kagent & Platform Diagnostics** | Read-only diagnostics provider behind the HTTP/OpenAPI contract | [kagent & Platform Diagnostics](kagent-platform-diagnostics.md) |
-| **Agentic Operations** | Proposal, policy, authorization, execution and evidence boundaries | [Agentic Operations](agentic-operations.md) |
+| **Agentic Operations** | SRE HITL proposals and future research-only HOTL; independent authorization, execution and evidence boundaries | [Agentic Operations](agentic-operations.md) |
 | **AI Glossary** | Beginner-friendly explanations of AI concepts, from LLMs to agents, RAG and evals | [AI Glossary](ai-glossary-newbies.md) |
+
+The proposed **AI Security Agent** is a read-only assessment and recommendation track; it must never substitute for the independent Policy Authority. See the [four-agent architecture diagram](ai-roadmap.md).
 
 ## Architecture at a glance
 
