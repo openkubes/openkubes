@@ -66,7 +66,7 @@ We plan to evaluate HCP technologies, but have **not** selected a universal HCP 
 | Cluster model | Control plane | Worker ownership | OpenKubes status |
 | --- | --- | --- | --- |
 | Classic Kubernetes | Dedicated cluster control plane | Infrastructure / CAPI provider | CAPI/BYOH integration and E2E validation |
-| vCluster (shared nodes) | Virtual API/control plane in host | Shared host Kubernetes | Proposed: ADR-050 / OK-235 |
+| vCluster (shared nodes) | Virtual API/control plane in host | Shared host Kubernetes | Proposed: ADR-050 |
 | VNC / KubeVirt | Full guest Kubernetes control plane | Guest VMs managed through host KubeVirt | KubeVirt groundwork; generic VNC evaluation |
 | Hosted Control Plane | Hosted separately from workers | Separately managed workers | Future evaluation |
 
@@ -107,11 +107,11 @@ Explore kind, Cluster API and the Docker infrastructure provider (CAPD). The tut
 
 These examples show the value of a clear lifecycle abstraction, even before virtual-cluster adapters are part of the supported product surface.
 
-## What comes next: ADR-050 and OK-235
+## What comes next: ADR-050 and the vCluster evaluation
 
 Our **[ADR-Platform-050 — Virtual Cluster Models and Provider-Neutral Lifecycle Boundaries](https://github.com/openkubes/openkubes/pull/527)** is currently **Proposed**. It defines the taxonomy of full infrastructure clusters, virtual control planes and KubeVirt-based VNCs, and evaluates three vCluster integration approaches: a direct `ok` adapter, a Kubernetes Operator/CRD approach, and an optional add-on.
 
-The companion **[OK-235 vCluster Integration Spike](https://kubernauts.atlassian.net/browse/OK-235)** plans measured E2E evaluation in eligible **LAB Stack B / C** environments after prerequisites and explicit authorization. Tests will cover virtual kubeconfig/API access, RBAC, workload and CRD behavior, two-cluster isolation, quota, resource consumption, status, update, deletion and cleanup.
+A planned technical spike will evaluate the integration through measured end-to-end tests in eligible **LAB Stack B / C** environments after prerequisites and explicit authorization. Tests will cover virtual kubeconfig/API access, RBAC, workload and CRD behavior, two-cluster isolation, quota, resource consumption, status, update, deletion and cleanup.
 
 The architecture deliberately remains **infrastructure-provider-neutral**. Neither vCluster support nor the proposed VNC/HCP models should be mistaken for completed production-ready integrations.
 
@@ -134,5 +134,4 @@ That is the idea behind **Kubeception V2**.
 - [OK CLI v1.0.1 Getting Started](https://openkubes.org/tutorials/ok-cli-v1.0.1-getting-started/)
 - [Local CAPD Developer Environment](https://openkubes.org/tutorials/capd-local-dev-environment/)
 - [ADR-Platform-050 (Proposed)](https://github.com/openkubes/openkubes/pull/527)
-- [OK-235 vCluster Spike](https://kubernauts.atlassian.net/browse/OK-235)
 - [vCluster](https://github.com/loft-sh/vcluster) · [KubeVirt](https://kubevirt.io/) · [Cluster API](https://cluster-api.sigs.k8s.io/)
