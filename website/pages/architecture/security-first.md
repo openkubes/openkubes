@@ -22,6 +22,8 @@ That is why our first foundational architecture decision is deliberately numbere
 
 **Evidence matters more than claims.** A policy that looks correct is not proof it works. We test both permitted and forbidden operations, and we keep evidence linked to the exact software and environment we tested.
 
+For AI-assisted operations, the [four-agent OK AI Roadmap](../ai/ai-roadmap.md) shows how Assistant, Diagnostic, SRE and Security responsibilities stay separate from independent execution authority. General agent-initiated HOTL remains research, not a production exception to these principles.
+
 ## One foundation, different cluster models
 
 OpenKubes brings together physical hosts (**BYOH**), virtual clusters (**vCluster**), virtual nested clusters (**VNC**) and hosted control planes (**HCP**). These environments have different security boundaries, but they share the same expectations for identity, authorization, lifecycle protection and recovery.
