@@ -4,7 +4,7 @@
 
 **Research Paper 001 · Reviewed Research · Editorial preview**
 
-> **Research status:** This page establishes the scope and publication boundary for the first OpenKubes Research Paper. The full technical manuscript and its architecture SVG remain under editorial review. This page is not a claim that HOTL execution has been implemented or production-approved.
+> **Research status:** This page establishes the scope and publication boundary for the first OpenKubes Research Paper. The full technical manuscript remains under editorial review; the architecture SVG is now included for review. This page is not a claim that HOTL execution has been implemented or production-approved.
 
 ## Research question
 
@@ -13,6 +13,13 @@ How can Kubernetes operations become more autonomous **without granting AI agent
 HITL and HOTL describe modes of human participation and supervision. Policy-Bounded Autonomy describes the independent technical constraints that must limit execution authority. These are **orthogonal dimensions**, not three consecutive maturity stages.
 
 ## Proposed responsibility model
+
+<figure class="ok-research-diagram">
+  <a href="/research/security/policy-bounded-autonomy.svg" target="_blank" rel="noopener" aria-label="Open the Policy-Bounded Autonomy architecture diagram at full size">
+    <img src="/research/security/policy-bounded-autonomy.svg" alt="Research architecture: current exact HITL review, trusted policy authority, bounded executor, conditional acceptance, Kubernetes reconciliation and independent evidence. The future HOTL standing mandate is research-only and requires a new ADR." loading="lazy">
+  </a>
+  <figcaption>Policy-Bounded Autonomy — research architecture, not a production deployment. Select the diagram to open the native SVG in full size.</figcaption>
+</figure>
 
 1. An untrusted agent performs permitted read-only diagnostics and submits a candidate proposal.
 2. Trusted components canonicalize the exact change and produce a protected, human-visible review artifact.
