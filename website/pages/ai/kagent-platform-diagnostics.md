@@ -1,8 +1,8 @@
 # kagent & Platform Diagnostics
 
-**Read-only Kubernetes diagnostics behind a provider-neutral contract.**
+**The read-only foundation for the proposed AI Diagnostic Agent.**
 
-OpenKubes integrates [kagent](https://github.com/kagent-dev/kagent) as **Provider Profile A** for the [Read-Only Platform Diagnostics Contract (ADR-Platform-021)](https://github.com/openkubes/openkubes/blob/main/architecture/decisions/ADR-Platform-021-read-only-platform-diagnostics-contract.md). This is a *diagnostics provider*, not another chat model exposed alongside OpenClaw in Open WebUI.
+OpenKubes integrates [kagent](https://github.com/kagent-dev/kagent) as **Provider Profile A** for the [Read-Only Platform Diagnostics Contract (ADR-Platform-021)](https://github.com/openkubes/openkubes/blob/main/architecture/decisions/ADR-Platform-021-read-only-platform-diagnostics-contract.md). This is a *diagnostics provider* for the proposed AI Diagnostic Agent, not another chat model exposed alongside OpenClaw in Open WebUI. The AI SRE and AI Security roles are separate capability tracks; diagnostic access does not authorize remediation.
 
 ## How the components fit together
 
@@ -45,7 +45,7 @@ These operations are specified by the [machine-readable OpenAPI contract](https:
 ## Security and authorization
 
 - Consumers such as OpenClaw do **not** receive Kubernetes credentials.
-- The kagent provider profile uses a dedicated ServiceAccount and a **scoped tools server**. The approved Kubernetes verbs are read-only (`get`, `list`, `watch`), and **Secrets are excluded**.
+- The documented kagent provider profile specifies a dedicated ServiceAccount and a **scoped tools server**. Its intended Kubernetes verbs are read-only (`get`, `list`, `watch`), and **Secrets are excluded**. Runtime isolation and negative authorization tests remain deployment-specific proof obligations.
 - A prompt asking for a write is not an authorization. Tool selection alone is insufficient: read-only enforcement must occur at the Kubernetes RBAC boundary.
 - Remediation proposals and **execution of approved remediation** are separate phases. Executing changes requires additional architectural authorization and is **not** part of the read-only diagnostics contract.
 
@@ -64,6 +64,6 @@ Separate standalone kagent trials in [`ok-cluster`](https://github.com/openkubes
 - [ADR-Platform-021: Read-Only Platform Diagnostics](https://github.com/openkubes/openkubes/blob/main/architecture/decisions/ADR-Platform-021-read-only-platform-diagnostics-contract.md)
 - [ADR-Platform-015: Agentic AI](https://github.com/openkubes/openkubes/blob/main/architecture/decisions/ADR-Platform-015-agentic-ai.md)
 - [OpenClaw consumer](openclaw.md)
-- [Agentic Operations reference](agentic-operations.md)
+- [Four-Agent AI Roadmap](ai-roadmap.md)\n- [Agentic Operations reference](agentic-operations.md)
 
 [Back to OK AI](index.md)
