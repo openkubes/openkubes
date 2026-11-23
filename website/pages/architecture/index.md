@@ -4,6 +4,12 @@
 
 OpenKubes is a framework for building Kubernetes platform distributions. The platform defines stable capability boundaries while underlying tools and providers remain replaceable.
 
+## Security First — our foundation
+
+**Security is where OpenKubes architecture begins.** [Read the short Security First introduction](security-first.md) to see how our platform models share the same security principles, even as their implementations differ.
+
+![BYOH, vCluster, VNC and HCP standing on the Security First foundation.](security-first.svg)
+
 ## Architecture principles
 
 ### Contracts over components
