@@ -39,6 +39,7 @@ nav:
       - Full Family & Technology Guide: open-universe/family.md
   - Architecture:
       - Overview: architecture/index.md
+      - Security First: architecture/security-first.md
       - CAPI Overview: architecture/capi/index.md
       - CAPI Architecture Blueprint: architecture/capi/blueprint.md
       - CAPI Architecture Decisions:
