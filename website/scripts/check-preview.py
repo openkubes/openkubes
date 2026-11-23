@@ -181,8 +181,12 @@ def main():
         raise SystemExit("Security First article is missing model diagram")
     if "ok-security-models-figure" not in security_html:
         raise SystemExit("Security First model diagram link and responsive wrapper absent")
-    if 'href="kubernetes-models-simple.svg"' not in security_html:
-        raise SystemExit("Kubernetes models diagram does not link to full-size SVG")
+    if 'href="/architecture/kubernetes-models-simple.svg"' not in security_html:
+        raise SystemExit("Kubernetes models diagram does not link to the correct full-size SVG URL")
+    if 'src="/architecture/kubernetes-models-simple.svg"' not in security_html:
+        raise SystemExit("Kubernetes models image does not use its published root-relative SVG URL")
+    if 'href="kubernetes-models-simple.svg"' in security_html or 'src="kubernetes-models-simple.svg"' in security_html:
+        raise SystemExit("Relative models SVG links break under /architecture/security-first/")
     styles = (SITE / "assets" / "openkubes-theme.css").read_text(encoding="utf-8")
     if ".ok-security-models-figure" not in styles or "max-width: 768px" not in styles:
         raise SystemExit("Kubernetes models mobile layout CSS missing")
