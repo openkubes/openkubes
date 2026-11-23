@@ -2,6 +2,7 @@
 """Stage selected public articles and media without editing source docs."""
 from pathlib import Path
 import shutil
+from blog_editorial_dates import stage_article
 
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE = ROOT / "docs"
