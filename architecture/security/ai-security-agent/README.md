@@ -10,6 +10,8 @@
 
 > **Security Agent assesses. Policy Authority decides. Contract Executor submits. Kubernetes controllers reconcile. Independent evidence verifies.**
 
+> **Superseded v0.1 archive for review comparison.** The current consolidated design is [Capability Specification v0.2](CAPABILITY-SPEC-v0.2.md), supported by [Control Catalog v0.2](CONTROL-CATALOG-v0.2.md), [Assessment Contract v0alpha2](ASSESSMENT-CONTRACT-v0alpha2.md), and [Codex dispositions](CODEX-REVIEW-DISPOSITION-v0.2.md). Sections below are **historical draft text** and must not be used as an implementation instruction. No platform PASS or API implementation is claimed.
+
 ## 1. Problem and intended outcome
 
 A generic Kubernetes security chatbot can summarize policies but cannot prove whether an asserted control is effective for a particular identity, version, deployment profile or lifecycle transition. OpenKubes needs a **provider-neutral, evidence-oriented security-assessment capability** that maps explicit architecture principles, candidate controls and operation-specific evidence to findings with bounded confidence.
