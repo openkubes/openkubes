@@ -22,3 +22,28 @@ The test script invokes the proof of concept as a child process with crafted syn
 **Evidence terminology:** Passing these unit/fixture cases means P0 program tests passed, not B-01 is enforced by Kubernetes. Discovery T-01…T-04 remain `NOT_RUN` for this research work.
 
 See [Spec v0.3](../CAPABILITY-SPEC-v0.3.md), [Contract v0alpha3](../ASSESSMENT-CONTRACT-v0alpha3.md), and [Independent Review Consolidation](../INDEPENDENT-REVIEW-CONSOLIDATION-v0.3.md).
+
+## P0 hardening regression and OS isolation status
+
+Run the deterministic fixtures (this only tests the evaluator logic):
+
+```sh
+cd architecture/security/ai-security-agent/p0
+python3 -m unittest discover -v -p 'test_*.py'
+```
+
+`test_hardening.py` exercises synthetic credential canaries, nested unexpected fields, type confusion, prompt-like instructions, duplicate keys, nonstandard JSON, authority-shaped outputs, and repeatability. Sensitive data is expected to be **rejected without echo**, not treated as valid input and then passed through a redaction engine.
+
+For a **separate Linux Bubblewrap isolation trial**, install and independently verify `bwrap` and `timeout` (and user namespace support) on a disposable test host, then run:
+
+```sh
+LEAK_TEST_SECRET=probe-canary sh sandbox_runner.sh --probe
+python3 -m unittest discover -v -p 'test_*.py'
+python3 -c 'import json, test_offline_assessor as t; print(json.dumps(t.BASE))' | sh sandbox_runner.sh
+```
+
+`sandbox_runner.sh` is **fail closed** when Bubblewrap or timeout is missing, or the kernel cannot establish the requested namespaces. It binds only the system Python runtime read-only plus one fixed program, clears the environment, attempts a new network/mount/PID namespace, and supplies no host home, Kubernetes token, management kubeconfig or secret mounts. The `--probe` mode evaluates representative denials: host paths, `/etc/passwd`, an environment canary, workspace writes and an outbound TCP connection. A successful probe is still only a *bounded representative isolation test*, not proof against kernel/container escapes.
+
+**Recorded execution limitation (2026-11-23):** In the available Linux execution environment, `unshare -n true` returned `Operation not permitted`, and `bwrap` and Docker were unavailable. Running the sandbox script correctly returned exit **78** (refused execution). **No successful Bubblewrap isolation test has occurred.** Execute the trial on a host supporting rootless namespaces or a purpose-built sandbox profile, and record tool versions, host/kernel/container settings, network observations, mounts, and independent reviewer before claiming the P0 isolation gate is closed.
+
+The unit/adversarial suites and the sandbox trial are **separate gates**. Neither indicates a Kubernetes B-01 security control PASS; Discovery T-01…T-04 remain NOT_RUN.
