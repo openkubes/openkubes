@@ -2,7 +2,7 @@
 
 *How human review and supervision fit independently authorized, recoverable Kubernetes operations.*
 
-**OpenKubes Research Paper 001 · Reviewed Research · Publication Candidate v1.0-rc1 · Awaiting editorial approval**
+**OpenKubes Research Paper 001 · Reviewed Research**
 
 > Secure by Contract. Verified by Evidence. Designed for Recovery.  
 > Humans govern. Policies constrain. Machines execute. Evidence verifies.
@@ -129,4 +129,4 @@ This publication explains a proposed architecture and its explicit proof obligat
 - [ADR-Platform-030](https://github.com/openkubes/openkubes/blob/main/architecture/decisions/ADR-Platform-030-control-plane-execution-model.md), [031](https://github.com/openkubes/openkubes/blob/main/architecture/decisions/ADR-Platform-031-ok-mgmt-disaster-recovery.md), [034](https://github.com/openkubes/openkubes/blob/main/architecture/decisions/ADR-Platform-034-ok-up.md), [035](https://github.com/openkubes/openkubes/blob/main/architecture/decisions/ADR-Platform-035-hybrid-intent-and-control-plane-execution.md), [042](https://github.com/openkubes/openkubes/blob/main/architecture/decisions/ADR-Platform-042-openshell-hosted-external-agentic-operations.md) — proposed execution/agentic/recovery contracts unless individually accepted later.
 - Related internal architecture research and an isolated kagent security lab are ongoing; neither authorizes production autonomy. Public findings will be linked here when available.
 
-*Editorial status: publication candidate for human review. No claims of operational production certification or completed HOTL E2E validation.*
+*Research scope: This paper does not claim operational production certification or completed HOTL E2E validation.*
