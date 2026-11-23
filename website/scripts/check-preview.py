@@ -155,6 +155,22 @@ def main():
             raise SystemExit(f"CAPD tutorial is missing diagram reference: {diagram}")
     if '<a href="/tutorials/">Tutorials</a>' not in capd_html:
         raise SystemExit("Shared Material page navigation is missing Tutorials")
+    # Security First must be first in Architecture nav, with a real vector asset.
+    security_page = SITE / "architecture" / "security-first" / "index.html"
+    security_svg = SITE / "architecture" / "security-first.svg"
+    if not security_page.is_file() or not security_svg.is_file():
+        raise SystemExit("Missing Security First article or SVG")
+    security_html = security_page.read_text(encoding="utf-8")
+    if "Security First: Why OpenKubes Starts with Security" not in security_html or "security-first.svg" not in security_html:
+        raise SystemExit("Security First article not rendered with diagram")
+    svg_source = security_svg.read_text(encoding="utf-8")
+    if "<svg" not in svg_source or "<image" in svg_source or "data:image/" in svg_source:
+        raise SystemExit("Security First must be native SVG, not embedded raster")
+    if "ADR-Platform-000" not in svg_source or "SECURITY FIRST" not in svg_source:
+        raise SystemExit("Security First SVG missing foundation labels")
+    navigation = (ROOT / "mkdocs.yml").read_text(encoding="utf-8")
+    if navigation.index("- Security First: architecture/security-first.md") > navigation.index("- CAPI Overview: architecture/capi/index.md"):
+        raise SystemExit("Security First must precede CAPI in Architecture navigation")
     # Check imported, pinned CAPI architecture pages, ADRs and SVG assets.
     capi = SITE / "architecture" / "capi"
     for required in ("index.html", "blueprint/index.html", "decisions/index.html"):
