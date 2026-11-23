@@ -8,12 +8,9 @@ Research findings do not automatically change an ADR, approve an implementation,
 
 ## Research areas
 
-<figure class="ok-research-diagram ok-research-diagram--preview">
-  <a href="/research/security/hitl-hotl-policy-bounded-autonomy/" aria-label="Read Research Paper 001: Policy-Bounded Autonomy">
-    <img src="/research/security/policy-bounded-autonomy.svg" alt="Illustrated overview of Human Governance, Trusted Policy Authority, Kubernetes reconciliation, and independent evidence." loading="lazy">
-  </a>
-  <figcaption>Research Paper 001 — a reviewed architecture hypothesis, not deployed HOTL functionality. <a href="/research/security/hitl-hotl-policy-bounded-autonomy/">Read the paper overview</a>.</figcaption>
-</figure>
+[![Policy-Bounded Autonomy research architecture diagram: human governance, independent authorization, Kubernetes reconciliation and evidence.](security/policy-bounded-autonomy.svg)](security/hitl-hotl-policy-bounded-autonomy.md)
+
+*Research Paper 001 — a reviewed architecture hypothesis, not deployed HOTL functionality. [Read the paper overview](security/hitl-hotl-policy-bounded-autonomy.md).*
 
 ### [Security & Trust](security/index.md)
 
