@@ -51,6 +51,12 @@ nav:
           - ADR-CAPI-005 Git and Velero Recovery: architecture/capi/decisions/ADR-CAPI-005-git-velero-recovery.md
           - ADR-CAPI-006 Blue/Green Handover: architecture/capi/decisions/ADR-CAPI-006-blue-green-handover.md
           - ADR-CAPI-007 Disaster Recovery: architecture/capi/decisions/ADR-CAPI-007-disaster-recovery.md
+  - Research:
+      - Overview: research/index.md
+      - Security & Trust:
+          - Overview: research/security/index.md
+          - Research Paper 001 — Policy-Bounded Autonomy: research/security/hitl-hotl-policy-bounded-autonomy.md
+      - Experiments & Evidence: research/experiments/index.md
   - OK AI:
       - Overview: ai/index.md
       - AI Roadmap: ai/ai-roadmap.md
