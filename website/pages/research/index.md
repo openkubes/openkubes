@@ -8,6 +8,13 @@ Research findings do not automatically change an ADR, approve an implementation,
 
 ## Research areas
 
+<figure class="ok-research-diagram ok-research-diagram--preview">
+  <a href="/research/security/hitl-hotl-policy-bounded-autonomy/" aria-label="Read Research Paper 001: Policy-Bounded Autonomy">
+    <img src="/research/security/policy-bounded-autonomy.svg" alt="Illustrated overview of Human Governance, Trusted Policy Authority, Kubernetes reconciliation, and independent evidence." loading="lazy">
+  </a>
+  <figcaption>Research Paper 001 — a reviewed architecture hypothesis, not deployed HOTL functionality. <a href="/research/security/hitl-hotl-policy-bounded-autonomy/">Read the paper overview</a>.</figcaption>
+</figure>
+
 ### [Security & Trust](security/index.md)
 
 Human oversight, operational authority, least privilege, revocation, recovery, and policy-bounded autonomy.
