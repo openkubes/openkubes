@@ -61,7 +61,7 @@ def main():
             raise SystemExit(f"Missing Console gallery asset: {name}")
     if "Open Code. Public Repositories. Transparent Decisions." not in html:
         raise SystemExit("Console Open Source panel is missing")
-    for href in ("/", "/features/", "/architecture/", "/blog/", "/tutorials/", "/docs/", "/community/"):
+    for href in ("/", "/features/", "/architecture/", "/research/", "/blog/", "/tutorials/", "/docs/", "/community/"):
         if f'href="{href}"' not in html:
             raise SystemExit(f"Navigation link missing: {href}")
     for asset in ("media/openkubes-hero-light.webm", "media/openkubes-hero-light.mp4", "media/openkubes-hero-light-poster.webp"):
@@ -74,7 +74,7 @@ def main():
         raise SystemExit("Homepage global navigation is not configured as sticky")
     if ".ok-global-nav--material" not in nav_css or "position:sticky" not in nav_css:
         raise SystemExit("Material global navigation is not configured as sticky")
-    for section in ("features", "architecture", "blog", "community", "docs"):
+    for section in ("features", "architecture", "research", "blog", "community", "docs"):
         output = SITE / section / "index.html"
         if output.is_file():
             page_html = output.read_text(encoding="utf-8")
@@ -193,6 +193,18 @@ def main():
     navigation = (ROOT / "mkdocs.yml").read_text(encoding="utf-8")
     if navigation.index("- Security First: architecture/security-first.md") > navigation.index("- CAPI Overview: architecture/capi/index.md"):
         raise SystemExit("Security First must precede CAPI in Architecture navigation")
+    # Research navigation and publication boundaries.
+    for research_path in ("research/index.html", "research/security/index.html",
+                          "research/security/hitl-hotl-policy-bounded-autonomy/index.html",
+                          "research/experiments/index.html"):
+        if not (SITE / research_path).is_file():
+            raise SystemExit(f"Missing Research page: {research_path}")
+    research_html = (SITE / "research/security/hitl-hotl-policy-bounded-autonomy/index.html").read_text(encoding="utf-8")
+    for label in ("Research Paper 001", "Reviewed Research", "future research hypothesis"):
+        if label.lower() not in research_html.lower():
+            raise SystemExit(f"Research maturity boundary absent: {label}")
+    if '<a href="/research/">Research</a>' not in research_html:
+        raise SystemExit("Shared Material navigation missing Research")
     # Check imported, pinned CAPI architecture pages, ADRs and SVG assets.
     capi = SITE / "architecture" / "capi"
     for required in ("index.html", "blueprint/index.html", "decisions/index.html"):
@@ -247,7 +259,7 @@ def main():
         path = (SITE / href).resolve()
         if not path.is_relative_to(SITE.resolve()) or not path.is_file():
             missing.append(href)
-    for section in ("features", "architecture", "blog", "community"):
+    for section in ("features", "architecture", "research", "blog", "community"):
         if not (SITE / section / "index.html").is_file():
             missing.append("/" + section + "/")
     for slug in ARTICLES:
