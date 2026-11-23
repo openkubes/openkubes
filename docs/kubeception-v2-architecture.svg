@@ -86,6 +86,6 @@
 <text x="1367" y="785" font-size="15" fill="#38506E" font-weight="600" text-anchor="middle" font-family="Inter, Arial, sans-serif">Design model; not deployed</text>
 <line x1="64" y1="856" x2="1536" y2="856" stroke="#CFDBEA" stroke-width="2"/>
 <text x="64" y="886" font-size="15" fill="#1767BB" font-weight="700" text-anchor="start" font-family="Inter, Arial, sans-serif">OPENKUBES ARCHITECTURE</text>
-<text x="64" y="911" font-size="16" fill="#506580" font-weight="400" text-anchor="start" font-family="Inter, Arial, sans-serif">Classic: integration / E2E validation    •    vCluster: proposed (ADR-050 / OK-235)    •    VNC: evaluation    •    HCP: planned</text>
+<text x="64" y="911" font-size="16" fill="#506580" font-weight="400" text-anchor="start" font-family="Inter, Arial, sans-serif">Classic: integration / E2E validation    •    vCluster: proposed (ADR-050)    •    VNC: evaluation    •    HCP: planned</text>
 <text x="1536" y="887" font-size="16" fill="#1767BB" font-weight="700" text-anchor="end" font-family="Inter, Arial, sans-serif">openkubes.org</text>
 </svg>
