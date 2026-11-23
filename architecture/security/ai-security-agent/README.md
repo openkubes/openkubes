@@ -10,7 +10,7 @@
 
 > **Security Agent assesses. Policy Authority decides. Contract Executor submits. Kubernetes controllers reconcile. Independent evidence verifies.**
 
-> **Superseded v0.1 archive for review comparison.** The current consolidated design is [Capability Specification v0.2](CAPABILITY-SPEC-v0.2.md), supported by [Control Catalog v0.2](CONTROL-CATALOG-v0.2.md), [Assessment Contract v0alpha2](ASSESSMENT-CONTRACT-v0alpha2.md), and [Codex dispositions](CODEX-REVIEW-DISPOSITION-v0.2.md). Sections below are **historical draft text** and must not be used as an implementation instruction. No platform PASS or API implementation is claimed.
+> **CURRENT REVIEW ENTRYPOINT:** [Capability Specification v0.3](CAPABILITY-SPEC-v0.3.md), [Assessment Contract v0alpha3](ASSESSMENT-CONTRACT-v0alpha3.md), [Control Catalog v0.2](CONTROL-CATALOG-v0.2.md), [Codex + Claude consolidation](INDEPENDENT-REVIEW-CONSOLIDATION-v0.3.md), and [tiny synthetic P0 prototype](p0/README.md). The remainder of this README is a **superseded v0.1 draft archive** retained only for review history. **No actual platform-control PASS or production implementation is claimed.**
 
 ## 1. Problem and intended outcome
 
