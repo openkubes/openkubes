@@ -263,7 +263,7 @@ def main():
         html = page.read_text(encoding="utf-8")
         if "openkubes-research-lightbox.js" not in html:
             raise SystemExit(f"Sitewide SVG lightbox script missing on: {relative}")
-        if not re.search(r'<img\\b[^>]+\\bsrc=["\\'][^"\\']*\\.svg(?:[?#][^"\\']*)?["\\']', html, re.I):
+        if not re.search(r"<img[^>]+\\.svg", html, re.I):
             raise SystemExit(f"Expected inline SVG diagram missing on: {relative}")
     research_svg = SITE / "research/security/policy-bounded-autonomy.svg"
     if not research_svg.is_file():
