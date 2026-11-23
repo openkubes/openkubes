@@ -205,6 +205,19 @@ def main():
             raise SystemExit(f"Research maturity boundary absent: {label}")
     if '<a href="/research/">Research</a>' not in research_html:
         raise SystemExit("Shared Material navigation missing Research")
+    research_svg = SITE / "research/security/policy-bounded-autonomy.svg"
+    if not research_svg.is_file():
+        raise SystemExit("Research architecture SVG missing")
+    research_source = research_svg.read_text(encoding="utf-8")
+    if "<svg" not in research_source or "<image" in research_source or "data:image/" in research_source:
+        raise SystemExit("Research architecture must be native SVG, without embedded raster")
+    if "FUTURE HOTL" not in research_source or "RESEARCH" not in research_source:
+        raise SystemExit("Research diagram is missing future-HOTL maturity labels")
+    if 'src="/research/security/policy-bounded-autonomy.svg"' not in research_html:
+        raise SystemExit("Research paper diagram not embedded")
+    research_index_html = (SITE / "research/index.html").read_text(encoding="utf-8")
+    if 'src="/research/security/policy-bounded-autonomy.svg"' not in research_index_html:
+        raise SystemExit("Research landing diagram preview missing")
     # Check imported, pinned CAPI architecture pages, ADRs and SVG assets.
     capi = SITE / "architecture" / "capi"
     for required in ("index.html", "blueprint/index.html", "decisions/index.html"):
