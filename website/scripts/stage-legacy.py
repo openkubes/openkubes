@@ -49,7 +49,7 @@ def main():
     research_target = TARGET / "research"
     for relative in ("index.md", "security/index.md",
                      "security/hitl-hotl-policy-bounded-autonomy.md",
-                     "experiments/index.md"):
+                     "experiments/index.md", "security/policy-bounded-autonomy.svg"):
         src = research_source / relative
         if not src.is_file() or src.is_symlink():
             raise SystemExit(f"Missing Research page: {src}")
