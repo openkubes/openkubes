@@ -220,6 +220,15 @@ def main():
         raise SystemExit("Research paper does not distinguish research from production")
     if '<a href="/research/">Research</a>' not in research_html:
         raise SystemExit("Shared Material navigation missing Research")
+    lightbox_js = SITE / "assets/openkubes-research-lightbox.js"
+    if not lightbox_js.is_file():
+        raise SystemExit("Research lightbox JavaScript not staged")
+    lightbox_source = lightbox_js.read_text(encoding="utf-8")
+    for required in ('showModal()', 'dialog.addEventListener("close"', 'event.preventDefault()'):
+        if required not in lightbox_source:
+            raise SystemExit(f"Research lightbox missing required behavior: {required}")
+    if "openkubes-research-lightbox.js" not in research_html:
+        raise SystemExit("Research lightbox JavaScript not loaded on paper")
     research_svg = SITE / "research/security/policy-bounded-autonomy.svg"
     if not research_svg.is_file():
         raise SystemExit("Research architecture SVG missing")
