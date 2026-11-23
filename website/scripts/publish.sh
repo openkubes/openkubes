@@ -67,14 +67,13 @@ preview() {
 }
 
 publish() {
-  local target="$1" enabled confirmation
+  local target="$1" enabled
   preview "$target"
   dispatch_and_watch "$target" "$release_workflow" dry-run
   verify_remote_revision "$target"
-  echo "Ready to publish reviewed main commit $target to https://openkubes.org/"
-  printf 'Type OK to continue: '
-  IFS= read -r confirmation </dev/tty || fail "Interactive confirmation required."
-  test "$confirmation" = OK || fail "Publication cancelled."
+  echo "Publishing explicitly requested release of reviewed main commit $target to https://openkubes.org/"
+  # The explicit make website-release invocation is the operator's confirmation.
+  # Preserve SHA revalidation, GitHub Actions controls and release-switch checks.
   verify_remote_revision "$target"
   enabled="$(gh variable get OK196_PAGES_RELEASE_ENABLED --repo "$repo" 2>/dev/null || true)"
   test "$enabled" = false ||
