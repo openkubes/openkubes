@@ -156,7 +156,8 @@ def main():
         raise SystemExit("Shared theme CSS missing")
     shutil.copy2(theme_css, TARGET / "assets" / theme_css.name)
     for name in ("openkubes-branding.css", "openkubes-branding.js",
-                 "openkubes-console-gallery.css", "openkubes-console-carousel.js"):
+                 "openkubes-console-gallery.css", "openkubes-console-carousel.js",
+                 "openkubes-research-lightbox.js"):
         source = ROOT / "website" / "assets" / name
         if not source.is_file():
             raise SystemExit(f"Missing website asset: {source}")
