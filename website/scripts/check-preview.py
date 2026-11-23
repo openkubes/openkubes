@@ -194,6 +194,14 @@ def main():
     if navigation.index("- Security First: architecture/security-first.md") > navigation.index("- CAPI Overview: architecture/capi/index.md"):
         raise SystemExit("Security First must precede CAPI in Architecture navigation")
     # Research navigation and publication boundaries.
+    # Public Research must never expose private Jira ticket IDs or private URLs.
+    # Scan source-owned pages and rendered HTML to catch future regressions.
+    research_sources = ROOT / "website" / "pages" / "research"
+    research_outputs = SITE / "research"
+    for candidate in list(research_sources.rglob("*.md")) + list(research_outputs.rglob("*.html")):
+        body = candidate.read_text(encoding="utf-8")
+        if re.search(r"\bOK-\d+\b|kubernauts\.atlassian\.net", body, flags=re.I):
+            raise SystemExit(f"Private Jira reference in public Research: {candidate}")
     for research_path in ("research/index.html", "research/security/index.html",
                           "research/security/hitl-hotl-policy-bounded-autonomy/index.html",
                           "research/experiments/index.html"):

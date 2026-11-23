@@ -4,11 +4,11 @@ Reproducible experiments turn proposed security properties into **scoped finding
 
 ## Active research
 
-### [OK-236 — kagent HITL/HOTL Security Lab](https://kubernauts.atlassian.net/browse/OK-236)
+### kagent HITL/HOTL Security Lab
 
 **In Progress.** A dedicated local kind-cluster PoC investigating narrowly scoped workload remediation, protected Ingress approvals, identity boundaries, stop/revocation, and negative security tests. Planned acceptance criteria are not proof of a completed test.
 
-### [OK-231 — Risk-Based Autonomy & Asynchronous Approval](https://kubernauts.atlassian.net/browse/OK-231)
+### Risk-Based Autonomy & Asynchronous Approval
 
 **In Progress.** Architecture research into protected human review, narrowly bounded standing mandates, single-use grants, authority acceptance, races, and operational failure modes.
 
