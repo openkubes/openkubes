@@ -27,8 +27,8 @@ That is why our first foundational architecture decision is deliberately numbere
 OpenKubes brings together physical hosts (**BYOH**), virtual clusters (**vCluster**), virtual nested clusters (**VNC**) and hosted control planes (**HCP**). These environments have different security boundaries, but they share the same expectations for identity, authorization, lifecycle protection and recovery.
 
 <div class="ok-security-models-figure">
-  <a href="kubernetes-models-simple.svg" target="_blank" rel="noopener" aria-label="Open the four Kubernetes models diagram at full size">
-    <img src="kubernetes-models-simple.svg" alt="Four Kubernetes models: Classic BYOH has its own control plane and workers; shared-node vCluster uses a virtual API on host nodes; VNC uses guest virtual machines on KubeVirt; HCP separates a hosted control plane from workers." loading="lazy">
+  <a href="/architecture/kubernetes-models-simple.svg" target="_blank" rel="noopener" aria-label="Open the four Kubernetes models diagram at full size">
+    <img src="/architecture/kubernetes-models-simple.svg" alt="Four Kubernetes models: Classic BYOH has its own control plane and workers; shared-node vCluster uses a virtual API on host nodes; VNC uses guest virtual machines on KubeVirt; HCP separates a hosted control plane from workers." loading="lazy">
   </a>
   <p><small>Four models, different control-plane and worker boundaries. Select the diagram to view it at full size.</small></p>
 </div>
