@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1100" viewBox="0 0 1600 1100" role="img" aria-labelledby="okTitle okDesc">
+<title id="okTitle">Beyond Human-in-the-Loop — Policy-Bounded Autonomy</title>
+<desc id="okDesc">OpenKubes research architecture. The current agent-originated mutation path requires exact human review following trusted canonicalization, then independent policy authorization, bounded execution, conditional authority acceptance and controller-owned reconciliation with independent evidence. A dashed future HOTL standing mandate remains research only and requires a new ADR. Revocation, risk budgets, owner fencing and restore-safe authority are requirements requiring profile-specific proof, not deployed guarantees.</desc>
+<defs><marker id="blueArrow" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto"><path d="M0 0 L9 4.5 L0 9Z" fill="#4779b8"/></marker><marker id="orangeArrow" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto"><path d="M0 0 L9 4.5 L0 9Z" fill="#d97706"/></marker></defs>
+<rect width="1600" height="1100" fill="#ffffff"/>
+<text x="44" y="54" fill="#10244a" font-family="Inter,Arial,sans-serif" font-size="35" font-weight="750">Beyond Human-in-the-Loop</text>
+<text x="45" y="83" fill="#52627a" font-family="Inter,Arial,sans-serif" font-size="17" font-weight="400">Policy-Bounded Autonomy for Kubernetes Operations · Research architecture v1.0-rc2</text>
+<rect x="1295" y="25" width="259" height="51" rx="25" fill="#fff7ed" stroke="#e9a34e" stroke-width="2"/>
+<text x="1316" y="56" fill="#a8550c" font-family="Inter,Arial,sans-serif" font-size="16" font-weight="700">RESEARCH · NOT DEPLOYED</text>
+<rect x="34" y="112" width="1532" height="154" rx="14" fill="#f3f8ff" stroke="#9bc4fa" stroke-width="2"/>
+<text x="56" y="143" fill="#153b75" font-family="Inter,Arial,sans-serif" font-size="21" font-weight="750">01  HUMAN GOVERNANCE / OVERSIGHT</text>
+<rect x="56" y="156" width="720" height="92" rx="10" fill="#f0f7ff" stroke="#97c0f2" stroke-width="2"/>
+<text x="74" y="185" fill="#102b4c" font-family="Inter,Arial,sans-serif" font-size="19" font-weight="700">CURRENT · EXACT HITL APPROVAL</text>
+<text x="74" y="213" fill="#405573" font-family="Inter,Arial,sans-serif" font-size="15" font-weight="400">Protected review of the exact canonical transition</text>
+<rect x="798" y="156" width="745" height="92" rx="10" fill="#fff8ed" stroke="#edbc77" stroke-width="2"/>
+<text x="816" y="185" fill="#102b4c" font-family="Inter,Arial,sans-serif" font-size="19" font-weight="700">FUTURE HOTL · REQUIRES NEW ADR</text>
+<text x="816" y="213" fill="#405573" font-family="Inter,Arial,sans-serif" font-size="15" font-weight="400">Revocable standing mandate: eligibility, not execution authority</text>
+<rect x="34" y="292" width="350" height="558" rx="14" fill="#f5f9ff" stroke="#a4c5f0" stroke-width="2"/>
+<text x="53" y="325" fill="#17396b" font-family="Inter,Arial,sans-serif" font-size="20" font-weight="750">02  UNTRUSTED AUTHORING</text>
+<rect x="53" y="350" width="310" height="148" rx="10" fill="#f0f7ff" stroke="#97c0f2" stroke-width="2"/>
+<text x="71" y="379" fill="#102b4c" font-family="Inter,Arial,sans-serif" font-size="19" font-weight="700">Agent / Kubernautic</text>
+<text x="71" y="407" fill="#405573" font-family="Inter,Arial,sans-serif" font-size="15" font-weight="400">Scoped read-only diagnosis</text>
+<text x="71" y="430" fill="#405573" font-family="Inter,Arial,sans-serif" font-size="15" font-weight="400">Untrusted candidate proposal</text>
+<text x="71" y="453" fill="#405573" font-family="Inter,Arial,sans-serif" font-size="15" font-weight="400">NO mutation authority</text>
+<rect x="53" y="518" width="310" height="118" rx="10" fill="#f0f7ff" stroke="#97c0f2" stroke-width="2"/>
+<text x="71" y="547" fill="#102b4c" font-family="Inter,Arial,sans-serif" font-size="19" font-weight="700">MCP / CMCP interface</text>
+<text x="71" y="575" fill="#405573" font-family="Inter,Arial,sans-serif" font-size="15" font-weight="400">Optional adapter; not an</text>
+<text x="71" y="598" fill="#405573" font-family="Inter,Arial,sans-serif" font-size="15" font-weight="400">approval or policy engine</text>
+<rect x="53" y="655" width="310" height="160" rx="10" fill="#f0f7ff" stroke="#97c0f2" stroke-width="2"/>
+<text x="71" y="684" fill="#102b4c" font-family="Inter,Arial,sans-serif" font-size="19" font-weight="700">Isolation and test gates</text>
+<text x="71" y="712" fill="#405573" font-family="Inter,Arial,sans-serif" font-size="15" font-weight="400">No shared tool-SA write bypass</text>
+<text x="71" y="735" fill="#405573" font-family="Inter,Arial,sans-serif" font-size="15" font-weight="400">Identity and tenant provenance</text>
+<text x="71" y="758" fill="#405573" font-family="Inter,Arial,sans-serif" font-size="15" font-weight="400">No agent-controlled triggers</text>
+<rect x="411" y="292" width="752" height="558" rx="14" fill="#f2fcf9" stroke="#72cfc2" stroke-width="2"/>
+<text x="433" y="325" fill="#087c71" font-family="Inter,Arial,sans-serif" font-size="20" font-weight="750">03  TRUSTED OPENKUBES BOUNDARY</text>
+<rect x="432" y="342" width="710" height="78" rx="10" fill="#eafaf6" stroke="#74cabc" stroke-width="2"/>
+<text x="450" y="371" fill="#102b4c" font-family="Inter,Arial,sans-serif" font-size="19" font-weight="700">Trusted intake and canonicalization</text>
+<text x="450" y="399" fill="#405573" font-family="Inter,Arial,sans-serif" font-size="15" font-weight="400">Provenance · exact transition · immutable reviewed artifact</text>
+<rect x="432" y="435" width="710" height="79" rx="10" fill="#eafaf6" stroke="#74cabc" stroke-width="2"/>
+<text x="450" y="464" fill="#102b4c" font-family="Inter,Arial,sans-serif" font-size="19" font-weight="700">Protected exact human review</text>
+<text x="450" y="492" fill="#405573" font-family="Inter,Arial,sans-serif" font-size="15" font-weight="400">Digest binding · renderer and canonicalization profile version</text>
+<rect x="432" y="529" width="710" height="77" rx="10" fill="#eafaf6" stroke="#74cabc" stroke-width="2"/>
+<text x="450" y="558" fill="#102b4c" font-family="Inter,Arial,sans-serif" font-size="19" font-weight="700">Independent Policy Authority + single-use grant</text>
+<text x="450" y="586" fill="#405573" font-family="Inter,Arial,sans-serif" font-size="15" font-weight="400">Identity, scope, valid review, risk budget reservation</text>
+<rect x="432" y="621" width="710" height="79" rx="10" fill="#eafaf6" stroke="#74cabc" stroke-width="2"/>
+<text x="450" y="650" fill="#102b4c" font-family="Inter,Arial,sans-serif" font-size="19" font-weight="700">Contract Executor + field-level enforcement</text>
+<text x="450" y="678" fill="#405573" font-family="Inter,Arial,sans-serif" font-size="15" font-weight="400">Durable claim · typed operation · forbidden-field denial</text>
+<rect x="432" y="716" width="710" height="100" rx="10" fill="#eafaf6" stroke="#74cabc" stroke-width="2"/>
+<text x="450" y="745" fill="#102b4c" font-family="Inter,Arial,sans-serif" font-size="19" font-weight="700">Authority Profile · conditional acceptance</text>
+<text x="450" y="773" fill="#405573" font-family="Inter,Arial,sans-serif" font-size="15" font-weight="400">Atomic acceptance CAS, not atomic end-to-end pipeline</text>
+<text x="450" y="796" fill="#405573" font-family="Inter,Arial,sans-serif" font-size="15" font-weight="400">Revocation/owner ordering must be independently proven</text>
+<path d="M782 421 V430" fill="none" stroke="#4779b8" stroke-width="2.6" marker-end="url(#blueArrow)"/>
+<path d="M782 515 V524" fill="none" stroke="#4779b8" stroke-width="2.6" marker-end="url(#blueArrow)"/>
+<path d="M782 607 V616" fill="none" stroke="#4779b8" stroke-width="2.6" marker-end="url(#blueArrow)"/>
+<path d="M782 701 V711" fill="none" stroke="#4779b8" stroke-width="2.6" marker-end="url(#blueArrow)"/>
+<path d="M363 428 H423" fill="none" stroke="#4779b8" stroke-width="2.6" marker-end="url(#blueArrow)"/>
+<path d="M1090 248 V278 H1121 V521" fill="none" stroke="#d97706" stroke-width="2.6" stroke-dasharray="9 7" marker-end="url(#orangeArrow)"/>
+<text x="924" y="281" fill="#ae620d" font-family="Inter,Arial,sans-serif" font-size="14" font-weight="650">Research-only mandate eligibility</text>
+<rect x="1191" y="292" width="375" height="558" rx="14" fill="#f5f9ff" stroke="#a4c5f0" stroke-width="2"/>
+<text x="1212" y="325" fill="#17396b" font-family="Inter,Arial,sans-serif" font-size="20" font-weight="750">04  RECONCILIATION</text>
+<rect x="1212" y="354" width="330" height="150" rx="10" fill="#f0f7ff" stroke="#97c0f2" stroke-width="2"/>
+<text x="1230" y="383" fill="#102b4c" font-family="Inter,Arial,sans-serif" font-size="19" font-weight="700">Kubernetes controllers</text>
+<text x="1230" y="411" fill="#405573" font-family="Inter,Arial,sans-serif" font-size="15" font-weight="400">CAPI / BYOH / GitOps</text>
+<text x="1230" y="434" fill="#405573" font-family="Inter,Arial,sans-serif" font-size="15" font-weight="400">Controllers own reconciliation</text>
+<text x="1230" y="457" fill="#405573" font-family="Inter,Arial,sans-serif" font-size="15" font-weight="400">of accepted desired state</text>
+<rect x="1212" y="566" width="330" height="128" rx="10" fill="#f0f7ff" stroke="#97c0f2" stroke-width="2"/>
+<text x="1230" y="595" fill="#102b4c" font-family="Inter,Arial,sans-serif" font-size="19" font-weight="700">Observed workload state</text>
+<text x="1230" y="623" fill="#405573" font-family="Inter,Arial,sans-serif" font-size="15" font-weight="400">Actual infrastructure result</text>
+<text x="1230" y="646" fill="#405573" font-family="Inter,Arial,sans-serif" font-size="15" font-weight="400">may differ from acceptance</text>
+<rect x="1212" y="749" width="330" height="76" rx="10" fill="#f0f7ff" stroke="#97c0f2" stroke-width="2"/>
+<text x="1230" y="778" fill="#102b4c" font-family="Inter,Arial,sans-serif" font-size="19" font-weight="700">Current health</text>
+<text x="1230" y="806" fill="#405573" font-family="Inter,Arial,sans-serif" font-size="15" font-weight="400">Observed independent Conditions</text>
+<path d="M1142 767 H1176 V424 H1203" fill="none" stroke="#4779b8" stroke-width="2.6" marker-end="url(#blueArrow)"/>
+<path d="M1377 504 V557" fill="none" stroke="#4779b8" stroke-width="2.6" marker-end="url(#blueArrow)"/>
+<path d="M1377 694 V742" fill="none" stroke="#4779b8" stroke-width="2.6" marker-end="url(#blueArrow)"/>
+<rect x="34" y="883" width="858" height="156" rx="14" fill="#faf6ff" stroke="#b79bed" stroke-width="2"/>
+<text x="55" y="914" fill="#7047a2" font-family="Inter,Arial,sans-serif" font-size="20" font-weight="750">05  INDEPENDENT EVIDENCE</text>
+<rect x="53" y="929" width="817" height="90" rx="10" fill="#faf6ff" stroke="#c4a5ef" stroke-width="2"/>
+<text x="71" y="958" fill="#102b4c" font-family="Inter,Arial,sans-serif" font-size="19" font-weight="700">Decision · grant claim · acceptance · outcome</text>
+<text x="71" y="986" fill="#405573" font-family="Inter,Arial,sans-serif" font-size="15" font-weight="400">Separate records, version-bound observations, negative tests</text>
+<rect x="913" y="883" width="653" height="156" rx="14" fill="#fff9f1" stroke="#e9b17c" stroke-width="2"/>
+<text x="933" y="914" fill="#a8550c" font-family="Inter,Arial,sans-serif" font-size="20" font-weight="750">CROSS-CUTTING SECURITY REQUIREMENTS</text>
+<rect x="930" y="929" width="618" height="90" rx="10" fill="#fff8ed" stroke="#edbc77" stroke-width="2"/>
+<text x="948" y="958" fill="#102b4c" font-family="Inter,Arial,sans-serif" font-size="19" font-weight="700">Revocation · budgets · fencing · recovery</text>
+<text x="948" y="986" fill="#405573" font-family="Inter,Arial,sans-serif" font-size="15" font-weight="400">Monotonic authority after restore; unproven until tested</text>
+<path d="M786 816 V870 H468 V922" fill="none" stroke="#4779b8" stroke-width="2.6" marker-end="url(#blueArrow)"/>
+<path d="M1377 825 V870 H781 V922" fill="none" stroke="#4779b8" stroke-width="2.6" marker-end="url(#blueArrow)"/>
+<path d="M1115 816 V866 H1249 V920" fill="none" stroke="#d97706" stroke-width="2.6" stroke-dasharray="9 7" marker-end="url(#orangeArrow)"/>
+<path d="M34 1054 H1566" stroke="#cfd8e5" stroke-width="2"/>
+<text x="45" y="1074" fill="#435775" font-family="Inter,Arial,sans-serif" font-size="14" font-weight="400">Safety invariant: approved artifact must match accepted transition; human approval required for current agent-originated mutation path.</text>
+<text x="45" y="1092" fill="#435775" font-family="Inter,Arial,sans-serif" font-size="13" font-weight="400">Research: OK-231 / OK-236 · ADR-000 accepted principles · No productive HOTL authorization or E2E certification claimed.</text>
+</svg>
