@@ -119,7 +119,7 @@ def main():
                      "AI Security Agent", "FUTURE HOTL NEEDS NEW ADR"):
         if required not in roadmap_svg_source:
             raise SystemExit(f"OK AI architecture diagram missing boundary: {required}")
-    if re.search(r"\\bOK-\\d+\\b|kubernauts\\.atlassian\\.net", roadmap_html, re.I):
+    if re.search(r"\bOK-\d+\b|kubernauts\.atlassian\.net", roadmap_html, re.I):
         raise SystemExit("Private Jira reference in public OK AI roadmap")
     glossary_html = (SITE / "ai" / "ai-glossary-newbies" / "index.html")
     if not glossary_html.is_file():
