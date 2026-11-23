@@ -10,6 +10,8 @@ This area examines what it would take to make AI-assisted Kubernetes operations 
 
 **Status: Reviewed Research — publication text under editorial review.**
 
+[View the full-size architecture diagram](policy-bounded-autonomy.svg) (native SVG; Research Only).
+
 A technical investigation into Human-in-the-Loop (HITL), Human-on-the-Loop (HOTL), protected approvals, standing mandates, single-use transition grants, identity boundaries, independent evidence, and recoverable execution.
 
 The existing proposed agent-originated mutation path still requires protected human approval of each exact transition. Broader HOTL execution is a **future research hypothesis**, not an accepted or production-validated capability.
