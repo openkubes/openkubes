@@ -200,7 +200,8 @@ def main():
         if not (SITE / research_path).is_file():
             raise SystemExit(f"Missing Research page: {research_path}")
     research_html = (SITE / "research/security/hitl-hotl-policy-bounded-autonomy/index.html").read_text(encoding="utf-8")
-    for label in ("Research Paper 001", "Reviewed Research", "Future research only"):
+    # Check invariant concepts, not editorial wording that changes between research drafts.
+    for label in ("Research Paper 001", "Reviewed Research", "requires a new ADR", "not a production deployment"):
         if label.lower() not in research_html.lower():
             raise SystemExit(f"Research maturity boundary absent: {label}")
     if '<a href="/research/">Research</a>' not in research_html:
