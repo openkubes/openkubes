@@ -144,3 +144,16 @@
   .ok-research-lightbox__inner { max-height: 92vh; }
   .ok-research-lightbox__image { width: max(100%, 980px); }
 }
+
+/* Shared diagram lightbox: SVGs in rendered article content, not logos or chrome. */
+.md-content .ok-svg-lightbox-trigger,
+.md-content a[href$=".svg"]:has(> img[src$=".svg"]) {
+  cursor: zoom-in;
+}
+.md-content .ok-svg-lightbox-trigger:focus-visible,
+.md-content a[href$=".svg"]:has(> img[src$=".svg"]):focus-visible {
+  outline: 3px solid #2563eb;
+  outline-offset: 4px;
+  border-radius: .5rem;
+}
+.ok-research-lightbox__image { max-width: none; }
