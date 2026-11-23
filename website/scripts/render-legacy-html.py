@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Render legacy Jekyll-style .html article URLs for the Cloudflare build.
+"""Render legacy Jekyll-style .html article URLs for the MkDocs build.
 
 The original GitHub Pages site served docs/*.md under corresponding *.html
 paths. MkDocs serves selected documents under pretty URLs instead. Preserve

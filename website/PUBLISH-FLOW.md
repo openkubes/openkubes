@@ -1,36 +1,42 @@
-# Preview-first website publishing (OK-196)
+# GitHub-only website publishing (OK-196)
 
-Merge a reviewed website PR to `main`, then run:
+The source of truth is reviewed `origin/main`. No Cloudflare Pages preview is involved.
+
+## Build and inspect the preview
+
+```bash
+make website-preview
+```
+
+The command dispatches `.github/workflows/ok196-mkdocs-preview.yml` from `main`, waits for a successful **artifact-only** build, and prints the exact GitHub Actions run URL. The workflow checks strict MkDocs output and uploads downloadable HTML artifacts. To view the site locally, download the `ok196-unified-navigation-preview` artifact, extract it, and serve it from a local HTTP server. There is **no hosted preview URL** in this workflow.
+
+```bash
+make website-status
+```
+
+Shows the reviewed remote main revision and recent GitHub preview/release runs.
+
+## Release to GitHub Pages
 
 ```bash
 make website-release
 ```
 
-This single command uses the reviewed remote `origin/main` commit. It prepares and pushes Cloudflare preview from a **temporary Git worktree**, verifies the served SHA, executes a GitHub Pages **dry run**, and then prompts:
+This validates the exact reviewed remote main revision with a GitHub Actions preview artifact and a GitHub Pages **dry run**. It asks for `OK` before dispatching the production workflow. Production remains on [GitHub Pages](https://openkubes.org/) and continues to require the manual workflow confirmation, exact SHA, `OK196_PAGES_RELEASE_ENABLED` switch and configured `github-pages` environment controls.
 
-```text
-Type OK to continue:
-```
+`make website-publish` runs the same reviewed build/dry-run and approval sequence, rather than trusting an old preview deployment.
 
-Type `OK` to approve the production stage. This is the **local UX confirmation only**: internally the GitHub Actions dispatch still uses `PUBLISH_OPENKUBES_ORG`, an exact expected commit SHA, the existing `OK196_PAGES_RELEASE_ENABLED` release switch and the `github-pages` environment controls. No production deployment runs before the confirmation.
+No command changes your local branch, stashes local files, changes DNS, or mutates production infrastructure. Production publication still requires explicit authorization. Preview access requires GitHub Actions permission to dispatch the workflow.
 
-Other commands:
+### Failure handling
 
-```bash
-make website-preview    # Synchronize and verify Cloudflare preview
-make website-status     # Show the preview revision and recent release runs
-make website-publish    # Publish a previously verified preview with explicit approval
-```
-
-The script does not stash local files, change your current branch, or publish uncommitted changes. Preview is served from Cloudflare Pages at https://preview.openkubes.org/; production uses GitHub Pages at https://openkubes.org/. No DNS changes are required.
-
-**Authorization:** Preview publication requires rights to push to `website-preview`. The current production script additionally requires permissions to set the GitHub release variable, plus any configured GitHub Pages environment approval. Community contributors with only source-branch push access must ask a maintainer to release. Never grant production permissions solely to make the CLI work.
-
-If a release fails or is interrupted, inspect GitHub Actions and verify no workflow remains active before an authorized administrator resets the release switch:
+If a run fails, inspect the specific GitHub Actions run and the first failed build step. Do not rerun a blind deployment or bypass checks. When a production run is interrupted, check for running workflows and verify the release switch:
 
 ```bash
 gh run list --repo openkubes/openkubes --workflow ok196-pages-release.yml --limit 10
 gh variable get OK196_PAGES_RELEASE_ENABLED --repo openkubes/openkubes
 ```
 
-For source ownership, navigation changes and the contributor editing workflow, see [How to update the docs](pages/community/how-to-update-docs.md).
+### Retiring the legacy Cloudflare preview
+
+This PR removes the **repository's active Cloudflare build/publish integration**. It does not delete the external Cloudflare Pages project, its custom domain `preview.openkubes.org`, DNS entries or any related account configuration. After confirming this GitHub-only workflow, an authorized Cloudflare/DNS administrator should separately retire the external preview project and domain, and review the public privacy notice before changing the statement about hosting. Historical architecture/release records may still mention the former hosting setup.
