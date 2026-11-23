@@ -36,7 +36,7 @@ A UI `requireApproval` switch, prompt, sandbox, MCP/CMCP adapter or model output
 
 ### The real identity and admission boundary
 
-OK-129 historically found that Kubernetes tool calls were executed as a **tool-server ServiceAccount**, not necessarily the agent Pod identity. Shared tool-server privilege is a potential *confused deputy*. A future design must ensure that an agent, tool adapter or agent-writable trigger cannot reach mutation interfaces outside the trusted approval/execution path. Execution must be bound to the authorized operation and its originating principal/tenant; this does **not necessarily require a new Kubernetes ServiceAccount per operation**, but it does require demonstrably equivalent isolation at every exposed route. Tests must prove that agent A cannot exercise agent B's authority and that an untrusted agent cannot bypass the canonicalizer via direct Kubernetes, Git, provider or other tool access.
+Earlier kagent experiments found that Kubernetes tool calls were executed as a **tool-server ServiceAccount**, not necessarily the agent Pod identity. Shared tool-server privilege is a potential *confused deputy*. A future design must ensure that an agent, tool adapter or agent-writable trigger cannot reach mutation interfaces outside the trusted approval/execution path. Execution must be bound to the authorized operation and its originating principal/tenant; this does **not necessarily require a new Kubernetes ServiceAccount per operation**, but it does require demonstrably equivalent isolation at every exposed route. Tests must prove that agent A cannot exercise agent B's authority and that an untrusted agent cannot bypass the canonicalizer via direct Kubernetes, Git, provider or other tool access.
 
 Admission enforcement sees the **actual Kubernetes submitting identity**, typically an executor service identity; it does not automatically receive the original mandate. A protected grant/context binding and a trusted, independently testable enforcement point are needed. Candidate designs include scoped executor identities, a verified authorization gateway and carefully constrained impersonation; **Kubernetes impersonation is not a blanket requirement and a claim in a header is not proof**. Typed fixed-field APIs and independent object-level/admission validation must reject prohibited changes such as Pod-template `serviceAccountName`, image, command, Secret mounts or privileged container fields. Ensure the effective admission path is fail-closed and independently monitored.
 
@@ -83,7 +83,7 @@ If policy or current security facts are unavailable, new **agent-originated** au
 
 ## Six concrete Kubernetes scenarios
 
-### 1. Routine workload remediation — OK-236 test hypothesis
+### 1. Routine workload remediation — isolated security-lab hypothesis
 
 An isolated kagent lab proposes periodic diagnosis and a narrowly scoped Pod/Deployment repair in one kind namespace. HOTL is the **experiment's supervised demonstration**, not an accepted production exception. The target action must have fixed editable fields, independent admission checks, one identity-bound decision and an enforceable stop. A separate, explicitly authorized *inverse transition* may exist; that does **not** imply a cheap undo of evictions, rollout effects or data changes. Negative tests include cross-namespace writes, cross-agent identities, direct tool-server API bypass, Secret access, illicit Pod-template fields, revoked grants and stale approvals.
 
@@ -109,7 +109,7 @@ Restore a backup predating revocation and grant consumption. Prior to ordinary a
 
 ## Evidence and maturity: what is proven, and what is not
 
-The OK-236 kagent kind PoC is **in progress**. Historical OK-129 findings guide negative tests but cannot serve as fresh proof. The status of any lab test is **PASS / FAIL / NOT PROVEN** against exact component versions, identities and artifacts; a lab PASS never authorizes production HOTL. OK-231 is researching risk acceptance, asynchronous approval, bounded standing mandates and deterministic automation. ADR-030's bounded DEV-profile evidence does not establish general BYOH upgrade, recovery or HOTL E2E guarantees.
+The kagent kind security-lab PoC is **in progress**. Findings from earlier tool-server experiments guide negative tests but cannot serve as fresh proof. The status of any lab test is **PASS / FAIL / NOT PROVEN** against exact component versions, identities and artifacts; a lab PASS never authorizes production HOTL. Related architecture research is investigating risk acceptance, asynchronous approval, bounded standing mandates and deterministic automation. ADR-030's bounded DEV-profile evidence does not establish general BYOH upgrade, recovery or HOTL E2E guarantees.
 
 For a deployment-profile production claim, require **requirement → enforcement point → positive/negative tests → version-bound evidence → scoped approval**. A policy that can silently be disabled without independent detection does not meet ADR-000's requirements. Unverified claims remain NOT PROVEN, not assumed PASS.
 
@@ -127,6 +127,6 @@ This publication explains a proposed architecture and its explicit proof obligat
 
 - [Security First introduction](https://openkubes.org/architecture/security-first/) and [accepted ADR-Platform-000](https://github.com/openkubes/openkubes/blob/main/architecture/decisions/ADR-Platform-000-security-first.md) — architectural principles, not deployment certification.
 - [ADR-Platform-030](https://github.com/openkubes/openkubes/blob/main/architecture/decisions/ADR-Platform-030-control-plane-execution-model.md), [031](https://github.com/openkubes/openkubes/blob/main/architecture/decisions/ADR-Platform-031-ok-mgmt-disaster-recovery.md), [034](https://github.com/openkubes/openkubes/blob/main/architecture/decisions/ADR-Platform-034-ok-up.md), [035](https://github.com/openkubes/openkubes/blob/main/architecture/decisions/ADR-Platform-035-hybrid-intent-and-control-plane-execution.md), [042](https://github.com/openkubes/openkubes/blob/main/architecture/decisions/ADR-Platform-042-openshell-hosted-external-agentic-operations.md) — proposed execution/agentic/recovery contracts unless individually accepted later.
-- [OK-231](https://kubernauts.atlassian.net/browse/OK-231) and [OK-236](https://kubernauts.atlassian.net/browse/OK-236) — research and isolated lab, respectively; neither authorizes production autonomy.
+- Related internal architecture research and an isolated kagent security lab are ongoing; neither authorizes production autonomy. Public findings will be linked here when available.
 
 *Editorial status: publication candidate for human review. No claims of operational production certification or completed HOTL E2E validation.*
