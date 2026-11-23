@@ -45,7 +45,7 @@ graph-stats: ## Print graph summary (requires prior graph-json)
 	@cd $(DOCS) && python3 okgraph.py stats
 
 # OK-196: controlled, preview-first website release.
-website-preview: ## Deploy remote main to Cloudflare preview without touching local changes
+website-preview: ## Build a GitHub Actions HTML preview artifact from reviewed remote main
 	@bash website/scripts/publish.sh preview
 
 website-publish: ## Publish the verified preview commit to GitHub Pages (manual approval)
