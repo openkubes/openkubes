@@ -4,6 +4,8 @@ on:
     paths:
       - 'mkdocs.yml'
       - 'docs/index.html'
+      - 'docs/**/*.md'
+      - 'docs/**/*.svg'
       - 'website/**'
       - '.github/workflows/ok196-mkdocs-preview.yml'
   workflow_dispatch:
@@ -39,6 +41,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - run: bash -n website/scripts/publish.sh
       - run: pip install -r website/requirements-mkdocs.txt
       - run: python website/scripts/build-docs.py
       - run: python website/scripts/stage-legacy.py
