@@ -101,12 +101,26 @@ def main():
         if not (SITE / ai_path).is_file():
             raise SystemExit(f"Missing OK AI page: {ai_path}")
     roadmap_html = (SITE / "ai" / "ai-roadmap" / "index.html").read_text(encoding="utf-8")
-    for required in ("Documentation Assistant", "Read-only Diagnostics",
-                     "Agentic Operations", "ok-ai-roadmap__card"):
-        if required not in roadmap_html:
-            raise SystemExit(f"OK AI roadmap missing required content: {required}")
-    if roadmap_html.count('class="ok-ai-roadmap__card ') != 3:
-        raise SystemExit("OK AI roadmap must render exactly three cards")
+    for required in ("AI Assistant", "AI Diagnostic Agent", "AI SRE Agent",
+                     "AI Security Agent", "HITL", "HOTL", "new accepted normative ADR",
+                     "independent Policy Authority", "ok-ai-roadmap__card",
+                     "ai-four-agents-security-architecture.svg"):
+        if required.lower() not in roadmap_html.lower():
+            raise SystemExit(f"OK AI four-agent roadmap missing required concept: {required}")
+    if roadmap_html.count('class="ok-ai-roadmap__card ') != 4:
+        raise SystemExit("OK AI roadmap must render exactly four agent cards")
+    roadmap_svg = SITE / "ai" / "ai-four-agents-security-architecture.svg"
+    if not roadmap_svg.is_file():
+        raise SystemExit("OK AI four-agent architecture SVG not staged")
+    roadmap_svg_source = roadmap_svg.read_text(encoding="utf-8")
+    if "<svg" not in roadmap_svg_source or "<image" in roadmap_svg_source or "data:image/" in roadmap_svg_source:
+        raise SystemExit("OK AI architecture diagram must be native vector SVG")
+    for required in ("AI Assistant", "AI Diagnostic Agent", "AI SRE Agent",
+                     "AI Security Agent", "FUTURE HOTL NEEDS NEW ADR"):
+        if required not in roadmap_svg_source:
+            raise SystemExit(f"OK AI architecture diagram missing boundary: {required}")
+    if re.search(r"\bOK-\d+\b|kubernauts\.atlassian\.net", roadmap_html, re.I):
+        raise SystemExit("Private Jira reference in public OK AI roadmap")
     glossary_html = (SITE / "ai" / "ai-glossary-newbies" / "index.html")
     if not glossary_html.is_file():
         raise SystemExit("Missing AI Glossary rendered page")

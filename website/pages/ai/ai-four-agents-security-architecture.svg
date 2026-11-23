@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1080" viewBox="0 0 1600 1080" role="img" aria-labelledby="title desc">
+<title id="title">OpenKubes four AI agents and security-by-contract authority architecture</title>
+<desc id="desc">Four independent agent tracks—AI Assistant, AI Diagnostic, AI SRE with proposed HITL and future HOTL, and AI Security—provide untrusted requests or candidate proposals. Trusted intake canonicalizes changes and binds identity and provenance. Independent Policy Authority requires exact HITL approval in the currently proposed agentic path; a dashed, future HOTL standing-mandate eligibility path requires a new approved ADR. Bounded Contract Executor and Kubernetes controllers act only after authorization. Independent evidence verifies actual outcomes. AI Security never becomes Policy Authority.</desc>
+<defs>
+  <marker id="arrow" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto"><path d="M0 0 L9 4.5 L0 9Z" fill="#4f7eb1"/></marker>
+  <marker id="orange" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto"><path d="M0 0 L9 4.5 L0 9Z" fill="#d97706"/></marker>
+</defs>
+<rect width="1600" height="1080" fill="#fff"/>
+<text x="55" y="64" font-size="36" font-weight="750" fill="#10244b" font-family="Inter,Arial,Helvetica,sans-serif">Four Specialized AI Agents. One Trusted Platform.</text>
+<text x="55" y="97" font-size="18" font-weight="400" fill="#536580" font-family="Inter,Arial,Helvetica,sans-serif">OpenKubes OK AI Roadmap · Security-by-Contract target architecture · Research model</text>
+<rect x="1294" y="40" width="245" height="49" rx="25" fill="#fff8ed" stroke="#ecb57b" stroke-width="2"/>
+<text x="1316" y="70" font-size="16" font-weight="750" fill="#9a5419" font-family="Inter,Arial,Helvetica,sans-serif">TARGET · NOT DEPLOYED</text>
+<rect x="38" y="127" width="1524" height="286" rx="14" fill="#f4f8ff" stroke="#bfd2e8" stroke-width="2"/>
+<text x="58" y="159" font-size="21" font-weight="750" fill="#214a77" font-family="Inter,Arial,Helvetica,sans-serif">01  SPECIALIZED AGENTS · NO DIRECT MUTATION AUTHORITY</text>
+<rect x="58" y="181" width="352" height="172" rx="13" fill="#edfaf3" stroke="#80cba8" stroke-width="2"/>
+<text x="76" y="214" font-size="22" font-weight="700" fill="#122b4a" font-family="Inter,Arial,Helvetica,sans-serif">AI Assistant</text>
+<text x="76" y="245" font-size="16" font-weight="400" fill="#425670" font-family="Inter,Arial,Helvetica,sans-serif">Knowledge, tutorials, guidance</text>
+<text x="76" y="269" font-size="16" font-weight="400" fill="#425670" font-family="Inter,Arial,Helvetica,sans-serif">Documentation-only access</text>
+<text x="76" y="293" font-size="16" font-weight="400" fill="#425670" font-family="Inter,Arial,Helvetica,sans-serif">Private lab: limited check</text>
+<rect x="434" y="181" width="352" height="172" rx="13" fill="#eef5ff" stroke="#93bbed" stroke-width="2"/>
+<text x="452" y="214" font-size="22" font-weight="700" fill="#122b4a" font-family="Inter,Arial,Helvetica,sans-serif">AI Diagnostic Agent</text>
+<text x="452" y="245" font-size="16" font-weight="400" fill="#425670" font-family="Inter,Arial,Helvetica,sans-serif">Scoped Kubernetes observations</text>
+<text x="452" y="269" font-size="16" font-weight="400" fill="#425670" font-family="Inter,Arial,Helvetica,sans-serif">Read-only tool access</text>
+<text x="452" y="293" font-size="16" font-weight="400" fill="#425670" font-family="Inter,Arial,Helvetica,sans-serif">Contract defined; integration</text>
+<rect x="810" y="181" width="352" height="172" rx="13" fill="#f6f1ff" stroke="#bcacf0" stroke-width="2"/>
+<text x="828" y="214" font-size="22" font-weight="700" fill="#122b4a" font-family="Inter,Arial,Helvetica,sans-serif">AI SRE Agent</text>
+<text x="828" y="245" font-size="16" font-weight="400" fill="#425670" font-family="Inter,Arial,Helvetica,sans-serif">Remediation / recovery proposals</text>
+<text x="828" y="269" font-size="16" font-weight="400" fill="#425670" font-family="Inter,Arial,Helvetica,sans-serif">Exact HITL; HOTL future research</text>
+<text x="828" y="293" font-size="16" font-weight="400" fill="#425670" font-family="Inter,Arial,Helvetica,sans-serif">No agent mutation credentials</text>
+<rect x="1186" y="181" width="352" height="172" rx="13" fill="#fff7ed" stroke="#ecc390" stroke-width="2"/>
+<text x="1204" y="214" font-size="22" font-weight="700" fill="#122b4a" font-family="Inter,Arial,Helvetica,sans-serif">AI Security Agent</text>
+<text x="1204" y="245" font-size="16" font-weight="400" fill="#425670" font-family="Inter,Arial,Helvetica,sans-serif">Risk and posture assessments</text>
+<text x="1204" y="269" font-size="16" font-weight="400" fill="#425670" font-family="Inter,Arial,Helvetica,sans-serif">Findings and recommendations</text>
+<text x="1204" y="293" font-size="16" font-weight="400" fill="#425670" font-family="Inter,Arial,Helvetica,sans-serif">Not Policy Authority</text>
+<text x="65" y="394" font-size="17" font-weight="400" fill="#516782" font-family="Inter,Arial,Helvetica,sans-serif">Different responsibilities. Independent contracts. No shared privileged agent identity.</text>
+<path d="M798 415 V446" fill="none" stroke="#4f7eb1" stroke-width="3" marker-end="url(#arrow)"/>
+<rect x="230" y="461" width="1140" height="112" rx="14" fill="#eefaf6" stroke="#7bcdbf" stroke-width="2"/>
+<text x="255" y="501" font-size="22" font-weight="750" fill="#087e71" font-family="Inter,Arial,Helvetica,sans-serif">02  TRUSTED INTAKE &amp; CANONICAL PROPOSAL</text>
+<text x="255" y="533" font-size="17" font-weight="400" fill="#395e60" font-family="Inter,Arial,Helvetica,sans-serif">Identity / tenant provenance · immutable reviewed artifact · allowlisted fields · exact transition digest</text>
+<path d="M798 575 V610" fill="none" stroke="#4f7eb1" stroke-width="3" marker-end="url(#arrow)"/>
+<rect x="230" y="621" width="1140" height="146" rx="14" fill="#edf6ff" stroke="#85b7ee" stroke-width="2"/>
+<text x="255" y="660" font-size="23" font-weight="750" fill="#134b88" font-family="Inter,Arial,Helvetica,sans-serif">03  INDEPENDENT POLICY AUTHORITY</text>
+<text x="255" y="693" font-size="18" font-weight="650" fill="#21496f" font-family="Inter,Arial,Helvetica,sans-serif">CURRENT PROPOSED: Protected human approval for every exact agent-originated transition</text>
+<text x="255" y="722" font-size="17" font-weight="400" fill="#405e76" font-family="Inter,Arial,Helvetica,sans-serif">Single-use, identity/scope-bound grant · independently verified at the execution boundary</text>
+<rect x="1000" y="730" width="338" height="29" rx="12" fill="#fff7ea" stroke="#ecb57b" stroke-width="2"/>
+<text x="1018" y="750" font-size="15" font-weight="700" fill="#9a5419" font-family="Inter,Arial,Helvetica,sans-serif">FUTURE HOTL NEEDS NEW ADR</text>
+<rect x="38" y="622" width="171" height="144" rx="14" fill="#fffaf2" stroke="#eaba81" stroke-width="2" stroke-dasharray="9 6"/>
+<text x="53" y="652" font-size="18" font-weight="750" fill="#a15c19" font-family="Inter,Arial,Helvetica,sans-serif">HUMAN</text>
+<text x="53" y="678" font-size="18" font-weight="700" fill="#a15c19" font-family="Inter,Arial,Helvetica,sans-serif">Oversight</text>
+<text x="53" y="709" font-size="15" font-weight="400" fill="#596a7f" font-family="Inter,Arial,Helvetica,sans-serif">HITL now</text>
+<text x="53" y="732" font-size="15" font-weight="400" fill="#596a7f" font-family="Inter,Arial,Helvetica,sans-serif">HOTL research</text>
+<path d="M210 693 H221" fill="none" stroke="#d97706" stroke-width="3" stroke-dasharray="7 6" marker-end="url(#orange)"/>
+<path d="M798 768 V806" fill="none" stroke="#4f7eb1" stroke-width="3" marker-end="url(#arrow)"/>
+<rect x="230" y="817" width="534" height="125" rx="14" fill="#f0fbf6" stroke="#7bcdbf" stroke-width="2"/>
+<text x="252" y="856" font-size="21" font-weight="750" fill="#087a67" font-family="Inter,Arial,Helvetica,sans-serif">04  CONTRACT EXECUTOR</text>
+<text x="252" y="887" font-size="16" font-weight="400" fill="#47627b" font-family="Inter,Arial,Helvetica,sans-serif">Verified grant · typed mutations · field-level denial</text>
+<text x="252" y="912" font-size="16" font-weight="400" fill="#47627b" font-family="Inter,Arial,Helvetica,sans-serif">No direct agent write credentials</text>
+<rect x="830" y="817" width="540" height="125" rx="14" fill="#f2f7ff" stroke="#9abbed" stroke-width="2"/>
+<text x="852" y="856" font-size="21" font-weight="750" fill="#214a77" font-family="Inter,Arial,Helvetica,sans-serif">05  KUBERNETES CONTROLLERS</text>
+<text x="852" y="887" font-size="16" font-weight="400" fill="#47627b" font-family="Inter,Arial,Helvetica,sans-serif">Reconcile accepted desired state</text>
+<text x="852" y="912" font-size="16" font-weight="400" fill="#47627b" font-family="Inter,Arial,Helvetica,sans-serif">CAPI · BYOH · GitOps · Workload controllers</text>
+<path d="M766 875 H821" fill="none" stroke="#4f7eb1" stroke-width="3" marker-end="url(#arrow)"/>
+<path d="M1098 944 V971" fill="none" stroke="#4f7eb1" stroke-width="3" marker-end="url(#arrow)"/>
+<rect x="230" y="977" width="1140" height="74" rx="14" fill="#faf6ff" stroke="#bea9ec" stroke-width="2"/>
+<text x="254" y="1008" font-size="21" font-weight="750" fill="#70479c" font-family="Inter,Arial,Helvetica,sans-serif">06  INDEPENDENT EVIDENCE &amp; RECOVERY</text>
+<text x="254" y="1034" font-size="16" font-weight="400" fill="#52647f" font-family="Inter,Arial,Helvetica,sans-serif">Decision ≠ acceptance ≠ convergence · bounded rollback / recovery · real-world outcome verification</text>
+<text x="52" y="1071" font-size="15" font-weight="400" fill="#415976" font-family="Inter,Arial,Helvetica,sans-serif">HITL and HOTL describe human supervision; policy-bounded authority is enforced outside every agent.</text>
+</svg>
