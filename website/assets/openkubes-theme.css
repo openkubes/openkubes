@@ -71,3 +71,32 @@
 @media (max-width: 600px) {
   .md-typeset .ok-editorial-dates { font-size: .68rem; }
 }
+
+
+/* Compact, clickable model comparison in the Security First architecture article. */
+.ok-security-models-figure {
+  width: 75%;
+  max-width: 760px;
+  margin: 1.5rem auto 1.25rem;
+  text-align: center;
+}
+.ok-security-models-figure a {
+  display: block;
+}
+.ok-security-models-figure img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 0.6rem;
+  border: 1px solid rgba(91, 132, 173, 0.24);
+}
+.ok-security-models-figure p {
+  margin: 0.65rem 0 0;
+  color: #586e86;
+}
+@media (max-width: 768px) {
+  .ok-security-models-figure {
+    width: 100%;
+    max-width: none;
+  }
+}
