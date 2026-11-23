@@ -9,6 +9,8 @@ description: "From Kubernauts KiK in 2020 to OpenKubes: classic CAPI/BYOH cluste
 
 ![Kubeception V2: architecture comparison of classic Kubernetes, shared-node vCluster, KubeVirt-based VNC and hosted control planes](kubeception-v2-architecture.svg)
 
+[View the architecture diagram at full size](kubeception-v2-architecture.svg) — a two-column comparison of control-plane, worker-node and infrastructure ownership.
+
 *Figure: Four distinct Kubernetes operating models. The common OpenKubes contract is an architectural direction, not a claim that every adapter is implemented.*
 
 ## From KiK in 2020 to Kubeception V2
