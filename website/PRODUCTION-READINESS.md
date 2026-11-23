@@ -1,5 +1,8 @@
 # OK-196 — Production cutover readiness
 
+> **Historical planning note (superseded):** Cloudflare preview references below describe the prior architecture. The current proposal uses GitHub Actions downloadable preview artifacts and retains production on GitHub Pages. See [PUBLISH-FLOW.md](PUBLISH-FLOW.md). External Cloudflare project and DNS retirement require a separate administrator action.
+
+
 Status: **NOT APPROVED FOR CUTOVER**. This work prepares review only.
 
 ## Current hosting boundaries
