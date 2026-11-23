@@ -127,7 +127,7 @@ def main():
                      "TRUSTED INTAKE", "INDEPENDENT POLICY AUTHORITY"):
         if required not in roadmap_svg_source:
             raise SystemExit(f"OK AI diagram missing security boundary: {required}")
-    if re.search(r"\\bOK-\\d+\\b|kubernauts\\.atlassian\\.net", roadmap_html, re.I):
+    if re.search(r"\bOK-\d+\b|kubernauts\.atlassian\.net", roadmap_html, re.I):
         raise SystemExit("Private Jira reference in public OK AI roadmap")
     ai_css = (SITE / "assets/openkubes-theme.css").read_text(encoding="utf-8")
     for required in (".ok-ai-oversight", ".ok-ai-roadmap__card h3", "@media(max-width:900px)"):
