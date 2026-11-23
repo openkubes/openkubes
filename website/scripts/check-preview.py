@@ -229,6 +229,42 @@ def main():
             raise SystemExit(f"Research lightbox missing required behavior: {required}")
     if "openkubes-research-lightbox.js" not in research_html:
         raise SystemExit("Research lightbox JavaScript not loaded on paper")
+    # Every diagram-bearing public page must load the shared lightbox script.
+    # Overview thumbnails with article destinations retain their normal navigation.
+    for marker in ('document.querySelectorAll(".md-content img[src]")',
+                   'anchor && !isSvgUrl(anchor.getAttribute("href"))',
+                   'event.key === "Enter"', 'event.key === " "',
+                   'dialog.showModal()', 'dialog.addEventListener("close"'):
+        if marker not in lightbox_source:
+            raise SystemExit(f"Sitewide SVG lightbox safety or accessibility rule missing: {marker}")
+    svg_diagram_pages = (
+        "architecture/index.html",
+        "architecture/security-first/index.html",
+        "architecture/capi/blueprint/index.html",
+        "research/index.html",
+        "research/security/hitl-hotl-policy-bounded-autonomy/index.html",
+        "open-universe/index.html",
+        "tutorials/capd-local-dev-environment/index.html",
+        "tutorials/ok-cli-v1.0.1-getting-started/index.html",
+        "ai/agentic-operations-hands-on/index.html",
+        "kubeception-v2/index.html",
+        "nvidia-confidential-containers-agent-authority/index.html",
+        "openkubes-byoh-controller/index.html",
+        "if-we-built-kubernetes-today/index.html",
+        "openshell-meets-openkubes/index.html",
+        "agentic-operations-reference-architecture/index.html",
+        "vault-secret-contract-blog-post/index.html",
+        "the-contract-is-the-guardrail-blog-post/index.html",
+    )
+    for relative in svg_diagram_pages:
+        page = SITE / relative
+        if not page.is_file():
+            raise SystemExit(f"Diagram page missing: {relative}")
+        html = page.read_text(encoding="utf-8")
+        if "openkubes-research-lightbox.js" not in html:
+            raise SystemExit(f"Sitewide SVG lightbox script missing on: {relative}")
+        if not re.search(r'<img\\b[^>]+\\bsrc=["\\'][^"\\']*\\.svg(?:[?#][^"\\']*)?["\\']', html, re.I):
+            raise SystemExit(f"Expected inline SVG diagram missing on: {relative}")
     research_svg = SITE / "research/security/policy-bounded-autonomy.svg"
     if not research_svg.is_file():
         raise SystemExit("Research architecture SVG missing")
