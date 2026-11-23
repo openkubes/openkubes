@@ -88,6 +88,7 @@ jobs:
       pages: write
       id-token: write
       contents: read
+      actions: read
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -103,6 +104,35 @@ jobs:
         uses: actions/upload-pages-artifact@v3
         with:
           path: .mkdocs-site
+      # GitHub's Pages deployment lookup can briefly lag behind a successful
+      # upload-pages-artifact step (upstream actions/deploy-pages#451).
+      # Do not call deploy-pages until the exact run's artifact is visible.
+      - name: Wait for GitHub Pages artifact availability
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          artifact_api="https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/artifacts?per_page=100"
+          found=false
+          for attempt in $(seq 1 20); do
+            if curl --fail --silent --show-error \
+              -H "Authorization: Bearer ${GH_TOKEN}" \
+              -H "Accept: application/vnd.github+json" \
+              "${artifact_api}" | jq -e \
+                'any(.artifacts[]?; .name == "github-pages" and .expired == false)' >/dev/null; then
+              found=true
+              break
+            fi
+            echo "Pages artifact not yet indexed (attempt ${attempt}/20)."
+            sleep 3
+          done
+          if test "${found}" != true; then
+            echo "::error::Pages artifact was not visible in this run; refusing deployment."
+            exit 1
+          fi
+          # Allow the Pages-specific lookup backend to catch up as well.
+          sleep 15
       - name: Publish to existing GitHub Pages hosting
         id: deployment
         uses: actions/deploy-pages@v4
