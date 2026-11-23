@@ -1,5 +1,8 @@
 # OpenKubes Security Assessment Contract — Candidate v0alpha1
 
+> **HISTORICAL v0.1 DRAFT — SUPERSEDED.** For architecture and implementation review use [Control Catalog v0.2](CONTROL-CATALOG-v0.2.md) and [Assessment Contract v0alpha2](ASSESSMENT-CONTRACT-v0alpha2.md), together with [Capability Specification v0.2](CAPABILITY-SPEC-v0.2.md). This file is preserved for reviewer diff only; it is not the active contract.
+
+
 - **Status:** Research DRAFT — no accepted API, deployed service, authorization or implementation.
 - **Related:** [Capability Specification](README.md), [Control Catalog](CONTROL-CATALOG-v0.1.md), ADR-Platform-000 (Accepted principle), ADR-Platform-021 (Draft diagnostics interface), ADR-Platform-035 (Proposed strict HITL).
 - **Transport:** Undecided. Do not infer that a publicly reachable HTTP endpoint exists.
