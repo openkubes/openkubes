@@ -7,6 +7,7 @@ ROOT = Path(__file__).resolve().parents[2]
 SOURCE = ROOT / "docs"
 TARGET = ROOT / ".mkdocs-staging"
 ARTICLES = (
+    "kubeception-v2.md",
     "nvidia-confidential-containers-agent-authority.md",
     "openkubes-byoh-controller.md",
     "if-we-built-kubernetes-today.md",
