@@ -23,6 +23,7 @@ extra_css:
   - assets/openkubes-branding.css
 extra_javascript:
   - assets/openkubes-branding.js
+  - assets/openkubes-research-lightbox.js
 plugins:
   - search
 markdown_extensions:
