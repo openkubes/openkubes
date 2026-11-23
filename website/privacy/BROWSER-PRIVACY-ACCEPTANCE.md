@@ -1,7 +1,7 @@
 # OpenKubes browser privacy acceptance (manual evidence)
 
 ## Scope
-Only `openkubes.org` and `preview.openkubes.org`. The audit runs in a clean Chromium context on the homepage and `/ai/`, then submits one predefined non-sensitive Ask OK AI Lite question on the homepage. No marketing acceptance, external links, or production publication is performed.
+The audit runs in a clean Chromium context on the homepage and `/ai/` on GitHub Pages at `openkubes.org`. Preview HTML is checked for retired widgets during the artifact-only build.
 
 ## How to run
 After this workflow is merged and reviewed, manually select **Actions → OpenKubes browser privacy evidence (manual, no deployment) → Run workflow** on `main`. Retrieve artifact `openkubes-browser-privacy-audit`.
@@ -11,9 +11,9 @@ The test captures only hostnames, resource types, request counts, HTTP status, b
 A nonzero cookie or storage count is **not automatically proof of unlawful tracking**; review necessity, provenance and consent conditions separately. Passing the checker is **not** certification of privacy compliance.
 
 ## Review gates
-- [ ] Both origins and both routes resolve and return non-error HTTP responses.
+- [ ] Both production routes resolve and return non-error HTTP responses.
 - [ ] No known ad/analytics/remote-font domains appear in requests.
-- [ ] Ask OK AI Lite opens and submits a synthetic question with no additional remote third-party requests.
+- [ ] Both production routes render without the retired floating OK AI widgets.
 - [ ] Explain every third-party hostname that appears, even when absent from the denylist.
 - [ ] For every cookie/storage count above zero, manually identify the initiator, purpose, storage duration and legal basis; do not publish secret values.
 - [ ] Verify actual browser storage (including IndexedDB and service workers) manually in a clean browser profile. Automated counters intentionally do not inspect contents.

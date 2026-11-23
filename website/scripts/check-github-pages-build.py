@@ -31,6 +31,8 @@ def check_unapproved_legal_drafts(site: Path) -> None:
 
 
 def main():
+    from retired_widgets import check_retired_widgets
+
     if (SITE / "CNAME").read_text(encoding="utf-8").strip() != "openkubes.org":
         raise SystemExit("GitHub Pages production CNAME is missing or incorrect")
     if not (SITE / ".nojekyll").is_file():
@@ -39,7 +41,7 @@ def main():
     if "Disallow: /" in robots or "Allow: /" not in robots:
         raise SystemExit("Production must be publicly indexable")
     if (SITE / "_headers").exists():
-        raise SystemExit("Preview-only Cloudflare _headers must not be shipped")
+        raise SystemExit("Legacy preview _headers must not be shipped")
     check_unapproved_legal_drafts(SITE)
     for name in ("index.html", "getting-started/index.html",
                  "agentic-operations-reference-architecture/index.html",
@@ -62,22 +64,7 @@ def main():
         for href in ("/legal/imprint/", "/legal/privacy/"):
             if f'href="{href}"' not in html:
                 raise SystemExit(f"{name}: legal footer link missing: {href}")
-    # Production launch guard: all pages must use the same reviewed Lite UI.
-    homepage = (SITE / "index.html").read_text(encoding="utf-8")
-    ai_page = (SITE / "ai" / "index.html").read_text(encoding="utf-8")
-    widget = (SITE / "assets" / "ok-ai-lite-preview.js").read_text(encoding="utf-8")
-    if homepage.count('script.src = "/assets/ok-ai-lite-preview.js";') != 1:
-        raise SystemExit("Production homepage missing exactly one Lite loader")
-    if 'script.src = "/assets/ok-ai-floating-demo.js";' in homepage:
-        raise SystemExit("Production homepage contains old DEMO loader")
-    for name, source in (("homepage", homepage), ("MkDocs AI", ai_page), ("Lite widget", widget)):
-        for domain in ("preview.openkubes.org", "openkubes.org"):
-            if domain not in source:
-                raise SystemExit(f"{name}: approved website host missing: {domain}")
-    if "ok-ai-lite-preview.js" not in ai_page:
-        raise SystemExit("Production MkDocs AI page missing Lite loader")
-    if "No AI backend" not in widget or "Beta 1 Lite only answers" not in widget:
-        raise SystemExit("Lite widget refusal and static backend disclosure missing")
+    check_retired_widgets(SITE)
     print("GitHub Pages production candidate safety checks passed")
 
 if __name__ == "__main__":

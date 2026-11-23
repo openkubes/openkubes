@@ -25,3 +25,6 @@ __pycache__/
 .mkdocs-staging/
 .mkdocs-site/
 .ok196-sources/
+
+# Local Cloudflare Wrangler state
+.wrangler/

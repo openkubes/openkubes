@@ -1,21 +1,12 @@
 #!/usr/bin/env node
 // Manual privacy evidence audit using Playwright Chromium.
 // Captures ONLY domains, request types, resource counts and browser storage
-// metadata. Never logs question text, cookie values, request URLs, or HAR bodies.
+// metadata. Never logs cookie values, request URLs, or HAR bodies.
 const { chromium } = require('playwright');
 const fs = require('node:fs');
 const { URL } = require('node:url');
 
-const targets = Object.freeze({
-  production: 'https://openkubes.org/',
-  preview: 'https://preview.openkubes.org/',
-});
-const target = process.env.AUDIT_TARGET || 'both';
-if (!['preview', 'production', 'both'].includes(target)) {
-  console.error('Invalid AUDIT_TARGET (expected preview, production or both).');
-  process.exit(2);
-}
-const origins = target === 'both' ? [targets.production, targets.preview] : [targets[target]];
+const origin = 'https://openkubes.org/';
 const routes = ['/', '/ai/'];
 const BLOCKED = [
   'googletagmanager.com', 'google-analytics.com', 'doubleclick.net',
@@ -39,12 +30,12 @@ async function snapshot(page) {
   const serviceWorkers = page.context().serviceWorkers().length;
   return { ...state, contextCookieCount: cookies.length, serviceWorkerCount: serviceWorkers };
 }
-async function inspect(browser, origin, route) {
+async function inspect(browser, route) {
   const context = await browser.newContext({ locale: 'en-US', serviceWorkers: 'block' });
   const page = await context.newPage();
   const events = [];
   const pageErrors = [];
-  page.on('request', req => events.push({ host: safeHost(req.url()), type: req.resourceType(), phase: 'load' }));
+  page.on('request', req => events.push({ host: safeHost(req.url()), type: req.resourceType() }));
   page.on('pageerror', err => pageErrors.push(err.name || 'Error'));
   const target = new URL(route, origin).toString();
   let status = null, error = null;
@@ -52,33 +43,8 @@ async function inspect(browser, origin, route) {
     const response = await page.goto(target, { waitUntil: 'networkidle', timeout });
     status = response?.status() ?? null;
     await page.waitForTimeout(800);
-    const before = await snapshot(page);
-    let interaction = null;
-    if (route === '/') {
-      const opener = page.getByRole('button', { name: /Open curated OK AI Lite|Ask OK AI/i }).first();
-      if (await opener.count()) {
-        const preClick = events.length;
-        await opener.click();
-        const field = page.locator('#okai-floating-input');
-        if (await field.count()) {
-          // Fixed synthetic question only; text is never recorded in the report.
-          await field.fill('What is OpenKubes Local?');
-          await page.locator('.okai-input-form button[type="submit"]').click();
-          await page.waitForTimeout(1000);
-          interaction = {
-            widgetFound: true,
-            requestCountFromInteraction: events.length - preClick,
-            remoteHostsFromInteraction: [...new Set(events.slice(preClick).map(e => e.host)
-              .filter(h => h && h !== new URL(origin).hostname))].sort(),
-          };
-        } else {
-          interaction = { widgetFound: false, reason: 'Input missing after opening widget' };
-        }
-      } else {
-        interaction = { widgetFound: false, reason: 'Lite launcher not detected' };
-      }
-    }
-    const after = await snapshot(page);
+    const storage = await snapshot(page);
+    const retiredWidgetFound = await page.locator('#okai-floating-demo, #okai-float-panel, #okai-floating-input').count() > 0;
     const hosts = [...new Set(events.map(e => e.host).filter(Boolean))].sort();
     return {
       origin, route, status,
@@ -86,7 +52,7 @@ async function inspect(browser, origin, route) {
       hosts,
       forbiddenHosts: hosts.filter(forbidden),
       requestsByType: events.reduce((obj, e) => { obj[e.type] = (obj[e.type] || 0) + 1; return obj; }, {}),
-      before, after, interaction, pageErrorTypes: pageErrors,
+      storage, retiredWidgetFound, pageErrorTypes: pageErrors,
     };
   } catch (e) {
     error = e.name || 'BrowserAuditError';
@@ -99,14 +65,14 @@ async function inspect(browser, origin, route) {
   const browser = await chromium.launch({ headless: true });
   const results = [];
   try {
-    for (const origin of origins) for (const route of routes) {
-      results.push(await inspect(browser, origin, route));
+    for (const route of routes) {
+      results.push(await inspect(browser, route));
     }
   } finally {
     await browser.close();
   }
   const report = {
-    schema: 'openkubes-browser-privacy-audit-v1',
+    schema: 'openkubes-browser-privacy-audit-v2',
     auditedAt: new Date().toISOString(),
     caveat: 'Point-in-time automated Chromium evidence; does not establish legal compliance or server-log retention',
     results,
@@ -117,8 +83,7 @@ async function inspect(browser, origin, route) {
     if (r.error) errors.push(r.origin + r.route + ': browser error ' + r.error);
     if (!r.status || r.status >= 400) errors.push(r.origin + r.route + ': HTTP status ' + r.status);
     if (r.forbiddenHosts?.length) errors.push(r.origin + r.route + ': blocked third-party hosts ' + r.forbiddenHosts.join(', '));
-    if (r.interaction && !r.interaction.widgetFound) errors.push(r.origin + r.route + ': Lite missing');
-    if (r.interaction?.remoteHostsFromInteraction?.length) errors.push(r.origin + r.route + ': Lite interaction contacted ' + r.interaction.remoteHostsFromInteraction.join(', '));
+    if (r.retiredWidgetFound) errors.push(r.origin + r.route + ': retired OK AI widget found');
     return errors;
   });
   for (const issue of blockers) console.error('PRIVACY AUDIT:', issue);
