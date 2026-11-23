@@ -44,6 +44,18 @@ def main():
         if not source_page.is_file() or source_page.is_symlink():
             raise SystemExit(f"Missing Security First page or SVG: {source_page}")
         shutil.copy2(source_page, architecture_target / filename)
+    # Stage the Research section without making production-readiness claims.
+    research_source = pages / "research"
+    research_target = TARGET / "research"
+    for relative in ("index.md", "security/index.md",
+                     "security/hitl-hotl-policy-bounded-autonomy.md",
+                     "experiments/index.md", "security/policy-bounded-autonomy.svg"):
+        src = research_source / relative
+        if not src.is_file() or src.is_symlink():
+            raise SystemExit(f"Missing Research page: {src}")
+        dest = research_target / relative
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(src, dest)
     # Stage the Open Universe landing page and vector illustration.
     universe_source = pages / "open-universe"
     universe_target = TARGET / "open-universe"

@@ -100,3 +100,18 @@
     max-width: none;
   }
 }
+
+/* GitHub-renderable Markdown images: MkDocs rewrites relative .svg links. */
+.md-typeset a:has(> img[src*="policy-bounded-autonomy.svg"]) {
+  display:block;width:92%;max-width:1000px;margin:1.4rem auto 0;
+}
+.md-typeset a:has(> img[src*="policy-bounded-autonomy.svg"]) > img {
+  display:block;width:100%;height:auto;border-radius:.65rem;
+  border:1px solid rgba(91,132,173,.23);background:#fff;
+}
+.md-typeset .md-content__inner > p:has(a > img[src*="policy-bounded-autonomy.svg"]) {
+  text-align:center;
+}
+@media(max-width:768px){
+  .md-typeset a:has(> img[src*="policy-bounded-autonomy.svg"]){width:100%;max-width:none}
+}
