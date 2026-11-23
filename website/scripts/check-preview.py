@@ -103,12 +103,19 @@ def main():
     roadmap_html = (SITE / "ai" / "ai-roadmap" / "index.html").read_text(encoding="utf-8")
     for required in ("AI Assistant", "AI Diagnostic Agent", "AI SRE Agent",
                      "AI Security Agent", "HITL", "HOTL", "new accepted normative ADR",
-                     "independent Policy Authority", "ok-ai-roadmap__card",
-                     "ai-four-agents-security-architecture.svg"):
+                     "Independent Policy Authority", "ok-ai-roadmap__card",
+                     "ai-four-agents-security-architecture.svg",
+                     "Capability roadmap and evidence gates", "Security by Contract"):
         if required.lower() not in roadmap_html.lower():
-            raise SystemExit(f"OK AI four-agent roadmap missing required concept: {required}")
+            raise SystemExit(f"OK AI roadmap missing required concept: {required}")
     if roadmap_html.count('class="ok-ai-roadmap__card ') != 4:
         raise SystemExit("OK AI roadmap must render exactly four agent cards")
+    for label in ("AI Assistant", "AI Diagnostic Agent", "AI SRE Agent", "AI Security Agent"):
+        if label not in roadmap_html:
+            raise SystemExit(f"OK AI missing agent card: {label}")
+    for anchor in ("ok-ai-oversight", "ok-ai-oversight__item", "ok-ai-roadmap__boundary"):
+        if anchor not in roadmap_html:
+            raise SystemExit(f"OK AI missing compact UI component: {anchor}")
     roadmap_svg = SITE / "ai" / "ai-four-agents-security-architecture.svg"
     if not roadmap_svg.is_file():
         raise SystemExit("OK AI four-agent architecture SVG not staged")
@@ -116,11 +123,16 @@ def main():
     if "<svg" not in roadmap_svg_source or "<image" in roadmap_svg_source or "data:image/" in roadmap_svg_source:
         raise SystemExit("OK AI architecture diagram must be native vector SVG")
     for required in ("AI Assistant", "AI Diagnostic Agent", "AI SRE Agent",
-                     "AI Security Agent", "FUTURE HOTL NEEDS NEW ADR"):
+                     "AI Security Agent", "FUTURE HOTL NEEDS NEW ADR",
+                     "TRUSTED INTAKE", "INDEPENDENT POLICY AUTHORITY"):
         if required not in roadmap_svg_source:
-            raise SystemExit(f"OK AI architecture diagram missing boundary: {required}")
-    if re.search(r"\bOK-\d+\b|kubernauts\.atlassian\.net", roadmap_html, re.I):
+            raise SystemExit(f"OK AI diagram missing security boundary: {required}")
+    if re.search(r"\\bOK-\\d+\\b|kubernauts\\.atlassian\\.net", roadmap_html, re.I):
         raise SystemExit("Private Jira reference in public OK AI roadmap")
+    ai_css = (SITE / "assets/openkubes-theme.css").read_text(encoding="utf-8")
+    for required in (".ok-ai-oversight", ".ok-ai-roadmap__card h3", "@media(max-width:900px)"):
+        if required not in ai_css:
+            raise SystemExit(f"OK AI compact responsive CSS missing: {required}")
     glossary_html = (SITE / "ai" / "ai-glossary-newbies" / "index.html")
     if not glossary_html.is_file():
         raise SystemExit("Missing AI Glossary rendered page")
