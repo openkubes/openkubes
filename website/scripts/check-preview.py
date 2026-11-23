@@ -200,10 +200,16 @@ def main():
         if not (SITE / research_path).is_file():
             raise SystemExit(f"Missing Research page: {research_path}")
     research_html = (SITE / "research/security/hitl-hotl-policy-bounded-autonomy/index.html").read_text(encoding="utf-8")
-    # Check invariant concepts, not editorial wording that changes between research drafts.
-    for label in ("Research Paper 001", "Reviewed Research", "requires a new ADR", "not a production deployment"):
-        if label.lower() not in research_html.lower():
-            raise SystemExit(f"Research maturity boundary absent: {label}")
+    # Verify stable maturity concepts, not a brittle exact editorial sentence.
+    research_text = research_html.lower()
+    for label in ("research paper 001", "reviewed research", "adr-035",
+                  "standing mandate", "production"):
+        if label not in research_text:
+            raise SystemExit(f"Research maturity concept absent: {label}")
+    if not re.search(r"new (?:accepted )?normative adr|new adr", research_text):
+        raise SystemExit("Research paper does not explain the future HOTL ADR requirement")
+    if not re.search(r"not a (?:deployed system diagram|production deployment)|not.*production[- ]approved", research_text):
+        raise SystemExit("Research paper does not distinguish research from production")
     if '<a href="/research/">Research</a>' not in research_html:
         raise SystemExit("Shared Material navigation missing Research")
     research_svg = SITE / "research/security/policy-bounded-autonomy.svg"
