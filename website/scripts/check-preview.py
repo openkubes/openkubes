@@ -4,6 +4,8 @@ from html.parser import HTMLParser
 from pathlib import Path
 import re
 
+from retired_widgets import check_retired_widgets
+
 ROOT = Path(__file__).resolve().parents[2]
 SITE = ROOT / ".mkdocs-site"
 LEGACY = ROOT / "docs" / "index.html"
@@ -30,17 +32,7 @@ def main():
     index = SITE / "index.html"
     html = index.read_text(encoding="utf-8")
     original = LEGACY.read_text(encoding="utf-8")
-    # Legacy homepage must load curated Lite, never the obsolete DEMO widget.
-    # Verify both approved website hosts are present in the source and output.
-    if html.count('script.src = "/assets/ok-ai-lite-preview.js";') != 1:
-        raise SystemExit("Legacy homepage Lite widget loader missing or duplicated")
-    if 'script.src = "/assets/ok-ai-floating-demo.js";' in html:
-        raise SystemExit("Legacy homepage still loads obsolete DEMO widget")
-    for hostname in ("preview.openkubes.org", "openkubes.org"):
-        if hostname not in html or hostname not in original:
-            raise SystemExit(f"Homepage allowed hostname missing: {hostname}")
-    if not (SITE / "assets" / "ok-ai-lite-preview.js").is_file():
-        raise SystemExit("Lite widget asset is missing from built site")
+    check_retired_widgets(SITE)
     if "ok-global-nav" not in html or "OpenKubes primary navigation" not in html:
         raise SystemExit("Missing shared homepage navigation")
     if 'class="ok-global-nav__brand ok-global-nav__brand--text"' not in html:
@@ -96,8 +88,6 @@ def main():
                 raise SystemExit(f"Shared navigation missing on {section}")
     if not (SITE / "assets" / "openkubes-theme.css").is_file():
         raise SystemExit("Shared Material theme asset missing")
-    if not (SITE / "assets" / "ok-ai-lite-preview.js").is_file():
-        raise SystemExit("Missing curated Lite preview JavaScript asset")
     guide_path = SITE / "community" / "how-to-update-docs" / "index.html"
     if not guide_path.is_file():
         raise SystemExit("Missing community documentation contribution guide")

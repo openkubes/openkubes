@@ -1,6 +1,8 @@
 # GitHub-only website publishing (OK-196)
 
-The source of truth is reviewed `origin/main`. No Cloudflare Pages preview is involved.
+The source of truth is reviewed `origin/main`. GitHub Actions builds downloadable previews and GitHub Pages serves production.
+
+Historical records describe the former Cloudflare Pages preview at `preview.openkubes.org`. Any external project or DNS retirement is handled separately from the repository's publishing workflow.
 
 ## Build and inspect the preview
 
@@ -36,7 +38,3 @@ If a run fails, inspect the specific GitHub Actions run and the first failed bui
 gh run list --repo openkubes/openkubes --workflow ok196-pages-release.yml --limit 10
 gh variable get OK196_PAGES_RELEASE_ENABLED --repo openkubes/openkubes
 ```
-
-### Retiring the legacy Cloudflare preview
-
-This PR removes the **repository's active Cloudflare build/publish integration**. It does not delete the external Cloudflare Pages project, its custom domain `preview.openkubes.org`, DNS entries or any related account configuration. After confirming this GitHub-only workflow, an authorized Cloudflare/DNS administrator should separately retire the external preview project and domain, and review the public privacy notice before changing the statement about hosting. Historical architecture/release records may still mention the former hosting setup.

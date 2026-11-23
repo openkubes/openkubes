@@ -37,21 +37,3 @@
     <span>Website operator: Kubernauts GmbH</span>
   </div>
 {% endblock %}
-
-{% block scripts %}
-  {{ super() }}
-  <script>
-    /* Curated Beta 1 Lite widget: approved production and preview domains only. */
-    (function () {
-      if (!["preview.openkubes.org", "openkubes.org"].includes(window.location.hostname)) return;
-      var stylesheet = document.createElement("link");
-      stylesheet.rel = "stylesheet";
-      stylesheet.href = "{{ 'assets/ok-ai-floating-demo.css' | url }}";
-      document.head.appendChild(stylesheet);
-      var script = document.createElement("script");
-      script.src = "{{ 'assets/ok-ai-lite-preview.js' | url }}";
-      script.defer = true;
-      document.body.appendChild(script);
-    })();
-  </script>
-{% endblock %}

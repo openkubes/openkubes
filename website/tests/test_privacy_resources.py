@@ -55,7 +55,7 @@ class PrivacyGuardTests(unittest.TestCase):
         self.assertEqual(result, [])
 
     def test_allow_first_party_assets(self):
-        result = self.check("index.html", '<script src="/assets/ok-ai-lite-preview.js"></script><img src="/images/local.webp">')
+        result = self.check("index.html", '<script src="/assets/openkubes-branding.js"></script><img src="/images/local.webp">')
         self.assertEqual(result, [])
 
     def test_no_empty_site_pass(self):

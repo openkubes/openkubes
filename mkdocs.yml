@@ -1,6 +1,6 @@
 site_name: OpenKubes
 site_url: https://openkubes.org/
-site_description: Preview-only unified OpenKubes website and developer documentation
+site_description: OpenKubes website and developer documentation
 docs_dir: .mkdocs-staging
 site_dir: .mkdocs-site
 theme:

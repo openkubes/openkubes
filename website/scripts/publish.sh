@@ -64,7 +64,6 @@ preview() {
   dispatch_and_watch "$target" "$preview_workflow" preview
   verify_remote_revision "$target"
   echo "GitHub Actions preview build succeeded; download the generated HTML from the workflow artifact."
-  echo "No public preview site or Cloudflare deployment is used."
 }
 
 publish() {

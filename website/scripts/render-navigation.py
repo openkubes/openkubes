@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
-"""Preview-only shared OpenKubes navigation for the preserved legacy homepage.
-
-Does not modify docs/index.html or any production files. Other pages use the
-MkDocs Material navigation configured by mkdocs.yml.
-"""
+"""Add shared OpenKubes navigation to the preserved legacy homepage."""
 from pathlib import Path
 from html import escape
 
@@ -45,15 +41,8 @@ def main():
     html = source.replace(
         "</head>", '<link rel="stylesheet" href="/assets/openkubes-navigation.css">\n</head>', 1
     ).replace("<body>", "<body>\n" + menu, 1)
-    # The source homepage now carries the approved Lite loader. Keep its
-    # domain allowlist unchanged when adding preview-only navigation.
-    lite_src = 'script.src = "/assets/ok-ai-lite-preview.js";'
-    if source.count(lite_src) != 1 or html.count(lite_src) != 1:
-        raise SystemExit("Expected one curated Lite loader in legacy homepage")
-    if 'script.src = "/assets/ok-ai-floating-demo.js";' in html:
-        raise SystemExit("Obsolete DEMO loader detected in homepage")
     OUTPUT.write_text(html, encoding="utf-8")
-    print("Shared OpenKubes navigation injected into preview-only homepage")
+    print("Shared OpenKubes navigation injected into the built homepage")
 
 if __name__ == "__main__":
     main()
