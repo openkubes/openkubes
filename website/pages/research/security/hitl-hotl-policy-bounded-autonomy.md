@@ -14,12 +14,9 @@ HITL and HOTL describe modes of human participation and supervision. Policy-Boun
 
 ## Proposed responsibility model
 
-<figure class="ok-research-diagram">
-  <a href="/research/security/policy-bounded-autonomy.svg" target="_blank" rel="noopener" aria-label="Open the Policy-Bounded Autonomy architecture diagram at full size">
-    <img src="/research/security/policy-bounded-autonomy.svg" alt="Research architecture: current exact HITL review, trusted policy authority, bounded executor, conditional acceptance, Kubernetes reconciliation and independent evidence. The future HOTL standing mandate is research-only and requires a new ADR." loading="lazy">
-  </a>
-  <figcaption>Policy-Bounded Autonomy — research architecture, not a production deployment. Select the diagram to open the native SVG in full size.</figcaption>
-</figure>
+[![Research architecture: exact HITL review, independent Policy Authority, bounded execution, conditional acceptance, Kubernetes reconciliation and independent evidence. Future HOTL mandates require a new ADR.](policy-bounded-autonomy.svg)](policy-bounded-autonomy.svg)
+
+*Policy-Bounded Autonomy — research architecture, not a production deployment. Select the diagram to open the native SVG in full size.*
 
 1. An untrusted agent performs permitted read-only diagnostics and submits a candidate proposal.
 2. Trusted components canonicalize the exact change and produce a protected, human-visible review artifact.
