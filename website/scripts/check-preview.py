@@ -200,7 +200,7 @@ def main():
     research_outputs = SITE / "research"
     for candidate in list(research_sources.rglob("*.md")) + list(research_outputs.rglob("*.html")):
         body = candidate.read_text(encoding="utf-8")
-        if re.search(r"\\bOK-\\d+\\b|kubernauts\\.atlassian\\.net", body, flags=re.I):
+        if re.search(r"\bOK-\d+\b|kubernauts\.atlassian\.net", body, flags=re.I):
             raise SystemExit(f"Private Jira reference in public Research: {candidate}")
     for research_path in ("research/index.html", "research/security/index.html",
                           "research/security/hitl-hotl-policy-bounded-autonomy/index.html",
