@@ -100,3 +100,11 @@
     max-width: none;
   }
 }
+
+/* OpenKubes Research: native SVG with compact desktop previews and full-width mobile. */
+.ok-research-diagram{width:92%;max-width:1000px;margin:1.4rem auto 1.3rem;text-align:center}
+.ok-research-diagram--preview{width:65%;max-width:650px}
+.ok-research-diagram>a{display:block}
+.ok-research-diagram img{display:block;width:100%;height:auto;border-radius:.65rem;border:1px solid rgba(91,132,173,.23);background:#fff}
+.ok-research-diagram figcaption{margin:.65rem auto 0;line-height:1.5;font-size:.78rem;color:var(--md-default-fg-color--light,#586e86)}
+@media(max-width:768px){.ok-research-diagram,.ok-research-diagram--preview{width:100%;max-width:none}}
