@@ -36,6 +36,14 @@ def main():
         destination = TARGET / section
         destination.mkdir(parents=True, exist_ok=True)
         shutil.copy2(source_page, destination / "index.md")
+    # Architecture Security First article and its native SVG illustration.
+    architecture_source = pages / "architecture"
+    architecture_target = TARGET / "architecture"
+    for filename in ("security-first.md", "security-first.svg"):
+        source_page = architecture_source / filename
+        if not source_page.is_file() or source_page.is_symlink():
+            raise SystemExit(f"Missing Security First page or SVG: {source_page}")
+        shutil.copy2(source_page, architecture_target / filename)
     # Stage the Open Universe landing page and vector illustration.
     universe_source = pages / "open-universe"
     universe_target = TARGET / "open-universe"
