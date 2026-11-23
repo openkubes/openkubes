@@ -4,6 +4,10 @@ Architecture decisions, platform engineering lessons and implementation stories.
 
 ## Latest articles
 
+### [Kubeception V2: From Kubernetes-in-Kubernetes to Virtual Cluster Lifecycle Management](/kubeception-v2/)
+
+From the Kubernauts KiK meetup in 2020 to OpenKubes' contract-driven vision for classic CAPI/BYOH clusters, vCluster, KubeVirt-based VNC and future hosted control planes. The virtual-cluster adapters remain proposed or under evaluation.
+
 ### [Why We Built the OpenKubes BYOH Controller](/openkubes-byoh-controller/)
 
 How OpenKubes builds on Cluster API and BYOH to bring existing Linux hosts into a consistent lifecycle, with explicit boundaries between upgrades and replacement. Engineering story; in-place execution and real-host proof remain in progress.
