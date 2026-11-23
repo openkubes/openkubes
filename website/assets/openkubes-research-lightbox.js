@@ -1,19 +1,36 @@
-/* OpenKubes Research: progressively enhance native SVG links into an accessible lightbox.
- * Keep the plain relative Markdown link functional on GitHub and without JavaScript.
+/* OpenKubes diagram lightbox, shared across Architecture, Research, Open Universe,
+ * Tutorials and Blog. Existing Markdown image links remain functional on GitHub
+ * and with JavaScript disabled. Only images in the article content are enhanced.
  */
 (function () {
   "use strict";
+
+  function isSvgUrl(url) {
+    try {
+      return /\.svg$/i.test(new URL(url, document.baseURI).pathname);
+    } catch (_) {
+      return false;
+    }
+  }
+
   function initialize() {
     if (!("HTMLDialogElement" in window)) return;
-    const selector = 'a[href$="policy-bounded-autonomy.svg"]';
-    const links = Array.from(document.querySelectorAll(selector)).filter(function (link) {
-      return !!link.querySelector("img");
+
+    // Do not touch the global navigation, logo, social icons or other site chrome.
+    const candidates = document.querySelectorAll(".md-content img[src]");
+    const diagrams = Array.from(candidates).filter(function (img) {
+      if (!isSvgUrl(img.getAttribute("src"))) return false;
+      if (img.closest('[data-ok-svg-lightbox="off"]')) return false;
+      const anchor = img.closest("a[href]");
+      // On overview pages a linked thumbnail must still navigate to its article.
+      if (anchor && !isSvgUrl(anchor.getAttribute("href"))) return false;
+      return true;
     });
-    if (!links.length) return;
+    if (!diagrams.length) return;
 
     const dialog = document.createElement("dialog");
     dialog.className = "ok-research-lightbox";
-    dialog.setAttribute("aria-label", "Policy-Bounded Autonomy diagram enlarged");
+    dialog.setAttribute("aria-label", "Enlarged SVG diagram");
     const inner = document.createElement("div");
     inner.className = "ok-research-lightbox__inner";
     const closeButton = document.createElement("button");
@@ -22,38 +39,62 @@
     closeButton.textContent = "Close ×";
     closeButton.setAttribute("aria-label", "Close enlarged diagram");
     const image = document.createElement("img");
-    image.alt = "Policy-Bounded Autonomy architecture diagram, enlarged";
     image.className = "ok-research-lightbox__image";
+    image.alt = "Enlarged diagram";
     inner.append(closeButton, image);
     dialog.append(inner);
     document.body.append(dialog);
 
     let trigger = null;
     function close() { dialog.close(); }
+    function open(source, element, alt) {
+      trigger = element;
+      image.alt = alt || "Enlarged SVG diagram";
+      image.src = source;
+      dialog.showModal();
+      closeButton.focus();
+    }
+
     closeButton.addEventListener("click", close);
     dialog.addEventListener("click", function (event) {
       if (event.target === dialog) close();
     });
     dialog.addEventListener("close", function () {
+      image.removeAttribute("src");
       if (trigger && trigger.isConnected) trigger.focus({ preventScroll: true });
       trigger = null;
-      image.removeAttribute("src");
     });
 
-    links.forEach(function (link) {
-      link.setAttribute("aria-label", "Enlarge architecture diagram in a popup");
-      link.addEventListener("click", function (event) {
-        // Preserve browser-native open-in-new-tab and context-menu functionality.
-        if (event.defaultPrevented || event.button !== 0 ||
-            event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-        event.preventDefault();
-        trigger = link;
-        image.src = link.href;
-        dialog.showModal(); // Native Escape behavior and focus isolation.
-        closeButton.focus();
-      });
+    diagrams.forEach(function (img) {
+      const anchor = img.closest("a[href]");
+      const source = anchor ? anchor.href : img.src;
+      const alt = img.alt || "SVG architecture diagram";
+      if (anchor) {
+        anchor.setAttribute("aria-label", "Enlarge diagram: " + alt);
+        anchor.addEventListener("click", function (event) {
+          // Keep modifiers and contextual actions native: new tabs remain possible.
+          if (event.defaultPrevented || event.button !== 0 ||
+              event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+          event.preventDefault();
+          open(source, anchor, alt);
+        });
+      } else {
+        // A plain Markdown image becomes a keyboard-operable control.
+        img.tabIndex = 0;
+        img.setAttribute("role", "button");
+        img.setAttribute("aria-label", "Enlarge diagram: " + alt);
+        img.classList.add("ok-svg-lightbox-trigger");
+        img.addEventListener("click", function () { open(source, img, alt); });
+        img.addEventListener("keydown", function (event) {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            open(source, img, alt);
+          }
+        });
+      }
     });
   }
+
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", initialize, { once: true });
   } else {
