@@ -4,6 +4,16 @@
 
 OpenKubes is developing four **distinct, optional agent capability tracks**. They can evolve independently and share a provider-neutral, security-by-contract foundation. This roadmap is **not** a sequential autonomy ladder or a release announcement: greater diagnostic intelligence does not imply greater infrastructure authority.
 
+## One shared security-by-contract architecture
+
+The roles differ in purpose and capability. **None of them is an authorization authority simply because it is an AI agent.**
+
+[![Four OpenKubes AI Agent tracks converge on trusted intake, independent authorization, bounded execution and evidence.](ai-four-agents-security-architecture.svg)](ai-four-agents-security-architecture.svg)
+
+*Conceptual target architecture — not a deployed topology. Select the native SVG to enlarge it without leaving this page.*
+
+## Four specialized agent tracks
+
 <div class="ok-ai-roadmap" aria-label="Four OpenKubes AI agent capability tracks">
   <article class="ok-ai-roadmap__card ok-ai-roadmap__card--docs">
     <div class="ok-ai-roadmap__top"><span class="ok-ai-roadmap__icon" aria-hidden="true">📖</span><span class="ok-ai-roadmap__status">Private lab: limited check</span></div>
@@ -46,13 +56,7 @@ OpenKubes is developing four **distinct, optional agent capability tracks**. The
 !!! info "Transparent maturity — not four released products"
     The AI Assistant has only passed a **limited private-lab format/source-ID check for one question**, not public-beta or semantic-grounding certification. The Diagnostic Agent has a documented provider-neutral read-only contract and implementation components, but production deployment readiness is not established. The SRE Agent's exact HITL execution protocol is proposed; general agent-initiated HOTL requires a **new accepted normative ADR and tested enforcement**. The Security Agent is an architectural research direction. No claim here certifies a production four-agent deployment.
 
-## One shared security-by-contract architecture
-
-The roles differ in purpose and capability. **None of them is an authorization authority simply because it is an AI agent.**
-
-[![Four OpenKubes AI Agent tracks converge on trusted intake, independent authorization, bounded execution and evidence.](ai-four-agents-security-architecture.svg)](ai-four-agents-security-architecture.svg)
-
-*Conceptual target architecture — not a deployed topology. Select the native SVG to enlarge it without leaving this page.*
+## How the four agents collaborate
 
 An AI Assistant may help an operator describe an incident; the Diagnostic Agent may establish scoped observations; the Security Agent may assess the proposed risk; and the AI SRE Agent may submit a canonical remediation proposal. **The independent enforcement path** must still validate identity, scope and the exact transition before any mutating operation can be accepted.
 
