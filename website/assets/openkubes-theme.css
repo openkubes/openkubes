@@ -133,11 +133,12 @@
 .ok-research-lightbox__close {
   position: sticky; top: -2.55rem; float: right; z-index: 2;
   padding: .42rem .8rem; margin: -.35rem .45rem .2rem 0;
-  border: 1px solid #a6bbd3; border-radius: .4rem;
-  background: #fff; color: #132744; font: 600 .9rem system-ui, sans-serif;
+  border: 1px solid #b91c1c; border-radius: .4rem;
+  background: #dc2626; color: #fff; font: 600 .9rem system-ui, sans-serif;
   cursor: pointer;
 }
-.ok-research-lightbox__close:focus-visible { outline: 3px solid #228bcf; outline-offset: 2px; }
+.ok-research-lightbox__close:hover { background: #b91c1c; border-color: #991b1b; }
+.ok-research-lightbox__close:focus-visible { outline: 3px solid #2563eb; outline-offset: 3px; }
 .ok-research-lightbox__image { display: block; width: max(100%, 1040px); height: auto; }
 @media(max-width:768px) {
   .ok-research-lightbox { width: 98vw; max-width: 98vw; max-height: 92vh; }
