@@ -56,7 +56,7 @@ workflow:
 | Local CAPD workflow (`make ok-capd`) | Disposable CAPI/CAPD development | `ok-capd-dev` | `~/.config/ok/capd/kubeconfig` |
 
 They must not share a Kind cluster or kubeconfig. The CAPD workflow does not
-use Scaleway inventories, SSH tunnels, OpenTofu state or BYOH host credentials.
+use host inventories, SSH tunnels, OpenTofu state or BYOH host credentials.
 It does not modify `ok-up`.
 
 ## 1. A short introduction to Cluster API

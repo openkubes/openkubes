@@ -1,0 +1,10 @@
+# Documented exceptions of hack/check-provider-neutrality.py: one glob of tracked files per line,
+# followed by "# reason". Product documentation, the website and architecture must stay
+# provider-neutral; only dated evidence records and provider-specific lab material are listed here.
+# Prefer a single "provider-neutrality: allow (<reason>)" line marker for one labeled reference.
+
+architecture/security/discovery/v0.2/02-findings-register.md  # dated assessment record; names the inspected lab repository revision
+architecture/security/discovery/v0.2/03-evidence-matrix.md    # dated assessment record; names the inspected lab repository revision
+architecture/security/discovery/v0.2/04-capi-adr-crosswalk.md # dated assessment record; refers to a prior lab finding as evidence
+hack/check-provider-neutrality.py                             # the check itself (its patterns)
+hack/test-provider-neutrality.py                              # tests of the check (provider names as test data)

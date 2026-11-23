@@ -1,0 +1,26 @@
+name: Provider neutrality
+
+# OpenKubes is provider-neutral: no infrastructure provider is a default or a
+# requirement. hack/check-provider-neutrality.py fails on provider-specific
+# references outside the documented exceptions (hack/provider-neutrality-allowlist.txt
+# and "provider-neutrality: allow (<reason>)" line markers).
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+jobs:
+  provider-neutrality:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Test the check
+        run: python3 -I hack/test-provider-neutrality.py
+      - name: Check provider neutrality
+        run: python3 -I hack/check-provider-neutrality.py

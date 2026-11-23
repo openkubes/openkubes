@@ -67,7 +67,7 @@ The recent BYOH work brings several pieces together:
 - a read-only upgrade planner that checks cluster identity, CAPI health, host inventory, package availability and workload health before an operator considers an upgrade;
 - an initial No-Replacement policy and Machine admission handler, designed to fail closed for protected scope;
 - regression tests and multi-architecture build coverage for the provider and its agent;
-- runbooks that make the current Scaleway test baseline and the limits of earlier experiments explicit.
+- runbooks that make the current E2E lab baseline and the limits of earlier experiments explicit.
 
 The distinction between planning and execution is intentional. A successful preflight is useful evidence, but it is not an upgrade. Likewise, an admission handler or a buildable Guard image is not the same thing as a fully deployed, non-bypassable production enforcement boundary.
 
@@ -85,7 +85,7 @@ That separation keeps the architecture understandable as infrastructure choices 
 
 ## What comes next
 
-Our immediate engineering milestone is to validate a CAPI-managed, same-management-plane in-place upgrade on real Scaleway BYOH hosts. The test must show more than a new Kubernetes version: CAPI desired state and the running nodes must agree, the original Machine and host identities must remain intact, and the workflow must not fall back to replacement.
+Our immediate engineering milestone is to validate a CAPI-managed, same-management-plane in-place upgrade on real BYOH hosts. The test must show more than a new Kubernetes version: CAPI desired state and the running nodes must agree, the original Machine and host identities must remain intact, and the workflow must not fall back to replacement.
 
 That proof has not yet been completed. We will publish the result when the implementation and evidence support it.
 
@@ -103,4 +103,4 @@ That is why we are building on the Kubernetes ecosystem while taking ownership o
 
 ---
 
-*This article describes the current engineering direction as of November 2026. The in-place upgrade executor, complete production Guard deployment and real-host Scaleway upgrade proof remain work in progress.*
+*This article describes the current engineering direction as of November 2026. The in-place upgrade executor, complete production Guard deployment and the real-host upgrade proof remain work in progress. The BYOH provider does not depend on a particular infrastructure provider: it runs on bare metal, virtual machines and supported clouds.*
