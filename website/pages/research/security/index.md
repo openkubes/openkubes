@@ -8,7 +8,7 @@ This area examines what it would take to make AI-assisted Kubernetes operations 
 
 ### [Beyond Human-in-the-Loop: Policy-Bounded Autonomy for Kubernetes Operations](hitl-hotl-policy-bounded-autonomy.md)
 
-**Status: Reviewed Research — publication text under editorial review.**
+**Status: Reviewed Research.**
 
 [View the full-size architecture diagram](policy-bounded-autonomy.svg) (native SVG; Research Only).
 
