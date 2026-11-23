@@ -12,7 +12,7 @@ OpenKubes is developing four **distinct, optional agent capability tracks**. The
     <p>Answers OpenKubes documentation and architecture questions from allowlisted public sources; guides users to tutorials and specialized diagnostics. Can route a request without acquiring the destination agent's privileges.</p>
     <p class="ok-ai-roadmap__boundary">Authority boundary: documentation only. No cluster access, commands or mutations.</p>
     <p class="ok-ai-roadmap__milestone"><strong>Next evidence:</strong> grounded answers, safe command handling, evaluation and public-beta security gates.</p>
-    <a href="chat-preview.md">Explore the chat UI prototype →</a>
+    <a href="/ai/chat-preview/">Explore the chat UI prototype →</a>
   </article>
   <article class="ok-ai-roadmap__card ok-ai-roadmap__card--diagnostics">
     <div class="ok-ai-roadmap__top"><span class="ok-ai-roadmap__icon" aria-hidden="true">🔎</span><span class="ok-ai-roadmap__status ok-ai-roadmap__status--planned">Contract defined · integration ongoing</span></div>
@@ -21,7 +21,7 @@ OpenKubes is developing four **distinct, optional agent capability tracks**. The
     <p>Investigates scoped Kubernetes workloads, cluster health, Cilium, logs, events and observability signals. Correlates evidence and produces transparent, reproducible diagnostic findings.</p>
     <p class="ok-ai-roadmap__boundary">Authority boundary: explicitly scoped read-only tools; Secrets excluded; no write privilege inherited from a tool server.</p>
     <p class="ok-ai-roadmap__milestone"><strong>Next evidence:</strong> backend isolation, negative RBAC tests, redaction and runtime-specific integration validation.</p>
-    <a href="kagent-platform-diagnostics.md">Explore the diagnostics contract →</a>
+    <a href="/ai/kagent-platform-diagnostics/">Explore the diagnostics contract →</a>
   </article>
   <article class="ok-ai-roadmap__card ok-ai-roadmap__card--operations">
     <div class="ok-ai-roadmap__top"><span class="ok-ai-roadmap__icon" aria-hidden="true">🛠️</span><span class="ok-ai-roadmap__status ok-ai-roadmap__status--planned">HITL proposed · HOTL research</span></div>
@@ -30,7 +30,7 @@ OpenKubes is developing four **distinct, optional agent capability tracks**. The
     <p>Plans workload remediation, Kubernetes/BYOH upgrades, availability recovery and lifecycle operations. Designed to support <strong>both exact Human-in-the-Loop (HITL)</strong> and, subject to a new approved authorization contract, <strong>bounded Human-on-the-Loop (HOTL)</strong>.</p>
     <p class="ok-ai-roadmap__boundary">Authority boundary: no direct agent mutation credentials. The current proposed path requires protected human approval per exact agent-originated transition; standing mandates are future research, never permanent agent RBAC.</p>
     <p class="ok-ai-roadmap__milestone"><strong>Next evidence:</strong> canonical proposal binding, revocation/acceptance ordering, bounded grants, risk budgets, fencing, recovery and E2E negative tests.</p>
-    <a href="../research/security/hitl-hotl-policy-bounded-autonomy.md">Research HITL, HOTL & policy-bounded autonomy →</a>
+    <a href="/research/security/hitl-hotl-policy-bounded-autonomy/">Research HITL, HOTL & policy-bounded autonomy →</a>
   </article>
   <article class="ok-ai-roadmap__card ok-ai-roadmap__card--security">
     <div class="ok-ai-roadmap__top"><span class="ok-ai-roadmap__icon" aria-hidden="true">🛡️</span><span class="ok-ai-roadmap__status ok-ai-roadmap__status--planned">Architecture research</span></div>
@@ -39,7 +39,7 @@ OpenKubes is developing four **distinct, optional agent capability tracks**. The
     <p>Investigates RBAC, privilege escalation paths, policy drift, Kubernetes workload security and security findings. Produces evidence-linked risk assessments and proposed controls for human and platform review.</p>
     <p class="ok-ai-roadmap__boundary">Authority boundary: the Security Agent is <strong>not</strong> the independent Policy Authority. It cannot waive policies, grant itself credentials, approve its own changes or mutate protected resources.</p>
     <p class="ok-ai-roadmap__milestone"><strong>Next evidence:</strong> read-only security assessment contract, finding provenance, false-positive evaluations and controlled remediation handoff.</p>
-    <a href="../architecture/security-first.md">Read the Security First foundation →</a>
+    <a href="/architecture/security-first/">Read the Security First foundation →</a>
   </article>
 </div>
 
