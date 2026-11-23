@@ -1,18 +1,18 @@
 # Agentic Operations
 
-**AI Thinks. OpenKubes Executes. Evidence Proves.**
+**AI SRE proposes. Humans govern. Policies constrain. OpenKubes executes. Evidence verifies.**
 
-OpenKubes distinguishes AI-generated recommendations from authorized infrastructure execution. An agent may interpret an intent or propose an operation, but it must not be the authority that silently approves and executes arbitrary changes.
+OpenKubes distinguishes AI-generated recommendations from authorized infrastructure execution. The proposed AI SRE Agent may interpret an intent and submit an **untrusted candidate proposal**. A trusted canonicalizer derives an exact reviewable transition; the agent cannot become the authority that approves or executes its own change.
 
 ## Reference flow
 
 1. **Intent** — interpret the operator's request.
-2. **Proposal** — create a structured operation proposal bound to contracts.
-3. **Policy & authorization** — check the proposed operation and require appropriate authorization.
-4. **Execution & reconciliation** — let the authorized, bounded execution path act on Kubernetes.
-5. **Evidence** — capture verifiable outcomes independently of the agent's success claim.
+2. **Candidate & canonicalization** — the agent submits untrusted candidate input; trusted components derive the exact canonical transition and a protected review artifact.
+3. **HITL review & policy** — under the current proposed agentic path, a protected human approves the exact canonical transition. Independent policy evaluates scope and produces a bounded single-use grant.
+4. **Execution & reconciliation** — the bounded executor verifies the grant, enforces typed fields and conditional acceptance; Kubernetes controllers reconcile accepted desired state.
+5. **Evidence** — distinguish decision, acceptance, convergence and observed health independently of the agent's claims.
 
-These are architectural boundaries and a direction of development; they are **not** a claim that the complete autonomous workflow is available as a turnkey feature today.
+**HITL and HOTL are oversight models, not an autonomy ladder.** Future AI SRE HOTL would use revocable standing eligibility mandates and still require independent bounded execution; it needs a **new accepted normative ADR**, proven revocation and budget ordering, stop/fencing and recovery tests. A standing mandate is never permanent agent RBAC. The current agent-originated execution path is only a proposal, not a turnkey production service.
 
 ## Read more
 
@@ -20,4 +20,4 @@ These are architectural boundaries and a direction of development; they are **no
 - [Agentic AI PoC guideline](https://github.com/openkubes/openkubes/blob/main/docs/agentic-ai-poc-guideline.md).
 - [Agentic AI evidence protocol](https://github.com/openkubes/openkubes/blob/main/docs/agentic-ai-poc-evidence-protocol.md).
 - [OpenClaw component](openclaw.md).
-- [OK AI overview](index.md).
+- [Four-Agent AI Roadmap](ai-roadmap.md) — capability tracks, maturity and HITL/HOTL.\n- [Research Paper 001 — Policy-Bounded Autonomy](../research/security/hitl-hotl-policy-bounded-autonomy.md).\n- [OK AI overview](index.md).

@@ -10,7 +10,7 @@ OK AI is the AI capability area of OpenKubes: run self-hosted AI services on Kub
 
 ## OK AI roadmap
 
-Explore the [four-agent OK AI roadmap](ai-roadmap.md): **AI Assistant, AI Diagnostic Agent, AI SRE Agent and AI Security Agent**. These parallel capability tracks share independent Security-by-Contract boundaries. The AI SRE track includes exact HITL and a **future, research-only HOTL** option requiring a new accepted normative ADR and technical proof. The Documentation Assistant has passed only an isolated private-lab format-and-source-ID check; no public four-agent service is announced.
+Explore the [four-agent OK AI roadmap](ai-roadmap.md): **AI Assistant · AI Diagnostic Agent · AI SRE Agent · AI Security Agent**. Each track has its own maturity and proof obligations. The SRE track covers proposed exact HITL and future research-only HOTL; this is not a production four-agent release.
 
 ## Explore OK AI
 
@@ -22,7 +22,7 @@ Explore the [four-agent OK AI roadmap](ai-roadmap.md): **AI Assistant, AI Diagno
 | **Agentic Operations** | SRE HITL proposals and future research-only HOTL; independent authorization, execution and evidence boundaries | [Agentic Operations](agentic-operations.md) |
 | **AI Glossary** | Beginner-friendly explanations of AI concepts, from LLMs to agents, RAG and evals | [AI Glossary](ai-glossary-newbies.md) |
 
-The proposed **AI Security Agent** is a read-only assessment and recommendation track; it must never substitute for the independent Policy Authority. See the [four-agent architecture diagram](ai-roadmap.md).
+The proposed **AI Security Agent** assesses risk; it never substitutes for the independent Policy Authority. See the [four-agent architecture diagram and milestones](ai-roadmap.md).
 
 ## Architecture at a glance
 

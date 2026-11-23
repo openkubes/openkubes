@@ -16,6 +16,8 @@ A technical investigation into Human-in-the-Loop (HITL), Human-on-the-Loop (HOTL
 
 The existing proposed agent-originated mutation path still requires protected human approval of each exact transition. Broader HOTL execution is a **future research hypothesis**, not an accepted or production-validated capability.
 
+The [four-agent AI Roadmap](../../ai/ai-roadmap.md) applies these boundaries to the proposed AI Assistant, Diagnostic, SRE and Security Agent capability tracks. The SRE track distinguishes exact HITL from future, separately approved HOTL; the Security Agent cannot act as Policy Authority.
+
 ## Related work
 
 - [ADR-Platform-000 — Security First (Accepted principles)](https://github.com/openkubes/openkubes/blob/main/architecture/decisions/ADR-Platform-000-security-first.md)

@@ -1,105 +1,102 @@
-# OK AI Roadmap — Four Specialized Agents, One Trusted Platform
+# OK AI Roadmap — Four Agents. One Trusted Platform.
 
-**From trusted answers to supervised, evidence-driven Kubernetes operations.**
+**Four specialized AI agents. Independent authority. Human-governed operations. Verifiable outcomes.**
 
-OpenKubes is developing four **distinct, optional agent capability tracks**. They can evolve independently and share a provider-neutral, security-by-contract foundation. This roadmap is **not** a sequential autonomy ladder or a release announcement: greater diagnostic intelligence does not imply greater infrastructure authority.
+OpenKubes is developing four optional agent capabilities on a shared **Security-by-Contract** foundation. They are **parallel tracks, not a progression from assistant to unrestricted autonomy**. Core OpenKubes must continue to work without AI agents.
 
-## One shared security-by-contract architecture
+## Architecture at a glance
 
-The roles differ in purpose and capability. **None of them is an authorization authority simply because it is an AI agent.**
+[![Four OpenKubes AI agents, two human oversight modes and independent policy-bounded execution, with future HOTL labelled research only.](ai-four-agents-security-architecture.svg)](ai-four-agents-security-architecture.svg)
 
-[![Four OpenKubes AI Agent tracks converge on trusted intake, independent authorization, bounded execution and evidence.](ai-four-agents-security-architecture.svg)](ai-four-agents-security-architecture.svg)
+*Conceptual target architecture, not a deployed four-agent system. Select the native SVG to enlarge it on this page.*
 
-*Conceptual target architecture — not a deployed topology. Select the native SVG to enlarge it without leaving this page.*
+## Meet the four agents
 
-## Four specialized agent tracks
-
-<div class="ok-ai-roadmap" aria-label="Four OpenKubes AI agent capability tracks">
+<div class="ok-ai-roadmap" aria-label="Four specialized OpenKubes AI agent capability tracks">
   <article class="ok-ai-roadmap__card ok-ai-roadmap__card--docs">
-    <div class="ok-ai-roadmap__top"><span class="ok-ai-roadmap__icon" aria-hidden="true">📖</span><span class="ok-ai-roadmap__status">Private lab: limited check</span></div>
-    <p class="ok-ai-roadmap__phase">Knowledge · Assist</p>
-    <h2>AI Assistant</h2>
-    <p>Answers OpenKubes documentation and architecture questions from allowlisted public sources; guides users to tutorials and specialized diagnostics. Can route a request without acquiring the destination agent's privileges.</p>
-    <p class="ok-ai-roadmap__boundary">Authority boundary: documentation only. No cluster access, commands or mutations.</p>
-    <p class="ok-ai-roadmap__milestone"><strong>Next evidence:</strong> grounded answers, safe command handling, evaluation and public-beta security gates.</p>
-    <a href="/ai/chat-preview/">Explore the chat UI prototype →</a>
+    <div class="ok-ai-roadmap__top"><span class="ok-ai-roadmap__icon" aria-hidden="true">📖</span><span class="ok-ai-roadmap__status">Experimental validation</span></div>
+    <p class="ok-ai-roadmap__phase">Knowledge &amp; guidance</p>
+    <h3>AI Assistant</h3>
+    <p>Answers documentation questions and guides users to OpenKubes architecture and tutorials.</p>
+    <p class="ok-ai-roadmap__boundary"><strong>Boundary:</strong> No cluster access or command execution.</p>
+    <a href="/ai/chat-preview/">Explore the chat prototype →</a>
   </article>
   <article class="ok-ai-roadmap__card ok-ai-roadmap__card--diagnostics">
-    <div class="ok-ai-roadmap__top"><span class="ok-ai-roadmap__icon" aria-hidden="true">🔎</span><span class="ok-ai-roadmap__status ok-ai-roadmap__status--planned">Contract defined · integration ongoing</span></div>
-    <p class="ok-ai-roadmap__phase">Observe · Investigate</p>
-    <h2>AI Diagnostic Agent</h2>
-    <p>Investigates scoped Kubernetes workloads, cluster health, Cilium, logs, events and observability signals. Correlates evidence and produces transparent, reproducible diagnostic findings.</p>
-    <p class="ok-ai-roadmap__boundary">Authority boundary: explicitly scoped read-only tools; Secrets excluded; no write privilege inherited from a tool server.</p>
-    <p class="ok-ai-roadmap__milestone"><strong>Next evidence:</strong> backend isolation, negative RBAC tests, redaction and runtime-specific integration validation.</p>
-    <a href="/ai/kagent-platform-diagnostics/">Explore the diagnostics contract →</a>
+    <div class="ok-ai-roadmap__top"><span class="ok-ai-roadmap__icon" aria-hidden="true">🔎</span><span class="ok-ai-roadmap__status ok-ai-roadmap__status--planned">Implementation</span></div>
+    <p class="ok-ai-roadmap__phase">Observe &amp; investigate</p>
+    <h3>AI Diagnostic Agent</h3>
+    <p>Correlates scoped Kubernetes health, workload and observability data to explain incidents.</p>
+    <p class="ok-ai-roadmap__boundary"><strong>Boundary:</strong> Read-only tools; no Secrets or mutations.</p>
+    <a href="/ai/kagent-platform-diagnostics/">Explore diagnostic contracts →</a>
   </article>
   <article class="ok-ai-roadmap__card ok-ai-roadmap__card--operations">
-    <div class="ok-ai-roadmap__top"><span class="ok-ai-roadmap__icon" aria-hidden="true">🛠️</span><span class="ok-ai-roadmap__status ok-ai-roadmap__status--planned">HITL proposed · HOTL research</span></div>
-    <p class="ok-ai-roadmap__phase">Propose · Remediate · Recover</p>
-    <h2>AI SRE Agent</h2>
-    <p>Plans workload remediation, Kubernetes/BYOH upgrades, availability recovery and lifecycle operations. Designed to support <strong>both exact Human-in-the-Loop (HITL)</strong> and, subject to a new approved authorization contract, <strong>bounded Human-on-the-Loop (HOTL)</strong>.</p>
-    <p class="ok-ai-roadmap__boundary">Authority boundary: no direct agent mutation credentials. The current proposed path requires protected human approval per exact agent-originated transition; standing mandates are future research, never permanent agent RBAC.</p>
-    <p class="ok-ai-roadmap__milestone"><strong>Next evidence:</strong> canonical proposal binding, revocation/acceptance ordering, bounded grants, risk budgets, fencing, recovery and E2E negative tests.</p>
-    <a href="/research/security/hitl-hotl-policy-bounded-autonomy/">Research HITL, HOTL & policy-bounded autonomy →</a>
+    <div class="ok-ai-roadmap__top"><span class="ok-ai-roadmap__icon" aria-hidden="true">🛠️</span><span class="ok-ai-roadmap__status ok-ai-roadmap__status--planned">Proposed · HOTL research</span></div>
+    <p class="ok-ai-roadmap__phase">Remediate &amp; recover</p>
+    <h3>AI SRE Agent</h3>
+    <p>Plans Kubernetes remediation, upgrades and recovery with <strong>HITL</strong> and future, bounded <strong>HOTL</strong>.</p>
+    <p class="ok-ai-roadmap__boundary"><strong>Boundary:</strong> No direct write access; independently authorized transitions.</p>
+    <a href="/ai/agentic-operations/">Explore SRE operations →</a>
   </article>
   <article class="ok-ai-roadmap__card ok-ai-roadmap__card--security">
-    <div class="ok-ai-roadmap__top"><span class="ok-ai-roadmap__icon" aria-hidden="true">🛡️</span><span class="ok-ai-roadmap__status ok-ai-roadmap__status--planned">Architecture research</span></div>
-    <p class="ok-ai-roadmap__phase">Assess · Detect · Recommend</p>
-    <h2>AI Security Agent</h2>
-    <p>Investigates RBAC, privilege escalation paths, policy drift, Kubernetes workload security and security findings. Produces evidence-linked risk assessments and proposed controls for human and platform review.</p>
-    <p class="ok-ai-roadmap__boundary">Authority boundary: the Security Agent is <strong>not</strong> the independent Policy Authority. It cannot waive policies, grant itself credentials, approve its own changes or mutate protected resources.</p>
-    <p class="ok-ai-roadmap__milestone"><strong>Next evidence:</strong> read-only security assessment contract, finding provenance, false-positive evaluations and controlled remediation handoff.</p>
-    <a href="/architecture/security-first/">Read the Security First foundation →</a>
+    <div class="ok-ai-roadmap__top"><span class="ok-ai-roadmap__icon" aria-hidden="true">🛡️</span><span class="ok-ai-roadmap__status ok-ai-roadmap__status--planned">Research</span></div>
+    <p class="ok-ai-roadmap__phase">Assess &amp; recommend</p>
+    <h3>AI Security Agent</h3>
+    <p>Investigates RBAC, policy drift, privilege risks and agentic-operation security evidence.</p>
+    <p class="ok-ai-roadmap__boundary"><strong>Boundary:</strong> Cannot grant permissions or replace the Policy Authority.</p>
+    <a href="/architecture/security-first/">Explore Security First →</a>
   </article>
 </div>
 
-!!! info "Transparent maturity — not four released products"
-    The AI Assistant has only passed a **limited private-lab format/source-ID check for one question**, not public-beta or semantic-grounding certification. The Diagnostic Agent has a documented provider-neutral read-only contract and implementation components, but production deployment readiness is not established. The SRE Agent's exact HITL execution protocol is proposed; general agent-initiated HOTL requires a **new accepted normative ADR and tested enforcement**. The Security Agent is an architectural research direction. No claim here certifies a production four-agent deployment.
+!!! info "Capability maturity, not availability"
+    **Experimental validation** means limited private-lab evidence (the Assistant passed one format/source-ID check, not grounding or public-beta certification). **Implementation** means a documented contract and components, not a verified production service. **Proposed** means a designed, unapproved execution path. **Research** means hypotheses requiring new architecture decisions and tests. None of these labels means that a production four-agent system or agent-originated HOTL is available.
 
-## How the four agents collaborate
+## AI SRE — HITL and HOTL
 
-An AI Assistant may help an operator describe an incident; the Diagnostic Agent may establish scoped observations; the Security Agent may assess the proposed risk; and the AI SRE Agent may submit a canonical remediation proposal. **The independent enforcement path** must still validate identity, scope and the exact transition before any mutating operation can be accepted.
+These are **human oversight models**, not successive autonomy levels. Both must use independently enforced Policy-Bounded Execution.
 
-### Operational authority is independent of agent intelligence
+<div class="ok-ai-oversight">
+  <section class="ok-ai-oversight__item">
+    <h3>HITL · Exact human approval</h3>
+    <p>For the <strong>current proposed</strong> agent-originated mutation path, a person approves the exact canonical transition before independent authorization and bounded execution.</p>
+    <p class="ok-ai-oversight__example">Examples: specific BYOH upgrade, machine replacement, handover or cluster deletion.</p>
+  </section>
+  <section class="ok-ai-oversight__item ok-ai-oversight__item--future">
+    <h3>HOTL · Supervised bounded autonomy</h3>
+    <p><strong>Future research only:</strong> humans set narrow, revocable eligibility mandates, monitor execution and retain stop and recovery controls. A standing mandate is never permanent agent RBAC.</p>
+    <p class="ok-ai-oversight__example">Candidate: fixed-field workload remediation under scope, budgets and independent authorization.</p>
+  </section>
+</div>
 
-- **Trusted intake and canonicalization** authenticate the original principal and derive one exact, reviewable proposed change from untrusted agent input.
-- **HITL (current proposed agentic path)** requires protected human review bound to the exact canonical transition and its effective effects, before a bounded single-use grant can authorize execution.
-- **HOTL (future SRE research)** could use revocable, human-approved standing mandates to define narrow *eligibility envelopes*. A mandate is not permanent agent RBAC, and every allowed transition still needs independent authorization and bounded execution. General agent-originated HOTL remains unapproved under current ADR-035.
-- **Independent Policy Authority and Contract Executor** must prevent direct or indirect tool-server bypass, check the operation at the trusted acceptance point and handle revocation/acceptance races. A grant cannot justify a different action, such as replacing a machine after a failed upgrade.
-- **Kubernetes controllers and independent evidence** distinguish a decision, acceptance, reconciliation and observed outcome. Fail-closed control must retain separately authorized recovery routes.
+**HOTL is not yet approved:** it requires a new accepted normative ADR beyond the current ADR-035 exact-approval baseline and validated revocation ordering, budgets, fencing, recovery and independent evidence. Even a valid proposal from the SRE Agent is **untrusted candidate input**, not a canonical transition or an authorization.
 
-## Where HITL and HOTL belong
+[Read Research Paper 001 — HITL, HOTL and Policy-Bounded Autonomy](../research/security/hitl-hotl-policy-bounded-autonomy.md).
 
-| Task or operational class | Intended oversight | Boundaries and current maturity |
+## Capability roadmap and evidence gates
+
+| Agent | Next milestone | Evidence required before advancing |
 | --- | --- | --- |
-| Documentation question | User-facing assistance | Read-only; limited assistant private-lab check |
-| Cluster/workload investigation | Scoped diagnostic read | Provider-neutral contract; production integration not proven |
-| Security posture / policy assessment | Read-only security analysis | New research track; no enforcement authority |
-| Specific BYOH upgrade, management handover or destruction | **Exact HITL** | Protected transition approval required; additional lifecycle evidence gates |
-| Narrow routine workload remediation | **Potential HOTL** with human supervision and revocation | Research only; new normative ADR and proven mandate, budget, fencing and recovery semantics required |
-| Deterministic controller recovery under pre-approved platform policy | Separate deterministic platform automation | Not an agent-HOTL shortcut; requires independently trusted trigger, bounds and evidence |
+| **AI Assistant** | Evaluate source-grounded answers and safe installation guidance | Documented corpus, correctness and prompt-injection tests; no tool privilege |
+| **AI Diagnostic** | Validate provider-neutral read-only integration | RBAC denial, tool-server identity isolation, redaction and scoped diagnostic evidence |
+| **AI SRE** | Validate protected exact HITL review → grant → acceptance → observed outcome | Digest-bound canonicalization, negative mutation tests, failure and recovery evidence |
+| **AI Security** | Define read-only assessment contract and findings schema | Traceable RBAC/policy findings, false-positive tests and controlled handoff to SRE |
 
-**Human oversight (HITL/HOTL) and technical policy boundaries are orthogonal.** A human can approve each exact operation while Policy-Bounded Execution still limits the executor. A future HOTL mandate could permit narrower automatic execution, but only after its enforcement guarantees are accepted and proven.
+**Separate HOTL research gate for the AI SRE Agent:** standing mandate lifecycle, atomic risk reservations, reliable pre-acceptance revocation, effective stop/fencing, restore-safe authority and independently verified E2E failures must be designed, tested and approved before any agent-initiated HOTL execution claim.
 
-## Roadmap priorities and proof obligations
+## Security by Contract — common guardrails
 
-| Agent track | Near-term milestone | Before any expanded authority |
-| --- | --- | --- |
-| Assistant | Source-grounded answers and evaluated safety | No hidden command execution or privileged tool forwarding |
-| Diagnostic | Complete read-only provider integration and negative tests | Demonstrated tool-SA isolation, scoping and redaction |
-| SRE | Exact HITL proposal/approval/grant/acceptance validation | For HOTL: new ADR, mandate lifecycle, atomic risk budgets, race-safe revocation, owner fencing, independent evidence and restore-safe authority |
-| Security | Read-only posture analysis with traceable findings | Remain separate from the trusted policy decision and mutation path |
+1. **Agent identity is never execution authority.** AI agents propose; trusted intake authenticates provenance and canonicalizes the exact transition. A shared privileged tool-server ServiceAccount must not permit an agent to bypass this path.
+2. **Independent Policy Authority and Contract Executor** verify scope, protected human approval where required, single-use grants and field restrictions. Admission must enforce the actual operation against the authorized context.
+3. **Controllers own reconciliation.** A successful request, an accepted desired revision and a healthy final state are distinct outcomes; independent evidence records those distinctions.
+4. **Fail closed without blocking legitimate recovery.** Unverifiable authorization is denied; emergency recovery follows a separately protected procedure. Revocation or restore guarantees are claims only after profile-specific tests.
 
-The AI SRE and AI Security Agents may **collaborate on proposals**, but the Security Agent cannot self-certify an SRE action, and neither can bypass the independent protected human/policy boundary.
+The **AI Security Agent assesses risk but never approves its own findings or grants SRE execution authority**. Trusted policy evaluation remains independent of all four agents. Trusted deterministic controller recovery is a separate, explicitly authorized model, not a shortcut around the HOTL research requirement.
 
-## Explore the architecture
+## Explore OpenKubes AI and security
 
-- [Security First — common security principles](../architecture/security-first.md)
-- [Research Paper 001 — Beyond Human-in-the-Loop](../research/security/hitl-hotl-policy-bounded-autonomy.md)
-- [Agentic Operations — execution responsibility model](agentic-operations.md)
-- [kagent & Read-only Platform Diagnostics](kagent-platform-diagnostics.md)
-- [OK AI Chat — visual prototype](chat-preview.md)
+- [OK AI overview](index.md) — platform components, backends and integration starting points
+- [kagent & Platform Diagnostics](kagent-platform-diagnostics.md) — read-only provider contract and current integration constraints
+- [Agentic Operations](agentic-operations.md) — SRE proposal-to-evidence responsibility model
+- [Security First](../architecture/security-first.md) — common accepted security principles
+- [Security & Trust Research](../research/security/index.md) — research, reviews and open proof obligations
 
-**Guiding principle: Humans govern. Policies constrain. Machines execute. Evidence verifies.**
-
-[← Back to OK AI overview](index.md)
+**Humans govern. Policies constrain. Machines execute. Evidence verifies.**
