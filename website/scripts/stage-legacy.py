@@ -2,6 +2,7 @@
 """Stage selected public articles and media without editing source docs."""
 from pathlib import Path
 import shutil
+from blog_editorial_dates import stage_article
 
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE = ROOT / "docs"
@@ -26,7 +27,7 @@ def main():
     for name in ARTICLES:
         if not (SOURCE / name).is_file():
             raise SystemExit(f"Missing legacy article: {name}")
-        shutil.copy2(SOURCE / name, TARGET / name)
+        stage_article(SOURCE / name, TARGET / name, ROOT)
     pages = ROOT / "website" / "pages"
     for section in ("features", "architecture", "blog", "community"):
         source_page = pages / section / "index.md"
