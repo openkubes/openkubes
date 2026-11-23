@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1600 900" role="img" aria-labelledby="svgtitle svgdesc">
+<title id="svgtitle">OpenKubes Platform — Security First</title>
+<desc id="svgdesc">The four Kubernetes models BYOH, vCluster, VNC and HCP share the same Security First foundation, with identity, authorization, lifecycle security and recovery.</desc>
+<defs>
+ <linearGradient id="foundation" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#1268C8"/><stop offset="1" stop-color="#073A8B"/></linearGradient>
+ <linearGradient id="edge" x1="0" x2="1"><stop stop-color="#218DFA"/><stop offset="1" stop-color="#086BCE"/></linearGradient>
+ <linearGradient id="shield" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#09D1BC"/><stop offset="1" stop-color="#048DA7"/></linearGradient>
+ <filter id="shadow" x="-15%" y="-20%" width="130%" height="150%"><feDropShadow dx="0" dy="8" stdDeviation="9" flood-color="#0E4679" flood-opacity="0.14"/></filter>
+</defs>
+<rect width="1600" height="900" fill="#FFFFFF"/>
+<path d="M1356 0 H1600 V194 C1520 166 1453 120 1356 0 Z" fill="#D6F9F5"/>
+<path d="M1470 0 H1600 V124 Q1534 114 1470 0 Z" fill="#ABF1EB"/>
+<path d="M0 785 Q94 808 147 900 H0 Z" fill="#C7F9F1"/>
+<path d="M0 847 Q61 837 131 900 H0 Z" fill="#A6EDE5"/>
+<path d="M204 81 L358 81" stroke="#7FB3DE" stroke-width="4" stroke-linecap="round"/>
+<path d="M1240 81 L1398 81" stroke="#7FB3DE" stroke-width="4" stroke-linecap="round"/>
+<g transform="translate(397 38)">
+<path d="M0 29 L37 6 L73 27 L73 66 L37 89 L0 66 Z" fill="none" stroke="#1275F7" stroke-width="9" stroke-linejoin="round"/>
+<path d="M37 43 L73 27 L73 66 L37 89 Z" fill="#08C8BE"/>
+<path d="M37 43 L73 27 L37 6 L0 29 Z" fill="#FFFFFF"/></g>
+<text x="858" y="102" text-anchor="middle" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="56" font-weight="800" letter-spacing="1" fill="#071B45">OPENKUBES PLATFORM</text>
+<path d="M75 495 H1515 L1556 524 Q1565 531 1565 548 V704 Q1565 729 1538 729 H62 Q38 729 38 704 V548 Q38 533 52 523 Z" fill="url(#foundation)" filter="url(#shadow)"/>
+<path d="M75 495 H1515 L1555 526 Q1565 541 1547 541 H50 Q31 541 51 524 Z" fill="url(#edge)"/>
+<rect x="128" y="180" width="300" height="326" rx="25" fill="#FFFFFF" stroke="#88B5DB" stroke-width="4" filter="url(#shadow)"/>
+<text x="278" y="247" text-anchor="middle" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="47" font-weight="800" letter-spacing="0" fill="#071B45">BYOH</text>
+<rect x="235" y="265" width="86" height="7" rx="3.5" fill="#147CF5"/>
+<rect x="478" y="180" width="300" height="326" rx="25" fill="#FFFFFF" stroke="#88B5DB" stroke-width="4" filter="url(#shadow)"/>
+<text x="628" y="247" text-anchor="middle" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="47" font-weight="800" letter-spacing="0" fill="#071B45">vCluster</text>
+<rect x="585" y="265" width="86" height="7" rx="3.5" fill="#07BEB7"/>
+<rect x="828" y="180" width="300" height="326" rx="25" fill="#FFFFFF" stroke="#88B5DB" stroke-width="4" filter="url(#shadow)"/>
+<text x="978" y="247" text-anchor="middle" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="47" font-weight="800" letter-spacing="0" fill="#071B45">VNC</text>
+<rect x="935" y="265" width="86" height="7" rx="3.5" fill="#147CF5"/>
+<rect x="1178" y="180" width="300" height="326" rx="25" fill="#FFFFFF" stroke="#88B5DB" stroke-width="4" filter="url(#shadow)"/>
+<text x="1328" y="247" text-anchor="middle" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="47" font-weight="800" letter-spacing="0" fill="#071B45">HCP</text>
+<rect x="1285" y="265" width="86" height="7" rx="3.5" fill="#07BEB7"/>
+<rect x="185" y="321" width="155" height="47" rx="14" fill="#F4FAFF" stroke="#113564" stroke-width="5"/>
+<circle cx="211" cy="344" r="6" fill="#08BFAF"/>
+<circle cx="235" cy="344" r="6" fill="#08BFAF"/>
+<rect x="185" y="371" width="155" height="47" rx="14" fill="#F4FAFF" stroke="#113564" stroke-width="5"/>
+<circle cx="211" cy="394" r="6" fill="#08BFAF"/>
+<circle cx="235" cy="394" r="6" fill="#08BFAF"/>
+<rect x="185" y="421" width="155" height="47" rx="14" fill="#F4FAFF" stroke="#113564" stroke-width="5"/>
+<circle cx="211" cy="444" r="6" fill="#08BFAF"/>
+<circle cx="235" cy="444" r="6" fill="#08BFAF"/>
+<path d="M344 392 L382 413 V453 L344 475 L306 453 V413 Z" fill="#0859D6" stroke="#fff" stroke-width="4"/>
+<g transform="translate(344 435)" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+<circle r="12.74"/><circle r="4.16" fill="#fff" stroke="none"/>
+<path d="M13.78 0.00 L26.00 0.00"/>
+<path d="M9.74 9.74 L18.38 18.38"/>
+<path d="M0.00 13.78 L0.00 26.00"/>
+<path d="M-9.74 9.74 L-18.38 18.38"/>
+<path d="M-13.78 0.00 L-26.00 0.00"/>
+<path d="M-9.74 -9.74 L-18.38 -18.38"/>
+<path d="M-0.00 -13.78 L-0.00 -26.00"/>
+<path d="M9.74 -9.74 L18.38 -18.38"/>
+</g>
+<path d="M534 429 L626 385 L718 429 L626 471 Z" fill="none" stroke="#0DBDB2" stroke-width="5" stroke-dasharray="12 10" stroke-linejoin="round"/>
+<path d="M530 396 L626 348 L722 396 L626 445 Z" fill="#7DF0E6" stroke="#0D365E" stroke-width="5" stroke-linejoin="round"/>
+<path d="M530 354 L626 309 L722 354 L626 402 Z" fill="#198BF5" stroke="#0D365E" stroke-width="5" stroke-linejoin="round"/>
+<g transform="translate(626 354)" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+<circle r="13.719999999999999"/><circle r="4.48" fill="#fff" stroke="none"/>
+<path d="M14.84 0.00 L28.00 0.00"/>
+<path d="M10.49 10.49 L19.80 19.80"/>
+<path d="M0.00 14.84 L0.00 28.00"/>
+<path d="M-10.49 10.49 L-19.80 19.80"/>
+<path d="M-14.84 0.00 L-28.00 0.00"/>
+<path d="M-10.49 -10.49 L-19.80 -19.80"/>
+<path d="M-0.00 -14.84 L-0.00 -28.00"/>
+<path d="M10.49 -10.49 L19.80 -19.80"/>
+</g>
+<rect x="895" y="323" width="166" height="124" rx="12" fill="#F8FBFF" stroke="#123365" stroke-width="6"/>
+<path d="M906 337 Q906 334 911 334 H1045 Q1050 334 1050 339 V356 H906 Z" fill="#158CF5"/>
+<circle cx="919" cy="345" r="4" fill="#FFFFFF"/>
+<circle cx="935" cy="345" r="4" fill="#FFFFFF"/>
+<circle cx="951" cy="345" r="4" fill="#FFFFFF"/>
+<rect x="928" y="368" width="100" height="60" rx="7" fill="#0C2A5D"/>
+<text x="978" y="409" text-anchor="middle" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="43" font-weight="700" letter-spacing="0" fill="#FFFFFF">&gt;_</text>
+<path d="M978 447 L978 471" stroke="#173B6C" stroke-width="6" stroke-linecap="round"/>
+<path d="M941 474 L1015 474" stroke="#173B6C" stroke-width="7" stroke-linecap="round"/>
+<path d="M1239 446 H1407 C1445 446 1459 426 1459 403 C1459 378 1440 357 1410 357 C1406 319 1379 301 1347 304 C1318 306 1297 328 1293 355 C1257 350 1230 378 1230 407 C1230 424 1232 438 1239 446 Z" fill="#FFFFFF" stroke="#07BDB3" stroke-width="7" stroke-linejoin="round"/>
+<path d="M1350 361 L1393 385 V427 L1350 452 L1307 427 V385 Z" fill="#0B65DC"/>
+<g transform="translate(1350 407)" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+<circle r="13.23"/><circle r="4.32" fill="#fff" stroke="none"/>
+<path d="M14.31 0.00 L27.00 0.00"/>
+<path d="M10.12 10.12 L19.09 19.09"/>
+<path d="M0.00 14.31 L0.00 27.00"/>
+<path d="M-10.12 10.12 L-19.09 19.09"/>
+<path d="M-14.31 0.00 L-27.00 0.00"/>
+<path d="M-10.12 -10.12 L-19.09 -19.09"/>
+<path d="M-0.00 -14.31 L-0.00 -27.00"/>
+<path d="M10.12 -10.12 L19.09 -19.09"/>
+</g>
+<path d="M326 558 L395 590 V661 Q394 691 326 723 Q259 691 257 661 V590 Z" fill="#FFFFFF"/>
+<path d="M326 571 L380 596 V658 Q378 678 326 705 Q274 677 272 658 V596 Z" fill="url(#shield)"/>
+<rect x="304" y="635" width="44" height="43" rx="7" fill="#FFFFFF"/>
+<path d="M313 635 V621 Q313 606 326 606 Q339 606 339 621 V635" fill="none" stroke="#FFFFFF" stroke-width="8"/>
+<circle cx="326" cy="652" r="5" fill="#03ACAA"/>
+<rect x="323" y="652" width="6" height="16" rx="3" fill="#03ACAA"/>
+<path d="M478 580 L478 695" stroke="#FFFFFF" stroke-width="5" stroke-linecap="round"/>
+<text x="926" y="637" text-anchor="middle" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="78" font-weight="800" letter-spacing="1" fill="#FFFFFF">SECURITY FIRST</text>
+<text x="935" y="689" text-anchor="middle" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="31" font-weight="500" letter-spacing="0" fill="#F0FCFF">Identity  ·  Authorization  ·  Lifecycle  ·  Recovery</text>
+<path d="M205 772 L630 772" stroke="#8DB7DA" stroke-width="2" stroke-linecap="round"/>
+<path d="M961 772 L1397 772" stroke="#8DB7DA" stroke-width="2" stroke-linecap="round"/>
+<text x="798" y="780" text-anchor="middle" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="29" font-weight="500" letter-spacing="0" fill="#53789D">ADR-Platform-000</text>
+<text x="306" y="854" text-anchor="middle" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="36" font-weight="750" letter-spacing="0" fill="#071B45">Secure by Contract</text>
+<circle cx="566" cy="841" r="6" fill="#06BFB7"/>
+<text x="791" y="854" text-anchor="middle" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="36" font-weight="750" letter-spacing="0" fill="#071B45">Verified by Evidence</text>
+<circle cx="1051" cy="841" r="6" fill="#06BFB7"/>
+<text x="1303" y="854" text-anchor="middle" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="35" font-weight="750" letter-spacing="0" fill="#071B45">Designed for Recovery</text>
+</svg>

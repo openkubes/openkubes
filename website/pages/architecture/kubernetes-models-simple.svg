@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 730" role="img" aria-labelledby="models-title models-description">
+<title id="models-title">Four Kubernetes models — different control planes and worker boundaries</title>
+<desc id="models-description">Simplified visual comparison: Classic CAPI/BYOH has a dedicated control plane and its own workers; shared-node vCluster uses a virtual control plane with host workers; VNC/KubeVirt provides a guest control plane and guest worker VMs on a KubeVirt host; Hosted Control Planes separate hosted management from worker machines and remain an evaluation direction.</desc>
+<rect width="1120" height="730" fill="#F7FAFE"/>
+<rect width="1120" height="8" fill="#1679DA"/>
+<text x="48" y="58" font-size="34" font-weight="800" fill="#102846" text-anchor="start" font-family="Arial,Helvetica,sans-serif">FOUR KUBERNETES MODELS</text>
+<text x="1072" y="56" font-size="19" font-weight="500" fill="#62758C" text-anchor="end" font-family="Arial,Helvetica,sans-serif">Different boundaries</text>
+<rect x="38" y="89" width="511" height="281" rx="20" fill="#FFFFFF" stroke="#D3E1ED" stroke-width="2"/>
+<rect x="38" y="89" width="511" height="7" rx="3" fill="#1874C8" stroke="none" stroke-width="1"/>
+<text x="63" y="138" font-size="32" font-weight="800" fill="#102846" text-anchor="start" font-family="Arial,Helvetica,sans-serif">Classic / BYOH</text>
+<text x="63" y="169" font-size="21" font-weight="500" fill="#546A81" text-anchor="start" font-family="Arial,Helvetica,sans-serif">Dedicated CP · Own nodes</text>
+<rect x="87" y="192" width="166" height="53" rx="11" fill="#E4F1FF" stroke="#1874C8" stroke-width="2"/>
+<text x="170" y="226" font-size="17" font-weight="700" fill="#1874C8" text-anchor="middle" font-family="Arial,Helvetica,sans-serif">CONTROL PLANE</text>
+<line x1="170" y1="245" x2="170" y2="280" stroke="#1874C8" stroke-width="3" stroke-linecap="round"/>
+<line x1="147" y1="280" x2="323" y2="280" stroke="#1874C8" stroke-width="3" stroke-linecap="round"/>
+<line x1="111" y1="280" x2="111" y2="289" stroke="#1874C8" stroke-width="3" stroke-linecap="round"/>
+<rect x="77" y="289" width="83" height="55" rx="8" fill="#EAF2FB" stroke="#5D8DBE" stroke-width="2"/>
+<rect x="88" y="304" width="61" height="12" rx="4" fill="#C8DCEC" stroke="none" stroke-width="1"/>
+<circle cx="93" cy="329" r="6" fill="#1874C8"/>
+<line x1="216" y1="280" x2="216" y2="289" stroke="#1874C8" stroke-width="3" stroke-linecap="round"/>
+<rect x="182" y="289" width="83" height="55" rx="8" fill="#EAF2FB" stroke="#5D8DBE" stroke-width="2"/>
+<rect x="193" y="304" width="61" height="12" rx="4" fill="#C8DCEC" stroke="none" stroke-width="1"/>
+<circle cx="198" cy="329" r="6" fill="#1874C8"/>
+<line x1="321" y1="280" x2="321" y2="289" stroke="#1874C8" stroke-width="3" stroke-linecap="round"/>
+<rect x="287" y="289" width="83" height="55" rx="8" fill="#EAF2FB" stroke="#5D8DBE" stroke-width="2"/>
+<rect x="298" y="304" width="61" height="12" rx="4" fill="#C8DCEC" stroke="none" stroke-width="1"/>
+<circle cx="303" cy="329" r="6" fill="#1874C8"/>
+<text x="495" y="229" font-size="22" font-weight="700" fill="#1874C8" text-anchor="end" font-family="Arial,Helvetica,sans-serif">CAPI</text>
+<text x="495" y="258" font-size="19" font-weight="600" fill="#546A81" text-anchor="end" font-family="Arial,Helvetica,sans-serif">BYOH</text>
+<rect x="571" y="89" width="511" height="281" rx="20" fill="#FFFFFF" stroke="#D3E1ED" stroke-width="2"/>
+<rect x="571" y="89" width="511" height="7" rx="3" fill="#0B9B91" stroke="none" stroke-width="1"/>
+<text x="596" y="138" font-size="32" font-weight="800" fill="#102846" text-anchor="start" font-family="Arial,Helvetica,sans-serif">vCluster</text>
+<text x="596" y="169" font-size="21" font-weight="500" fill="#546A81" text-anchor="start" font-family="Arial,Helvetica,sans-serif">Virtual API · Shared host nodes</text>
+<rect x="710" y="192" width="202" height="53" rx="12" fill="#E1F7F2" stroke="#0B9B91" stroke-width="2"/>
+<text x="811" y="226" font-size="19" font-weight="700" fill="#0B9B91" text-anchor="middle" font-family="Arial,Helvetica,sans-serif">VIRTUAL API</text>
+<line x1="811" y1="245" x2="811" y2="271" stroke="#0B9B91" stroke-width="3" stroke-linecap="round" stroke-dasharray="7 6"/>
+<rect x="639" y="279" width="386" height="69" rx="12" fill="#EAF2FB" stroke="#7BA8CB" stroke-width="2"/>
+<text x="832" y="305" font-size="18" font-weight="700" fill="#315B7B" text-anchor="middle" font-family="Arial,Helvetica,sans-serif">HOST CLUSTER</text>
+<rect x="673" y="317" width="64" height="20" rx="5" fill="#B6D5E9" stroke="none" stroke-width="1"/>
+<circle cx="685" cy="327" r="6" fill="#0B9B91"/>
+<rect x="785" y="317" width="64" height="20" rx="5" fill="#B6D5E9" stroke="none" stroke-width="1"/>
+<circle cx="797" cy="327" r="6" fill="#0B9B91"/>
+<rect x="897" y="317" width="64" height="20" rx="5" fill="#B6D5E9" stroke="none" stroke-width="1"/>
+<circle cx="909" cy="327" r="6" fill="#0B9B91"/>
+<rect x="38" y="392" width="511" height="281" rx="20" fill="#FFFFFF" stroke="#D3E1ED" stroke-width="2"/>
+<rect x="38" y="392" width="511" height="7" rx="3" fill="#7F5BB4" stroke="none" stroke-width="1"/>
+<text x="63" y="441" font-size="32" font-weight="800" fill="#102846" text-anchor="start" font-family="Arial,Helvetica,sans-serif">VNC / KubeVirt</text>
+<text x="63" y="472" font-size="21" font-weight="500" fill="#546A81" text-anchor="start" font-family="Arial,Helvetica,sans-serif">Guest CP · Guest worker VMs</text>
+<rect x="176" y="495" width="224" height="48" rx="11" fill="#F0EAFE" stroke="#7F5BB4" stroke-width="2"/>
+<text x="288" y="526" font-size="19" font-weight="700" fill="#7F5BB4" text-anchor="middle" font-family="Arial,Helvetica,sans-serif">GUEST CP</text>
+<line x1="288" y1="543" x2="288" y2="564" stroke="#7F5BB4" stroke-width="3" stroke-linecap="round"/>
+<rect x="144" y="567" width="88" height="51" rx="9" fill="#F1EAFB" stroke="#7F5BB4" stroke-width="2"/>
+<text x="188" y="599" font-size="19" font-weight="700" fill="#7F5BB4" text-anchor="middle" font-family="Arial,Helvetica,sans-serif">VM</text>
+<rect x="251" y="567" width="88" height="51" rx="9" fill="#F1EAFB" stroke="#7F5BB4" stroke-width="2"/>
+<text x="295" y="599" font-size="19" font-weight="700" fill="#7F5BB4" text-anchor="middle" font-family="Arial,Helvetica,sans-serif">VM</text>
+<rect x="358" y="567" width="88" height="51" rx="9" fill="#F1EAFB" stroke="#7F5BB4" stroke-width="2"/>
+<text x="402" y="599" font-size="19" font-weight="700" fill="#7F5BB4" text-anchor="middle" font-family="Arial,Helvetica,sans-serif">VM</text>
+<rect x="112" y="632" width="386" height="28" rx="8" fill="#E9F1F8" stroke="#8CA9BF" stroke-width="2"/>
+<text x="305" y="652" font-size="17" font-weight="700" fill="#526B85" text-anchor="middle" font-family="Arial,Helvetica,sans-serif">KUBEVIRT HOST</text>
+<rect x="571" y="392" width="511" height="281" rx="20" fill="#FFFFFF" stroke="#D3E1ED" stroke-width="2"/>
+<rect x="571" y="392" width="511" height="7" rx="3" fill="#C87822" stroke="none" stroke-width="1"/>
+<text x="596" y="441" font-size="32" font-weight="800" fill="#102846" text-anchor="start" font-family="Arial,Helvetica,sans-serif">HCP · planned</text>
+<text x="596" y="472" font-size="21" font-weight="500" fill="#546A81" text-anchor="start" font-family="Arial,Helvetica,sans-serif">Hosted CP · Separate workers</text>
+<path d="M762 556 C716 556 705 519 744 505 C758 467 818 477 836 504 C886 491 920 525 913 554 Z" fill="#FFF2DF" stroke="#C87822" stroke-width="3"/>
+<text x="822" y="538" font-size="19" font-weight="700" fill="#C87822" text-anchor="middle" font-family="Arial,Helvetica,sans-serif">HOSTED CP</text>
+<line x1="821" y1="560" x2="821" y2="594" stroke="#C87822" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 7"/>
+<rect x="695" y="602" width="75" height="51" rx="8" fill="#EAF2FB" stroke="#7CA5C6" stroke-width="2"/>
+<circle cx="710" cy="628" r="6" fill="#C87822"/>
+<rect x="788" y="602" width="75" height="51" rx="8" fill="#EAF2FB" stroke="#7CA5C6" stroke-width="2"/>
+<circle cx="803" cy="628" r="6" fill="#C87822"/>
+<rect x="881" y="602" width="75" height="51" rx="8" fill="#EAF2FB" stroke="#7CA5C6" stroke-width="2"/>
+<circle cx="896" cy="628" r="6" fill="#C87822"/>
+<text x="560" y="704" font-size="23" font-weight="600" fill="#33516F" text-anchor="middle" font-family="Arial,Helvetica,sans-serif">Same security principles — different isolation and ownership</text>
+</svg>
