@@ -1,5 +1,8 @@
 # AI Security Agent — Control Catalog Seed v0.1
 
+> **HISTORICAL v0.1 DRAFT — SUPERSEDED.** For architecture and implementation review use [Control Catalog v0.2](CONTROL-CATALOG-v0.2.md) and [Assessment Contract v0alpha2](ASSESSMENT-CONTRACT-v0alpha2.md), together with [Capability Specification v0.2](CAPABILITY-SPEC-v0.2.md). This file is preserved for reviewer diff only; it is not the active contract.
+
+
 **Status:** Research seed only; not a normative specification or a completed control assessment. The exact source of truth for B-/F-/T-identifiers is [Security Discovery v0.2](../discovery/v0.2/README.md). **ADR-Platform-000 is Accepted at the principle level**; its companion discovery is not. Every proposed mapping below must be revalidated against the cited pinned sources and test definitions before implementation or publication.
 
 ## Catalog record contract
