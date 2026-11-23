@@ -48,10 +48,10 @@ graph-stats: ## Print graph summary (requires prior graph-json)
 website-preview: ## Build a GitHub Actions HTML preview artifact from reviewed remote main
 	@bash website/scripts/publish.sh preview
 
-website-publish: ## Publish the verified preview commit to GitHub Pages (manual approval)
+website-publish: ## Validate and publish reviewed remote main to GitHub Pages (no prompt)
 	@bash website/scripts/publish.sh publish
 
-website-release: ## Preview, verify dry run and publish with explicit production approval
+website-release: ## Validate and publish reviewed remote main to GitHub Pages (non-interactive)
 	@bash website/scripts/publish.sh release
 
 website-status: ## Show remote main, preview commit and recent release workflows
