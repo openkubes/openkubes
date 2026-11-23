@@ -213,10 +213,10 @@ def main():
         raise SystemExit("Research architecture must be native SVG, without embedded raster")
     if "FUTURE HOTL" not in research_source or "RESEARCH" not in research_source:
         raise SystemExit("Research diagram is missing future-HOTL maturity labels")
-    if 'src="/research/security/policy-bounded-autonomy.svg"' not in research_html:
+    if not re.search(r'<img[^>]+src="[^"]*policy-bounded-autonomy\\.svg"', research_html):
         raise SystemExit("Research paper diagram not embedded")
     research_index_html = (SITE / "research/index.html").read_text(encoding="utf-8")
-    if 'src="/research/security/policy-bounded-autonomy.svg"' not in research_index_html:
+    if not re.search(r'<img[^>]+src="[^"]*policy-bounded-autonomy\\.svg"', research_index_html):
         raise SystemExit("Research landing diagram preview missing")
     # Check imported, pinned CAPI architecture pages, ADRs and SVG assets.
     capi = SITE / "architecture" / "capi"
