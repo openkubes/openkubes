@@ -5,8 +5,10 @@
   "use strict";
   function initialize() {
     if (!("HTMLDialogElement" in window)) return;
-    const selector = 'a[href$="policy-bounded-autonomy.svg"]:has(> img)';
-    const links = document.querySelectorAll(selector);
+    const selector = 'a[href$="policy-bounded-autonomy.svg"]';
+    const links = Array.from(document.querySelectorAll(selector)).filter(function (link) {
+      return !!link.querySelector("img");
+    });
     if (!links.length) return;
 
     const dialog = document.createElement("dialog");
