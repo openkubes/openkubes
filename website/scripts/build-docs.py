@@ -9,7 +9,6 @@ ROOT = Path(__file__).resolve().parents[2]
 STAGING = ROOT / ".mkdocs-staging"
 SOURCES = {
     "ok-local": ("docs/tutorial-prerequisites.md",),
-    "ok-cluster": ("docs/registry-trust.md",),
 }
 
 def main():
@@ -20,8 +19,7 @@ def main():
     (STAGING / "docs" / "index.md").write_text(
         "# Developer Documentation\n\n"
         "Preview of source-owned docs from the OpenKubes repositories.\n\n"
-        "- [Local prerequisites](ok-local/tutorial-prerequisites.md)\n"
-        "- [Cluster registry trust](ok-cluster/registry-trust.md)\n",
+        "- [Local prerequisites](ok-local/tutorial-prerequisites.md)\n",
         encoding="utf-8",
     )
     (STAGING / "index.md").write_text(

@@ -103,8 +103,6 @@ nav:
       - Overview: docs/index.md
       - Local:
           - Prerequisites: docs/ok-local/tutorial-prerequisites.md
-      - Cluster:
-          - Registry Trust: docs/ok-cluster/registry-trust.md
       - BYOH Advanced Guide:
           - Overview: docs/byoh/advanced-guide/index.md
           - Introduction: docs/byoh/advanced-guide/01-introduction.md

@@ -34,6 +34,8 @@ def main():
     html = index.read_text(encoding="utf-8")
     original = LEGACY.read_text(encoding="utf-8")
     check_retired_widgets(SITE)
+    if (SITE / "docs/ok-cluster/registry-trust").exists():
+        raise SystemExit("Internal Registry Trust runbook must not be published")
     check_byoh_output(SITE)
     if "ok-global-nav" not in html or "OpenKubes primary navigation" not in html:
         raise SystemExit("Missing shared homepage navigation")
@@ -367,7 +369,7 @@ def main():
         if not (SITE / slug / "index.html").is_file():
             missing.append("/" + slug + "/")
     for path in ("docs/index.html", "docs/ok-local/tutorial-prerequisites/index.html",
-                 "docs/ok-cluster/registry-trust/index.html", "search/search_index.json"):
+                 "search/search_index.json"):
         if not (SITE / path).is_file():
             missing.append(path)
     for source in (ROOT / "docs").rglob("*"):
