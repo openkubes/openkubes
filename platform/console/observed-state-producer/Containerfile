@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.7
 
-FROM --platform=${TARGETPLATFORM} python:3.13-alpine@sha256:2d9aefe2fef018a7eb2c13064c89c71929800fd2e5dccdbf52ea5da5bb8d929a
+FROM --platform=${TARGETPLATFORM} python:3.13-alpine@sha256:9ef1a599f863231c3d91e941389bfdc4a2d6070557243d54df1a4e57015b960e
 
 ARG VCS_REF=unknown
 LABEL org.opencontainers.image.source="https://github.com/openkubes/openkubes" \
