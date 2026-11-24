@@ -15,6 +15,7 @@ python website/scripts/render-navigation.py
 python website/scripts/restore-legacy-urls.py
 python website/scripts/render-legacy-html.py
 python website/scripts/check-preview.py
+python website/scripts/check-features.py
 python website/scripts/audit-url-compatibility.py
 
 # GitHub Pages custom domain and bypass Jekyll processing.
