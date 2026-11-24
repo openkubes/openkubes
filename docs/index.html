@@ -53,33 +53,6 @@
     background:var(--bg-alt);
     border-bottom:1px solid var(--border);
   }
-  .logo-img{
-    height:120px;
-    margin-bottom:1.5rem;
-  }
-  .universe-nav{
-    display:flex;
-    justify-content:center;
-    gap:0.55rem;
-    margin:0 auto 2rem;
-  }
-  .universe-nav a{
-    display:inline-flex;
-    align-items:center;
-    gap:0.35rem;
-    padding:0.38rem 0.8rem;
-    border:1px solid var(--border);
-    border-radius:999px;
-    background:#ffffff;
-    color:var(--text);
-    font-size:0.82rem;
-    font-weight:650;
-  }
-  .universe-nav a:hover{
-    border-color:var(--accent);
-    color:var(--accent);
-    text-decoration:none;
-  }
   h1{
     font-size:2rem;
     margin:0 0 1rem;
@@ -89,23 +62,6 @@
     max-width:700px;
     margin-left:auto;
     margin-right:auto;
-  }
-  .brand-hero{
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    gap:0.15rem;
-    max-width:900px;
-    margin:0 auto 1.5rem;
-    line-height:1.25;
-  }
-  .brand-hero-name{font-size:clamp(2rem,5vw,3rem);}
-  .brand-hero-line{font-size:clamp(1.35rem,3.5vw,2.25rem);}
-  .tagline{
-    font-size:1.15rem;
-    color:var(--muted);
-    max-width:620px;
-    margin:0 auto 2rem;
   }
   /* Lightweight community call-to-action above the philosophy panel. */
   .community-invite{width:min(calc(100% - 32px),1120px);margin:18px auto 0;padding:.72rem 1rem;text-align:center;border:1px solid #c7dfea;border-radius:10px;background:#ecf8fb;color:#17354a;font-size:clamp(.92rem,1.5vw,1rem);font-weight:600;line-height:1.5;}
@@ -148,43 +104,6 @@
   .meta-hero__actions a:hover{filter:brightness(1.12);text-decoration:none;}
   .meta-hero__actions a:focus-visible{outline:3px solid #fff;outline-offset:4px;}
   @media(max-width:600px){.meta-hero{border-radius:14px}.meta-hero__actions a{width:100%;}}
-  /* OK Console launch announcement: prominent but separate from the platform hero. */
-  .console-launch{
-    width:min(100%,840px);
-    margin:1.6rem auto 1.2rem;
-    padding:1.25rem 1.5rem;
-    text-align:left;
-    border:1px solid #9fc4f5;
-    border-left:5px solid #0969da;
-    border-radius:12px;
-    background:#edf5ff;
-    box-shadow:0 8px 24px rgba(9,105,218,.07);
-  }
-  .console-launch__eyebrow{
-    margin:0 0 .35rem;
-    color:#0752a2;
-    font-size:.79rem;
-    font-weight:750;
-    letter-spacing:.07em;
-    text-transform:uppercase;
-  }
-  .console-launch h2{margin:0 0 .35rem;font-size:clamp(1.18rem,2.5vw,1.6rem);color:#152f50;}
-  .console-launch p{margin:.35rem 0;color:#344054;font-size:.94rem;}
-  .console-launch pre{
-    margin:.85rem 0 .65rem;
-    padding:.8rem 1rem;
-    overflow-x:auto;
-    background:#102238;
-    color:#fff;
-    border-radius:8px;
-    white-space:pre;
-    font-size:clamp(.78rem,2vw,.95rem);
-  }
-  .console-launch pre code{background:transparent;border:0;padding:0;color:inherit;font-size:inherit;}
-  .console-launch__links{display:flex;flex-wrap:wrap;gap:1rem;margin-top:.7rem;}
-  .console-launch__links a{font-weight:650;}
-  .console-launch__note{font-size:.79rem!important;color:#475467!important;}
-  @media(max-width:680px){.console-launch{padding:1rem;}}
   .cta{
     display:flex;
     gap:0.8rem;
@@ -233,52 +152,6 @@
     font-weight:600;
     margin-bottom:0.5rem;
   }
-  .chain{
-    display:flex;
-    flex-wrap:wrap;
-    gap:0.5rem;
-    align-items:center;
-    margin:1.5rem 0;
-    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
-    font-size:0.9rem;
-  }
-  .chain span.step{
-    background:var(--card);
-    border:1px solid var(--border);
-    padding:0.45rem 0.85rem;
-    border-radius:6px;
-    color:var(--text);
-  }
-  .chain span.arrow{color:var(--muted);}
-  .principle{
-    font-style:italic;
-    color:var(--muted);
-    border-left:3px solid var(--accent);
-    padding-left:1rem;
-    margin:1.2rem 0;
-  }
-  .grid{
-    display:grid;
-    grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
-    gap:1rem;
-    margin-top:1.5rem;
-  }
-  .card{
-    background:var(--bg);
-    border:1px solid var(--border);
-    border-radius:8px;
-    padding:1.3rem;
-  }
-  .card h3{
-    margin:0 0 0.5rem;
-    font-size:1rem;
-    color:var(--text);
-  }
-  .card p{
-    color:var(--muted);
-    font-size:0.9rem;
-    margin:0;
-  }
   .universe-intro{
     max-width:680px;
     color:var(--muted);
@@ -320,7 +193,7 @@
     text-decoration:none;
     box-shadow:0 12px 32px rgba(31,35,40,0.11);
   }
-  .universe-card:focus-visible,.universe-nav a:focus-visible{
+  .universe-card:focus-visible{
     outline:3px solid var(--accent);
     outline-offset:3px;
   }
@@ -374,58 +247,6 @@
     font-size:0.88rem;
     font-weight:700;
   }
-  /* Click-to-watch thumbnail: no embedded YouTube iframe on page load. */
-  .demo-feature{
-    display:grid;
-    grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);
-    gap:1.6rem;
-    align-items:center;
-    margin-top:1.4rem;
-  }
-  .demo-preview{display:block;position:relative;border-radius:12px;overflow:hidden;border:1px solid var(--border);background:#151c29;aspect-ratio:16 / 9;}
-  .demo-preview-label{display:flex;flex-direction:column;justify-content:center;align-items:center;gap:.5rem;width:100%;height:100%;padding:1.2rem;text-align:center;color:#fff;background:radial-gradient(ellipse at 35% 25%,#235a76 0%,#151c29 70%);}\n  .demo-preview-label strong{font-size:clamp(1.2rem,2.8vw,2rem);letter-spacing:.02em;}\n  .demo-preview-label small{font-size:.85rem;color:#d8eaf4;}
-  .demo-play{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);display:grid;place-items:center;width:68px;height:48px;background:#d9232e;color:#fff;border-radius:13px;font-size:1.6rem;line-height:1;box-shadow:0 4px 18px rgba(0,0,0,.28);}
-  .demo-preview:hover .demo-play{background:#ba1620;}
-  .demo-preview:focus-visible{outline:3px solid var(--accent);outline-offset:3px;}
-  .demo-copy p{color:var(--muted);font-size:0.96rem;}
-  .demo-copy .btn{display:inline-block;}
-  @media(max-width:680px){.demo-feature{grid-template-columns:1fr;}}
-  .repo-list{
-    list-style:none;
-    padding:0;
-    margin:1.5rem 0 0;
-  }
-  .repo-list li{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    gap:1rem;
-    padding:0.9rem 1rem;
-    background:var(--bg);
-    border:1px solid var(--border);
-    border-radius:6px;
-    margin-bottom:0.6rem;
-  }
-  .repo-list .name{font-weight:600;font-family:ui-monospace,monospace;color:var(--text);}
-  .repo-list .desc{color:var(--muted);font-size:0.88rem;}
-  .badge{
-    font-size:0.72rem;
-    padding:0.2rem 0.55rem;
-    border-radius:999px;
-    background:var(--bg-alt);
-    color:var(--muted);
-    border:1px solid var(--border);
-    white-space:nowrap;
-  }
-  .badge.public{color:var(--accent2);border-color:var(--accent2);background:#f0fff4;}
-  ol.steps{
-    padding-left:1.2rem;
-  }
-  ol.steps li{
-    margin-bottom:0.9rem;
-    color:var(--muted);
-  }
-  ol.steps li strong{color:var(--text);}
   footer{
     text-align:center;
     padding:2.5rem 1.5rem;
@@ -433,20 +254,6 @@
     font-size:0.88rem;
     background:var(--bg-alt);
     border-top:1px solid var(--border);
-  }
-  .links-row{
-    display:flex;
-    gap:1.4rem;
-    justify-content:center;
-    flex-wrap:wrap;
-    margin-top:1rem;
-  }
-  code{
-    background:var(--bg-alt);
-    border:1px solid var(--border);
-    border-radius:4px;
-    padding:0.1rem 0.35rem;
-    font-size:0.9em;
   }
   /* Homepage hero: lightweight, responsive video with reduced-motion fallback. */
   .platform-hero{
@@ -564,8 +371,7 @@
          alt="OpenKubes platform clusters: ok-infra, ok-mgmt, ok-shared and ok-ai">
     <button class="hero-play" type="button" hidden>Play animation</button>
   </div>
-  <div class="cta" aria-label="Get started with OpenKubes">
-    <a class="btn primary" href="/getting-started/">Get Started →</a>
+  <div class="cta" aria-label="Explore architecture and demo">
     <a class="btn secondary" href="/architecture/">Explore Architecture</a>
     <a class="btn secondary" href="https://demo.kubernautic.com/" target="_blank" rel="noopener noreferrer">Kubernautic Demo ↗</a>
   </div>

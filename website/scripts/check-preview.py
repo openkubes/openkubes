@@ -58,6 +58,20 @@ def main():
     for asset in ("openkubes-branding.css", "openkubes-branding.js"):
         if not (SITE / "assets" / asset).is_file() or f'/assets/{asset}' not in html:
             raise SystemExit(f"Missing homepage branding asset: {asset}")
+    # Homepage V2 final polish: one primary onboarding CTA in the hero.
+    header_html = html.split("<header>", 1)[1].split("</header>", 1)[0]
+    if header_html.count('href="/getting-started/"') != 1:
+        raise SystemExit("Expected one Getting Started link in the homepage header")
+    secondary_cta = header_html.split('<div class="cta"', 1)[1]
+    for href in ("/architecture/", "https://demo.kubernautic.com/"):
+        if f'href="{href}"' not in secondary_cta:
+            raise SystemExit(f"Missing secondary hero action: {href}")
+    inline_css = html.split("<style>", 1)[1].split("</style>", 1)[0]
+    if r"\n" in inline_css:
+        raise SystemExit("Literal newline escape in homepage CSS")
+    for retired in (".console-launch", ".demo-preview", ".chain", ".principle", ".repo-list", "ol.steps"):
+        if retired in inline_css:
+            raise SystemExit(f"Retired homepage CSS remains: {retired}")
     # Homepage V2 retains the animated hero and one real Console screenshot.
     if html.count('class="platform-hero"') != 1:
         raise SystemExit("Expected exactly one animated homepage hero")
