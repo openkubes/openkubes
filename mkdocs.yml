@@ -105,6 +105,20 @@ nav:
           - Prerequisites: docs/ok-local/tutorial-prerequisites.md
       - Cluster:
           - Registry Trust: docs/ok-cluster/registry-trust.md
+      - BYOH Advanced Guide:
+          - Overview: docs/byoh/advanced-guide/index.md
+          - Introduction: docs/byoh/advanced-guide/01-introduction.md
+          - Architecture: docs/byoh/advanced-guide/02-architecture.md
+          - Infrastructure Requirements: docs/byoh/advanced-guide/03-infrastructure-requirements.md
+          - Management Cluster: docs/byoh/advanced-guide/04-management-cluster.md
+          - Host Registration: docs/byoh/advanced-guide/05-host-registration.md
+          - Cluster Provisioning: docs/byoh/advanced-guide/06-cluster-provisioning.md
+          - Networking: docs/byoh/advanced-guide/07-networking.md
+          - Cluster Operations: docs/byoh/advanced-guide/08-cluster-operations.md
+          - In-Place Upgrade: docs/byoh/advanced-guide/09-in-place-upgrade.md
+          - Safety & Recovery: docs/byoh/advanced-guide/10-safety-recovery.md
+          - Cluster Lifecycle: docs/byoh/advanced-guide/11-cluster-lifecycle.md
+          - Validation & Limitations: docs/byoh/advanced-guide/12-validation-limitations.md
   - Community:
       - Overview: community/index.md
       - How to update the docs: community/how-to-update-docs.md

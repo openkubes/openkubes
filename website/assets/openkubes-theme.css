@@ -189,3 +189,9 @@
 @media(max-width:900px){.ok-ai-roadmap,.ok-ai-oversight{grid-template-columns:minmax(0,1fr)}}
 @media(min-width:901px){.ok-ai-roadmap{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:600px){.ok-ai-roadmap__card{padding:.9rem}.ok-ai-oversight__item{padding:.85rem}}
+
+/* BYOH source-owned diagrams: use the available article width, including mobile. */
+.md-content a[href*="/advanced-guide/images/"]:has(> img),
+.md-content a[href^="../images/"]:has(> img) { display: block; max-width: 100%; }
+.md-content a[href*="/advanced-guide/images/"] > img,
+.md-content a[href^="../images/"] > img { display: block; width: 100%; height: auto; }

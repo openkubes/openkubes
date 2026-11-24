@@ -28,6 +28,9 @@ def main():
         if not (SOURCE / name).is_file():
             raise SystemExit(f"Missing legacy article: {name}")
         stage_article(SOURCE / name, TARGET / name, ROOT)
+    # Keep the historical article intact; add a current guide link in the projection.
+    with (TARGET / "openkubes-byoh-controller.md").open("a", encoding="utf-8") as article:
+        article.write("\n\n**Documentation update:** See the [BYOH Advanced Guide](docs/byoh/advanced-guide/index.md) for the later lab-validated in-place upgrade results and remaining limitations.\n")
     pages = ROOT / "website" / "pages"
     for section in ("features", "architecture", "blog", "community"):
         source_page = pages / section / "index.md"

@@ -13,8 +13,15 @@ git clone https://github.com/openkubes/ok-local.git .ok196-sources/ok-local
 git clone https://github.com/openkubes/ok-cluster.git .ok196-sources/ok-cluster
 git -C .ok196-sources/ok-local checkout 60397cdb2630b0cd9cfbcb5d9a29fe2e38ce323e
 git -C .ok196-sources/ok-cluster checkout e73de4f4c4e7b421785ded992881a6074005c6bd
+git clone https://github.com/openkubes/ok-baremetal-byoh.git .ok196-sources/ok-baremetal-byoh
+git -C .ok196-sources/ok-baremetal-byoh checkout 562f7e4cbaee6cdf935a17107e9bfce75b9d8d46
 bash website/scripts/build-github-pages.sh
 ```
+
+The BYOH Advanced Guide is imported from the reviewed BYOH revision above into
+`docs/byoh/advanced-guide/`. Update the pin in both website workflows and
+`website/scripts/byoh_guide.py` together with this local-build recipe. Edit guide
+content in the BYOH repository, not the website projection.
 
 The local build stages the pinned documentation, runs MkDocs in strict mode,
 restores the legacy homepage and article URLs, and validates the preview and
