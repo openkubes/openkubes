@@ -15,7 +15,7 @@ SOURCE = ROOT / "docs"
 SITE = ROOT / ".mkdocs-site"
 WORDMARK = (ROOT / "website/overrides/partials/openkubes-wordmark.html").read_text(encoding="utf-8").strip()
 NAV = (("Home", "/"), ("Features", "/features/"), ("Architecture", "/architecture/"),
-       ("Research", "/research/"), ("Blog", "/blog/"), ("Docs", "/docs/"), ("Community", "/community/"))
+       ("Research", "/research/"), ("Blog", "/blog/"), ("Tutorials", "/tutorials/"), ("Community", "/community/"))
 
 def render(source):
     title = source.stem.replace("-", " ").replace("_", " ").strip()
@@ -43,6 +43,11 @@ def render(source):
     )
 
 def main():
+    # Preserve old Docs bookmarks without publishing the retired overview.
+    landing = SITE / "docs/index.html"
+    landing.parent.mkdir(parents=True, exist_ok=True)
+    landing.write_text('<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="robots" content="noindex"><title>Documentation moved</title><meta http-equiv="refresh" content="0; url=/architecture/"></head><body><p>Documentation moved to <a href="/architecture/">Architecture</a> and <a href="/tutorials/">Tutorials</a>.</p></body></html>', encoding="utf-8")
+
     if not SITE.is_dir():
         raise SystemExit("Run the MkDocs build before rendering compatibility HTML")
     created = 0

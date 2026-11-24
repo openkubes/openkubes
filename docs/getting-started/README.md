@@ -18,7 +18,7 @@ OpenKubes helps you build your own Kubernetes platform with open, modular compon
 
 [OpenKubes Local](https://github.com/openkubes/ok-local) provides a development environment with separate management and infrastructure/workload Kubernetes clusters on **macOS using Multipass and K3s**. The accompanying tutorials introduce KubeVirt, Cluster API and Crossplane.
 
-Before starting, review the [local prerequisites](../docs/ok-local/tutorial-prerequisites.md).
+For the Multipass-based environment, review the [source-owned local prerequisites](https://github.com/openkubes/ok-local/blob/60397cdb2630b0cd9cfbcb5d9a29fe2e38ce323e/docs/tutorial-prerequisites.md). For BYOH controller development with Docker and Cluster API, use the [local CAPD developer environment tutorial](/tutorials/capd-local-dev-environment/) instead.
 
 ```bash
 git clone https://github.com/openkubes/ok-local.git
@@ -63,7 +63,8 @@ We will link a dedicated AI installation guide here once its source repository a
 
 ## Where to go next
 
-- [Developer documentation](../docs/) — documentation collected from OpenKubes repositories.
+- [Tutorials](/tutorials/) — practical OpenKubes workflows.
+- [BYOH Advanced Guide](/docs/byoh/advanced-guide/) — architecture, lifecycle and validation scope.
 - [Features](../features/) — capabilities of the framework.
 - [Architecture](../architecture/) — design principles, platform contracts and boundaries.
 - [GitHub organization](https://github.com/openkubes) — repositories, issues and contributions.

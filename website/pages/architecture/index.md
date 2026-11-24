@@ -36,6 +36,6 @@ The [seven standalone CAPI architecture decisions](capi/decisions/index.md) are 
 - [The Contract Is the Guardrail](/the-contract-is-the-guardrail-blog-post/)
 - [Vault Secret Contract](/vault-secret-contract-blog-post/)
 - [Source architecture decisions](https://github.com/openkubes/openkubes/tree/main/architecture/decisions)
-- [Developer documentation](/docs/)
+- [BYOH Advanced Guide](../docs/byoh/advanced-guide/index.md)
 
 *This is an introduction; normative architecture decisions remain in the Git repository.*
