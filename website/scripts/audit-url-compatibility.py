@@ -20,6 +20,7 @@ REQUIRED = (
     "/architecture/",
     "/blog/",
     "/docs/",
+    "/docs/byoh/advanced-guide/",
     "/community/",
     "/agentic-operations-reference-architecture/",
     "/vault-secret-contract-blog-post/",

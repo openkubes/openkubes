@@ -25,13 +25,6 @@ jobs:
           fetch-depth: 0
       - name: Assert pre-cutover GitHub Pages rollback baseline
         run: bash website/scripts/check-legacy-rollback.sh
-      - name: Checkout pinned ok-local documentation
-        uses: actions/checkout@v4
-        with:
-          repository: openkubes/ok-local
-          ref: 60397cdb2630b0cd9cfbcb5d9a29fe2e38ce323e
-          path: .ok196-sources/ok-local
-          persist-credentials: false
       - name: Checkout pinned ok-cluster documentation
         uses: actions/checkout@v4
         with:

@@ -15,7 +15,6 @@ NAV = [
     ("Research", "/research/"),
     ("Blog", "/blog/"),
     ("Tutorials", "/tutorials/"),
-    ("Docs", "/docs/"),
     ("Community", "/community/"),
 ]
 def main():

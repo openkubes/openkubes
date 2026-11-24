@@ -106,6 +106,6 @@ def check_output(site):
     for name in DIAGRAMS:
         if not (guide / "images" / name).is_file():
             raise SystemExit(f"Missing BYOH diagram: {name}")
-    for page in (site / "docs/index.html", site / "openkubes-byoh-controller/index.html"):
+    for page in (site / "architecture/index.html", site / "openkubes-byoh-controller/index.html"):
         if "advanced-guide" not in page.read_text(encoding="utf-8"):
             raise SystemExit(f"Missing BYOH guide entry link: {page}")

@@ -37,6 +37,11 @@ def main():
     if (SITE / "docs/ok-cluster/registry-trust").exists():
         raise SystemExit("Internal Registry Trust runbook must not be published")
     check_byoh_output(SITE)
+    if (SITE / "docs/ok-local/tutorial-prerequisites").exists():
+        raise SystemExit("Retired Local prerequisites must not be published")
+    for page in (SITE / "index.html", SITE / "architecture/index.html", SITE / "docs/byoh/advanced-guide/index.html"):
+        if '<a href="/docs/">Docs</a>' in page.read_text(encoding="utf-8"):
+            raise SystemExit(f"Retired Docs navigation on {page}")
     if "ok-global-nav" not in html or "OpenKubes primary navigation" not in html:
         raise SystemExit("Missing shared homepage navigation")
     if 'class="ok-global-nav__brand ok-global-nav__brand--text"' not in html:
@@ -65,7 +70,7 @@ def main():
             raise SystemExit(f"Missing Console gallery asset: {name}")
     if "Open Code. Public Repositories. Transparent Decisions." not in html:
         raise SystemExit("Console Open Source panel is missing")
-    for href in ("/", "/features/", "/architecture/", "/research/", "/blog/", "/tutorials/", "/docs/", "/community/"):
+    for href in ("/", "/features/", "/architecture/", "/research/", "/blog/", "/tutorials/", "/community/"):
         if f'href="{href}"' not in html:
             raise SystemExit(f"Navigation link missing: {href}")
     for asset in ("media/openkubes-hero-light.webm", "media/openkubes-hero-light.mp4", "media/openkubes-hero-light-poster.webp"):
@@ -78,7 +83,7 @@ def main():
         raise SystemExit("Homepage global navigation is not configured as sticky")
     if ".ok-global-nav--material" not in nav_css or "position:sticky" not in nav_css:
         raise SystemExit("Material global navigation is not configured as sticky")
-    for section in ("features", "architecture", "research", "blog", "community", "docs"):
+    for section in ("features", "architecture", "research", "blog", "community"):
         output = SITE / section / "index.html"
         if output.is_file():
             page_html = output.read_text(encoding="utf-8")
@@ -368,8 +373,7 @@ def main():
     for slug in ARTICLES:
         if not (SITE / slug / "index.html").is_file():
             missing.append("/" + slug + "/")
-    for path in ("docs/index.html", "docs/ok-local/tutorial-prerequisites/index.html",
-                 "search/search_index.json"):
+    for path in ("docs/byoh/advanced-guide/index.html", "search/search_index.json"):
         if not (SITE / path).is_file():
             missing.append(path)
     for source in (ROOT / "docs").rglob("*"):

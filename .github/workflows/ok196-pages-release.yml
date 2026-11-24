@@ -45,13 +45,6 @@ jobs:
           test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
       - name: Check legacy Pages rollback baseline
         run: bash website/scripts/check-legacy-rollback.sh
-      - name: Checkout pinned ok-local docs
-        uses: actions/checkout@v4
-        with:
-          repository: openkubes/ok-local
-          ref: 60397cdb2630b0cd9cfbcb5d9a29fe2e38ce323e
-          path: .ok196-sources/ok-local
-          persist-credentials: false
       - name: Checkout pinned ok-cluster docs
         uses: actions/checkout@v4
         with:
