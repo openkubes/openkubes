@@ -5,6 +5,7 @@ from pathlib import Path
 import re
 
 from retired_widgets import check_retired_widgets
+from byoh_guide import check_output as check_byoh_output
 
 ROOT = Path(__file__).resolve().parents[2]
 SITE = ROOT / ".mkdocs-site"
@@ -33,6 +34,7 @@ def main():
     html = index.read_text(encoding="utf-8")
     original = LEGACY.read_text(encoding="utf-8")
     check_retired_widgets(SITE)
+    check_byoh_output(SITE)
     if "ok-global-nav" not in html or "OpenKubes primary navigation" not in html:
         raise SystemExit("Missing shared homepage navigation")
     if 'class="ok-global-nav__brand ok-global-nav__brand--text"' not in html:

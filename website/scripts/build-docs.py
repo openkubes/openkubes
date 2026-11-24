@@ -3,6 +3,7 @@
 from pathlib import Path
 import os
 import shutil
+from byoh_guide import stage as stage_byoh
 
 ROOT = Path(__file__).resolve().parents[2]
 STAGING = ROOT / ".mkdocs-staging"
@@ -83,6 +84,9 @@ def main():
         index_text = source.read_text(encoding="utf-8").replace("../README.md", "../index.md")
         (section / "index.md").write_text(index_text, encoding="utf-8")
     print(f"Staged {len(required) + 2} pinned CAPI architecture source files.")
+    stage_byoh(workspace, STAGING)
+    with (STAGING / "docs/index.md").open("a", encoding="utf-8") as index:
+        index.write("- [BYOH Advanced Guide](byoh/advanced-guide/index.md)\\n".replace("\\n", "\n"))
     print(f"Ready: {STAGING}")
 
 if __name__ == "__main__":

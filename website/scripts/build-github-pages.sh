@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Build the GitHub Pages production candidate. This script NEVER deploys.
-# Run after checkout of pinned .ok196-sources/{ok-local,ok-cluster}
+# Run after checkout of pinned .ok196-sources/{ok-local,ok-cluster,ok-baremetal-byoh}
 # and installation of website/requirements-mkdocs.txt.
 set -euo pipefail
 cd "$(dirname "$0")/../.."

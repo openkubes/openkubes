@@ -59,6 +59,13 @@ jobs:
           ref: e73de4f4c4e7b421785ded992881a6074005c6bd
           path: .ok196-sources/ok-cluster
           persist-credentials: false
+      - name: Checkout pinned BYOH guide
+        uses: actions/checkout@v4
+        with:
+          repository: openkubes/ok-baremetal-byoh
+          ref: 562f7e4cbaee6cdf935a17107e9bfce75b9d8d46
+          path: .ok196-sources/ok-baremetal-byoh
+          persist-credentials: false
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
