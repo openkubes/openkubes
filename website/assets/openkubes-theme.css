@@ -195,3 +195,24 @@
 .md-content a[href^="../images/"]:has(> img) { display: block; max-width: 100%; }
 .md-content a[href*="/advanced-guide/images/"] > img,
 .md-content a[href^="../images/"] > img { display: block; width: 100%; height: auto; }
+
+/* Features: responsive capability overview, no additional runtime dependencies. */
+.md-typeset .ok-features-hero,.md-typeset .ok-features-ecosystem{padding:clamp(1rem,3vw,1.8rem);border:1px solid #c4dfe9;border-radius:.8rem;background:#eff8fc;color:#17365b;margin:1rem 0 1.8rem}
+.md-typeset .ok-features-hero h2,.md-typeset .ok-features-ecosystem h3{color:#17365b;font-weight:750;margin:.3rem 0 .6rem}
+.md-typeset .ok-features-kicker{color:#076e79;font-size:.7rem;letter-spacing:.07em;font-weight:750;margin:0}
+.ok-features-actions{display:flex;flex-wrap:wrap;gap:.65rem}
+.md-typeset .ok-features-actions a{display:inline-block;padding:.5rem .8rem;border:1px solid #2375a5;border-radius:.4rem;color:#18598b;font-weight:650}
+.md-typeset .ok-features-actions a.ok-features-primary{background:#17689b;color:#fff}
+.ok-features-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.85rem;margin:1rem 0 1.6rem}
+.md-typeset .ok-feature-card,.md-typeset .ok-feature-model{display:flex;flex-direction:column;gap:.5rem;min-width:0;padding:1rem;border:1px solid #c4dfe9;border-radius:.75rem;background:var(--md-default-bg-color,#fff);box-shadow:0 4px 16px rgba(23,54,91,.045)}
+.ok-feature-icon{display:grid;place-items:center;width:2.5rem;height:2.5rem;background:#e6f6fa;color:#087e96;border-radius:.6rem}
+.md-typeset .ok-feature-card h3,.md-typeset .ok-feature-model h3{margin:0;font-weight:700;font-size:1rem}
+.md-typeset .ok-feature-card p,.md-typeset .ok-feature-model p{margin:0;font-size:.8rem;line-height:1.6}
+.md-typeset .ok-feature-card a{margin-top:auto;padding-top:.4rem;font-weight:650;font-size:.75rem;overflow-wrap:anywhere}
+.md-typeset .ok-feature-model{background:#eaf4ff;color:#17365b}
+.md-typeset .ok-feature-model:nth-child(even){background:#e9faf4}
+.md-typeset .ok-feature-model h3{color:#17365b}
+.ok-features-tech{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.5rem}
+.ok-features-tech span{background:#fff;border:1px solid #d5e7ef;padding:.5rem;border-radius:.4rem;text-align:center;font-size:.75rem;overflow-wrap:anywhere}
+.md-content a[href$="platform-capabilities.svg"]>img{display:block;width:100%;height:auto}
+@media(max-width:700px){.ok-features-grid{grid-template-columns:minmax(0,1fr)}.ok-features-tech{grid-template-columns:repeat(2,minmax(0,1fr))}}
