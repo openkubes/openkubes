@@ -58,18 +58,24 @@ def main():
     for asset in ("openkubes-branding.css", "openkubes-branding.js"):
         if not (SITE / "assets" / asset).is_file() or f'/assets/{asset}' not in html:
             raise SystemExit(f"Missing homepage branding asset: {asset}")
-    console_start = html.index('id="ok-home-console-en"')
-    if not html.index('class="console-launch"') < console_start < html.index('class="platform-hero"'):
-        raise SystemExit("Console gallery must appear between installer announcement and hero animation")
-    for name in ("agent-catalog", "cluster-inventory", "ai-diagnostics-preview"):
-        relative = f"assets/images/console/ok-console-{name}.webp"
-        if not (SITE / relative).is_file() or f'src="{relative}"' not in html:
-            raise SystemExit(f"Missing Console screenshot: {relative}")
-    for name in ("openkubes-console-gallery.css", "openkubes-console-carousel.js"):
-        if not (SITE / "assets" / name).is_file() or f'assets/{name}' not in html:
-            raise SystemExit(f"Missing Console gallery asset: {name}")
-    if "Open Code. Public Repositories. Transparent Decisions." not in html:
-        raise SystemExit("Console Open Source panel is missing")
+    # Homepage V2 retains the animated hero and one real Console screenshot.
+    if html.count('class="platform-hero"') != 1:
+        raise SystemExit("Expected exactly one animated homepage hero")
+    if html.count('id="ok-home-console-en"') != 1:
+        raise SystemExit("Expected exactly one compact Console section")
+    if 'src="assets/images/console/ok-console-cluster-inventory.webp"' not in html:
+        raise SystemExit("Homepage Console screenshot missing")
+    if "curl -fsSL https://get.openkubes.ai | sh" in html:
+        raise SystemExit("Installer command belongs on the dedicated evaluation page")
+    for anchor in ("about", "demos", "universe", "governance", "writing", "repos", "contribute", "supporters", "community"):
+        if f'id="{anchor}"' not in html:
+            raise SystemExit(f"Homepage legacy anchor lost: {anchor}")
+    for href in ("/getting-started/", "/features/", "/console/", "/docs/byoh/advanced-guide/", "/community/", "https://demo.kubernautic.com/"):
+        if f'href="{href}"' not in html:
+            raise SystemExit(f"Homepage journey link missing: {href}")
+    for route in ("getting-started", "features", "console", "docs/byoh/advanced-guide", "community"):
+        if not (SITE / route / "index.html").is_file():
+            raise SystemExit(f"Homepage journey destination missing: {route}")
     for href in ("/", "/features/", "/architecture/", "/research/", "/blog/", "/tutorials/", "/community/"):
         if f'href="{href}"' not in html:
             raise SystemExit(f"Navigation link missing: {href}")

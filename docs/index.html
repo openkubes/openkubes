@@ -495,11 +495,28 @@
     .universe-grid{grid-template-columns:1fr;}
     .universe-card{min-height:190px;}
   }
+
+  .home-v2{max-width:1100px}
+  .home-v2 section{scroll-margin-top:100px}
+  .home-v2-grid,.home-v2-models{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem;margin:1.2rem 0}
+  .home-v2-models{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .home-v2-card{display:block;min-width:0;border:1px solid #c4dfe9;border-radius:12px;padding:1.2rem;background:#f5fbff;color:#17365b}
+  .home-v2-card h3{margin:0 0 .4rem;color:#17365b;font-size:1.05rem}
+  .home-v2-card p{margin:0;color:#385773;font-size:.94rem}
+  a.home-v2-card:hover{border-color:#168da7;text-decoration:none;background:#eaf7fa}
+  .home-v2-models .home-v2-card:nth-child(even){background:#eafaf5}
+  .home-v2-security{padding:1rem;text-align:center;border-radius:10px;background:#d9f2ed;color:#126562}
+  .home-v2-console{display:grid;grid-template-columns:1.2fr 1fr;gap:1.4rem;align-items:center;padding:1.2rem;border:1px solid #c4dfe9;border-radius:12px;background:#eff8fc}
+  .home-v2-console img{display:block;width:100%;height:auto;border-radius:8px}
+  .home-v2-actions{display:flex;flex-wrap:wrap;gap:.6rem}
+  .home-v2-note{font-size:.85rem;color:#57606a}
+  .home-v2-community{text-align:center}
+  .home-v2 a:focus-visible{outline:3px solid #0969da;outline-offset:3px}
+  @media(max-width:760px){.home-v2-grid,.home-v2-models{grid-template-columns:repeat(2,minmax(0,1fr))}.home-v2-console{grid-template-columns:minmax(0,1fr)}}
+  @media(max-width:460px){.home-v2-grid,.home-v2-models{grid-template-columns:minmax(0,1fr)}.home-v2-actions .btn{width:100%;text-align:center}}
 </style>
 <link rel="stylesheet" href="/assets/openkubes-branding.css">
 <script src="/assets/openkubes-branding.js" defer></script>
-<link rel="stylesheet" href="assets/openkubes-console-gallery.css">
-<script src="assets/openkubes-console-carousel.js" defer></script>
 </head>
 <body>
 
@@ -531,54 +548,10 @@
     <p class="meta-hero__description">Design, build, and operate sovereign Kubernetes platforms with reusable infrastructure blueprints, declarative contracts, and evidence-driven automation.</p>
     <p class="meta-hero__distinction"><strong>OpenKubes defines the framework. OKP proves it can run.</strong> OpenKubes Platform (OKP) is the reference distribution — use it as provided, adapt it, or build your own OpenKubes-conformant distribution.</p>
     <div class="meta-hero__actions">
-      <a href="https://github.com/openkubes/openkubes">Explore OpenKubes ↗</a>
-      <a href="https://github.com/openkubes/ok-local">Try OpenKubes Locally ↗</a>
+      <a href="/features/">Explore Features →</a>
+      <a href="/getting-started/">Get Started →</a>
     </div>
   </div>
-  <aside class="console-launch" aria-labelledby="console-launch-title">
-    <p class="console-launch__eyebrow">🚀 New · OpenKubes Console</p>
-    <h2 id="console-launch-title">OpenKubes Console — One-Command Installer is Live!</h2>
-    <p>Explore the OpenKubes Console locally with the new installer.</p>
-    <pre aria-label="OpenKubes Console installation command"><code>curl -fsSL https://get.openkubes.ai | sh</code></pre>
-    <p class="console-launch__note">Security tip: inspect the downloaded script before running it. Review the installer prerequisites and scope for your environment.</p>
-    <div class="console-launch__links">
-      <a href="https://get.openkubes.ai" rel="noopener noreferrer">Installer ↗</a>
-      <a href="/console/">Console documentation →</a>
-      <a href="https://github.com/openkubes/ok-console">Source on GitHub ↗</a>
-    </div>
-  </aside>
-<!-- OpenKubes Console + Open Source | OpenCms Flexible Content | EN | V1 -->
-<section id="ok-home-console-en" lang="en" aria-label="OpenKubes Console" style="max-width:1140px;margin:14px auto 22px;padding:0 14px;box-sizing:border-box;font-family:Arial,Helvetica,sans-serif;text-align:left;border-bottom:0;">
-  <div style="border-radius:16px;overflow:hidden;border:1px solid #294d7d;box-shadow:0 10px 27px rgba(17,45,87,.12);">
-    <div style="background:#102e57;color:#fff;padding:32px clamp(18px,4vw,42px) 24px;">
-      <div style="font-size:11px;font-weight:700;letter-spacing:1.7px;color:#8cc6ff;margin:0 0 11px;">OPEN SOURCE · OPENKUBES CONSOLE</div>
-      <h2 style="font-size:clamp(25px,3.3vw,36px);line-height:1.18;letter-spacing:-.5px;font-weight:500;margin:0 0 12px;color:#fff;">Don't just read about it. <span style="color:#ffd45a;">Try it yourself.</span></h2>
-      <p style="font-size:15px;line-height:1.65;color:#d4e4f4;max-width:790px;margin:0 0 22px;">Explore the OpenKubes Console: Agent Catalog, Cluster Inventory and a read-only AI diagnostics preview. Discover the prototype and the publicly documented local evaluation path.</p>
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:12px;"><button type="button" data-ok-console-index="0" aria-label="AI Agent Catalog" style="display:block;background:#17395e;border:1px solid #42648d;border-radius:11px;cursor:pointer;padding:0;overflow:hidden;text-align:left;color:white;min-width:0;width:100%;">
-<img src="assets/images/console/ok-console-agent-catalog.webp" alt="OpenKubes Console – AI Agent Catalog" loading="lazy" style="display:block;width:100%;height:auto;aspect-ratio:16/10;object-fit:cover;object-position:top;background:#e9eef5;">
-<span style="display:block;padding:12px 14px 3px;font-size:15px;color:#fff;font-weight:600;">AI Agent Catalog</span><span style="display:block;padding:0 14px 14px;font-size:12px;line-height:1.4;color:#c1d4ea;">Explore agents and catalog entries</span></button><button type="button" data-ok-console-index="1" aria-label="Cluster Inventory" style="display:block;background:#17395e;border:1px solid #42648d;border-radius:11px;cursor:pointer;padding:0;overflow:hidden;text-align:left;color:white;min-width:0;width:100%;">
-<img src="assets/images/console/ok-console-cluster-inventory.webp" alt="OpenKubes Console – Cluster Inventory" loading="lazy" style="display:block;width:100%;height:auto;aspect-ratio:16/10;object-fit:cover;object-position:top;background:#e9eef5;">
-<span style="display:block;padding:12px 14px 3px;font-size:15px;color:#fff;font-weight:600;">Cluster Inventory</span><span style="display:block;padding:0 14px 14px;font-size:12px;line-height:1.4;color:#c1d4ea;">Clusters and status at a glance</span></button><button type="button" data-ok-console-index="2" aria-label="AI Diagnostics Preview" style="display:block;background:#17395e;border:1px solid #42648d;border-radius:11px;cursor:pointer;padding:0;overflow:hidden;text-align:left;color:white;min-width:0;width:100%;">
-<img src="assets/images/console/ok-console-ai-diagnostics-preview.webp" alt="OpenKubes Console – AI Diagnostics Preview" loading="lazy" style="display:block;width:100%;height:auto;aspect-ratio:16/10;object-fit:cover;object-position:top;background:#e9eef5;">
-<span style="display:block;padding:12px 14px 3px;font-size:15px;color:#fff;font-weight:600;">AI Diagnostics Preview</span><span style="display:block;padding:0 14px 14px;font-size:12px;line-height:1.4;color:#c1d4ea;">Read-only preview – no live actions</span></button></div>
-      <p style="font-size:12px;line-height:1.55;color:#adc5de;margin:12px 0 20px;">Console prototype and preview screens. Local evaluation requires development tools and uses a temporary Kind cluster.</p>
-      <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;">
-        <a href="https://openkubes.org/console/" target="_blank" rel="noopener noreferrer" style="display:inline-block;background:#ffd45a;color:#183252;font-weight:700;font-size:14px;padding:12px 17px;border-radius:7px;text-decoration:none;">Try the Console locally &#8599;</a>
-        <a href="https://openkubes.org/getting-started/" target="_blank" rel="noopener noreferrer" style="display:inline-block;color:#fff;border:1px solid #8daece;font-weight:600;font-size:14px;padding:11px 16px;border-radius:7px;text-decoration:none;">Start OpenKubes Local &#8599;</a>
-      </div>
-    </div>
-    <div style="background:#f0f5fb;padding:19px clamp(18px,4vw,42px) 20px;">
-      <div style="font-size:18px;color:#17355d;font-weight:600;margin:0 0 7px;">Open Code. Public Repositories. Transparent Decisions.</div>
-      <p style="font-size:13px;line-height:1.5;color:#4b6079;margin:0 0 12px;">Source code, architecture contracts and ADRs are publicly accessible. OpenKubes Local and the Console have separate evaluation paths.</p>
-      <a href="https://github.com/openkubes" target="_blank" rel="noopener noreferrer" style="display:inline-block;font-size:14px;color:#145eb3;font-weight:700;text-decoration:underline;text-underline-offset:3px;">Explore the source on GitHub &#8599;</a>
-    </div>
-  </div>
-  <dialog data-ok-console-dialog aria-label="OpenKubes Console – Image viewer" style="border:0;background:#fff;border-radius:12px;padding:14px;max-width:min(96vw,1100px);max-height:94vh;box-shadow:0 20px 70px rgba(0,0,0,.55);box-sizing:border-box;">
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;justify-content:space-between;"><strong data-ok-console-title aria-live="polite" style="color:#17355d;">OpenKubes Console</strong><button type="button" data-ok-console-close aria-label="Close" style="cursor:pointer;border:0;border-radius:7px;background:#17355d;color:#fff;padding:8px 12px;font-size:14px;">Close &#215;</button></div>
-    <img data-ok-console-big alt="OpenKubes Console" style="display:block;max-width:100%;width:auto;height:auto;max-height:70vh;margin:auto;object-fit:contain;">
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:12px;"><button data-ok-console-prev type="button" aria-label="Previous image" style="cursor:pointer;padding:9px 15px;background:#eff4fa;color:#17355d;border:1px solid #cedae9;border-radius:7px;">&#8592;</button><span data-ok-console-count style="color:#17355d;font-size:13px;">1 / 3</span><button data-ok-console-next type="button" aria-label="Next image" style="cursor:pointer;padding:9px 15px;background:#eff4fa;color:#17355d;border:1px solid #cedae9;border-radius:7px;">&#8594;</button></div>
-  </dialog>
-</section>
   <div class="platform-hero" aria-label="Animated overview of the OpenKubes Kubernetes clusters">
     <video autoplay muted loop playsinline preload="metadata"
            poster="media/openkubes-hero-light-poster.webp"
@@ -592,34 +565,37 @@
     <button class="hero-play" type="button" hidden>Play animation</button>
   </div>
   <div class="cta" aria-label="Get started with OpenKubes">
-    <a class="btn primary" href="https://github.com/openkubes/ok-local">Try OpenKubes Locally →</a>
-    <a class="btn secondary" href="https://github.com/openkubes/openkubes">Explore Architecture</a>
-    <a class="btn secondary" href="#contribute">Contribute</a>
+    <a class="btn primary" href="/getting-started/">Get Started →</a>
+    <a class="btn secondary" href="/architecture/">Explore Architecture</a>
+    <a class="btn secondary" href="https://demo.kubernautic.com/" target="_blank" rel="noopener noreferrer">Kubernautic Demo ↗</a>
   </div>
 </header>
 
-<main>
-
+<main class="home-v2">
+  <section id="about">
+    <div class="eyebrow">Platform capabilities</div>
+    <h2>One framework. Multiple capabilities.</h2>
+    <p><strong>Contracts over components. Evidence over claims.</strong></p>
+    <div class="home-v2-grid"><a class="home-v2-card" href="/architecture/capi/"><h3>Cluster Lifecycle</h3><p>Declarative cluster operations</p></a><a class="home-v2-card" href="/docs/byoh/advanced-guide/"><h3>Infrastructure Freedom</h3><p>Your existing hosts</p></a><a class="home-v2-card" href="/architecture/security-first/"><h3>Security &amp; Trust</h3><p>Explicit authority boundaries</p></a><a class="home-v2-card" href="/ai/"><h3>AI &amp; Agents</h3><p>Bounded agent integrations</p></a><a class="home-v2-card" href="/observability/"><h3>Observability</h3><p>Verifiable cluster visibility</p></a><a class="home-v2-card" href="/developer-workspace/"><h3>Developer Workspace</h3><p>Bounded AI-assisted coding</p></a></div>
+    <p><a href="/features/">Explore all platform capabilities →</a></p>
+  </section>
+  <section id="models">
+    <div class="eyebrow">Infrastructure freedom</div><h2>Your infrastructure. Your choice.</h2>
+    <div class="home-v2-models"><div class="home-v2-card"><h3>BYOH</h3><p>Your physical or virtual hosts</p></div><div class="home-v2-card"><h3>vCluster</h3><p>Virtual Kubernetes control planes</p></div><div class="home-v2-card"><h3>VNC</h3><p>Nested Kubernetes on virtual machines</p></div><div class="home-v2-card"><h3>HCP</h3><p>Independently hosted control planes</p></div></div>
+    <div class="home-v2-security"><strong>Security First</strong><br>Secure by Contract · Verified by Evidence · Designed for Recovery</div>
+    <p>Architecture models have independent implementation and validation requirements. <a href="/architecture/security-first/">Explore the architecture →</a></p>
+  </section>
   <section id="demos">
-    <div class="eyebrow">Get started</div>
-    <h2>See OpenKubes in Action</h2>
-    <div class="demo-feature">
-      <a class="demo-preview" href="https://youtu.be/_LJ8tCLHrO0" target="_blank" rel="noopener noreferrer" aria-label="Watch an OpenKubes Local demo on YouTube (opens in a new tab)">
-        <span class="demo-preview-label" aria-hidden="true"><strong>OpenKubes Local</strong><small>Watch the demo on YouTube ↗</small></span>
-        <span class="demo-play" aria-hidden="true">▶</span>
-      </a>
-      <div class="demo-copy">
-        <h3>Try OpenKubes on your workstation</h3>
-        <p>Discover the local development environment, then follow the Quick Start to explore OpenKubes yourself. Watch the video on YouTube or find all three video tutorials in the ok-local README.</p>
-        <a class="btn primary" href="https://github.com/openkubes/ok-local#video-tutorials--getting-started-with-openkubes-local">Quickstart &amp; Video Tutorials →</a>
-      </div>
+    <div class="eyebrow">Explore the platform</div><h2>Meet the OpenKubes Console</h2>
+    <div id="ok-home-console-en" class="home-v2-console">
+      <a href="/console/"><img src="assets/images/console/ok-console-cluster-inventory.webp" alt="OpenKubes Console prototype — cluster inventory" loading="lazy"></a>
+      <div><p>Platform visibility, diagnostics and rehearsals of guarded operations.</p><p>Development preview · Local fixture-based evaluation available.</p><div class="home-v2-actions"><a class="btn primary" href="/console/">Explore Console</a><a class="btn secondary" href="/getting-started/">Try it locally</a><a class="btn secondary" href="https://demo.kubernautic.com/" target="_blank" rel="noopener noreferrer">Kubernautic Demo ↗</a></div><p class="home-v2-note">The Kubernautic demo is an external site.</p></div>
     </div>
   </section>
-
   <section id="universe">
     <div class="eyebrow">Explore</div>
     <h2>Explore the OpenKubes Universe</h2>
-    <p class="universe-intro">Two illustrated journeys make the ideas behind OpenKubes tangible — from the foundations of platform engineering to AI-assisted, verifiable operations.</p>
+    <p class="universe-intro">Two illustrated journeys through platform engineering and AI-assisted operations.</p>
     <div class="universe-grid">
       <a class="universe-card oki" href="https://oki.openkubes.org/">
         <span class="universe-mark" aria-hidden="true">O</span>
@@ -641,207 +617,19 @@
       </a>
     </div>
   </section>
-
-  <section id="about">
-    <div class="eyebrow">What it is</div>
-    <h2>A contract-first platform engineering framework</h2>
-    <p>OpenKubes formalizes how Kubernetes capabilities get built, provisioned, and verified — without locking teams into a single vendor, cloud, or component. Every capability follows the same chain from idea to running cluster:</p>
-
-    <div class="chain">
-      <span class="step">Capability</span>
-      <span class="arrow">→</span>
-      <span class="step">Contract</span>
-      <span class="arrow">→</span>
-      <span class="step">Implementation Profile</span>
-      <span class="arrow">→</span>
-      <span class="step">Provider Values</span>
-      <span class="arrow">→</span>
-      <span class="step">Contract Tests</span>
-    </div>
-
-    <p class="principle">"A cluster is not considered fully provisioned until the contract test passes." — ADR-018</p>
-    <p class="principle">"No structure without a forcing consumer." A contract is only formalized once a second real consumer needs it.</p>
-
-    <p>Decisions are recorded as Architecture Decision Records (ADRs) and never skipped — there is no implementation without a committed ADR. The project's knowledge graph (<code>okgraph.py</code>) maps every ADR, commit, and issue into a single traversable structure, so the reasoning behind the platform is never lost.</p>
-  </section>
-
-  <section id="governance">
-    <div class="eyebrow">How decisions get made</div>
-    <h2>Three-way review, human merge</h2>
-    <p>Every ADR passes through a structured review before it can be merged:</p>
-    <div class="grid">
-      <div class="card">
-        <h3>Author</h3>
-        <p>Anyone — maintainer or external contributor — can author an ADR or propose a change on a branch. No direct write access to <code>main</code>.</p>
-      </div>
-      <div class="card">
-        <h3>Claude &amp; GPT review</h3>
-        <p>Claude checks internal consistency and missing counter-arguments. GPT checks governance language and cross-ADR consistency. AI may argue — it does not merge.</p>
-      </div>
-      <div class="card">
-        <h3>Human merge</h3>
-        <p>The maintainer holds project context and makes the final call. "AI may argue; only humans merge."</p>
-      </div>
-    </div>
-    <p style="margin-top:1.5rem;color:var(--muted);">Branch protection is enforced on the mother repo: pull requests required, no force-push, linear history. The three-way review is a process discipline, not a technical gate.</p>
-  </section>
-
   <section id="writing">
-    <div class="eyebrow">Writing</div>
-    <h2>From the field</h2>
-    <p>Essays and stories on how OpenKubes is built — the method, the contracts, and what happened when we let AI agents work inside them.</p>
-    <div class="grid">
-      <div class="card">
-        <h3><a href="/developer-workspace-blog-post">Developer Workspaces: Bounded Authority for Coding Agents</a></h3>
-        <p>How OpenKubes states a coding agent's source, credentials, network, storage and lifecycle as one Proposed contract, and what the reference implementation has measured on disposable clusters. A reference implementation, not production-ready.</p>
-      </div>
-      <div class="card">
-        <h3><a href="/agentic-operations-reference-architecture">AI Thinks. OpenKubes Executes. Evidence Proves.</a></h3>
-        <p>Introducing a proposed reference architecture for trustworthy agent-assisted Kubernetes operations: agents propose, humans approve, platform contracts govern execution, and independent evidence verifies outcomes. Architecture-only, with no implementation commitment.</p>
-      </div>
-      <div class="card">
-        <h3><a href="/vault-secret-contract-blog-post">The Secret Contract, Made Real</a></h3>
-        <p>Where do secrets live, and how does a workload three clusters away get exactly the one it needs — and nothing more? How OpenKubes turns the Secret Contract into a datacenter profile: a central Vault consumed through the Vault Secrets Operator, onboarded declaratively with Crossplane.</p>
-      </div>
-      <div class="card">
-        <h3><a href="/the-contract-is-the-guardrail-blog-post">The Contract Is the Guardrail</a></h3>
-        <p>An AI agent fixed a crashing deployment, found two bugs in its own test, and declined a change that crossed an ownership boundary — none of it requiring trust in the model. How deterministic sensors and a human-controlled gate make AI-assisted platform work safe and productive.</p>
-      </div>
-      <div class="card">
-        <h3><a href="/openkubes-self-healing-blog-post">The Immortal Platform</a></h3>
-        <p>Building self-healing digital infrastructure with OpenKubes — what happens when the infrastructure that runs Kubernetes itself fails.</p>
-      </div>
-      <div class="card">
-        <h3><a href="/openkubes-blog-post">Kubernetes Anywhere. Make it.</a></h3>
-        <p>How we built OpenKubes with Crossplane and Cluster API — from the second cluster problem to a contract-first framework.</p>
-      </div>
+    <div class="eyebrow">Learn and build</div><h2>Learn. Build. Contribute.</h2>
+    <div class="home-v2-grid">
+      <a class="home-v2-card" href="/docs/byoh/advanced-guide/"><h3>Technical Handbooks</h3><p>Start with the BYOH Advanced Guide.</p></a>
+      <a class="home-v2-card" href="/blog/"><h3>Engineering Articles</h3><p>Discover architecture and implementation stories.</p></a>
+      <a class="home-v2-card" href="/community/"><h3>Join the Community</h3><p>Contribute, discuss and collaborate.</p></a>
     </div>
   </section>
-
-  <section id="repos">
-    <div class="eyebrow">Where the code lives</div>
-    <h2>Repositories</h2>
-    <ul class="repo-list">
-      <li>
-        <div>
-          <div class="name">openkubes/openkubes</div>
-          <div class="desc">Mother repo — architecture, ADRs, platform-engineering-method.md, knowledge graph.</div>
-        </div>
-        <span class="badge public">public</span>
-      </li>
-      <li>
-        <div>
-          <div class="name">openkubes/ok-cluster</div>
-          <div class="desc">Cluster lifecycle capability — provisioning, bootstrap, teardown, kubeconfig contracts. Live cluster access is VPN-only.</div>
-        </div>
-        <span class="badge public">public</span>
-      </li>
-      <li>
-        <div>
-          <div class="name">openkubes/ok-storage</div>
-          <div class="desc">Storage capability contracts and provider implementations.</div>
-        </div>
-        <span class="badge public">public</span>
-      </li>
-      <li>
-        <div>
-          <div class="name">openkubes/ok-observability</div>
-          <div class="desc">Per-cluster Prometheus, Grafana, and OpenSearch stack (ADR-018).</div>
-        </div>
-        <span class="badge public">public</span>
-      </li>
-      <li>
-        <div>
-          <div class="name"><a href="https://github.com/openkubes/ok-local">openkubes/ok-local</a></div>
-          <div class="desc">Local OpenKubes development and evaluation environment — start here to try OpenKubes on your workstation.</div>
-        </div>
-        <span class="badge public">public</span>
-      </li>
-      <li>
-        <div>
-          <div class="name">openkubes/ok-linux</div>
-          <div class="desc">Base OS layer for constrained and edge deployment profiles.</div>
-        </div>
-        <span class="badge public">public</span>
-      </li>
-    </ul>
-    <p style="margin-top:1.2rem;color:var(--muted);font-size:0.9rem;">All repos are public — code, contracts, and ADRs are open. Real provider values and cluster credentials never live in the repos; reaching a live cluster itself requires VPN access.</p>
+  <section id="community" class="home-v2-community">
+    <h2>Open Source. Open Architecture. Open Collaboration.</h2>
+    <p><a id="governance" href="/community/#governance">Governance</a> · <a id="repos" href="/community/#repositories">Repositories</a> · <a id="contribute" href="/community/#contribute">Contribute</a> · <a id="supporters" href="/community/#sponsors-partners-and-investors">Sponsors &amp; Investors</a></p>
+    <p><a href="/community/">Community &amp; Open Hours →</a></p>
   </section>
-
-  <section id="contribute">
-    <div class="eyebrow">Get involved</div>
-    <h2>How to contribute</h2>
-    <ol class="steps">
-      <li><strong>Read the method first.</strong> Start with <code>docs/platform-engineering-method.md</code> in <a href="https://github.com/openkubes/openkubes">openkubes/openkubes</a> and browse the ADR series to understand what's already decided.</li>
-      <li><strong>Find a forcing consumer.</strong> OpenKubes doesn't build structure speculatively — proposals land better when tied to a real second use case, not a hypothetical one.</li>
-      <li><strong>Open a branch, not a direct commit.</strong> <code>main</code> is protected. Author your ADR or change on a branch and open a pull request.</li>
-      <li><strong>Go through three-way review.</strong> Expect feedback from both AI reviewers before a maintainer makes the merge decision.</li>
-      <li><strong>Small, scoped changes.</strong> ADRs are precise and narrow — future ideas become new tickets rather than expanding an in-flight one.</li>
-    </ol>
-
-    <h3 style="margin-top:2rem;font-size:1.05rem;">Good places to start</h3>
-    <div class="grid">
-      <div class="card">
-        <h3>Constrained edge profile</h3>
-        <p>Five open spikes: OS candidate, GitOps agent, image strategy, storage, autonomy-under-partition.</p>
-      </div>
-      <div class="card">
-        <h3><code>ok</code> CLI</h3>
-        <p>Wrapper-vs-logic-carrier design spike — standalone binary vs. kubectl plugin (Krew).</p>
-      </div>
-      <div class="card">
-        <h3>Requirements inventory</h3>
-        <p>Research spike on whether a first-class Requirement layer belongs in the architecture.</p>
-      </div>
-      <div class="card">
-        <h3>Cluster deregistration</h3>
-        <p><code>make unregister-cluster</code> — clean up orphaned secrets and ProviderConfigs after teardown.</p>
-      </div>
-    </div>
-  </section>
-
-  <section id="supporters">
-    <div class="eyebrow">Project supporters</div>
-    <h2>Built together. Open to more.</h2>
-    <p>OpenKubes is an open-source project. <a href="https://kubernauts.de/" target="_blank" rel="noopener noreferrer">Kubernauts GmbH</a> is the legal operator of this website. <a href="https://cloudssky.com/" target="_blank" rel="noopener noreferrer">Clouds Sky GmbH</a> supports the OpenKubes project as a project supporter. Contributions from the wider community remain welcome.</p>
-    <div class="grid">
-      <div class="card">
-        <h3><a href="https://cloudssky.com/" target="_blank" rel="noopener noreferrer">Clouds Sky GmbH ↗</a></h3>
-        <p>Project supporter: cloud and platform engineering, Kubernetes infrastructure, and enterprise experience.</p>
-      </div>
-      <div class="card">
-        <h3><a href="https://kubernauts.de/" target="_blank" rel="noopener noreferrer">Kubernauts GmbH ↗</a></h3>
-        <p>Website operator: Kubernetes expertise, knowledge sharing, training, and cloud-native community engagement.</p>
-      </div>
-    </div>
-    <h3 style="margin-top:2rem;font-size:1.05rem;">Become a sponsor or strategic partner</h3>
-    <p>We welcome additional sponsors and strategic partners who believe in open, sovereign, Kubernetes-native platform engineering. Support may include engineering contributions, infrastructure, community programs, or project funding.</p>
-    <div class="cta" style="margin:1.2rem 0 1.8rem;">
-      <a class="btn primary" href="https://kubernauts.de/en/contact.html" target="_blank" rel="noopener noreferrer">Discuss sponsorship &amp; partnership ↗</a>
-    </div>
-    <h3 style="margin-top:2rem;font-size:1.05rem;">For Investors</h3>
-    <p>Help shape the future of sovereign cloud infrastructure. OpenKubes welcomes conversations with investors interested in open-source infrastructure, Kubernetes-native platforms, enterprise AI and digital sovereignty. We are exploring strategic investment opportunities to accelerate platform development, ecosystem growth and commercial adoption.</p>
-    <p style="font-size:0.9rem;color:var(--muted);">Investment discussions are exploratory. Any potential investment structure, terms, and participating legal entity would be agreed separately.</p>
-    <div class="cta" style="margin:1.2rem 0 0;">
-      <a class="btn secondary" href="https://kubernauts.de/en/contact.html" target="_blank" rel="noopener noreferrer">Explore investment opportunities ↗</a>
-    </div>
-  </section>
-
-  <section id="community">
-    <div class="eyebrow">Community</div>
-    <h2>Community &amp; Open Hours</h2>
-    <p>Join the OpenKubes community for hands-on demos, technical discussions, live Q&amp;A and collaborative platform engineering. Whether you're exploring OpenKubes or already contributing, you're welcome to join. Check Kubernauts Worldwide Meetup for upcoming sessions.</p>
-    <div class="cta" style="margin:1.2rem 0 1.8rem;">
-      <a class="btn primary" href="https://www.meetup.com/kubernauts/">Join our Open Hours on Kubernauts Meetup</a>
-    </div>
-    <div class="links-row">
-      <a href="https://github.com/openkubes/openkubes">GitHub</a>
-      <a href="https://github.com/openkubes/openkubes/issues">Issues</a>
-      <a href="https://slack.kubernauts.io">Slack</a>
-      <a href="https://kubernauts.io">kubernauts.io</a>
-    </div>
-  </section>
-
 </main>
 
 <footer>

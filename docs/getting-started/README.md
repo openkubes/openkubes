@@ -59,3 +59,7 @@ The older Multipass/K3s-based [OpenKubes Local repository](https://github.com/op
 [Explore all Tutorials](/tutorials/) · [Platform Features](/features/) · [GitHub organization](https://github.com/openkubes)
 
 Component-specific commands and prerequisites remain in the maintained tutorials and source repositories. This page is an orientation guide, not a production installation procedure.
+
+## Alternative local walkthrough
+
+The older Multipass/K3s OpenKubes Local workflow has a [video walkthrough on YouTube](https://youtu.be/_LJ8tCLHrO0) and [source-owned video tutorials](https://github.com/openkubes/ok-local#video-tutorials--getting-started-with-openkubes-local). These are separate from CAPD; opening the video leaves this site.
