@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 440" role="img" aria-labelledby="title desc">
+<title id="title">Your OpenKubes Learning Journey</title>
+<desc id="desc">Five illustrative stages, each independently accessible: explore platform features, experiment with local CAPD, provision using OK CLI, operate with BYOH, Console and Observability, and extend with AI and developer workspaces. Security First applies throughout. Each stage has independent prerequisites.</desc>
+<metadata>SPDX-License-Identifier: Apache-2.0</metadata>
+<rect width="480" height="440" rx="12" fill="#f5fbff"/>
+<g font-family="system-ui, sans-serif" text-anchor="middle">
+<text x="240" y="25" font-size="18" font-weight="700" fill="#17365b">Your OpenKubes Learning Journey</text>
+<rect x="35" y="39" width="410" height="55" rx="8" fill="#eaf4ff" stroke="#91c4e7"/><text x="240" y="57" font-size="15" font-weight="700" fill="#17365b">01 · Explore</text><text x="240" y="73" font-size="12" fill="#355b73">Understand platform capabilities</text><text x="240" y="86" font-size="11" fill="#416c81">Features &amp; Architecture</text><path d="M240 94v12m-4-5 4 5 4-5" stroke="#559ebc" stroke-width="1.4" fill="none"/>
+<rect x="35" y="107" width="410" height="55" rx="8" fill="#eafaf5" stroke="#86cfc0"/><text x="240" y="125" font-size="15" font-weight="700" fill="#17365b">02 · Experiment</text><text x="240" y="141" font-size="12" fill="#355b73">Start with a local environment</text><text x="240" y="154" font-size="11" fill="#416c81">Docker · kind · CAPD</text><path d="M240 162v12m-4-5 4 5 4-5" stroke="#559ebc" stroke-width="1.4" fill="none"/>
+<rect x="35" y="175" width="410" height="55" rx="8" fill="#eaf4ff" stroke="#91c4e7"/><text x="240" y="193" font-size="15" font-weight="700" fill="#17365b">03 · Provision</text><text x="240" y="209" font-size="12" fill="#355b73">Declare your first cluster</text><text x="240" y="222" font-size="11" fill="#416c81">OK CLI · Cluster API</text><path d="M240 230v12m-4-5 4 5 4-5" stroke="#559ebc" stroke-width="1.4" fill="none"/>
+<rect x="35" y="243" width="410" height="55" rx="8" fill="#eafaf5" stroke="#86cfc0"/><text x="240" y="261" font-size="15" font-weight="700" fill="#17365b">04 · Operate</text><text x="240" y="277" font-size="12" fill="#355b73">Explore lifecycle and visibility</text><text x="240" y="290" font-size="11" fill="#416c81">BYOH · Console · Observability</text><path d="M240 298v12m-4-5 4 5 4-5" stroke="#559ebc" stroke-width="1.4" fill="none"/>
+<rect x="35" y="311" width="410" height="55" rx="8" fill="#eaf4ff" stroke="#91c4e7"/><text x="240" y="329" font-size="15" font-weight="700" fill="#17365b">05 · Extend</text><text x="240" y="345" font-size="12" fill="#355b73">Compose additional capabilities</text><text x="240" y="358" font-size="11" fill="#416c81">AI · Developer Workspaces</text>
+<rect x="35" y="382" width="410" height="45" rx="8" fill="#cdeee9" stroke="#83cfc4"/>
+<text x="240" y="400" font-size="15" font-weight="700" fill="#126562">Security First</text><text x="240" y="416" font-size="11" fill="#326d70">Contracts · Authorization · Evidence · Recovery</text>
+</g></svg>

@@ -216,3 +216,11 @@
 .ok-features-tech span{background:#fff;border:1px solid #d5e7ef;padding:.5rem;border-radius:.4rem;text-align:center;font-size:.75rem;overflow-wrap:anywhere}
 .md-content a[href$="platform-capabilities.svg"]>img{display:block;width:100%;height:auto}
 @media(max-width:700px){.ok-features-grid{grid-template-columns:minmax(0,1fr)}.ok-features-tech{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* Getting Started shares the Features components and color system. */
+.ok-getting-started-principles{display:grid;gap:.65rem;margin:1rem 0}
+.md-typeset .ok-getting-started-principles .ok-feature-card{flex-direction:row;align-items:center}
+.ok-getting-started-principles .ok-feature-icon{flex:none}
+.md-typeset .ok-getting-started-principles .ok-feature-card a{font-size:inherit;padding:0}
+.md-content a[href$="learning-journey.svg"]{display:block;width:min(100%,480px);margin-inline:auto}
+.md-content a[href$="learning-journey.svg"]>img{display:block;width:100%;height:auto}

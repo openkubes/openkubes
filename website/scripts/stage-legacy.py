@@ -148,6 +148,10 @@ def main():
     entrypoint = TARGET / "getting-started"
     entrypoint.mkdir(parents=True, exist_ok=True)
     (entrypoint / "index.md").write_text(page, encoding="utf-8")
+    journey = getting_started.parent / "learning-journey.svg"
+    if not journey.is_file() or journey.is_symlink():
+        raise SystemExit("Missing native Getting Started diagram")
+    shutil.copy2(journey, entrypoint / journey.name)
     for source in SOURCE.glob("*.svg"):
         shutil.copy2(source, TARGET / source.name)
     logo = SOURCE / "openkubes-logo.png"
