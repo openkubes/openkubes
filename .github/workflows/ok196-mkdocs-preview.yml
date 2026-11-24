@@ -51,6 +51,7 @@ jobs:
           python-version: '3.12'
       - run: bash -n website/scripts/publish.sh
       - run: pip install -r website/requirements-mkdocs.txt
+      - run: python -m unittest discover -s website/tests -p 'test_byoh_guide.py'
       - run: python website/scripts/build-docs.py
       - run: python website/scripts/stage-legacy.py
       - run: node --test website/tests/test_*.cjs

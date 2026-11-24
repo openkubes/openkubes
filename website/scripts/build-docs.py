@@ -86,7 +86,7 @@ def main():
     print(f"Staged {len(required) + 2} pinned CAPI architecture source files.")
     stage_byoh(workspace, STAGING)
     with (STAGING / "docs/index.md").open("a", encoding="utf-8") as index:
-        index.write("- [BYOH Advanced Guide](byoh/advanced-guide/index.md)\\n".replace("\\n", "\n"))
+        index.write("- [BYOH Advanced Guide](byoh/advanced-guide/index.md)\n")
     print(f"Ready: {STAGING}")
 
 if __name__ == "__main__":

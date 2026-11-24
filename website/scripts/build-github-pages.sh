@@ -6,6 +6,7 @@ set -euo pipefail
 cd "$(dirname "$0")/../.."
 
 python -m unittest discover -s website/tests -p 'test_blog_editorial_dates.py'
+python -m unittest discover -s website/tests -p 'test_byoh_guide.py'
 python website/scripts/build-docs.py
 python website/scripts/stage-legacy.py
 mkdocs build --strict

@@ -1,5 +1,5 @@
 """Read-only website projection of the reviewed BYOH guide."""
-from pathlib import Path, PurePosixPath
+from pathlib import Path
 import posixpath
 import re
 import shutil
