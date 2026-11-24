@@ -39,6 +39,15 @@ def main():
         destination = TARGET / section
         destination.mkdir(parents=True, exist_ok=True)
         shutil.copy2(source_page, destination / "index.md")
+    # Retired public runbooks must not be linked from the old Features overview.
+    # The expanded Features page already uses current destinations.
+    feature_page = TARGET / "features/index.md"
+    feature_text = feature_page.read_text(encoding="utf-8")
+    feature_text = feature_text.replace(
+        "Use [OpenKubes Local tutorials](/docs/ok-local/tutorial-prerequisites/) for hands-on development and [cluster documentation](/docs/ok-cluster/registry-trust/) for operating building blocks.",
+        "Use the [local CAPD developer tutorial](/tutorials/capd-local-dev-environment/) for hands-on development and the [BYOH Advanced Guide](/docs/byoh/advanced-guide/) for cluster lifecycle concepts.",
+    ).replace("[Developer documentation](/docs/)", "[Tutorials](/tutorials/)")
+    feature_page.write_text(feature_text, encoding="utf-8")
     # Architecture Security First article and its native SVG illustration.
     architecture_source = pages / "architecture"
     architecture_target = TARGET / "architecture"
