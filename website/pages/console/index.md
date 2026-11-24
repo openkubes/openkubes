@@ -77,3 +77,21 @@ evidence described in the repository's
 For implementation details and the evolving evidence record, see the
 [OK-169 local proof](https://github.com/openkubes/ok-console/tree/main/docs/evidence/ok-169)
 and [OK-200 verification evidence](https://github.com/openkubes/ok-console/tree/main/docs/evidence/ok-200).
+
+## Explore the Console preview
+
+These are prototype screenshots, not live operational status. The local evaluation described above uses fixture data and a disposable cluster.
+
+[![AI Agent Catalog](/assets/images/console/ok-console-agent-catalog.webp)](/assets/images/console/ok-console-agent-catalog.webp)
+
+[![Cluster Inventory](/assets/images/console/ok-console-cluster-inventory.webp)](/assets/images/console/ok-console-cluster-inventory.webp)
+
+[![Read-only AI Diagnostics Preview](/assets/images/console/ok-console-ai-diagnostics-preview.webp)](/assets/images/console/ok-console-ai-diagnostics-preview.webp)
+
+### Installer option
+
+The separately maintained [Console installer](https://get.openkubes.ai) offers another local evaluation path. Inspect the downloaded script before executing it, and review its current prerequisites and scope. Do not treat the installer as production approval.
+
+### Kubernautic demo
+
+[Open the external Kubernautic demo](https://demo.kubernautic.com/). This is a separate site; its features and access conditions are independent of the local OpenKubes Console proof.
