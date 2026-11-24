@@ -39,6 +39,10 @@ def main():
         destination = TARGET / section
         destination.mkdir(parents=True, exist_ok=True)
         shutil.copy2(source_page, destination / "index.md")
+    feature_diagram = pages / "features/platform-capabilities.svg"
+    if not feature_diagram.is_file() or feature_diagram.is_symlink():
+        raise SystemExit("Missing native Features diagram")
+    shutil.copy2(feature_diagram, TARGET / "features/platform-capabilities.svg")
     # Architecture Security First article and its native SVG illustration.
     architecture_source = pages / "architecture"
     architecture_target = TARGET / "architecture"
