@@ -91,6 +91,7 @@ nav:
       - Local Kind Installation: console/index.md
   - Tutorials:
       - Overview: tutorials/index.md
+      - HITL & HOTL — AI-Driven Kubernetes Recovery: tutorials/hitl-hotl-agentic-recovery.md
       - OK CLI v1.0.1 Getting Started: tutorials/ok-cli-v1.0.1-getting-started.md
       - Local CAPD Developer Environment: tutorials/capd-local-dev-environment.md
   - Developer Workspace:
