@@ -11,7 +11,3 @@ test('homepage and onboarding do not embed YouTube resources', () => {
   }
   assert.match(getting, /\[video walkthrough on YouTube\]\(https:\/\/youtu\.be\/_LJ8tCLHrO0\)/);
 });
-test('external demo is a link, not an embedded third-party resource', () => {
-  assert.match(homepage, /href="https:\/\/demo\.kubernautic\.com\/" target="_blank" rel="noopener noreferrer"/);
-  assert.doesNotMatch(homepage, /<(?:iframe|img|script)[^>]+src=["']https:\/\/demo\.kubernautic\.com/i);
-});

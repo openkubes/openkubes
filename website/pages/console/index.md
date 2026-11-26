@@ -91,7 +91,3 @@ These are prototype screenshots, not live operational status. The local evaluati
 ### Installer option
 
 The separately maintained [Console installer](https://get.openkubes.ai) offers another local evaluation path. Inspect the downloaded script before executing it, and review its current prerequisites and scope. Do not treat the installer as production approval.
-
-### Kubernautic demo
-
-[Open the external Kubernautic demo](https://demo.kubernautic.com/). This is a separate site; its features and access conditions are independent of the local OpenKubes Console proof.
