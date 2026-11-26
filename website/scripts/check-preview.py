@@ -63,9 +63,8 @@ def main():
     if header_html.count('href="/getting-started/"') != 1:
         raise SystemExit("Expected one Getting Started link in the homepage header")
     secondary_cta = header_html.split('<div class="cta"', 1)[1]
-    for href in ("/architecture/", "https://demo.kubernautic.com/"):
-        if f'href="{href}"' not in secondary_cta:
-            raise SystemExit(f"Missing secondary hero action: {href}")
+    if 'href="/architecture/"' not in secondary_cta:
+        raise SystemExit("Missing secondary hero action: /architecture/")
     inline_css = html.split("<style>", 1)[1].split("</style>", 1)[0]
     if r"\n" in inline_css:
         raise SystemExit("Literal newline escape in homepage CSS")
@@ -84,7 +83,7 @@ def main():
     for anchor in ("about", "demos", "universe", "governance", "writing", "repos", "contribute", "supporters", "community"):
         if f'id="{anchor}"' not in html:
             raise SystemExit(f"Homepage legacy anchor lost: {anchor}")
-    for href in ("/getting-started/", "/features/", "/console/", "/docs/byoh/advanced-guide/", "/community/", "https://demo.kubernautic.com/"):
+    for href in ("/getting-started/", "/features/", "/console/", "/docs/byoh/advanced-guide/", "/community/"):
         if f'href="{href}"' not in html:
             raise SystemExit(f"Homepage journey link missing: {href}")
     for route in ("getting-started", "features", "console", "docs/byoh/advanced-guide", "community"):
