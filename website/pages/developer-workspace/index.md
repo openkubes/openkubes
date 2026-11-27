@@ -18,6 +18,10 @@ The goal is a portable **DeveloperWorkspace** abstraction that defines source, e
 | [OpenCode & Coding Agents](coding-agents.md) | OpenCode reference runtime, second-runtime validation and inference |
 | [Validation & Roadmap](status.md) | What the live proof demonstrates, known limits and delivery status |
 
+## Autonomous Software Engineering
+
+Explore the proposed [Autonomous Software Engineering architecture](../architecture/autonomous-software-engineering.md), which extends the Developer Workspace with external governance, independent verification and evidence-driven engineering loops. Experimental validation is planned.
+
 ## The development workflow
 
 1. Declare a workspace's source repository and revision, runtime profile, model/inference choice and approved capabilities.
