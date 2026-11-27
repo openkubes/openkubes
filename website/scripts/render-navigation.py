@@ -12,6 +12,7 @@ NAV = [
     ("Home", "/"),
     ("Features", "/features/"),
     ("Architecture", "/architecture/"),
+    ("Knowledge", "/knowledge-graph/"),
     ("Research", "/research/"),
     ("Blog", "/blog/"),
     ("Tutorials", "/tutorials/"),

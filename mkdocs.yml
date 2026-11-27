@@ -41,7 +41,6 @@ nav:
   - Architecture:
       - Security First: architecture/security-first.md
       - Overview: architecture/index.md
-      - Living Knowledge Graph: knowledge-graph/index.md
       - Autonomous Software Engineering: architecture/autonomous-software-engineering.md
       - CAPI Overview: architecture/capi/index.md
       - CAPI Architecture Blueprint: architecture/capi/blueprint.md
@@ -68,6 +67,7 @@ nav:
           - Safety & Recovery: docs/byoh/advanced-guide/10-safety-recovery.md
           - Cluster Lifecycle: docs/byoh/advanced-guide/11-cluster-lifecycle.md
           - Validation & Limitations: docs/byoh/advanced-guide/12-validation-limitations.md
+  - Knowledge: knowledge-graph/index.md
   - Research:
       - Overview: research/index.md
       - Security & Trust:
