@@ -41,6 +41,7 @@ nav:
   - Architecture:
       - Security First: architecture/security-first.md
       - Overview: architecture/index.md
+      - Living Knowledge Graph: knowledge-graph/index.md
       - Autonomous Software Engineering: architecture/autonomous-software-engineering.md
       - CAPI Overview: architecture/capi/index.md
       - CAPI Architecture Blueprint: architecture/capi/blueprint.md
@@ -113,6 +114,7 @@ nav:
       - Agentic Operations: agentic-operations-reference-architecture.md
       - Vault Secret Contract: vault-secret-contract-blog-post.md
       - The Contract is the Guardrail: the-contract-is-the-guardrail-blog-post.md
+      - The Immortal Mind: openkubes-ai-immortal-mind-manifesto.md
       - The Immortal Platform: openkubes-self-healing-blog-post.md
       - Kubernetes Anywhere: openkubes-blog-post.md
   - Community:
