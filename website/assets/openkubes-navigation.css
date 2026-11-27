@@ -91,8 +91,8 @@
   z-index:1001;
 }
 
-/* Extra Research link: retain the compact wide layout at intermediate desktop sizes. */
-@media (min-width:1080px) and (max-width:1279px){
+/* Knowledge and Research: retain the compact wide layout at intermediate desktop sizes. */
+@media (min-width:1080px) and (max-width:1399px){
   .ok-global-nav__inner{column-gap:.35rem}
   .ok-global-nav__links{gap:0}
   .ok-global-nav__links a{font-size:.78rem;padding:.4rem .38rem}
