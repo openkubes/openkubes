@@ -36,7 +36,7 @@ Agents operate autonomously within those boundaries. Human intervention becomes 
 
 ## From Developer Workspaces to Autonomous Engineering Workspaces
 
-We envision the OpenKubes Developer Workspace evolving beyond a traditional development environment into a governed execution environment for both human developers and autonomous engineering agents.
+We envision the [OpenKubes Developer Workspace](../developer-workspace/index.md) evolving beyond a traditional development environment into a governed execution environment for both human developers and autonomous engineering agents.
 
 Rather than building another coding agent, we intend to evaluate and integrate existing agent runtimes, including OpenCode and Codex. OpenCode is a candidate reference runtime; Codex provides an alternative native execution path. Our objective is to make autonomous engineering runtime-independent, model-agnostic, secure and evidence-driven.
 
