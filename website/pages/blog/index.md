@@ -4,6 +4,10 @@ Architecture decisions, platform engineering lessons and implementation stories.
 
 ## Latest articles
 
+### [Dogfooding: Autonomous Software Engineering](/openkubes-ase-vision/)
+
+Developing OpenKubes with OpenKubes: a research vision for governed engineering agents, independent verification and evidence-driven autonomy. Experimental validation is planned.
+
 ### [Kubeception V2: From Kubernetes-in-Kubernetes to Virtual Cluster Lifecycle Management](/kubeception-v2/)
 
 From the Kubernauts KiK meetup in 2020 to OpenKubes' contract-driven vision for classic CAPI/BYOH clusters, vCluster, KubeVirt-based VNC and future hosted control planes. The virtual-cluster adapters remain proposed or under evaluation.
