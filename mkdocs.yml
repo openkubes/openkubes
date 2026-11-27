@@ -41,6 +41,7 @@ nav:
   - Architecture:
       - Security First: architecture/security-first.md
       - Overview: architecture/index.md
+      - Autonomous Software Engineering: architecture/autonomous-software-engineering.md
       - CAPI Overview: architecture/capi/index.md
       - CAPI Architecture Blueprint: architecture/capi/blueprint.md
       - CAPI Architecture Decisions:
@@ -102,7 +103,6 @@ nav:
       - Validation & Roadmap: developer-workspace/status.md
   - Blog:
       - Overview: blog/index.md
-      - "Dogfooding: Autonomous Software Engineering": openkubes-ase-vision.md
       - "Kubeception V2: Kubernetes Inside Kubernetes": kubeception-v2.md
       - "Why We Built the OpenKubes BYOH Controller": openkubes-byoh-controller.md
       - "NVIDIA Confidential Containers: Who Controls the Agent?": nvidia-confidential-containers-agent-authority.md

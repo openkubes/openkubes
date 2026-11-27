@@ -24,6 +24,10 @@ Desired state, transition decisions and runtime reconciliation are separate resp
 
 Platform acceptance relies on inspectable evidence and clearly defined outcomes rather than informal success signals.
 
+## Autonomous Software Engineering
+
+[Dogfooding: Autonomous Software Engineering](autonomous-software-engineering.md) explores governed engineering agents, independent verification and evidence-driven autonomy as a proposed extension of the Developer Workspace. Experimental validation is planned.
+
 ## Cluster lifecycle and CAPI architecture
 
 The [OpenKubes CAPI Architecture Blueprint](capi/blueprint.md) describes the independent self-managed and centralized management topologies, BYOH shadow management, explicit ownership and fencing, Git-first configuration, planned Blue/Green management handover, and cold disaster recovery.

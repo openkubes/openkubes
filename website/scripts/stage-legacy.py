@@ -8,7 +8,6 @@ ROOT = Path(__file__).resolve().parents[2]
 SOURCE = ROOT / "docs"
 TARGET = ROOT / ".mkdocs-staging"
 ARTICLES = (
-    "openkubes-ase-vision.md",
     "kubeception-v2.md",
     "nvidia-confidential-containers-agent-authority.md",
     "openkubes-byoh-controller.md",
@@ -47,7 +46,7 @@ def main():
     # Architecture Security First article and its native SVG illustration.
     architecture_source = pages / "architecture"
     architecture_target = TARGET / "architecture"
-    for filename in ("security-first.md", "security-first.svg", "kubernetes-models-simple.svg"):
+    for filename in ("security-first.md", "security-first.svg", "kubernetes-models-simple.svg", "autonomous-software-engineering.md", "openkubes-ase-architecture.svg"):
         source_page = architecture_source / filename
         if not source_page.is_file() or source_page.is_symlink():
             raise SystemExit(f"Missing Security First page or SVG: {source_page}")

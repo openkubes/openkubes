@@ -4,7 +4,7 @@ Architecture decisions, platform engineering lessons and implementation stories.
 
 ## Latest articles
 
-### [Dogfooding: Autonomous Software Engineering](/openkubes-ase-vision/)
+### [Dogfooding: Autonomous Software Engineering](/architecture/autonomous-software-engineering/)
 
 Developing OpenKubes with OpenKubes: a research vision for governed engineering agents, independent verification and evidence-driven autonomy. Experimental validation is planned.
 
