@@ -275,7 +275,7 @@ Because the most important knowledge to preserve is the knowledge we build toget
 ---
 
 🔗 [github.com/openkubes/openkubes](https://github.com/openkubes/openkubes)
-📊 [OpenKubes Platform Presentation](https://kubernauts.de/en/openkubes/OpenKubes-Presentation.html)
+📊 [OpenKubes Architecture](https://openkubes.org/architecture/)
 📖 [blog.kubernauts.io](https://blog.kubernauts.io)
 🎯 [OpenKubes Roadmap: OK-30 Immortal Platform](https://kubernauts.atlassian.net/browse/OK-30)
 
