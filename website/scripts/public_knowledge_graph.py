@@ -5,6 +5,7 @@ from pathlib import Path
 import shutil
 import tempfile
 import os
+from knowledge_graph_preview import render_preview
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -39,6 +40,8 @@ def stage_public_graph(target):
     html = html.replace("Engineering timeline", "Engineering timeline (local view only)")
     html = html.replace("Dated commits in the current view (latest 20).", "Commit history is excluded from this public projection pending publication review.")
     (dest / "viewer.html").write_text(html, encoding="utf-8")
+    preview_template = (ROOT / "website/pages/knowledge-graph/brain-preview.svg").read_text(encoding="utf-8")
+    (dest / "brain-preview.svg").write_text(render_preview(data, preview_template), encoding="utf-8")
     vendor = dest / "vendor"
     vendor.mkdir(exist_ok=True)
     for name in ("d3.v7.min.js", "D3-LICENSE.txt"):
