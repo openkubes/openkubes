@@ -27,9 +27,9 @@ main{display:grid;grid-template-columns:minmax(230px,280px) minmax(0,1fr) minmax
 <button id="reset">Reset exploration</button>
 </aside>
 <section class="canvas" aria-label="Knowledge graph">
-<div class="toolbar"><span id="stats" aria-live="polite"></span><button id="fit">Fit graph</button><button id="plus" aria-label="Zoom in">+</button><button id="minus" aria-label="Zoom out">−</button><button id="full">Full screen</button></div>
+<div class="toolbar"><span id="stats" aria-live="polite"></span><button id="focus">Focus graph</button><button id="fit">Fit all</button><button id="plus" aria-label="Zoom in">+</button><button id="minus" aria-label="Zoom out">−</button><button id="full">Full screen</button></div>
 <div class="viewport" id="viewport"><svg role="img" aria-label="Interactive graph. Use search results or guided exploration for keyboard navigation."></svg><p id="load-error" class="note" hidden>Graph rendering could not load D3. Search and node details remain available.</p></div>
-<div class="muted" style="padding:8px 12px">Drag nodes · zoom · select a node to inspect its source and direct relationships.</div>
+<div class="muted" style="padding:8px 12px">Focus graph shows the main connected region; Fit all includes every visible node. Drag, zoom or select nodes to explore.</div>
 </section>
 <aside id="details" class="panel" aria-label="Node details"><h2>Understand the connections</h2><div id="detail-content"><p>Select a node or guided topic to explore its source and relationships.</p></div><div class="note">Edges are extracted from Git text references, not certified runtime dependencies or proof of implementation. Jira keys are references, not imported Jira records.</div><h3>Engineering timeline</h3><p class="muted">Dated commits in the current view (latest 20).</p><div id="timeline" class="timeline"></div></aside>
 </main>
@@ -82,18 +82,18 @@ $("search").addEventListener("input",()=>refresh(true));$("year").addEventListen
 if(typeof d3!=="undefined"){
  const svg=d3.select("svg"),viewport=$("viewport"),g=svg.append("g"),lg=g.append("g"),ng=g.append("g");
  const zoom=d3.zoom().scaleExtent([.08,5]).on("zoom",e=>g.attr("transform",e.transform));svg.call(zoom);
- const sim=d3.forceSimulation().force("link",d3.forceLink().id(n=>n.id).distance(65).strength(.25)).force("charge",d3.forceManyBody().strength(-120)).force("collide",d3.forceCollide().radius(n=>(R[n.type]||6)+5)).force("center",d3.forceCenter(0,0));
+ const sim=d3.forceSimulation().force("link",d3.forceLink().id(n=>n.id).distance(65).strength(.25)).force("charge",d3.forceManyBody().strength(-120)).force("collide",d3.forceCollide().radius(n=>(R[n.type]||6)+5)).force("center",d3.forceCenter(0,0)).force("x",d3.forceX(0).strength(.035)).force("y",d3.forceY(0).strength(.035));
  let ns=ng.selectAll("g"),ls=lg.selectAll("line"),fitPending=false;
- function fit(){const list=nodes.filter(n=>visible.has(n.id)&&Number.isFinite(n.x)&&Number.isFinite(n.y));if(!list.length)return;const w=viewport.clientWidth,h=viewport.clientHeight,x=d3.extent(list,n=>n.x),y=d3.extent(list,n=>n.y),s=Math.min(1.8,w/(Math.max(40,x[1]-x[0])+100),h/(Math.max(40,y[1]-y[0])+100));svg.call(zoom.transform,d3.zoomIdentity.translate(w/2,h/2).scale(s).translate(-(x[0]+x[1])/2,-(y[0]+y[1])/2));}
+ function fit(all=false){const list=nodes.filter(n=>visible.has(n.id)&&Number.isFinite(n.x)&&Number.isFinite(n.y));if(!list.length)return;const w=viewport.clientWidth,h=viewport.clientHeight;if(!w||!h)return;const connected=list.filter(n=>adj.get(n.id).size>1);const focus=!all&&connected.length?connected:list;const xs=focus.map(n=>n.x).sort(d3.ascending),ys=focus.map(n=>n.y).sort(d3.ascending);const trim=!all&&focus.length>100?.025:0;const x=[d3.quantileSorted(xs,trim),d3.quantileSorted(xs,1-trim)],y=[d3.quantileSorted(ys,trim),d3.quantileSorted(ys,1-trim)];const s=Math.max(.08,Math.min(2.5,(w-48)/Math.max(40,x[1]-x[0]),(h-48)/Math.max(40,y[1]-y[0])));svg.call(zoom.transform,d3.zoomIdentity.translate(w/2,h/2).scale(s).translate(-(x[0]+x[1])/2,-(y[0]+y[1])/2));}
  function highlight(){const keep=selected?adj.get(selected.id):null;ns.classed("selected",n=>n.id===selected?.id).classed("faded",n=>keep&&!keep.has(n.id));ls.classed("faded",l=>selected&&idOf(l.source)!==selected.id&&idOf(l.target)!==selected.id);}
  function update(shouldFit){const list=nodes.filter(n=>visible.has(n.id));sim.stop();sim.force("link").links([]);sim.nodes(list);sim.force("link").links(shownLinks);
  ls=lg.selectAll("line").data(shownLinks,l=>idOf(l.source)+"|"+idOf(l.target)+"|"+l.rel+"|"+(l.key??0)).join("line").attr("class","link");
  ns=ng.selectAll("g").data(list,n=>n.id).join(enter=>{const a=enter.append("g").attr("class","node").on("click",(e,n)=>{e.stopPropagation();selectNode(n);}).call(d3.drag().on("start",(e,n)=>{if(!e.active)sim.alphaTarget(.2).restart();n.fx=n.x;n.fy=n.y;}).on("drag",(e,n)=>{n.fx=e.x;n.fy=e.y;}).on("end",(e,n)=>{if(!e.active)sim.alphaTarget(0);n.fx=null;n.fy=null;}));a.append("circle").attr("r",n=>R[n.type]||6).attr("fill",n=>COLORS[n.type]||"#74849a");a.append("title").text(n=>n.title||n.message||label(n));a.append("text").attr("dx",n=>(R[n.type]||6)+4).attr("dy",4).text(n=>label(n));return a;});
  ns.select("text").style("display",n=>list.length>120&&["commit","cluster-state","issue"].includes(n.type)?"none":null);
- highlight();fitPending=shouldFit;sim.alpha(.8).restart();if(shouldFit)fit();}
+ highlight();fitPending=shouldFit;sim.alpha(.8);if(shouldFit){sim.tick(100);fit();}sim.restart();}
  sim.on("tick",()=>{ls.attr("x1",l=>l.source.x).attr("y1",l=>l.source.y).attr("x2",l=>l.target.x).attr("y2",l=>l.target.y);ns.attr("transform",n=>"translate("+n.x+","+n.y+")");if(fitPending&&sim.alpha()<.15){fitPending=false;fit();}});
- graph={update,highlight};$("fit").addEventListener("click",fit);$("plus").addEventListener("click",()=>svg.call(zoom.scaleBy,1.4));$("minus").addEventListener("click",()=>svg.call(zoom.scaleBy,1/1.4));new ResizeObserver(fit).observe(viewport);
-}else{$("load-error").hidden=false;["fit","plus","minus"].forEach(id=>$(id).disabled=true);}
+ graph={update,highlight};$("focus").addEventListener("click",()=>{fitPending=false;fit();});$("fit").addEventListener("click",()=>{fitPending=false;fit(true);});$("plus").addEventListener("click",()=>svg.call(zoom.scaleBy,1.4));$("minus").addEventListener("click",()=>svg.call(zoom.scaleBy,1/1.4));zoom.on("start.cancel-autofit",e=>{if(e.sourceEvent)fitPending=false;});new ResizeObserver(()=>fit()).observe(viewport);
+}else{$("load-error").hidden=false;["focus","fit","plus","minus"].forEach(id=>$(id).disabled=true);}
 $("full").addEventListener("click",async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen();}catch{}});if(!document.fullscreenEnabled)$("full").hidden=true;
 refresh(true);
 </script>
