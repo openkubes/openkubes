@@ -15,7 +15,7 @@ SOURCE = ROOT / "docs"
 SITE = ROOT / ".mkdocs-site"
 WORDMARK = (ROOT / "website/overrides/partials/openkubes-wordmark.html").read_text(encoding="utf-8").strip()
 NAV = (("Home", "/"), ("Features", "/features/"), ("Architecture", "/architecture/"),
-       ("Research", "/research/"), ("Blog", "/blog/"), ("Tutorials", "/tutorials/"), ("Community", "/community/"))
+       ("Knowledge", "/knowledge-graph/"), ("Research", "/research/"), ("Blog", "/blog/"), ("Tutorials", "/tutorials/"), ("Community", "/community/"))
 
 def render(source):
     title = source.stem.replace("-", " ").replace("_", " ").strip()
