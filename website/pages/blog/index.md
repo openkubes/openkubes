@@ -4,6 +4,10 @@ Architecture decisions, platform engineering lessons and implementation stories.
 
 ## Latest articles
 
+### [The Immortal Mind](/openkubes-ai-immortal-mind-manifesto/)
+
+Organizational intelligence that survives. Explore the [Living Knowledge Graph](/knowledge-graph/) as a concrete expression of Git-derived engineering memory.
+
 ### [Dogfooding: Autonomous Software Engineering](/architecture/autonomous-software-engineering/)
 
 Developing OpenKubes with OpenKubes: a research vision for governed engineering agents, independent verification and evidence-driven autonomy. Experimental validation is planned.
