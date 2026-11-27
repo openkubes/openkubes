@@ -171,6 +171,14 @@ Self-healing infrastructure is the next chapter. We are evaluating Metal3 for ba
 
 ---
 
+## From the Immortal Platform to the Immortal Mind
+
+Infrastructure can be rebuilt from Git. Engineering knowledge can also be preserved and explored through its documented relationships.
+
+<a href="/knowledge-graph/" aria-label="Explore the OpenKubes Living Knowledge Graph"><img src="/knowledge-graph/brain-preview.svg" alt="Brain-shaped OpenKubes Knowledge Graph showing architecture decisions, components, capabilities and issue references" style="display:block;width:100%;max-width:620px;height:auto;margin:1rem auto"></a>
+
+**[Explore the Living Knowledge Graph](/knowledge-graph/)** — discover the architecture decisions and their text-derived relationships. The illustration is a static view of the public graph, not a map of runtime dependencies.
+
 ## An Invitation
 
 If you are building infrastructure that cannot afford to fail — factories, edge sites, sovereign clouds, critical systems — we want to hear from you.
@@ -186,7 +194,6 @@ We believe infrastructure should be treated like software, rebuilt like containe
 ---
 
 🔗 [github.com/openkubes/openkubes](https://github.com/openkubes/openkubes)
-📊 [OpenKubes Architecture](https://openkubes.org/architecture/)
 📖 [blog.kubernauts.io](https://blog.kubernauts.io)
 
 ---
