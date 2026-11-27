@@ -48,4 +48,4 @@ The [seven standalone CAPI architecture decisions](capi/decisions/index.md) are 
 
 **Capability → Contract → Implementation Profile → Provider Values → Contract Tests.** A contract captures required behavior independently of its implementation. The observability contract, for example, requires applicable capability guarantees to pass their gate; see [OK Observability](/observability/contract/).
 
-Avoid speculative abstractions: formalize a structure when real consumers require it. Architecture decisions and their reasoning are maintained in the source repositories; the [engineering method and knowledge graph](https://github.com/openkubes/openkubes) provide further context.
+Avoid speculative abstractions: formalize a structure when real consumers require it. Architecture decisions and their reasoning are maintained in the source repositories; the [Living Knowledge Graph](../knowledge-graph/index.md) provide further context.
