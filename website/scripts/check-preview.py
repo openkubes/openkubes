@@ -37,6 +37,17 @@ def main():
     if (SITE / "docs/ok-cluster/registry-trust").exists():
         raise SystemExit("Internal Registry Trust runbook must not be published")
     check_byoh_output(SITE)
+    from xml.etree import ElementTree
+    graph_svg = SITE / 'knowledge-graph/brain-preview.svg'
+    graph_root = ElementTree.parse(graph_svg).getroot()
+    if not graph_root.findall('{http://www.w3.org/2000/svg}line'):
+        raise SystemExit('Missing public graph SVG edges')
+    immortal = (SITE / 'openkubes-self-healing-blog-post/index.html').read_text(encoding='utf-8')
+    for expected in ('/knowledge-graph/brain-preview.svg', 'href="/knowledge-graph/"'):
+        if expected not in immortal:
+            raise SystemExit('Missing Immortal Platform graph link: ' + expected)
+    if 'kubernauts.de/en/openkubes/OpenKubes-Presentation.html' in immortal:
+        raise SystemExit('Obsolete presentation link remains in Immortal Platform')
     if (SITE / "docs/ok-local/tutorial-prerequisites").exists():
         raise SystemExit("Retired Local prerequisites must not be published")
     for page in (SITE / "index.html", SITE / "architecture/index.html", SITE / "docs/byoh/advanced-guide/index.html"):
