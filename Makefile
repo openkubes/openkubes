@@ -27,12 +27,13 @@ $(VENV): ## Create local venv with graph dependencies
 	@echo "  ✔ venv ready ($(VENV))"
 
 graph-json: $(VENV) ## Extract graph from Git (ADRs, commits, issues) → knowledge-graph.json
+	@$(PYTHON) -c "import networkx" 2>/dev/null || $(PYTHON) -m pip install networkx
 	@cd $(DOCS) && ../$(PYTHON) okgraph.py build ..
 
 graph-html: ## Embed JSON into the D3 template → standalone viewer HTML
 	@python3 -c "\
 	tpl = open('$(TEMPLATE)').read(); \
-	data = open('$(JSON)').read(); \
+	data = open('$(JSON)').read().replace(chr(60), chr(92)+'u003c'); \
 	assert '/*__GRAPH_DATA__*/' in tpl, 'placeholder missing in template'; \
 	open('$(STANDALONE)','w').write(tpl.replace('/*__GRAPH_DATA__*/', data)); \
 	print('  ✔ $(STANDALONE)')"
@@ -41,8 +42,8 @@ graph-serve: ## Preview the standalone viewer locally (http://localhost:8000)
 	@echo "→ http://localhost:8000/openkubes_knowledge_graph_force_layout.html  (Ctrl-C to stop)"
 	@cd $(DOCS) && python3 -m http.server 8000
 
-graph-stats: ## Print graph summary (requires prior graph-json)
-	@cd $(DOCS) && python3 okgraph.py stats
+graph-stats: $(VENV) ## Print graph summary (requires prior graph-json)
+	@cd $(DOCS) && ../$(PYTHON) okgraph.py stats
 
 # OK-196: controlled, preview-first website release.
 website-preview: ## Build a GitHub Actions HTML preview artifact from reviewed remote main

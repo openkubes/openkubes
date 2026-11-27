@@ -3,116 +3,144 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>OpenKubes Knowledge Graph — Immortal Mind, Layer 1</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<title>Explore OpenKubes — Living Knowledge Graph</title>
+<script src="vendor/d3.v7.min.js"></script>
 <style>
-  :root{--bg:#0e1116;--panel:#161b22;--fg:#e6edf3;--muted:#8b949e;--line:#30363d}
-  html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);
-    font:14px/1.5 -apple-system,"Segoe UI",Roboto,sans-serif;overflow:hidden}
-  svg{width:100vw;height:100vh;display:block}
-  #hud{position:fixed;top:16px;left:16px;background:var(--panel);border:1px solid var(--line);
-    border-radius:10px;padding:14px 18px;max-width:340px}
-  #hud h1{font-size:16px;margin:0 0 2px}
-  #hud p{margin:4px 0;color:var(--muted);font-size:12px}
-  .legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
-  .legend span{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--muted)}
-  .dot{width:10px;height:10px;border-radius:50%;display:inline-block}
-  #info{position:fixed;right:16px;top:16px;width:320px;max-height:70vh;overflow:auto;
-    background:var(--panel);border:1px solid var(--line);border-radius:10px;
-    padding:14px 18px;display:none}
-  #info h2{font-size:14px;margin:0 0 6px}
-  #info .rel{font-size:12px;color:var(--muted);margin:2px 0}
-  #info .rel b{color:var(--fg);font-weight:600}
-  text{fill:var(--fg);font-size:11px;pointer-events:none}
-  .link{stroke:#586274;stroke-opacity:.8;stroke-width:1.2}
-  .node circle{cursor:pointer;stroke:#0e1116;stroke-width:1.5}
-  .faded{opacity:.12}
-  #foot{position:fixed;bottom:12px;left:16px;color:var(--muted);font-size:11px}
-  #foot a{color:#58a6ff;text-decoration:none}
+:root{--navy:#101c30;--blue:#0969da;--bg:#f3f7fc;--ink:#17243b;--muted:#53657b;--line:#d9e3ef;--panel:#fff}
+*{box-sizing:border-box}body{margin:0;color:var(--ink);background:var(--bg);font:14px/1.5 system-ui,sans-serif}a{color:var(--blue);overflow-wrap:anywhere}
+header{background:var(--navy);color:white;padding:18px 24px;border-bottom:3px solid #27a8f2}header h1{font-size:clamp(21px,3vw,30px);margin:0}header p{margin:3px 0;color:#b4e5ff}.eyebrow{font-size:11px;letter-spacing:1.4px;font-weight:700;color:#8cc6ff}
+main{display:grid;grid-template-columns:minmax(230px,280px) minmax(0,1fr) minmax(240px,300px);gap:12px;padding:12px;max-width:1900px;margin:auto}.panel,.canvas{background:white;border:1px solid var(--line);border-radius:12px;min-width:0;box-shadow:0 4px 18px #101c3009}.panel{padding:16px;max-height:calc(100vh - 125px);overflow:auto}.panel h2{font-size:15px;margin:0 0 8px}.panel h3{font-size:13px;margin:16px 0 6px}.muted,small{color:var(--muted)}.muted{font-size:12px}p{margin:6px 0 12px}label{display:block;font-weight:600;font-size:12px;margin-bottom:4px}input[type=search],select{width:100%;padding:9px;border:1px solid #b8c9df;border-radius:7px;background:white;color:var(--ink);font:inherit}button{font:inherit;color:var(--navy);background:white;border:1px solid #b8c9df;border-radius:7px;padding:7px 10px;cursor:pointer;text-align:left}button:hover,button[aria-pressed=true]{background:#e8f2ff;border-color:var(--blue)}:focus-visible{outline:3px solid #0969da;outline-offset:2px}.guide{display:block;width:100%;margin:6px 0;font-weight:600}.guide small{display:block;font-weight:400}.filters label{display:flex;align-items:center;gap:7px;font-weight:400;margin:5px 0}.dot{display:inline-block;width:10px;height:10px;border-radius:50%;flex:none}.count{margin-left:auto;color:var(--muted)}.results{display:grid;gap:5px;max-height:210px;overflow:auto}.results button,.relation button{width:100%;overflow-wrap:anywhere}.results small,.relation small{display:block}.canvas{display:flex;flex-direction:column;min-height:560px;overflow:hidden}.toolbar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:10px;border-bottom:1px solid var(--line)}.toolbar span{margin-right:auto;font-weight:600;font-size:12px}.viewport{position:relative;flex:1;min-height:440px;background:radial-gradient(circle,#dbe7f5 1px,transparent 1px) 0 0/22px 22px}svg{width:100%;height:100%;position:absolute;inset:0;display:block;touch-action:none}.link{stroke:#8ea4bf;stroke-opacity:.55;stroke-width:1.1}.node circle{stroke:white;stroke-width:1.5;cursor:pointer}.node text{font-size:11px;fill:var(--navy);paint-order:stroke;stroke:white;stroke-width:3px;stroke-linejoin:round;pointer-events:none}.node.selected circle{stroke:#101c30;stroke-width:3}.faded{opacity:.15}.relation{display:grid;gap:5px}.relation button{font-size:12px}.note{border-left:3px solid #f47b16;background:#fff8ef;padding:9px;font-size:12px;color:#62451f}.empty{padding:8px;color:var(--muted);font-size:12px}footer{padding:8px 24px 18px;color:var(--muted);font-size:12px}.timeline{display:grid;gap:5px;margin:8px 0}.timeline button{font-size:12px}.timeline button span{display:block;color:var(--muted)}[hidden]{display:none!important}
+@media(max-width:1100px){main{grid-template-columns:250px minmax(0,1fr)}#details{grid-column:1/-1;max-height:none}.panel{max-height:none}}
+@media(max-width:650px){header{padding:14px}main{grid-template-columns:1fr;gap:8px;padding:8px}.canvas{min-height:440px}.viewport{min-height:360px}.panel{padding:12px}#details{grid-column:auto}footer{padding:10px}}
+.viewport.brain{background:radial-gradient(ellipse at center,#f2f9fc 0%,#ffffff 80%)}.brain-art{pointer-events:none}.brain-art path,.brain-art line{vector-effect:non-scaling-stroke}.brain-art text{font-size:10px;fill:#477c70;letter-spacing:1px}#mode[aria-pressed=true]{background:#e2f7eb;border-color:#21966a;color:#075b38}
 </style>
 </head>
 <body>
-<div id="hud">
-  <h1>OpenKubes Knowledge Graph</h1>
-  <p>A derived projection of Git — ADRs, components, capabilities, Jira issues, commits. Rebuild anytime: <code>okgraph.py build</code></p>
-  <p id="stats"></p>
-  <div class="legend" id="legend"></div>
-  <p style="margin-top:8px">Drag nodes · scroll to zoom · click for details · hover to isolate</p>
-</div>
-<div id="info"></div>
-<div id="foot">Immortal Mind, Layer 1 · <a href="https://github.com/openkubes/openkubes">openkubes/openkubes</a> · Memory lives in Git.</div>
-<svg></svg>
+<header><div class="eyebrow">OPENKUBES / IMMORTAL MIND</div><h1>Explore OpenKubes — Living Knowledge Graph</h1><p>Memory lives in Git. Knowledge emerges from relationships.</p></header>
+<main>
+<aside class="panel" aria-label="Explore controls">
+<h2>Explore the architecture</h2><p class="muted">Find decisions, components and engineering history. Start with a guided topic or search the source metadata.</p>
+<label for="search">Search knowledge</label><input id="search" type="search" placeholder="ADR-015, Cilium, OK-141…"><div id="results" class="results" aria-live="polite"></div>
+<h3>Guided exploration</h3><div id="guides"></div><p id="guide-note" class="muted"></p>
+<h3>Filter node types</h3><div id="filters" class="filters"></div>
+<label for="year">Commit history year</label><select id="year"><option value="">All years</option></select>
+<p class="muted">Year filters dated commit and cluster-state nodes only.</p>
+<button id="reset">Reset exploration</button>
+</aside>
+<section class="canvas" aria-label="Knowledge graph">
+<div class="toolbar"><span id="stats" aria-live="polite"></span><button id="mode" aria-pressed="true">Brain mode</button><button id="focus">Focus graph</button><button id="fit">Fit all</button><button id="plus" aria-label="Zoom in">+</button><button id="minus" aria-label="Zoom out">−</button><button id="full">Full screen</button></div>
+<div class="viewport" id="viewport"><svg role="img" aria-label="Interactive graph. Use search results or guided exploration for keyboard navigation."></svg><p id="load-error" class="note" hidden>Graph rendering could not load D3. Search and node details remain available.</p></div>
+<div class="muted" style="padding:8px 12px">Brain mode is a decorative, type-grouped layout; Structure mode uses graph forces. Sensor marks are decorative, not data. Fit all includes every visible node.</div>
+</section>
+<aside id="details" class="panel" aria-label="Node details"><h2>Understand the connections</h2><div id="detail-content"><p>Select a node or guided topic to explore its source and relationships.</p></div><div class="note">Edges are extracted from Git text references, not certified runtime dependencies or proof of implementation. Jira keys are references, not imported Jira records.</div><h3>Engineering timeline</h3><p class="muted">Dated commits in the current view (latest 20).</p><div id="timeline" class="timeline"></div></aside>
+</main>
+<footer>Derived projection of Git · <a href="https://github.com/openkubes/openkubes">Source repository</a> · Rebuild with <code>make graph</code>. Dates and statuses are source metadata, not live state.</footer>
 <script>
 const data = /*__GRAPH_DATA__*/;
-const COLORS = {adr:"#58a6ff",component:"#3fb950",capability:"#d29922",
-                issue:"#f778ba",commit:"#8b949e","cluster-state":"#a371f7"};
-const R = {adr:11,capability:13,component:7,issue:8,commit:5,"cluster-state":6};
+const COLORS={adr:"#2e75cf",component:"#21966a",capability:"#e58a18",issue:"#a94e9b",commit:"#74849a","cluster-state":"#8059c5"};
+const LABELS={adr:"Architecture decisions",component:"Components",capability:"Capabilities",issue:"Jira references",commit:"Commits","cluster-state":"Cluster-state commits"};
+const R={adr:9,component:7,capability:11,issue:6,commit:3,"cluster-state":5};
+const nodes=data.nodes, links=data.links.map(d=>({...d})), byId=new Map(nodes.map(n=>[n.id,n]));
+const idOf=x=>typeof x==="object"?x.id:x;
+const adj=new Map(nodes.map(n=>[n.id,new Set([n.id])]));
+links.forEach(l=>{adj.get(idOf(l.source))?.add(idOf(l.target));adj.get(idOf(l.target))?.add(idOf(l.source));});
+const $=id=>document.getElementById(id);
+const el=(tag,text,cls)=>{const e=document.createElement(tag);if(text!==undefined)e.textContent=text;if(cls)e.className=cls;return e;};
+const label=n=>n.label||n.id;
+const searchable=n=>[n.id,n.label,n.title,n.message,n.status,n.file].filter(Boolean).join(" ").toLowerCase();
+const guides=[
+ ["Agentic AI & governance","Explore the agent and diagnostics decisions.",["ADR-Platform-015","ADR-Platform-021"]],
+ ["Kubernetes lifecycle","Follow the execution model and cluster contracts.",["ADR-Platform-030","ADR-Platform-004"]],
+ ["Security & trust","Explore security-first and constraint decisions.",["ADR-Platform-000","ADR-Platform-017"]],
+ ["Architecture foundations","Trace contracts and shared platform decisions.",["ADR-Platform-001","ADR-Platform-022"]],
+ ["Engineering history","Explore the OK-141 lifecycle evidence references.",["OK-141"]]
+];
+let activeGuide=null,selected=null,visible=new Set(),shownLinks=[],graph=null;
+const filters=new Map();
+Object.entries(LABELS).forEach(([type,name])=>{const row=el("label"),check=el("input"),dot=el("i",undefined,"dot");check.type="checkbox";check.checked=true;dot.style.background=COLORS[type];filters.set(type,check);row.append(check,dot,el("span",name),el("span",String(nodes.filter(n=>n.type===type).length),"count"));$("filters").append(row);check.addEventListener("change",()=>refresh(true));});
+[...new Set(nodes.filter(n=>["commit","cluster-state"].includes(n.type)).map(n=>String(n.date||"").slice(0,4)).filter(y=>/^\d{4}$/.test(y)))].sort().reverse().forEach(y=>{const o=el("option",y);o.value=y;$("year").append(o);});
+guides.forEach((g,i)=>{const b=el("button",g[0],"guide");b.append(el("small",g[1]));b.setAttribute("aria-pressed","false");b.addEventListener("click",()=>{activeGuide=activeGuide===i?null:i;selected=null;$("search").value="";$("year").value="";filters.forEach(c=>c.checked=true);renderDetails();refresh(true);});$("guides").append(b);});
+function allowed(n){return (filters.get(n.type)?.checked??true)&&(!$("year").value||!["commit","cluster-state"].includes(n.type)||String(n.date||"").startsWith($("year").value));}
+function refresh(fit=false){
+ const q=$("search").value.trim().toLowerCase(),eligible=nodes.filter(allowed),matches=eligible.filter(n=>q&&searchable(n).includes(q));
+ let scope=null;if(activeGuide!==null){scope=new Set();guides[activeGuide][2].forEach(id=>{if(byId.has(id))adj.get(id).forEach(x=>scope.add(x));});}
+ if(q){const found=new Set();matches.forEach(n=>adj.get(n.id).forEach(x=>found.add(x)));scope=scope?new Set([...scope].filter(x=>found.has(x))):found;}
+ visible=new Set(eligible.filter(n=>!scope||scope.has(n.id)).map(n=>n.id));
+ shownLinks=links.filter(l=>visible.has(idOf(l.source))&&visible.has(idOf(l.target)));
+ $("stats").textContent=visible.size+" / "+nodes.length+" nodes · "+shownLinks.length+" / "+links.length+" edges";
+ [...$("guides").children].forEach((b,i)=>b.setAttribute("aria-pressed",String(i===activeGuide)));
+ $("guide-note").textContent=activeGuide===null?"":guides[activeGuide][1]+" Showing seed nodes and their direct neighbors.";
+ $("results").replaceChildren();if(q){const rows=matches.filter(n=>visible.has(n.id));$("results").append(el("small",rows.length+" matches"));rows.slice(0,40).forEach(n=>$("results").append(nodeButton(n)));if(rows.length>40)$("results").append(el("small","Showing first 40; refine the search."));}
+ if(selected&&!visible.has(selected.id)){selected=null;renderDetails();}
+ renderTimeline();if(graph)graph.update(fit===true);
+}
+function nodeButton(n){const b=el("button",label(n));b.append(el("small",n.title||n.message||LABELS[n.type]||n.type));b.addEventListener("click",()=>selectNode(n));return b;}
+function selectNode(n){if(!visible.has(n.id)){$("search").value="";$("year").value="";activeGuide=null;filters.forEach(c=>c.checked=true);refresh(true);}selected=n;renderDetails();if(graph)graph.highlight();}
+function sourceUrl(n){const base="https://github.com/openkubes/openkubes";if(n.type==="adr"&&typeof n.file==="string"&&/^architecture\/decisions\/[\w.-]+\.md$/.test(n.file))return base+"/blob/main/"+n.file;if(["commit","cluster-state"].includes(n.type)&&/^commit:[a-f0-9]{7,40}$/.test(n.id))return base+"/commit/"+n.id.slice(7);if(n.type==="issue"&&/^OK-\d+$/.test(n.id))return "https://kubernauts.atlassian.net/browse/"+n.id;return null;}
+function renderDetails(){const box=$("detail-content");box.replaceChildren();if(!selected){box.append(el("p","Select a node or guided topic to explore its source and relationships."));return;}const n=selected;box.append(el("h3",label(n)),el("p",LABELS[n.type]||n.type,"muted"));if(n.title)box.append(el("p",n.title));if(n.message)box.append(el("p",n.message));if(n.status)box.append(el("p","Status: "+n.status));if(n.date)box.append(el("p","Date: "+n.date));const url=sourceUrl(n);if(url){const a=el("a","Open original source");a.href=url;a.target="_blank";a.rel="noopener noreferrer";box.append(a);}const rel=el("div",undefined,"relation");const relevant=links.filter(l=>idOf(l.source)===n.id||idOf(l.target)===n.id);box.append(el("h3","Direct relationships ("+relevant.length+")"));relevant.forEach(l=>{const outgoing=idOf(l.source)===n.id,other=byId.get(idOf(outgoing?l.target:l.source));if(!other)return;const b=el("button",(outgoing?"→ ":"← ")+l.rel+" · "+label(other));b.append(el("small",other.title||other.message||"Text-derived reference"));b.addEventListener("click",()=>selectNode(other));rel.append(b);});box.append(rel);}
+function renderTimeline(){const t=$("timeline");t.replaceChildren();const dated=nodes.filter(n=>visible.has(n.id)&&["commit","cluster-state"].includes(n.type)&&/^\d{4}-\d{2}-\d{2}$/.test(n.date||"")).sort((a,b)=>b.date.localeCompare(a.date));dated.slice(0,20).forEach(n=>{const b=el("button",n.date+" · "+label(n));b.append(el("span",n.message||""));b.addEventListener("click",()=>selectNode(n));t.append(b);});if(!dated.length)t.append(el("p","No dated commits in this view.","muted"));}
+$("search").addEventListener("input",()=>refresh(true));$("year").addEventListener("change",()=>refresh(true));$("reset").addEventListener("click",()=>{activeGuide=null;selected=null;$("search").value="";$("year").value="";filters.forEach(c=>c.checked=true);renderDetails();refresh(true);});
+if(typeof d3!=="undefined"){
+ const svg=d3.select("svg"),viewport=$("viewport"),g=svg.append("g"),lg=g.append("g"),ng=g.append("g");
+ const zoom=d3.zoom().scaleExtent([.08,5]).on("zoom",e=>g.attr("transform",e.transform));svg.call(zoom);
+ const sim=d3.forceSimulation().force("link",d3.forceLink().id(n=>n.id).distance(65).strength(.25)).force("charge",d3.forceManyBody().strength(-120)).force("collide",d3.forceCollide().radius(n=>(R[n.type]||6)+5)).force("center",d3.forceCenter(0,0)).force("x",d3.forceX(0).strength(.035)).force("y",d3.forceY(0).strength(.035));
+ let ns=ng.selectAll("g"),ls=lg.selectAll("line"),fitPending=false,brain=true;
+ const art=g.insert("g",":first-child").attr("class","brain-art").attr("aria-hidden","true");
+ // Original vector interpretation of a lateral brain silhouette. Decorative only.
+ const illustration=art.append("g").attr("transform","translate(-350,-300)");
+ const cerebrum="M68 241 C53 204 68 164 100 140 C104 105 135 77 174 71 C196 31 249 17 291 31 C324 7 368 8 398 27 C435 8 474 21 495 49 C536 43 576 67 591 107 C625 111 651 142 651 180 C689 202 704 249 687 284 C706 323 691 367 655 382 C627 394 606 386 583 372 C557 395 525 395 500 382 C467 402 432 406 399 405 C363 420 326 445 285 442 C239 440 205 410 204 370 C166 381 124 391 91 367 C47 337 43 281 68 241 Z";
+ const cerebellum="M399 405 C432 406 467 402 500 382 C525 395 557 395 583 372 C606 386 627 394 655 382 C655 431 625 469 579 483 C529 497 470 481 450 446 C433 435 414 423 399 405 Z";
+ const stem="M351 428 C370 450 395 463 409 487 C422 509 426 536 432 559 Q434 571 450 571 L468 570 Q481 569 479 555 C476 529 469 501 458 478 C436 469 420 445 419 411";
+ const shape=(d,fill,stroke,width)=>illustration.append("path").attr("d",d).attr("fill",fill).attr("stroke",stroke).attr("stroke-width",width).attr("stroke-linecap","round").attr("stroke-linejoin","round");
+ shape(stem,"#e5f4ee","#82b8a6",2.2);
+ shape(cerebellum,"#e9f6f1","#82b8a6",2.2);
+ shape(cerebrum,"#edf7fc","#83b3d8",2.4);
+ const folds=[
+ "M291 31 C312 39 325 56 326 77",
+ "M398 27 C414 51 404 82 382 88 C347 94 331 116 337 143 Q342 158 358 168",
+ "M495 49 C506 66 498 82 478 88 Q465 91 458 105",
+ "M174 71 Q197 89 200 112",
+ "M225 98 Q244 121 269 124 C235 143 222 187 254 218",
+ "M133 153 Q148 169 135 193 Q117 190 104 200 M135 193 Q153 206 154 226",
+ "M92 247 C72 268 82 296 103 305",
+ "M194 243 C157 243 143 271 149 294",
+ "M307 208 C332 193 358 210 360 236",
+ "M204 370 C219 314 266 286 323 285 C333 255 358 241 394 234 C438 225 456 193 451 160",
+ "M451 160 C468 126 514 119 537 146 Q549 160 548 180 M524 134 Q535 115 553 116",
+ "M421 134 Q446 138 451 160",
+ "M498 215 C527 229 534 251 512 277 C488 305 458 310 426 310",
+ "M426 284 C426 318 396 332 357 336 Q316 341 309 369",
+ "M508 280 Q541 291 546 321",
+ "M568 240 Q598 232 617 257 Q629 272 620 292",
+ "M617 257 C642 239 647 211 625 192",
+ "M602 323 Q628 337 621 356 Q613 374 583 372",
+ "M687 284 Q657 272 662 248",
+ "M285 389 Q313 418 351 392",
+ "M426 363 Q441 383 399 405 M426 363 Q457 381 480 358",
+ "M146 353 Q170 374 204 370",
+ "M451 427 Q492 401 543 415 T627 426",
+ "M454 445 Q501 431 545 447 T612 451",
+ "M490 465 Q527 464 566 474"
+ ];
+ folds.forEach((d,i)=>shape(d,"none",i>=22?"#92c8b5":"#a3c9e3",i>=22?1.5:1.7));
+ const sensors=[[291,31],[326,77],[269,124],[135,193],[194,243],[360,236],[323,285],[451,160],[537,146],[548,180],[512,277],[426,310],[617,257],[621,356],[399,405],[351,392],[543,415],[566,474],[658,382]];
+ sensors.forEach(([x,y],i)=>{const color=["#27a8f2","#2dbf80","#f47b16","#2e75cf"][i%4];illustration.append("circle").attr("cx",x).attr("cy",y).attr("r",8).attr("fill",color).attr("fill-opacity",.09);illustration.append("circle").attr("cx",x).attr("cy",y).attr("r",4).attr("fill","white").attr("stroke",color).attr("stroke-opacity",.8).attr("stroke-width",1.4);});
+ const anchors=new Map();
+ function setAnchors(list){const groups=new Map();list.forEach(n=>{const a=groups.get(n.type)||[];a.push(n);groups.set(n.type,a);});const zones={adr:[-25,-95,105,80],capability:[-145,-155,65,45],component:[145,-105,90,70],issue:[-175,0,85,65],commit:[65,-5,210,110],"cluster-state":[200,130,45,22]};for(const [type,items] of groups){const [cx,cy,rx,ry]=zones[type]||[0,0,100,100];items.sort((a,b)=>String(a.id).localeCompare(String(b.id))).forEach((n,i)=>{const angle=i*2.39996323,rad=Math.sqrt((i+.5)/items.length);anchors.set(n.id,[cx+Math.cos(angle)*rx*rad,cy+Math.sin(angle)*ry*rad]);});}}
+ function configure(list){setAnchors(list);art.style("display",brain?null:"none");viewport.classList.toggle("brain",brain);sim.force("center",brain?null:d3.forceCenter(0,0));sim.force("x",d3.forceX(n=>brain?(anchors.get(n.id)||[0,0])[0]:0).strength(brain?.65:.035));sim.force("y",d3.forceY(n=>brain?(anchors.get(n.id)||[0,0])[1]:0).strength(brain?.65:.035));sim.force("charge").strength(brain?-9:-120);sim.force("link").strength(brain?.035:.25);sim.force("collide").radius(n=>brain?Math.max(2,(R[n.type]||6)*.55):(R[n.type]||6)+5); }
 
-const nodes = data.nodes, links = data.links.map(d=>({...d}));
-document.getElementById("stats").textContent =
-  `${nodes.length} nodes · ${links.length} edges`;
-const legend = document.getElementById("legend");
-Object.entries(COLORS).forEach(([t,c])=>{
-  legend.insertAdjacentHTML("beforeend",
-    `<span><i class="dot" style="background:${c}"></i>${t}</span>`);});
-
-const svg = d3.select("svg"),
-      W = innerWidth, H = innerHeight,
-      g = svg.append("g");
-svg.call(d3.zoom().scaleExtent([.2,4]).on("zoom",e=>g.attr("transform",e.transform)));
-
-const sim = d3.forceSimulation(nodes)
-  .force("link", d3.forceLink(links).id(d=>d.id).distance(70).strength(.4))
-  .force("charge", d3.forceManyBody().strength(-220))
-  .force("center", d3.forceCenter(W/2, H/2))
-  .force("collide", d3.forceCollide().radius(d=>R[d.type]+8));
-
-const link = g.append("g").selectAll("line").data(links).join("line")
-  .attr("class","link");
-
-const node = g.append("g").selectAll("g").data(nodes).join("g")
-  .attr("class","node")
-  .call(d3.drag()
-    .on("start",(e,d)=>{if(!e.active)sim.alphaTarget(.3).restart();d.fx=d.x;d.fy=d.y;})
-    .on("drag",(e,d)=>{d.fx=e.x;d.fy=e.y;})
-    .on("end",(e,d)=>{if(!e.active)sim.alphaTarget(0);d.fx=null;d.fy=null;}));
-
-node.append("circle")
-  .attr("r",d=>R[d.type]||6)
-  .attr("fill",d=>COLORS[d.type]||"#999");
-node.append("text").attr("dx",d=>(R[d.type]||6)+4).attr("dy",4)
-  .text(d=>d.label||d.id);
-
-const adj = new Map(nodes.map(n=>[n.id,new Set([n.id])]));
-links.forEach(l=>{adj.get(l.source.id).add(l.target.id);
-                  adj.get(l.target.id).add(l.source.id);});
-
-node.on("mouseover",(e,d)=>{
-    const keep = adj.get(d.id);
-    node.classed("faded",n=>!keep.has(n.id));
-    link.classed("faded",l=>l.source.id!==d.id && l.target.id!==d.id);
-  }).on("mouseout",()=>{node.classed("faded",false);link.classed("faded",false);})
-  .on("click",(e,d)=>{
-    const box = document.getElementById("info");
-    let html = `<h2>${d.label||d.id}</h2>`;
-    if(d.title) html += `<p class="rel">${d.title}</p>`;
-    if(d.status) html += `<p class="rel">Status: <b>${d.status}</b> · ${d.date||""}</p>`;
-    if(d.message) html += `<p class="rel">${d.date||""} — ${d.message}</p>`;
-    if(d.url) html += `<p class="rel"><a href="${d.url}" style="color:#58a6ff">${d.url}</a></p>`;
-    html += "<hr style='border-color:#30363d'>";
-    links.filter(l=>l.source.id===d.id||l.target.id===d.id).forEach(l=>{
-      const other = l.source.id===d.id ? l.target : l.source;
-      html += `<p class="rel"><b>${l.rel}</b> ${other.label||other.id}</p>`;});
-    box.innerHTML = html; box.style.display = "block";
-  });
-svg.on("click",e=>{if(e.target.tagName==="svg")
-  document.getElementById("info").style.display="none";});
-
-sim.on("tick",()=>{
-  link.attr("x1",d=>d.source.x).attr("y1",d=>d.source.y)
-      .attr("x2",d=>d.target.x).attr("y2",d=>d.target.y);
-  node.attr("transform",d=>`translate(${d.x},${d.y})`);
-});
+ function fit(all=false){const list=nodes.filter(n=>visible.has(n.id)&&Number.isFinite(n.x)&&Number.isFinite(n.y));if(!list.length)return;const w=viewport.clientWidth,h=viewport.clientHeight;if(!w||!h)return;if(brain&&!all){const s=Math.min((w-24)/720,(h-24)/620,2.5);svg.call(zoom.transform,d3.zoomIdentity.translate(w/2,h/2).scale(s));return;}const connected=list.filter(n=>adj.get(n.id).size>1);const focus=!all&&connected.length?connected:list;const xs=focus.map(n=>n.x).sort(d3.ascending),ys=focus.map(n=>n.y).sort(d3.ascending);const trim=!all&&focus.length>100?.025:0;const x=[d3.quantileSorted(xs,trim),d3.quantileSorted(xs,1-trim)],y=[d3.quantileSorted(ys,trim),d3.quantileSorted(ys,1-trim)];const s=Math.max(.08,Math.min(2.5,(w-48)/Math.max(40,x[1]-x[0]),(h-48)/Math.max(40,y[1]-y[0])));svg.call(zoom.transform,d3.zoomIdentity.translate(w/2,h/2).scale(s).translate(-(x[0]+x[1])/2,-(y[0]+y[1])/2));}
+ function highlight(){const keep=selected?adj.get(selected.id):null;ns.classed("selected",n=>n.id===selected?.id).classed("faded",n=>keep&&!keep.has(n.id));ls.classed("faded",l=>selected&&idOf(l.source)!==selected.id&&idOf(l.target)!==selected.id);}
+ function update(shouldFit){const list=nodes.filter(n=>visible.has(n.id));sim.stop();sim.force("link").links([]);sim.nodes(list);sim.force("link").links(shownLinks);configure(list);
+ ls=lg.selectAll("line").data(shownLinks,l=>idOf(l.source)+"|"+idOf(l.target)+"|"+l.rel+"|"+(l.key??0)).join("line").attr("class","link");
+ ns=ng.selectAll("g").data(list,n=>n.id).join(enter=>{const a=enter.append("g").attr("class","node").on("click",(e,n)=>{e.stopPropagation();selectNode(n);}).call(d3.drag().on("start",(e,n)=>{if(!e.active)sim.alphaTarget(.2).restart();n.fx=n.x;n.fy=n.y;}).on("drag",(e,n)=>{n.fx=e.x;n.fy=e.y;}).on("end",(e,n)=>{if(!e.active)sim.alphaTarget(0);n.fx=null;n.fy=null;}));a.append("circle").attr("r",n=>R[n.type]||6).attr("fill",n=>COLORS[n.type]||"#74849a");a.append("title").text(n=>n.title||n.message||label(n));a.append("text").attr("dx",n=>(R[n.type]||6)+4).attr("dy",4).text(n=>label(n));return a;});
+ ns.select("circle").attr("r",n=>brain?Math.max(2,(R[n.type]||6)*.65):(R[n.type]||6));ns.select("text").style("display",n=>brain&&list.length>80? "none":list.length>120&&["commit","cluster-state","issue"].includes(n.type)?"none":null);
+ highlight();fitPending=shouldFit;sim.alpha(.8);if(shouldFit){sim.tick(100);fit();}sim.restart();}
+ sim.on("tick",()=>{ls.attr("x1",l=>l.source.x).attr("y1",l=>l.source.y).attr("x2",l=>l.target.x).attr("y2",l=>l.target.y);ns.attr("transform",n=>"translate("+n.x+","+n.y+")");if(fitPending&&sim.alpha()<.15){fitPending=false;fit();}});
+ graph={update,highlight};$("mode").addEventListener("click",()=>{brain=!brain;$("mode").textContent=brain?"Brain mode":"Structure mode";$("mode").setAttribute("aria-pressed",String(brain));update(true);});$("focus").addEventListener("click",()=>{fitPending=false;fit();});$("fit").addEventListener("click",()=>{fitPending=false;fit(true);});$("plus").addEventListener("click",()=>svg.call(zoom.scaleBy,1.4));$("minus").addEventListener("click",()=>svg.call(zoom.scaleBy,1/1.4));zoom.on("start.cancel-autofit",e=>{if(e.sourceEvent)fitPending=false;});new ResizeObserver(()=>fit()).observe(viewport);
+}else{$("load-error").hidden=false;["mode","focus","fit","plus","minus"].forEach(id=>$(id).disabled=true);}
+$("full").addEventListener("click",async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen();}catch{}});if(!document.fullscreenEnabled)$("full").hidden=true;
+refresh(true);
 </script>
 </body>
 </html>

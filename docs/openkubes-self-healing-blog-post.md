@@ -186,7 +186,7 @@ We believe infrastructure should be treated like software, rebuilt like containe
 ---
 
 🔗 [github.com/openkubes/openkubes](https://github.com/openkubes/openkubes)
-📊 [OpenKubes Platform Presentation](https://kubernauts.de/en/openkubes/OpenKubes-Presentation.html)
+📊 [OpenKubes Architecture](https://openkubes.org/architecture/)
 📖 [blog.kubernauts.io](https://blog.kubernauts.io)
 
 ---

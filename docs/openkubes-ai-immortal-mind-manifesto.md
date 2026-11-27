@@ -275,10 +275,15 @@ Because the most important knowledge to preserve is the knowledge we build toget
 ---
 
 🔗 [github.com/openkubes/openkubes](https://github.com/openkubes/openkubes)
-📊 [OpenKubes Platform Presentation](https://kubernauts.de/en/openkubes/OpenKubes-Presentation.html)
+📊 [OpenKubes Architecture](https://openkubes.org/architecture/)
 📖 [blog.kubernauts.io](https://blog.kubernauts.io)
 🎯 [OpenKubes Roadmap: OK-30 Immortal Platform](https://kubernauts.atlassian.net/browse/OK-30)
 
 ---
 
 *Arash Kaffamanesh is the founder of Clouds Sky GmbH & Kubernauts GmbH and has been building and operating Kubernetes platforms for over ten years across automotive, industrial, financial, and healthcare environments. He is the creator of OpenKubes — the open platform for self-healing sovereign Kubernetes infrastructure.*
+
+
+## Explore the living knowledge graph
+
+[Explore the OpenKubes Living Knowledge Graph](/knowledge-graph/) — an interactive, Git-derived view of architecture decisions and their documented relationships.
