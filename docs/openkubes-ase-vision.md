@@ -2,6 +2,8 @@
 
 *Developing OpenKubes with OpenKubes.*
 
+![Proposed OpenKubes ASE architecture](openkubes-ase-architecture.svg)
+
 *Research & Engineering — vision and proposed architecture; experimental validation is planned.*
 
 ## What if a software platform could help build itself?
@@ -33,8 +35,6 @@ Agents operate autonomously within those boundaries. Human intervention becomes 
 **Autonomy is not the absence of control. It is the ability to operate independently within explicitly enforced boundaries.**
 
 ## From Developer Workspaces to Autonomous Engineering Workspaces
-
-![Proposed OpenKubes ASE architecture](openkubes-ase-architecture.svg)
 
 We envision the OpenKubes Developer Workspace evolving beyond a traditional development environment into a governed execution environment for both human developers and autonomous engineering agents.
 
