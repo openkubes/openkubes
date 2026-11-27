@@ -1,4 +1,6 @@
-# Developing OpenKubes with OpenKubes: Towards Autonomous Software Engineering
+# Dogfooding: Autonomous Software Engineering
+
+*Developing OpenKubes with OpenKubes.*
 
 *Research & Engineering — unpublished working draft; results pending Experiment 001.*
 
