@@ -56,7 +56,7 @@ const guides=[
 ];
 let activeGuide=null,selected=null,visible=new Set(),shownLinks=[],graph=null;
 const filters=new Map();
-Object.entries(LABELS).forEach(([type,name])=>{const row=el("label"),check=el("input"),dot=el("i",undefined,"dot");check.type="checkbox";check.checked=true;dot.style.background=COLORS[type];filters.set(type,check);row.append(check,dot,el("span",name),el("span",String(nodes.filter(n=>n.type===type).length),"count"));$("filters").append(row);check.addEventListener("change",refresh);});
+Object.entries(LABELS).forEach(([type,name])=>{const row=el("label"),check=el("input"),dot=el("i",undefined,"dot");check.type="checkbox";check.checked=true;dot.style.background=COLORS[type];filters.set(type,check);row.append(check,dot,el("span",name),el("span",String(nodes.filter(n=>n.type===type).length),"count"));$("filters").append(row);check.addEventListener("change",()=>refresh(true));});
 [...new Set(nodes.filter(n=>["commit","cluster-state"].includes(n.type)).map(n=>String(n.date||"").slice(0,4)).filter(y=>/^\d{4}$/.test(y)))].sort().reverse().forEach(y=>{const o=el("option",y);o.value=y;$("year").append(o);});
 guides.forEach((g,i)=>{const b=el("button",g[0],"guide");b.append(el("small",g[1]));b.setAttribute("aria-pressed","false");b.addEventListener("click",()=>{activeGuide=activeGuide===i?null:i;selected=null;$("search").value="";$("year").value="";filters.forEach(c=>c.checked=true);renderDetails();refresh(true);});$("guides").append(b);});
 function allowed(n){return (filters.get(n.type)?.checked??true)&&(!$("year").value||!["commit","cluster-state"].includes(n.type)||String(n.date||"").startsWith($("year").value));}
