@@ -132,6 +132,12 @@ def main():
         raise SystemExit("Missing community documentation contribution guide")
     if "How to update the docs" not in guide_path.read_text(encoding="utf-8"):
         raise SystemExit("Incomplete community contribution guide")
+    # Require Knowledge in every primary navigation rendering path.
+    for relative in ('index.html', 'architecture/index.html', 'knowledge-graph/index.html', 'openkubes-self-healing-blog-post.html'):
+        rendered = (SITE / relative).read_text(encoding='utf-8')
+        primary = rendered.split('aria-label="OpenKubes primary navigation"', 1)[1].split('</nav>', 1)[0]
+        if primary.count('href="/knowledge-graph/"') != 1 or not primary.index('href="/architecture/"') < primary.index('href="/knowledge-graph/"') < primary.index('href="/research/"'):
+            raise SystemExit(f'Missing or misplaced Knowledge navigation: {relative}')
     # Guard the OK AI navigation and generated capability entry points.
     for ai_path in ("ai/index.html", "ai/open-webui/index.html",
                     "ai/openclaw/index.html", "ai/kagent-platform-diagnostics/index.html",
