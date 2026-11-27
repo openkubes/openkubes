@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 750 600" role="img" aria-labelledby="title desc">
+<title id="title">OpenKubes Living Knowledge Graph</title><desc id="desc">Brain-inspired visualization of public architecture decisions and text-derived relationships.</desc>
+<g stroke-linecap="round" stroke-linejoin="round">
+<path d="M351 428 C370 450 395 463 409 487 C422 509 426 536 432 559 Q434 571 450 571 L468 570 Q481 569 479 555 C476 529 469 501 458 478 C436 469 420 445 419 411" fill="#e5f4ee" stroke="#82b8a6" stroke-width="2.2"/>
+<path d="M399 405 C432 406 467 402 500 382 C525 395 557 395 583 372 C606 386 627 394 655 382 C655 431 625 469 579 483 C529 497 470 481 450 446 C433 435 414 423 399 405 Z" fill="#e9f6f1" stroke="#82b8a6" stroke-width="2.2"/>
+<path d="M68 241 C53 204 68 164 100 140 C104 105 135 77 174 71 C196 31 249 17 291 31 C324 7 368 8 398 27 C435 8 474 21 495 49 C536 43 576 67 591 107 C625 111 651 142 651 180 C689 202 704 249 687 284 C706 323 691 367 655 382 C627 394 606 386 583 372 C557 395 525 395 500 382 C467 402 432 406 399 405 C363 420 326 445 285 442 C239 440 205 410 204 370 C166 381 124 391 91 367 C47 337 43 281 68 241 Z" fill="#edf7fc" stroke="#83b3d8" stroke-width="2.4"/>
+<path d="M291 31 C312 39 325 56 326 77" fill="none" stroke="#a3c9e3" stroke-width="1.7"/>
+<path d="M398 27 C414 51 404 82 382 88 C347 94 331 116 337 143 Q342 158 358 168" fill="none" stroke="#a3c9e3" stroke-width="1.7"/>
+<path d="M495 49 C506 66 498 82 478 88 Q465 91 458 105" fill="none" stroke="#a3c9e3" stroke-width="1.7"/>
+<path d="M174 71 Q197 89 200 112" fill="none" stroke="#a3c9e3" stroke-width="1.7"/>
+<path d="M225 98 Q244 121 269 124 C235 143 222 187 254 218" fill="none" stroke="#a3c9e3" stroke-width="1.7"/>
+<path d="M133 153 Q148 169 135 193 Q117 190 104 200 M135 193 Q153 206 154 226" fill="none" stroke="#a3c9e3" stroke-width="1.7"/>
+<path d="M92 247 C72 268 82 296 103 305" fill="none" stroke="#a3c9e3" stroke-width="1.7"/>
+<path d="M194 243 C157 243 143 271 149 294" fill="none" stroke="#a3c9e3" stroke-width="1.7"/>
+<path d="M307 208 C332 193 358 210 360 236" fill="none" stroke="#a3c9e3" stroke-width="1.7"/>
+<path d="M204 370 C219 314 266 286 323 285 C333 255 358 241 394 234 C438 225 456 193 451 160" fill="none" stroke="#a3c9e3" stroke-width="1.7"/>
+<path d="M451 160 C468 126 514 119 537 146 Q549 160 548 180 M524 134 Q535 115 553 116" fill="none" stroke="#a3c9e3" stroke-width="1.7"/>
+<path d="M421 134 Q446 138 451 160" fill="none" stroke="#a3c9e3" stroke-width="1.7"/>
+<path d="M498 215 C527 229 534 251 512 277 C488 305 458 310 426 310" fill="none" stroke="#a3c9e3" stroke-width="1.7"/>
+<path d="M426 284 C426 318 396 332 357 336 Q316 341 309 369" fill="none" stroke="#a3c9e3" stroke-width="1.7"/>
+<path d="M508 280 Q541 291 546 321" fill="none" stroke="#a3c9e3" stroke-width="1.7"/>
+<path d="M568 240 Q598 232 617 257 Q629 272 620 292" fill="none" stroke="#a3c9e3" stroke-width="1.7"/>
+<path d="M617 257 C642 239 647 211 625 192" fill="none" stroke="#a3c9e3" stroke-width="1.7"/>
+<path d="M602 323 Q628 337 621 356 Q613 374 583 372" fill="none" stroke="#a3c9e3" stroke-width="1.7"/>
+<path d="M687 284 Q657 272 662 248" fill="none" stroke="#a3c9e3" stroke-width="1.7"/>
+<path d="M285 389 Q313 418 351 392" fill="none" stroke="#a3c9e3" stroke-width="1.7"/>
+<path d="M426 363 Q441 383 399 405 M426 363 Q457 381 480 358" fill="none" stroke="#a3c9e3" stroke-width="1.7"/>
+<path d="M146 353 Q170 374 204 370" fill="none" stroke="#a3c9e3" stroke-width="1.7"/>
+<path d="M451 427 Q492 401 543 415 T627 426" fill="none" stroke="#92c8b5" stroke-width="1.7"/>
+<path d="M454 445 Q501 431 545 447 T612 451" fill="none" stroke="#92c8b5" stroke-width="1.7"/>
+<path d="M490 465 Q527 464 566 474" fill="none" stroke="#92c8b5" stroke-width="1.7"/>
+<circle cx="291" cy="31" r="4" fill="white" stroke="#27a8f2" stroke-width="1.4"/>
+<circle cx="326" cy="77" r="4" fill="white" stroke="#2dbf80" stroke-width="1.4"/>
+<circle cx="269" cy="124" r="4" fill="white" stroke="#f47b16" stroke-width="1.4"/>
+<circle cx="135" cy="193" r="4" fill="white" stroke="#2e75cf" stroke-width="1.4"/>
+<circle cx="194" cy="243" r="4" fill="white" stroke="#27a8f2" stroke-width="1.4"/>
+<circle cx="360" cy="236" r="4" fill="white" stroke="#2dbf80" stroke-width="1.4"/>
+<circle cx="323" cy="285" r="4" fill="white" stroke="#f47b16" stroke-width="1.4"/>
+<circle cx="451" cy="160" r="4" fill="white" stroke="#2e75cf" stroke-width="1.4"/>
+<circle cx="537" cy="146" r="4" fill="white" stroke="#27a8f2" stroke-width="1.4"/>
+<circle cx="548" cy="180" r="4" fill="white" stroke="#2dbf80" stroke-width="1.4"/>
+<circle cx="512" cy="277" r="4" fill="white" stroke="#f47b16" stroke-width="1.4"/>
+<circle cx="426" cy="310" r="4" fill="white" stroke="#2e75cf" stroke-width="1.4"/>
+<circle cx="617" cy="257" r="4" fill="white" stroke="#27a8f2" stroke-width="1.4"/>
+<circle cx="621" cy="356" r="4" fill="white" stroke="#2dbf80" stroke-width="1.4"/>
+<circle cx="399" cy="405" r="4" fill="white" stroke="#f47b16" stroke-width="1.4"/>
+<circle cx="351" cy="392" r="4" fill="white" stroke="#2e75cf" stroke-width="1.4"/>
+<circle cx="543" cy="415" r="4" fill="white" stroke="#27a8f2" stroke-width="1.4"/>
+<circle cx="566" cy="474" r="4" fill="white" stroke="#2dbf80" stroke-width="1.4"/>
+<circle cx="658" cy="382" r="4" fill="white" stroke="#f47b16" stroke-width="1.4"/>
+</g>
+<!-- GRAPH_EDGES -->
+<!-- GRAPH_NODES -->
+</svg>
