@@ -2,7 +2,7 @@
 
 *Developing OpenKubes with OpenKubes.*
 
-*Research & Engineering — unpublished working draft; results pending Experiment 001.*
+*Research & Engineering — vision and proposed architecture; experimental validation is planned.*
 
 ## What if a software platform could help build itself?
 
@@ -113,7 +113,7 @@ We will evaluate engineering quality, acceptance criteria compliance, autonomous
 
 A comparative OpenCode/Codex run with identical task contracts and starting revisions is a candidate follow-up, subject to discovery and model availability.
 
-*Experimental results and lessons learned will be added following the initial qualification run. No autonomous engineering capability is claimed as validated by this article.*
+*Experimental results and lessons learned will be reported separately following the initial qualification run. No autonomous engineering capability is claimed as validated by this article.*
 
 ## An invitation to the community
 
