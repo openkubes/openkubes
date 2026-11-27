@@ -3,6 +3,7 @@
 from pathlib import Path
 import shutil
 from blog_editorial_dates import stage_article
+from public_knowledge_graph import stage_public_graph
 
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE = ROOT / "docs"
@@ -20,6 +21,7 @@ ARTICLES = (
     "the-contract-is-the-guardrail-blog-post.md",
     "openkubes-self-healing-blog-post.md",
     "openkubes-blog-post.md",
+    "openkubes-ai-immortal-mind-manifesto.md",
 )
 def main():
     if not (TARGET / "index.md").exists():
@@ -180,6 +182,7 @@ def main():
     if not media.is_dir():
         raise SystemExit("Legacy media directory not found.")
     shutil.copytree(media, TARGET / "media", dirs_exist_ok=True)
+    stage_public_graph(TARGET)
     print(f"Staged {len(ARTICLES)} public articles and homepage assets.")
 
 if __name__ == "__main__":
