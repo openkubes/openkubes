@@ -24,6 +24,10 @@ Desired state, transition decisions and runtime reconciliation are separate resp
 
 Platform acceptance relies on inspectable evidence and clearly defined outcomes rather than informal success signals.
 
+## OpenKubes Architecture Series
+
+[From Infrastructure to Intelligence](series/index.md) — a curated journey through sovereignty, infrastructure, knowledge, contracts and trustworthy agentic operations. Start with [The Sovereign Kubernetes Stack](series/sovereign-kubernetes-stack.md).
+
 ## Autonomous Software Engineering
 
 [Dogfooding: Autonomous Software Engineering](autonomous-software-engineering.md) explores governed engineering agents, independent verification and evidence-driven autonomy as a proposed extension of the Developer Workspace. Experimental validation is planned.
