@@ -53,6 +53,14 @@ def main():
         if not source_page.is_file() or source_page.is_symlink():
             raise SystemExit(f"Missing Security First page or SVG: {source_page}")
         shutil.copy2(source_page, architecture_target / filename)
+    # Architecture Series: stage only the explicitly published source files.
+    series_target = architecture_target / "series"
+    series_target.mkdir(parents=True, exist_ok=True)
+    for filename in ("index.md", "sovereign-kubernetes-stack.md", "sovereign-stack.svg"):
+        source_page = architecture_source / "series" / filename
+        if not source_page.is_file() or source_page.is_symlink():
+            raise SystemExit(f"Missing Architecture Series source: {source_page}")
+        shutil.copy2(source_page, series_target / filename)
     # Stage the Research section without making production-readiness claims.
     research_source = pages / "research"
     research_target = TARGET / "research"
