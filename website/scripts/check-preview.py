@@ -138,6 +138,14 @@ def main():
         primary = rendered.split('aria-label="OpenKubes primary navigation"', 1)[1].split('</nav>', 1)[0]
         if primary.count('href="/knowledge-graph/"') != 1 or not primary.index('href="/architecture/"') < primary.index('href="/knowledge-graph/"') < primary.index('href="/research/"'):
             raise SystemExit(f'Missing or misplaced Knowledge navigation: {relative}')
+    # Architecture Series: ensure the overview, lead article and native diagram ship.
+    for relative in ('architecture/series/index.html', 'architecture/series/sovereign-kubernetes-stack/index.html', 'architecture/series/sovereign-stack.svg'):
+        if not (SITE / relative).is_file():
+            raise SystemExit('Missing Architecture Series asset: ' + relative)
+    series = (SITE / 'architecture/series/index.html').read_text(encoding='utf-8')
+    for expected in ('The Sovereign Kubernetes Stack', '/openkubes-self-healing-blog-post/', '/openkubes-ai-immortal-mind-manifesto/', 'Context Grounds'):
+        if expected not in series:
+            raise SystemExit('Missing Architecture Series reference: ' + expected)
     # Guard the OK AI navigation and generated capability entry points.
     for ai_path in ("ai/index.html", "ai/open-webui/index.html",
                     "ai/openclaw/index.html", "ai/kagent-platform-diagnostics/index.html",
